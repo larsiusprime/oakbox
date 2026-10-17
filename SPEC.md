@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** Draft 0.3. Built through dialogue; nothing here is final until marked **Decided**.
+**Status:** Draft 0.4. Built through dialogue; nothing here is final until marked **Decided**.
 
 ## 1. Purpose
 
@@ -40,6 +40,10 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D24 | Years | **Decided.** One project per jurisdiction per tax year. A new year starts as a copy of the previous one (§3.7). |
 | D25 | Users | **Decided.** Single user, one PC, for now. Multi-user comes later. |
 | D26 | Help | **Decided.** Built-in help pages plus a link to the Discord. An AI helper comes later (§3.8). |
+| D27 | Bad input data | **Decided.** A Data health screen after import, with plain-language problems and safe one-click fixes. Every fix is logged and reported (§3.9). |
+| D28 | Ratio study report | **Decided.** IAAO statistics by default, building on OpenAVMKit's existing report and exports. openratiostudy.com is a reference. Targets come from configurable local-standards profiles (§4.1). |
+| D29 | Enrichment v1 | **Decided.** Building footprints, census, distances and elevation. The street network is deferred (too memory-heavy). |
+| D30 | Variables | **Decided.** Two paths: "Plow forward" (defaults) or "Test variables first" (an explicit significance review). Neither path is required (§3.10). |
 
 ## 3. What the user sees
 
@@ -56,8 +60,8 @@ One question per screen, in plain words. **Back** always works. Progress is save
 3. **Parcel details** (optional). CSV or Excel files joined to the parcels by parcel ID. The app guesses the ID column; the user confirms it.
 4. **Sales.** A CSV or Excel file with parcel ID, date and price, plus the office's validity code if there is one. The user maps which codes mean "valid". With no code, all sales start as valid and scrutiny in step 3 flags the doubtful ones. OpenAVMKit requires a `valid_sale` column, so Oakbox always produces one.
 5. **Match columns.** The app auto-maps the user's columns to OpenAVMKit fields: "We think `SQFT_LIV` is *Living area*. Correct?" The user only has to confirm the uncertain ones.
-6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more columns, for example the current appraised value or last year's value. At least one is required to run step 3. If none exists yet, the user can skip and check model values after step 4.
-7. **Enrichment.** Optional, online only. Plain-language checkboxes, for example: "Add building footprints (Overture)", "Add census tracts and income", "Add distances to roads, water and parks (OpenStreetMap)", "Add elevation (USGS)". Each one says what is sent: only the county's bounding box, never parcel data. The Census option includes a short guided walkthrough for getting a free API key, then pasting it in; Oakbox checks that the key works. With no key, the Census step is skipped.
+6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more columns, for example the current appraised value or last year's value. At least one is required to run step 4. If none exists yet, the user can skip and check model values after step 5.
+7. **Enrichment.** Optional, online only. Plain-language checkboxes, for example: "Add building footprints (Overture)", "Add census tracts and income", "Add distances to roads, water and parks (OpenStreetMap)", "Add elevation (USGS)". The street-network enrichment is not offered in v1. Each one says what is sent: only the county's bounding box, never parcel data. The Census option includes a short guided walkthrough for getting a free API key, then pasting it in; Oakbox checks that the key works. With no key, the Census step is skipped.
 8. **Valuation date** and which years of sales to use.
 9. **Review.** A summary of the setup, then **Create project**.
 
@@ -68,11 +72,11 @@ Each step has a **Run** button, a progress bar, a plain-language status and a **
 
 | Step | OpenAVMKit stage | Internet? |
 |------|------------------|-----------|
-| 1. Bring in data | assemble + enrichment | Only if enrichment is on |
+| 1. Bring in data | assemble + enrichment, then Data health (§3.9) | Only if enrichment is on |
 | 2. Define property groups | model group tagging (§3.5) | No |
 | 3. Check sales | clean, sales scrutiny, assessor overrides (§3.6) | No |
 | 4. Check my values | ratio study, horizontal and vertical equity on the value field(s) named in the wizard, overall and by group | No |
-| 5. Build model values | model, finalize, ratio study on model values. The user picks a model or "Choose for me" (LightGBM). Each option has a one-line plain description | No |
+| 5. Build model values | optional variable testing (§3.10), then model, finalize, ratio study on model values. The user picks a model or "Choose for me" (LightGBM). Each option has a one-line plain description | No |
 | 6. Reports and export | PDF reports, CSV/Excel/shapefile export | No |
 
 **Results views:**
@@ -129,6 +133,35 @@ Groups are parcels that are valued together, for example single-family, condos, 
   - (a) a small local language model with access to the help pages, which stays fully offline and keeps the D12 privacy promise.
   - (b) the user's own frontier-model API key. Before the first use, the app clearly discloses what is sent; this is an explicit exception to D12 that the user agrees to.
 
+### 3.9 Data health
+Shown automatically after step 1, and again whenever data is re-imported. Each problem is one card: what's wrong, how many rows, an example, and what to do.
+
+| Problem | Safe one-click fix | Otherwise |
+|---------|--------------------|-----------|
+| Duplicate parcel IDs | Keep first / keep newest | Export the list to fix in CAMA |
+| Sales that match no parcel | Exclude them from the study | Export the list |
+| Invalid or empty geometry | Repair geometry / drop the parcel | Export the list |
+| Parcels outside the jurisdiction | Drop them | Show on the map |
+| Impossible values (negative area, year built 2099, $0 sale) | Treat as missing | Export the list |
+| Wrong units or coordinate system | Reproject (with confirmation) | — |
+| Sales outside the study window | Nothing to fix (informational) | — |
+
+- Fixes are **never silent**. Each one is logged with a count and appears in a "Data corrections" appendix in every report.
+- A **"Download problem list"** button exports Excel, so the office can fix the source data in its CAMA system.
+- Problems are rated **blocking** or **warning**. Only blocking ones stop the next step; the user can always continue past warnings.
+
+### 3.10 Variables: plow forward or test first
+At the start of step 5, the user chooses one of two paths. The choice can be changed later.
+
+- **"Plow forward" (default).** Oakbox uses OpenAVMKit's default variable handling and goes straight to modeling.
+- **"Test variables first."** This runs OpenAVMKit's variable analysis (`try_variables`) per group and shows a review screen:
+  - One row per variable, with a plain verdict: *Drives value*, *Redundant with ___*, *Weak*, or *Counter-intuitive* (for example "bigger homes sell for less").
+  - Behind an "Details" expander: the underlying statistics (correlation, VIF, p-value, SHAP importance). The wording comes from the existing `variables.md` report.
+  - A toggle per variable to include or exclude it, defaulting to OpenAVMKit's recommendation. Exclusions are saved to the project and listed in the model report.
+  - **"Try models with these variables"** runs a quick comparison and shows the ratio statistics side by side, before the user commits to a full run.
+
+Both paths produce the same Variables report, so the documentation is consistent either way.
+
 ## 4. Inputs, outputs, reports
 
 - **Import:** Shapefile (loose files or zipped), GeoPackage, GeoJSON, CSV, Excel (`.xlsx`/`.xls`). Oakbox converts everything to GeoParquet in the project's `in/` folder. OpenAVMKit only reads CSV/Parquet today.
@@ -140,6 +173,29 @@ Groups are parcels that are valued together, for example single-family, condos, 
   - model summary
 
   They should be clean, printable and suitable for a review board.
+### 4.1 Ratio study report and local standards
+Build on OpenAVMKit's existing `ratio_study.md` report rather than starting over. It already compares the jurisdiction's values with model values, includes a sales-chasing check, and breaks results down by price decile. It also already writes openratiostudy.com exports. Oakbox adds:
+
+- **IAAO core statistics** for every group and breakdown, each with confidence intervals and sale counts:
+  - median ratio
+  - COD
+  - PRD
+  - PRB
+
+  The IAAO draft revision adds VEI and MKI; include them so the report doesn't need a structural change when the standard is adopted.
+- **Pass/fail badges** against a **standards profile**. A profile is a small file: target ranges per statistic, per property class, minimum sample size, look-back period, required breakdowns.
+  - It ships with an **IAAO default** profile.
+  - State profiles (for example Texas PVS) come later, as part of jurisdiction packs.
+  - Users can copy a profile and edit the targets in a form.
+
+  OpenAVMKit currently has no thresholds, so this is new.
+- **Breakdowns** by group, neighborhood, price decile and any user-chosen field, such as age bracket or school district.
+- **Charts:** ratio vs. sale price (scatter), ratio distribution (histogram), and a map of ratios by neighborhood.
+- **A plain-language summary** on the first page, readable by a board member: "Residential values meet IAAO standards for uniformity (COD 11.8, target ≤15) but show mild regressivity (PRD 1.04, target ≤1.03)."
+- **Appendices:** data corrections (§3.9), sale overrides (§3.6), and methodology.
+
+**Reference wanted:** openratiostudy.com couldn't be reached from the build environment. A screenshot or a sample export would help pin down the layout.
+
 - **Custom reports:** the user picks sections and filters (neighborhood, class) and adds a logo or header text. Saved as a template per project. Jurisdiction packs (for example Texas) ship as templates later.
 
 ## 5. Hardware targets
@@ -211,7 +267,21 @@ Known macOS costs, deferred:
 
 ## 7. Upstream OpenAVMKit work (`oakbox` branch)
 
-**Where the work lives until access is granted (proposed).** A branch `openavmkit-oakbox` in the Oakbox repo, carrying OpenAVMKit's full history plus our commits. Oakbox builds pin a commit of it. When access to the OpenAVMKit repo is granted, the branch is pushed there as `oakbox` unchanged and merged by a normal PR, with no rebasing or patch juggling.
+**Where the work lives until access is granted (proposed).** A branch `openavmkit-oakbox` in the Oakbox repo, carrying OpenAVMKit's full history plus our commits.
+
+**How Oakbox uses it:** as a normal pinned Python dependency, not a git submodule and not monkey patches. The lockfile names an exact commit:
+
+```
+openavmkit @ git+https://github.com/larsiusprime/oakbox@<commit>
+```
+
+`uv` hashes it, so every build is reproducible.
+
+**Later:**
+1. When access to the OpenAVMKit repo is granted, the branch is pushed there as `oakbox` unchanged and merged by a normal PR, with no rebasing or patch juggling. The dependency URL moves to the OpenAVMKit repo.
+2. Once the changes are in an OpenAVMKit release, Oakbox pins that released version instead.
+
+Oakbox never patches OpenAVMKit at runtime. Any change to OpenAVMKit is a real commit on that branch.
 
 1. **Headless stage API.**
 
@@ -229,6 +299,8 @@ Known macOS costs, deferred:
 8. **Versioned releases** (git tags), so Oakbox can pin an exact OpenAVMKit version.
 9. **Sale overrides both ways.** OpenAVMKit has an invalid-key file today. Add a matching "force valid" list, and record the reason for each override so reports can show it.
 10. **Explain group assignment.** A helper that returns which group, and which rule, matched a parcel. `resolve_filter` already does the evaluation.
+11. **Standards profiles and pass/fail thresholds** in the ratio study, plus VEI and MKI statistics.
+12. **Data health checks** as a library function that returns structured problems. This keeps the checks reusable from notebooks.
 
 ## 8. Milestones
 
