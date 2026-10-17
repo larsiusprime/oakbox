@@ -24,7 +24,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D8 | Updates | The user approves each update. IT-managed deployment comes later. |
 | D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel. Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
 | D10 | Engine | OpenAVMKit changes are real commits on the `openavmkit-oakbox` branch, pinned by commit, later upstreamed (§7). |
-| D11 | Licensing | Free and open-source tech only. Oakbox is AGPL-3.0, to match OpenAVMKit. |
+| D11 | Licensing | Oakbox's own code is MIT. OpenAVMKit, including our `openavmkit-oakbox` commits, stays AGPL-3.0/commercial. The installer bundle ships OpenAVMKit under AGPL with a source link. All other dependencies must be free and open-source and AGPL-compatible (§6.2). |
 | D12 | Privacy | No parcel data leaves the machine. No telemetry. |
 | D13 | Localization | Deferred. All UI strings go in a string table from day one. |
 | D14 | Code signing | Deferred; the maintainer will handle it. |
@@ -272,6 +272,13 @@ Oakbox adds:
   - Apple signing and notarization (a paid account)
   - bundling `libomp` for LightGBM and XGBoost
   - a `.dmg` package
+
+### 6.2 Licensing
+- **Oakbox code: MIT.** It is the simplest permissive licence, compatible with the AGPL, and familiar to government IT and procurement.
+- **The engine stays dual-licensed.** OpenAVMKit, including everything on `openavmkit-oakbox`, remains AGPL-3.0 or commercial. Contributions there go through OpenAVMKit's CLA.
+- **The installer is AGPL-governed.** It contains OpenAVMKit, so it is distributed under the AGPL's terms. The About screen and installer link to the exact OpenAVMKit source commit, and a `THIRD-PARTY-LICENSES` file lists every bundled package.
+- **Effect:** anyone may reuse or rebrand the Oakbox wrapper. Shipping it with OpenAVMKit still requires AGPL compliance or a commercial OpenAVMKit licence. The engine keeps its protection; the wrapper is friction-free.
+- **CI licence check** fails the build if a dependency is not free/open-source or not AGPL-compatible.
 
 ## 7. Engine: OpenAVMKit changes
 
