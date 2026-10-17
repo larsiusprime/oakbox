@@ -85,7 +85,7 @@ Each step has **Run**, a progress bar with time remaining, **Cancel**, a plain-l
 |------|------------------------|-----------|
 | 1. Bring in data | assemble + enrichment (§3.12), then Data health (§3.9) | Only for online enrichments |
 | 2. Define property groups | model group tagging (§3.5) | No |
-| 3. Check sales | clean, sales scrutiny, assessor overrides (§3.6) | No |
+| 3. Check sales | clean (including Fill blanks, §3.12.2), sales scrutiny, assessor overrides (§3.6) | No |
 | 4. Check my values | ratio study, horizontal and vertical equity on the named value fields, overall and by group | No |
 | 5. Build model values | optional variable testing (§3.10), model, finalize, ratio study on model values. Model picker with "Choose for me" | No |
 | 6. Reports and export | PDF reports; Parquet, GeoPackage, Shapefile, CSV and Excel export (§4) | No |
@@ -226,21 +226,39 @@ New columns automatically become available in the group builder, sales review, b
 | **Distances** | **Defaults:** OpenAVMKit's built-in OSM feature set (water bodies, rivers, water, rail/transportation, airport, educational, parks, golf courses, coastline), kept exactly as maintained upstream. **Custom:** the assessor adds their own targets. Either a shapefile or other GIS layer (for example downtown, a landfill, a highway corridor), or *a custom OSM tag query*. Per feature: *max distance, unit, minimum size, nearest-N named features* | Bounding box, to the OpenStreetMap Overpass API. Custom shapefiles: nothing | Features × parcels. **Max distance is the main speed lever** | `dist_to_*`, `within_*`, `proximity_to_*` |
 | **Elevation** (USGS 3DEP) | Detail: 10 m, 30 m or 60 m. Oakbox recommends one by area | Bounding box, to USGS | Area ÷ resolution². 10 m on a large county is gigabytes | Mean elevation, its variation, mean slope |
 | **Permits** | Permit file(s) and column mapping; *effective-age calculation; teardown window* | Nothing | Small | Renovation and teardown flags, effective year built |
-| **Fill missing values** (spatial inference) | Field to fill; predictors (suggested: footprint, land area); location field; *method: "Choose for me" (LightGBM), ratio, random forest, XGBoost, ensemble; filters; rounding* | Nothing | Parcels × predictors, for each field | The filled field plus an `inferred_*` flag |
+| **Estimate missing values** (spatial inference, `enrich.infer`) | Field to estimate; predictors (suggested: footprint, land area); location field; *substitute fields to copy from first (infer's `fill` key); method: "Choose for me" (LightGBM), ratio, random forest, XGBoost, ensemble; filters; rounding* | Nothing | Parcels × predictors, for each field | The estimated field plus an `inferred_*` flag |
 | **Street frontage** | Deferred. Too heavy for v1 | — | — | — |
 
-**Rules for "Fill missing values":**
-It is offered to everyone, but always explained. The card and the first-use dialog say, in plain words:
+#### 3.12.2 Two different ways of filling blanks
+OpenAVMKit has two separate features, and Oakbox keeps them separate, with different names, screens and labels:
 
-> "This fills gaps so the model can run. Each filled value is an **educated guess** from similar nearby parcels. It is **not a fact** about the property. It is used **for modeling only** and is never written back to your records."
+| | **Estimate missing values** (`enrich.infer`) | **Default fills** (`data.process.fill`) |
+|---|---|---|
+| What it does | Predicts a value from nearby similar parcels with a model | Puts in a simple stand-in: group median/mean/mode, zero, min/max, "UNKNOWN", or a fixed value. *Can be limited to improved or vacant parcels* |
+| When | Step 1, last enrichment | Step 3 (clean), per property group |
+| Screen | Its card on the Enrichment screen | **"Fill blanks"** panel in step 3 |
+| Typical use | Important characteristics with sizable gaps, such as finished area | Making every model input complete. Linear models crash on any blank; tree models tolerate blanks |
+| Cost | Model training per field | Negligible |
+| Label in UI | **"Estimate"** | **"Default"** |
 
-- **Order:** it runs last, so it can use every other enrichment as a predictor.
-- **Preview before committing:** how many values are missing, and a validation score from OpenAVMKit's experiment mode, phrased plainly, e.g. "guesses are typically within ±18% of the real value".
-- **Always marked.** Filled values carry an `inferred_*` flag. In tables and parcel pop-ups they appear in a distinct style with an "estimate" label.
-- **Never exported as data.** CAMA exports keep the office's original (empty) value, with an optional "estimated" column clearly named as such.
-- **Reported.** Reports state how many values of each field were inferred, and by what method.
+**Shared rules (both features).** Each one is offered to everyone and always explained. The card or panel and a first-use dialog say, in plain words:
 
-#### 3.12.2 Modeling-time context (step 5)
+> "This fills gaps so the model can run. A filled value is an **educated guess** (Estimate) or a **simple stand-in** (Default). It is **not a fact** about the property. It is used **for modeling only** and is never written back to your records."
+
+- **Always marked.** Filled values appear in a distinct style with their label in tables and parcel pop-ups. Estimates carry OpenAVMKit's `inferred_*` flag. Default fills need a new flag (upstream item 19).
+- **Never exported as data.** CAMA exports keep the office's original (empty) value. Optional, clearly named "estimated"/"default" columns can go alongside.
+- **Reported.** Reports state how many values of each field were filled, and how.
+- **Order.** If both apply to a field, the estimate runs first (step 1). Default fills only touch what is still blank in step 3.
+
+**Specific to Estimate missing values:**
+- It runs last in step 1, so it can use every other enrichment as a predictor.
+- **Preview before committing:** how many values are missing, and a plain validation score from OpenAVMKit's experiment mode, e.g. "guesses are typically within ±18% of the real value".
+
+**Specific to Default fills:**
+- **Suggested automatically.** Before step 5, Oakbox lists every model input that still has blanks and proposes a fill (median for numbers, "UNKNOWN" for categories). This replaces the manual rule in OpenAVMKit's docs: "whenever you add an enrichment numeric, add it to `data.process.fill`". Enrichment fields with partial coverage, such as census or elevation, are the usual culprits.
+- **Automatic tidy-ups are shown, not hidden.** OpenAVMKit's automatic steps (year-built/age reconciliation, categorical "UNKNOWN") are listed in the panel as read-only rules.
+
+#### 3.12.3 Modeling-time context (step 5)
 **Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) are computed in step 5, not step 1. They depend on groups and train/test splits.
 
 - **Defaults:**
@@ -384,7 +402,8 @@ Oakbox adds:
     - the hard-coded `frontage_ft_1` breaks metric localities
     - the empty-result KeyError
     - expose ray and buffer parameters in settings
-18. **Docs:** `config.md` shows an obsolete distances schema; the spatial-join key is `geometry`, not `spatial_joins`; the spatial-lag docs omit `model_groups`.
+18. **Docs:** `config.md` shows an obsolete distances schema; the spatial-join key is `geometry`, not `spatial_joins`; the spatial-lag docs omit `model_groups`. Docs describe infer's `fill` key as "follow-up fields to fill from the inferred values", but the code copies *into* the target field from those substitute fields.
+19. **Provenance flag for default fills.** `data.process.fill` currently overwrites blanks without recording which rows were filled, so the UI can't mark them or keep them out of exports.
 
 ## 8. Milestones
 
