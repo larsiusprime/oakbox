@@ -22,7 +22,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D6 | Platform | Windows 10 64-bit minimum. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
 | D7 | Network | Works offline. Internet is only needed for optional enrichment, the map background and update checks. |
 | D8 | Updates | The user approves each update. IT-managed deployment comes later. |
-| D9 | Input/output | Shapefile, GeoPackage, GeoJSON, CSV and Excel in. CSV, Excel and Shapefile out. Polished PDF reports. Custom reports. |
+| D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel. Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
 | D10 | Engine | OpenAVMKit changes are real commits on the `openavmkit-oakbox` branch, pinned by commit, later upstreamed (§7). |
 | D11 | Licensing | Free and open-source tech only. Oakbox is AGPL-3.0, to match OpenAVMKit. |
 | D12 | Privacy | No parcel data leaves the machine. No telemetry. |
@@ -58,9 +58,9 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 One question per screen, in plain words. **Back** always works. Progress is saved after every screen.
 
 1. **Name, place, tax year.** The app picks the folder, units and map center.
-2. **Parcels.** The user drags in a GIS file (`.shp`, a zipped shapefile, `.gpkg`, `.geojson`) and sees it on a map straight away.
-3. **Parcel details** (optional). CSV or Excel files joined to the parcels by parcel ID. The app guesses the ID column; the user confirms it.
-4. **Sales.** A CSV or Excel file with parcel ID, date, price and the office's validity code if there is one.
+2. **Parcels.** The user drags in a GIS file (`.shp`, a zipped shapefile, `.gpkg`, `.geojson`, GeoParquet `.parquet`) and sees it on a map straight away.
+3. **Parcel details** (optional). CSV, Excel or Parquet files joined to the parcels by parcel ID. The app guesses the ID column; the user confirms it.
+4. **Sales.** A CSV, Excel or Parquet file with parcel ID, date, price and the office's validity code if there is one.
    - The user marks which codes mean "valid".
    - With no code, all sales start as valid and step 3 flags the doubtful ones.
    - Oakbox always produces the `valid_sale` column that OpenAVMKit requires.
@@ -88,7 +88,7 @@ Each step has **Run**, a progress bar with time remaining, **Cancel**, a plain-l
 | 3. Check sales | clean, sales scrutiny, assessor overrides (§3.6) | No |
 | 4. Check my values | ratio study, horizontal and vertical equity on the named value fields, overall and by group | No |
 | 5. Build model values | optional variable testing (§3.10), model, finalize, ratio study on model values. Model picker with "Choose for me" | No |
-| 6. Reports and export | PDF reports; CSV, Excel and Shapefile export (§4) | No |
+| 6. Reports and export | PDF reports; Parquet, GeoPackage, Shapefile, CSV and Excel export (§4) | No |
 
 **Results views:**
 - a map coloured by ratio, value, group or flag
@@ -184,8 +184,11 @@ Both paths produce the same Variables report.
 ## 4. Inputs, outputs and reports
 
 ### 4.1 Import and export
-- **Import:** Shapefile (loose or zipped), GeoPackage, GeoJSON, CSV and Excel. Oakbox converts everything to GeoParquet in the project's `in/` folder. OpenAVMKit only reads CSV/Parquet today.
-- **Export:** per-parcel values, flags and ratios as CSV, Excel and Shapefile/GeoPackage, ready to re-import into appraisal software. Saved export layouts come later.
+- **Import:** Shapefile (loose or zipped), GeoPackage, GeoJSON, Parquet/GeoParquet, CSV and Excel. Oakbox stores everything as GeoParquet in the project's `in/` folder. Parquet is copied as-is after a schema check. OpenAVMKit itself only reads CSV/Parquet today.
+- **Export:** per-parcel values, flags and ratios as Parquet/GeoParquet, GeoPackage, Shapefile, CSV and Excel, ready to re-import into appraisal software. Saved export layouts come later.
+  - **Default:** GeoPackage for GIS users and CSV for everyone else.
+  - **Shapefile caveats:** the format truncates field names to 10 characters and caps files at 2 GB. When either applies, Oakbox warns and writes a field-name key alongside the file.
+  - **Excel cap:** about 1,048,576 rows. Larger exports are split across sheets, or Oakbox suggests CSV.
 
 ### 4.2 Ratio study report and standards profiles
 Built on OpenAVMKit's existing `ratio_study.md` report and exports, which already include:
