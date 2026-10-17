@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.1 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.2 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -20,7 +20,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D4 | Data model | GIS-first. A parcel geometry layer is required. |
 | D5 | Scale | 500k+ parcels supported on suitable hardware. Small jurisdictions run on the low-end floor (§5). |
 | D6 | Platform | Windows 10 64-bit minimum. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
-| D7 | Network | Works offline. Internet is only needed for optional enrichment, the map background, update checks and (unless bundled) the sample download. |
+| D7 | Network | Works offline. Internet is only needed for optional enrichment, the map background, update checks and the sample download. |
 | D8 | Updates | The user approves each update. IT-managed deployment comes later. |
 | D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel. Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
 | D10 | Engine | OpenAVMKit changes are real commits on the `openavmkit-oakbox` branch, pinned by commit, later upstreamed (§7). |
@@ -29,14 +29,14 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D13 | Localization | Deferred. All UI strings go in a string table from day one. |
 | D14 | Code signing | Deferred; the maintainer will handle it. |
 | D15 | UI tech | Web tech (HTML/JS) in a native window on a Python backend. |
-| D16 | Checking values | The user names the value field(s) to check, and tags each as total, land or improvement. No particular field is required. |
+| D16 | Checking values | The user names the total-value field(s) to check. No particular field is required. Land values are out of scope: a separate land-value tool is planned. |
 | D17 | Online notices | Anything that goes online says what it sends, in a calm one-time notice (§3.11). |
-| D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value; land value is marked experimental (§10). Vendor layouts come later. |
-| D19 | Sample county | `us-va-petersburgcity`, because it runs fast. |
+| D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
+| D19 | Sample county | `us-va-petersburgcity`, because it runs fast. Downloaded on first use, after a prompt. |
 | D20 | Model choice | The assessor picks a model, or "Choose for me": LightGBM with Oakbox's default variables and a small-sample fallback (§3.10). |
 | D21 | Name | "Oakbox" for now. |
 | D22 | Model groups | A dedicated builder with live map feedback (§3.5). |
-| D23 | Sale validity | Office codes and OpenAVMKit scrutiny together. The assessor can overrule any sale (§3.6). |
+| D23 | Sale validity | Office codes and OpenAVMKit scrutiny together. The assessor can overrule any sale. **A sale flagged invalid never enters the modeling pipeline.** Review happens in Oakbox's separate sales register (§3.6). |
 | D24 | Years | One project per jurisdiction per tax year (§3.7). |
 | D25 | Users | Single user, one PC, for now. |
 | D26 | Help | Built-in help pages plus a link to the Discord. An AI helper comes later (§3.8). |
@@ -48,6 +48,8 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D32 | Custom reports | Sections and branding for everyone; editable Typst templates for power users (§4.3). |
 | D33 | Staleness | Oakbox tracks which settings feed which step and re-runs exactly what changed. OpenAVMKit's checkpoints don't self-invalidate (§6.4). |
 | D34 | Derived fields | Typed "transforms" in Match columns, plus an Advanced formula builder, compile to OpenAVMKit `calc`. Per-parcel corrections compile to `tweak` (§3.13). |
+| D35 | Vacancy | Default: a blank finished area means vacant land (OpenAVMKit's rule), stated clearly. Users opt out per project and supply an explicit vacancy signal instead (§3.9). |
+| D36 | Vacant land | Vacant land is a stage within each group, not a group of its own (OpenAVMKit's design). May be revisited. |
 
 ## 3. What the user sees
 
@@ -55,8 +57,8 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 - **My projects**, shown as cards: jurisdiction, tax year, last opened, and how far along the steps it is.
 - **New project** opens the wizard.
 - **Try a sample county** opens `us-va-petersburgcity`. This is the first-run experience and also the training mode.
-  - The sample is bundled in the installer if it's small enough; otherwise it's downloaded with a notice.
-  - It's fetched download-only from OpenAVMKit's public Azure container. Oakbox never uses `cloud_sync`, which can also upload.
+  - **First use** asks: "Download the sample county (about N MB) from OpenAVMKit's public server?" After that, it's local.
+  - It's fetched download-only. Oakbox never uses `cloud_sync`, which can also upload.
 
 ### 3.2 New-project wizard
 One question per screen, in plain words. **Back** always works. Progress is saved after every screen.
@@ -79,7 +81,7 @@ One question per screen, in plain words. **Back** always works. Progress is save
    - **Year built, not age.** Age is derived from the valuation date.
    - **Other columns** the user wants to keep are classified automatically as land/building/other × number/category/yes-no, shown for review. OpenAVMKit's fills and models ignore unclassified fields.
    - **Location fields** (neighbourhood, market area…) are marked as locations, so they can drive breakdowns, equity studies and estimation.
-6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more columns and tags each as **total**, **land** or **improvement**. Step 4 needs at least one total value; land values are checked against vacant sales.
+6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more **total value** columns, such as the current or last year's appraised value. Step 4 needs at least one. Land values are not checked in v1.
 7. **Other map layers** (optional, local). Neighbourhoods, zoning, school districts. The user drops in a file and picks which fields to attach (§3.12.1).
 8. **Context data starting point:**
    - **None (offline)**
@@ -155,25 +157,27 @@ Groups are parcels valued together, for example single-family, condos, commercia
 - **Undo/redo.** Definitions can be exported and imported, to reuse across years or share with a neighbouring jurisdiction.
 
 ### 3.6 Sales review and overrides
-OpenAVMKit deletes sales as it goes:
-- office-invalid sales in step 1
-- invalid-rule sales and scrutiny outliers in step 3
+**Rule: a sale flagged invalid never touches the modeling pipeline.** The flag can come from the office code, a validity rule, scrutiny, a model outlier or the assessor. OpenAVMKit already removes such sales as it goes, and Oakbox keeps it that way.
 
-Oakbox therefore keeps its **own register of every imported sale** and shows the whole story.
+Review happens **outside** the pipeline, in Oakbox's own **sales register**. The register is a separate record of every imported sale, with every verdict it received:
+- office code (step 1)
+- validity rules and scrutiny (step 3)
+- model outlier (step 5)
 
-- **Verdicts per sale:**
-  - office code (step 1)
-  - validity rules (step 3)
-  - scrutiny flags (step 3, run in flag-only mode so nothing is dropped before review)
-  - later, model outlier (step 5)
+Each verdict comes with reasons in plain words.
 
-  Each comes with reasons in plain words.
 - **Final status:** **Valid** or **Invalid**, plus who decided.
-- **Overrides:** **Keep** or **Exclude** any sale. A note is optional, except that excluding a model outlier requires a reason from a checklist (bad data, non-market, partial interest, …).
-  - Overrides survive re-runs and are written into the files OpenAVMKit reads, so notebook users see the same result.
-  - Excluding a sale only needs a re-run from step 3. Keeping an office-invalid sale needs a re-run from step 1, and Oakbox says so before applying.
+- **Overrides:**
+  - **Exclude** a valid sale. A note is optional. Excluding a model outlier requires a reason from a checklist (bad data, non-market, partial interest, …).
+  - **Keep** a flagged sale. A note is required. The sale re-enters the pipeline only through a re-run, and only because it is no longer flagged invalid:
+    - Office-code invalid → re-run from step 1. Oakbox rewrites that sale's `valid_sale` at load.
+    - Scrutiny or rule → re-run from step 3, through a keep-list (upstream A6).
+    - Excluding → re-run from step 3, through `invalid_key_file`.
+  - Overrides survive re-runs and are written into files OpenAVMKit reads, so notebook users see the same result.
+  - Before applying, Oakbox says which steps will re-run.
 - **Rule templates** (Advanced). Relative rules such as "price under 50% of current value" compile to `invalid_sales` filters.
 - **Views:** a map, a list, and filters ("only flagged", "only overridden", "by group", "model outliers").
+- **Reported.** Reports list every override, with its note.
 
 ### 3.7 Tax years
 - **Storage.** A project is one jurisdiction × one tax year: `Documents\Oakbox\<Jurisdiction>\<Year>\`, which holds a standard OpenAVMKit locality.
@@ -211,9 +215,9 @@ Shown after step 1 and after any re-import.
 - **Cross-checks on code labels:**
   - "412 parcels coded LAND have a building area"
   - "88 single-family parcels have no building area"
-- **The blank-building-area rule, made explicit.** OpenAVMKit treats a blank finished area as **0, which makes the parcel vacant** and erases its building fields. Oakbox asks: "These 1,240 parcels have no finished area. Are they vacant land?"
-  - **Yes:** accepted.
-  - **No:** they need an estimate (§3.12.2) or a fix at source.
+- **The blank-building-area rule (default, stated plainly).** OpenAVMKit treats a blank finished area as **0, which makes the parcel vacant** and erases its building fields. Oakbox shows a card: "1,240 parcels have no finished area. **By default they're treated as vacant land.**" A map and list of them are shown.
+  - The user accepts with no action needed.
+  - **To opt out** (project setting): "Don't treat blank finished area as vacant". The user then names an explicit vacancy signal, such as a land-use code or a vacant flag. The remaining blanks become candidates for an estimate (§3.12.2) or a fix at source. This needs upstream A9.
 
 Rules for both screens:
 - **Blocking or warning.** Only blocking problems stop the next step.
@@ -241,7 +245,7 @@ Rules for both screens:
 3. **Finalize** commits the values and writes the model-value ratio study.
 - **Re-tune.** Oakbox reuses saved tuning by default. A **Re-tune** toggle discards it, and is suggested after big data or group changes. Cancelling never deletes tuning journals, so a cancelled tune can resume.
 
-**Land and improvement.** Land values come from the vacant-stage model only, capped at the total. There is no allocation workflow upstream yet. In v1 land values are shown and exported as *experimental*.
+**Land values.** OpenAVMKit still runs each group's vacant stage, which the improved model relies on, but Oakbox v1 doesn't show, report or export land values. A separate land-value tool is planned.
 
 ### 3.11 Online features and the map background
 **Map background:**
@@ -397,7 +401,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - Since 0.7.0, the formal ratio study scores **raw** sale price, not time-adjusted.
 
 **Oakbox needs (mostly upstream A3–A4):**
-- **One report path for any value field,** with or without a model. Per group, overall, by breakdown, written to disk. Land values are scored against vacant sales.
+- **One report path for any value field,** with or without a model. Per group, overall, by breakdown, written to disk.
 - **IAAO statistics in the report:** median ratio, COD, PRD, PRB, with CIs and sale counts. Also VEI (exists) and MKI (new), so the report survives the IAAO draft revision.
 - **Pass/fail badges against a standards profile.** A small file with targets per statistic and property class, trimming, minimum sample size and windows. It ships with an IAAO default; state profiles come later; users copy and edit in a form.
   - The minimum sample size must match OpenAVMKit's pooling of cells with 15 or fewer sales.
@@ -462,7 +466,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   - a standalone CPython build plus pre-installed wheels, with no freezing (PyInstaller struggles with GDAL, PROJ and numba)
   - a per-user Inno Setup installer into `%LOCALAPPDATA%\Oakbox`, with no admin rights
   - a portable `.zip` fallback
-  - roughly 1.2 GB installed and 400 MB to download, plus the sample if bundled
+  - roughly 1.2 GB installed and 400 MB to download
 - **Projects** are ordinary folders: an OpenAVMKit locality plus `oakbox.json`. Easy to copy, zip and back up.
 - **Reproducibility.** Each project records the Oakbox and OpenAVMKit versions and the seed. Versions install side by side.
 - **Updates.** **Check for updates** reads GitHub Releases, sending only a plain version request. The user approves each install, and the old version is kept.
@@ -489,10 +493,10 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Fact | Consequence for Oakbox |
 |---|---|
 | `valid_sale` **and** `vacant_sale` are required; `key_sale` and `data.process.merge` are required | The wizard always produces them (§3.2) |
-| Office-invalid sales are deleted at the end of the load and merge step; scrutiny drops outliers by default | Oakbox keeps its own sales register; scrutiny runs flag-only (§3.6, upstream A6) |
+| Office-invalid sales are deleted at the end of the load and merge step; scrutiny drops outliers by default | Kept as-is: invalid sales never touch modeling. Oakbox reviews them in its own register outside the pipeline (§3.6) |
 | Groups are tagged at the end of assemble, and sales take their parcel's group | Step 1 stops before tagging; step 2 tags. Unmatched parcels become `UNKNOWN` and are not modeled |
 | Fills, equity clusters, time adjustment and scrutiny are per group | Any group change re-runs steps 3–5 |
-| Blank finished area → 0 → vacant, with building fields erased, in step 1 | This is an explicit question in the Field profile; building-field estimates need a filter |
+| Blank finished area → 0 → vacant, with building fields erased, in step 1 | Kept as the stated default with an opt-out (§3.9); building-field estimates need a filter |
 | Estimation runs before lookup tables, formulas and the vacancy rule | Those outputs can't be predictors |
 | The only spatial-join rule is "centroid inside" | No "overlaps" in v1 (upstream B3) |
 | Enrichments and each distance feature default to **off** | Oakbox writes `enabled: true` explicitly |
@@ -532,7 +536,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 ### A. Needed for M1 ("Check my values")
 1. **Headless stage API:** `run_stage(project_dir, stage, on_progress, cancel)`. No `os.chdir`, no IPython (including in `try_variables`). The environment is passed in. `ipython`, `pytest` and `pipreqs` leave the runtime dependencies.
 2. **Structured progress events** replace `print`; warnings go through the same channel.
-3. **Value-field studies that persist.** Ratio, vertical and horizontal studies on any named field, for all groups plus overall, with breakdowns, written to disk, with no model required. Land fields are scored against vacant sales. Remove the hard-coded `assr_market_value`.
+3. **Value-field studies that persist.** Ratio, vertical and horizontal studies on any named field, for all groups plus overall, with breakdowns, written to disk, with no model required. Remove the hard-coded `assr_market_value`.
 4. **Report statistics.**
    - Print PRD, PRB and VEI in the report; add MKI.
    - Standards profiles with pass/fail.
@@ -540,10 +544,15 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
    - Honour the bootstrap `iterations` argument (it's ignored today, and fixed at 10,000).
    - Fix the trimmed table showing the untrimmed median.
 5. **Typst report rendering** replaces wkhtmltopdf.
-6. **Flag-only scrutiny,** with drop behaviour as a setting instead of a function argument.
+6. **Scrutiny outputs for review:**
+   - write every flagged or dropped sale, with its reason, to a machine-readable file;
+   - a **keep-list** that exempts named sales from scrutiny drops;
+   - drop behaviour as a setting, not a function argument.
+
+   Flagged sales still never reach modeling.
 7. **Settings schema and validation** with field-level, plain-language errors.
 8. **Settings-hashed checkpoints,** or at least a documented stage-to-settings map.
-9. **Provenance flags** for default fills, and for the step 1 rule that turns blank finished area into 0.
+9. **Provenance flags** for default fills, and for the step 1 rule that turns blank finished area into 0. Also a setting to **opt out** of that rule, with vacancy taken from an explicit field instead.
 10. **Tagged releases.** The version already comes from tags, but Oakbox must pin tagged commits.
 
 ### B. Needed for M2 (wizard, enrichment, groups, sales)
@@ -551,7 +560,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 2. **Per-enrichment cache signatures.** Today the Overture signature covers the whole `enrich` block, and the estimation cache has no settings signature.
 3. **"Overlaps" / area-weighted** spatial-join rule.
 4. **Census:** configurable variables and geography; key via parameter; multi-county FIPS.
-5. **"Force valid" path for office-invalid sales.** Make the load-time filter overridable rather than deleting the sales.
+5. *(Dropped: invalid sales must never enter the pipeline. Oakbox handles office-code keeps by rewriting `valid_sale` at load.)*
 6. **Explain group assignment:** which group and which rule matched a parcel.
 7. **Data health checks** as a library function returning structured problems.
 8. **Machine-readable model outliers** for the sales register.
@@ -566,7 +575,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
    - the hard-coded `frontage_ft_1` breaks metric localities
    - a KeyError when no roads are found
    - expose the ray and buffer parameters
-5. **A land/improvement allocation workflow** (removed in 0.6.0).
+5. *(Moved to the separate land-value tool: land/improvement allocation.)*
 6. **Low-memory mode:** smaller dtypes, capped workers, chunked enrichment.
 
 ### D. Documentation fixes found during review
@@ -586,7 +595,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 ## 8. Milestones
 
 - **M0 — Spike.** Prove the packaging and the hardware assumptions.
-  - A portable build runs Petersburg end to end on a clean Windows 10 VM with 8 GB RAM, offline after install (with the sample bundled).
+  - A portable build runs Petersburg end to end on a clean Windows 10 VM with 8 GB RAM. The only online step is the prompted sample download.
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
 - **M1 — "Check my values."**
@@ -628,16 +637,12 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - Own aerial imagery
 - The AI helper
 - macOS release
-- Land/improvement allocation (land values shown as experimental only)
+- Land values of any kind: checking, reporting or exporting. A separate tool is planned
 
 ## 10. Open items
-1. **Vacant land.** The spec follows OpenAVMKit: vacant is a stage within each group, not a group. Confirm.
-2. **Blank finished area means vacant.** Keep that rule as-is, with Oakbox asking explicitly (§3.9)? Or change it upstream to require an explicit vacancy signal?
-3. **Office-invalid sales.** OK to change OpenAVMKit (B5) so office-invalid sales are kept, flagged rather than deleted? This changes notebook behaviour.
-4. **Land values in v1 exports:** export as experimental, or leave them out?
-5. **Sample:** bundle Petersburg in the installer (offline first run, bigger download) or download it on demand? Size still to be measured.
-6. **openratiostudy.com.** The export's columns are now known from the code, so the layout question is mostly answered. A screenshot would still help match the look.
-7. **M0 results** will set §5 and the enrichment cost coefficients.
-8. **GIS and Excel loaders:** upstream or Oakbox-only? I lean upstream.
-9. **Tile service:** confirm OpenFreeMap or another free provider that allows app use.
-10. **Typst** as the report engine: confirm before M1.
+1. **openratiostudy.com.** The export's columns are now known from the code. A screenshot would still help match the look.
+2. **M0 results** will set §5 and the enrichment cost coefficients.
+3. **GIS and Excel loaders:** upstream or Oakbox-only? I lean upstream.
+4. **Tile service:** confirm OpenFreeMap or another free provider that allows app use.
+5. **Typst** as the report engine: confirm before M1.
+6. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
