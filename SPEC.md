@@ -42,7 +42,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D26 | Help | Built-in help pages plus a link to the Discord. An AI helper comes later (§3.8). |
 | D27 | Bad input data | A Data health screen with plain-language problems and safe one-click fixes (§3.9). |
 | D28 | Ratio study | IAAO statistics with pass/fail against editable standards profiles (§4.2). |
-| D29 | Enrichment | A dedicated Enrichment screen exposes OpenAVMKit's real options. It shows per-enrichment cost estimates, a small-area trial run and coverage results (§3.12). v1 covers map-layer joins, footprints, census, distances, elevation, permits and missing-value inference. The street network is deferred. |
+| D29 | Enrichment | A dedicated Enrichment screen exposes OpenAVMKit's real options. It shows per-enrichment cost estimates, a small-area trial run and coverage results (§3.12). v1 covers map-layer joins, footprints, census (configurable variables), distances (OpenAVMKit's default features plus the user's own layers), elevation, permits and missing-value inference (explained as a modeling-only guess). The street network is deferred. |
 | D30 | Variables | "Plow forward" or "Test variables first" (§3.10). |
 | D31 | Map background | Offline: parcels only. Online: an OpenStreetMap-based background. The user's own imagery comes later (§3.11). |
 | D32 | Custom reports | Sections and branding for everyone; editable Typst templates for power users (§4.3). |
@@ -222,17 +222,23 @@ New columns automatically become available in the group builder, sales review, b
 | **Map layers** (spatial join) | Which layers; which fields; *match rule: "parcel centre inside" (default) or "overlaps"* | Nothing | Parcels × layer complexity | `neighborhood`, `zoning`, … Used by groups, breakdowns, equity studies |
 | **Basic geometry** | None (always on). *Toggles for lat/lon, area, shape, polar* | Nothing | Shape metrics on every parcel | Lat/lon, GIS area, shape regularity. Required by distances, spatial lag and modeling, so these can't be turned off |
 | **Building footprints** (Overture) | On/off; *units* | Bounding box, to Overture's public S3 | Downloaded area; parcel × building intersection (slow on big counties) | Footprint area, height, stories |
-| **Census** (ACS 5-year) | Survey year; county FIPS (filled in from the place); API key | State and county code, to the Census API and TIGERweb | Small | Median income, population, rents; tract and block-group IDs (usable as locations) |
-| **Distances** | Pick features from a list (water, rivers, parks, schools, rail, airport, golf, coastline) and/or the user's own layers (for example "downtown"). Per feature: *max distance, unit, minimum size, nearest-N named features* | Bounding box, to the OpenStreetMap Overpass API | Features × parcels. **Max distance is the main speed lever** | `dist_to_*`, `within_*`, `proximity_to_*` |
+| **Census** (ACS 5-year) | Survey year; county FIPS (filled in from the place); API key; variables picked from a curated plain-language list (income, population, rent, home value, vacancy, tenure, …), defaulting to the current four. *Geography: block group (default) or tract; any ACS variable by table code* | State and county code and the chosen variable codes, to the Census API and TIGERweb | Small | Chosen variables; tract and block-group IDs (usable as locations) |
+| **Distances** | **Defaults:** OpenAVMKit's built-in OSM feature set (water bodies, rivers, water, rail/transportation, airport, educational, parks, golf courses, coastline), kept exactly as maintained upstream. **Custom:** the assessor adds their own targets. Either a shapefile or other GIS layer (for example downtown, a landfill, a highway corridor), or *a custom OSM tag query*. Per feature: *max distance, unit, minimum size, nearest-N named features* | Bounding box, to the OpenStreetMap Overpass API. Custom shapefiles: nothing | Features × parcels. **Max distance is the main speed lever** | `dist_to_*`, `within_*`, `proximity_to_*` |
 | **Elevation** (USGS 3DEP) | Detail: 10 m, 30 m or 60 m. Oakbox recommends one by area | Bounding box, to USGS | Area ÷ resolution². 10 m on a large county is gigabytes | Mean elevation, its variation, mean slope |
 | **Permits** | Permit file(s) and column mapping; *effective-age calculation; teardown window* | Nothing | Small | Renovation and teardown flags, effective year built |
 | **Fill missing values** (spatial inference) | Field to fill; predictors (suggested: footprint, land area); location field; *method: "Choose for me" (LightGBM), ratio, random forest, XGBoost, ensemble; filters; rounding* | Nothing | Parcels × predictors, for each field | The filled field plus an `inferred_*` flag |
 | **Street frontage** | Deferred. Too heavy for v1 | — | — | — |
 
 **Rules for "Fill missing values":**
-- It runs last, so it can use every other enrichment as a predictor.
-- Before committing, it shows how many values are missing and a validation score from OpenAVMKit's experiment mode.
-- Filled values are always flagged. Reports state how many values of each field were inferred.
+It is offered to everyone, but always explained. The card and the first-use dialog say, in plain words:
+
+> "This fills gaps so the model can run. Each filled value is an **educated guess** from similar nearby parcels. It is **not a fact** about the property. It is used **for modeling only** and is never written back to your records."
+
+- **Order:** it runs last, so it can use every other enrichment as a predictor.
+- **Preview before committing:** how many values are missing, and a validation score from OpenAVMKit's experiment mode, phrased plainly, e.g. "guesses are typically within ±18% of the real value".
+- **Always marked.** Filled values carry an `inferred_*` flag. In tables and parcel pop-ups they appear in a distinct style with an "estimate" label.
+- **Never exported as data.** CAMA exports keep the office's original (empty) value, with an optional "estimated" column clearly named as such.
+- **Reported.** Reports state how many values of each field were inferred, and by what method.
 
 #### 3.12.2 Modeling-time context (step 5)
 **Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) are computed in step 5, not step 1. They depend on groups and train/test splits.
@@ -372,7 +378,7 @@ Oakbox adds:
 14. **Per-enrichment cache signatures.**
     - Today, the Overture signature covers the whole `enrich` block, so editing any enrichment invalidates it.
     - The inference cache has no settings signature, so its results can go stale.
-15. **Census:** honour a configurable variable list and geography level. Variables are hard-coded to four today, and the documented `fields` key is ignored.
+15. **Census (needed for v1):** honour a configurable variable list and geography level (block group or tract). Variables are hard-coded to four today, and the documented `fields` key is ignored.
 16. **Performance:** vectorise the Overture parcel × building intersection, which is currently a row-wise `apply` marked TODO.
 17. **Streets fixes before it is offered:**
     - the hard-coded `frontage_ft_1` breaks metric localities
