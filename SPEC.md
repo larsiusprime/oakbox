@@ -42,7 +42,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D26 | Help | Built-in help pages plus a link to the Discord. An AI helper comes later (§3.8). |
 | D27 | Bad input data | A Data health screen with plain-language problems and safe one-click fixes (§3.9). |
 | D28 | Ratio study | IAAO statistics with pass/fail against editable standards profiles (§4.2). |
-| D29 | Enrichment v1 | Building footprints, census, distances and elevation. The street network is deferred. |
+| D29 | Enrichment | A dedicated Enrichment screen exposes OpenAVMKit's real options. It shows per-enrichment cost estimates, a small-area trial run and coverage results (§3.12). v1 covers map-layer joins, footprints, census, distances, elevation, permits and missing-value inference. The street network is deferred. |
 | D30 | Variables | "Plow forward" or "Test variables first" (§3.10). |
 | D31 | Map background | Offline: parcels only. Online: an OpenStreetMap-based background. The user's own imagery comes later (§3.11). |
 | D32 | Custom reports | Sections and branding for everyone; editable Typst templates for power users (§4.3). |
@@ -66,15 +66,15 @@ One question per screen, in plain words. **Back** always works. Progress is save
    - Oakbox always produces the `valid_sale` column that OpenAVMKit requires.
 5. **Match columns.** The app auto-maps the user's columns to OpenAVMKit fields: "We think `SQFT_LIV` is *Living area*. Correct?" The user only has to confirm the uncertain ones.
 6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more columns. Step 4 needs at least one; the user can skip this and check model values after step 5.
-7. **Enrichment** (optional, online). Plain checkboxes:
-   - "Add building footprints"
-   - "Add census tracts and income"
-   - "Add distances to water, parks, etc."
-   - "Add elevation"
+7. **Other map layers** (optional, local). Neighbourhoods, zoning, school districts and similar. The user drops in a file and picks which fields to attach (§3.12.1).
+8. **Context data starting point:**
+   - **None (offline)**
+   - **Recommended:** census, standard distances, and elevation at a resolution suited to the area size. Footprints are included when the cost estimate allows.
+   - **Custom:** opens the full Enrichment screen after the wizard.
 
-   The Census option has a guided walkthrough for getting a free API key, and Oakbox tests the key. With no key, the Census step is skipped.
-8. **Valuation date** and which years of sales to use.
-9. **Review**, then **Create project**.
+   This is only a starting point. Everything is configured on the Enrichment screen (§3.12), and nothing heavy runs without a cost estimate first.
+9. **Valuation date** and which years of sales to use.
+10. **Review**, then **Create project**.
 
 Property groups are not set up here, because they need the assembled data (§3.5). The wizard creates one default group, "All properties".
 
@@ -83,7 +83,7 @@ Each step has **Run**, a progress bar with time remaining, **Cancel**, a plain-l
 
 | Step | What runs (OpenAVMKit) | Internet? |
 |------|------------------------|-----------|
-| 1. Bring in data | assemble + enrichment, then Data health (§3.9) | Only for enrichment |
+| 1. Bring in data | assemble + enrichment (§3.12), then Data health (§3.9) | Only for online enrichments |
 | 2. Define property groups | model group tagging (§3.5) | No |
 | 3. Check sales | clean, sales scrutiny, assessor overrides (§3.6) | No |
 | 4. Check my values | ratio study, horizontal and vertical equity on the named value fields, overall and by group | No |
@@ -180,6 +180,68 @@ Both paths produce the same Variables report.
 - The user's own aerial imagery file (GeoTIFF/MBTiles) comes later.
 
 **Online notices.** The notice is calm, shown once, and never recurring. It appears the first time any online feature is switched on, and lists each service and what it receives. For example: "To draw the street map, Oakbox asks OpenFreeMap for map pictures of the area you're viewing, like any web map does. Your parcel data never leaves this computer." A **Settings → Online features** page lists every service and lets the user switch each one off. Nothing is re-asked unless a new service is added.
+
+### 3.12 Enrichment
+Enrichment adds context the office's data lacks. Some of it is cheap and local; some downloads gigabytes and runs for hours on a large county. The screen treats it as a set of configurable jobs, not checkboxes.
+
+**Screen layout:**
+- **One card per enrichment.** Each card shows:
+  - what it adds, in plain words
+  - its settings (common ones visible, the rest under **Advanced**)
+  - what it sends online
+  - a cost estimate
+  - its cache state
+  - after running, a results summary
+- **Map preview** of whichever card is selected: downloaded features, or the new column coloured on parcels.
+- **Run all**, **Run selected**, or **Try on a small area** for each card (below).
+
+**Cost estimate before every run.** Oakbox computes it from:
+- parcel count
+- the bounding box area
+- the enrichment's own drivers (resolution, number of features, distance caps)
+- this machine's tier (§5)
+
+It shows expected download size, time range and peak memory as a green, amber or red light. Red explains the cheapest lever, for example "Lower elevation detail to 30 m: about 9× less data" or "Cap distance to 2 km". The estimator's coefficients come from the M0 benchmarks and are refined over time.
+
+**Try on a small area.** The user draws a box, or picks a neighbourhood. Oakbox runs the selected enrichment on just those parcels in seconds, using the same settings, and shows the result. This is how users tune settings before committing to a county-wide run. Results land in a scratch cache, never in the project.
+
+**Caching is visible.** Each card says "Up to date", "Will reuse downloaded data" or "Settings changed: will re-download ~1.2 GB". Re-running only redoes what changed. **Clear cache** is per card.
+
+**Results summary per card:**
+- coverage: "% of parcels that got a value"
+- new columns, with a histogram and a map layer
+- warnings in plain words: "No buildings found in 312 parcels — mostly vacant land, as expected"
+
+New columns automatically become available in the group builder, sales review, breakdowns and variable testing.
+
+**Failure handling.** A failed online enrichment never fails step 1. The card turns amber with the reason (service down, bad key, area outside the US) and offers **Retry** or **Skip**. Skipped enrichments are listed in the report methodology.
+
+#### 3.12.1 The enrichments
+| Enrichment | User decisions (Advanced in italics) | Online: what is sent | Main cost driver | Adds |
+|---|---|---|---|---|
+| **Map layers** (spatial join) | Which layers; which fields; *match rule: "parcel centre inside" (default) or "overlaps"* | Nothing | Parcels × layer complexity | `neighborhood`, `zoning`, … Used by groups, breakdowns, equity studies |
+| **Basic geometry** | None (always on). *Toggles for lat/lon, area, shape, polar* | Nothing | Shape metrics on every parcel | Lat/lon, GIS area, shape regularity. Required by distances, spatial lag and modeling, so these can't be turned off |
+| **Building footprints** (Overture) | On/off; *units* | Bounding box, to Overture's public S3 | Downloaded area; parcel × building intersection (slow on big counties) | Footprint area, height, stories |
+| **Census** (ACS 5-year) | Survey year; county FIPS (filled in from the place); API key | State and county code, to the Census API and TIGERweb | Small | Median income, population, rents; tract and block-group IDs (usable as locations) |
+| **Distances** | Pick features from a list (water, rivers, parks, schools, rail, airport, golf, coastline) and/or the user's own layers (for example "downtown"). Per feature: *max distance, unit, minimum size, nearest-N named features* | Bounding box, to the OpenStreetMap Overpass API | Features × parcels. **Max distance is the main speed lever** | `dist_to_*`, `within_*`, `proximity_to_*` |
+| **Elevation** (USGS 3DEP) | Detail: 10 m, 30 m or 60 m. Oakbox recommends one by area | Bounding box, to USGS | Area ÷ resolution². 10 m on a large county is gigabytes | Mean elevation, its variation, mean slope |
+| **Permits** | Permit file(s) and column mapping; *effective-age calculation; teardown window* | Nothing | Small | Renovation and teardown flags, effective year built |
+| **Fill missing values** (spatial inference) | Field to fill; predictors (suggested: footprint, land area); location field; *method: "Choose for me" (LightGBM), ratio, random forest, XGBoost, ensemble; filters; rounding* | Nothing | Parcels × predictors, for each field | The filled field plus an `inferred_*` flag |
+| **Street frontage** | Deferred. Too heavy for v1 | — | — | — |
+
+**Rules for "Fill missing values":**
+- It runs last, so it can use every other enrichment as a predictor.
+- Before committing, it shows how many values are missing and a validation score from OpenAVMKit's experiment mode.
+- Filled values are always flagged. Reports state how many values of each field were inferred.
+
+#### 3.12.2 Modeling-time context (step 5)
+**Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) are computed in step 5, not step 1. They depend on groups and train/test splits.
+
+- **Defaults:**
+  - spatial lag: each group samples from itself
+  - area stats: neighbourhood and census-tract medians of price and size
+- **Advanced:** which locations, fields and statistics; minimum count; which groups a group samples from.
+- **Cost:** cheap compared with step 1.
 
 ## 4. Inputs, outputs and reports
 
@@ -303,6 +365,20 @@ Oakbox adds:
 10. **Low-memory mode:** smaller dtypes, capped workers, chunked enrichment.
 11. **GIS and Excel loaders** (or keep them in Oakbox; see §10).
 12. **Tagged releases,** so `__version__` is never `0+unknown`.
+13. **Enrichment plumbing:**
+    - a progress event per enrichment
+    - a cost-estimate helper (inputs: bbox, parcel count, settings)
+    - run any enrichment on a subset of parcels (for "Try on a small area")
+14. **Per-enrichment cache signatures.**
+    - Today, the Overture signature covers the whole `enrich` block, so editing any enrichment invalidates it.
+    - The inference cache has no settings signature, so its results can go stale.
+15. **Census:** honour a configurable variable list and geography level. Variables are hard-coded to four today, and the documented `fields` key is ignored.
+16. **Performance:** vectorise the Overture parcel × building intersection, which is currently a row-wise `apply` marked TODO.
+17. **Streets fixes before it is offered:**
+    - the hard-coded `frontage_ft_1` breaks metric localities
+    - the empty-result KeyError
+    - expose ray and buffer parameters in settings
+18. **Docs:** `config.md` shows an obsolete distances schema; the spatial-join key is `geometry`, not `spatial_joins`; the spatial-lag docs omit `model_groups`.
 
 ## 8. Milestones
 
@@ -313,11 +389,12 @@ Oakbox adds:
 - **M1 — "Check my values."**
   - Installer, home screen, sample county, minimal wizard
   - Steps 1–4, with the group builder in "From a field" mode only
+  - Enrichment limited to map layers and basic geometry, so M1 runs offline
   - Data health (blocking checks), map and tables
   - Ratio study PDF with the IAAO profile, CSV/Excel export, offline help
   - Usability test with 3 real assessors before calling M1 done
 - **M2 — Full wizard, groups and sales.**
-  - Enrichment, with the one-time notice
+  - Enrichment screen: all §3.12.1 enrichments except Street frontage, with cost estimates, small-area trial runs, cache states and the one-time online notice
   - Full group builder, sales review and overrides
   - Map background
   - Start next year
@@ -344,7 +421,7 @@ Oakbox adds:
 
 ## 10. Open items
 1. **openratiostudy.com layout.** The site is blocked by this environment's network policy. Unblock it, or share a screenshot or sample export, to align the report layout.
-2. **M0 results** will set the hardware tiers in §5.
+2. **M0 results** will set the hardware tiers in §5 and the enrichment cost-estimate coefficients in §3.12.
 3. **GIS and Excel loaders:** upstream in OpenAVMKit, or in Oakbox only? I lean upstream, so notebook users benefit too.
 4. **Tile service:** confirm OpenFreeMap, or choose another free provider that allows app use.
 5. **Typst** as the report engine: confirm before M1.
