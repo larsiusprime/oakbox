@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** Draft 0.1. Built through dialogue; nothing here is final until marked **Decided**.
+**Status:** Draft 0.2. Built through dialogue; nothing here is final until marked **Decided**.
 
 ## 1. Purpose
 
@@ -28,13 +28,20 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D12 | Privacy | **Decided.** No parcel data leaves the machine. No telemetry. |
 | D13 | Localization | **Decided.** Deferred, but all UI strings go in a string table from day one. |
 | D14 | Code signing | **Decided.** Deferred; the maintainer will handle it. |
+| D15 | UI tech | **Decided.** Web tech (HTML/JS) in a native window on a Python backend. Must keep a later macOS target possible (§6.1). |
+| D16 | Checking values | **Decided.** The user must name the value field(s) to check. Current appraised values are not required, but whatever is checked has to be named. |
+| D17 | Enrichment | **Decided.** Every online step says exactly what it sends, every time, before it sends it. The wizard walks users through getting a Census API key. |
+| D18 | CAMA export | **Decided.** v1 is a generic CSV/Excel file: parcel ID plus new columns. Vendor-specific layouts come later. |
+| D19 | Sample county | **Decided.** `us-va-petersburgcity`, because it runs fast. |
+| D20 | Model choice | **Decided.** The assessor picks a model, or "Choose for me", which means LightGBM. |
+| D21 | Name | **Decided.** "Oakbox" for now. |
 
 ## 3. What the user sees
 
 ### 3.1 Home screen
 - **My projects**, shown as cards: county name, last opened, and how far along the steps it is.
 - **New project** opens the wizard (§3.2).
-- **Try a sample county** downloads a public OpenAVMKit locality and opens it. This is the first-run experience and also the training mode.
+- **Try a sample county** downloads the public OpenAVMKit locality `us-va-petersburgcity` and opens it. This is the first-run experience and also the training mode.
 
 ### 3.2 New-project wizard
 One question per screen, in plain words. **Back** always works. Progress is saved after every screen.
@@ -44,8 +51,8 @@ One question per screen, in plain words. **Back** always works. Progress is save
 3. **Parcel details** (optional). CSV or Excel files joined to the parcels by parcel ID. The app guesses the ID column; the user confirms it.
 4. **Sales.** A CSV or Excel file with parcel ID, date and price.
 5. **Match columns.** The app auto-maps the user's columns to OpenAVMKit fields: "We think `SQFT_LIV` is *Living area*. Correct?" The user only has to confirm the uncertain ones.
-6. **Current values.** "Which column holds your current appraised value?" This makes the checking-values step possible.
-7. **Enrichment.** Optional, online only. Plain-language checkboxes, for example: "Add building footprints (Overture)", "Add census tracts and income", "Add distances to roads, water and parks (OpenStreetMap)", "Add elevation (USGS)". Each one says what is sent: only the county's bounding box, never parcel data.
+6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more columns, for example the current appraised value or last year's value. At least one is required to run step 3. If none exists yet, the user can skip and check model values after step 4.
+7. **Enrichment.** Optional, online only. Plain-language checkboxes, for example: "Add building footprints (Overture)", "Add census tracts and income", "Add distances to roads, water and parks (OpenStreetMap)", "Add elevation (USGS)". Each one says what is sent: only the county's bounding box, never parcel data. The Census option includes a short guided walkthrough for getting a free API key, then pasting it in; Oakbox checks that the key works. With no key, the Census step is skipped.
 8. **Valuation date** and which years of sales to use.
 9. **Review.** A summary of the setup, then **Create project**.
 
@@ -56,8 +63,8 @@ Each step has a **Run** button, a progress bar, a plain-language status and a **
 |------|------------------|-----------|
 | 1. Bring in data | assemble + enrichment | Only if enrichment is on |
 | 2. Check sales | clean, sales scrutiny | No |
-| 3. Check my values | ratio study, horizontal and vertical equity on *current* values | No |
-| 4. Build model values | model, finalize, ratio study on model values | No |
+| 3. Check my values | ratio study, horizontal and vertical equity on the value field(s) named in the wizard | No |
+| 4. Build model values | model, finalize, ratio study on model values. The user picks a model or "Choose for me" (LightGBM). Each option has a one-line plain description | No |
 | 5. Reports and export | PDF reports, CSV/Excel/shapefile export | No |
 
 **Results views:**
@@ -90,11 +97,16 @@ Every number has a "What does this mean?" explainer.
 
 These are hypotheses, to be confirmed by the M0 benchmark.
 
+**Decided:** the low-end floor is acceptable for small jurisdictions. Large jurisdictions get a clear warning that they need a stronger machine.
+
 | Tier | Machine | Parcel capacity (target) |
 |------|---------|--------------------------|
 | Floor | Win10 x64, 4 cores, **8 GB RAM**, 25 GB free disk | ~150k parcels, all steps |
-| Recommended | 4+ cores, **16 GB RAM**, SSD | 500k+ parcels |
+| Recommended | 4+ cores, **16 GB RAM**, SSD | ~150k–500k parcels |
+| Large | 8+ cores, **32 GB RAM**, SSD | 500k+ parcels |
 | Below floor | 4 GB RAM | Sample counties and small counties (<25k) only. The app warns but doesn't block. |
+
+The large-tier numbers are a guess until M0. When parcels are imported, Oakbox compares the parcel count with the machine. If the machine is under-specified, it shows a plain warning, for example: "This county has 520,000 parcels. This computer has 8 GB of memory; we recommend 32 GB. Steps may be very slow or fail." The user can continue anyway.
 
 What the floor is based on:
 - Windows 10 is still about 26% of Windows PCs ([StatCounter, May 2026](https://tech.yahoo.com/computing/articles/microsoft-giving-windows-10-users-180152418.html)), and its paid security updates run to Oct 2027.
@@ -132,6 +144,22 @@ On start, the app checks RAM, cores and free disk, and scales down parallelism a
 - **Updates.** A **Check for updates** button, plus an optional reminder the user agrees to on first run, reads GitHub Releases. The only thing sent is a plain version request. Updates install side by side and the old version is kept until the user removes it.
 - **Privacy.** No telemetry and no crash upload. Enrichment calls send geographic extents only. A "Send log to support" button builds a zip the user emails themselves.
 
+### 6.1 Keeping a macOS target possible
+The stack is cross-platform already:
+- pywebview uses WKWebView on macOS.
+- The scientific wheels exist for Apple Silicon.
+- Standalone CPython builds exist for macOS.
+
+Rules to keep it that way:
+- No Windows-only APIs outside one small `platform/` module (paths, installer hooks, RAM/CPU probe).
+- `pathlib` everywhere; no hard-coded drive letters or `\` separators.
+- CI builds and smoke-tests the bundle on macOS from M1, even before we ship there.
+
+Known macOS costs, deferred:
+- **Signing and notarization.** Apple requires a paid developer account to avoid Gatekeeper warnings.
+- **OpenMP runtime.** LightGBM and XGBoost need it, and `libomp` must be bundled inside the app.
+- **Format.** A `.dmg`/`.app` package instead of an installer.
+
 ## 7. Upstream OpenAVMKit work (`oakbox` branch)
 
 1. **Headless stage API.**
@@ -152,7 +180,7 @@ On start, the app checks RAM, cores and free disk, and scales down parallelism a
 ## 8. Milestones
 
 - **M0 — Spike.**
-  - Portable build runs the `us-nc-guilford` sample end to end on a clean Win10 VM with 8 GB RAM, with no internet after install.
+  - Portable build runs the `us-va-petersburgcity` sample end to end on a clean Win10 VM with 8 GB RAM, with no internet after install.
   - Benchmark RAM and time on a synthetic city at 50k, 150k and 500k parcels.
   - Confirm §5.
 - **M1 — "Check my values."**
