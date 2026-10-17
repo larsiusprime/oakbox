@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** Draft 0.2. Built through dialogue; nothing here is final until marked **Decided**.
+**Status:** Draft 0.3. Built through dialogue; nothing here is final until marked **Decided**.
 
 ## 1. Purpose
 
@@ -35,6 +35,11 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D19 | Sample county | **Decided.** `us-va-petersburgcity`, because it runs fast. |
 | D20 | Model choice | **Decided.** The assessor picks a model, or "Choose for me", which means LightGBM. |
 | D21 | Name | **Decided.** "Oakbox" for now. |
+| D22 | Model groups | **Decided.** A dedicated, detailed builder: define groups, see the result on a map at once, inspect parcels, adjust, refresh (§3.5). |
+| D23 | Sale validity | **Decided.** Use both the office's own validity codes and OpenAVMKit's scrutiny. The assessor can overrule any sale, the same way the settings and notebook workflow allows (§3.6). |
+| D24 | Years | **Decided.** One project per jurisdiction per tax year. A new year starts as a copy of the previous one (§3.7). |
+| D25 | Users | **Decided.** Single user, one PC, for now. Multi-user comes later. |
+| D26 | Help | **Decided.** Built-in help pages plus a link to the Discord. An AI helper comes later (§3.8). |
 
 ## 3. What the user sees
 
@@ -49,12 +54,14 @@ One question per screen, in plain words. **Back** always works. Progress is save
 1. **Name and place.** County name, state. The app picks the folder, units and map center.
 2. **Parcels.** The user drags in a file (`.shp`/`.zip`, `.gpkg`, `.geojson`) and sees it on a map straight away.
 3. **Parcel details** (optional). CSV or Excel files joined to the parcels by parcel ID. The app guesses the ID column; the user confirms it.
-4. **Sales.** A CSV or Excel file with parcel ID, date and price.
+4. **Sales.** A CSV or Excel file with parcel ID, date and price, plus the office's validity code if there is one. The user maps which codes mean "valid". With no code, all sales start as valid and scrutiny in step 3 flags the doubtful ones. OpenAVMKit requires a `valid_sale` column, so Oakbox always produces one.
 5. **Match columns.** The app auto-maps the user's columns to OpenAVMKit fields: "We think `SQFT_LIV` is *Living area*. Correct?" The user only has to confirm the uncertain ones.
 6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more columns, for example the current appraised value or last year's value. At least one is required to run step 3. If none exists yet, the user can skip and check model values after step 4.
 7. **Enrichment.** Optional, online only. Plain-language checkboxes, for example: "Add building footprints (Overture)", "Add census tracts and income", "Add distances to roads, water and parks (OpenStreetMap)", "Add elevation (USGS)". Each one says what is sent: only the county's bounding box, never parcel data. The Census option includes a short guided walkthrough for getting a free API key, then pasting it in; Oakbox checks that the key works. With no key, the Census step is skipped.
 8. **Valuation date** and which years of sales to use.
 9. **Review.** A summary of the setup, then **Create project**.
+
+Property groups are *not* set up in the wizard. They need the assembled and enriched data, so they get their own step (§3.5). The wizard creates one default group, "All properties", so step 1 can run.
 
 ### 3.3 Project screen: a checklist of steps
 Each step has a **Run** button, a progress bar, a plain-language status and a **See results** link. If a later step is run before an earlier one, the app runs the earlier ones first.
@@ -62,10 +69,11 @@ Each step has a **Run** button, a progress bar, a plain-language status and a **
 | Step | OpenAVMKit stage | Internet? |
 |------|------------------|-----------|
 | 1. Bring in data | assemble + enrichment | Only if enrichment is on |
-| 2. Check sales | clean, sales scrutiny | No |
-| 3. Check my values | ratio study, horizontal and vertical equity on the value field(s) named in the wizard | No |
-| 4. Build model values | model, finalize, ratio study on model values. The user picks a model or "Choose for me" (LightGBM). Each option has a one-line plain description | No |
-| 5. Reports and export | PDF reports, CSV/Excel/shapefile export | No |
+| 2. Define property groups | model group tagging (§3.5) | No |
+| 3. Check sales | clean, sales scrutiny, assessor overrides (§3.6) | No |
+| 4. Check my values | ratio study, horizontal and vertical equity on the value field(s) named in the wizard, overall and by group | No |
+| 5. Build model values | model, finalize, ratio study on model values. The user picks a model or "Choose for me" (LightGBM). Each option has a one-line plain description | No |
+| 6. Reports and export | PDF reports, CSV/Excel/shapefile export | No |
 
 **Results views:**
 - a map colored by ratio, value or flag
@@ -79,6 +87,47 @@ Every number has a "What does this mean?" explainer.
 - No jargon without an explainer. "COD 14.2 — *your values are fairly uniform; IAAO target is under 15*."
 - Errors say what happened, why, and what to click next. They never show a stack trace; that goes to a log file instead.
 - Long jobs show time remaining, can be cancelled, and survive the app being closed (they resume from checkpoints).
+
+### 3.5 Property group builder
+Groups are parcels that are valued together, for example single-family, condos, commercial, vacant land. Getting them right is iterative, so the screen is built around a tight edit → see → fix loop.
+
+**Layout:**
+- **Left:** the ordered list of groups, each with its name, color, parcel count and sale count. An "Unassigned" row is always shown in grey.
+- **Center:** a map colored by group. Clicking a parcel shows its attributes and *why* it landed in its group ("matched rule 2 of Commercial"). A table toggle shows the same parcels as rows.
+- **Right:** the rule editor for the selected group.
+
+**Ways to define a group, from easiest to hardest:**
+1. **From a field.** Pick a field such as land-use code. Oakbox lists its distinct values with counts, and the user drags or assigns each value to a group. This covers the "prefilled field" case in a minute.
+2. **Rule builder.** Conditions of the form *field / operator / value*: equals, not equals, in list, greater/less than, between, is empty, contains. They combine with AND/OR and can nest. This maps one-to-one onto OpenAVMKit's filter lists (`filters.py`), so anything the notebooks can express, the builder can express.
+3. **Hand edits.** Lasso or click parcels on the map and move them to a group. These are saved as an explicit key list. They're the last resort, and reports list them.
+
+**Behavior:**
+- **Order matters.** A parcel goes to the *first* group whose rules it matches, which is how OpenAVMKit works. Groups can be dragged to reorder, and the map updates.
+- **Live preview.** Every edit re-evaluates instantly against the cached parcel table in the app service, without re-running the pipeline. The target is under 2 seconds at 500k parcels. **Apply** writes the settings and re-tags.
+- **Health checks per group,** in plain words: "Only 12 sales — too few to model reliably", "3,104 parcels unassigned", "This rule matches nothing".
+- **Advanced options:** common-area handling, condo rules. These sit behind an "Advanced" toggle.
+- **Undo/redo** works throughout. Group definitions are saved per project and can be exported or imported, to reuse across years or share with a neighbouring county.
+
+### 3.6 Sales review and overrides
+- Every sale shows two verdicts: the **office code** (from import) and **OpenAVMKit scrutiny** flags, with the reason (for example "price far below similar sales nearby").
+- The final status is **Valid** or **Invalid**, plus **who decided**: office code, scrutiny, or assessor.
+- The assessor can **Keep** or **Exclude** any sale, with an optional note. Overrides win over both automatic sources and survive re-runs.
+- Overrides are stored in the project and written into the settings/override files OpenAVMKit already reads (for example `analysis.sales_scrutiny.invalid_key_file`). Notebook users and Oakbox users see the same result.
+- Reports include an overrides appendix (sale, decision, note, date), so the process is defensible.
+- Views: a map of sales coloured by status, a sortable list, and filters such as "only flagged", "only overridden", "by group".
+
+### 3.7 Tax years
+- A project is **one jurisdiction × one tax year**, stored as `Documents\Oakbox\<Jurisdiction>\<Year>\`.
+- **Start next year** copies settings, groups, column mappings, overrides (optional, defaulting to off for sales older than the window) and report templates into a new year. The user then imports the new data files, and the wizard only asks about columns that changed.
+- Past years are read-only by default and keep the engine version they ran with (§6), so a past result can be reproduced for an appeal.
+
+### 3.8 Help
+- **"?" on every screen** opens a built-in help page for that screen. The pages ship with the app and work offline.
+- **Glossary pop-ups** explain terms such as COD, PRD, PRB and model group wherever they appear.
+- **Error screens** link to the matching help page and to the **Discord**. The Discord link is the only community channel in v1.
+- **Later: AI helper.** Two options, both strictly opt-in:
+  - (a) a small local language model with access to the help pages, which stays fully offline and keeps the D12 privacy promise.
+  - (b) the user's own frontier-model API key. Before the first use, the app clearly discloses what is sent; this is an explicit exception to D12 that the user agrees to.
 
 ## 4. Inputs, outputs, reports
 
@@ -162,6 +211,8 @@ Known macOS costs, deferred:
 
 ## 7. Upstream OpenAVMKit work (`oakbox` branch)
 
+**Where the work lives until access is granted (proposed).** A branch `openavmkit-oakbox` in the Oakbox repo, carrying OpenAVMKit's full history plus our commits. Oakbox builds pin a commit of it. When access to the OpenAVMKit repo is granted, the branch is pushed there as `oakbox` unchanged and merged by a normal PR, with no rebasing or patch juggling.
+
 1. **Headless stage API.**
 
    ```python
@@ -176,6 +227,8 @@ Known macOS costs, deferred:
 6. **Ratio and equity studies on an existing value column** as a first-class step that doesn't need modeling first.
 7. **Low-memory mode:** smaller number types, a cap on parallel workers, chunked enrichment.
 8. **Versioned releases** (git tags), so Oakbox can pin an exact OpenAVMKit version.
+9. **Sale overrides both ways.** OpenAVMKit has an invalid-key file today. Add a matching "force valid" list, and record the reason for each override so reports can show it.
+10. **Explain group assignment.** A helper that returns which group, and which rule, matched a parcel. `resolve_filter` already does the evaluation.
 
 ## 8. Milestones
 
@@ -184,10 +237,16 @@ Known macOS costs, deferred:
   - Benchmark RAM and time on a synthetic city at 50k, 150k and 500k parcels.
   - Confirm §5.
 - **M1 — "Check my values."**
-  - Installer, home screen, sample county, minimal wizard (parcels, sales, current value)
-  - steps 1–3, map and tables, ratio study PDF, CSV/Excel export
-- **M2 — Full wizard and enrichment.** All wizard screens, enrichment, sales scrutiny views, custom report builder (v1).
-- **M3 — "Build model values."** Step 4, export back to CAMA, model summary report.
+  - Installer, home screen, sample county, minimal wizard (parcels, sales, value field to check)
+  - steps 1–4, with the group builder limited to the "From a field" mode
+  - map and tables, ratio study PDF, CSV/Excel export, built-in help
+- **M2 — Full wizard, groups and sales.**
+  - All wizard screens and enrichment
+  - the full group builder (rules, hand edits, health checks)
+  - sales review with overrides
+  - "Start next year"
+  - custom report builder (v1)
+- **M3 — "Build model values."** Step 5, export back to CAMA, model summary report.
 - **M4 — Hardening.**
   - IT-friendly install (MSI, silent install, admin-managed updates), code signing
   - localization
