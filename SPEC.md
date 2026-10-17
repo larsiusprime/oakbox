@@ -171,7 +171,12 @@ Both paths produce the same Variables report.
 ### 3.11 Online features and the map background
 **Map background:**
 - Offline, maps show parcels only.
-- Online, the user can turn on a street background. It uses a free, no-key OpenStreetMap-based tile service that allows app use, such as OpenFreeMap. It must *not* use `tile.openstreetmap.org`, whose usage policy disallows this kind of app.
+- Online, the user can turn on a street background built from OpenStreetMap data.
+- **Default provider:** a free, no-key service intended for third-party apps, such as OpenFreeMap. The tile URL lives in config, so the provider can be changed without a software update.
+- **Fallback:** OSMF's own `tile.openstreetmap.org` is allowed under its [tile usage policy](https://operations.osmfoundation.org/policies/tiles/), but it has no service guarantee and may block heavy use without notice. If used, Oakbox must:
+  - send an identifying User-Agent
+  - show attribution
+  - not prefetch or cache tiles for offline use
 - The user's own aerial imagery file (GeoTIFF/MBTiles) comes later.
 
 **Online notices.** The notice is calm, shown once, and never recurring. It appears the first time any online feature is switched on, and lists each service and what it receives. For example: "To draw the street map, Oakbox asks OpenFreeMap for map pictures of the area you're viewing, like any web map does. Your parcel data never leaves this computer." A **Settings → Online features** page lists every service and lets the user switch each one off. Nothing is re-asked unless a new service is added.
