@@ -71,7 +71,7 @@ def main() -> None:
         try:
             import webview
 
-            webview.create_window("Oakbox", url, width=1280, height=860, min_size=(960, 640))
+            webview.create_window("OAK box", url, width=1280, height=860, min_size=(960, 640))
             webview.start()
             server.should_exit = True
             return

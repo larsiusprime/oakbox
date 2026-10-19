@@ -2,67 +2,55 @@ import type { StepId } from "./api/client";
 
 /** Every user-facing string lives here (SPEC D13), so a missing key is a type error. */
 export const t = {
-  appName: "Oakbox",
-  tagline: "OpenAVMKit in a box",
+  appName: { strong: "OAK", light: "box" },
+  appTitle: "OAK box",
 
   home: {
-    projectsTitle: "My projects",
-    noProjects: "No projects yet. Try the sample county below to see how Oakbox works.",
+    projectsTitle: "Projects",
+    noProjects: "No projects yet. Start with the sample county.",
     open: "Open",
     taxYear: (year: number) => `Tax year ${year}`,
     stepsDone: (done: number, total: number) => `${done} of ${total} steps done`,
-    sampleTitle: "Try a sample county",
-    sampleIntro:
-      "Download a real, public county and run every step on it. Nothing from your own office is used or sent anywhere.",
-    sampleNotice: "This downloads about 7 MB of public data from OpenAVMKit's server. Nothing is uploaded.",
+    sampleTitle: "Sample county",
+    sampleNotice: "Downloads about 7 MB of public data from OpenAVMKit. Nothing is uploaded.",
     sampleButton: "Download and open",
-    sampleDownloading: "Downloading the sample county…",
-    newProject: "New project from my own data",
-    newProjectSoon: "Coming next: the step-by-step wizard for your own files.",
+    sampleDownloading: "Downloading…",
   },
 
   project: {
-    back: "All projects",
+    back: "Projects",
     taxYear: (year: number) => `Tax year ${year}`,
+    stepsTitle: "Steps",
     run: "Run",
     runAgain: "Run again",
     cancel: "Stop",
     stopping: "Stopping…",
     working: "Working…",
-    needsEarlier: "Finish the step above first.",
-    showDetails: "Show technical details",
+    needsEarlier: "Run the step above first",
+    showDetails: "Technical details",
   },
 
   steps: {
-    bring_in_data: {
-      title: "Bring in data",
-      what: "Reads your parcel map, parcel details and sales, and joins them together.",
-    },
-    model_groups: {
-      title: "Model groups",
-      what: "Groups of properties that are valued together. For now this sample uses one group: all properties.",
-    },
+    bring_in_data: { title: "Bring in data", what: "Parcel map, parcel details and sales, joined together." },
+    model_groups: { title: "Model groups", what: "Properties valued together. This sample uses one group." },
     check_sales: {
       title: "Check sales",
-      what: "Keeps the sales that are fair market sales, adjusts for market trends, and flags suspicious ones.",
+      what: "Keeps arm's-length sales, adjusts for market trend, flags outliers.",
     },
-    check_values: {
-      title: "Check my values",
-      what: "Compares your current values to recent sales: how accurate, how uniform, and how fair across price levels.",
-    },
+    check_values: { title: "Check my values", what: "Your current values against recent sales." },
   } satisfies Record<StepId, { title: string; what: string }>,
 
   state: {
-    not_run: "Not run yet",
+    not_run: "Not run",
     running: "Running",
     done: "Done",
-    failed: "Problem",
-    stale: "Needs re-run",
+    failed: "Failed",
+    stale: "Out of date",
   },
 
   results: {
-    title: "Results: how your current values compare to sales",
-    window: (start: string, end: string) => `Sales from ${start} to ${end}.`,
+    title: "Current values vs. sales",
+    window: (start: string, end: string, n: number) => `${n.toLocaleString()} sales, ${start} to ${end}`,
     group: "Group",
     overall: "Whole jurisdiction",
     sales: "Sales",
@@ -71,18 +59,24 @@ export const t = {
     prd: "PRD",
     prb: "PRB",
     vei: "VEI",
-    meets: "Meets target",
-    outside: "Outside target",
-    notEnough: "Not enough sales",
-    targetsNote:
-      "Targets shown are the IAAO defaults. The smaller numbers under each value are its 90% confidence range. Your state's standards may differ; adjustable targets are coming.",
+    target: "Target",
+    meets: "Meets",
+    outside: "Outside",
+    notEnough: "Too few sales",
+    targetsNote: "IAAO default targets. Small numbers are 90% confidence ranges.",
+    targets: {
+      medianRatio: "0.90 to 1.10",
+      cod: "15 or less",
+      prd: "0.98 to 1.03",
+      prb: "−0.05 to 0.05",
+      vei: "none yet",
+    },
     explain: {
-      medianRatio:
-        "Your value divided by the sale price, middle of all sales. 1.00 means values match sales on average. IAAO target: 0.90 to 1.10.",
-      cod: "How spread out the ratios are. Lower means more uniform values. IAAO target: 15 or less for most property types.",
-      prd: "Whether expensive and cheap properties are valued alike. Above 1.03 suggests cheaper homes are over-valued. IAAO target: 0.98 to 1.03.",
-      prb: "Another measure of fairness across price levels. Near zero is fair. IAAO target: between -0.05 and 0.05.",
-      vei: "The newest fairness measure (IAAO draft). Near zero is fair. Shown for reference; no target yet.",
+      medianRatio: "Value ÷ sale price, middle of all sales. 1.00 means values match sales on average.",
+      cod: "How spread out the ratios are. Lower means more uniform values.",
+      prd: "Above 1.03 suggests cheaper properties are over-valued relative to expensive ones.",
+      prb: "Fairness across price levels. Negative means cheaper properties carry relatively higher values.",
+      vei: "Vertical equity indicator from the IAAO draft standard. Near zero is fair.",
     },
   },
 };

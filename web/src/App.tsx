@@ -26,13 +26,10 @@ export function App() {
   return (
     <div className="app">
       <header className="titlebar">
-        <a className="brand" href="#/">
-          <span className="brand-mark" aria-hidden="true">
-            ◆
-          </span>
-          {t.appName}
+        <a className="wordmark" href="#/" aria-label={t.appTitle}>
+          <span className="wordmark-strong">{t.appName.strong}</span>
+          <span className="wordmark-light">{t.appName.light}</span>
         </a>
-        <span className="titlebar-tagline">{t.tagline}</span>
       </header>
       <main className="content">
         {route.name === "home" ? <HomeScreen /> : <ProjectScreen projectId={route.id} />}

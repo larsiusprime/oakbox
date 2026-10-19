@@ -34,7 +34,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
 | D19 | Sample county | `us-va-petersburgcity`, because it runs fast. Downloaded on first use, after a prompt. |
 | D20 | Model choice | The assessor picks a model, or "Choose for me": LightGBM with Oakbox's default variables and a small-sample fallback (§3.10). |
-| D21 | Name | "Oakbox" for now. |
+| D21 | Name and look | "OAK box" (written "Oakbox" in code and folder names). An oak-grain titlebar is the one decorative element; everything else is flat and edged, and only pressable things look raised. Type is IBM Plex Sans and Plex Mono (OFL), bundled, with Noto Sans as the fallback for other scripts. |
 | D22 | Model groups | A dedicated builder with live map feedback (§3.5). |
 | D23 | Sale validity | Office codes and OpenAVMKit scrutiny together. The assessor can overrule any sale. **A sale flagged invalid never enters the modeling pipeline.** Review happens in Oakbox's separate sales register (§3.6). |
 | D24 | Years | One project per jurisdiction per tax year (§3.7). |

@@ -117,7 +117,7 @@ def _job_info(job) -> JobInfo:
 
 def create_app() -> FastAPI:
     pin_ui_content_types()
-    app = FastAPI(title="Oakbox", version=__version__)
+    app = FastAPI(title="OAK box", version=__version__)
     jobs = JobManager()
 
     @app.get("/api/version")

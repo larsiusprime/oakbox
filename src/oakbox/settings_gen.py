@@ -135,7 +135,7 @@ def generate(a: WizardAnswers) -> dict[str, Any]:
         },
         "modeling": {
             "metadata": {
-                "modeler": "Oakbox",
+                "modeler": "OAK box",
                 "valuation_date": a.dates.valuation_date.isoformat(),
                 "use_sales_from": a.dates.use_sales_from,
             },

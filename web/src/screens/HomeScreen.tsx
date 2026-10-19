@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "react-aria-components";
 import { navigate } from "../App";
@@ -20,18 +21,22 @@ export function HomeScreen() {
   return (
     <div className="home">
       <section className="panel" aria-labelledby="projects-title">
-        <h2 id="projects-title">{t.home.projectsTitle}</h2>
-        {projects.data?.length === 0 && <p className="muted">{t.home.noProjects}</p>}
-        <ul className="project-list">
+        <header className="panel-head">
+          <h1 id="projects-title">{t.home.projectsTitle}</h1>
+        </header>
+        {projects.data?.length === 0 && <p className="empty">{t.home.noProjects}</p>}
+        <ul className="rows">
           {projects.data?.map((p) => {
             const done = STEP_ORDER.filter((s) => p.steps[s]?.state === "done").length;
             return (
-              <li key={p.id} className="project-card">
-                <div>
-                  <div className="project-name">{p.name}</div>
-                  <div className="muted">
+              <li key={p.id} className="row">
+                <div className="row-main">
+                  <a className="row-title" href={`#/projects/${p.id}`}>
+                    {p.name}
+                  </a>
+                  <span className="row-meta">
                     {t.home.taxYear(p.tax_year)} · {t.home.stepsDone(done, STEP_ORDER.length)}
-                  </div>
+                  </span>
                 </div>
                 <Button className="button" onPress={() => navigate({ name: "project", id: p.id })}>
                   {t.home.open}
@@ -40,20 +45,17 @@ export function HomeScreen() {
             );
           })}
         </ul>
-        <div className="soon">
-          <Button className="button" isDisabled>
-            {t.home.newProject}
-          </Button>
-          <span className="muted">{t.home.newProjectSoon}</span>
-        </div>
       </section>
 
       <section className="panel" aria-labelledby="sample-title">
-        <h2 id="sample-title">{t.home.sampleTitle}</h2>
-        <p>{t.home.sampleIntro}</p>
-        {samples.data?.map((s) => (
-          <SampleRow key={s.id} id={s.id} name={s.name} description={s.description} />
-        ))}
+        <header className="panel-head">
+          <h2 id="sample-title">{t.home.sampleTitle}</h2>
+        </header>
+        <ul className="rows">
+          {samples.data?.map((s) => (
+            <SampleRow key={s.id} id={s.id} name={s.name} description={s.description} />
+          ))}
+        </ul>
       </section>
     </div>
   );
@@ -76,24 +78,27 @@ function SampleRow({ id, name, description }: { id: string; name: string; descri
   }, [job, view.finished]);
 
   return (
-    <div className="sample-row">
-      <div>
-        <div className="project-name">{name}</div>
-        <div className="muted">{description}</div>
-        <div className="notice">{t.home.sampleNotice}</div>
+    <li className="row">
+      <div className="row-main">
+        <span className="row-title">{name}</span>
+        <span className="row-meta">{description}</span>
+        <span className="row-meta">{t.home.sampleNotice}</span>
+        {(start.error || view.finished === "failed") && (
+          <p className="error" role="alert">
+            {start.error?.message ?? (view.latest?.type === "error" ? view.latest.message : "")}
+          </p>
+        )}
       </div>
       {job && !view.finished ? (
-        <Progress fraction={view.fraction} label={t.home.sampleDownloading} />
+        <div className="row-progress">
+          <Progress fraction={view.fraction} label={t.home.sampleDownloading} />
+        </div>
       ) : (
         <Button className="button button-primary" isDisabled={start.isPending} onPress={() => start.mutate()}>
+          <Download aria-hidden="true" size="1.1em" />
           {t.home.sampleButton}
         </Button>
       )}
-      {(start.error || view.finished === "failed") && (
-        <p className="error" role="alert">
-          {start.error?.message ?? (view.latest?.type === "error" ? view.latest.message : "")}
-        </p>
-      )}
-    </div>
+    </li>
   );
 }

@@ -1,16 +1,16 @@
-# Running Oakbox
+# Running OAK box
 
 ## The portable bundle (no installs needed)
 1. On GitHub, open the latest green run: **Actions → bundles**. Download `bundle-windows` or `bundle-linux` from **Artifacts**. Artifacts expire after 7 days; re-run the workflow for fresh ones.
 2. Unpack it.
    - **Windows:** extract to a short path such as `C:\oak`. Long paths can hit Windows' 260-character limit.
    - **Linux:** `tar -xzf oakbox-linux-x86_64.tar.gz`
-3. Start Oakbox.
+3. Start OAK box.
    - **Windows:** double-click `Oakbox.cmd`.
    - **Linux:** run `./oakbox-linux-x86_64/oakbox.sh`.
 
    It opens a native window. On Linux without WebKitGTK it opens a browser window instead.
-4. Click **Try a sample county → Download and open**, then **Run** each step in order.
+4. Under **Sample county**, click **Download and open**, then **Run** each step in order.
 
 Projects are stored in `Documents/Oakbox/` (override with the `OAKBOX_HOME` environment variable).
 

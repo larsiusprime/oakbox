@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, Play, RotateCw, Square } from "lucide-react";
 import { useCallback } from "react";
 import { Button, Disclosure, DisclosurePanel, Heading } from "react-aria-components";
 import { api, type ProjectDetail, STEP_ORDER, type StepId, unwrap } from "../api/client";
 import { useJobEvents } from "../api/events";
 import { Progress } from "../components/Progress";
-import { StatusChip } from "../components/StatusChip";
+import { Status } from "../components/Status";
 import { ValueStudyTable } from "../components/ValueStudyTable";
 import { t } from "../strings";
 
@@ -21,36 +22,47 @@ export function ProjectScreen({ projectId }: { projectId: string }) {
     void queryClient.invalidateQueries({ queryKey: ["studies", projectId] });
   }, [queryClient, projectId]);
 
-  if (detail.isPending) return <p className="muted">{t.project.working}</p>;
+  if (detail.isPending) return <p className="empty">{t.project.working}</p>;
   if (detail.error) return <p className="error">{detail.error.message}</p>;
   const { project, running_job } = detail.data;
 
   return (
     <div className="project">
-      <a className="back-link" href="#/">
-        ← {t.project.back}
-      </a>
-      <h1>{project.name}</h1>
-      <p className="muted">{t.project.taxYear(project.tax_year)}</p>
-      <ol className="steps">
-        {STEP_ORDER.map((step, i) => (
-          <StepCard
-            key={step}
-            index={i + 1}
-            step={step}
-            detail={detail.data}
-            blocked={STEP_ORDER.slice(0, i).some((s) => project.steps[s]?.state !== "done")}
-            runningJobId={running_job?.step === step ? running_job.id : null}
-            onChange={refresh}
-          />
-        ))}
-      </ol>
-      {project.steps.check_values?.state === "done" && <Results projectId={projectId} />}
+      <header className="page-head">
+        <a className="back-link" href="#/">
+          <ChevronLeft aria-hidden="true" size="1.1em" />
+          {t.project.back}
+        </a>
+        <h1>{project.name}</h1>
+        <span className="page-meta">{t.project.taxYear(project.tax_year)}</span>
+      </header>
+
+      <div className="project-body">
+        <section className="panel steps-panel" aria-labelledby="steps-title">
+          <header className="panel-head">
+            <h2 id="steps-title">{t.project.stepsTitle}</h2>
+          </header>
+          <ol className="rows steps">
+            {STEP_ORDER.map((step, i) => (
+              <StepRow
+                key={step}
+                index={i + 1}
+                step={step}
+                detail={detail.data}
+                blocked={STEP_ORDER.slice(0, i).some((s) => project.steps[s]?.state !== "done")}
+                runningJobId={running_job?.step === step ? running_job.id : null}
+                onChange={refresh}
+              />
+            ))}
+          </ol>
+        </section>
+        {project.steps.check_values?.state === "done" && <Results projectId={projectId} />}
+      </div>
     </div>
   );
 }
 
-type StepCardProps = {
+type StepRowProps = {
   index: number;
   step: StepId;
   detail: ProjectDetail;
@@ -59,7 +71,7 @@ type StepCardProps = {
   onChange: () => void;
 };
 
-function StepCard({ index, step, detail, blocked, runningJobId, onChange }: StepCardProps) {
+function StepRow({ index, step, detail, blocked, runningJobId, onChange }: StepRowProps) {
   const status = detail.project.steps[step];
   const state = status?.state ?? "not_run";
   const anyRunning = detail.running_job !== null && detail.running_job !== undefined;
@@ -79,52 +91,58 @@ function StepCard({ index, step, detail, blocked, runningJobId, onChange }: Step
   const view = useJobEvents(runningJobId, onChange);
   const running = runningJobId !== null && !view.finished;
   const info = t.steps[step];
+  const again = state === "done" || state === "stale";
 
   return (
-    <li className={`step step-${state}`}>
-      <div className="step-number" aria-hidden="true">
+    <li className={`row step step-${running ? "running" : state}`}>
+      <span className="step-number" aria-hidden="true">
         {index}
-      </div>
-      <div className="step-body">
+      </span>
+      <div className="row-main">
         <div className="step-head">
-          <h2>{info.title}</h2>
-          <StatusChip state={running ? "running" : state} />
+          <h3 className="row-title">{info.title}</h3>
+          <Status state={running ? "running" : state} />
         </div>
-        <p className="step-what">{info.what}</p>
+        <span className="row-meta">{info.what}</span>
         {running ? (
-          <div className="step-running">
-            <Progress
-              fraction={view.fraction}
-              label={view.latest?.type === "progress" ? view.latest.message : t.project.working}
-            />
-            <Button
-              className="button"
-              isDisabled={cancel.isPending}
-              onPress={() => runningJobId && cancel.mutate(runningJobId)}
-            >
-              {cancel.isPending ? t.project.stopping : t.project.cancel}
-            </Button>
-          </div>
+          <Progress
+            fraction={view.fraction}
+            label={view.latest?.type === "progress" ? view.latest.message : t.project.working}
+          />
         ) : (
-          <div className="step-actions">
-            <Button
-              className={state === "done" ? "button" : "button button-primary"}
-              isDisabled={blocked || anyRunning || run.isPending}
-              onPress={() => run.mutate()}
-            >
-              {state === "done" || state === "stale" ? t.project.runAgain : t.project.run}
-            </Button>
-            {blocked && <span className="muted">{t.project.needsEarlier}</span>}
-            {!blocked && status?.message && <span className="step-message">{status.message}</span>}
-          </div>
+          <>
+            {blocked && <span className="row-meta">{t.project.needsEarlier}</span>}
+            {!blocked && state !== "failed" && status?.message && (
+              <span className="step-result">{status.message}</span>
+            )}
+            {state === "failed" && <StepError message={status?.message ?? ""} />}
+          </>
         )}
-        {state === "failed" && !running && <StepError message={status?.message ?? ""} />}
         {run.error && (
           <p className="error" role="alert">
             {run.error.message}
           </p>
         )}
       </div>
+      {running ? (
+        <Button
+          className="button"
+          isDisabled={cancel.isPending}
+          onPress={() => runningJobId && cancel.mutate(runningJobId)}
+        >
+          <Square aria-hidden="true" size="0.9em" />
+          {cancel.isPending ? t.project.stopping : t.project.cancel}
+        </Button>
+      ) : (
+        <Button
+          className={again ? "button" : "button button-primary"}
+          isDisabled={blocked || anyRunning || run.isPending}
+          onPress={() => run.mutate()}
+        >
+          {again ? <RotateCw aria-hidden="true" size="1em" /> : <Play aria-hidden="true" size="1em" />}
+          {again ? t.project.runAgain : t.project.run}
+        </Button>
+      )}
     </li>
   );
 }
@@ -155,10 +173,10 @@ function Results({ projectId }: { projectId: string }) {
       ),
   });
   return (
-    <>
+    <div className="results-stack">
       {studies.data?.map((s) => (
         <ValueStudyTable key={s.field} study={s} />
       ))}
-    </>
+    </div>
   );
 }
