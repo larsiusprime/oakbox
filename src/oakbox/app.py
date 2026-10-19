@@ -8,6 +8,7 @@ client.
 from __future__ import annotations
 
 import json
+import mimetypes
 from pathlib import Path
 from typing import Any, Literal
 
@@ -22,6 +23,26 @@ from oakbox.jobs import JobManager
 from oakbox.samples import SAMPLES
 
 WEB_DIST = Path(__file__).parent / "web"
+
+# Python guesses content types from the Windows registry, where other software often
+# maps .js to text/plain; browsers then refuse to run the UI's module scripts. Pin the
+# types of everything the UI ships.
+UI_TYPES = {
+    ".js": "text/javascript",
+    ".mjs": "text/javascript",
+    ".css": "text/css",
+    ".html": "text/html",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".woff2": "font/woff2",
+    ".wasm": "application/wasm",
+}
+
+
+def pin_ui_content_types() -> None:
+    for ext, content_type in UI_TYPES.items():
+        mimetypes.add_type(content_type, ext)
 
 
 class BaseModel(_PydanticBase):
@@ -95,6 +116,7 @@ def _job_info(job) -> JobInfo:
 
 
 def create_app() -> FastAPI:
+    pin_ui_content_types()
     app = FastAPI(title="Oakbox", version=__version__)
     jobs = JobManager()
 

@@ -51,6 +51,22 @@ def _follow(base: str, job_id: str, label: str) -> str:
     return "unknown"
 
 
+def _check_ui(base: str) -> None:
+    """The UI page loads and its module script is served as JavaScript (blank window otherwise)."""
+    import re
+
+    with urllib.request.urlopen(base + "/", timeout=30) as resp:
+        html = resp.read().decode("utf-8")
+    match = re.search(r'<script[^>]+src="([^"]+\.js)"', html)
+    if match is None:
+        raise SystemExit("UI page has no script tag; was the UI built into the bundle?")
+    with urllib.request.urlopen(base + match.group(1), timeout=30) as resp:
+        content_type = resp.headers.get("content-type", "")
+    if not content_type.startswith(("text/javascript", "application/javascript")):
+        raise SystemExit(f"UI script served as {content_type!r}; browsers will refuse it")
+    print(f"UI OK: {match.group(1)} served as {content_type}", flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="oakbox.smoke")
     parser.add_argument("--sample", default="us-va-petersburgcity")
@@ -71,6 +87,7 @@ def main() -> None:
         else:
             raise SystemExit("App server did not start")
 
+        _check_ui(base)
         t0 = time.time()
         job = _call(base, "POST", f"/api/samples/{args.sample}")
         project = job["project_id"]

@@ -56,3 +56,23 @@ def test_api_lists_and_guards_step_order():
     assert r.status_code == 409
     assert client.get("/api/projects/nope").status_code == 404
     assert "/api/projects/{project_id}/results/value-studies" in client.get("/openapi.json").json()["paths"]
+
+
+def test_ui_assets_have_browser_safe_content_types(tmp_path, monkeypatch):
+    # Regression: on Windows, Python's mimetypes reads the registry, which often maps .js to
+    # text/plain, and browsers refuse module scripts served that way (blank window).
+    import mimetypes
+
+    from oakbox import app as app_module
+
+    web = tmp_path / "web"
+    (web / "assets").mkdir(parents=True)
+    (web / "index.html").write_text("<script type=module src=/assets/app.js></script>")
+    (web / "assets" / "app.js").write_text("export {}")
+    (web / "assets" / "app.css").write_text("body{}")
+    monkeypatch.setattr(app_module, "WEB_DIST", web)
+    mimetypes.add_type("text/plain", ".js")  # what a bad Windows registry entry does
+    client = TestClient(app_module.create_app())
+    assert client.get("/assets/app.js").headers["content-type"].startswith("text/javascript")
+    assert client.get("/assets/app.css").headers["content-type"].startswith("text/css")
+    assert client.get("/").headers["content-type"].startswith("text/html")
