@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.7 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.8 draft for review. v1.8 replaces the up-front wizard with a guided build (§3.2). Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -15,14 +15,14 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | # | Topic | Decision |
 |---|-------|----------|
 | D1 | Scope | Both checking values and producing values. Checking values ships first. |
-| D2 | Configuration | Wizards and builders write fully resolved `settings.json`. Users never see JSON. Hand-made settings, including `$$` references and `!`/`+` keys, can be imported. |
+| D2 | Configuration | The guided build and builders write fully resolved `settings.json`. Users never have to edit JSON; Under the hood shows it read-only (§3.2). Hand-made settings, including `$$` references and `!`/`+` keys, can be imported. |
 | D3 | Jurisdictions | Generic, not Texas-specific. Test with OpenAVMKit's public sample localities. Non-disclosure states come later. |
 | D4 | Data model | GIS-first. A parcel geometry layer is required. |
 | D5 | Scale | 500k+ parcels supported on suitable hardware. Small jurisdictions run on the low-end floor (§5). |
 | D6 | Platform | Windows 10 64-bit minimum is the primary target. **Linux x86_64 is also supported** (glibc 2.28+: Ubuntu 20.04+, Debian 10+, RHEL/Rocky 8+), from the same codebase and CI. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
 | D7 | Network | Works offline. Internet is only needed for optional enrichment, the map background, update checks and the sample download. |
 | D8 | Updates | The user approves each update. IT-managed deployment comes later. |
-| D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel. Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
+| D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel, fixed-width text with a layout (PACS exports). Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
 | D10 | Engine | OpenAVMKit changes are real commits on the `openavmkit-oakbox` branch, pinned by commit, later upstreamed (§7). |
 | D11 | Licensing | Oakbox's own code is MIT. OpenAVMKit, including our `openavmkit-oakbox` commits, stays AGPL-3.0/commercial. The installer ships OpenAVMKit under AGPL with a source link. Every other dependency must be free/open-source and AGPL-compatible (§6.2). |
 | D12 | Privacy | No parcel data leaves the machine. No telemetry. |
@@ -50,60 +50,81 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D34 | Derived fields | Typed "transforms" in Match columns, plus an Advanced formula builder, compile to OpenAVMKit `calc`. Per-parcel corrections compile to `tweak` (§3.13). |
 | D35 | Vacancy | Default: a blank finished area means vacant land (OpenAVMKit's rule), stated clearly. Users opt out per project and supply an explicit vacancy signal instead (§3.9). |
 | D36 | Vacant land | Main (total-value) models only. No separate vacant-stage run within a model group (`run_vacant=False`). Vacant sales are still flagged correctly (`vacant_sale`), and vacant land is not a model group of its own. May be revisited. |
+| D37 | Guided build | No up-front wizard. The project screen is the guide: setup stages, then steps, each with Decide → Check → Run → Receipt, and done only after **Looks right** (§3.2). |
+| D38 | Datasets | Any number of input files, each declared as one of seven kinds, stitched by an explicit, user-confirmed plan with match rates and ID fixes (§3.2). |
+| D39 | Show the work | Every stage shows what it will do and what it did, with counts and reasons. **Under the hood** (collapsed, open to everyone) shows the settings it wrote. |
+| D40 | Sample | The sample county is a pre-filled walkthrough of the same screens. No run-all button in the app; CI drives the API directly. |
 
 ## 3. What the user sees
 
 ### 3.1 Home screen
 - **My projects**, shown as cards: jurisdiction, tax year, last opened, and how far along the steps it is.
-- **New project** opens the wizard.
-- **Try a sample county** opens `us-va-petersburgcity`. This is the first-run experience and also the training mode.
+- **New project** asks for a name and opens the project at its first setup stage (§3.2).
+- **Try a sample county** opens `us-va-petersburgcity` as a walkthrough (§3.2). This is the first-run experience and also the training mode.
   - **First use** asks: "Download the sample county (about N MB) from OpenAVMKit's public server?" After that, it's local.
   - It's fetched download-only. Oakbox never uses `cloud_sync`, which can also upload.
 
-### 3.2 New-project wizard
-One question per screen, in plain words. **Back** always works. Progress is saved after every screen.
+### 3.2 The guided build
+There is no up-front wizard. **New project** asks for a name and opens the project, and the project screen *is* the guide. The user works down one ordered list: five **setup stages**, which describe the data, then the six **steps** of §3.3, which run the engine. Each one is a single screen.
 
-1. **Name, place, tax year.**
+**Every stage and step has the same four parts:**
+1. **Decide.** Choices are made against the user's real data: real column names, real distinct values with counts, previews. Every default is shown as a pre-filled choice with a one-line "why". Nothing is applied silently.
+2. **Check.** Fast diagnostics before anything heavy: match rates, duplicates, what would be dropped and why. These run in the app service and read only the columns they need, so they take seconds even at 500k parcels. They never run the engine.
+3. **Run.** Only steps run the engine. A setup stage just saves its decisions.
+4. **Receipt.** What happened, in plain words: rows in and out, every drop with its reason, warnings. Each number opens the rows behind it. For runs, the receipt compares the engine's counts (upstream A14) with what Check predicted, and flags any difference.
+
+A stage or step is done only when the user clicks **Looks right** on its receipt. **Back** always works, and every decision is saved as soon as it's made. Changing an earlier decision marks later stages out of date, with the reason (§6.4).
+
+**Under the hood** is a collapsed panel on every stage and step, open to everyone. It shows the exact `settings.json` fragment this stage wrote and which engine stage it runs. Settings can also be exported whole, for notebook users.
+
+#### Setup stages
+1. **Basics.** Name, place, tax year, valuation date.
    - Oakbox derives the locality slug (no dashes inside the name), map centre and county FIPS.
    - It proposes **units** (imperial or metric) from the place, and the user confirms. Units decide every field name (`*_sqft` vs `*_sqm`).
-2. **Parcels.** The user drags in a GIS file (`.shp`, zipped shapefile, `.gpkg`, `.geojson`, GeoParquet) and sees it on a map straight away. The parcel ID column is read as **text**, so leading zeros are kept.
-3. **Parcel details** (optional). CSV, Excel or Parquet files joined to the parcels by parcel ID.
-   - If one ID appears on several rows (multi-card or multi-building parcels), the user chooses per field: **sum**, **largest**, **smallest** or **first**. This becomes OpenAVMKit's `dupes` setting.
-4. **Sales.** A CSV, Excel or Parquet file.
-   - **Required columns:** parcel ID, sale date and price.
-   - **Sale ID:** OpenAVMKit needs a unique `key_sale`. If the file has none, Oakbox builds one from parcel ID + date (+ a counter).
-   - **Date format** is detected and confirmed with examples ("We read `03/04/2023` as 4 March 2023. Correct?"). Unparseable dates are a blocking Data health problem.
-   - **Validity:** the user marks which office codes mean "valid". With no code, all sales start valid.
-   - **Vacant at sale:** which codes or rules mean "the land was vacant when sold". Default: same as the parcel's current vacancy.
-   - Oakbox always produces `valid_sale` and `vacant_sale`; OpenAVMKit refuses to run without both.
-5. **Match columns.** Oakbox maps the user's columns onto OpenAVMKit's data dictionary (163 standard fields): "We think `SQFT_LIV` is *Finished building area*. Correct?" The user only confirms uncertain matches.
-   - **Transforms** fix columns that don't match as-is: unit conversion, code→number tables, date formats, combining columns, trimming IDs (§3.13).
+   - **Valuation date.** Everything is valued as of this date; it also drives ages and time adjustment. *When checking an existing roll, it must match that roll's valuation date, or the comparison isn't like-for-like.*
+2. **Your files.** The user adds any number of files, one at a time, in any format from §4.1. For each file Oakbox shows a preview of the rows, the column types and the row count, and the user says what it is:
+
+   | Kind | Example | Becomes |
+   |---|---|---|
+   | **Parcel map** | Parcel polygons | The spine everything attaches to (`geo_parcels`) |
+   | **One row per parcel** | Main CAMA table | Attached by ID |
+   | **Several rows per parcel** | Buildings, land segments, improvement details | Collapsed to one row per parcel (Stitch) |
+   | **Sales** | One or more sales files | The sales table; several files are stacked |
+   | **Points** | Permits or addresses with latitude and longitude | Attached by position (`lat_long` merge) |
+   | **Map layer** | Neighbourhoods, zoning, school districts | Attached by overlay (§3.12.1) |
+   | **Not sure** | — | Oakbox suggests a kind from the columns and the ID check |
+
+   - **ID column.** The user picks the parcel ID column, which is always read as **text** so leading zeros are kept. Oakbox checks uniqueness straight away: "12,431 rows but 11,902 IDs. Does this file have several rows per parcel?"
+   - **Fixed-width text** (such as PACS appraisal exports) needs a layout: the user picks a known layout (Oakbox ships the PACS ones it has been tested on) or supplies one. Oakbox converts each file to Parquet in `in/` (§4.1).
+3. **Stitch.** How the files become one table of parcels and one table of sales. Oakbox drafts the plan and the user confirms each part:
+   - **The spine.** The parcel map. Without a map (allowed only with a warning, D4), a one-row-per-parcel table.
+   - **How each file attaches:** by ID, by position or by overlay; sales files stacked (`append`).
+   - **Matching.** Each attachment shows its match rate both ways: "11,640 of 11,902 IDs match the map (97.8%). See the 262 that don't." When IDs nearly match, Oakbox suggests a fix and shows how many more would match: "IDs here have dashes and the map's don't. Remove dashes? +247 matches." Fixes are trim, remove characters, pad with zeros, change case and keep only part. They compile to `calc` on that file (§3.13), so Check and the engine apply the same rule.
+   - **Several rows per parcel.** Per field: **sum**, **largest**, **smallest** or **first**, with sensible defaults (areas sum; year built takes the earliest; codes take the row with the largest area). This becomes that file's `dupes` setting.
+   - **Column clashes.** When two files have a column of the same name, the user picks which one wins (`reconcile`); the other is kept with the file's name as a suffix.
+   - **Context data starting point:** **None (offline)**, **Recommended**, or **Custom**, which opens the Enrichment screen (§3.12). Nothing heavy runs without a cost estimate first.
+   - **Preview:** the stitched parcel table, with each column's source file, and the parcels each file left blank.
+4. **Columns.** Oakbox maps the stitched columns onto OpenAVMKit's data dictionary (163 standard fields): "We think `SQFT_LIV` is *Finished building area*. Correct?" The user only confirms uncertain matches. Check shows each standard field after its transform: blanks, range and examples.
+   - **Transforms** fix columns that don't match as-is: unit conversion, code→number tables, date formats, combining columns (§3.13).
    - **Year built, not age.** Age is derived from the valuation date.
    - **Other columns** the user wants to keep are classified automatically as land/building/other × number/category/yes-no, shown for review. OpenAVMKit's fills and models ignore unclassified fields.
    - **Location fields** (neighbourhood, market area…) are marked as locations, so they can drive breakdowns, equity studies and estimation.
-6. **Values to check.** "Which value(s) do you want to check against sales?" The user picks one or more **total value** columns, such as the current or last year's appraised value. Step 4 needs at least one. Land values are not checked in v1.
-7. **Other map layers** (optional, local). Neighbourhoods, zoning, school districts. The user drops in a file and picks which fields to attach (§3.12.1).
-8. **Context data starting point:**
-   - **None (offline)**
-   - **Recommended**
-   - **Custom**, which opens the Enrichment screen
+   - **Values to check.** "Which value(s) do you want to check against sales?" One or more **total value** columns, such as the current or last year's appraised value. Step 4 needs at least one. Land values are not checked in v1.
+5. **Sales basics.** Decided before step 1, because OpenAVMKit applies them while loading.
+   - **Required columns:** parcel ID, sale date and price.
+   - **Sale ID:** OpenAVMKit needs a unique `key_sale`. If the file has none, Oakbox builds one from parcel ID + date (+ a counter).
+   - **Date format** is detected and confirmed with examples ("We read `03/04/2023` as 4 March 2023. Correct?"). Unparseable dates are a blocking Data health problem.
+   - **Validity:** the user ticks which office codes mean "valid", from the codes actually in the file, with counts. With no code column, all sales start valid.
+   - **Vacant at sale:** which codes or rules mean "the land was vacant when sold". Default: same as the parcel's current vacancy.
+   - Oakbox always produces `valid_sale` and `vacant_sale`; OpenAVMKit refuses to run without both.
+   - **Check** starts the **sales funnel**: all sales → not matched to a parcel → invalid by office code → remaining. Step 3 completes it (§3.3).
 
-   Nothing heavy runs without a cost estimate first (§3.12).
-9. **Dates and sales windows.** These are four separate things, each with a one-line explanation:
-   - **Valuation date.** Everything is valued as of this date; it also drives ages and time adjustment. *When checking an existing roll, it must match that roll's valuation date, or the comparison isn't like-for-like.*
-   - **Sales used for modeling** (`use_sales_from`). How far back to learn from. Can differ per model group later.
-   - **Sales used for the ratio study** (`look_back_years`). Usually the last year or two.
-   - *Advanced:* hold out specific sales as an independent test (`assessor_holdout` / test keys).
-10. **Review**, then **Create project**.
+After Sales basics, the project has one model group, "All properties", with a match-all rule. Real model groups are built in step 2 (§3.5).
 
-The wizard creates one model group, "All properties", with a match-all rule. Real model groups are built in step 2 (§3.5).
+**The sample county is a walkthrough.** It goes through the same stages and steps, with Petersburg's answers pre-filled and annotated ("Petersburg's sales file marks valid sales with code Q"). The user confirms each one. There is no "run everything" button in the app; CI's smoke test drives the same API end to end (D40).
 
-### 3.3 Project screen: a checklist of steps
-Each step has:
-- **Run**, with a progress bar and time remaining
-- **Cancel**
-- a plain-language status
-- **See results**
+### 3.3 Project screen: the steps
+The setup stages are followed by the steps that run the engine. Each step follows the four parts of §3.2. Its Run has a progress bar, time remaining and **Stop**, and its receipt has **See results**.
 
 Before running, a step shows what's stale and why ("Model groups changed: steps 3–5 will re-run"). Jobs resume after the app is closed where OpenAVMKit supports it (checkpoints, tuning journals).
 
@@ -115,6 +136,13 @@ Before running, a step shows what's stale and why ("Model groups changed: steps 
 | 4. Check my values | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per model group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
 | 5. Build model values | Splits, spatial lag, area stats, optional variable testing (§3.10), **Try** models (repeatable) → outlier review → **Finalize** → ratio study on model values. Main models only (`run_vacant=False`) | No |
 | 6. Reports and export | PDF reports; Parquet, GeoPackage, Shapefile, CSV, Excel (§4) | No |
+
+**What each step's receipt shows:**
+- **Step 1:** rows read from each file; each attachment's match rate, against the Stitch prediction; rows collapsed by several-rows rules; sales removed as office-invalid. Then Data health and Field profile (§3.9).
+- **Step 2:** parcels and sales per model group, split improved/vacant; parcels left unassigned.
+- **Step 3:** the full **sales funnel**, continuing from Sales basics: outside the sales window → flagged by scrutiny → overridden (§3.6) → used. Plus the time adjustment found per model group, as a chart.
+- **Step 4:** the study tables (§4.2), with the funnel's final count beside each.
+- **Steps 5–6:** as §3.10 and §4.
 
 **Results views:**
 - a map coloured by ratio, value, model group or flag
@@ -184,7 +212,7 @@ Each verdict comes with reasons in plain words.
 - **Shared cache.** Downloaded enrichment data (`cache/`) is shared per jurisdiction, so a new year doesn't re-download gigabytes.
 - **Start next year** copies settings, model groups, column mappings, transforms, standards profile and report templates. It can optionally copy overrides still inside the sales window.
   - It does *not* copy model outputs or tuned parameters, and offers a fresh tune.
-  - The user then imports new files, and the wizard only asks about columns that changed.
+  - The user then imports new files, and the setup stages only ask about what changed: new or missing files, columns and codes.
 - **Read-only past years.** Past years are read-only by default. Each records its engine version and random seed, so results can be reproduced for an appeal.
 
 ### 3.8 Help
@@ -388,7 +416,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 ## 4. Inputs, outputs and reports
 
 ### 4.1 Import and export
-- **Import:** Shapefile (loose or zipped), GeoPackage, GeoJSON, Parquet/GeoParquet, CSV, Excel. Oakbox stores everything as GeoParquet in the project's `in/` folder; OpenAVMKit itself only reads CSV/Parquet. The parcel layer is loaded as OpenAVMKit's `geo_parcels`.
+- **Import:** Shapefile (loose or zipped), GeoPackage, GeoJSON, Parquet/GeoParquet, CSV, Excel, and fixed-width text with a layout. Oakbox ships layouts for the PACS appraisal export versions it has been tested on (Travis CAD first); other layouts can be supplied as a simple field/start/width table. Zipped exports are opened in place, without unpacking by hand. Oakbox stores everything as GeoParquet in the project's `in/` folder; OpenAVMKit itself only reads CSV/Parquet. The parcel layer is loaded as OpenAVMKit's `geo_parcels`.
 - **Export:** per-parcel values, flags and ratios as Parquet/GeoParquet, GeoPackage, Shapefile, CSV and Excel.
   - **Default format:** GeoPackage for GIS users, CSV for everyone else.
   - **Shapefile limits:** field names are cut to 10 characters, and files are capped at 2 GB. Oakbox warns and writes a field-name key.
@@ -470,10 +498,10 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 │ UI: TypeScript web UI in a native window (pywebview →  │
 │     Edge WebView2; falls back to the default browser)  │
 │        │  localhost HTTP + server-sent progress events │
-│ App service (Python): projects, wizard, import, data   │
+│ App service (Python): projects, guide, import, checks, │
 │     health, sales register, model group preview,       │
 │     staleness, map tiles, reports, updates             │
-│        │  spawn / cancel                                │
+│        │  spawn / cancel                               │
 │ Engine worker (separate process): OpenAVMKit stage     │
 │     runner, one per job; streams progress events       │
 └────────────────────────────────────────────────────────┘
@@ -528,7 +556,7 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 
 | Fact | Consequence for Oakbox |
 |---|---|
-| `valid_sale` **and** `vacant_sale` are required; `key_sale` and `data.process.merge` are required | The wizard always produces them (§3.2) |
+| `valid_sale` **and** `vacant_sale` are required; `key_sale` and `data.process.merge` are required | Sales basics always produces them (§3.2) |
 | Without a `dupes` setting, a geometry file is de-duplicated on an *arbitrary* column; the column order comes from a `set` and varies between runs. In M0 this silently dropped up to 99.8% of parcels | Oakbox always writes `dupes` explicitly (`subset: [key]`). Upstream A11 |
 | Importing OpenAVMKit pulls in IPython and costs about 0.7 GB per process; the first Windows import takes about 17 s | The engine worker starts once and shows a splash screen. Upstream A1 |
 | Office-invalid sales are deleted at the end of the load and merge step; scrutiny drops outliers by default | Kept as-is: invalid sales never touch modeling. Oakbox reviews them in its own register outside the pipeline (§3.6) |
@@ -548,11 +576,11 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Since 0.7.0: nested CV by default, raw-price ratio study, `benchmark` renamed `model_runner` (shim removed in 0.8) | Benchmarks and the headless API target 0.7+ behaviour |
 
 ### 6.4 Staleness and re-runs
-Oakbox keeps a hash of the settings and inputs that feed each step. When one changes, every later step is marked stale, and its OpenAVMKit checkpoints are deleted before the re-run.
+Oakbox keeps a hash of the decisions, settings and inputs that feed each stage and step. When one changes, every later step is marked stale, and its OpenAVMKit checkpoints are deleted before the re-run.
 
 | Change | Re-runs from |
 |---|---|
-| Imported files, column mapping, transforms, condo rules, enrichment settings, keeping an office-invalid sale | Step 1. Unchanged enrichments reuse their cache |
+| Files, stitch plan, ID fixes, column mapping, transforms, sales basics, condo rules, enrichment settings, keeping an office-invalid sale | Step 1. Unchanged enrichments reuse their cache |
 | Model groups | Step 2 |
 | Fills, validity rules, time adjustment, sales windows, scrutiny settings, excluding a sale | Step 3 |
 | Value fields to check, standards profile | Step 4 only |
@@ -644,8 +672,9 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
     - equity clusters plus scrutiny (about 220 s at 500k)
     - `finalize_models` when `cv_folds=1` (1,395 s at 500k)
 13. **Leaner runtime dependencies.** Drop IPython from module-level imports. Make CatBoost and XGBoost optional extras; XGBoost's Linux wheel also pulls in NCCL (469 MB). Together these cut the Windows download from 544 MB to roughly 350 MB, and the Linux download by more.
+14. **Stage receipts.** Each stage reports structured counts through the progress channel (A2): rows in and out per file and per merge, rows collapsed by `dupes`, and sales removed with the reason (office code, outside window, scrutiny rule, override). Today these are only printed, if at all. Oakbox's receipts and the sales funnel depend on it.
 
-### B. Needed for M2 (wizard, enrichment, model groups, sales)
+### B. Needed for M2 (enrichment, model groups, sales)
 1. **Enrichment plumbing:** progress per enrichment, a cost-estimate helper, and running an enrichment on a subset of parcels.
 2. **Per-enrichment cache signatures.** Today the Overture signature covers the whole `enrich` block, and the estimation cache has no settings signature.
 3. **"Overlaps" / area-weighted** spatial-join rule.
@@ -690,20 +719,20 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
 - **M1 — "Check my values."** Built as four slices, each one runnable:
   - **M1a, walking skeleton (done).** Real app shell: home screen, sample county download, steps 1–4 with live progress and Stop, and the results table with IAAO default targets. Engine changes: A1, A2, A3, A11, A12 (horizontal equity), plus a CatBoost Windows fix found by a user run. Bundles ship the app, and CI smoke-tests it end to end on Windows and Linux.
-  - **M1b, own data.** The wizard.
-  - **M1c, trust the data.** Data health, Field profile, the "From a field" model group builder, the sales register, staleness.
+  - **M1b, own data.** The guided build's frame (four-part stages, Looks right, Under the hood, staleness of decisions) and the first three setup stages: Basics, Your files and Stitch, with their quick checks. Fixed-width import with the PACS layout, tested on the Travis CAD export. Step 1's receipt (upstream A14 for its counts). The sample becomes a walkthrough of the stages built so far.
+  - **M1c, trust the data.** Setup stages Columns and Sales basics; the sales funnel and the receipts for steps 2–4; Data health, Field profile, the "From a field" model group builder, the read-only sales register.
   - **M1d, hand it over.** PDF report, exports, help.
 
   Full M1 scope:
   - Windows installer and Linux `.tar.gz`, both smoke-tested in CI; home screen; sample county
-  - Wizard, including sale ID, vacant-at-sale, date format, dupes, units and transforms
+  - The guided build: all five setup stages, receipts and the sales funnel, including sale ID, vacant-at-sale, date format, dupes, ID fixes, units and transforms
   - Steps 1–4; the model group builder in "From a field" mode only; enrichment limited to map layers and basic geometry, so M1 runs offline
   - Data health, Field profile, a read-only sales register
   - Staleness tracking
   - Ratio study PDF with the IAAO profile; CSV/Excel export; offline help
   - Usability test with 3 real assessors before calling M1 done
-  - Upstream: A1–A13
-- **M2 — Full wizard, model groups and sales.**
+  - Upstream: A1–A14
+- **M2 — Enrichment, full model groups and sales.**
   - Enrichment screen (all of §3.12.1 except Street frontage)
   - Full model group builder
   - Sales review with overrides and rule templates
@@ -747,12 +776,12 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
 **Open:**
 1. **M0 follow-ups:**
-   - Is a Census API key actually needed? Petersburg's Census enrichment worked with none set. If the anonymous quota covers a county, the key becomes optional in the wizard.
+   - Is a Census API key actually needed? Petersburg's Census enrichment worked with none set. If the anonymous quota covers a county, the key becomes optional on the Enrichment screen.
    - Fail fast on unreachable services. Petersburg spent minutes retrying a blocked OpenStreetMap server; Oakbox needs a short timeout and a plain "skipped" card.
    - timing on a real low-end PC
    - memory on real extracts
    - why `cv_folds=1` is slow
    - the enrichment cost coefficients, which need an M2 run with enrichment on
-2. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for wizard and Data health testing.
+2. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for guided-build and Data health testing. The first is a full Travis CAD PACS export (fixed-width text, 391 MB zipped).
 3. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
 4. **Usability test:** after M1, with assessors the maintainer recruits.
