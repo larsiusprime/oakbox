@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.2 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.3 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -28,7 +28,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D12 | Privacy | No parcel data leaves the machine. No telemetry. |
 | D13 | Localization | Deferred. All UI strings go in a string table from day one. |
 | D14 | Code signing | Deferred; the maintainer will handle it. |
-| D15 | UI tech | Web tech (HTML/JS) in a native window on a Python backend. |
+| D15 | UI tech | Strict TypeScript, framework-lite (Preact + signals, TSX), in a native window on a Python backend. API types are generated from the backend, so the whole stack type-checks (§6.5). |
 | D16 | Checking values | The user names the total-value field(s) to check. No particular field is required. Land values are out of scope: a separate land-value tool is planned. |
 | D17 | Online notices | Anything that goes online says what it sends, in a calm one-time notice (§3.11). |
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
@@ -49,7 +49,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D33 | Staleness | Oakbox tracks which settings feed which step and re-runs exactly what changed. OpenAVMKit's checkpoints don't self-invalidate (§6.4). |
 | D34 | Derived fields | Typed "transforms" in Match columns, plus an Advanced formula builder, compile to OpenAVMKit `calc`. Per-parcel corrections compile to `tweak` (§3.13). |
 | D35 | Vacancy | Default: a blank finished area means vacant land (OpenAVMKit's rule), stated clearly. Users opt out per project and supply an explicit vacancy signal instead (§3.9). |
-| D36 | Vacant land | Vacant land is a stage within each group, not a group of its own (OpenAVMKit's design). May be revisited. |
+| D36 | Vacant land | Main (total-value) models only. No separate vacant-stage run within a model group (`run_vacant=False`). Vacant sales are still flagged correctly (`vacant_sale`), and vacant land is not a model group of its own. May be revisited. |
 
 ## 3. What the user sees
 
@@ -91,12 +91,12 @@ One question per screen, in plain words. **Back** always works. Progress is save
    Nothing heavy runs without a cost estimate first (§3.12).
 9. **Dates and sales windows.** These are four separate things, each with a one-line explanation:
    - **Valuation date.** Everything is valued as of this date; it also drives ages and time adjustment. *When checking an existing roll, it must match that roll's valuation date, or the comparison isn't like-for-like.*
-   - **Sales used for modeling** (`use_sales_from`). How far back to learn from. Can differ per group later.
+   - **Sales used for modeling** (`use_sales_from`). How far back to learn from. Can differ per model group later.
    - **Sales used for the ratio study** (`look_back_years`). Usually the last year or two.
    - *Advanced:* hold out specific sales as an independent test (`assessor_holdout` / test keys).
 10. **Review**, then **Create project**.
 
-The wizard creates one group, "All properties", with a match-all rule. Real groups are built in step 2 (§3.5).
+The wizard creates one model group, "All properties", with a match-all rule. Real model groups are built in step 2 (§3.5).
 
 ### 3.3 Project screen: a checklist of steps
 Each step has:
@@ -105,49 +105,49 @@ Each step has:
 - a plain-language status
 - **See results**
 
-Before running, a step shows what's stale and why ("Groups changed: steps 3–5 will re-run"). Jobs resume after the app is closed where OpenAVMKit supports it (checkpoints, tuning journals).
+Before running, a step shows what's stale and why ("Model groups changed: steps 3–5 will re-run"). Jobs resume after the app is closed where OpenAVMKit supports it (checkpoints, tuning journals).
 
 | Step | What runs (OpenAVMKit stage boundaries) | Internet? |
 |------|------------------------------------------|-----------|
-| 1. Bring in data | Load, merge, condo handling, enrichment (§3.12). The street enrichment is explicitly off. Ends before group tagging. Then Data health and Field profile (§3.9) | Only for online enrichments |
-| 2. Define property groups | Group tagging (§3.5). Writes the 1-assemble hand-off | No |
+| 1. Bring in data | Load, merge, condo handling, enrichment (§3.12). The street enrichment is explicitly off. Ends before model group tagging. Then Data health and Field profile (§3.9) | Only for online enrichments |
+| 2. Define model groups | Model group tagging (§3.5). Writes the 1-assemble hand-off | No |
 | 3. Check sales | Clean, in OpenAVMKit's order: default fills (§3.12.2), equity clusters, sale processing (validity rules, **time adjustment**, sales window), scrutiny in flag-only mode, overrides (§3.6), collapse of rare categories. Writes the 2-clean hand-off | No |
-| 4. Check my values | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
-| 5. Build model values | Splits, spatial lag, area stats, optional variable testing (§3.10), **Try** models (repeatable) → outlier review → **Finalize** → ratio study on model values. Each group has an improved stage and a vacant (land) stage | No |
+| 4. Check my values | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per model group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
+| 5. Build model values | Splits, spatial lag, area stats, optional variable testing (§3.10), **Try** models (repeatable) → outlier review → **Finalize** → ratio study on model values. Main models only (`run_vacant=False`) | No |
 | 6. Reports and export | PDF reports; Parquet, GeoPackage, Shapefile, CSV, Excel (§4) | No |
 
 **Results views:**
-- a map coloured by ratio, value, group or flag
+- a map coloured by ratio, value, model group or flag
 - sortable tables
 - charts
-- "things to look at" lists: flagged sales, model outliers, sparse groups
+- "things to look at" lists: flagged sales, model outliers, sparse model groups
 
 ### 3.4 Plain-language rules
 - **No jargon without an explainer.** "COD 14.2: your values are fairly uniform. The IAAO target is under 15."
 - **Errors** say what happened, why, and what to click next. OpenAVMKit's fatal and warning messages, such as variable validation, are mapped to plain text. Stack traces go only to the log.
 - **Large text and high contrast** are available. Nothing important is shown only by colour.
 
-### 3.5 Property group builder
-Groups are parcels valued together, for example single-family, condos, commercial and agricultural. **Vacant land is not a group.** OpenAVMKit models every group in two stages, improved and vacant, and splits ratio studies the same way. The builder says so, and shows improved/vacant counts per group.
+### 3.5 Model group builder
+Model groups are parcels valued together, for example single-family, condos, commercial and agricultural. **Vacant land is not a model group of its own.** Vacant parcels stay in their model group and are valued by its main model. Vacant sales are flagged (`vacant_sale`), so reports can break results out by improved/vacant. The builder shows improved/vacant counts per model group.
 
 **Layout:**
-- **Left:** the ordered group list, with colour, parcel count, and sale count split improved/vacant. "Unassigned" is always shown in grey.
-- **Center:** a map coloured by group. Clicking a parcel shows its attributes and *why* it landed in its group ("matched rule 2 of Commercial"). A table toggle shows the same parcels as rows.
-- **Right:** the rule editor for the selected group.
+- **Left:** the ordered model group list, with colour, parcel count, and sale count split improved/vacant. "Unassigned" is always shown in grey.
+- **Center:** a map coloured by model group. Clicking a parcel shows its attributes and *why* it landed in its model group ("matched rule 2 of Commercial"). A table toggle shows the same parcels as rows.
+- **Right:** the rule editor for the selected model group.
 
-**Ways to define a group:**
-1. **From a field.** Pick a field, such as land-use code. Oakbox lists the distinct values with counts, and the user assigns each value to a group.
+**Ways to define a model group:**
+1. **From a field.** Pick a field, such as land-use code. Oakbox lists the distinct values with counts, and the user assigns each value to a model group.
 2. **Rule builder.** Conditions of the form *field / operator / value*, with AND/OR and nesting. It compiles to OpenAVMKit's filter lists.
    - On fields with blanks, it uses in-list/not-in-list, because `==`/`!=` silently send blank rows to Unassigned.
 3. **Hand edits.** Lasso or click parcels on the map. These are saved as an explicit parcel list, and reports list them.
 
 **Behavior:**
-- **First match wins,** as in OpenAVMKit. Groups can be dragged to reorder.
+- **First match wins,** as in OpenAVMKit. Model groups can be dragged to reorder.
 - **Unassigned parcels are not modeled.** OpenAVMKit labels them `UNKNOWN`. The health panel makes this loud.
-- **Sales follow their parcel's group.**
+- **Sales follow their parcel's model group.**
 - **Live preview.** Each edit is re-evaluated against a cached parcel table, reproducing first-match-wins, common-area reassignment and the `UNKNOWN` fallback exactly. The target is under 2 seconds at 500k parcels.
-- **Apply** writes the settings and warns that steps 3–5 will re-run, because fills, clusters, time adjustment, scrutiny and models are all per group.
-- **Health checks per group:**
+- **Apply** writes the settings and warns that steps 3–5 will re-run, because fills, clusters, time adjustment, scrutiny and models are all per model group.
+- **Health checks per model group:**
   - "Only 12 sales — too few to model reliably" (model warning under 15 sales)
   - "Too few sales for a vertical-equity test" (under 20)
   - "3,104 parcels unassigned"
@@ -176,13 +176,13 @@ Each verdict comes with reasons in plain words.
   - Overrides survive re-runs and are written into files OpenAVMKit reads, so notebook users see the same result.
   - Before applying, Oakbox says which steps will re-run.
 - **Rule templates** (Advanced). Relative rules such as "price under 50% of current value" compile to `invalid_sales` filters.
-- **Views:** a map, a list, and filters ("only flagged", "only overridden", "by group", "model outliers").
+- **Views:** a map, a list, and filters ("only flagged", "only overridden", "by model group", "model outliers").
 - **Reported.** Reports list every override, with its note.
 
 ### 3.7 Tax years
 - **Storage.** A project is one jurisdiction × one tax year: `Documents\Oakbox\<Jurisdiction>\<Year>\`, which holds a standard OpenAVMKit locality.
 - **Shared cache.** Downloaded enrichment data (`cache/`) is shared per jurisdiction, so a new year doesn't re-download gigabytes.
-- **Start next year** copies settings, groups, column mappings, transforms, standards profile and report templates. It can optionally copy overrides still inside the sales window.
+- **Start next year** copies settings, model groups, column mappings, transforms, standards profile and report templates. It can optionally copy overrides still inside the sales window.
   - It does *not* copy model outputs or tuned parameters, and offers a fresh tune.
   - The user then imports new files, and the wizard only asks about columns that changed.
 - **Read-only past years.** Past years are read-only by default. Each records its engine version and random seed, so results can be reproduced for an appeal.
@@ -210,7 +210,7 @@ Shown after step 1 and after any re-import.
 | Impossible values (negative area, year built 2099, $0 sale) | Treat as missing | Export the list |
 | Wrong coordinate system | Reproject (with confirmation) | — |
 
-**Field profile** (does the data mean what it says?). This reflects the QA the OpenAVMKit tutorial insists on before groups are defined.
+**Field profile** (does the data mean what it says?). This reflects the QA the OpenAVMKit tutorial insists on before model groups are defined.
 - **Per field:** % filled, % zero, distinct values, top values. Mostly-empty fields are flagged.
 - **Cross-checks on code labels:**
   - "412 parcels coded LAND have a building area"
@@ -227,15 +227,15 @@ Rules for both screens:
 
 ### 3.10 Building model values (step 5)
 **Variables.** At the start of step 5, the user picks a path. They can switch later.
-- **Plow forward** (default). OpenAVMKit has no built-in default variable list, so Oakbox ships one per group type, made from the mapped and enriched fields. Tree models such as LightGBM get the broad list.
-- **Test variables first.** Oakbox runs variable analysis per group on the candidate list and shows a review:
+- **Plow forward** (default). OpenAVMKit has no built-in default variable list, so Oakbox ships one per model group type, made from the mapped and enriched fields. Tree models such as LightGBM get the broad list.
+- **Test variables first.** Oakbox runs variable analysis per model group on the candidate list and shows a review:
   - One row per variable with a plain verdict: *Drives value*, *Weak*, *Redundant with ___* or *Counter-intuitive*. Today `try_variables` only runs correlation and R²; the last two verdicts need VIF and coefficient-sign tests (upstream A5).
   - A **Details** expander shows the statistics, worded from the existing `variables.md`.
   - An include/exclude toggle per variable. Per the OpenAVMKit tutorial, the pruned list is applied to **linear** models only; tree models keep the broad list.
 
 **Models.**
 - **Picker.** Pick model(s), or **Choose for me**: LightGBM.
-- **Small groups.** Under 15 sales, "Choose for me" falls back to a simpler model (log-price linear regression or local-area) or suggests merging groups.
+- **Small model groups.** Under 15 sales, "Choose for me" falls back to a simpler model (log-price linear regression or local-area) or suggests merging model groups.
 - **Ensemble.** With several models, it's an explicit list that never includes the office's own value fields.
 - **Speed tier.** **Quick** (1 fold, fewer tuning trials) or **Thorough** (OpenAVMKit's default: 5-fold nested cross-validation, about 6× slower), pre-selected by machine tier. Parallel workers are capped by memory (`cv_max_workers`).
 
@@ -243,9 +243,9 @@ Rules for both screens:
 1. **Try** runs the chosen models and shows ratio statistics side by side. It's repeatable and cheap to re-run.
 2. **Review outliers.** Model outliers appear in Sales review (§3.6) with likely causes.
 3. **Finalize** commits the values and writes the model-value ratio study.
-- **Re-tune.** Oakbox reuses saved tuning by default. A **Re-tune** toggle discards it, and is suggested after big data or group changes. Cancelling never deletes tuning journals, so a cancelled tune can resume.
+- **Re-tune.** Oakbox reuses saved tuning by default. A **Re-tune** toggle discards it, and is suggested after big data or model group changes. Cancelling never deletes tuning journals, so a cancelled tune can resume.
 
-**Land values.** OpenAVMKit still runs each group's vacant stage, which the improved model relies on, but Oakbox v1 doesn't show, report or export land values. A separate land-value tool is planned.
+**Total value only.** Oakbox runs main models only (`run_vacant=False` on try and finalize). There is no vacant-stage run, and no land values are shown, reported or exported. A separate land-value tool is planned.
 
 ### 3.11 Online features and the map background
 **Map background:**
@@ -318,7 +318,7 @@ Run order inside step 1:
 
 | Enrichment | User decisions (Advanced in italics) | Online: what is sent | Main cost driver | Adds |
 |---|---|---|---|---|
-| **Map layers** (spatial join, key `geometry`) | Which layers; which fields. Match rule is "parcel centre inside" (the only one OpenAVMKit has; "overlaps" is upstream B3) | Nothing | Parcels × layer complexity | `neighborhood`, `zoning`, … for groups, breakdowns, equity |
+| **Map layers** (spatial join, key `geometry`) | Which layers; which fields. Match rule is "parcel centre inside" (the only one OpenAVMKit has; "overlaps" is upstream B3) | Nothing | Parcels × layer complexity | `neighborhood`, `zoning`, … for model groups, breakdowns, equity |
 | **Basic geometry** | Always on; lat/lon locked on. *Shape and polar toggles* | Nothing | Shape metrics per parcel | Lat/lon, GIS area, shape regularity. Lat/lon is required by distances, spatial lag and modeling |
 | **Building footprints** (Overture) | On/off; *units* | Bounding box, to Overture's public S3 | Downloaded area; parcel × building intersection | Footprint area, height, stories |
 | **Census** (ACS 5-year) | Year; county FIPS (from the place); API key (guided signup); variables from a plain-language list, defaulting to the current four. *Block group or tract; any ACS variable by code* | State and county codes and variable codes, to the Census API and TIGERweb | Small | Chosen variables; tract and block-group IDs (usable as locations) |
@@ -333,8 +333,8 @@ OpenAVMKit has two separate features, and Oakbox keeps them apart, with differen
 
 | | **Estimate missing values** (`enrich.infer`) | **Default fills** (`data.process.fill`) |
 |---|---|---|
-| What it does | Predicts a value from similar nearby parcels with a model | Puts in a stand-in: group median/mean/mode, zero, min/max, "UNKNOWN", or a fixed value. *Can be limited to improved or vacant parcels* |
-| When | Step 1, after the other enrichments but **before** lookup tables, formulas and the vacancy rule | Step 3 (clean), per property group |
+| What it does | Predicts a value from similar nearby parcels with a model | Puts in a stand-in: model group median/mean/mode, zero, min/max, "UNKNOWN", or a fixed value. *Can be limited to improved or vacant parcels* |
+| When | Step 1, after the other enrichments but **before** lookup tables, formulas and the vacancy rule | Step 3 (clean), per model group |
 | Screen | Its card on the Enrichment screen | **"Fill blanks"** panel in step 3 |
 | Typical use | Important characteristics with sizable gaps | Making every model input complete. Linear models crash on any blank; tree models tolerate them |
 | Cost | Model training per field | Negligible |
@@ -361,9 +361,9 @@ OpenAVMKit has two separate features, and Oakbox keeps them apart, with differen
 - **Blank finished area is not handled here.** It is already 0 (vacant) after step 1, so it's decided in the Field profile instead.
 
 #### 3.12.3 Modeling-time context (step 5)
-**Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) run in step 5. They depend on groups and train/test splits.
+**Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) run in step 5. They depend on model groups and train/test splits.
 - **Defaults:**
-  - Spatial lag: each group samples from itself. OpenAVMKit requires this entry per group, and Oakbox always writes it.
+  - Spatial lag: each model group samples from itself. OpenAVMKit requires this entry per model group, and Oakbox always writes it.
   - Area stats: the chosen location fields × price and size medians.
 - **Advanced:** locations, fields, statistics, minimum count, cross-group sampling.
 
@@ -390,7 +390,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 
 ### 4.2 Ratio study report and standards profiles
 **What exists upstream today:**
-- Field-agnostic study functions: `run_ratio_study`, `run_vertical_equity_study`, `run_horizontal_equity_study`, already used on assessor values without modeling in the `assessment_quality` notebook. They display results but write nothing, take one group per call, and have no breakdowns.
+- Field-agnostic study functions: `run_ratio_study`, `run_vertical_equity_study`, `run_horizontal_equity_study`, already used on assessor values without modeling in the `assessment_quality` notebook. They display results but write nothing, take one model group per call, and have no breakdowns.
 - A ratio-study **report** that reads only a finalized model, with the checked value hard-coded to `assr_market_value`. It shows count, median ratio, COD with a bootstrap CI, and trimmed COD.
 - **Bootstrap confidence intervals.**
 - PRD computed with a CI, but not printed.
@@ -401,7 +401,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - Since 0.7.0, the formal ratio study scores **raw** sale price, not time-adjusted.
 
 **Oakbox needs (mostly upstream A3–A4):**
-- **One report path for any value field,** with or without a model. Per group, overall, by breakdown, written to disk.
+- **One report path for any value field,** with or without a model. Per model group, overall, by breakdown, written to disk.
 - **IAAO statistics in the report:** median ratio, COD, PRD, PRB, with CIs and sale counts. Also VEI (exists) and MKI (new), so the report survives the IAAO draft revision.
 - **Pass/fail badges against a standards profile.** A small file with targets per statistic and property class, trimming, minimum sample size and windows. It ships with an IAAO default; state profiles come later; users copy and edit in a form.
   - The minimum sample size must match OpenAVMKit's pooling of cells with 15 or fewer sales.
@@ -446,12 +446,12 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 
 ```
 ┌──────────── Oakbox (per-user install) ─────────────────┐
-│ UI: local web UI in a native window (pywebview →       │
+│ UI: TypeScript web UI in a native window (pywebview →  │
 │     Edge WebView2; falls back to the default browser)  │
 │        │  localhost HTTP + server-sent progress events │
 │ App service (Python): projects, wizard, import, data   │
-│     health, sales register, group preview, staleness,  │
-│     map tiles, reports, updates                        │
+│     health, sales register, model group preview,       │
+│     staleness, map tiles, reports, updates             │
 │        │  spawn / cancel                                │
 │ Engine worker (separate process): OpenAVMKit stage     │
 │     runner, one per job; streams progress events       │
@@ -459,7 +459,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   Bundled: standalone CPython 3.11 + hash-locked wheels (uv)
 ```
 
-- **Python plus a thin HTML/JS front end,** with no heavy build framework. MapLibre draws the maps. WebView2 ships with Windows 10 through Windows Update.
+- **Python backend, TypeScript frontend** (§6.5). WebView2 ships with Windows 10 through Windows Update.
 - **The engine runs in a worker process.** OpenAVMKit changes the working folder, uses relative paths, and can crash or run out of memory. The worker is given an explicit project directory and environment (API keys).
 - **Large maps.** The app service builds vector tiles on the fly from GeoParquet, so the browser never loads 500k polygons.
 - **Packaging:**
@@ -494,8 +494,8 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 |---|---|
 | `valid_sale` **and** `vacant_sale` are required; `key_sale` and `data.process.merge` are required | The wizard always produces them (§3.2) |
 | Office-invalid sales are deleted at the end of the load and merge step; scrutiny drops outliers by default | Kept as-is: invalid sales never touch modeling. Oakbox reviews them in its own register outside the pipeline (§3.6) |
-| Groups are tagged at the end of assemble, and sales take their parcel's group | Step 1 stops before tagging; step 2 tags. Unmatched parcels become `UNKNOWN` and are not modeled |
-| Fills, equity clusters, time adjustment and scrutiny are per group | Any group change re-runs steps 3–5 |
+| Model groups are tagged at the end of assemble, and sales take their parcel's model group | Step 1 stops before tagging; step 2 tags. Unmatched parcels become `UNKNOWN` and are not modeled |
+| Fills, equity clusters, time adjustment and scrutiny are per model group | Any model group change re-runs steps 3–5 |
 | Blank finished area → 0 → vacant, with building fields erased, in step 1 | Kept as the stated default with an opt-out (§3.9); building-field estimates need a filter |
 | Estimation runs before lookup tables, formulas and the vacancy rule | Those outputs can't be predictors |
 | The only spatial-join rule is "centroid inside" | No "overlaps" in v1 (upstream B3) |
@@ -504,7 +504,7 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Checkpoints only check that the file exists | Oakbox owns staleness (§6.4) |
 | The ratio-study report needs a finalized model and hard-codes `assr_market_value`; the field-agnostic study functions exist but don't persist | Step 4 needs upstream A3 |
 | `try_variables` needs an explicit candidate list and runs only correlation and R² | Oakbox supplies candidates; verdicts need A5 |
-| Models need explicit `ind_vars`; there's no default run list | Oakbox ships per-group defaults (§3.10) |
+| Models need explicit `ind_vars`; there's no default run list | Oakbox ships per-model-group defaults (§3.10) |
 | `cloud_sync` syncs both ways | The sample is fetched download-only |
 | The streets enrichment is always called in notebook 1 | Explicitly disabled |
 | Since 0.7.0: nested CV by default, raw-price ratio study, `benchmark` renamed `model_runner` (shim removed in 0.8) | Benchmarks and the headless API target 0.7+ behaviour |
@@ -515,13 +515,29 @@ Oakbox keeps a hash of the settings and inputs that feed each step. When one cha
 | Change | Re-runs from |
 |---|---|
 | Imported files, column mapping, transforms, condo rules, enrichment settings, keeping an office-invalid sale | Step 1. Unchanged enrichments reuse their cache |
-| Groups | Step 2 |
+| Model groups | Step 2 |
 | Fills, validity rules, time adjustment, sales windows, scrutiny settings, excluding a sale | Step 3 |
 | Value fields to check, standards profile | Step 4 only |
 | Variables, models, speed tier, model-outlier exclusions | Step 5 (tuning reused unless Re-tune) |
 | Report presets, export formats | Step 6 only |
 
 Step 4 depends on steps 2–3 but not on step 5, so checking values never waits for modeling.
+
+### 6.5 Frontend
+**Goal:** strong type checking for fast, safe iteration, with as little framework as possible.
+
+- **Language:** TypeScript in `strict` mode (plus `noUncheckedIndexedAccess`). CI fails on any type error (`tsc --noEmit`). No plain `.js` source files.
+- **UI library:** **Preact** with `@preact/signals`, about 10 KB in total.
+  - Components are written as TSX, so `tsc` type-checks templates, props and event handlers. String-template libraries, Lit included, need extra tooling to get the same checking.
+  - No router library, no state-management library and no component kit. Screens are plain components over a small signal store.
+- **Typed end to end.** The Python app service defines its API with pydantic models. Their JSON Schema generates TypeScript types and a thin typed API client at build time, so a backend change that breaks the frontend fails type-checking. Progress events and settings fragments use the same generated types.
+- **Libraries,** all typed and permissively licensed:
+  - MapLibre GL JS (maps)
+  - a small charting library (Observable Plot or uPlot)
+  - a virtualised table (written in-house, or a minimal library)
+- **Build:** esbuild produces one static bundle that ships inside the installer. Node is needed only to develop and build, never at runtime. Tests use Vitest for logic and Playwright against the real app.
+- **Styling:** plain CSS with design tokens (custom properties) for large-text and high-contrast modes. No CSS framework.
+- **Localization:** every UI string goes through a typed string table, so a missing key is a type error (D13).
 
 ## 7. Engine: OpenAVMKit changes
 
@@ -536,7 +552,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 ### A. Needed for M1 ("Check my values")
 1. **Headless stage API:** `run_stage(project_dir, stage, on_progress, cancel)`. No `os.chdir`, no IPython (including in `try_variables`). The environment is passed in. `ipython`, `pytest` and `pipreqs` leave the runtime dependencies.
 2. **Structured progress events** replace `print`; warnings go through the same channel.
-3. **Value-field studies that persist.** Ratio, vertical and horizontal studies on any named field, for all groups plus overall, with breakdowns, written to disk, with no model required. Remove the hard-coded `assr_market_value`.
+3. **Value-field studies that persist.** Ratio, vertical and horizontal studies on any named field, for all model groups plus overall, with breakdowns, written to disk, with no model required. Remove the hard-coded `assr_market_value`.
 4. **Report statistics.**
    - Print PRD, PRB and VEI in the report; add MKI.
    - Standards profiles with pass/fail.
@@ -555,13 +571,13 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 9. **Provenance flags** for default fills, and for the step 1 rule that turns blank finished area into 0. Also a setting to **opt out** of that rule, with vacancy taken from an explicit field instead.
 10. **Tagged releases.** The version already comes from tags, but Oakbox must pin tagged commits.
 
-### B. Needed for M2 (wizard, enrichment, groups, sales)
+### B. Needed for M2 (wizard, enrichment, model groups, sales)
 1. **Enrichment plumbing:** progress per enrichment, a cost-estimate helper, and running an enrichment on a subset of parcels.
 2. **Per-enrichment cache signatures.** Today the Overture signature covers the whole `enrich` block, and the estimation cache has no settings signature.
 3. **"Overlaps" / area-weighted** spatial-join rule.
 4. **Census:** configurable variables and geography; key via parameter; multi-county FIPS.
 5. *(Dropped: invalid sales must never enter the pipeline. Oakbox handles office-code keeps by rewriting `valid_sale` at load.)*
-6. **Explain group assignment:** which group and which rule matched a parcel.
+6. **Explain model group assignment:** which model group and which rule matched a parcel.
 7. **Data health checks** as a library function returning structured problems.
 8. **Machine-readable model outliers** for the sales register.
 9. **Vectorise the Overture parcel × building intersection.**
@@ -582,10 +598,10 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - **Spatial-join key name.** The real key is `geometry`. `advanced_settings` §4.2 calls it `spatial_joins`.
 - **Unsupported file formats.** `advanced_settings` §4.5 and `tutorial` L102 claim `.shp`/GeoPackage loading, which the loader doesn't support.
 - **Distances.** The per-feature `enabled` default is documented as true; it is false. `config.md` shows an obsolete distances schema and enrich keys without the `data.` prefix.
-- **Wrong stage for spatial lag.** `advanced_settings` §4.8 lists it as a step 1 enrichment and omits the required per-group `model_groups` entries.
+- **Wrong stage for spatial lag.** `advanced_settings` §4.8 lists it as a step 1 enrichment and omits the required per-model-group `model_groups` entries.
 - **Run order.** `ref_tables` is documented as running before estimation; it runs after.
 - **Checkpoints.** They're documented as "self-invalidating" (`advanced_settings` L1502, `tutorial` L575); they aren't.
-- **Re-run point after a group change.** The tutorial says to re-run from notebook 3; it must start at tagging.
+- **Re-run point after a model group change.** The tutorial says to re-run from notebook 3; it must start at tagging.
 - **Recipe.** `recipe.md` lists `process_sales` in assemble.
 - **infer's `fill` key** is described backwards (the code copies *into* the target).
 - **`time_adjustment` docstring** says it feeds ratio studies; it hasn't since 0.7.0.
@@ -601,15 +617,15 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - **M1 — "Check my values."**
   - Installer, home screen, sample county
   - Wizard, including sale ID, vacant-at-sale, date format, dupes, units and transforms
-  - Steps 1–4; the group builder in "From a field" mode only; enrichment limited to map layers and basic geometry, so M1 runs offline
+  - Steps 1–4; the model group builder in "From a field" mode only; enrichment limited to map layers and basic geometry, so M1 runs offline
   - Data health, Field profile, a read-only sales register
   - Staleness tracking
   - Ratio study PDF with the IAAO profile; CSV/Excel export; offline help
   - Usability test with 3 real assessors before calling M1 done
   - Upstream: A1–A10
-- **M2 — Full wizard, groups and sales.**
+- **M2 — Full wizard, model groups and sales.**
   - Enrichment screen (all of §3.12.1 except Street frontage)
-  - Full group builder
+  - Full model group builder
   - Sales review with overrides and rule templates
   - Formula builder and per-parcel corrections
   - Map background
