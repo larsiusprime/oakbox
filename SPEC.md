@@ -626,6 +626,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
    - An exact ratio-study date window.
    - Honour the bootstrap `iterations` argument (it's ignored today, and fixed at 10,000).
    - Fix the trimmed table showing the untrimmed median.
+   - **VEI definition mismatch with openratiostudy.** OpenAVMKit's market-value proxy is `0.5 × sale + value ÷ median ratio`; openratiostudy's spec uses `0.5 × sale + 0.5 × (value ÷ median ratio)`. OpenAVMKit also needs 20 sales for VEI, where openratiostudy needs 10 (2 strata for 10–50). Agree on one definition and test both against the IAAO exposure-draft fixture.
 5. **Typst report rendering** replaces wkhtmltopdf.
 6. **Scrutiny outputs for review:**
    - write every flagged or dropped sale, with its reason, to a machine-readable file;
@@ -687,7 +688,13 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - A portable build runs Petersburg end to end on a clean Windows 10 VM with 8 GB RAM. The only online step is the prompted sample download.
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
-- **M1 — "Check my values."**
+- **M1 — "Check my values."** Built as four slices, each one runnable:
+  - **M1a, walking skeleton (done).** Real app shell: home screen, sample county download, steps 1–4 with live progress and Stop, and the results table with IAAO default targets. Engine changes: A1, A2, A3, A11, A12 (horizontal equity), plus a CatBoost Windows fix found by a user run. Bundles ship the app, and CI smoke-tests it end to end on Windows and Linux.
+  - **M1b, own data.** The wizard.
+  - **M1c, trust the data.** Data health, Field profile, the "From a field" model group builder, the sales register, staleness.
+  - **M1d, hand it over.** PDF report, exports, help.
+
+  Full M1 scope:
   - Windows installer and Linux `.tar.gz`, both smoke-tested in CI; home screen; sample county
   - Wizard, including sale ID, vacant-at-sale, date format, dupes, units and transforms
   - Steps 1–4; the model group builder in "From a field" mode only; enrichment limited to map layers and basic geometry, so M1 runs offline
