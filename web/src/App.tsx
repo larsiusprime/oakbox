@@ -30,6 +30,8 @@ export function App() {
           <span className="wordmark-strong">{t.appName.strong}</span>
           <span className="wordmark-light">{t.appName.light}</span>
         </a>
+        <span className="titlebar-groove" aria-hidden="true" />
+        <span className="tagline">{t.tagline}</span>
       </header>
       <main className="content">
         {route.name === "home" ? <HomeScreen /> : <ProjectScreen projectId={route.id} />}

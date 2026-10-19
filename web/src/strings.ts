@@ -4,6 +4,7 @@ import type { StepId } from "./api/client";
 export const t = {
   appName: { strong: "OAK", light: "box" },
   appTitle: "OAK box",
+  tagline: "OpenAVMKit in a box",
 
   home: {
     projectsTitle: "Projects",
