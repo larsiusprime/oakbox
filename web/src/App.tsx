@@ -26,12 +26,14 @@ export function App() {
   return (
     <div className="app">
       <header className="titlebar">
-        <a className="wordmark" href="#/" aria-label={t.appTitle}>
-          <span className="wordmark-strong">{t.appName.strong}</span>
-          <span className="wordmark-light">{t.appName.light}</span>
+        <a className="plate" href="#/">
+          <span className="wordmark">
+            <span className="wordmark-strong">{t.appName.strong}</span>
+            <span className="wordmark-light">{t.appName.light}</span>
+          </span>
+          <span className="plate-rule" aria-hidden="true" />
+          <span className="tagline">{t.tagline}</span>
         </a>
-        <span className="titlebar-groove" aria-hidden="true" />
-        <span className="tagline">{t.tagline}</span>
       </header>
       <main className="content">
         {route.name === "home" ? <HomeScreen /> : <ProjectScreen projectId={route.id} />}
