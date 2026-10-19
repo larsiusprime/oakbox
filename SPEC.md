@@ -683,7 +683,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
 ## 8. Milestones
 
-- **M0 — Spike.** Prove the packaging and the hardware assumptions. **Done**, except the Petersburg run, which is blocked on network access. See [`docs/m0/REPORT.md`](docs/m0/REPORT.md).
+- **M0 — Spike.** Prove the packaging and the hardware assumptions. **Done**, including a real-data run on Petersburg. See [`docs/m0/REPORT.md`](docs/m0/REPORT.md).
   - A portable build runs Petersburg end to end on a clean Windows 10 VM with 8 GB RAM. The only online step is the prompted sample download.
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
@@ -740,7 +740,8 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
 **Open:**
 1. **M0 follow-ups:**
-   - the Petersburg run (needs `landeconomics.blob.core.windows.net` allowed)
+   - Is a Census API key actually needed? Petersburg's Census enrichment worked with none set. If the anonymous quota covers a county, the key becomes optional in the wizard.
+   - Fail fast on unreachable services. Petersburg spent minutes retrying a blocked OpenStreetMap server; Oakbox needs a short timeout and a plain "skipped" card.
    - timing on a real low-end PC
    - memory on real extracts
    - why `cv_folds=1` is slow
