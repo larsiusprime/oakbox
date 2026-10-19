@@ -605,7 +605,7 @@ The decisive factor is the first column. With TSX, `tsc --noEmit` catches a miss
 7. **Data health checks** as a library function returning structured problems.
 8. **Machine-readable model outliers** for the sales register.
 9. **Vectorise the Overture parcel × building intersection.**
-10. **GIS and Excel loaders,** or keep them in Oakbox (§10).
+10. **GIS and Excel loaders** (Shapefile, GeoPackage, GeoJSON, Excel) in OpenAVMKit itself.
 
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).
