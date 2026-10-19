@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.6 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.7 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -19,7 +19,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D3 | Jurisdictions | Generic, not Texas-specific. Test with OpenAVMKit's public sample localities. Non-disclosure states come later. |
 | D4 | Data model | GIS-first. A parcel geometry layer is required. |
 | D5 | Scale | 500k+ parcels supported on suitable hardware. Small jurisdictions run on the low-end floor (§5). |
-| D6 | Platform | Windows 10 64-bit minimum. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
+| D6 | Platform | Windows 10 64-bit minimum is the primary target. **Linux x86_64 is also supported** (glibc 2.28+: Ubuntu 20.04+, Debian 10+, RHEL/Rocky 8+), from the same codebase and CI. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
 | D7 | Network | Works offline. Internet is only needed for optional enrichment, the map background, update checks and the sample download. |
 | D8 | Updates | The user approves each update. IT-managed deployment comes later. |
 | D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel. Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
@@ -480,22 +480,37 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   Bundled: standalone CPython 3.11 + hash-locked wheels (uv)
 ```
 
-- **Python backend, TypeScript frontend** (§6.5). WebView2 ships with Windows 10 through Windows Update.
+- **Python backend, TypeScript frontend** (§6.5). WebView2 ships with Windows 10 through Windows Update; on Linux the window is WebKitGTK or a browser app window (§6.1).
 - **The engine runs in a worker process.** OpenAVMKit changes the working folder, uses relative paths, and can crash or run out of memory. The worker is given an explicit project directory and environment (API keys).
 - **Large maps.** The app service builds vector tiles on the fly from GeoParquet, so the browser never loads 500k polygons.
 - **Packaging:**
   - a standalone CPython build plus pre-installed wheels, with no freezing (PyInstaller struggles with GDAL, PROJ and numba)
-  - a per-user Inno Setup installer into `%LOCALAPPDATA%\Oakbox`, with no admin rights
-  - a portable `.zip` fallback
-  - measured in M0: 1.7 GB installed, 544 MB zipped. Roughly 350 MB after upstream A13
+  - **Windows:** a per-user Inno Setup installer into `%LOCALAPPDATA%\Oakbox`, with no admin rights, plus a portable `.zip` fallback. Measured in M0: 1.7 GB installed, 544 MB zipped; roughly 350 MB after upstream A13
+  - **Linux:** a portable `.tar.gz`. Its launcher installs per user into `~/.local/share/oakbox` and adds a desktop-menu entry (`.desktop` file), with no root. An AppImage may follow. Measured in M0: 2.5 GB installed, 974 MB compressed. 469 MB of that is NVIDIA's NCCL library, which XGBoost's Linux wheel pulls in and a CPU-only app never needs (upstream A13)
+  - **Both bundles are built on Linux** from one script (`packaging/build_bundle.sh`) and one lockfile. CI smoke-tests each on a clean machine of its platform
 - **Projects** are ordinary folders: an OpenAVMKit locality plus `oakbox.json`. Easy to copy, zip and back up.
 - **Reproducibility.** Each project records the Oakbox and OpenAVMKit versions and the seed. Versions install side by side.
 - **Updates.** **Check for updates** reads GitHub Releases, sending only a plain version request. The user approves each install, and the old version is kept.
 - **Privacy.** No telemetry and no crash upload. **Send log to support** builds a zip the user emails themselves.
 
-### 6.1 Keeping macOS possible
+### 6.1 Cross-platform: Linux now, macOS possible
+**Linux (supported).** It's the development environment as well as a target. Many contributors and most CI already run on it, and the engine runs there unchanged.
+- **Window:** pywebview's Linux backends need system libraries (WebKitGTK through PyGObject, or Qt WebEngine). These can't be relied on across distributions. So on Linux, Oakbox:
+  - uses a native window when WebKitGTK is present;
+  - otherwise opens the UI in the user's browser, in Chromium/Chrome "app" mode (a chromeless window) when one is installed, else in a normal tab.
+
+  The UI is identical either way.
+- **Baseline:** glibc 2.28+ (the `manylinux_2_28` wheels), x86_64. ARM64 Linux is later; its wheels mostly exist.
+- **Shipped as** a per-user `.tar.gz`. It needs no root, Python or package manager (§6). There are no distro packages (.deb/.rpm) in v1.
+- **Tested in CI:** an empty-environment smoke test on `ubuntu-latest` (passes in M0), plus the full test suite.
+- **Platform differences** are kept small:
+  - default project folder: `~/Documents/Oakbox` or `XDG_DOCUMENTS_DIR`
+  - hardware probe from `/proc`
+  - `LOKY_MAX_CPU_COUNT` set the same way on every platform
+
+**macOS (later).**
 - **The stack already runs on macOS:** pywebview uses WKWebView, the scientific wheels exist for Apple Silicon, and standalone CPython builds exist.
-- **OS-specific code stays contained** in one `platform/` module. `pathlib` is used everywhere.
+- **OS-specific code stays contained** in one `platform/` module (Windows, Linux, later macOS). `pathlib` is used everywhere.
 - **CI smoke-tests a macOS build** from M1.
 - **Deferred macOS costs:**
   - Apple signing and notarization
@@ -627,7 +642,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
     - the horizontal-equity study (473 s at 500k)
     - equity clusters plus scrutiny (about 220 s at 500k)
     - `finalize_models` when `cv_folds=1` (1,395 s at 500k)
-13. **Leaner runtime dependencies.** Drop IPython from module-level imports. Make CatBoost and XGBoost optional extras. Together these cut the download from 544 MB to roughly 350 MB.
+13. **Leaner runtime dependencies.** Drop IPython from module-level imports. Make CatBoost and XGBoost optional extras; XGBoost's Linux wheel also pulls in NCCL (469 MB). Together these cut the Windows download from 544 MB to roughly 350 MB, and the Linux download by more.
 
 ### B. Needed for M2 (wizard, enrichment, model groups, sales)
 1. **Enrichment plumbing:** progress per enrichment, a cost-estimate helper, and running an enrichment on a subset of parcels.
@@ -673,14 +688,14 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
 - **M1 — "Check my values."**
-  - Installer, home screen, sample county
+  - Windows installer and Linux `.tar.gz`, both smoke-tested in CI; home screen; sample county
   - Wizard, including sale ID, vacant-at-sale, date format, dupes, units and transforms
   - Steps 1–4; the model group builder in "From a field" mode only; enrichment limited to map layers and basic geometry, so M1 runs offline
   - Data health, Field profile, a read-only sales register
   - Staleness tracking
   - Ratio study PDF with the IAAO profile; CSV/Excel export; offline help
   - Usability test with 3 real assessors before calling M1 done
-  - Upstream: A1–A10
+  - Upstream: A1–A13
 - **M2 — Full wizard, model groups and sales.**
   - Enrichment screen (all of §3.12.1 except Street frontage)
   - Full model group builder
