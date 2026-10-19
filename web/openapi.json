@@ -1,7 +1,7 @@
 {
  "openapi": "3.1.0",
  "info": {
-  "title": "Oakbox",
+  "title": "OAK box",
   "version": "0.1.0.dev0"
  },
  "paths": {
