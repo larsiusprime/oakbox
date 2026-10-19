@@ -12,6 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The engine branch lives in this (private) repo; check it out with the job token.
+      - uses: actions/checkout@v4
+        with:
+          ref: openavmkit-oakbox
+          path: build/engine
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - run: packaging/build_windows_bundle.sh
       - uses: actions/upload-artifact@v4
