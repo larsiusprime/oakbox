@@ -94,13 +94,17 @@ A stage or step is done only when the user clicks **Looks right** on its receipt
    | **Map layer** | Neighbourhoods, zoning, school districts | Attached by overlay (§3.12.1) |
    | **Not sure** | — | Oakbox suggests a kind from the columns and the ID check |
 
-   - **ID column.** The user picks the parcel ID column, which is always read as **text** so leading zeros are kept. Oakbox checks uniqueness straight away: "12,431 rows but 11,902 IDs. Does this file have several rows per parcel?"
-   - **Fixed-width text** (such as PACS appraisal exports) needs a layout: the user picks a known layout (Oakbox ships the PACS ones it has been tested on) or supplies one. Oakbox converts each file to Parquet in `in/` (§4.1).
+   - **ID column.** The user picks the parcel ID column, which is always read as **text** so leading zeros are kept. Oakbox checks uniqueness straight away: "12,431 rows but 11,902 IDs. Does this file have several rows per parcel?" A file can need several columns to identify a row (property + improvement + detail), and can belong to a parent file rather than to the parcel directly.
+   - **Fixed-width text** (such as PACS appraisal exports) needs a layout: the user picks a known layout (Oakbox ships the PACS ones it has been tested on) or supplies one. A recognised export is added as a whole: Oakbox lists its files with sizes and a plain description, and preselects the ones modeling uses (for PACS: property, improvements, improvement details, land). Oakbox converts each file to Parquet in `in/`, keeping only the fields the user keeps (§4.1).
 3. **Stitch.** How the files become one table of parcels and one table of sales. Oakbox drafts the plan and the user confirms each part:
    - **The spine.** The parcel map. Without a map (allowed only with a warning, D4), a one-row-per-parcel table.
-   - **How each file attaches:** by ID, by position or by overlay; sales files stacked (`append`).
+   - **How each file attaches:** by ID, by position or by overlay; sales files stacked (`append`). A nested file rolls up through its parent: improvement details → improvements → parcel, collapsing at each level.
    - **Matching.** Each attachment shows its match rate both ways: "11,640 of 11,902 IDs match the map (97.8%). See the 262 that don't." When IDs nearly match, Oakbox suggests a fix and shows how many more would match: "IDs here have dashes and the map's don't. Remove dashes? +247 matches." Fixes are trim, remove characters, pad with zeros, change case and keep only part. They compile to `calc` on that file (§3.13), so Check and the engine apply the same rule.
+   - **Rows without an ID** are dropped with a named reason, counted in the receipt.
    - **Several rows per parcel.** Per field: **sum**, **largest**, **smallest** or **first**, with sensible defaults (areas sum; year built takes the earliest; codes take the row with the largest area). This becomes that file's `dupes` setting.
+     - In the parcel table itself, duplicates usually mean versions or owners (PACS: supplement number, one row per owner). Oakbox proposes "latest version, primary owner" and shows how many rows that removes.
+     - In the parcel map, several polygons for one ID are merged into one shape.
+   - **On the roll, not on the map.** Parcels without a polygon are listed by type, because some are expected: condo units that share a polygon (handled by condo rules, §3.5), and accounts newer than the map.
    - **Column clashes.** When two files have a column of the same name, the user picks which one wins (`reconcile`); the other is kept with the file's name as a suffix.
    - **Context data starting point:** **None (offline)**, **Recommended**, or **Custom**, which opens the Enrichment screen (§3.12). Nothing heavy runs without a cost estimate first.
    - **Preview:** the stitched parcel table, with each column's source file, and the parcels each file left blank.
@@ -416,7 +420,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 ## 4. Inputs, outputs and reports
 
 ### 4.1 Import and export
-- **Import:** Shapefile (loose or zipped), GeoPackage, GeoJSON, Parquet/GeoParquet, CSV, Excel, and fixed-width text with a layout. Oakbox ships layouts for the PACS appraisal export versions it has been tested on (Travis CAD first); other layouts can be supplied as a simple field/start/width table. Zipped exports are opened in place, without unpacking by hand. Oakbox stores everything as GeoParquet in the project's `in/` folder; OpenAVMKit itself only reads CSV/Parquet. The parcel layer is loaded as OpenAVMKit's `geo_parcels`.
+- **Import:** Shapefile (loose or zipped), GeoPackage, GeoJSON, Parquet/GeoParquet, CSV, Excel, and fixed-width text with a layout. Oakbox ships layouts for the PACS appraisal export versions it has been tested on (Travis CAD first); other layouts can be supplied as a simple field/start/width table. Zipped exports are opened in place, without unpacking by hand. Large exports are read straight from the zip as a stream, never unpacked to disk: the Travis CAD export is 0.5 GB zipped and 17.8 GB unpacked. Quick checks read only the columns they need (Travis: IDs from the 4.9 GB property file in 20 s). Oakbox stores everything as GeoParquet in the project's `in/` folder; OpenAVMKit itself only reads CSV/Parquet. The parcel layer is loaded as OpenAVMKit's `geo_parcels`.
 - **Export:** per-parcel values, flags and ratios as Parquet/GeoParquet, GeoPackage, Shapefile, CSV and Excel.
   - **Default format:** GeoPackage for GIS users, CSV for everyone else.
   - **Shapefile limits:** field names are cut to 10 characters, and files are capped at 2 GB. Oakbox warns and writes a field-name key.
