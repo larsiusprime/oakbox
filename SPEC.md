@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.5 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.6 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -241,7 +241,9 @@ Rules for both screens:
 - **Picker.** Pick model(s), or **Choose for me**: LightGBM.
 - **Small model groups.** Under 15 sales, "Choose for me" falls back to a simpler model (log-price linear regression or local-area) or suggests merging model groups.
 - **Ensemble.** With several models, it's an explicit list that never includes the office's own value fields.
-- **Speed tier.** **Quick** (1 fold, fewer tuning trials) or **Thorough** (OpenAVMKit's default: 5-fold nested cross-validation, about 6× slower), pre-selected by machine tier. Parallel workers are capped by memory (`cv_max_workers`).
+- **Speed tier.** **Quick** or **Thorough** (OpenAVMKit's default, 5-fold nested cross-validation), pre-selected by machine tier.
+  - M0 found that 1-fold is *slower* than 5-fold at 150k+ parcels, so Quick must not be built on `cv_folds`. Quick will use fewer tuning trials and reuse saved tuning; to be measured in M1.
+  - Parallel fold workers are capped by memory (`cv_max_workers`).
 
 **Try, review, finalize.**
 1. **Try** runs the chosen models and shows ratio statistics side by side. It's repeatable and cheap to re-run.
@@ -442,21 +444,21 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **For power users and consultants:** the reports are plain Typst template files. **Open template folder** copies them into the project. Edited templates are validated, with a fallback to the stock template on error. Jurisdiction packs ship as template sets.
 
 ## 5. Hardware targets
+**Provisional, from M0 benchmarks** ([`docs/m0/REPORT.md`](docs/m0/REPORT.md)). These came from synthetic data with about 10 fields per parcel, on 4 cores. Real extracts and a real low-end PC still need to confirm them.
 
-| Tier | Machine | Parcels (target) |
-|------|---------|------------------|
-| Below floor | 4 GB RAM | Samples and jurisdictions under 25k; warns |
-| Floor | Win10 x64, 4 cores, 8 GB RAM, 25 GB free disk | up to ~150k |
-| Recommended | 4+ cores, 16 GB RAM, SSD | ~150k–500k |
-| Large | 8+ cores, 32 GB RAM, SSD | 500k+ |
+| Tier | Machine | Model step setting | Parcels (target) |
+|------|---------|--------------------|------------------|
+| Below floor | 4 GB RAM | 1 fold worker | Samples and jurisdictions under 25k; warns |
+| Floor | Win10 x64, 4 cores, 8 GB RAM, 25 GB free disk | 1 fold worker (`cv_max_workers=1`) | up to ~150k |
+| Recommended | 4+ cores, 16 GB RAM, SSD | 2 fold workers | up to ~500k |
+| Large | 8+ cores, 32 GB RAM, SSD | `cores − 2` workers | 500k+, or real data with many columns |
 
-- **The limits are hypotheses** until M0. M0 must benchmark under OpenAVMKit 0.7's real defaults:
-  - 5-fold nested cross-validation
-  - exact TreeSHAP for LightGBM (a 500k / 8 GB risk)
-  - 10,000-draw bootstrap per ratio-study cell
-  - one data copy per parallel fold worker
-- **Plain warning, never a block.** "This county has 520,000 parcels. This computer has 8 GB of memory; we recommend 32 GB. Steps may be very slow or fail." The user can continue.
-- **Automatic scaling.** Oakbox reads RAM, cores and disk, then sets the speed tier, parallel workers and enrichment defaults to fit.
+**Measured** at 500k parcels, Thorough model step: about 36 min end to end, 9.2 GB peak memory, 3.9 GB of project outputs.
+
+- **Memory has a fixed base.** About 0.7 GB per process (the OpenAVMKit import), plus about 0.7 GB per cross-validation fold worker. The data-proportional part grows with column count, so real extracts will raise it.
+- **Plain warning, never a block.** "This county has 520,000 parcels. This computer has 8 GB of memory; we recommend 16 GB. Steps may be very slow or fail." The user can continue.
+- **Automatic scaling.** Oakbox reads RAM, cores and disk, then sets fold workers and enrichment defaults to fit.
+- **Disk per project.** Outputs are roughly 100× the input size (3.9 GB for 500k). Oakbox prunes intermediate outputs after each step, and the disk check counts the project's expected size.
 - **Why this floor:**
   - Windows 10 is still about 26% of Windows PCs ([StatCounter via Yahoo, May 2026](https://tech.yahoo.com/computing/articles/microsoft-giving-windows-10-users-180152418.html)), with paid security updates to Oct 2027.
   - About 10% of machines have 8 GB RAM ([PassMark](https://www.memorybenchmark.net/amount-of-ram-installed.html)), and office PCs skew lower.
@@ -485,7 +487,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   - a standalone CPython build plus pre-installed wheels, with no freezing (PyInstaller struggles with GDAL, PROJ and numba)
   - a per-user Inno Setup installer into `%LOCALAPPDATA%\Oakbox`, with no admin rights
   - a portable `.zip` fallback
-  - roughly 1.2 GB installed and 400 MB to download
+  - measured in M0: 1.7 GB installed, 544 MB zipped. Roughly 350 MB after upstream A13
 - **Projects** are ordinary folders: an OpenAVMKit locality plus `oakbox.json`. Easy to copy, zip and back up.
 - **Reproducibility.** Each project records the Oakbox and OpenAVMKit versions and the seed. Versions install side by side.
 - **Updates.** **Check for updates** reads GitHub Releases, sending only a plain version request. The user approves each install, and the old version is kept.
@@ -512,6 +514,8 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Fact | Consequence for Oakbox |
 |---|---|
 | `valid_sale` **and** `vacant_sale` are required; `key_sale` and `data.process.merge` are required | The wizard always produces them (§3.2) |
+| Without a `dupes` setting, a geometry file is de-duplicated on an *arbitrary* column; the column order comes from a `set` and varies between runs. In M0 this silently dropped up to 99.8% of parcels | Oakbox always writes `dupes` explicitly (`subset: [key]`). Upstream A11 |
+| Importing OpenAVMKit pulls in IPython and costs about 0.7 GB per process; the first Windows import takes about 17 s | The engine worker starts once and shows a splash screen. Upstream A1 |
 | Office-invalid sales are deleted at the end of the load and merge step; scrutiny drops outliers by default | Kept as-is: invalid sales never touch modeling. Oakbox reviews them in its own register outside the pipeline (§3.6) |
 | Model groups are tagged at the end of assemble, and sales take their parcel's model group | Step 1 stops before tagging; step 2 tags. Unmatched parcels become `UNKNOWN` and are not modeled |
 | Fills, equity clusters, time adjustment and scrutiny are per model group | Any model group change re-runs steps 3–5 |
@@ -618,6 +622,12 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 8. **Settings-hashed checkpoints,** or at least a documented stage-to-settings map.
 9. **Provenance flags** for default fills, and for the step 1 rule that turns blank finished area into 0. Also a setting to **opt out** of that rule, with vacancy taken from an explicit field instead.
 10. **Tagged releases.** The version already comes from tags, but Oakbox must pin tagged commits.
+11. **Safe `dupes` default** for geometry files: de-duplicate on `key`, or raise an error. Never use an arbitrary column.
+12. **Performance hotspots from M0:**
+    - the horizontal-equity study (473 s at 500k)
+    - equity clusters plus scrutiny (about 220 s at 500k)
+    - `finalize_models` when `cv_folds=1` (1,395 s at 500k)
+13. **Leaner runtime dependencies.** Drop IPython from module-level imports. Make CatBoost and XGBoost optional extras. Together these cut the download from 544 MB to roughly 350 MB.
 
 ### B. Needed for M2 (wizard, enrichment, model groups, sales)
 1. **Enrichment plumbing:** progress per enrichment, a cost-estimate helper, and running an enrichment on a subset of parcels.
@@ -658,7 +668,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
 ## 8. Milestones
 
-- **M0 — Spike.** Prove the packaging and the hardware assumptions.
+- **M0 — Spike.** Prove the packaging and the hardware assumptions. **Done**, except the Petersburg run, which is blocked on network access. See [`docs/m0/REPORT.md`](docs/m0/REPORT.md).
   - A portable build runs Petersburg end to end on a clean Windows 10 VM with 8 GB RAM. The only online step is the prompted sample download.
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
@@ -714,7 +724,12 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - The openratiostudy.com reference is settled: read from its source repo (§4.2).
 
 **Open:**
-1. **M0 results** will set §5 and the enrichment cost coefficients. A low-end test machine comes later.
+1. **M0 follow-ups:**
+   - the Petersburg run (needs `landeconomics.blob.core.windows.net` allowed)
+   - timing on a real low-end PC
+   - memory on real extracts
+   - why `cv_folds=1` is slow
+   - the enrichment cost coefficients, which need an M2 run with enrichment on
 2. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for wizard and Data health testing.
 3. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
 4. **Usability test:** after M1, with assessors the maintainer recruits.
