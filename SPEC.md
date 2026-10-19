@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.4 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.5 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -28,7 +28,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D12 | Privacy | No parcel data leaves the machine. No telemetry. |
 | D13 | Localization | Deferred. All UI strings go in a string table from day one. |
 | D14 | Code signing | Deferred; the maintainer will handle it. |
-| D15 | UI tech | Strict TypeScript, framework-lite (Preact + signals, TSX; Lit as the fallback), built with Vite. Runs in a native window on a FastAPI backend whose API types are generated into TypeScript, so the whole stack type-checks (§6.5). |
+| D15 | UI tech | Strict TypeScript + React 19 (SPA, React Compiler, React Aria Components), built with Vite. No Next.js/SSR. Runs in a native window on a FastAPI backend whose API types are generated into TypeScript, so the whole stack type-checks (§6.5). |
 | D16 | Checking values | The user names the total-value field(s) to check. No particular field is required. Land values are out of scope: a separate land-value tool is planned. |
 | D17 | Online notices | Anything that goes online says what it sends, in a calm one-time notice (§3.11). |
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
@@ -543,38 +543,47 @@ Oakbox keeps a hash of the settings and inputs that feed each step. When one cha
 Step 4 depends on steps 2–3 but not on step 5, so checking values never waits for modeling.
 
 ### 6.5 Frontend and build stack
-**Goal:** a type checker that catches mistakes while iterating, with as little framework as possible. No React.
+**Priorities:** great UI, a stable codebase, good performance. Most code will be AI-written, so a type checker that catches mistakes matters more than developer convenience.
 
-**UI library: Preact + `@preact/signals`** (about 6 KB gzipped). Pending sign-off; Lit is the fallback.
-
-| Option | Templates type-checked by `tsc`? | Reactivity | Fit for Oakbox |
-|---|---|---|---|
-| Plain Web Components (no library) | No: DOM updates written by hand | None built in; DOM kept in sync by hand | Most code, and the most bugs, in a form-heavy app (wizard, rule builder, live previews). Element props and events need hand-written type declarations |
-| **Lit** (Web Components + templates) | Only with a separate analyzer (`lit-analyzer`); `tsc` alone sees strings | Reactive properties | Runner-up. Standards-based and small. Shadow DOM fights global theming (large text, high contrast) unless switched off |
-| **Preact + signals** | **Yes, natively (TSX)**: props, events and children | Fine-grained signals | **Chosen.** Best type-checking per KB. Mature (since 2015) and MIT. Not React: no React runtime or ecosystem lock-in |
-| Solid | Yes (TSX) | Fine-grained | Needs a compiler plugin, and has reactivity pitfalls (destructuring props silently breaks updates) |
-| Svelte | Via a separate checker (`svelte-check`) | Compiler | Its own language and toolchain, so not "lite" |
-| htmx / server-rendered HTML | No TypeScript at all | Server round-trips | Poor fit for maps, live previews and charts |
-
-The decisive factor is the first column. With TSX, `tsc --noEmit` catches a misspelled prop, a wrong event type or a missing field in every screen without extra tools. Web Components are still used where they help, for example wrapping MapLibre. There's no router, state library or component kit; screens are plain components over a small signal store.
+**UI library: React 19,** client-side only (an SPA), with the React Compiler enabled. Decided after comparing it with Preact, Lit, plain Web Components, Solid, Svelte and htmx.
+- **Why React:**
+  - **Accessible complex widgets.** **React Aria Components** (Adobe, Apache-2.0) covers the widgets that make up most of Oakbox's UI, with best-in-class accessibility:
+    - comboboxes for column matching
+    - date pickers
+    - drag-to-reorder model groups
+    - tree and rule-builder structures
+    - dialogs, tabs and tooltips
+  - **AI writes React most reliably.** Preact's near-identical API invites subtle React-isms.
+  - **Stability.** The largest user base, long deprecation cycles, and governance under the React Foundation.
+  - **Type checking.** TSX is fully type-checked by `tsc`, the same as Preact.
+- **Costs accepted:**
+  - About 45 KB of runtime, irrelevant for a desktop app loading from local disk.
+  - Coarser re-rendering, mitigated by the React Compiler's automatic memoisation. Heavy work isn't in React anyway: MapLibre draws maps, tables are virtualised, and Python does the number-crunching.
+- **Guardrails** against React's usual problems:
+  - **No framework.** No Next.js, no server components, no SSR: Vite builds a static SPA.
+  - **Lint rules** enforce the rules of hooks and effect dependencies.
+  - **Few effects.** Prefer derived state and event handlers over `useEffect`.
+  - **Data:** server state lives in a typed query layer (TanStack Query over the generated API client). UI state uses plain React state/context, and a small store library only if one proves necessary.
+  - **No component kit** beyond React Aria. Styling is our own.
+- **Other UI pieces:**
+  - MapLibre GL JS for maps, used directly through a thin component wrapper
+  - TanStack Virtual for large tables
+  - Observable Plot or uPlot for charts
 
 **Build stack** (all dev-time only; nothing here ships to users, who get static files):
 
 | Piece | Choice | Why | Not chosen |
 |---|---|---|---|
 | Type checker | `tsc --noEmit`, `strict` + `noUncheckedIndexedAccess` | The only full TypeScript checker. Bundlers *strip* types without checking them, so this runs separately in the editor, a pre-commit hook and CI | — |
-| Dev server and bundler | **Vite** | Hot reload in a normal browser while the Python backend runs. Proxies API calls to the backend with one line of config. Production build is a static bundle. Uses esbuild internally, so it's fast | *esbuild alone:* fewer dependencies, but no hot reload or dev proxy, so we'd rebuild those. *Webpack:* slow and config-heavy. *Parcel / Rspack / Turbopack:* less control, or aimed at big React apps |
+| Dev server and bundler | **Vite** (React plugin) | Hot reload in a normal browser while the Python backend runs. Proxies API calls to the backend with one line of config. Production build is a static bundle. Uses esbuild internally, so it's fast | *esbuild alone:* no hot reload or dev proxy. *Webpack:* slow and config-heavy. *Next.js / Turbopack:* server-oriented, not needed for a local SPA |
 | Backend API → TS types | **FastAPI** (pydantic) → OpenAPI → **`openapi-typescript`** + **`openapi-fetch`** | FastAPI emits OpenAPI from the same pydantic models the backend validates with. The generated types and a ~6 KB typed client mean a backend change that breaks the UI fails `tsc` | Hand-written client types, which drift |
-| Lint + format | **Biome** | One fast binary for both lint and format, few dependencies | ESLint + Prettier + typescript-eslint: more type-aware rules, many more packages. Can add later if needed |
+| Lint + format | **Biome** for formatting and general lint, plus **ESLint** limited to `eslint-plugin-react-hooks` and the React Compiler rules | Biome is fast with few dependencies. The hooks rules are React's main bug guard and only ship as ESLint plugins | Full ESLint + Prettier stack: more packages for little gain |
 | Unit tests | **Vitest** | Shares Vite's config and TS handling | Jest, which needs separate TS setup |
 | End-to-end tests | **Playwright** (Chromium already in the build environment) | Drives the real UI against the real backend | — |
 | Packages | **npm** with a committed lockfile, `npm ci` in CI; Node LTS, dev only | Ships with Node, one less tool | pnpm (fine too; not worth the extra tool yet) |
 | Python side | **uv**, **ruff**, **pyright** (strict on Oakbox code) | Same "type checker first" rule for the backend | mypy (slower; pyright matches the editor) |
 
-**Other frontend pieces:**
-- MapLibre GL JS for maps
-- Observable Plot or uPlot for charts
-- a small virtualised table
+**Styling and strings:**
 - plain CSS with design tokens (custom properties) for large-text and high-contrast modes
 - a typed string table (D13), so a missing translation key is a type error
 
@@ -701,11 +710,11 @@ The decisive factor is the first column. With TSX, `tsc --noEmit` catches a miss
 - Typst renders reports.
 - The default variables are the big five plus location.
 - The IAAO default profile is accepted, to be revised later.
+- The frontend is React (§6.5).
 - The openratiostudy.com reference is settled: read from its source repo (§4.2).
 
 **Open:**
 1. **M0 results** will set §5 and the enrichment cost coefficients. A low-end test machine comes later.
 2. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for wizard and Data health testing.
-3. **Frontend UI library:** Preact (recommended) or Lit (§6.5).
-4. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
-5. **Usability test:** after M1, with assessors the maintainer recruits.
+3. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
+4. **Usability test:** after M1, with assessors the maintainer recruits.
