@@ -1,6 +1,6 @@
-.venv/
-__pycache__/
 *.pyc
+.venv/
+/bench-data/
 /build/
 /dist/
-/bench-data/
+__pycache__/

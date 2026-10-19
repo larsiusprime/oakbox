@@ -1,0 +1,43 @@
+name: windows-bundle
+
+# M0: cross-build the portable Windows bundle on Linux, then prove it runs on a
+# clean Windows machine with no system Python and no network after download.
+on:
+  push:
+    branches: [claude/openavmkit-desktop-wrapper-639lvu, main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: packaging/build_windows_bundle.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oakbox-win64
+          path: dist/oakbox-win64.zip
+          retention-days: 7
+
+  smoke:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: oakbox-win64
+      - name: Unpack
+        shell: pwsh
+        run: Expand-Archive oakbox-win64.zip -DestinationPath C:\oak
+      - name: Smoke test (bundled Python only)
+        shell: cmd
+        run: |
+          set PATH=C:\Windows\system32;C:\Windows
+          C:\oak\oakbox-win64\smoke.cmd
+      - name: Results
+        if: always()
+        shell: pwsh
+        run: |
+          Get-Content C:\oak\oakbox-win64\work\bench.jsonl -ErrorAction SilentlyContinue
+          Get-ChildItem C:\oak\oakbox-win64\work\*.log | ForEach-Object { "==== $_"; Get-Content $_ -Tail 40 }
