@@ -10,7 +10,14 @@ from __future__ import annotations
 import datetime as dt
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel as _PydanticBase
+from pydantic import ConfigDict, Field
+
+
+class BaseModel(_PydanticBase):
+    # Fields with defaults are always present in responses; say so in the schema so
+    # the generated TypeScript types are exact (no spurious optionals).
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 
 class Place(BaseModel):

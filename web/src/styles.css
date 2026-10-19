@@ -1,0 +1,542 @@
+/*
+ * Oakbox visual language: neutral, form-follows-function.
+ * Things you can press look raised and move when pressed; tracks and wells look
+ * sunken; panels have edges. Colour is never the only signal (icons + words).
+ */
+
+:root {
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-size: 16px;
+
+  --bg: #e9e6df;
+  --panel: #fbfaf7;
+  --panel-edge: #b8b2a6;
+  --panel-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 1px 3px rgba(60, 50, 30, 0.18);
+  --text: #23211c;
+  --muted: #5d584e;
+  --rule: #d6d1c6;
+
+  --btn-top: #ffffff;
+  --btn-bottom: #e2ded5;
+  --btn-edge: #8f897c;
+  --btn-text: #23211c;
+  --primary-top: #4a86d8;
+  --primary-bottom: #2c62b4;
+  --primary-edge: #1f4b8e;
+  --focus: #1f6fe0;
+
+  --well: #dcd8cf;
+  --well-edge: #a39d90;
+  --fill-top: #5b95e3;
+  --fill-bottom: #2f68ba;
+
+  --ok: #1e6b34;
+  --ok-bg: #e2f2e5;
+  --warn: #8a4b00;
+  --warn-bg: #fbecd6;
+  --bad: #a3231b;
+  --bad-bg: #f9e1de;
+
+  --radius: 5px;
+}
+
+:root[data-text="large"] {
+  --font-size: 20px;
+}
+
+:root[data-contrast="high"] {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-edge: #000000;
+  --text: #000000;
+  --muted: #222222;
+  --btn-edge: #000000;
+  --rule: #000000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0.25rem 0 0;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+h3 {
+  font-size: 1.125rem;
+  margin: 0 0 0.25rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* ---------- Window chrome ---------- */
+
+.titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(#f7f5f0, #ddd8cd);
+  border-bottom: 1px solid var(--panel-edge);
+  box-shadow: 0 1px 2px rgba(60, 50, 30, 0.15);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brand-mark {
+  color: #2c62b4;
+  margin-right: 0.35rem;
+}
+
+.titlebar-tagline {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* ---------- Panels ---------- */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel > h2 {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* ---------- Buttons: raised, and visibly pressed ---------- */
+
+.button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0.4rem 1.2rem;
+  color: var(--btn-text);
+  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button[data-hovered] {
+  background: linear-gradient(#ffffff, #ebe7df);
+}
+
+.button[data-pressed] {
+  background: linear-gradient(to bottom, var(--btn-bottom), var(--btn-top));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) inset;
+  transform: translateY(1px);
+}
+
+.button[data-focus-visible],
+.explain-button[data-focus-visible],
+.disclosure-trigger[data-focus-visible] {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.button[data-disabled] {
+  cursor: default;
+  color: #8c877c;
+  background: #e7e4dd;
+  border-color: #c4bfb4;
+  box-shadow: none;
+  transform: none;
+}
+
+.button-primary {
+  color: #ffffff;
+  background: linear-gradient(to bottom, var(--primary-top), var(--primary-bottom));
+  border-color: var(--primary-edge);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.button-primary[data-hovered] {
+  background: linear-gradient(#5a93e0, #326cc0);
+}
+
+.button-primary[data-pressed] {
+  background: linear-gradient(to bottom, var(--primary-bottom), var(--primary-top));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) inset;
+}
+
+/* ---------- Home ---------- */
+
+.project-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.project-card,
+.sample-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.sample-row {
+  flex-wrap: wrap;
+}
+
+.sample-row .progress {
+  flex: 1 1 320px;
+}
+
+.project-name {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.notice {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.soon {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ---------- Project steps ---------- */
+
+.back-link {
+  color: var(--focus);
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem 0;
+}
+
+.step {
+  display: flex;
+  gap: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.step-number {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(#8a8578, #5f5a4f);
+  border: 1px solid #4d483f;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+}
+
+.step-done .step-number {
+  background: linear-gradient(#3f9a59, #24713a);
+  border-color: #1d5a2e;
+}
+
+.step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.step-what {
+  margin: 0.2rem 0 0.75rem;
+  color: var(--muted);
+}
+
+.step-actions,
+.step-running {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.step-running .progress {
+  flex: 1 1 360px;
+}
+
+.step-message {
+  font-weight: 600;
+}
+
+/* ---------- Status chips and verdict badges ---------- */
+
+.chip,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.chip-not_run {
+  color: var(--muted);
+}
+.chip-running {
+  color: #1f4b8e;
+  background: #e1ebf8;
+}
+.chip-done,
+.badge-meets {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+.chip-stale {
+  color: var(--warn);
+  background: var(--warn-bg);
+}
+.chip-failed,
+.badge-outside {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0 0.45rem;
+}
+
+/* ---------- Progress: sunken track, raised fill ---------- */
+
+.progress-track {
+  height: 1.1rem;
+  background: var(--well);
+  border: 1px solid var(--well-edge);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) inset;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.progress-fill-indeterminate {
+  width: 100%;
+  background-image:
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.25) 0 10px, transparent 10px 20px),
+    linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+  background-size:
+    28px 28px,
+    100% 100%;
+  animation: stripes 1s linear infinite;
+}
+
+@keyframes stripes {
+  to {
+    background-position:
+      28px 0,
+      0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill-indeterminate {
+    animation: none;
+  }
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+.progress-pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ---------- Results ---------- */
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.data-table thead th {
+  background: linear-gradient(#f5f3ee, #e6e2d9);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table .row-strong th,
+.data-table .row-strong td {
+  background: #f6f4ef;
+  font-weight: 600;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-range {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.explain-button {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--btn-edge);
+  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  cursor: help;
+  vertical-align: middle;
+}
+
+.popover {
+  max-width: 22rem;
+  background: #fffef9;
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.popover-body {
+  padding: 0.75rem 1rem;
+  outline: none;
+}
+
+.footnote {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.75rem 0 0;
+}
+
+/* ---------- Errors ---------- */
+
+.error {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.disclosure-trigger {
+  font: inherit;
+  background: none;
+  border: none;
+  color: var(--focus);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.error-detail {
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  background: #f4f2ed;
+  border: 1px solid var(--rule);
+  padding: 0.75rem;
+  max-height: 16rem;
+  overflow: auto;
+}

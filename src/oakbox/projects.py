@@ -22,7 +22,8 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel as _PydanticBase
+from pydantic import ConfigDict, Field
 
 from oakbox.answers import WizardAnswers
 from oakbox.settings_gen import generate
@@ -30,6 +31,12 @@ from oakbox.settings_gen import generate
 StepId = Literal["bring_in_data", "model_groups", "check_sales", "check_values"]
 STEP_ORDER: tuple[StepId, ...] = ("bring_in_data", "model_groups", "check_sales", "check_values")
 StepState = Literal["not_run", "running", "done", "failed", "stale"]
+
+
+class BaseModel(_PydanticBase):
+    # Fields with defaults are always present in responses; say so in the schema so
+    # the generated TypeScript types are exact (no spurious optionals).
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 
 class StepStatus(BaseModel):
