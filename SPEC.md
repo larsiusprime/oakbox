@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.3 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.4 draft for review. Revised after a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -28,7 +28,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D12 | Privacy | No parcel data leaves the machine. No telemetry. |
 | D13 | Localization | Deferred. All UI strings go in a string table from day one. |
 | D14 | Code signing | Deferred; the maintainer will handle it. |
-| D15 | UI tech | Strict TypeScript, framework-lite (Preact + signals, TSX), in a native window on a Python backend. API types are generated from the backend, so the whole stack type-checks (§6.5). |
+| D15 | UI tech | Strict TypeScript, framework-lite (Preact + signals, TSX; Lit as the fallback), built with Vite. Runs in a native window on a FastAPI backend whose API types are generated into TypeScript, so the whole stack type-checks (§6.5). |
 | D16 | Checking values | The user names the total-value field(s) to check. No particular field is required. Land values are out of scope: a separate land-value tool is planned. |
 | D17 | Online notices | Anything that goes online says what it sends, in a calm one-time notice (§3.11). |
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
@@ -227,7 +227,11 @@ Rules for both screens:
 
 ### 3.10 Building model values (step 5)
 **Variables.** At the start of step 5, the user picks a path. They can switch later.
-- **Plow forward** (default). OpenAVMKit has no built-in default variable list, so Oakbox ships one per model group type, made from the mapped and enriched fields. Tree models such as LightGBM get the broad list.
+- **Plow forward** (default). OpenAVMKit has no built-in default variable list, so Oakbox ships one, using whichever of these fields are mapped or enriched:
+  - **The "big five":** building size (finished area), land size, building age (effective age if available, otherwise age), building quality, building condition.
+  - **Location:** latitude, longitude, and neighbourhood characteristics. These are the neighbourhood or other location fields, plus their spatial-lag and area-statistic features from step 5.
+
+  Missing ones are skipped with a note. Tree models such as LightGBM get this list plus any other well-covered fields.
 - **Test variables first.** Oakbox runs variable analysis per model group on the candidate list and shows a review:
   - One row per variable with a plain verdict: *Drives value*, *Weak*, *Redundant with ___* or *Counter-intuitive*. Today `try_variables` only runs correlation and R²; the last two verdicts need VIF and coefficient-sign tests (upstream A5).
   - A **Details** expander shows the statistics, worded from the existing `variables.md`.
@@ -523,21 +527,41 @@ Oakbox keeps a hash of the settings and inputs that feed each step. When one cha
 
 Step 4 depends on steps 2–3 but not on step 5, so checking values never waits for modeling.
 
-### 6.5 Frontend
-**Goal:** strong type checking for fast, safe iteration, with as little framework as possible.
+### 6.5 Frontend and build stack
+**Goal:** a type checker that catches mistakes while iterating, with as little framework as possible. No React.
 
-- **Language:** TypeScript in `strict` mode (plus `noUncheckedIndexedAccess`). CI fails on any type error (`tsc --noEmit`). No plain `.js` source files.
-- **UI library:** **Preact** with `@preact/signals`, about 10 KB in total.
-  - Components are written as TSX, so `tsc` type-checks templates, props and event handlers. String-template libraries, Lit included, need extra tooling to get the same checking.
-  - No router library, no state-management library and no component kit. Screens are plain components over a small signal store.
-- **Typed end to end.** The Python app service defines its API with pydantic models. Their JSON Schema generates TypeScript types and a thin typed API client at build time, so a backend change that breaks the frontend fails type-checking. Progress events and settings fragments use the same generated types.
-- **Libraries,** all typed and permissively licensed:
-  - MapLibre GL JS (maps)
-  - a small charting library (Observable Plot or uPlot)
-  - a virtualised table (written in-house, or a minimal library)
-- **Build:** esbuild produces one static bundle that ships inside the installer. Node is needed only to develop and build, never at runtime. Tests use Vitest for logic and Playwright against the real app.
-- **Styling:** plain CSS with design tokens (custom properties) for large-text and high-contrast modes. No CSS framework.
-- **Localization:** every UI string goes through a typed string table, so a missing key is a type error (D13).
+**UI library: Preact + `@preact/signals`** (about 6 KB gzipped). Pending sign-off; Lit is the fallback.
+
+| Option | Templates type-checked by `tsc`? | Reactivity | Fit for Oakbox |
+|---|---|---|---|
+| Plain Web Components (no library) | No: DOM updates written by hand | None built in; DOM kept in sync by hand | Most code, and the most bugs, in a form-heavy app (wizard, rule builder, live previews). Element props and events need hand-written type declarations |
+| **Lit** (Web Components + templates) | Only with a separate analyzer (`lit-analyzer`); `tsc` alone sees strings | Reactive properties | Runner-up. Standards-based and small. Shadow DOM fights global theming (large text, high contrast) unless switched off |
+| **Preact + signals** | **Yes, natively (TSX)**: props, events and children | Fine-grained signals | **Chosen.** Best type-checking per KB. Mature (since 2015) and MIT. Not React: no React runtime or ecosystem lock-in |
+| Solid | Yes (TSX) | Fine-grained | Needs a compiler plugin, and has reactivity pitfalls (destructuring props silently breaks updates) |
+| Svelte | Via a separate checker (`svelte-check`) | Compiler | Its own language and toolchain, so not "lite" |
+| htmx / server-rendered HTML | No TypeScript at all | Server round-trips | Poor fit for maps, live previews and charts |
+
+The decisive factor is the first column. With TSX, `tsc --noEmit` catches a misspelled prop, a wrong event type or a missing field in every screen without extra tools. Web Components are still used where they help, for example wrapping MapLibre. There's no router, state library or component kit; screens are plain components over a small signal store.
+
+**Build stack** (all dev-time only; nothing here ships to users, who get static files):
+
+| Piece | Choice | Why | Not chosen |
+|---|---|---|---|
+| Type checker | `tsc --noEmit`, `strict` + `noUncheckedIndexedAccess` | The only full TypeScript checker. Bundlers *strip* types without checking them, so this runs separately in the editor, a pre-commit hook and CI | — |
+| Dev server and bundler | **Vite** | Hot reload in a normal browser while the Python backend runs. Proxies API calls to the backend with one line of config. Production build is a static bundle. Uses esbuild internally, so it's fast | *esbuild alone:* fewer dependencies, but no hot reload or dev proxy, so we'd rebuild those. *Webpack:* slow and config-heavy. *Parcel / Rspack / Turbopack:* less control, or aimed at big React apps |
+| Backend API → TS types | **FastAPI** (pydantic) → OpenAPI → **`openapi-typescript`** + **`openapi-fetch`** | FastAPI emits OpenAPI from the same pydantic models the backend validates with. The generated types and a ~6 KB typed client mean a backend change that breaks the UI fails `tsc` | Hand-written client types, which drift |
+| Lint + format | **Biome** | One fast binary for both lint and format, few dependencies | ESLint + Prettier + typescript-eslint: more type-aware rules, many more packages. Can add later if needed |
+| Unit tests | **Vitest** | Shares Vite's config and TS handling | Jest, which needs separate TS setup |
+| End-to-end tests | **Playwright** (Chromium already in the build environment) | Drives the real UI against the real backend | — |
+| Packages | **npm** with a committed lockfile, `npm ci` in CI; Node LTS, dev only | Ships with Node, one less tool | pnpm (fine too; not worth the extra tool yet) |
+| Python side | **uv**, **ruff**, **pyright** (strict on Oakbox code) | Same "type checker first" rule for the backend | mypy (slower; pyright matches the editor) |
+
+**Other frontend pieces:**
+- MapLibre GL JS for maps
+- Observable Plot or uPlot for charts
+- a small virtualised table
+- plain CSS with design tokens (custom properties) for large-text and high-contrast modes
+- a typed string table (D13), so a missing translation key is a type error
 
 ## 7. Engine: OpenAVMKit changes
 
@@ -656,9 +680,17 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - Land values of any kind: checking, reporting or exporting. A separate tool is planned
 
 ## 10. Open items
-1. **openratiostudy.com.** The export's columns are now known from the code. A screenshot would still help match the look.
-2. **M0 results** will set §5 and the enrichment cost coefficients.
-3. **GIS and Excel loaders:** upstream or Oakbox-only? I lean upstream.
-4. **Tile service:** confirm OpenFreeMap or another free provider that allows app use.
-5. **Typst** as the report engine: confirm before M1.
-6. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
+**Resolved:**
+- GIS and Excel loaders go upstream into OpenAVMKit (B10).
+- OpenFreeMap is the map tile service.
+- Typst renders reports.
+- The default variables are the big five plus location.
+- The IAAO default profile is accepted, to be revised later.
+
+**Open:**
+1. **openratiostudy.com** is still blocked from this session, despite being allowed in the environment settings; the change may only apply to new sessions. The export's columns are known from the code; a screenshot would help match the look.
+2. **M0 results** will set §5 and the enrichment cost coefficients. A low-end test machine comes later.
+3. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for wizard and Data health testing.
+4. **Frontend UI library:** Preact (recommended) or Lit (§6.5).
+5. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
+6. **Usability test:** after M1, with assessors the maintainer recruits.
