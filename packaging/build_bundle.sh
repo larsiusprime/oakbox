@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Build the Oakbox portable bundle for one platform (M0 spike). Runs on Linux.
+# Build the Oakbox portable bundle for one platform. Runs on Linux.
 #
 # Usage: packaging/build_bundle.sh <windows|linux>
 #
 # Output: dist/oakbox-<plat>/ plus a .zip (Windows) or .tar.gz (Linux)
 #   python/        standalone CPython 3.11 (python-build-standalone)
 #   site-packages  every dependency for that platform, from uv.lock
-#   app/           Oakbox source and spike scripts
-#   smoke.cmd|sh   offline end-to-end smoke test on a 2k synthetic county
+#   Oakbox.cmd     (Windows) / oakbox.sh (Linux) launcher
+#   smoke.cmd|sh   end-to-end test through the app service on the sample county
 #
 # No freezing: the interpreter and wheels are shipped as-is (see SPEC §6).
 set -euo pipefail
@@ -32,7 +32,7 @@ esac
 
 OUT=dist/$NAME
 rm -rf "$OUT" "dist/$NAME.zip" "dist/$NAME.tar.gz"
-mkdir -p "$OUT/app" build
+mkdir -p "$OUT" build
 
 [ -f "build/cpython-$PLATFORM.tar.gz" ] || curl -sSfL "$PBS/$PY_ASSET" -o "build/cpython-$PLATFORM.tar.gz"
 tar -xzf "build/cpython-$PLATFORM.tar.gz" -C "$OUT"   # unpacks to $OUT/python
@@ -46,47 +46,46 @@ fi
 git -C build/engine fetch -q origin "$ENGINE_REV" && git -C build/engine checkout -q "$ENGINE_REV"
 rm -rf build/wheels && uv build -q --wheel --out-dir build/wheels build/engine
 
+# The UI is built once (it's platform-independent) into src/oakbox/web, then shipped
+# inside the oakbox wheel.
+(cd web && npm ci --silent && npm run -s build)
+uv build -q --wheel --out-dir build/wheels .
+
 uv export --frozen --no-dev --no-emit-project --format requirements.txt \
   | grep -v '^openavmkit @' > build/requirements.txt
 uv pip install -q \
   --python-platform "$UV_PLATFORM" --python-version 3.11 \
   --no-deps \
   --target "$OUT/$SITE" \
-  -r build/requirements.txt build/wheels/openavmkit-*.whl
-
-cp -r src/oakbox "$OUT/app/oakbox"
-mkdir -p "$OUT/app/spikes"
-cp -r spikes/m0 "$OUT/app/spikes/m0"
+  -r build/requirements.txt build/wheels/openavmkit-*.whl build/wheels/oakbox-*.whl
 
 if [ "$PLATFORM" = windows ]; then
+  cat > "$OUT/Oakbox.cmd" <<'CMD'
+@echo off
+rem Start Oakbox. pythonw.exe runs it without a console window.
+start "" "%~dp0python\pythonw.exe" -m oakbox
+CMD
   cat > "$OUT/smoke.cmd" <<'CMD'
 @echo off
-rem Oakbox M0 smoke test: build a 2k-parcel synthetic county and run every step offline.
-setlocal
-set HERE=%~dp0
-set PY=%HERE%python\python.exe
-set WORK=%HERE%work
-if not exist "%WORK%" mkdir "%WORK%"
-"%PY%" "%HERE%app\spikes\m0\make_synthetic.py" 2000 "%WORK%" || exit /b 1
-"%PY%" "%HERE%app\spikes\m0\bench.py" "%WORK%" us-zz-synth2k quick || exit /b 1
-echo SMOKE OK
+rem End-to-end test through the app service: download the sample county and run steps 1-4.
+"%~dp0python\python.exe" -m oakbox.smoke || exit /b 1
 CMD
   (cd dist && zip -qr "$NAME.zip" "$NAME")
   du -sh "$OUT" "dist/$NAME.zip"
 else
+  cat > "$OUT/oakbox.sh" <<'SH'
+#!/bin/sh
+# Start Oakbox (native window if WebKitGTK is installed, otherwise a browser window).
+HERE=$(cd "$(dirname "$0")" && pwd)
+exec "$HERE/python/bin/python3" -m oakbox "$@"
+SH
   cat > "$OUT/smoke.sh" <<'SH'
 #!/bin/sh
-# Oakbox M0 smoke test: build a 2k-parcel synthetic county and run every step offline.
-set -e
+# End-to-end test through the app service: download the sample county and run steps 1-4.
 HERE=$(cd "$(dirname "$0")" && pwd)
-PY="$HERE/python/bin/python3"
-WORK="$HERE/work"
-mkdir -p "$WORK"
-"$PY" "$HERE/app/spikes/m0/make_synthetic.py" 2000 "$WORK"
-"$PY" "$HERE/app/spikes/m0/bench.py" "$WORK" us-zz-synth2k quick
-echo SMOKE OK
+exec "$HERE/python/bin/python3" -m oakbox.smoke
 SH
-  chmod +x "$OUT/smoke.sh"
+  chmod +x "$OUT/oakbox.sh" "$OUT/smoke.sh"
   tar -czf "dist/$NAME.tar.gz" -C dist "$NAME"
   du -sh "$OUT" "dist/$NAME.tar.gz"
 fi

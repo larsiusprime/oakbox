@@ -1,14 +1,55 @@
 name: bundles
 
-# M0: build the portable Windows and Linux bundles on Linux, then prove each runs
-# on a clean machine of its platform using only the bundled Python, offline.
+# Checks, then build the portable Windows and Linux bundles on Linux and prove each
+# runs on a clean machine of its platform using only the bundled Python: download
+# the sample county and run steps 1-4 through the real app service.
 on:
   push:
     branches: [claude/openavmkit-desktop-wrapper-639lvu, main]
   workflow_dispatch:
 
 jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: openavmkit-oakbox
+          path: build/engine
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Python dependencies
+        # The engine is a git dependency on this private repo; point uv at the checked-out copy.
+        run: |
+          git config --global url."$(pwd)/build/engine".insteadOf https://github.com/larsiusprime/oakbox
+          uv sync
+      - name: Python lint, format, types, tests
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+          uv run pyright
+          uv run pytest -q tests
+      - name: Web lint, types
+        working-directory: web
+        run: |
+          npm ci
+          npx biome check src
+          npx eslint src
+          npx tsc --noEmit
+      - name: Generated API types are up to date
+        run: |
+          uv run python -c "import json; from oakbox.app import create_app; print(json.dumps(create_app().openapi(), indent=1))" > web/openapi.json
+          (cd web && npm run -s api)
+          git diff --exit-code web/openapi.json web/src/api/schema.d.ts
+
   build:
+    needs: checks
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,6 +63,11 @@ jobs:
           path: build/engine
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - run: packaging/build_bundle.sh ${{ matrix.platform }}
       - uses: actions/upload-artifact@v4
         with:
@@ -45,14 +91,7 @@ jobs:
         shell: cmd
         run: |
           set PATH=C:\Windows\system32;C:\Windows
-          set LOKY_MAX_CPU_COUNT=2
           C:\oak\oakbox-win64\smoke.cmd
-      - name: Results
-        if: always()
-        shell: pwsh
-        run: |
-          Get-Content C:\oak\oakbox-win64\work\bench.jsonl -ErrorAction SilentlyContinue
-          Get-ChildItem C:\oak\oakbox-win64\work\*.log | ForEach-Object { "==== $_"; Get-Content $_ -Tail 40 }
 
   smoke-linux:
     needs: build
@@ -65,8 +104,3 @@ jobs:
         run: mkdir -p /tmp/oak && tar -xzf oakbox-linux-x86_64.tar.gz -C /tmp/oak
       - name: Smoke test (bundled Python only, empty environment)
         run: env -i HOME=/tmp/oak PATH=/usr/bin:/bin /tmp/oak/oakbox-linux-x86_64/smoke.sh
-      - name: Results
-        if: always()
-        run: |
-          cat /tmp/oak/oakbox-linux-x86_64/work/bench.jsonl || true
-          tail -n 40 /tmp/oak/oakbox-linux-x86_64/work/*.log || true

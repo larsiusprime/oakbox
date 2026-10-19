@@ -25,6 +25,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/oakbox"]
+# The built UI is git-ignored but must ship in the wheel.
+artifacts = ["src/oakbox/web/**"]
 
 [tool.ruff]
 line-length = 120
