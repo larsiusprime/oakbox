@@ -1,7 +1,7 @@
-name: windows-bundle
+name: bundles
 
-# M0: cross-build the portable Windows bundle on Linux, then prove it runs on a
-# clean Windows machine with no system Python and no network after download.
+# M0: build the portable Windows and Linux bundles on Linux, then prove each runs
+# on a clean machine of its platform using only the bundled Python, offline.
 on:
   push:
     branches: [claude/openavmkit-desktop-wrapper-639lvu, main]
@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [windows, linux]
     steps:
       - uses: actions/checkout@v4
       # The engine branch lives in this (private) repo; check it out with the job token.
@@ -19,20 +22,22 @@ jobs:
           path: build/engine
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
-      - run: packaging/build_windows_bundle.sh
+      - run: packaging/build_bundle.sh ${{ matrix.platform }}
       - uses: actions/upload-artifact@v4
         with:
-          name: oakbox-win64
-          path: dist/oakbox-win64.zip
+          name: bundle-${{ matrix.platform }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
           retention-days: 7
 
-  smoke:
+  smoke-windows:
     needs: build
     runs-on: windows-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: oakbox-win64
+          name: bundle-windows
       - name: Unpack
         shell: pwsh
         run: Expand-Archive oakbox-win64.zip -DestinationPath C:\oak
@@ -40,6 +45,7 @@ jobs:
         shell: cmd
         run: |
           set PATH=C:\Windows\system32;C:\Windows
+          set LOKY_MAX_CPU_COUNT=2
           C:\oak\oakbox-win64\smoke.cmd
       - name: Results
         if: always()
@@ -47,3 +53,20 @@ jobs:
         run: |
           Get-Content C:\oak\oakbox-win64\work\bench.jsonl -ErrorAction SilentlyContinue
           Get-ChildItem C:\oak\oakbox-win64\work\*.log | ForEach-Object { "==== $_"; Get-Content $_ -Tail 40 }
+
+  smoke-linux:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bundle-linux
+      - name: Unpack
+        run: mkdir -p /tmp/oak && tar -xzf oakbox-linux-x86_64.tar.gz -C /tmp/oak
+      - name: Smoke test (bundled Python only, empty environment)
+        run: env -i HOME=/tmp/oak PATH=/usr/bin:/bin /tmp/oak/oakbox-linux-x86_64/smoke.sh
+      - name: Results
+        if: always()
+        run: |
+          cat /tmp/oak/oakbox-linux-x86_64/work/bench.jsonl || true
+          tail -n 40 /tmp/oak/oakbox-linux-x86_64/work/*.log || true
