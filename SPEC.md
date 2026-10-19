@@ -415,6 +415,21 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **Appendices:** data corrections, sale overrides, filled values, excluded variables, skipped enrichments, methodology.
 - **openratiostudy export** that also carries the checked value field and model group.
 
+**openratiostudy.com is the reference.** Its source is `larsiusprime/openratiostudy` (a static single-page app). It defines what the assessor sees, and Oakbox matches it:
+- **Statistics** (per its `spec.md`):
+  - median ratio with a **90%** bootstrap CI (10,000 resamples, seeded)
+  - COD
+  - PRD (mean ratio ÷ sale-weighted mean)
+  - PRB (OLS of ratio on ln(sale price), HC3 robust standard errors, slope and p-value)
+  - **VEI** and **VEI significance**, from market-value-proxy strata (2/4/10 strata by sample size, none under 10), with per-stratum median and CI
+- **Views:**
+  - results table with exclusion notes
+  - VEI strata box plot
+  - ratio map (lat/lon)
+  - **neighbourhood price-level stats**: deciles of region price level vs median ratio, which separates real vertical inequity from invalid-sale artifacts
+  - a **black-and-white print mode**, which Oakbox adopts for offices that print in greyscale
+- **Parity tests.** Its test suite uses **Table 1 of the IAAO Ratio Studies Exposure Draft** (Sept 2025; 54 observations) as a fixture. OpenAVMKit's study functions must reproduce openratiostudy's results on the same fixtures, within tolerance. This runs in Oakbox's CI. Any definition mismatch is fixed upstream (A4), for example VEI strata rules or the CI level. OpenAVMKit's report uses 95% CIs; the standards profile sets the level, defaulting to 90% to match.
+
 ### 4.3 Reports and customization
 - **Standard PDF reports:**
   - ratio study
@@ -577,7 +592,7 @@ The decisive factor is the first column. With TSX, `tsc --noEmit` catches a miss
 1. **Headless stage API:** `run_stage(project_dir, stage, on_progress, cancel)`. No `os.chdir`, no IPython (including in `try_variables`). The environment is passed in. `ipython`, `pytest` and `pipreqs` leave the runtime dependencies.
 2. **Structured progress events** replace `print`; warnings go through the same channel.
 3. **Value-field studies that persist.** Ratio, vertical and horizontal studies on any named field, for all model groups plus overall, with breakdowns, written to disk, with no model required. Remove the hard-coded `assr_market_value`.
-4. **Report statistics.**
+4. **Report statistics** (parity with openratiostudy, §4.2).
    - Print PRD, PRB and VEI in the report; add MKI.
    - Standards profiles with pass/fail.
    - An exact ratio-study date window.
@@ -686,11 +701,11 @@ The decisive factor is the first column. With TSX, `tsc --noEmit` catches a miss
 - Typst renders reports.
 - The default variables are the big five plus location.
 - The IAAO default profile is accepted, to be revised later.
+- The openratiostudy.com reference is settled: read from its source repo (§4.2).
 
 **Open:**
-1. **openratiostudy.com** is still blocked from this session, despite being allowed in the environment settings; the change may only apply to new sessions. The export's columns are known from the code; a screenshot would help match the look.
-2. **M0 results** will set §5 and the enrichment cost coefficients. A low-end test machine comes later.
-3. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for wizard and Data health testing.
-4. **Frontend UI library:** Preact (recommended) or Lit (§6.5).
-5. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
-6. **Usability test:** after M1, with assessors the maintainer recruits.
+1. **M0 results** will set §5 and the enrichment cost coefficients. A low-end test machine comes later.
+2. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for wizard and Data health testing.
+3. **Frontend UI library:** Preact (recommended) or Lit (§6.5).
+4. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
+5. **Usability test:** after M1, with assessors the maintainer recruits.
