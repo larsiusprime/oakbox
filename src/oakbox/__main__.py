@@ -17,6 +17,7 @@ import threading
 import time
 import urllib.request
 import webbrowser
+from typing import Any
 
 import uvicorn
 
@@ -59,7 +60,7 @@ def main() -> None:
     url = f"http://127.0.0.1:{port}"
     server = uvicorn.Server(uvicorn.Config(create_app(), host="127.0.0.1", port=port, log_level="warning"))
     if args.no_window:
-        print(f"Oakbox is running at {url}")
+        print(f"OAK box is running at {url}")
         server.run()
         return
 
@@ -71,18 +72,36 @@ def main() -> None:
         try:
             import webview
 
-            webview.create_window("OAK box", url, width=1280, height=860, min_size=(960, 640))
+            picker = _Picker()
+            picker.window = webview.create_window(
+                "OAK box", url, width=1280, height=860, min_size=(960, 640), js_api=picker
+            )
             webview.start()
             server.should_exit = True
             return
         except Exception:  # noqa: BLE001 - no usable native window toolkit; fall back
             pass
     _open_browser(url)
-    print(f"Oakbox is running at {url}. Close this window to quit.")
+    print(f"OAK box is running at {url}. Close this window to quit.")
     try:
         thread.join()
     except KeyboardInterrupt:
         server.should_exit = True
+
+
+class _Picker:
+    """Exposed to the UI as window.pywebview.api: native folder dialogs."""
+
+    def __init__(self) -> None:
+        self.window: Any = None
+
+    def pick_folder(self) -> str | None:
+        import webview
+
+        if self.window is None:
+            return None
+        result = self.window.create_file_dialog(webview.FOLDER_DIALOG)
+        return str(result[0]) if result else None
 
 
 if __name__ == "__main__":

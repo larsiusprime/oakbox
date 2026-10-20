@@ -68,6 +68,8 @@ def run(project_id: str, step: str) -> str:
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
     cancel = _cancel_check(pdir)
+    if step != "download_sample" and project.answers is None:
+        raise ValueError("This project has no data set up yet.")
 
     if step == "download_sample":
         sample = SAMPLES[project.sample or ""]
@@ -106,6 +108,8 @@ def run(project_id: str, step: str) -> str:
 
 
 def _check_values(project: projects.Project, pdir: Path) -> str:
+    answers = project.answers
+    assert answers is not None  # run() refuses projects without data
     from openavmkit import progress
     from openavmkit.pipeline import load_settings, read_pickle
     from openavmkit.value_studies import run_value_field_studies
@@ -119,13 +123,13 @@ def _check_values(project: projects.Project, pdir: Path) -> str:
         results = run_value_field_studies(
             sup,
             load_settings(),
-            project.answers.value_fields,
-            location=project.answers.location_field,
+            answers.value_fields,
+            location=answers.location_field,
             outpath="out/studies",
         )
     finally:
         os.chdir(previous)
-    first = results[project.answers.value_fields[0]]["overall"]["ratio"]
+    first = results[answers.value_fields[0]]["overall"]["ratio"]
     med, cod = first["median_ratio"]["value"], first["cod"]["value"]
     if med is None or cod is None:
         return "Not enough sales in the study window to compute a ratio study."

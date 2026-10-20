@@ -8,14 +8,64 @@ export const t = {
 
   home: {
     projectsTitle: "Projects",
-    noProjects: "No projects yet. Start with the sample county.",
+    noProjects: "No projects yet. Start a new one, or try the sample county.",
+    newProject: "New project",
     open: "Open",
+    showInFolder: "Show in folder",
+    delete: "Delete",
     taxYear: (year: number) => `Tax year ${year}`,
     stepsDone: (done: number, total: number) => `${done} of ${total} steps done`,
+    noData: "No data yet",
+    storageTitle: "Where projects are kept",
+    storageNote: "New projects go here. Existing projects stay where they are.",
+    change: "Change…",
+    useDefault: "Use the default",
+    save: "Save",
+    cancel: "Cancel",
+    folderLabel: "Folder",
     sampleTitle: "Sample county",
     sampleNotice: "Downloads about 7 MB of public data from OpenAVMKit. Nothing is uploaded.",
     sampleButton: "Download and open",
     sampleDownloading: "Downloading…",
+  },
+
+  newProject: {
+    title: "New project",
+    intro: "Tell OAK box which jurisdiction and tax year this is. You'll add data files next.",
+    name: "Project name",
+    nameHelp: "Your name for it, e.g. Travis County 2026. It also names the project's folder.",
+    country: "Country",
+    state: "State",
+    region: "State, province or region",
+    jurisdiction: "Jurisdiction",
+    jurisdictionHelp: "What your office calls itself, e.g. Travis County. It appears on reports.",
+    taxYear: "Tax year",
+    valuationDate: "Valuation date",
+    valuationHelp:
+      "Everything is valued as of this date. To check an existing roll, use that roll's valuation date.",
+    units: "Units",
+    imperial: "Imperial (square feet, acres)",
+    metric: "Metric (square metres, hectares)",
+    create: "Create project",
+    cancel: "Cancel",
+    where: (folder: string) => `It will be kept in ${folder}`,
+  },
+
+  deleteProject: {
+    title: (name: string) => `Delete ${name}?`,
+    body: (size: string, files: number) =>
+      `Its folder (${size}, ${files.toLocaleString()} files) goes to the Recycle Bin. You can restore it from there.`,
+    measuring: "Measuring the folder…",
+    confirm: "Move to Recycle Bin",
+    cancel: "Cancel",
+  },
+
+  projectFacts: {
+    jurisdiction: "Jurisdiction",
+    region: "Region",
+    valuationDate: "Valuation date",
+    units: "Units",
+    next: "Next: add your data files. That screen is the next feature to be built.",
   },
 
   project: {

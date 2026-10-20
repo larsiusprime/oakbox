@@ -58,6 +58,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Regions */
+        get: operations["regions_api_regions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/app-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Settings */
+        get: operations["get_app_settings_api_app_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/app-settings/storage-location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Storage Location
+         * @description Where new projects are kept. Existing projects stay where they are.
+         */
+        put: operations["put_storage_location_api_app_settings_storage_location_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects": {
         parameters: {
             query?: never;
@@ -67,6 +121,24 @@ export interface paths {
         };
         /** List Projects */
         get: operations["list_projects_api_projects_get"];
+        put?: never;
+        /** Create Project */
+        post: operations["create_project_api_projects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/disk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project Disk */
+        get: operations["project_disk_api_projects__project_id__disk_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -86,6 +158,24 @@ export interface paths {
         get: operations["get_project_api_projects__project_id__get"];
         put?: never;
         post?: never;
+        /** Delete Project */
+        delete: operations["delete_project_api_projects__project_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/show-in-folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show In Folder */
+        post: operations["show_in_folder_api_projects__project_id__show_in_folder_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -167,6 +257,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AppSettingsView */
+        AppSettingsView: {
+            /** Storage Location */
+            storage_location: string;
+            /** Default Storage Location */
+            default_storage_location: string;
+        };
         /** Dates */
         Dates: {
             /**
@@ -184,6 +281,15 @@ export interface components {
              * @default 1
              */
             ratio_study_years: number;
+        };
+        /** DiskUsage */
+        DiskUsage: {
+            /** Bytes */
+            bytes: number;
+            /** Files */
+            files: number;
+            /** Folder */
+            folder: string;
         };
         /**
          * FieldSource
@@ -242,6 +348,44 @@ export interface components {
             name: string;
         };
         /**
+         * NewProject
+         * @description What the user enters to create a project (SPEC §3.0 F1).
+         */
+        NewProject: {
+            /**
+             * Name
+             * @description Project name; also the folder name. Free text.
+             */
+            name: string;
+            /**
+             * Country
+             * @description ISO 3166-1 alpha-2 code, e.g. 'US'.
+             */
+            country: string;
+            /**
+             * Region
+             * @description For the US, an ISO 3166-2 state code without 'US-' (e.g. 'TX'); else free text.
+             */
+            region: string;
+            /**
+             * Jurisdiction
+             * @description What the office calls itself; OpenAVMKit's locality.name.
+             */
+            jurisdiction: string;
+            /** Tax Year */
+            tax_year: number;
+            /**
+             * Valuation Date
+             * Format: date
+             */
+            valuation_date: string;
+            /**
+             * Units
+             * @enum {string}
+             */
+            units: "imperial" | "metric";
+        };
+        /**
          * ParcelDetails
          * @description A table of parcel characteristics joined to the parcel layer by ID.
          */
@@ -293,16 +437,40 @@ export interface components {
             id: string;
             /** Name */
             name: string;
-            /** Tax Year */
-            tax_year: number;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Country
+             * @default US
+             */
+            country: string;
+            /**
+             * Region
+             * @default
+             */
+            region: string;
+            /**
+             * Jurisdiction
+             * @default
+             */
+            jurisdiction: string;
+            /** Tax Year */
+            tax_year: number;
+            /** Valuation Date */
+            valuation_date: string | null;
+            /**
+             * Units
+             * @default imperial
+             * @enum {string}
+             */
+            units: "imperial" | "metric";
             /** Sample */
             sample: string | null;
-            answers: components["schemas"]["WizardAnswers"];
+            /** @description Sample projects only, until data setup exists. */
+            answers: components["schemas"]["WizardAnswers"] | null;
             /** Steps */
             steps: {
                 [key: string]: components["schemas"]["StepStatus"];
@@ -320,6 +488,25 @@ export interface components {
             median_ratio: components["schemas"]["Stat"];
             cod: components["schemas"]["Stat"];
             prd: components["schemas"]["Stat"];
+        };
+        /** Region */
+        Region: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * Regions
+         * @description ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions.
+         */
+        Regions: {
+            /** Countries */
+            countries: components["schemas"]["Region"][];
+            /** Subdivisions */
+            subdivisions: {
+                [key: string]: components["schemas"]["Region"][];
+            };
         };
         /** Sales */
         Sales: {
@@ -384,6 +571,14 @@ export interface components {
              * @default
              */
             message: string;
+        };
+        /** StorageLocation */
+        StorageLocation: {
+            /**
+             * Storage Location
+             * @description None resets to the default.
+             */
+            storage_location?: string | null;
         };
         /**
          * Transform
@@ -540,6 +735,79 @@ export interface operations {
             };
         };
     };
+    regions_api_regions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Regions"];
+                };
+            };
+        };
+    };
+    get_app_settings_api_app_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsView"];
+                };
+            };
+        };
+    };
+    put_storage_location_api_app_settings_storage_location_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageLocation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_projects_api_projects_get: {
         parameters: {
             query?: never;
@@ -556,6 +824,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"][];
+                };
+            };
+        };
+    };
+    create_project_api_projects_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewProject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_disk_api_projects__project_id__disk_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiskUsage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -578,6 +910,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_project_api_projects__project_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    show_in_folder_api_projects__project_id__show_in_folder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

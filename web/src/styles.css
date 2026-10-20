@@ -772,6 +772,321 @@ a.row-title:hover {
   overflow: auto;
 }
 
+/* ---------- Form controls: inputs are sunken, buttons raised ---------- */
+
+.form-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-short {
+  width: 9rem;
+}
+.field-medium {
+  width: 16rem;
+}
+.field-long {
+  width: min(100%, 28rem);
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.field-help {
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-width: 28rem;
+}
+
+.input {
+  font: inherit;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.6rem;
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid var(--well-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) inset;
+}
+
+.input[data-focused] {
+  outline: 3px solid var(--focus);
+  outline-offset: 0;
+  border-color: var(--focus);
+}
+
+.choice {
+  min-width: 14rem;
+}
+
+.choice-button {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.75rem;
+  color: var(--btn-text);
+  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  border: 1px solid var(--btn-edge);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.choice-button[data-pressed] {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) inset;
+}
+
+.choice-button[data-focus-visible] {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.choice-value[data-placeholder] {
+  color: var(--muted);
+}
+
+.choice-popover {
+  min-width: var(--trigger-width);
+  max-height: 20rem;
+  overflow: auto;
+}
+
+.choice-list {
+  outline: none;
+  padding: 0.25rem 0;
+}
+
+.choice-item {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.choice-item[data-focused] {
+  background: var(--head);
+}
+
+.choice-item[data-selected] {
+  font-weight: 600;
+}
+
+.checklist-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+}
+
+.tick,
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  min-height: 1.9rem;
+}
+
+.tick-box,
+.radio-dot {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border: 1px solid var(--well-edge);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) inset;
+  color: #ffffff;
+}
+
+.radio-dot {
+  border-radius: 50%;
+}
+
+.tick[data-selected] .tick-box {
+  background: linear-gradient(to bottom, var(--primary-top), var(--primary-bottom));
+  border-color: var(--primary-edge);
+  box-shadow: none;
+}
+
+.radio[data-selected] .radio-dot {
+  border: 0.32rem solid var(--primary-bottom);
+}
+
+.tick[data-focus-visible] .tick-box,
+.radio[data-focus-visible] .radio-dot {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.radios {
+  gap: 0.15rem;
+}
+
+/* ---------- Home: projects, settings, new project ---------- */
+
+.home-main {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+}
+
+.panel-head-action {
+  margin-left: auto;
+}
+
+.row-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.settings-body {
+  padding: 0 1rem 1rem;
+}
+
+.setting-line {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.setting-line > .mono {
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.narrow {
+  max-width: 44rem;
+}
+
+.form-panel {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.25rem;
+}
+
+.form-panel > .row-meta {
+  margin: 0;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.button-danger {
+  color: #ffffff;
+  background: linear-gradient(to bottom, #d05a4e, #a8322a);
+  border-color: #7d211b;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.button-danger[data-hovered] {
+  background: linear-gradient(#d86a5f, #b23a31);
+}
+
+.button-danger[data-pressed] {
+  background: linear-gradient(to bottom, #a8322a, #d05a4e);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) inset;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(20, 22, 24, 0.45);
+}
+
+.modal {
+  width: min(100%, 34rem);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.modal-body {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  outline: none;
+}
+
+.modal-body p {
+  margin: 0;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.facts-panel {
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 44rem;
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.5rem;
+}
+
+.fact {
+  display: contents;
+}
+
+.fact dt {
+  color: var(--muted);
+}
+
+.fact dd {
+  margin: 0;
+  font-weight: 600;
+}
+
 /* ---------- Print: just the content, black on white ---------- */
 
 @media print {

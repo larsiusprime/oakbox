@@ -12,7 +12,12 @@ from oakbox.settings_gen import generate
 @pytest.fixture(autouse=True)
 def oakbox_home(tmp_path, monkeypatch):
     monkeypatch.setenv("OAKBOX_HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))  # the desktop trash, for Delete
     return tmp_path
+
+
+def _sample():
+    return projects.create_from_sample(SAMPLES["us-va-petersburgcity"].answers(), "us-va-petersburgcity")
 
 
 def test_petersburg_settings_are_explicit():
@@ -30,16 +35,17 @@ def test_petersburg_settings_are_explicit():
 
 
 def test_create_project_writes_settings_and_steps(oakbox_home):
-    p = projects.create(SAMPLES["us-va-petersburgcity"].answers(), sample="us-va-petersburgcity")
-    pdir = oakbox_home / p.id
+    p = _sample()
+    pdir = oakbox_home / "City of Petersburg 2026 (sample)"
+    assert projects.project_dir(p.id) == pdir
     assert json.loads((pdir / "in" / "settings.json").read_text())["locality"]["slug"] == "us-va-cityofpetersburg"
     assert [s for s in p.steps] == list(projects.STEP_ORDER)
-    p2 = projects.create(SAMPLES["us-va-petersburgcity"].answers())
-    assert p2.id == p.id + "-2"
+    p2 = _sample()
+    assert p2.id != p.id and projects.project_dir(p2.id).name == "City of Petersburg 2026 (sample) (2)"
 
 
 def test_finishing_a_step_marks_later_steps_stale():
-    p = projects.create(SAMPLES["us-va-petersburgcity"].answers())
+    p = _sample()
     for step in projects.STEP_ORDER:
         p = projects.mark_step(p, step, "done")
     p = projects.mark_step(p, "check_sales", "done")
@@ -50,7 +56,7 @@ def test_finishing_a_step_marks_later_steps_stale():
 def test_api_lists_and_guards_step_order():
     client = TestClient(create_app())
     assert client.get("/api/samples").json()[0]["id"] == "us-va-petersburgcity"
-    p = projects.create(SAMPLES["us-va-petersburgcity"].answers())
+    p = _sample()
     assert client.get("/api/projects").json()[0]["id"] == p.id
     r = client.post(f"/api/projects/{p.id}/steps/check_values/run")
     assert r.status_code == 409

@@ -10,9 +10,9 @@
    - **Linux:** run `./oakbox-linux-x86_64/oakbox.sh`.
 
    It opens a native window. On Linux without WebKitGTK it opens a browser window instead.
-4. Under **Sample county**, click **Download and open**, then **Run** each step in order.
+4. Click **New project** to start one of your own (adding data files comes next). Or, under **Sample county**, click **Download and open**, then **Run** each step in order.
 
-Projects are stored in `Documents/Oakbox/` (override with the `OAKBOX_HOME` environment variable).
+Projects are kept in `Documents/OAK box/` by default; change it under **Where projects are kept** on the home screen. Projects made by earlier builds in `Documents/Oakbox/` still appear. (`OAKBOX_HOME` puts projects and OAK box's own settings in one folder, for testing.)
 
 **Unattended test:** `smoke.cmd` / `smoke.sh` downloads the sample, runs steps 1–4 through the app service, and prints `SMOKE OK`.
 

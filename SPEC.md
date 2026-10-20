@@ -88,6 +88,10 @@ OpenAVMKit: creating a locality folder (`in/`, `out/`) and the `locality` block 
 
 **Open (F1):** editing core settings after creation. Name, units and the valuation date must stay editable, but changing units or the valuation date affects everything downstream, which must be shown as out of date ("dirty") before anything re-runs. How that is indicated is to be designed.
 
+#### F1b. Project actions on the home screen
+- **Show in folder** opens the project folder in the system file manager (Explorer on Windows).
+- **Delete** sends the whole project folder to the system's Recycle Bin (or the desktop trash on Linux), so it can be recovered there. A confirmation names the project and its size on disk first. A project with a step running can't be deleted.
+
 #### F2. Add a data file
 OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as an entry under `data.load` with its `filename`.
 

@@ -16,9 +16,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
-from oakbox import __version__, projects
+from oakbox import __version__, appsettings, projects
 from oakbox.jobs import JobManager
 from oakbox.samples import SAMPLES
 
@@ -112,6 +112,46 @@ class ValueStudy(BaseModel):
     overall: GroupStudy
 
 
+class Region(BaseModel):
+    code: str
+    name: str
+
+
+class Regions(BaseModel):
+    """ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."""
+
+    countries: list[Region]
+    subdivisions: dict[str, list[Region]]
+
+
+class AppSettingsView(BaseModel):
+    storage_location: str
+    default_storage_location: str
+
+
+class StorageLocation(BaseModel):
+    storage_location: str | None = Field(default=None, description="None resets to the default.")
+
+
+class DiskUsage(BaseModel):
+    bytes: int
+    files: int
+    folder: str
+
+
+def _regions() -> Regions:
+    from importlib import resources
+
+    return Regions.model_validate_json(resources.files("oakbox").joinpath("iso3166.json").read_text())
+
+
+def _settings_view() -> AppSettingsView:
+    return AppSettingsView(
+        storage_location=str(appsettings.storage_location()),
+        default_storage_location=str(appsettings.default_storage()),
+    )
+
+
 def _job_info(job) -> JobInfo:
     return JobInfo(id=job.id, project_id=job.project_id, step=job.step, state=job.state)
 
@@ -135,25 +175,96 @@ def create_app() -> FastAPI:
         sample = SAMPLES.get(sample_id)
         if sample is None:
             raise HTTPException(404, "Unknown sample")
-        project = projects.create(sample.answers(), sample=sample.id)
+        project = projects.create_from_sample(sample.answers(), sample.id)
         return _job_info(jobs.start(project.id, "download_sample"))
+
+    @app.get("/api/regions")
+    def regions() -> Regions:
+        return _regions()
+
+    @app.get("/api/app-settings")
+    def get_app_settings() -> AppSettingsView:
+        return _settings_view()
+
+    @app.put("/api/app-settings/storage-location")
+    def put_storage_location(body: StorageLocation) -> AppSettingsView:
+        """Where new projects are kept. Existing projects stay where they are."""
+        s = appsettings.load()
+        if body.storage_location:
+            folder = Path(body.storage_location).expanduser()
+            try:
+                folder.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                raise HTTPException(422, f"OAK box can't use that folder: {e.strerror or e}") from e
+            s.storage_location = str(folder)
+        else:
+            s.storage_location = None
+        appsettings.save(s)
+        return _settings_view()
 
     @app.get("/api/projects")
     def list_projects() -> list[projects.Project]:
         return projects.list_projects()
 
-    @app.get("/api/projects/{project_id}")
-    def get_project(project_id: str) -> ProjectDetail:
+    @app.post("/api/projects")
+    def create_project(body: projects.NewProject) -> projects.Project:
+        regions = _regions()
+        if not body.name.strip() or not body.jurisdiction.strip():
+            raise HTTPException(422, "Give the project a name and say which jurisdiction it is.")
+        if body.country not in {c.code for c in regions.countries}:
+            raise HTTPException(422, "Choose a country from the list.")
+        listed = regions.subdivisions.get(body.country)
+        if listed is not None and body.region not in {r.code for r in listed}:
+            raise HTTPException(422, "Choose a state from the list.")
+        if not body.region.strip():
+            raise HTTPException(422, "Say which state, province or region this is.")
+        if not 1900 <= body.tax_year <= 2200:
+            raise HTTPException(422, "The tax year doesn't look right.")
+        return projects.create(
+            body.model_copy(update={"name": body.name.strip(), "jurisdiction": body.jurisdiction.strip()})
+        )
+
+    def _load(project_id: str) -> projects.Project:
         try:
-            project = projects.load(project_id)
+            return projects.load(project_id)
         except (FileNotFoundError, ValueError):
             raise HTTPException(404, "Project not found") from None
+
+    @app.get("/api/projects/{project_id}/disk")
+    def project_disk(project_id: str) -> DiskUsage:
+        _load(project_id)
+        size, files = projects.disk_usage(project_id)
+        return DiskUsage(bytes=size, files=files, folder=str(projects.project_dir(project_id)))
+
+    @app.delete("/api/projects/{project_id}")
+    def delete_project(project_id: str) -> None:
+        _load(project_id)
+        if jobs.running_for(project_id) is not None:
+            raise HTTPException(409, "Stop the running step before deleting this project.")
+        try:
+            projects.delete(project_id)
+        except OSError as e:
+            raise HTTPException(500, f"Couldn't move the project to the Recycle Bin: {e}") from e
+
+    @app.post("/api/projects/{project_id}/show-in-folder")
+    def show_in_folder(project_id: str) -> None:
+        _load(project_id)
+        try:
+            projects.show_in_folder(project_id)
+        except OSError as e:
+            raise HTTPException(500, str(e)) from e
+
+    @app.get("/api/projects/{project_id}")
+    def get_project(project_id: str) -> ProjectDetail:
+        project = _load(project_id)
         job = jobs.running_for(project_id)
         return ProjectDetail(project=project, running_job=_job_info(job) if job else None)
 
     @app.post("/api/projects/{project_id}/steps/{step}/run")
     def run_step(project_id: str, step: projects.StepId) -> JobInfo:
-        project = projects.load(project_id)
+        project = _load(project_id)
+        if project.answers is None:
+            raise HTTPException(409, "This project has no data set up yet.")
         index = projects.STEP_ORDER.index(step)
         for earlier in projects.STEP_ORDER[:index]:
             if project.steps[earlier].state != "done":
@@ -196,10 +307,10 @@ def create_app() -> FastAPI:
 
     @app.get("/api/projects/{project_id}/results/value-studies")
     def value_studies(project_id: str) -> list[ValueStudy]:
+        project = _load(project_id)
         out = projects.project_dir(project_id) / "out" / "studies"
-        project = projects.load(project_id)
         results: list[ValueStudy] = []
-        for field in project.answers.value_fields:
+        for field in project.answers.value_fields if project.answers else []:
             path = out / f"{field}.json"
             if path.exists():
                 results.append(ValueStudy.model_validate(json.loads(path.read_text())))

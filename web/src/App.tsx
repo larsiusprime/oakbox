@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { HomeScreen } from "./screens/HomeScreen";
+import { NewProjectScreen } from "./screens/NewProjectScreen";
 import { ProjectScreen } from "./screens/ProjectScreen";
 import { t } from "./strings";
 
-type Route = { name: "home" } | { name: "project"; id: string };
+type Route = { name: "home" } | { name: "new" } | { name: "project"; id: string };
 
 function parseHash(hash: string): Route {
+  if (hash === "#/new") return { name: "new" };
   const match = /^#\/projects\/([a-z0-9-]+)$/.exec(hash);
   return match?.[1] ? { name: "project", id: match[1] } : { name: "home" };
 }
 
 export function navigate(route: Route): void {
-  window.location.hash = route.name === "home" ? "#/" : `#/projects/${route.id}`;
+  window.location.hash =
+    route.name === "home" ? "#/" : route.name === "new" ? "#/new" : `#/projects/${route.id}`;
 }
 
 export function App() {
@@ -36,7 +39,9 @@ export function App() {
         </a>
       </header>
       <main className="content">
-        {route.name === "home" ? <HomeScreen /> : <ProjectScreen projectId={route.id} />}
+        {route.name === "home" && <HomeScreen />}
+        {route.name === "new" && <NewProjectScreen />}
+        {route.name === "project" && <ProjectScreen projectId={route.id} />}
       </main>
     </div>
   );

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Play, RotateCw, Square } from "lucide-react";
 import { useCallback } from "react";
 import { Button, Disclosure, DisclosurePanel, Heading } from "react-aria-components";
-import { api, type ProjectDetail, STEP_ORDER, type StepId, unwrap } from "../api/client";
+import { api, type Project, type ProjectDetail, STEP_ORDER, type StepId, unwrap } from "../api/client";
 import { useJobEvents } from "../api/events";
 import { Progress } from "../components/Progress";
 import { Status } from "../components/Status";
@@ -36,28 +36,31 @@ export function ProjectScreen({ projectId }: { projectId: string }) {
         <h1>{project.name}</h1>
         <span className="page-meta">{t.project.taxYear(project.tax_year)}</span>
       </header>
-
-      <div className="project-body">
-        <section className="panel steps-panel" aria-labelledby="steps-title">
-          <header className="panel-head">
-            <h2 id="steps-title">{t.project.stepsTitle}</h2>
-          </header>
-          <ol className="rows steps">
-            {STEP_ORDER.map((step, i) => (
-              <StepRow
-                key={step}
-                index={i + 1}
-                step={step}
-                detail={detail.data}
-                blocked={STEP_ORDER.slice(0, i).some((s) => project.steps[s]?.state !== "done")}
-                runningJobId={running_job?.step === step ? running_job.id : null}
-                onChange={refresh}
-              />
-            ))}
-          </ol>
-        </section>
-        {project.steps.check_values?.state === "done" && <Results projectId={projectId} />}
-      </div>
+      {project.answers === null ? (
+        <ProjectFacts project={project} />
+      ) : (
+        <div className="project-body">
+          <section className="panel steps-panel" aria-labelledby="steps-title">
+            <header className="panel-head">
+              <h2 id="steps-title">{t.project.stepsTitle}</h2>
+            </header>
+            <ol className="rows steps">
+              {STEP_ORDER.map((step, i) => (
+                <StepRow
+                  key={step}
+                  index={i + 1}
+                  step={step}
+                  detail={detail.data}
+                  blocked={STEP_ORDER.slice(0, i).some((s) => project.steps[s]?.state !== "done")}
+                  runningJobId={running_job?.step === step ? running_job.id : null}
+                  onChange={refresh}
+                />
+              ))}
+            </ol>
+          </section>
+          {project.steps.check_values?.state === "done" && <Results projectId={projectId} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -178,5 +181,29 @@ function Results({ projectId }: { projectId: string }) {
         <ValueStudyTable key={s.field} study={s} />
       ))}
     </div>
+  );
+}
+
+/** A project with no data yet: what it is, and what comes next (SPEC §3.0 F1). */
+function ProjectFacts({ project }: { project: Project }) {
+  const f = t.projectFacts;
+  const rows = [
+    [f.jurisdiction, project.jurisdiction],
+    [f.region, `${project.region}, ${project.country}`],
+    [f.valuationDate, project.valuation_date ?? ""],
+    [f.units, project.units === "imperial" ? t.newProject.imperial : t.newProject.metric],
+  ] as const;
+  return (
+    <section className="panel facts-panel">
+      <dl className="facts">
+        {rows.map(([k, v]) => (
+          <div key={k} className="fact">
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="row-meta">{f.next}</p>
+    </section>
   );
 }

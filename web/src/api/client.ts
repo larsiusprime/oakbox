@@ -13,6 +13,9 @@ export type SampleInfo = components["schemas"]["SampleInfo"];
 export type ValueStudy = components["schemas"]["ValueStudy"];
 export type GroupStudy = components["schemas"]["GroupStudy"];
 export type Stat = components["schemas"]["Stat"];
+export type NewProject = components["schemas"]["NewProject"];
+export type Regions = components["schemas"]["Regions"];
+export type AppSettingsView = components["schemas"]["AppSettingsView"];
 
 export const STEP_ORDER: readonly StepId[] = ["bring_in_data", "model_groups", "check_sales", "check_values"];
 
@@ -20,7 +23,7 @@ export const STEP_ORDER: readonly StepId[] = ["bring_in_data", "model_groups", "
 export function unwrap<T>(result: { data?: T; error?: unknown }): T {
   if (result.error !== undefined || result.data === undefined) {
     const detail = (result.error as { detail?: unknown } | undefined)?.detail;
-    throw new Error(typeof detail === "string" ? detail : "Something went wrong talking to Oakbox.");
+    throw new Error(typeof detail === "string" ? detail : "Something went wrong talking to OAK box.");
   }
   return result.data;
 }

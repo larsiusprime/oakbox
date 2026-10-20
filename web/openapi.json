@@ -89,6 +89,81 @@
     }
    }
   },
+  "/api/regions": {
+   "get": {
+    "summary": "Regions",
+    "operationId": "regions_api_regions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Regions"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/app-settings": {
+   "get": {
+    "summary": "Get App Settings",
+    "operationId": "get_app_settings_api_app_settings_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettingsView"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/app-settings/storage-location": {
+   "put": {
+    "summary": "Put Storage Location",
+    "description": "Where new projects are kept. Existing projects stay where they are.",
+    "operationId": "put_storage_location_api_app_settings_storage_location_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/StorageLocation"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettingsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects": {
    "get": {
     "summary": "List Projects",
@@ -109,9 +184,119 @@
       }
      }
     }
+   },
+   "post": {
+    "summary": "Create Project",
+    "operationId": "create_project_api_projects_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NewProject"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/disk": {
+   "get": {
+    "summary": "Project Disk",
+    "operationId": "project_disk_api_projects__project_id__disk_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DiskUsage"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/projects/{project_id}": {
+   "delete": {
+    "summary": "Delete Project",
+    "operationId": "delete_project_api_projects__project_id__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
    "get": {
     "summary": "Get Project",
     "operationId": "get_project_api_projects__project_id__get",
@@ -134,6 +319,43 @@
         "schema": {
          "$ref": "#/components/schemas/ProjectDetail"
         }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/show-in-folder": {
+   "post": {
+    "summary": "Show In Folder",
+    "operationId": "show_in_folder_api_projects__project_id__show_in_folder_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
        }
       }
      },
@@ -327,6 +549,24 @@
  },
  "components": {
   "schemas": {
+   "AppSettingsView": {
+    "properties": {
+     "storage_location": {
+      "type": "string",
+      "title": "Storage Location"
+     },
+     "default_storage_location": {
+      "type": "string",
+      "title": "Default Storage Location"
+     }
+    },
+    "type": "object",
+    "required": [
+     "storage_location",
+     "default_storage_location"
+    ],
+    "title": "AppSettingsView"
+   },
    "Dates": {
     "properties": {
      "valuation_date": {
@@ -352,6 +592,29 @@
      "ratio_study_years"
     ],
     "title": "Dates"
+   },
+   "DiskUsage": {
+    "properties": {
+     "bytes": {
+      "type": "integer",
+      "title": "Bytes"
+     },
+     "files": {
+      "type": "integer",
+      "title": "Files"
+     },
+     "folder": {
+      "type": "string",
+      "title": "Folder"
+     }
+    },
+    "type": "object",
+    "required": [
+     "bytes",
+     "files",
+     "folder"
+    ],
+    "title": "DiskUsage"
    },
    "FieldSource": {
     "properties": {
@@ -541,6 +804,59 @@
     ],
     "title": "ModelGroup"
    },
+   "NewProject": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "Project name; also the folder name. Free text."
+     },
+     "country": {
+      "type": "string",
+      "title": "Country",
+      "description": "ISO 3166-1 alpha-2 code, e.g. 'US'."
+     },
+     "region": {
+      "type": "string",
+      "title": "Region",
+      "description": "For the US, an ISO 3166-2 state code without 'US-' (e.g. 'TX'); else free text."
+     },
+     "jurisdiction": {
+      "type": "string",
+      "title": "Jurisdiction",
+      "description": "What the office calls itself; OpenAVMKit's locality.name."
+     },
+     "tax_year": {
+      "type": "integer",
+      "title": "Tax Year"
+     },
+     "valuation_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Valuation Date"
+     },
+     "units": {
+      "type": "string",
+      "enum": [
+       "imperial",
+       "metric"
+      ],
+      "title": "Units"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "country",
+     "region",
+     "jurisdiction",
+     "tax_year",
+     "valuation_date",
+     "units"
+    ],
+    "title": "NewProject",
+    "description": "What the user enters to create a project (SPEC \u00a73.0 F1)."
+   },
    "ParcelDetails": {
     "properties": {
      "file": {
@@ -641,14 +957,50 @@
       "type": "string",
       "title": "Name"
      },
-     "tax_year": {
-      "type": "integer",
-      "title": "Tax Year"
-     },
      "created_at": {
       "type": "string",
       "format": "date-time",
       "title": "Created At"
+     },
+     "country": {
+      "type": "string",
+      "title": "Country",
+      "default": "US"
+     },
+     "region": {
+      "type": "string",
+      "title": "Region",
+      "default": ""
+     },
+     "jurisdiction": {
+      "type": "string",
+      "title": "Jurisdiction",
+      "default": ""
+     },
+     "tax_year": {
+      "type": "integer",
+      "title": "Tax Year"
+     },
+     "valuation_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Valuation Date"
+     },
+     "units": {
+      "type": "string",
+      "enum": [
+       "imperial",
+       "metric"
+      ],
+      "title": "Units",
+      "default": "imperial"
      },
      "sample": {
       "anyOf": [
@@ -662,7 +1014,15 @@
       "title": "Sample"
      },
      "answers": {
-      "$ref": "#/components/schemas/WizardAnswers"
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/WizardAnswers"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Sample projects only, until data setup exists."
      },
      "steps": {
       "additionalProperties": {
@@ -684,8 +1044,13 @@
     "required": [
      "id",
      "name",
-     "tax_year",
      "created_at",
+     "country",
+     "region",
+     "jurisdiction",
+     "tax_year",
+     "valuation_date",
+     "units",
      "sample",
      "answers",
      "steps"
@@ -739,6 +1104,52 @@
      "prd"
     ],
     "title": "RatioStats"
+   },
+   "Region": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "name"
+    ],
+    "title": "Region"
+   },
+   "Regions": {
+    "properties": {
+     "countries": {
+      "items": {
+       "$ref": "#/components/schemas/Region"
+      },
+      "type": "array",
+      "title": "Countries"
+     },
+     "subdivisions": {
+      "additionalProperties": {
+       "items": {
+        "$ref": "#/components/schemas/Region"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Subdivisions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "countries",
+     "subdivisions"
+    ],
+    "title": "Regions",
+    "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."
    },
    "Sales": {
     "properties": {
@@ -918,6 +1329,24 @@
      "message"
     ],
     "title": "StepStatus"
+   },
+   "StorageLocation": {
+    "properties": {
+     "storage_location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Storage Location",
+      "description": "None resets to the default."
+     }
+    },
+    "type": "object",
+    "title": "StorageLocation"
    },
    "Transform": {
     "properties": {
