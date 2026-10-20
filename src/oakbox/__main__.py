@@ -73,7 +73,7 @@ def main() -> None:
             import webview
 
             picker = _Picker()
-            picker.window = webview.create_window(
+            picker._window = webview.create_window(
                 "OAK box", url, width=1280, height=860, min_size=(960, 640), js_api=picker
             )
             webview.start()
@@ -90,17 +90,22 @@ def main() -> None:
 
 
 class _Picker:
-    """Exposed to the UI as window.pywebview.api: native folder dialogs."""
+    """Exposed to the UI as window.pywebview.api: native folder dialogs.
+
+    pywebview exposes every public attribute of this object to the page, walking into
+    nested objects. Anything that isn't meant for the page must start with "_": a public
+    reference to the window makes pywebview crawl the whole window and hang at startup.
+    """
 
     def __init__(self) -> None:
-        self.window: Any = None
+        self._window: Any = None
 
     def pick_folder(self) -> str | None:
         import webview
 
-        if self.window is None:
+        if self._window is None:
             return None
-        result = self.window.create_file_dialog(webview.FOLDER_DIALOG)
+        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
         return str(result[0]) if result else None
 
 

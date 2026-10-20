@@ -82,3 +82,16 @@ def test_ui_assets_have_browser_safe_content_types(tmp_path, monkeypatch):
     assert client.get("/assets/app.js").headers["content-type"].startswith("text/javascript")
     assert client.get("/assets/app.css").headers["content-type"].startswith("text/css")
     assert client.get("/").headers["content-type"].startswith("text/html")
+
+
+def test_desktop_api_exposes_only_its_functions():
+    # Regression: pywebview exposes every public attribute of js_api to the page, walking into
+    # nested objects. A public reference to the window made it crawl the window and hang at startup.
+    import inspect
+
+    from oakbox.__main__ import _Picker
+
+    picker = _Picker()
+    picker._window = object()
+    public = {name: getattr(picker, name) for name in dir(picker) if not name.startswith("_")}
+    assert public and all(inspect.ismethod(v) for v in public.values()), public
