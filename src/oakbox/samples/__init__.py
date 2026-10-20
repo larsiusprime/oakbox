@@ -1,4 +1,4 @@
-"""Public sample counties: where to download them, and the pre-filled guided build for each.
+"""Public sample counties: where to download them and the wizard answers for each.
 
 Samples are fetched download-only from OpenAVMKit's public Azure container.
 Only data and settings files are kept; anything else there (PDFs, scripts) is
@@ -7,7 +7,6 @@ skipped and never executed.
 
 from __future__ import annotations
 
-import json
 import re
 import urllib.request
 from collections.abc import Callable
@@ -16,7 +15,7 @@ from importlib import resources
 from pathlib import Path
 from urllib.parse import quote
 
-from oakbox.setup import Setup, StageId
+from oakbox.answers import WizardAnswers
 
 CONTAINER = "https://landeconomics.blob.core.windows.net/localities-public"
 DATA_SUFFIXES = (".csv", ".parquet", ".geoparquet")
@@ -30,16 +29,9 @@ class Sample:
     prefix: str
     files: tuple[str, ...]
 
-    def _data(self) -> dict:
-        return json.loads(resources.files("oakbox.samples").joinpath(f"{self.id}.json").read_text())
-
-    def setup(self) -> Setup:
-        """The sample's decisions. File paths are relative to the project's in/ folder."""
-        return Setup.model_validate(self._data()["setup"])
-
-    def notes(self) -> dict[StageId, str]:
-        """Walkthrough notes shown on each stage (SPEC §3.2)."""
-        return self._data()["notes"]
+    def answers(self) -> WizardAnswers:
+        text = resources.files("oakbox.samples").joinpath(f"{self.id}.json").read_text()
+        return WizardAnswers.model_validate_json(text)
 
 
 SAMPLES = {

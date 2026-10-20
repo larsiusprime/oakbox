@@ -1,23 +1,17 @@
 import { useEffect, useState } from "react";
-import { STAGE_ORDER, STEP_ORDER } from "./api/client";
 import { HomeScreen } from "./screens/HomeScreen";
-import { type GuideItem, ProjectScreen } from "./screens/ProjectScreen";
+import { ProjectScreen } from "./screens/ProjectScreen";
 import { t } from "./strings";
 
-type Route = { name: "home" } | { name: "project"; id: string; item: GuideItem | null };
-
-const ITEMS: readonly string[] = [...STAGE_ORDER, ...STEP_ORDER];
+type Route = { name: "home" } | { name: "project"; id: string };
 
 function parseHash(hash: string): Route {
-  const match = /^#\/projects\/([a-z0-9-]+)(?:\/([a-z_]+))?$/.exec(hash);
-  if (!match?.[1]) return { name: "home" };
-  const item = match[2] && ITEMS.includes(match[2]) ? (match[2] as GuideItem) : null;
-  return { name: "project", id: match[1], item };
+  const match = /^#\/projects\/([a-z0-9-]+)$/.exec(hash);
+  return match?.[1] ? { name: "project", id: match[1] } : { name: "home" };
 }
 
-export function navigate(route: { name: "home" } | { name: "project"; id: string; item?: GuideItem }): void {
-  window.location.hash =
-    route.name === "home" ? "#/" : `#/projects/${route.id}${route.item ? `/${route.item}` : ""}`;
+export function navigate(route: Route): void {
+  window.location.hash = route.name === "home" ? "#/" : `#/projects/${route.id}`;
 }
 
 export function App() {
@@ -42,7 +36,7 @@ export function App() {
         </a>
       </header>
       <main className="content">
-        {route.name === "home" ? <HomeScreen /> : <ProjectScreen projectId={route.id} item={route.item} />}
+        {route.name === "home" ? <HomeScreen /> : <ProjectScreen projectId={route.id} />}
       </main>
     </div>
   );

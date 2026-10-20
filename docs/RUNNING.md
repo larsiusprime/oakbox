@@ -10,7 +10,7 @@
    - **Linux:** run `./oakbox-linux-x86_64/oakbox.sh`.
 
    It opens a native window. On Linux without WebKitGTK it opens a browser window instead.
-4. Under **Sample county**, click **Download and open**. Go down the list on the left: on each setup stage, click **Check** where there is one, then **Looks right**; then **Run** each step in order. Or start a **New project** with your own files: your own data gets as far as Stitch in this version.
+4. Under **Sample county**, click **Download and open**, then **Run** each step in order.
 
 Projects are stored in `Documents/Oakbox/` (override with the `OAKBOX_HOME` environment variable).
 

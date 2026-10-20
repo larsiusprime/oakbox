@@ -2,10 +2,9 @@
 
 Usage: python -m oakbox.smoke [--sample us-va-petersburgcity]
 
-Starts the app server without a window and walks the sample over HTTP the way a
-user would (SPEC §3.2): confirm each setup stage, running its Check where it has
-one, then run steps 1-4 and check that the value study came back. Uses a
-throwaway OAKBOX_HOME unless one is set. Needs internet for the sample download.
+Starts the app server without a window, creates the sample project over HTTP,
+runs steps 1-4 and checks that the value study came back. Uses a throwaway
+OAKBOX_HOME unless one is set. Needs internet for the sample download.
 """
 
 from __future__ import annotations
@@ -19,8 +18,6 @@ import tempfile
 import time
 import urllib.request
 
-STAGES = ("basics", "files", "stitch", "columns", "sales_basics")
-CHECKED = {"files", "stitch"}
 STEPS = ("bring_in_data", "model_groups", "check_sales", "check_values")
 
 
@@ -96,13 +93,6 @@ def main() -> None:
         project = job["project_id"]
         if _follow(base, job["id"], "download") != "done":
             raise SystemExit("Sample download failed")
-        for stage in STAGES:
-            if stage in CHECKED:
-                job = _call(base, "POST", f"/api/projects/{project}/stages/{stage}/check")
-                if _follow(base, job["id"], f"check {stage}") != "done":
-                    raise SystemExit(f"Check for {stage} failed")
-            _call(base, "POST", f"/api/projects/{project}/stages/{stage}/confirm")
-            print(f"  [{stage}] Looks right", flush=True)
         for step in STEPS:
             job = _call(base, "POST", f"/api/projects/{project}/steps/{step}/run")
             state = _follow(base, job["id"], step)

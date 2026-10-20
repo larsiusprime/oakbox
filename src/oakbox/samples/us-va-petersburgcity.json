@@ -1,65 +1,39 @@
 {
-  "notes": {
-    "basics": "Petersburg is an independent city in Virginia. Its tax year starts on 1 January, so values are as of 2026-01-01.",
-    "files": "Petersburg sends two files: a parcel map, and one CAMA table that holds both property details and each parcel's latest sale.",
-    "stitch": "The map's PAR_ID and the CAMA table's Parcel are the same IDs, so they match as they are. The CAMA table has one row per parcel, with each parcel's latest sale. A few map parcels are drawn as several polygons; they are merged into one shape.",
-    "columns": "Petersburg's columns are matched to OpenAVMKit's standard fields. Land area comes in acres and is converted to square feet.",
-    "sales_basics": "Petersburg marks valid sales with the codes Q, 00 and L. L also means the land was vacant when sold."
+  "place": {
+    "name": "City of Petersburg",
+    "state": "VA",
+    "tax_year": 2026,
+    "units": "imperial",
+    "center_lat": 37.22725078472471,
+    "center_lon": -77.40228060036787
   },
-  "setup": {
-    "basics": {
-      "name": "City of Petersburg",
-      "state": "VA",
-      "tax_year": 2026,
-      "units": "imperial",
-      "valuation_date": "2026-01-01",
-      "center_lat": 37.22725078472471,
-      "center_lon": -77.40228060036787
-    },
-    "files": [
-      {
-        "id": "parcel-map",
-        "name": "parcels.geoparquet",
-        "path": "parcels.geoparquet",
-        "format": "geoparquet",
-        "description": "Parcel polygons.",
-        "uses": ["parcel_map"],
-        "id_columns": ["PAR_ID"]
-      },
-      {
-        "id": "cama",
-        "name": "petersburg-dbo-cama-fix.parquet",
-        "path": "petersburg-dbo-cama-fix.parquet",
-        "format": "parquet",
-        "description": "Property details and each parcel's latest sale, one row per parcel.",
-        "uses": ["parcels", "sales"],
-        "id_columns": ["Parcel"]
-      }
-    ],
-    "stitch": {"spine": "parcel-map"},
-    "columns": {
-      "fields": {
-        "assr_market_value": {"column": "Total_Value", "dtype": "float"},
-        "bldg_area_finished_sqft": {"column": "Finished_Square_Feet", "dtype": "float"},
-        "land_area_sqft": {"transform": {"kind": "multiply", "column": "Legal_Acres", "factor": 43560}},
-        "bldg_year_built": {"column": "Year_Built", "dtype": "float"},
-        "bldg_effective_year_built": {"column": "Effective_Age", "dtype": "float"},
-        "bldg_quality_num": {"column": "Quality", "dtype": "float"},
-        "neighborhood": {"column": "Assessment_Neighborhood_Name", "dtype": "string"}
-      },
-      "value_fields": ["assr_market_value"],
-      "location_field": "neighborhood"
-    },
-    "sales_basics": {
-      "date_column": "Sale_Date",
-      "date_format": "%m/%d/%Y",
-      "price_column": "Sale_Price",
-      "sale_id_columns": ["Document"],
-      "validity_column": "Sale_Type",
-      "valid_codes": ["Q", "00", "L"],
-      "vacant_codes": ["L"],
-      "use_sales_from": 2023,
-      "ratio_study_years": 1
+  "parcels": {"file": "parcels.geoparquet", "id_column": "PAR_ID"},
+  "details": {
+    "file": "petersburg-dbo-cama-fix.parquet",
+    "id_column": "Parcel",
+    "fields": {
+      "assr_market_value": {"column": "Total_Value", "dtype": "float"},
+      "bldg_area_finished_sqft": {"column": "Finished_Square_Feet", "dtype": "float"},
+      "land_area_sqft": {"transform": {"kind": "multiply", "column": "Legal_Acres", "factor": 43560}},
+      "bldg_year_built": {"column": "Year_Built", "dtype": "float"},
+      "bldg_effective_year_built": {"column": "Effective_Age", "dtype": "float"},
+      "bldg_quality_num": {"column": "Quality", "dtype": "float"},
+      "neighborhood": {"column": "Assessment_Neighborhood_Name", "dtype": "string"}
     }
-  }
+  },
+  "sales": {
+    "file": "petersburg-dbo-cama-fix.parquet",
+    "parcel_id_column": "Parcel",
+    "date_column": "Sale_Date",
+    "date_format": "%m/%d/%Y",
+    "price_column": "Sale_Price",
+    "sale_id_columns": ["Document"],
+    "validity_column": "Sale_Type",
+    "valid_codes": ["Q", "00", "L"],
+    "vacant_codes": ["L"]
+  },
+  "value_fields": ["assr_market_value"],
+  "location_field": "neighborhood",
+  "model_groups": [{"id": "all", "name": "All properties"}],
+  "dates": {"valuation_date": "2026-01-01", "use_sales_from": 2023, "ratio_study_years": 1}
 }

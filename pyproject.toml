@@ -11,7 +11,6 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.32",
     "pywebview>=5.3",
-    "openpyxl>=3.1.5",
 ]
 
 [dependency-groups]

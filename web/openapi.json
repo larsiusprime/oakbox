@@ -109,643 +109,6 @@
       }
      }
     }
-   },
-   "post": {
-    "summary": "Create Project",
-    "operationId": "create_project_api_projects_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CreateProject"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/inspect": {
-   "post": {
-    "summary": "Inspect File",
-    "description": "A quick look inside a file: format, columns, first rows, suggestions. Reads only the start.",
-    "operationId": "inspect_file_api_inspect_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/InspectRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Inspection"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/basics": {
-   "put": {
-    "summary": "Put Basics",
-    "operationId": "put_basics_api_projects__project_id__basics_put",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/Basics-Input"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/files": {
-   "post": {
-    "summary": "Add File",
-    "operationId": "add_file_api_projects__project_id__files_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/AddFile"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/exports": {
-   "post": {
-    "summary": "Add Export",
-    "description": "Add the chosen files of a recognised fixed-width export, with OAK box's starting choices.",
-    "operationId": "add_export_api_projects__project_id__exports_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/AddExport"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/files/{file_id}": {
-   "put": {
-    "summary": "Put File",
-    "operationId": "put_file_api_projects__project_id__files__file_id__put",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "file_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "File Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/FileDecisions"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "delete": {
-    "summary": "Delete File",
-    "operationId": "delete_file_api_projects__project_id__files__file_id__delete",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "file_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "File Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/stitch": {
-   "put": {
-    "summary": "Put Stitch",
-    "operationId": "put_stitch_api_projects__project_id__stitch_put",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/Stitch-Input"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/stages/{stage}/check": {
-   "post": {
-    "summary": "Run Check",
-    "operationId": "run_check_api_projects__project_id__stages__stage__check_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "stage",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "enum": [
-        "basics",
-        "files",
-        "stitch",
-        "columns",
-        "sales_basics"
-       ],
-       "type": "string",
-       "title": "Stage"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JobInfo"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "get": {
-    "summary": "Get Check",
-    "operationId": "get_check_api_projects__project_id__stages__stage__check_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "stage",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "enum": [
-        "basics",
-        "files",
-        "stitch",
-        "columns",
-        "sales_basics"
-       ],
-       "type": "string",
-       "title": "Stage"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/StageCheck"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/stages/{stage}/confirm": {
-   "post": {
-    "summary": "Confirm",
-    "operationId": "confirm_api_projects__project_id__stages__stage__confirm_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "stage",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "enum": [
-        "basics",
-        "files",
-        "stitch",
-        "columns",
-        "sales_basics"
-       ],
-       "type": "string",
-       "title": "Stage"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/stages/{stage}/under-the-hood": {
-   "get": {
-    "summary": "Under The Hood",
-    "operationId": "under_the_hood_api_projects__project_id__stages__stage__under_the_hood_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "stage",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "enum": [
-        "basics",
-        "files",
-        "stitch",
-        "columns",
-        "sales_basics"
-       ],
-       "type": "string",
-       "title": "Stage"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/HoodItem"
-         },
-         "title": "Response Under The Hood Api Projects  Project Id  Stages  Stage  Under The Hood Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/steps/bring_in_data/receipt": {
-   "get": {
-    "summary": "Bring In Receipt",
-    "operationId": "bring_in_receipt_api_projects__project_id__steps_bring_in_data_receipt_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/BringInReceipt"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
    }
   },
   "/api/projects/{project_id}": {
@@ -964,597 +327,31 @@
  },
  "components": {
   "schemas": {
-   "AddExport": {
+   "Dates": {
     "properties": {
-     "path": {
-      "type": "string",
-      "title": "Path"
-     },
-     "members": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Members"
-     }
-    },
-    "type": "object",
-    "required": [
-     "path",
-     "members"
-    ],
-    "title": "AddExport"
-   },
-   "AddFile": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "uses": {
-      "items": {
-       "type": "string",
-       "enum": [
-        "parcel_map",
-        "parcels",
-        "sales",
-        "points",
-        "map_layer"
-       ]
-      },
-      "type": "array",
-      "title": "Uses"
-     },
-     "id_columns": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Id Columns"
-     },
-     "keep_columns": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Keep Columns"
-     },
-     "keep_rows": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/RowFilter"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "path": {
-      "type": "string",
-      "title": "Path"
-     },
-     "member": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Member"
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "uses",
-     "id_columns",
-     "path"
-    ],
-    "title": "AddFile"
-   },
-   "Basics-Input": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name",
-      "default": ""
-     },
-     "state": {
-      "type": "string",
-      "title": "State",
-      "description": "Two-letter state or province code, e.g. 'VA'.",
-      "default": ""
-     },
-     "tax_year": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Tax Year"
-     },
-     "units": {
-      "type": "string",
-      "enum": [
-       "imperial",
-       "metric"
-      ],
-      "title": "Units",
-      "default": "imperial"
-     },
      "valuation_date": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date"
-       },
-       {
-        "type": "null"
-       }
-      ],
+      "type": "string",
+      "format": "date",
       "title": "Valuation Date"
      },
-     "center_lat": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Center Lat"
+     "use_sales_from": {
+      "type": "integer",
+      "title": "Use Sales From",
+      "description": "First sale year used for modeling."
      },
-     "center_lon": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Center Lon"
-     }
-    },
-    "type": "object",
-    "title": "Basics"
-   },
-   "Basics-Output": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name",
-      "default": ""
-     },
-     "state": {
-      "type": "string",
-      "title": "State",
-      "description": "Two-letter state or province code, e.g. 'VA'.",
-      "default": ""
-     },
-     "tax_year": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Tax Year"
-     },
-     "units": {
-      "type": "string",
-      "enum": [
-       "imperial",
-       "metric"
-      ],
-      "title": "Units",
-      "default": "imperial"
-     },
-     "valuation_date": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Valuation Date"
-     },
-     "center_lat": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Center Lat"
-     },
-     "center_lon": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Center Lon"
+     "ratio_study_years": {
+      "type": "integer",
+      "title": "Ratio Study Years",
+      "default": 1
      }
     },
     "type": "object",
     "required": [
-     "name",
-     "state",
-     "tax_year",
-     "units",
      "valuation_date",
-     "center_lat",
-     "center_lon"
+     "use_sales_from",
+     "ratio_study_years"
     ],
-    "title": "Basics"
-   },
-   "Breakdown": {
-    "properties": {
-     "column": {
-      "type": "string",
-      "title": "Column"
-     },
-     "rows": {
-      "items": {
-       "$ref": "#/components/schemas/BreakdownRow"
-      },
-      "type": "array",
-      "title": "Rows"
-     }
-    },
-    "type": "object",
-    "required": [
-     "column",
-     "rows"
-    ],
-    "title": "Breakdown"
-   },
-   "BreakdownRow": {
-    "properties": {
-     "value": {
-      "type": "string",
-      "title": "Value"
-     },
-     "count": {
-      "type": "integer",
-      "title": "Count"
-     },
-     "share_of_unmatched": {
-      "type": "number",
-      "title": "Share Of Unmatched"
-     },
-     "share_of_matched": {
-      "type": "number",
-      "title": "Share Of Matched"
-     }
-    },
-    "type": "object",
-    "required": [
-     "value",
-     "count",
-     "share_of_unmatched",
-     "share_of_matched"
-    ],
-    "title": "BreakdownRow"
-   },
-   "BringInReceipt": {
-    "properties": {
-     "report": {
-      "$ref": "#/components/schemas/StitchReport"
-     },
-     "engine": {
-      "$ref": "#/components/schemas/EngineCounts"
-     }
-    },
-    "type": "object",
-    "required": [
-     "report",
-     "engine"
-    ],
-    "title": "BringInReceipt"
-   },
-   "Collapse-Input": {
-    "properties": {
-     "sort_by": {
-      "items": {
-       "$ref": "#/components/schemas/SortKey-Input"
-      },
-      "type": "array",
-      "title": "Sort By"
-     },
-     "fields": {
-      "additionalProperties": {
-       "type": "string",
-       "enum": [
-        "first",
-        "sum",
-        "max",
-        "min",
-        "count"
-       ]
-      },
-      "type": "object",
-      "title": "Fields"
-     }
-    },
-    "type": "object",
-    "title": "Collapse",
-    "description": "How several rows per parcel become one: sort, then per-column aggregation (default 'first')."
-   },
-   "Collapse-Output": {
-    "properties": {
-     "sort_by": {
-      "items": {
-       "$ref": "#/components/schemas/SortKey-Output"
-      },
-      "type": "array",
-      "title": "Sort By"
-     },
-     "fields": {
-      "additionalProperties": {
-       "type": "string",
-       "enum": [
-        "first",
-        "sum",
-        "max",
-        "min",
-        "count"
-       ]
-      },
-      "type": "object",
-      "title": "Fields"
-     }
-    },
-    "type": "object",
-    "required": [
-     "sort_by",
-     "fields"
-    ],
-    "title": "Collapse",
-    "description": "How several rows per parcel become one: sort, then per-column aggregation (default 'first')."
-   },
-   "ColumnInfo": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "type": {
-      "type": "string",
-      "enum": [
-       "text",
-       "number",
-       "date",
-       "yes_no",
-       "geometry"
-      ],
-      "title": "Type"
-     },
-     "blank": {
-      "type": "integer",
-      "title": "Blank",
-      "default": 0
-     },
-     "distinct": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Distinct"
-     },
-     "examples": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Examples"
-     },
-     "description": {
-      "type": "string",
-      "title": "Description",
-      "description": "From the file's layout, when it has one.",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "type",
-     "blank",
-     "distinct",
-     "examples",
-     "description"
-    ],
-    "title": "ColumnInfo"
-   },
-   "Columns": {
-    "properties": {
-     "fields": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/FieldSource"
-      },
-      "type": "object",
-      "title": "Fields",
-      "description": "OpenAVMKit field name -> stitched parcel column."
-     },
-     "value_fields": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Value Fields",
-      "description": "OpenAVMKit names of the total values to check, e.g. 'assr_market_value'."
-     },
-     "location_field": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Location Field",
-      "description": "Main location field, e.g. 'neighborhood'."
-     }
-    },
-    "type": "object",
-    "required": [
-     "fields",
-     "value_fields",
-     "location_field"
-    ],
-    "title": "Columns"
-   },
-   "CreateProject": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     }
-    },
-    "type": "object",
-    "required": [
-     "name"
-    ],
-    "title": "CreateProject"
-   },
-   "EngineCounts": {
-    "properties": {
-     "parcels": {
-      "type": "integer",
-      "title": "Parcels"
-     },
-     "sales": {
-      "type": "integer",
-      "title": "Sales"
-     }
-    },
-    "type": "object",
-    "required": [
-     "parcels",
-     "sales"
-    ],
-    "title": "EngineCounts"
-   },
-   "ExportInfo": {
-    "properties": {
-     "layout_id": {
-      "type": "string",
-      "title": "Layout Id"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "members": {
-      "items": {
-       "$ref": "#/components/schemas/ExportMemberInfo"
-      },
-      "type": "array",
-      "title": "Members"
-     },
-     "unknown": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Unknown"
-     }
-    },
-    "type": "object",
-    "required": [
-     "layout_id",
-     "name",
-     "members",
-     "unknown"
-    ],
-    "title": "ExportInfo"
-   },
-   "ExportMemberInfo": {
-    "properties": {
-     "member": {
-      "type": "string",
-      "title": "Member"
-     },
-     "label": {
-      "type": "string",
-      "title": "Label"
-     },
-     "description": {
-      "type": "string",
-      "title": "Description"
-     },
-     "size_bytes": {
-      "type": "integer",
-      "title": "Size Bytes"
-     },
-     "records": {
-      "type": "integer",
-      "title": "Records"
-     },
-     "used_by_default": {
-      "type": "boolean",
-      "title": "Used By Default"
-     },
-     "use": {
-      "anyOf": [
-       {
-        "type": "string",
-        "enum": [
-         "parcel_map",
-         "parcels",
-         "sales",
-         "points",
-         "map_layer"
-        ]
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Use"
-     }
-    },
-    "type": "object",
-    "required": [
-     "member",
-     "label",
-     "description",
-     "size_bytes",
-     "records",
-     "used_by_default",
-     "use"
-    ],
-    "title": "ExportMemberInfo"
+    "title": "Dates"
    },
    "FieldSource": {
     "properties": {
@@ -1603,304 +400,7 @@
      "dtype"
     ],
     "title": "FieldSource",
-    "description": "Where one OpenAVMKit field comes from: a stitched column, or a transform of one."
-   },
-   "FileDecisions": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "uses": {
-      "items": {
-       "type": "string",
-       "enum": [
-        "parcel_map",
-        "parcels",
-        "sales",
-        "points",
-        "map_layer"
-       ]
-      },
-      "type": "array",
-      "title": "Uses"
-     },
-     "id_columns": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Id Columns"
-     },
-     "keep_columns": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Keep Columns"
-     },
-     "keep_rows": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/RowFilter"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "uses",
-     "id_columns"
-    ],
-    "title": "FileDecisions",
-    "description": "What the user decides about one file on the Your files stage."
-   },
-   "FileProfile": {
-    "properties": {
-     "rows": {
-      "type": "integer",
-      "title": "Rows"
-     },
-     "columns": {
-      "items": {
-       "$ref": "#/components/schemas/ColumnInfo"
-      },
-      "type": "array",
-      "title": "Columns"
-     },
-     "distinct_ids": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Distinct Ids"
-     },
-     "blank_ids": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Blank Ids"
-     },
-     "crs": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Crs"
-     }
-    },
-    "type": "object",
-    "required": [
-     "rows",
-     "columns",
-     "distinct_ids",
-     "blank_ids",
-     "crs"
-    ],
-    "title": "FileProfile",
-    "description": "Measured on the imported copy, over every row."
-   },
-   "FileReport": {
-    "properties": {
-     "file": {
-      "type": "string",
-      "title": "File"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "use": {
-      "type": "string",
-      "enum": [
-       "parcel_map",
-       "parcels",
-       "sales",
-       "points",
-       "map_layer"
-      ],
-      "title": "Use"
-     },
-     "rows_in": {
-      "type": "integer",
-      "title": "Rows In"
-     },
-     "filtered_out": {
-      "type": "integer",
-      "title": "Filtered Out",
-      "default": 0
-     },
-     "filter_description": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Filter Description"
-     },
-     "blank_ids": {
-      "type": "integer",
-      "title": "Blank Ids",
-      "default": 0
-     },
-     "rows_after": {
-      "type": "integer",
-      "title": "Rows After",
-      "default": 0
-     },
-     "distinct_ids": {
-      "type": "integer",
-      "title": "Distinct Ids",
-      "default": 0
-     },
-     "collapsed_away": {
-      "type": "integer",
-      "title": "Collapsed Away",
-      "default": 0
-     },
-     "polygons_merged": {
-      "type": "integer",
-      "title": "Polygons Merged",
-      "default": 0
-     },
-     "matched": {
-      "type": "integer",
-      "title": "Matched",
-      "default": 0
-     },
-     "only_here": {
-      "type": "integer",
-      "title": "Only Here",
-      "default": 0
-     },
-     "only_here_examples": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Only Here Examples",
-      "default": []
-     },
-     "only_here_breakdown": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/Breakdown"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "only_on_map": {
-      "type": "integer",
-      "title": "Only On Map",
-      "default": 0
-     },
-     "only_on_map_examples": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Only On Map Examples",
-      "default": []
-     },
-     "suggestion": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/FixSuggestion"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "rows_out": {
-      "type": "integer",
-      "title": "Rows Out",
-      "default": 0
-     }
-    },
-    "type": "object",
-    "required": [
-     "file",
-     "name",
-     "use",
-     "rows_in",
-     "filtered_out",
-     "filter_description",
-     "blank_ids",
-     "rows_after",
-     "distinct_ids",
-     "collapsed_away",
-     "polygons_merged",
-     "matched",
-     "only_here",
-     "only_here_examples",
-     "only_here_breakdown",
-     "only_on_map",
-     "only_on_map_examples",
-     "suggestion",
-     "rows_out"
-    ],
-    "title": "FileReport"
-   },
-   "FixSuggestion": {
-    "properties": {
-     "fixes": {
-      "items": {
-       "$ref": "#/components/schemas/IdFix-Output"
-      },
-      "type": "array",
-      "title": "Fixes"
-     },
-     "description": {
-      "type": "string",
-      "title": "Description"
-     },
-     "matched_after": {
-      "type": "integer",
-      "title": "Matched After"
-     },
-     "gain": {
-      "type": "integer",
-      "title": "Gain"
-     }
-    },
-    "type": "object",
-    "required": [
-     "fixes",
-     "description",
-     "matched_after",
-     "gain"
-    ],
-    "title": "FixSuggestion"
+    "description": "Where one OpenAVMKit field comes from: a source column, or a transform of one."
    },
    "GroupStudy": {
     "properties": {
@@ -1959,23 +459,6 @@
     "type": "object",
     "title": "HTTPValidationError"
    },
-   "HoodItem": {
-    "properties": {
-     "title": {
-      "type": "string",
-      "title": "Title"
-     },
-     "content": {
-      "title": "Content"
-     }
-    },
-    "type": "object",
-    "required": [
-     "title",
-     "content"
-    ],
-    "title": "HoodItem"
-   },
    "HorizontalStats": {
     "properties": {
      "parcels": {
@@ -2005,246 +488,6 @@
      "median_chd"
     ],
     "title": "HorizontalStats"
-   },
-   "IdFix-Input": {
-    "properties": {
-     "op": {
-      "type": "string",
-      "enum": [
-       "trim",
-       "strip_leading_zeros",
-       "remove_non_alnum",
-       "upper",
-       "pad_zeros"
-      ],
-      "title": "Op"
-     },
-     "width": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Width",
-      "description": "For pad_zeros: total width."
-     }
-    },
-    "type": "object",
-    "required": [
-     "op"
-    ],
-    "title": "IdFix"
-   },
-   "IdFix-Output": {
-    "properties": {
-     "op": {
-      "type": "string",
-      "enum": [
-       "trim",
-       "strip_leading_zeros",
-       "remove_non_alnum",
-       "upper",
-       "pad_zeros"
-      ],
-      "title": "Op"
-     },
-     "width": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Width",
-      "description": "For pad_zeros: total width."
-     }
-    },
-    "type": "object",
-    "required": [
-     "op",
-     "width"
-    ],
-    "title": "IdFix"
-   },
-   "InspectRequest": {
-    "properties": {
-     "path": {
-      "type": "string",
-      "title": "Path"
-     },
-     "member": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Member"
-     }
-    },
-    "type": "object",
-    "required": [
-     "path"
-    ],
-    "title": "InspectRequest"
-   },
-   "Inspection": {
-    "properties": {
-     "path": {
-      "type": "string",
-      "title": "Path"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "format": {
-      "anyOf": [
-       {
-        "type": "string",
-        "enum": [
-         "parquet",
-         "geoparquet",
-         "csv",
-         "excel",
-         "shapefile",
-         "geopackage",
-         "geojson",
-         "filegdb",
-         "fixed_width"
-        ]
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Format"
-     },
-     "size_bytes": {
-      "type": "integer",
-      "title": "Size Bytes"
-     },
-     "export": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/ExportInfo"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "layers": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Layers",
-      "default": []
-     },
-     "member": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Member"
-     },
-     "columns": {
-      "items": {
-       "$ref": "#/components/schemas/ColumnInfo"
-      },
-      "type": "array",
-      "title": "Columns",
-      "default": []
-     },
-     "sample": {
-      "items": {
-       "additionalProperties": {
-        "type": "string"
-       },
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Sample",
-      "default": []
-     },
-     "rows_estimate": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Rows Estimate"
-     },
-     "suggested_uses": {
-      "items": {
-       "type": "string",
-       "enum": [
-        "parcel_map",
-        "parcels",
-        "sales",
-        "points",
-        "map_layer"
-       ]
-      },
-      "type": "array",
-      "title": "Suggested Uses",
-      "default": []
-     },
-     "suggested_id_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Suggested Id Column"
-     },
-     "problem": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Problem"
-     }
-    },
-    "type": "object",
-    "required": [
-     "path",
-     "name",
-     "format",
-     "size_bytes",
-     "export",
-     "layers",
-     "member",
-     "columns",
-     "sample",
-     "rows_estimate",
-     "suggested_uses",
-     "suggested_id_column",
-     "problem"
-    ],
-    "title": "Inspection"
    },
    "JobInfo": {
     "properties": {
@@ -2298,6 +541,96 @@
     ],
     "title": "ModelGroup"
    },
+   "ParcelDetails": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "id_column": {
+      "type": "string",
+      "title": "Id Column"
+     },
+     "fields": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/FieldSource"
+      },
+      "type": "object",
+      "title": "Fields",
+      "description": "OpenAVMKit field name -> source. E.g. 'bldg_area_finished_sqft'."
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "id_column",
+     "fields"
+    ],
+    "title": "ParcelDetails",
+    "description": "A table of parcel characteristics joined to the parcel layer by ID."
+   },
+   "ParcelLayer": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "id_column": {
+      "type": "string",
+      "title": "Id Column"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "id_column"
+    ],
+    "title": "ParcelLayer",
+    "description": "The GIS parcel file and its parcel-ID column."
+   },
+   "Place": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "state": {
+      "type": "string",
+      "title": "State"
+     },
+     "tax_year": {
+      "type": "integer",
+      "title": "Tax Year"
+     },
+     "units": {
+      "type": "string",
+      "enum": [
+       "imperial",
+       "metric"
+      ],
+      "title": "Units",
+      "default": "imperial"
+     },
+     "center_lat": {
+      "type": "number",
+      "title": "Center Lat"
+     },
+     "center_lon": {
+      "type": "number",
+      "title": "Center Lon"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "state",
+     "tax_year",
+     "units",
+     "center_lat",
+     "center_lon"
+    ],
+    "title": "Place"
+   },
    "Project": {
     "properties": {
      "id": {
@@ -2307,6 +640,10 @@
      "name": {
       "type": "string",
       "title": "Name"
+     },
+     "tax_year": {
+      "type": "integer",
+      "title": "Tax Year"
      },
      "created_at": {
       "type": "string",
@@ -2324,42 +661,33 @@
       ],
       "title": "Sample"
      },
-     "notes": {
+     "answers": {
+      "$ref": "#/components/schemas/WizardAnswers"
+     },
+     "steps": {
       "additionalProperties": {
-       "type": "string"
+       "$ref": "#/components/schemas/StepStatus"
       },
       "propertyNames": {
        "enum": [
-        "basics",
-        "files",
-        "stitch",
-        "columns",
-        "sales_basics"
+        "bring_in_data",
+        "model_groups",
+        "check_sales",
+        "check_values"
        ]
       },
       "type": "object",
-      "title": "Notes",
-      "description": "Walkthrough notes (samples)."
-     },
-     "setup": {
-      "$ref": "#/components/schemas/Setup"
-     },
-     "stages": {
-      "$ref": "#/components/schemas/StageStatuses"
-     },
-     "steps": {
-      "$ref": "#/components/schemas/StepStatuses"
+      "title": "Steps"
      }
     },
     "type": "object",
     "required": [
      "id",
      "name",
+     "tax_year",
      "created_at",
      "sample",
-     "notes",
-     "setup",
-     "stages",
+     "answers",
      "steps"
     ],
     "title": "Project"
@@ -2412,30 +740,16 @@
     ],
     "title": "RatioStats"
    },
-   "RowFilter": {
+   "Sales": {
     "properties": {
-     "column": {
+     "file": {
       "type": "string",
-      "title": "Column"
+      "title": "File"
      },
-     "values": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Values"
-     }
-    },
-    "type": "object",
-    "required": [
-     "column",
-     "values"
-    ],
-    "title": "RowFilter",
-    "description": "Keep only rows whose ``column`` is one of ``values`` (e.g. property type 'R')."
-   },
-   "SalesBasics": {
-    "properties": {
+     "parcel_id_column": {
+      "type": "string",
+      "title": "Parcel Id Column"
+     },
      "date_column": {
       "type": "string",
       "title": "Date Column"
@@ -2481,33 +795,22 @@
       },
       "type": "array",
       "title": "Vacant Codes",
-      "description": "Codes meaning 'vacant when sold'. Empty: follow the parcel's vacancy."
-     },
-     "use_sales_from": {
-      "type": "integer",
-      "title": "Use Sales From",
-      "description": "First sale year used for modeling."
-     },
-     "ratio_study_years": {
-      "type": "integer",
-      "title": "Ratio Study Years",
-      "default": 1
+      "description": "Codes meaning 'vacant when sold'. Empty means: follow the parcel's current vacancy."
      }
     },
     "type": "object",
     "required": [
+     "file",
+     "parcel_id_column",
      "date_column",
      "date_format",
      "price_column",
      "sale_id_columns",
      "validity_column",
      "valid_codes",
-     "vacant_codes",
-     "use_sales_from",
-     "ratio_study_years"
+     "vacant_codes"
     ],
-    "title": "SalesBasics",
-    "description": "Columns refer to the stitched sales table, whose parcel ID column is 'key'."
+    "title": "Sales"
    },
    "SampleInfo": {
     "properties": {
@@ -2531,341 +834,6 @@
      "description"
     ],
     "title": "SampleInfo"
-   },
-   "Setup": {
-    "properties": {
-     "basics": {
-      "$ref": "#/components/schemas/Basics-Output"
-     },
-     "files": {
-      "items": {
-       "$ref": "#/components/schemas/SourceFile"
-      },
-      "type": "array",
-      "title": "Files"
-     },
-     "stitch": {
-      "$ref": "#/components/schemas/Stitch-Output"
-     },
-     "columns": {
-      "$ref": "#/components/schemas/Columns"
-     },
-     "sales_basics": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/SalesBasics"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "model_groups": {
-      "items": {
-       "$ref": "#/components/schemas/ModelGroup"
-      },
-      "type": "array",
-      "title": "Model Groups"
-     }
-    },
-    "type": "object",
-    "required": [
-     "basics",
-     "files",
-     "stitch",
-     "columns",
-     "sales_basics",
-     "model_groups"
-    ],
-    "title": "Setup"
-   },
-   "SortKey-Input": {
-    "properties": {
-     "column": {
-      "type": "string",
-      "title": "Column"
-     },
-     "descending": {
-      "type": "boolean",
-      "title": "Descending",
-      "default": false
-     }
-    },
-    "type": "object",
-    "required": [
-     "column"
-    ],
-    "title": "SortKey"
-   },
-   "SortKey-Output": {
-    "properties": {
-     "column": {
-      "type": "string",
-      "title": "Column"
-     },
-     "descending": {
-      "type": "boolean",
-      "title": "Descending",
-      "default": false
-     }
-    },
-    "type": "object",
-    "required": [
-     "column",
-     "descending"
-    ],
-    "title": "SortKey"
-   },
-   "SourceFile": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id",
-      "description": "Short slug, unique in the project; names the imported copy."
-     },
-     "name": {
-      "type": "string",
-      "title": "Name",
-      "description": "What the user sees, e.g. 'PROP.TXT (property)'."
-     },
-     "path": {
-      "type": "string",
-      "title": "Path",
-      "description": "Absolute path of the file the user picked (a zip for exports)."
-     },
-     "member": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Member",
-      "description": "File inside a zip, or layer inside a GeoPackage/FileGDB."
-     },
-     "format": {
-      "type": "string",
-      "enum": [
-       "parquet",
-       "geoparquet",
-       "csv",
-       "excel",
-       "shapefile",
-       "geopackage",
-       "geojson",
-       "filegdb",
-       "fixed_width"
-      ],
-      "title": "Format"
-     },
-     "layout": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Layout",
-      "description": "Fixed-width layout id, e.g. 'pacs-legacy-8.0.33'."
-     },
-     "description": {
-      "type": "string",
-      "title": "Description",
-      "default": ""
-     },
-     "uses": {
-      "items": {
-       "type": "string",
-       "enum": [
-        "parcel_map",
-        "parcels",
-        "sales",
-        "points",
-        "map_layer"
-       ]
-      },
-      "type": "array",
-      "title": "Uses"
-     },
-     "id_columns": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Id Columns",
-      "description": "The parcel ID column (text)."
-     },
-     "keep_columns": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Keep Columns",
-      "description": "None keeps every column."
-     },
-     "keep_rows": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/RowFilter"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "size_bytes": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Size Bytes"
-     },
-     "imported": {
-      "type": "boolean",
-      "title": "Imported",
-      "default": false
-     },
-     "profile": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/FileProfile"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "name",
-     "path",
-     "member",
-     "format",
-     "layout",
-     "description",
-     "uses",
-     "id_columns",
-     "keep_columns",
-     "keep_rows",
-     "size_bytes",
-     "imported",
-     "profile"
-    ],
-    "title": "SourceFile"
-   },
-   "StageCheck": {
-    "properties": {
-     "fresh": {
-      "type": "boolean",
-      "title": "Fresh"
-     },
-     "ran": {
-      "type": "boolean",
-      "title": "Ran"
-     },
-     "stitch": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/StitchReport"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     }
-    },
-    "type": "object",
-    "required": [
-     "fresh",
-     "ran",
-     "stitch"
-    ],
-    "title": "StageCheck",
-    "description": "A stage's latest Check, and whether it still matches the current decisions."
-   },
-   "StageStatus": {
-    "properties": {
-     "state": {
-      "type": "string",
-      "enum": [
-       "todo",
-       "done",
-       "stale"
-      ],
-      "title": "State",
-      "default": "todo"
-     },
-     "confirmed_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Confirmed At"
-     },
-     "reason": {
-      "type": "string",
-      "title": "Reason",
-      "description": "Why it is out of date.",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "state",
-     "confirmed_at",
-     "reason"
-    ],
-    "title": "StageStatus"
-   },
-   "StageStatuses": {
-    "properties": {
-     "basics": {
-      "$ref": "#/components/schemas/StageStatus"
-     },
-     "files": {
-      "$ref": "#/components/schemas/StageStatus"
-     },
-     "stitch": {
-      "$ref": "#/components/schemas/StageStatus"
-     },
-     "columns": {
-      "$ref": "#/components/schemas/StageStatus"
-     },
-     "sales_basics": {
-      "$ref": "#/components/schemas/StageStatus"
-     }
-    },
-    "type": "object",
-    "required": [
-     "basics",
-     "files",
-     "stitch",
-     "columns",
-     "sales_basics"
-    ],
-    "title": "StageStatuses"
    },
    "Stat": {
     "properties": {
@@ -2951,241 +919,6 @@
     ],
     "title": "StepStatus"
    },
-   "StepStatuses": {
-    "properties": {
-     "bring_in_data": {
-      "$ref": "#/components/schemas/StepStatus"
-     },
-     "model_groups": {
-      "$ref": "#/components/schemas/StepStatus"
-     },
-     "check_sales": {
-      "$ref": "#/components/schemas/StepStatus"
-     },
-     "check_values": {
-      "$ref": "#/components/schemas/StepStatus"
-     }
-    },
-    "type": "object",
-    "required": [
-     "bring_in_data",
-     "model_groups",
-     "check_sales",
-     "check_values"
-    ],
-    "title": "StepStatuses"
-   },
-   "Stitch-Input": {
-    "properties": {
-     "spine": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Spine",
-      "description": "File id of the parcel map everything attaches to."
-     },
-     "id_fixes": {
-      "additionalProperties": {
-       "items": {
-        "$ref": "#/components/schemas/IdFix-Input"
-       },
-       "type": "array"
-      },
-      "type": "object",
-      "title": "Id Fixes",
-      "description": "File id -> fixes to its IDs."
-     },
-     "collapse": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/Collapse-Input"
-      },
-      "type": "object",
-      "title": "Collapse",
-      "description": "File id -> several-rows rule."
-     },
-     "dissolve": {
-      "type": "boolean",
-      "title": "Dissolve",
-      "description": "Merge several map polygons with one ID into one shape.",
-      "default": true
-     },
-     "context": {
-      "type": "string",
-      "enum": [
-       "none",
-       "recommended",
-       "custom"
-      ],
-      "title": "Context",
-      "default": "none"
-     }
-    },
-    "type": "object",
-    "title": "Stitch"
-   },
-   "Stitch-Output": {
-    "properties": {
-     "spine": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Spine",
-      "description": "File id of the parcel map everything attaches to."
-     },
-     "id_fixes": {
-      "additionalProperties": {
-       "items": {
-        "$ref": "#/components/schemas/IdFix-Output"
-       },
-       "type": "array"
-      },
-      "type": "object",
-      "title": "Id Fixes",
-      "description": "File id -> fixes to its IDs."
-     },
-     "collapse": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/Collapse-Output"
-      },
-      "type": "object",
-      "title": "Collapse",
-      "description": "File id -> several-rows rule."
-     },
-     "dissolve": {
-      "type": "boolean",
-      "title": "Dissolve",
-      "description": "Merge several map polygons with one ID into one shape.",
-      "default": true
-     },
-     "context": {
-      "type": "string",
-      "enum": [
-       "none",
-       "recommended",
-       "custom"
-      ],
-      "title": "Context",
-      "default": "none"
-     }
-    },
-    "type": "object",
-    "required": [
-     "spine",
-     "id_fixes",
-     "collapse",
-     "dissolve",
-     "context"
-    ],
-    "title": "Stitch"
-   },
-   "StitchReport": {
-    "properties": {
-     "checked_at": {
-      "type": "string",
-      "format": "date-time",
-      "title": "Checked At"
-     },
-     "written": {
-      "type": "boolean",
-      "title": "Written"
-     },
-     "spine": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/FileReport"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "files": {
-      "items": {
-       "$ref": "#/components/schemas/FileReport"
-      },
-      "type": "array",
-      "title": "Files"
-     },
-     "parcels": {
-      "type": "integer",
-      "title": "Parcels"
-     },
-     "sales": {
-      "type": "integer",
-      "title": "Sales"
-     },
-     "sales_unmatched": {
-      "type": "integer",
-      "title": "Sales Unmatched"
-     },
-     "map_parcels_without_details": {
-      "type": "integer",
-      "title": "Map Parcels Without Details",
-      "default": 0
-     },
-     "columns": {
-      "items": {
-       "$ref": "#/components/schemas/StitchedColumn"
-      },
-      "type": "array",
-      "title": "Columns"
-     },
-     "warnings": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Warnings"
-     }
-    },
-    "type": "object",
-    "required": [
-     "checked_at",
-     "written",
-     "spine",
-     "files",
-     "parcels",
-     "sales",
-     "sales_unmatched",
-     "map_parcels_without_details",
-     "columns",
-     "warnings"
-    ],
-    "title": "StitchReport"
-   },
-   "StitchedColumn": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "source": {
-      "type": "string",
-      "title": "Source"
-     },
-     "source_column": {
-      "type": "string",
-      "title": "Source Column"
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "source",
-     "source_column"
-    ],
-    "title": "StitchedColumn"
-   },
    "Transform": {
     "properties": {
      "kind": {
@@ -3209,7 +942,7 @@
      "factor"
     ],
     "title": "Transform",
-    "description": "A typed column transform (SPEC \u00a73.13). So far: a numeric multiplier."
+    "description": "A typed column transform (SPEC \u00a73.13). M1a supports a numeric multiplier."
    },
    "ValidationError": {
     "properties": {
@@ -3328,6 +1061,71 @@
      "vei_significance"
     ],
     "title": "VerticalStats"
+   },
+   "WizardAnswers": {
+    "properties": {
+     "place": {
+      "$ref": "#/components/schemas/Place"
+     },
+     "parcels": {
+      "$ref": "#/components/schemas/ParcelLayer"
+     },
+     "details": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ParcelDetails"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "sales": {
+      "$ref": "#/components/schemas/Sales"
+     },
+     "value_fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Value Fields",
+      "description": "OpenAVMKit field names of the total values to check, e.g. ['assr_market_value']."
+     },
+     "location_field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location Field",
+      "description": "Field used as the main location, e.g. 'neighborhood'."
+     },
+     "model_groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroup"
+      },
+      "type": "array",
+      "title": "Model Groups"
+     },
+     "dates": {
+      "$ref": "#/components/schemas/Dates"
+     }
+    },
+    "type": "object",
+    "required": [
+     "place",
+     "parcels",
+     "details",
+     "sales",
+     "value_fields",
+     "location_field",
+     "model_groups",
+     "dates"
+    ],
+    "title": "WizardAnswers"
    }
   }
  }

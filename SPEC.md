@@ -87,7 +87,8 @@ A stage or step is done only when the user clicks **Looks right** on its receipt
    | Kind | Example | Becomes |
    |---|---|---|
    | **Parcel map** | Parcel polygons | The spine everything attaches to (`geo_parcels`) |
-   | **Parcel details** | Main CAMA table; buildings, land segments, improvement details | Attached by ID. Oakbox detects from the ID check whether a file has one row per parcel or several, and Stitch collapses several to one |
+   | **One row per parcel** | Main CAMA table | Attached by ID |
+   | **Several rows per parcel** | Buildings, land segments, improvement details | Collapsed to one row per parcel (Stitch) |
    | **Sales** | One or more sales files | The sales table; several files are stacked |
    | **Points** | Permits or addresses with latitude and longitude | Attached by position (`lat_long` merge) |
    | **Map layer** | Neighbourhoods, zoning, school districts | Attached by overlay (§3.12.1) |
@@ -98,16 +99,15 @@ A stage or step is done only when the user clicks **Looks right** on its receipt
 3. **Stitch.** How the files become one table of parcels and one table of sales. Oakbox drafts the plan and the user confirms each part:
    - **The spine.** The parcel map. Without a map (allowed only with a warning, D4), a one-row-per-parcel table.
    - **How each file attaches:** by ID, by position or by overlay; sales files stacked (`append`). A nested file rolls up through its parent: improvement details → improvements → parcel, collapsing at each level.
-   - **Matching.** Each attachment shows its match rate both ways: "11,640 of 11,902 IDs match the map (97.8%). See the 262 that don't." When IDs nearly match, Oakbox suggests a fix and shows how many more would match: "IDs here have dashes and the map's don't. Remove dashes? +247 matches." Fixes are trim, remove leading zeros, remove dashes and spaces, change case and pad with zeros. An ID that is all zeros always counts as blank.
+   - **Matching.** Each attachment shows its match rate both ways: "11,640 of 11,902 IDs match the map (97.8%). See the 262 that don't." When IDs nearly match, Oakbox suggests a fix and shows how many more would match: "IDs here have dashes and the map's don't. Remove dashes? +247 matches." Fixes are trim, remove characters, pad with zeros, change case and keep only part. They compile to `calc` on that file (§3.13), so Check and the engine apply the same rule.
    - **Rows without an ID** are dropped with a named reason, counted in the receipt.
-   - **Several rows per parcel.** Per field: **sum**, **largest**, **smallest** or **first**, with sensible defaults (areas sum; year built takes the earliest; codes take the row with the largest area). The parcel table's version rule picks one row first (e.g. the highest supplement number); the sort and the per-field aggregations are user choices.
+   - **Several rows per parcel.** Per field: **sum**, **largest**, **smallest** or **first**, with sensible defaults (areas sum; year built takes the earliest; codes take the row with the largest area). This becomes that file's `dupes` setting.
      - In the parcel table itself, duplicates usually mean versions or owners (PACS: supplement number, one row per owner). Oakbox proposes "latest version, primary owner" and shows how many rows that removes.
      - In the parcel map, several polygons for one ID are merged into one shape.
    - **On the roll, not on the map.** Parcels without a polygon are listed by type, because some are expected: condo units that share a polygon (handled by condo rules, §3.5), and accounts newer than the map.
    - **Column clashes.** When two files have a column of the same name, the user picks which one wins (`reconcile`); the other is kept with the file's name as a suffix.
    - **Context data starting point:** **None (offline)**, **Recommended**, or **Custom**, which opens the Enrichment screen (§3.12). Nothing heavy runs without a cost estimate first.
    - **Preview:** the stitched parcel table, with each column's source file, and the parcels each file left blank.
-   - **Who stitches.** Oakbox does, not OpenAVMKit. One function both measures the plan (Check) and writes `in/stitched/` (step 1): the parcel table, the parcel map and the sales table, all keyed on `key`. OpenAVMKit then loads those. Check and Run are the same code, so the receipt matches the preview by construction, and the folder is still a plain OpenAVMKit locality for notebook users. (OpenAVMKit's own merge can't drop blank IDs, filter rows, merge polygons or roll up nested files.)
 4. **Columns.** Oakbox maps the stitched columns onto OpenAVMKit's data dictionary (163 standard fields): "We think `SQFT_LIV` is *Finished building area*. Correct?" The user only confirms uncertain matches. Check shows each standard field after its transform: blanks, range and examples.
    - **Transforms** fix columns that don't match as-is: unit conversion, code→number tables, date formats, combining columns (§3.13).
    - **Year built, not age.** Age is derived from the valuation date.
@@ -723,7 +723,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
 - **M1 — "Check my values."** Built as four slices, each one runnable:
   - **M1a, walking skeleton (done).** Real app shell: home screen, sample county download, steps 1–4 with live progress and Stop, and the results table with IAAO default targets. Engine changes: A1, A2, A3, A11, A12 (horizontal equity), plus a CatBoost Windows fix found by a user run. Bundles ship the app, and CI smoke-tests it end to end on Windows and Linux.
-  - **M1b, own data (built).** The guided build's frame (four-part stages, Looks right, Under the hood, staleness of decisions) and the first three setup stages: Basics, Your files and Stitch, with their quick checks. Fixed-width import with the PACS layout, tested on the Travis CAD export. Step 1's receipt (upstream A14 for its counts). The sample becomes a walkthrough of the stages built so far. Not yet: attaching points and map layers, and editing per-field aggregations (the defaults are shown).
+  - **M1b, own data.** The guided build's frame (four-part stages, Looks right, Under the hood, staleness of decisions) and the first three setup stages: Basics, Your files and Stitch, with their quick checks. Fixed-width import with the PACS layout, tested on the Travis CAD export. Step 1's receipt (upstream A14 for its counts). The sample becomes a walkthrough of the stages built so far.
   - **M1c, trust the data.** Setup stages Columns and Sales basics; the sales funnel and the receipts for steps 2–4; Data health, Field profile, the "From a field" model group builder, the read-only sales register.
   - **M1d, hand it over.** PDF report, exports, help.
 
@@ -787,6 +787,5 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
    - why `cv_folds=1` is slow
    - the enrichment cost coefficients, which need an M2 run with enrichment on
 2. **Real extracts.** The maintainer has several. They'll be shared, anonymised if needed, for guided-build and Data health testing. The first is a full Travis CAD PACS export (fixed-width text, 391 MB zipped).
-3. **Scrutiny is sensitive to small input changes.** Moving Petersburg from M1a to M1b's stitching changed the inputs by 4 parcels and 23 location-less sales. Every shared sale kept the same value and price, yet scrutiny swapped about 3% of the ratio-study sales, and COD moved from 20.6 to 22.9. The study is only as stable as its outlier step; worth measuring before reports carry IAAO pass/fail.
-4. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
-5. **Usability test:** after M1, with assessors the maintainer recruits.
+3. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
+4. **Usability test:** after M1, with assessors the maintainer recruits.
