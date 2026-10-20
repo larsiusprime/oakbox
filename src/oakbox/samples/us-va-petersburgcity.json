@@ -1,8 +1,8 @@
 {
   "notes": {
     "basics": "Petersburg is an independent city in Virginia. Its tax year starts on 1 January, so values are as of 2026-01-01.",
-    "files": "Petersburg sends two files: a parcel map, and one CAMA table that holds both property details and the sales history.",
-    "stitch": "The map's PAR_ID and the CAMA table's Parcel are the same IDs, so they match as they are. The CAMA table has a row per sale, so several rows per parcel are collapsed to one.",
+    "files": "Petersburg sends two files: a parcel map, and one CAMA table that holds both property details and each parcel's latest sale.",
+    "stitch": "The map's PAR_ID and the CAMA table's Parcel are the same IDs, so they match as they are. The CAMA table has one row per parcel, with each parcel's latest sale. A few map parcels are drawn as several polygons; they are merged into one shape.",
     "columns": "Petersburg's columns are matched to OpenAVMKit's standard fields. Land area comes in acres and is converted to square feet.",
     "sales_basics": "Petersburg marks valid sales with the codes Q, 00 and L. L also means the land was vacant when sold."
   },
@@ -31,7 +31,7 @@
         "name": "petersburg-dbo-cama-fix.parquet",
         "path": "petersburg-dbo-cama-fix.parquet",
         "format": "parquet",
-        "description": "Property details and sales history, one row per sale.",
+        "description": "Property details and each parcel's latest sale, one row per parcel.",
         "uses": ["parcels", "sales"],
         "id_columns": ["Parcel"]
       }

@@ -836,14 +836,8 @@ export interface components {
                 [key: string]: string;
             };
             setup: components["schemas"]["Setup"];
-            /** Stages */
-            stages: {
-                [key: string]: components["schemas"]["StageStatus"];
-            };
-            /** Steps */
-            steps: {
-                [key: string]: components["schemas"]["StepStatus"];
-            };
+            stages: components["schemas"]["StageStatuses"];
+            steps: components["schemas"]["StepStatuses"];
         };
         /** ProjectDetail */
         ProjectDetail: {
@@ -1034,6 +1028,14 @@ export interface components {
              */
             reason: string;
         };
+        /** StageStatuses */
+        StageStatuses: {
+            basics: components["schemas"]["StageStatus"];
+            files: components["schemas"]["StageStatus"];
+            stitch: components["schemas"]["StageStatus"];
+            columns: components["schemas"]["StageStatus"];
+            sales_basics: components["schemas"]["StageStatus"];
+        };
         /** Stat */
         Stat: {
             /** Value */
@@ -1058,6 +1060,13 @@ export interface components {
              * @default
              */
             message: string;
+        };
+        /** StepStatuses */
+        StepStatuses: {
+            bring_in_data: components["schemas"]["StepStatus"];
+            model_groups: components["schemas"]["StepStatus"];
+            check_sales: components["schemas"]["StepStatus"];
+            check_values: components["schemas"]["StepStatus"];
         };
         /** Stitch */
         "Stitch-Input": {
@@ -1145,6 +1154,11 @@ export interface components {
             sales: number;
             /** Sales Unmatched */
             sales_unmatched: number;
+            /**
+             * Map Parcels Without Details
+             * @default 0
+             */
+            map_parcels_without_details: number;
             /** Columns */
             columns: components["schemas"]["StitchedColumn"][];
             /** Warnings */

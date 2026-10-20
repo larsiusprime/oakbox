@@ -85,6 +85,7 @@ class StitchReport(BaseModel):
     parcels: int
     sales: int
     sales_unmatched: int
+    map_parcels_without_details: int = 0
     columns: list[StitchedColumn]
     warnings: list[str]
 
@@ -358,7 +359,12 @@ def run(
         tick(f"{f.name} measured")
     sales = pd.concat(sales_frames, ignore_index=True) if sales_frames else None
 
-    n_parcels = len(spine_keys) if spine_keys is not None else 0
+    # OpenAVMKit's universe is the parcel table when there is one, so map parcels without details drop out.
+    if parcels is not None:
+        n_parcels = len(parcels)
+    else:
+        n_parcels = len(spine_keys) if spine_keys is not None else 0
+    map_only = (len(spine_keys) - n_parcels) if (spine_keys is not None and parcels is not None) else 0
     if write:
         out = pdir / "in" / "stitched"
         out.mkdir(parents=True, exist_ok=True)
@@ -380,6 +386,7 @@ def run(
         parcels=n_parcels,
         sales=len(sales) if sales is not None else 0,
         sales_unmatched=sales_unmatched,
+        map_parcels_without_details=map_only,
         columns=columns,
         warnings=warnings,
     )

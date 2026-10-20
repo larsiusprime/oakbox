@@ -2345,35 +2345,10 @@
       "$ref": "#/components/schemas/Setup"
      },
      "stages": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/StageStatus"
-      },
-      "propertyNames": {
-       "enum": [
-        "basics",
-        "files",
-        "stitch",
-        "columns",
-        "sales_basics"
-       ]
-      },
-      "type": "object",
-      "title": "Stages"
+      "$ref": "#/components/schemas/StageStatuses"
      },
      "steps": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/StepStatus"
-      },
-      "propertyNames": {
-       "enum": [
-        "bring_in_data",
-        "model_groups",
-        "check_sales",
-        "check_values"
-       ]
-      },
-      "type": "object",
-      "title": "Steps"
+      "$ref": "#/components/schemas/StepStatuses"
      }
     },
     "type": "object",
@@ -2864,6 +2839,34 @@
     ],
     "title": "StageStatus"
    },
+   "StageStatuses": {
+    "properties": {
+     "basics": {
+      "$ref": "#/components/schemas/StageStatus"
+     },
+     "files": {
+      "$ref": "#/components/schemas/StageStatus"
+     },
+     "stitch": {
+      "$ref": "#/components/schemas/StageStatus"
+     },
+     "columns": {
+      "$ref": "#/components/schemas/StageStatus"
+     },
+     "sales_basics": {
+      "$ref": "#/components/schemas/StageStatus"
+     }
+    },
+    "type": "object",
+    "required": [
+     "basics",
+     "files",
+     "stitch",
+     "columns",
+     "sales_basics"
+    ],
+    "title": "StageStatuses"
+   },
    "Stat": {
     "properties": {
      "value": {
@@ -2947,6 +2950,30 @@
      "message"
     ],
     "title": "StepStatus"
+   },
+   "StepStatuses": {
+    "properties": {
+     "bring_in_data": {
+      "$ref": "#/components/schemas/StepStatus"
+     },
+     "model_groups": {
+      "$ref": "#/components/schemas/StepStatus"
+     },
+     "check_sales": {
+      "$ref": "#/components/schemas/StepStatus"
+     },
+     "check_values": {
+      "$ref": "#/components/schemas/StepStatus"
+     }
+    },
+    "type": "object",
+    "required": [
+     "bring_in_data",
+     "model_groups",
+     "check_sales",
+     "check_values"
+    ],
+    "title": "StepStatuses"
    },
    "Stitch-Input": {
     "properties": {
@@ -3101,6 +3128,11 @@
       "type": "integer",
       "title": "Sales Unmatched"
      },
+     "map_parcels_without_details": {
+      "type": "integer",
+      "title": "Map Parcels Without Details",
+      "default": 0
+     },
      "columns": {
       "items": {
        "$ref": "#/components/schemas/StitchedColumn"
@@ -3125,6 +3157,7 @@
      "parcels",
      "sales",
      "sales_unmatched",
+     "map_parcels_without_details",
      "columns",
      "warnings"
     ],

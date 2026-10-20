@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "react-aria-components";
 import { navigate } from "../App";
-import { api, type JobInfo, STEP_ORDER, unwrap } from "../api/client";
+import { api, type JobInfo, STAGE_ORDER, STEP_ORDER, unwrap } from "../api/client";
 import { useJobEvents } from "../api/events";
+import { Field } from "../components/Form";
 import { Progress } from "../components/Progress";
 import { t } from "../strings";
 
@@ -25,9 +26,12 @@ export function HomeScreen() {
           <h1 id="projects-title">{t.home.projectsTitle}</h1>
         </header>
         {projects.data?.length === 0 && <p className="empty">{t.home.noProjects}</p>}
+        <NewProject />
         <ul className="rows">
           {projects.data?.map((p) => {
-            const done = STEP_ORDER.filter((s) => p.steps[s]?.state === "done").length;
+            const done =
+              STAGE_ORDER.filter((s) => p.stages[s].state === "done").length +
+              STEP_ORDER.filter((s) => p.steps[s].state === "done").length;
             return (
               <li key={p.id} className="row">
                 <div className="row-main">
@@ -35,7 +39,8 @@ export function HomeScreen() {
                     {p.name}
                   </a>
                   <span className="row-meta">
-                    {t.home.taxYear(p.tax_year)} · {t.home.stepsDone(done, STEP_ORDER.length)}
+                    {t.home.taxYear(p.setup.basics.tax_year)} ·{" "}
+                    {t.home.progress(done, STAGE_ORDER.length + STEP_ORDER.length)}
                   </span>
                 </div>
                 <Button className="button" onPress={() => navigate({ name: "project", id: p.id })}>
@@ -61,6 +66,43 @@ export function HomeScreen() {
   );
 }
 
+function NewProject() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const create = useMutation({
+    mutationFn: async () => unwrap(await api.POST("/api/projects", { body: { name } })),
+    onSuccess: (p) => navigate({ name: "project", id: p.id, item: "basics" }),
+  });
+  if (!open)
+    return (
+      <div className="new-project">
+        <Button className="button button-primary" onPress={() => setOpen(true)}>
+          <Plus aria-hidden="true" size="1.1em" />
+          {t.home.newProject}
+        </Button>
+      </div>
+    );
+  return (
+    <form
+      className="new-project new-project-open"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (name.trim()) create.mutate();
+      }}
+    >
+      <Field label={t.home.newProjectName} value={name} onChange={setName} width="long" autoFocus />
+      <Button type="submit" className="button button-primary" isDisabled={!name.trim() || create.isPending}>
+        {t.home.create}
+      </Button>
+      {create.error && (
+        <p className="error" role="alert">
+          {create.error.message}
+        </p>
+      )}
+    </form>
+  );
+}
+
 function SampleRow({ id, name, description }: { id: string; name: string; description: string }) {
   const queryClient = useQueryClient();
   const [job, setJob] = useState<JobInfo | null>(null);
@@ -74,7 +116,7 @@ function SampleRow({ id, name, description }: { id: string; name: string; descri
   });
 
   useEffect(() => {
-    if (job && view.finished === "done") navigate({ name: "project", id: job.project_id });
+    if (job && view.finished === "done") navigate({ name: "project", id: job.project_id, item: "basics" });
   }, [job, view.finished]);
 
   return (

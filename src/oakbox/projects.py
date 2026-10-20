@@ -56,6 +56,31 @@ class StageStatus(BaseModel):
     reason: str = Field(default="", description="Why it is out of date.")
 
 
+class _ByName(BaseModel):
+    """Statuses as named fields, so the generated TypeScript types list every one. Indexable by name."""
+
+    def __getitem__(self, name: str):
+        return getattr(self, name)
+
+    def __setitem__(self, name: str, value) -> None:
+        setattr(self, name, value)
+
+
+class StageStatuses(_ByName):
+    basics: StageStatus = Field(default_factory=StageStatus)
+    files: StageStatus = Field(default_factory=StageStatus)
+    stitch: StageStatus = Field(default_factory=StageStatus)
+    columns: StageStatus = Field(default_factory=StageStatus)
+    sales_basics: StageStatus = Field(default_factory=StageStatus)
+
+
+class StepStatuses(_ByName):
+    bring_in_data: StepStatus = Field(default_factory=StepStatus)
+    model_groups: StepStatus = Field(default_factory=StepStatus)
+    check_sales: StepStatus = Field(default_factory=StepStatus)
+    check_values: StepStatus = Field(default_factory=StepStatus)
+
+
 class Project(BaseModel):
     id: str
     name: str
@@ -63,8 +88,8 @@ class Project(BaseModel):
     sample: str | None = None
     notes: dict[StageId, str] = Field(default_factory=dict, description="Walkthrough notes (samples).")
     setup: Setup = Field(default_factory=Setup)
-    stages: dict[StageId, StageStatus] = Field(default_factory=lambda: {s: StageStatus() for s in STAGE_ORDER})
-    steps: dict[StepId, StepStatus] = Field(default_factory=lambda: {s: StepStatus() for s in STEP_ORDER})
+    stages: StageStatuses = Field(default_factory=StageStatuses)
+    steps: StepStatuses = Field(default_factory=StepStatuses)
 
     @property
     def tax_year(self) -> int | None:

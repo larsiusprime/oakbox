@@ -36,7 +36,7 @@ def test_petersburg_settings_are_explicit():
 
 def test_sample_project_starts_unconfirmed_and_writes_settings(oakbox_home):
     p = projects.create_from_sample("us-va-petersburgcity")
-    assert all(st.state == "todo" for st in p.stages.values())  # a walkthrough, not magic
+    assert all(p.stages[s].state == "todo" for s in projects.STAGE_ORDER)  # a walkthrough, not magic
     assert p.notes["stitch"]
     path = projects.write_settings(p)
     assert json.loads(path.read_text())["locality"]["slug"] == "us-va-cityofpetersburg"
