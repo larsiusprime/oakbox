@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.8 draft for review. v1.8 replaces the up-front wizard with a guided build (§3.2). Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.9 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -54,8 +54,39 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D38 | Datasets | Any number of input files, each declared as one of seven kinds, stitched by an explicit, user-confirmed plan with match rates and ID fixes (§3.2). |
 | D39 | Show the work | Every stage shows what it will do and what it did, with counts and reasons. **Under the hood** (collapsed, open to everyone) shows the settings it wrote. |
 | D40 | Sample | The sample county is a pre-filled walkthrough of the same screens. No run-all button in the app; CI drives the API directly. |
+| D41 | Mirror OpenAVMKit | OAK box is a GUI for OpenAVMKit, not logic on top of it. Every screen maps to something OpenAVMKit does or a setting it reads, and the user's choices are written as OpenAVMKit settings. When OpenAVMKit can't do something a user needs, the change goes upstream (§7), not into OAK box. OAK box's own logic is limited to presentation: previews, explanations, defaults and checks that read data without changing it. |
 
 ## 3. What the user sees
+
+### 3.0 Project setup, feature by feature
+Agreed one small feature at a time, each mapped to OpenAVMKit's own onboarding steps (its tutorial, "Build a jurisdiction from scratch", part B). Where this section and §3.2 differ, this section wins.
+
+#### F1. New project
+OpenAVMKit: creating a locality folder (`in/`, `out/`) and the `locality` block of `settings.json`, plus `modeling.metadata.valuation_date`.
+
+**The user enters:**
+- **Project name**: free text, e.g. "Travis County 2026". It names the folder and appears in OAK box. It is not the OpenAVMKit slug.
+- **Country**, from the ISO 3166-1 list (two-letter codes).
+- **State, province or region.** For the United States, picked from the ISO 3166-2 list of states and DC. For other countries, free text.
+- **Jurisdiction**: what the office calls itself, e.g. "Travis County". Becomes `locality.name`, which OpenAVMKit prints on reports.
+- **Tax year.** OpenAVMKit has no tax-year setting; it is OAK box's project identity (one project per jurisdiction per year, D24) and sets the valuation date's default.
+- **Valuation date**: defaults to 1 January of the tax year. A one-line note: it should match the roll being checked.
+- **Units**: imperial or metric, defaulting from the country. Becomes `locality.units`.
+
+**OAK box creates:**
+- The project folder `<storage location>/<project name>/`, with OpenAVMKit's `in/` and `out/`.
+- `in/settings.json` with only:
+  - `locality`: `name`, `state`, `units` and `slug`.
+    - The slug is internal and never shown: `<country>-<region>-<jurisdiction>`, lowercase, no dashes inside a part (e.g. `us-tx-traviscounty`).
+    - `center` is left out until the map step. OpenAVMKit falls back to the centroid of the parcel geometry when it is missing.
+  - `modeling.metadata.valuation_date`.
+- `oakbox.json`: OAK box's own state (project name, country and region codes, tax year, stage status).
+
+**Storage location:** a Settings item, "Where projects are kept". It defaults to a folder named `OAK box` in the user's Documents (on Windows, `C:\Users\<name>\Documents\OAK box`). Changing it affects new projects only.
+
+**Not in F1:** the center (from the map step, after a parcel map is loaded), data files, `data.load`.
+
+**Open (F1):** editing core settings after creation. Name, units and the valuation date must stay editable, but changing units or the valuation date affects everything downstream, which must be shown as out of date ("dirty") before anything re-runs. How that is indicated is to be designed.
 
 ### 3.1 Home screen
 - **My projects**, shown as cards: jurisdiction, tax year, last opened, and how far along the steps it is.
@@ -65,6 +96,8 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
   - It's fetched download-only. Oakbox never uses `cloud_sync`, which can also upload.
 
 ### 3.2 The guided build
+*Being redesigned feature by feature in §3.0. The text below is the earlier draft, kept for reference until each part is re-agreed.*
+
 There is no up-front wizard. **New project** asks for a name and opens the project, and the project screen *is* the guide. The user works down one ordered list: five **setup stages**, which describe the data, then the six **steps** of §3.3, which run the engine. Each one is a single screen.
 
 **Every stage and step has the same four parts:**
