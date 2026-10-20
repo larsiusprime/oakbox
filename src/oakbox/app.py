@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, projects
+from oakbox import __version__, appsettings, datafiles, projects
 from oakbox.jobs import JobManager
 from oakbox.samples import SAMPLES
 
@@ -131,6 +131,18 @@ class AppSettingsView(BaseModel):
 
 class StorageLocation(BaseModel):
     storage_location: str | None = Field(default=None, description="None resets to the default.")
+
+
+class FilePath(BaseModel):
+    path: str
+
+
+class AddFile(BaseModel):
+    path: str
+    mode: Literal["move", "copy"]
+    name: str = Field(description="The data.load key.")
+    layer: str | None = None
+    filename: str | None = Field(default=None, description="A new name in in/, when the original is taken.")
 
 
 class DiskUsage(BaseModel):
@@ -253,6 +265,41 @@ def create_app() -> FastAPI:
             projects.show_in_folder(project_id)
         except OSError as e:
             raise HTTPException(500, str(e)) from e
+
+    def _with_own_data(project_id: str) -> projects.Project:
+        project = _load(project_id)
+        if project.answers is not None:
+            raise HTTPException(409, "Sample projects come with their data already set up.")
+        if jobs.running_for(project_id) is not None:
+            raise HTTPException(409, "Wait for the running step to finish first.")
+        return project
+
+    @app.post("/api/projects/{project_id}/files/check")
+    def check_file(project_id: str, body: FilePath) -> datafiles.FileCheck:
+        """What OAK box can tell about a file before adding it (SPEC §3.0 F2)."""
+        project = _load(project_id)
+        return datafiles.check(projects.project_dir(project_id) / "in", body.path, project.files)
+
+    @app.post("/api/projects/{project_id}/files")
+    def add_file(project_id: str, body: AddFile) -> projects.Project:
+        """Move or copy a file into in/ and add its data.load entry (SPEC §3.0 F2)."""
+        project = _with_own_data(project_id)
+        try:
+            entry = datafiles.add(
+                projects.project_dir(project_id) / "in",
+                body.path,
+                project.files,
+                body.mode,
+                body.name.strip(),
+                body.layer,
+                body.filename,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        project.files.append(entry)
+        projects.save(project)
+        projects.write_settings(project)
+        return project
 
     @app.get("/api/projects/{project_id}")
     def get_project(project_id: str) -> ProjectDetail:

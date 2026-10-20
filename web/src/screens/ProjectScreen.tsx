@@ -8,6 +8,7 @@ import { Progress } from "../components/Progress";
 import { Status } from "../components/Status";
 import { ValueStudyTable } from "../components/ValueStudyTable";
 import { t } from "../strings";
+import { DataFiles } from "./DataFiles";
 
 export function ProjectScreen({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
@@ -37,7 +38,10 @@ export function ProjectScreen({ projectId }: { projectId: string }) {
         <span className="page-meta">{t.project.taxYear(project.tax_year)}</span>
       </header>
       {project.answers === null ? (
-        <ProjectFacts project={project} />
+        <div className="project-setup">
+          <ProjectFacts project={project} />
+          <DataFiles project={project} />
+        </div>
       ) : (
         <div className="project-body">
           <section className="panel steps-panel" aria-labelledby="steps-title">
@@ -203,7 +207,7 @@ function ProjectFacts({ project }: { project: Project }) {
           </div>
         ))}
       </dl>
-      <p className="row-meta">{f.next}</p>
+      {project.files.length === 0 && <p className="row-meta">{f.next}</p>}
     </section>
   );
 }

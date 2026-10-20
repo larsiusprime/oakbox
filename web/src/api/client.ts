@@ -16,6 +16,8 @@ export type Stat = components["schemas"]["Stat"];
 export type NewProject = components["schemas"]["NewProject"];
 export type Regions = components["schemas"]["Regions"];
 export type AppSettingsView = components["schemas"]["AppSettingsView"];
+export type DataFile = components["schemas"]["DataFile"];
+export type FileCheck = components["schemas"]["FileCheck"];
 
 export const STEP_ORDER: readonly StepId[] = ["bring_in_data", "model_groups", "check_sales", "check_values"];
 

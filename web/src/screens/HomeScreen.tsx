@@ -7,6 +7,7 @@ import { api, type JobInfo, type Project, STEP_ORDER, unwrap } from "../api/clie
 import { useJobEvents } from "../api/events";
 import { Field } from "../components/Form";
 import { Progress } from "../components/Progress";
+import { desktop } from "../desktop";
 import { t } from "../strings";
 
 export function HomeScreen() {
@@ -185,12 +186,6 @@ function DeleteBody({
   );
 }
 
-declare global {
-  interface Window {
-    pywebview?: { api?: { pick_folder?: () => Promise<string | null> } };
-  }
-}
-
 /** Settings: where new projects are kept (SPEC §3.0 F1). */
 function StorageLocation() {
   const queryClient = useQueryClient();
@@ -208,7 +203,7 @@ function StorageLocation() {
     },
   });
   const pick = async () => {
-    const folder = await window.pywebview?.api?.pick_folder?.();
+    const folder = await desktop.pickFolder();
     if (folder) setEditing(folder);
   };
   if (!settings.data) return null;
@@ -234,7 +229,7 @@ function StorageLocation() {
         ) : (
           <div className="setting-line">
             <Field label={t.home.folderLabel} value={editing} onChange={setEditing} width="long" autoFocus />
-            {window.pywebview?.api?.pick_folder && (
+            {desktop.canPickFolder() && (
               <Button className="button" onPress={() => void pick()}>
                 <FolderOpen aria-hidden="true" size="1em" />
                 {t.home.change}

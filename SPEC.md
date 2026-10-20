@@ -105,7 +105,9 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
 - **GeoPackage layers.** If the file has several layers, the user picks one, and it is written as `"layer"`.
 - **What gets written:** `data.load.<name> = {"filename": ...}` (plus `layer`). Nothing else. OpenAVMKit only loads columns an entry maps, so a new entry contributes nothing until later features map its columns.
 
-**Not in F2:** looking inside the file, its ID, column mapping, joins.
+- **Built:** Copy is pre-selected, as the choice that can't lose anything. A file already in `in/` is only declared, not moved. A shapefile missing its `.shx` or `.dbf` is refused before anything moves.
+
+**Not in F2:** looking inside the file, its ID, column mapping, joins, and removing a file (its own feature).
 
 #### F3 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).

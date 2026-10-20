@@ -31,6 +31,7 @@ from pydantic import ConfigDict, Field
 
 from oakbox import appsettings
 from oakbox.answers import WizardAnswers
+from oakbox.datafiles import DataFile, data_load
 from oakbox.settings_gen import generate
 
 StepId = Literal["bring_in_data", "model_groups", "check_sales", "check_values"]
@@ -77,6 +78,7 @@ class Project(BaseModel):
     units: Units = "imperial"
     sample: str | None = None
     answers: WizardAnswers | None = Field(default=None, description="Sample projects only, until data setup exists.")
+    files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
     steps: dict[StepId, StepStatus] = Field(default_factory=lambda: {s: StepStatus() for s in STEP_ORDER})
 
 
@@ -208,7 +210,7 @@ def create_from_sample(answers: WizardAnswers, sample: str) -> Project:
 
 
 def base_settings(project: Project) -> dict:
-    """What a project writes before any data is set up: the locality, and the valuation date."""
+    """What a project writes so far: the locality, the valuation date, and each data file's data.load entry."""
     return {
         "__generated_by": "OAK box. Edit the project in OAK box rather than this file.",
         "locality": {
@@ -220,6 +222,7 @@ def base_settings(project: Project) -> dict:
         "modeling": {
             "metadata": {"valuation_date": project.valuation_date.isoformat() if project.valuation_date else None}
         },
+        **({"data": {"load": data_load(project.files)}} if project.files else {}),
     }
 
 

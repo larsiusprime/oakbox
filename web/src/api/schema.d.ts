@@ -182,6 +182,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/files/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check File
+         * @description What OAK box can tell about a file before adding it (SPEC §3.0 F2).
+         */
+        post: operations["check_file_api_projects__project_id__files_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add File
+         * @description Move or copy a file into in/ and add its data.load entry (SPEC §3.0 F2).
+         */
+        post: operations["add_file_api_projects__project_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/steps/{step}/run": {
         parameters: {
             query?: never;
@@ -257,12 +297,55 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddFile */
+        AddFile: {
+            /** Path */
+            path: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "move" | "copy";
+            /**
+             * Name
+             * @description The data.load key.
+             */
+            name: string;
+            /** Layer */
+            layer?: string | null;
+            /**
+             * Filename
+             * @description A new name in in/, when the original is taken.
+             */
+            filename?: string | null;
+        };
         /** AppSettingsView */
         AppSettingsView: {
             /** Storage Location */
             storage_location: string;
             /** Default Storage Location */
             default_storage_location: string;
+        };
+        /**
+         * DataFile
+         * @description One data.load entry, as OAK box wrote it.
+         */
+        DataFile: {
+            /**
+             * Name
+             * @description The data.load key.
+             */
+            name: string;
+            /**
+             * Filename
+             * @description File name inside in/.
+             */
+            filename: string;
+            /**
+             * Layer
+             * @description GeoPackage layer.
+             */
+            layer: string | null;
         };
         /** Dates */
         Dates: {
@@ -301,6 +384,61 @@ export interface components {
             transform: components["schemas"]["Transform"] | null;
             /** Dtype */
             dtype: ("string" | "float" | "int") | null;
+        };
+        /**
+         * FileCheck
+         * @description What OAK box can tell about a file before adding it, without reading its data.
+         */
+        FileCheck: {
+            /** Path */
+            path: string;
+            /** Problem */
+            problem: string | null;
+            /** Format */
+            format: string | null;
+            /**
+             * Size Bytes
+             * @default 0
+             */
+            size_bytes: number;
+            /**
+             * Files
+             * @description Files that move or copy together (shapefile sidecars).
+             */
+            files: string[];
+            /**
+             * Layers
+             * @description GeoPackage layers.
+             */
+            layers: string[];
+            /**
+             * Suggested Name
+             * @default
+             */
+            suggested_name: string;
+            /**
+             * Filename
+             * @description Its name in in/.
+             * @default
+             */
+            filename: string;
+            /**
+             * Already In Project
+             * @description The file is already in this project's in/.
+             * @default false
+             */
+            already_in_project: boolean;
+            /**
+             * Filename Taken
+             * @description in/ already has a different file of this name.
+             * @default false
+             */
+            filename_taken: boolean;
+        };
+        /** FilePath */
+        FilePath: {
+            /** Path */
+            path: string;
         };
         /** GroupStudy */
         GroupStudy: {
@@ -471,6 +609,11 @@ export interface components {
             sample: string | null;
             /** @description Sample projects only, until data setup exists. */
             answers: components["schemas"]["WizardAnswers"] | null;
+            /**
+             * Files
+             * @description data.load entries (SPEC §3.0 F2).
+             */
+            files: components["schemas"]["DataFile"][];
             /** Steps */
             steps: {
                 [key: string]: components["schemas"]["StepStatus"];
@@ -972,6 +1115,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_file_api_projects__project_id__files_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FilePath"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_file_api_projects__project_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddFile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
                 };
             };
             /** @description Validation Error */

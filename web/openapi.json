@@ -372,6 +372,106 @@
     }
    }
   },
+  "/api/projects/{project_id}/files/check": {
+   "post": {
+    "summary": "Check File",
+    "description": "What OAK box can tell about a file before adding it (SPEC \u00a73.0 F2).",
+    "operationId": "check_file_api_projects__project_id__files_check_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FilePath"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FileCheck"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/files": {
+   "post": {
+    "summary": "Add File",
+    "description": "Move or copy a file into in/ and add its data.load entry (SPEC \u00a73.0 F2).",
+    "operationId": "add_file_api_projects__project_id__files_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AddFile"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/steps/{step}/run": {
    "post": {
     "summary": "Run Step",
@@ -549,6 +649,57 @@
  },
  "components": {
   "schemas": {
+   "AddFile": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "mode": {
+      "type": "string",
+      "enum": [
+       "move",
+       "copy"
+      ],
+      "title": "Mode"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "The data.load key."
+     },
+     "layer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Layer"
+     },
+     "filename": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filename",
+      "description": "A new name in in/, when the original is taken."
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "mode",
+     "name"
+    ],
+    "title": "AddFile"
+   },
    "AppSettingsView": {
     "properties": {
      "storage_location": {
@@ -566,6 +717,40 @@
      "default_storage_location"
     ],
     "title": "AppSettingsView"
+   },
+   "DataFile": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "The data.load key."
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename",
+      "description": "File name inside in/."
+     },
+     "layer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Layer",
+      "description": "GeoPackage layer."
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "filename",
+     "layer"
+    ],
+    "title": "DataFile",
+    "description": "One data.load entry, as OAK box wrote it."
    },
    "Dates": {
     "properties": {
@@ -664,6 +849,108 @@
     ],
     "title": "FieldSource",
     "description": "Where one OpenAVMKit field comes from: a source column, or a transform of one."
+   },
+   "FileCheck": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path"
+     },
+     "problem": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Problem"
+     },
+     "format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Format"
+     },
+     "size_bytes": {
+      "type": "integer",
+      "title": "Size Bytes",
+      "default": 0
+     },
+     "files": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Files",
+      "description": "Files that move or copy together (shapefile sidecars)."
+     },
+     "layers": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Layers",
+      "description": "GeoPackage layers."
+     },
+     "suggested_name": {
+      "type": "string",
+      "title": "Suggested Name",
+      "default": ""
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename",
+      "description": "Its name in in/.",
+      "default": ""
+     },
+     "already_in_project": {
+      "type": "boolean",
+      "title": "Already In Project",
+      "description": "The file is already in this project's in/.",
+      "default": false
+     },
+     "filename_taken": {
+      "type": "boolean",
+      "title": "Filename Taken",
+      "description": "in/ already has a different file of this name.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "problem",
+     "format",
+     "size_bytes",
+     "files",
+     "layers",
+     "suggested_name",
+     "filename",
+     "already_in_project",
+     "filename_taken"
+    ],
+    "title": "FileCheck",
+    "description": "What OAK box can tell about a file before adding it, without reading its data."
+   },
+   "FilePath": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path"
+    ],
+    "title": "FilePath"
    },
    "GroupStudy": {
     "properties": {
@@ -1024,6 +1311,14 @@
       ],
       "description": "Sample projects only, until data setup exists."
      },
+     "files": {
+      "items": {
+       "$ref": "#/components/schemas/DataFile"
+      },
+      "type": "array",
+      "title": "Files",
+      "description": "data.load entries (SPEC \u00a73.0 F2)."
+     },
      "steps": {
       "additionalProperties": {
        "$ref": "#/components/schemas/StepStatus"
@@ -1053,6 +1348,7 @@
      "units",
      "sample",
      "answers",
+     "files",
      "steps"
     ],
     "title": "Project"

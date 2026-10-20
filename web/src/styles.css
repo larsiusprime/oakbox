@@ -1064,7 +1064,6 @@ a.row-title:hover {
   padding: 1rem 1.25rem;
   display: grid;
   gap: 0.75rem;
-  max-width: 44rem;
 }
 
 .facts {
@@ -1085,6 +1084,37 @@ a.row-title:hover {
 .fact dd {
   margin: 0;
   font-weight: 600;
+}
+
+/* ---------- Project setup: facts and data files ---------- */
+
+.project-setup {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 52rem;
+}
+
+.panel-note {
+  margin: 0;
+  padding: 0 1rem 0.75rem;
+}
+
+.add-file {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid var(--rule);
+  background: var(--head);
+}
+
+.file-choices {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+}
+
+.file-choices p {
+  margin: 0;
 }
 
 /* ---------- Print: just the content, black on white ---------- */

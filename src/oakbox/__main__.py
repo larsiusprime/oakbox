@@ -90,7 +90,7 @@ def main() -> None:
 
 
 class _Picker:
-    """Exposed to the UI as window.pywebview.api: native folder dialogs.
+    """Exposed to the UI as window.pywebview.api: native file and folder dialogs.
 
     pywebview exposes every public attribute of this object to the page, walking into
     nested objects. Anything that isn't meant for the page must start with "_": a public
@@ -106,6 +106,16 @@ class _Picker:
         if self._window is None:
             return None
         result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
+        return str(result[0]) if result else None
+
+    def pick_file(self) -> str | None:
+        """A data file OpenAVMKit can read (SPEC §3.0 F2)."""
+        import webview
+
+        if self._window is None:
+            return None
+        types = ("Data files (*.csv;*.parquet;*.geoparquet;*.gpkg;*.shp)", "All files (*.*)")
+        result = self._window.create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=types)
         return str(result[0]) if result else None
 
 
