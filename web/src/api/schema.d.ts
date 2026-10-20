@@ -68,6 +68,185 @@ export interface paths {
         /** List Projects */
         get: operations["list_projects_api_projects_get"];
         put?: never;
+        /** Create Project */
+        post: operations["create_project_api_projects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inspect File
+         * @description A quick look inside a file: format, columns, first rows, suggestions. Reads only the start.
+         */
+        post: operations["inspect_file_api_inspect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/basics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Basics */
+        put: operations["put_basics_api_projects__project_id__basics_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add File */
+        post: operations["add_file_api_projects__project_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Export
+         * @description Add the chosen files of a recognised fixed-width export, with OAK box's starting choices.
+         */
+        post: operations["add_export_api_projects__project_id__exports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put File */
+        put: operations["put_file_api_projects__project_id__files__file_id__put"];
+        post?: never;
+        /** Delete File */
+        delete: operations["delete_file_api_projects__project_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/stitch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Stitch */
+        put: operations["put_stitch_api_projects__project_id__stitch_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/stages/{stage}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Check */
+        get: operations["get_check_api_projects__project_id__stages__stage__check_get"];
+        put?: never;
+        /** Run Check */
+        post: operations["run_check_api_projects__project_id__stages__stage__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/stages/{stage}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_projects__project_id__stages__stage__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/stages/{stage}/under-the-hood": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Under The Hood */
+        get: operations["under_the_hood_api_projects__project_id__stages__stage__under_the_hood_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/steps/bring_in_data/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bring In Receipt */
+        get: operations["bring_in_receipt_api_projects__project_id__steps_bring_in_data_receipt_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -167,27 +346,220 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** Dates */
-        Dates: {
+        /** AddExport */
+        AddExport: {
+            /** Path */
+            path: string;
+            /** Members */
+            members: string[];
+        };
+        /** AddFile */
+        AddFile: {
+            /** Name */
+            name: string;
+            /** Uses */
+            uses: ("parcel_map" | "parcels" | "sales" | "points" | "map_layer")[];
+            /** Id Columns */
+            id_columns: string[];
+            /** Keep Columns */
+            keep_columns?: string[] | null;
+            keep_rows?: components["schemas"]["RowFilter"] | null;
+            /** Path */
+            path: string;
+            /** Member */
+            member?: string | null;
+        };
+        /** Basics */
+        "Basics-Input": {
             /**
-             * Valuation Date
-             * Format: date
+             * Name
+             * @default
              */
-            valuation_date: string;
+            name: string;
             /**
-             * Use Sales From
-             * @description First sale year used for modeling.
+             * State
+             * @description Two-letter state or province code, e.g. 'VA'.
+             * @default
              */
-            use_sales_from: number;
+            state: string;
+            /** Tax Year */
+            tax_year?: number | null;
             /**
-             * Ratio Study Years
-             * @default 1
+             * Units
+             * @default imperial
+             * @enum {string}
              */
-            ratio_study_years: number;
+            units: "imperial" | "metric";
+            /** Valuation Date */
+            valuation_date?: string | null;
+            /** Center Lat */
+            center_lat?: number | null;
+            /** Center Lon */
+            center_lon?: number | null;
+        };
+        /** Basics */
+        "Basics-Output": {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * State
+             * @description Two-letter state or province code, e.g. 'VA'.
+             * @default
+             */
+            state: string;
+            /** Tax Year */
+            tax_year: number | null;
+            /**
+             * Units
+             * @default imperial
+             * @enum {string}
+             */
+            units: "imperial" | "metric";
+            /** Valuation Date */
+            valuation_date: string | null;
+            /** Center Lat */
+            center_lat: number | null;
+            /** Center Lon */
+            center_lon: number | null;
+        };
+        /** Breakdown */
+        Breakdown: {
+            /** Column */
+            column: string;
+            /** Rows */
+            rows: components["schemas"]["BreakdownRow"][];
+        };
+        /** BreakdownRow */
+        BreakdownRow: {
+            /** Value */
+            value: string;
+            /** Count */
+            count: number;
+            /** Share Of Unmatched */
+            share_of_unmatched: number;
+            /** Share Of Matched */
+            share_of_matched: number;
+        };
+        /** BringInReceipt */
+        BringInReceipt: {
+            report: components["schemas"]["StitchReport"];
+            engine: components["schemas"]["EngineCounts"];
+        };
+        /**
+         * Collapse
+         * @description How several rows per parcel become one: sort, then per-column aggregation (default 'first').
+         */
+        "Collapse-Input": {
+            /** Sort By */
+            sort_by?: components["schemas"]["SortKey-Input"][];
+            /** Fields */
+            fields?: {
+                [key: string]: "first" | "sum" | "max" | "min" | "count";
+            };
+        };
+        /**
+         * Collapse
+         * @description How several rows per parcel become one: sort, then per-column aggregation (default 'first').
+         */
+        "Collapse-Output": {
+            /** Sort By */
+            sort_by: components["schemas"]["SortKey-Output"][];
+            /** Fields */
+            fields: {
+                [key: string]: "first" | "sum" | "max" | "min" | "count";
+            };
+        };
+        /** ColumnInfo */
+        ColumnInfo: {
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "text" | "number" | "date" | "yes_no" | "geometry";
+            /**
+             * Blank
+             * @default 0
+             */
+            blank: number;
+            /** Distinct */
+            distinct: number | null;
+            /** Examples */
+            examples: string[];
+            /**
+             * Description
+             * @description From the file's layout, when it has one.
+             * @default
+             */
+            description: string;
+        };
+        /** Columns */
+        Columns: {
+            /**
+             * Fields
+             * @description OpenAVMKit field name -> stitched parcel column.
+             */
+            fields: {
+                [key: string]: components["schemas"]["FieldSource"];
+            };
+            /**
+             * Value Fields
+             * @description OpenAVMKit names of the total values to check, e.g. 'assr_market_value'.
+             */
+            value_fields: string[];
+            /**
+             * Location Field
+             * @description Main location field, e.g. 'neighborhood'.
+             */
+            location_field: string | null;
+        };
+        /** CreateProject */
+        CreateProject: {
+            /** Name */
+            name: string;
+        };
+        /** EngineCounts */
+        EngineCounts: {
+            /** Parcels */
+            parcels: number;
+            /** Sales */
+            sales: number;
+        };
+        /** ExportInfo */
+        ExportInfo: {
+            /** Layout Id */
+            layout_id: string;
+            /** Name */
+            name: string;
+            /** Members */
+            members: components["schemas"]["ExportMemberInfo"][];
+            /** Unknown */
+            unknown: string[];
+        };
+        /** ExportMemberInfo */
+        ExportMemberInfo: {
+            /** Member */
+            member: string;
+            /** Label */
+            label: string;
+            /** Description */
+            description: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Records */
+            records: number;
+            /** Used By Default */
+            used_by_default: boolean;
+            /** Use */
+            use: ("parcel_map" | "parcels" | "sales" | "points" | "map_layer") | null;
         };
         /**
          * FieldSource
-         * @description Where one OpenAVMKit field comes from: a source column, or a transform of one.
+         * @description Where one OpenAVMKit field comes from: a stitched column, or a transform of one.
          */
         FieldSource: {
             /** Column */
@@ -195,6 +567,126 @@ export interface components {
             transform: components["schemas"]["Transform"] | null;
             /** Dtype */
             dtype: ("string" | "float" | "int") | null;
+        };
+        /**
+         * FileDecisions
+         * @description What the user decides about one file on the Your files stage.
+         */
+        FileDecisions: {
+            /** Name */
+            name: string;
+            /** Uses */
+            uses: ("parcel_map" | "parcels" | "sales" | "points" | "map_layer")[];
+            /** Id Columns */
+            id_columns: string[];
+            /** Keep Columns */
+            keep_columns?: string[] | null;
+            keep_rows?: components["schemas"]["RowFilter"] | null;
+        };
+        /**
+         * FileProfile
+         * @description Measured on the imported copy, over every row.
+         */
+        FileProfile: {
+            /** Rows */
+            rows: number;
+            /** Columns */
+            columns: components["schemas"]["ColumnInfo"][];
+            /** Distinct Ids */
+            distinct_ids: number | null;
+            /** Blank Ids */
+            blank_ids: number | null;
+            /** Crs */
+            crs: string | null;
+        };
+        /** FileReport */
+        FileReport: {
+            /** File */
+            file: string;
+            /** Name */
+            name: string;
+            /**
+             * Use
+             * @enum {string}
+             */
+            use: "parcel_map" | "parcels" | "sales" | "points" | "map_layer";
+            /** Rows In */
+            rows_in: number;
+            /**
+             * Filtered Out
+             * @default 0
+             */
+            filtered_out: number;
+            /** Filter Description */
+            filter_description: string | null;
+            /**
+             * Blank Ids
+             * @default 0
+             */
+            blank_ids: number;
+            /**
+             * Rows After
+             * @default 0
+             */
+            rows_after: number;
+            /**
+             * Distinct Ids
+             * @default 0
+             */
+            distinct_ids: number;
+            /**
+             * Collapsed Away
+             * @default 0
+             */
+            collapsed_away: number;
+            /**
+             * Polygons Merged
+             * @default 0
+             */
+            polygons_merged: number;
+            /**
+             * Matched
+             * @default 0
+             */
+            matched: number;
+            /**
+             * Only Here
+             * @default 0
+             */
+            only_here: number;
+            /**
+             * Only Here Examples
+             * @default []
+             */
+            only_here_examples: string[];
+            only_here_breakdown: components["schemas"]["Breakdown"] | null;
+            /**
+             * Only On Map
+             * @default 0
+             */
+            only_on_map: number;
+            /**
+             * Only On Map Examples
+             * @default []
+             */
+            only_on_map_examples: string[];
+            suggestion: components["schemas"]["FixSuggestion"] | null;
+            /**
+             * Rows Out
+             * @default 0
+             */
+            rows_out: number;
+        };
+        /** FixSuggestion */
+        FixSuggestion: {
+            /** Fixes */
+            fixes: components["schemas"]["IdFix-Output"][];
+            /** Description */
+            description: string;
+            /** Matched After */
+            matched_after: number;
+            /** Gain */
+            gain: number;
         };
         /** GroupStudy */
         GroupStudy: {
@@ -211,6 +703,13 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HoodItem */
+        HoodItem: {
+            /** Title */
+            title: string;
+            /** Content */
+            content: unknown;
+        };
         /** HorizontalStats */
         HorizontalStats: {
             /** Parcels */
@@ -219,6 +718,81 @@ export interface components {
             clusters: number;
             /** Median Chd */
             median_chd: number | null;
+        };
+        /** IdFix */
+        "IdFix-Input": {
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "trim" | "strip_leading_zeros" | "remove_non_alnum" | "upper" | "pad_zeros";
+            /**
+             * Width
+             * @description For pad_zeros: total width.
+             */
+            width?: number | null;
+        };
+        /** IdFix */
+        "IdFix-Output": {
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "trim" | "strip_leading_zeros" | "remove_non_alnum" | "upper" | "pad_zeros";
+            /**
+             * Width
+             * @description For pad_zeros: total width.
+             */
+            width: number | null;
+        };
+        /** InspectRequest */
+        InspectRequest: {
+            /** Path */
+            path: string;
+            /** Member */
+            member?: string | null;
+        };
+        /** Inspection */
+        Inspection: {
+            /** Path */
+            path: string;
+            /** Name */
+            name: string;
+            /** Format */
+            format: ("parquet" | "geoparquet" | "csv" | "excel" | "shapefile" | "geopackage" | "geojson" | "filegdb" | "fixed_width") | null;
+            /** Size Bytes */
+            size_bytes: number;
+            export: components["schemas"]["ExportInfo"] | null;
+            /**
+             * Layers
+             * @default []
+             */
+            layers: string[];
+            /** Member */
+            member: string | null;
+            /**
+             * Columns
+             * @default []
+             */
+            columns: components["schemas"]["ColumnInfo"][];
+            /**
+             * Sample
+             * @default []
+             */
+            sample: {
+                [key: string]: string;
+            }[];
+            /** Rows Estimate */
+            rows_estimate: number | null;
+            /**
+             * Suggested Uses
+             * @default []
+             */
+            suggested_uses: ("parcel_map" | "parcels" | "sales" | "points" | "map_layer")[];
+            /** Suggested Id Column */
+            suggested_id_column: string | null;
+            /** Problem */
+            problem: string | null;
         };
         /** JobInfo */
         JobInfo: {
@@ -241,60 +815,12 @@ export interface components {
             /** Name */
             name: string;
         };
-        /**
-         * ParcelDetails
-         * @description A table of parcel characteristics joined to the parcel layer by ID.
-         */
-        ParcelDetails: {
-            /** File */
-            file: string;
-            /** Id Column */
-            id_column: string;
-            /**
-             * Fields
-             * @description OpenAVMKit field name -> source. E.g. 'bldg_area_finished_sqft'.
-             */
-            fields: {
-                [key: string]: components["schemas"]["FieldSource"];
-            };
-        };
-        /**
-         * ParcelLayer
-         * @description The GIS parcel file and its parcel-ID column.
-         */
-        ParcelLayer: {
-            /** File */
-            file: string;
-            /** Id Column */
-            id_column: string;
-        };
-        /** Place */
-        Place: {
-            /** Name */
-            name: string;
-            /** State */
-            state: string;
-            /** Tax Year */
-            tax_year: number;
-            /**
-             * Units
-             * @default imperial
-             * @enum {string}
-             */
-            units: "imperial" | "metric";
-            /** Center Lat */
-            center_lat: number;
-            /** Center Lon */
-            center_lon: number;
-        };
         /** Project */
         Project: {
             /** Id */
             id: string;
             /** Name */
             name: string;
-            /** Tax Year */
-            tax_year: number;
             /**
              * Created At
              * Format: date-time
@@ -302,7 +828,18 @@ export interface components {
             created_at: string;
             /** Sample */
             sample: string | null;
-            answers: components["schemas"]["WizardAnswers"];
+            /**
+             * Notes
+             * @description Walkthrough notes (samples).
+             */
+            notes: {
+                [key: string]: string;
+            };
+            setup: components["schemas"]["Setup"];
+            /** Stages */
+            stages: {
+                [key: string]: components["schemas"]["StageStatus"];
+            };
             /** Steps */
             steps: {
                 [key: string]: components["schemas"]["StepStatus"];
@@ -321,12 +858,21 @@ export interface components {
             cod: components["schemas"]["Stat"];
             prd: components["schemas"]["Stat"];
         };
-        /** Sales */
-        Sales: {
-            /** File */
-            file: string;
-            /** Parcel Id Column */
-            parcel_id_column: string;
+        /**
+         * RowFilter
+         * @description Keep only rows whose ``column`` is one of ``values`` (e.g. property type 'R').
+         */
+        RowFilter: {
+            /** Column */
+            column: string;
+            /** Values */
+            values: string[];
+        };
+        /**
+         * SalesBasics
+         * @description Columns refer to the stitched sales table, whose parcel ID column is 'key'.
+         */
+        SalesBasics: {
             /** Date Column */
             date_column: string;
             /**
@@ -347,9 +893,19 @@ export interface components {
             valid_codes: string[];
             /**
              * Vacant Codes
-             * @description Codes meaning 'vacant when sold'. Empty means: follow the parcel's current vacancy.
+             * @description Codes meaning 'vacant when sold'. Empty: follow the parcel's vacancy.
              */
             vacant_codes: string[];
+            /**
+             * Use Sales From
+             * @description First sale year used for modeling.
+             */
+            use_sales_from: number;
+            /**
+             * Ratio Study Years
+             * @default 1
+             */
+            ratio_study_years: number;
         };
         /** SampleInfo */
         SampleInfo: {
@@ -359,6 +915,124 @@ export interface components {
             name: string;
             /** Description */
             description: string;
+        };
+        /** Setup */
+        Setup: {
+            basics: components["schemas"]["Basics-Output"];
+            /** Files */
+            files: components["schemas"]["SourceFile"][];
+            stitch: components["schemas"]["Stitch-Output"];
+            columns: components["schemas"]["Columns"];
+            sales_basics: components["schemas"]["SalesBasics"] | null;
+            /** Model Groups */
+            model_groups: components["schemas"]["ModelGroup"][];
+        };
+        /** SortKey */
+        "SortKey-Input": {
+            /** Column */
+            column: string;
+            /**
+             * Descending
+             * @default false
+             */
+            descending: boolean;
+        };
+        /** SortKey */
+        "SortKey-Output": {
+            /** Column */
+            column: string;
+            /**
+             * Descending
+             * @default false
+             */
+            descending: boolean;
+        };
+        /** SourceFile */
+        SourceFile: {
+            /**
+             * Id
+             * @description Short slug, unique in the project; names the imported copy.
+             */
+            id: string;
+            /**
+             * Name
+             * @description What the user sees, e.g. 'PROP.TXT (property)'.
+             */
+            name: string;
+            /**
+             * Path
+             * @description Absolute path of the file the user picked (a zip for exports).
+             */
+            path: string;
+            /**
+             * Member
+             * @description File inside a zip, or layer inside a GeoPackage/FileGDB.
+             */
+            member: string | null;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "parquet" | "geoparquet" | "csv" | "excel" | "shapefile" | "geopackage" | "geojson" | "filegdb" | "fixed_width";
+            /**
+             * Layout
+             * @description Fixed-width layout id, e.g. 'pacs-legacy-8.0.33'.
+             */
+            layout: string | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Uses */
+            uses: ("parcel_map" | "parcels" | "sales" | "points" | "map_layer")[];
+            /**
+             * Id Columns
+             * @description The parcel ID column (text).
+             */
+            id_columns: string[];
+            /**
+             * Keep Columns
+             * @description None keeps every column.
+             */
+            keep_columns: string[] | null;
+            keep_rows: components["schemas"]["RowFilter"] | null;
+            /** Size Bytes */
+            size_bytes: number | null;
+            /**
+             * Imported
+             * @default false
+             */
+            imported: boolean;
+            profile: components["schemas"]["FileProfile"] | null;
+        };
+        /**
+         * StageCheck
+         * @description A stage's latest Check, and whether it still matches the current decisions.
+         */
+        StageCheck: {
+            /** Fresh */
+            fresh: boolean;
+            /** Ran */
+            ran: boolean;
+            stitch: components["schemas"]["StitchReport"] | null;
+        };
+        /** StageStatus */
+        StageStatus: {
+            /**
+             * State
+             * @default todo
+             * @enum {string}
+             */
+            state: "todo" | "done" | "stale";
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /**
+             * Reason
+             * @description Why it is out of date.
+             * @default
+             */
+            reason: string;
         };
         /** Stat */
         Stat: {
@@ -385,9 +1059,109 @@ export interface components {
              */
             message: string;
         };
+        /** Stitch */
+        "Stitch-Input": {
+            /**
+             * Spine
+             * @description File id of the parcel map everything attaches to.
+             */
+            spine?: string | null;
+            /**
+             * Id Fixes
+             * @description File id -> fixes to its IDs.
+             */
+            id_fixes?: {
+                [key: string]: components["schemas"]["IdFix-Input"][];
+            };
+            /**
+             * Collapse
+             * @description File id -> several-rows rule.
+             */
+            collapse?: {
+                [key: string]: components["schemas"]["Collapse-Input"];
+            };
+            /**
+             * Dissolve
+             * @description Merge several map polygons with one ID into one shape.
+             * @default true
+             */
+            dissolve: boolean;
+            /**
+             * Context
+             * @default none
+             * @enum {string}
+             */
+            context: "none" | "recommended" | "custom";
+        };
+        /** Stitch */
+        "Stitch-Output": {
+            /**
+             * Spine
+             * @description File id of the parcel map everything attaches to.
+             */
+            spine: string | null;
+            /**
+             * Id Fixes
+             * @description File id -> fixes to its IDs.
+             */
+            id_fixes: {
+                [key: string]: components["schemas"]["IdFix-Output"][];
+            };
+            /**
+             * Collapse
+             * @description File id -> several-rows rule.
+             */
+            collapse: {
+                [key: string]: components["schemas"]["Collapse-Output"];
+            };
+            /**
+             * Dissolve
+             * @description Merge several map polygons with one ID into one shape.
+             * @default true
+             */
+            dissolve: boolean;
+            /**
+             * Context
+             * @default none
+             * @enum {string}
+             */
+            context: "none" | "recommended" | "custom";
+        };
+        /** StitchReport */
+        StitchReport: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Written */
+            written: boolean;
+            spine: components["schemas"]["FileReport"] | null;
+            /** Files */
+            files: components["schemas"]["FileReport"][];
+            /** Parcels */
+            parcels: number;
+            /** Sales */
+            sales: number;
+            /** Sales Unmatched */
+            sales_unmatched: number;
+            /** Columns */
+            columns: components["schemas"]["StitchedColumn"][];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** StitchedColumn */
+        StitchedColumn: {
+            /** Name */
+            name: string;
+            /** Source */
+            source: string;
+            /** Source Column */
+            source_column: string;
+        };
         /**
          * Transform
-         * @description A typed column transform (SPEC §3.13). M1a supports a numeric multiplier.
+         * @description A typed column transform (SPEC §3.13). So far: a numeric multiplier.
          */
         Transform: {
             /**
@@ -437,26 +1211,6 @@ export interface components {
             vei: number | null;
             /** Vei Significance */
             vei_significance: number | null;
-        };
-        /** WizardAnswers */
-        WizardAnswers: {
-            place: components["schemas"]["Place"];
-            parcels: components["schemas"]["ParcelLayer"];
-            details: components["schemas"]["ParcelDetails"] | null;
-            sales: components["schemas"]["Sales"];
-            /**
-             * Value Fields
-             * @description OpenAVMKit field names of the total values to check, e.g. ['assr_market_value'].
-             */
-            value_fields: string[];
-            /**
-             * Location Field
-             * @description Field used as the main location, e.g. 'neighborhood'.
-             */
-            location_field: string | null;
-            /** Model Groups */
-            model_groups: components["schemas"]["ModelGroup"][];
-            dates: components["schemas"]["Dates"];
         };
     };
     responses: never;
@@ -556,6 +1310,439 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"][];
+                };
+            };
+        };
+    };
+    create_project_api_projects_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inspect_file_api_inspect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inspection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_basics_api_projects__project_id__basics_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Basics-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_file_api_projects__project_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddFile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_export_api_projects__project_id__exports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddExport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_file_api_projects__project_id__files__file_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FileDecisions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_file_api_projects__project_id__files__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_stitch_api_projects__project_id__stitch_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Stitch-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_check_api_projects__project_id__stages__stage__check_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                stage: "basics" | "files" | "stitch" | "columns" | "sales_basics";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_check_api_projects__project_id__stages__stage__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                stage: "basics" | "files" | "stitch" | "columns" | "sales_basics";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_projects__project_id__stages__stage__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                stage: "basics" | "files" | "stitch" | "columns" | "sales_basics";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    under_the_hood_api_projects__project_id__stages__stage__under_the_hood_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                stage: "basics" | "files" | "stitch" | "columns" | "sales_basics";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoodItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_receipt_api_projects__project_id__steps_bring_in_data_receipt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BringInReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

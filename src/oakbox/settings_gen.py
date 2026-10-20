@@ -1,7 +1,8 @@
-"""Turn wizard answers into an OpenAVMKit settings.json.
+"""Turn the guided build's decisions into an OpenAVMKit settings.json.
 
-Everything OpenAVMKit needs but a user would never think to set is written
-explicitly here (SPEC §6.3): ``dupes`` on every file, ``valid_sale`` /
+OpenAVMKit loads the stitched tables in ``in/stitched/`` (see ``stitcher``), all
+keyed on ``key``. Everything OpenAVMKit needs but a user would never think to set
+is written explicitly here (SPEC §6.3): ``dupes`` on every file, ``valid_sale`` /
 ``vacant_sale`` / ``key_sale``, the merge block, spatial-lag entries per model
 group, and main-only LightGBM with the default variables.
 """
@@ -10,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from oakbox.answers import FieldSource, WizardAnswers
+from oakbox.setup import FieldSource, Setup
 
 DEFAULT_IND_VARS = [
     "bldg_area_finished_sqft",
@@ -44,33 +45,42 @@ def _source(field: str, src: FieldSource, load: dict, calc: dict) -> None:
     load[field] = [src.column, src.dtype] if src.dtype else src.column
 
 
-def generate(a: WizardAnswers) -> dict[str, Any]:
-    """Build a complete settings dict from wizard answers."""
-    s = a.sales
+STITCHED = {
+    "geo_parcels": "stitched/geo_parcels.geoparquet",
+    "parcels": "stitched/parcels.parquet",
+    "sales": "stitched/sales.parquet",
+}
+
+
+def generate(setup: Setup) -> dict[str, Any]:
+    """Build a complete settings dict. Needs Basics, a stitch plan, Columns and Sales basics."""
+    b, cols, s = setup.basics, setup.columns, setup.sales_basics
+    if s is None or b.valuation_date is None:
+        raise ValueError("Sales basics and the valuation date are needed before settings can be written.")
     data_load: dict[str, Any] = {
         "geo_parcels": {
-            "filename": a.parcels.file,
-            "load": {"key": [a.parcels.id_column, "string"]},
+            "filename": STITCHED["geo_parcels"],
+            "load": {"key": ["key", "string"]},
             "dupes": _by_key("key"),
         }
     }
     universe_sources = ["geo_parcels"]
     provided: set[str] = set()
 
-    if a.details is not None:
-        load: dict[str, Any] = {"key": [a.details.id_column, "string"]}
+    if setup.files_for("parcels"):
+        load: dict[str, Any] = {"key": ["key", "string"]}
         calc: dict[str, Any] = {}
-        for field, src in a.details.fields.items():
+        for field, src in cols.fields.items():
             _source(field, src, load, calc)
-        provided |= set(a.details.fields)
-        entry: dict[str, Any] = {"filename": a.details.file, "load": load, "dupes": _by_key("key")}
+        provided |= set(cols.fields)
+        entry: dict[str, Any] = {"filename": STITCHED["parcels"], "load": load, "dupes": _by_key("key")}
         if calc:
             entry["calc"] = calc
         data_load["parcels"] = entry
         universe_sources = ["parcels"]
 
     sales_load: dict[str, Any] = {
-        "key": [s.parcel_id_column, "string"],
+        "key": ["key", "string"],
         "sale_date": [s.date_column, "datetime", s.date_format],
         "sale_price": [s.price_column, "float"],
     }
@@ -84,7 +94,7 @@ def generate(a: WizardAnswers) -> dict[str, Any]:
     else:
         vacant_rule = ["set", False]
     key_parts = [
-        s.parcel_id_column,
+        "key",
         *s.sale_id_columns,
         ["asstr", ["datetimestr", s.date_column, f"str:{s.date_format}"]],
     ]
@@ -94,38 +104,36 @@ def generate(a: WizardAnswers) -> dict[str, Any]:
         "key_sale": ["join", ["values", *key_parts], "str:---"],
     }
     data_load["sales"] = {
-        "filename": s.file,
+        "filename": STITCHED["sales"],
         "load": sales_load,
         "calc": sales_calc,
         "dupes": _by_key("key_sale"),
     }
 
-    groups = {g.id: {"name": g.name, "filter": ["not", ["isempty", "key"]]} for g in a.model_groups}
-    locations = [a.location_field] if a.location_field else []
+    groups = {g.id: {"name": g.name, "filter": ["not", ["isempty", "key"]]} for g in setup.model_groups}
+    loc = cols.location_field
+    locations = [loc] if loc else []
     ind_vars = [v for v in DEFAULT_IND_VARS if _available(v, provided)]
-    if a.location_field:
-        ind_vars.append(a.location_field)
-        ind_vars.append(f"area_stat_{a.location_field}_sale_price_time_adj_median")
+    if loc:
+        ind_vars.append(loc)
+        ind_vars.append(f"area_stat_{loc}_sale_price_time_adj_median")
 
     enrich: dict[str, Any] = {
-        "spatial_lag": {"model_groups": {g.id: {"sample_from": [g.id]} for g in a.model_groups}},
+        "spatial_lag": {"model_groups": {g.id: {"sample_from": [g.id]} for g in setup.model_groups}},
     }
-    if a.location_field:
+    if loc:
         enrich["area_stats"] = {
-            "locations": [a.location_field],
+            "locations": [loc],
             "fields": ["bldg_area_finished_sqft", "sale_price"],
             "stats": ["median"],
         }
 
+    locality: dict[str, Any] = {"name": b.name, "state": b.state, "slug": setup.slug(), "units": b.units}
+    if b.center_lat is not None and b.center_lon is not None:
+        locality["center"] = {"latitude": b.center_lat, "longitude": b.center_lon}
     return {
-        "__generated_by": "Oakbox. Edit the project in Oakbox rather than this file.",
-        "locality": {
-            "name": a.place.name,
-            "state": a.place.state,
-            "slug": a.slug(),
-            "units": a.place.units,
-            "center": {"latitude": a.place.center_lat, "longitude": a.place.center_lon},
-        },
+        "__generated_by": "OAK box. Edit the project in OAK box rather than this file.",
+        "locality": locality,
         "data": {
             "load": data_load,
             "process": {
@@ -136,17 +144,17 @@ def generate(a: WizardAnswers) -> dict[str, Any]:
         "modeling": {
             "metadata": {
                 "modeler": "OAK box",
-                "valuation_date": a.dates.valuation_date.isoformat(),
-                "use_sales_from": a.dates.use_sales_from,
+                "valuation_date": b.valuation_date.isoformat(),
+                "use_sales_from": s.use_sales_from,
             },
             "model_groups": groups,
             "instructions": {"main": {"run": ["lightgbm"]}},
             "models": {"main": {"default": {"ind_vars": ind_vars}}},
         },
-        "analysis": {"ratio_study": {"look_back_years": a.dates.ratio_study_years}},
+        "analysis": {"ratio_study": {"look_back_years": s.ratio_study_years}},
         "field_classification": {
             "important": {
-                "fields": {"loc_neighborhood": a.location_field} if a.location_field else {},
+                "fields": {"loc_neighborhood": loc} if loc else {},
                 "locations": locations,
             }
         },
