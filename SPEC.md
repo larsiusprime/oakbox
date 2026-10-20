@@ -88,6 +88,24 @@ OpenAVMKit: creating a locality folder (`in/`, `out/`) and the `locality` block 
 
 **Open (F1):** editing core settings after creation. Name, units and the valuation date must stay editable, but changing units or the valuation date affects everything downstream, which must be shown as out of date ("dirty") before anything re-runs. How that is indicated is to be designed.
 
+#### F2. Add a data file
+OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as an entry under `data.load` with its `filename`.
+
+- **Formats:** exactly what OpenAVMKit's `data.load` reads: CSV, Parquet/GeoParquet, GeoPackage and shapefile. GeoPackage and shapefile reading was added on the engine branch for this (§7 B10). Any other format (Excel, zipped shapefile, FileGDB, GeoJSON, PACS fixed-width) is added upstream first, then offered here.
+- **Move or copy.** Everything belongs in one place, the project's `in/`. When adding a file, the user chooses:
+  - **Move**: the file leaves its original location.
+  - **Copy**: the original stays where it was.
+
+  A shapefile moves or copies with its sidecar files (`.shx`, `.dbf`, `.prj`, …). If a file of that name is already in `in/`, the user picks a new name or cancels.
+- **Entry name.** OAK box suggests the `data.load` key from the file name (lowercase letters, digits and underscores, e.g. `parcels_2026`). The user can change it. The workflow around names will evolve with use.
+- **GeoPackage layers.** If the file has several layers, the user picks one, and it is written as `"layer"`.
+- **What gets written:** `data.load.<name> = {"filename": ...}` (plus `layer`). Nothing else. OpenAVMKit only loads columns an entry maps, so a new entry contributes nothing until later features map its columns.
+
+**Not in F2:** looking inside the file, its ID, column mapping, joins.
+
+#### F3 onwards: building the joins (intent; to be designed feature by feature)
+A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
+
 ### 3.1 Home screen
 - **My projects**, shown as cards: jurisdiction, tax year, last opened, and how far along the steps it is.
 - **New project** asks for a name and opens the project at its first setup stage (§3.2).
@@ -721,7 +739,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 7. **Data health checks** as a library function returning structured problems.
 8. **Machine-readable model outliers** for the sales register.
 9. **Vectorise the Overture parcel × building intersection.**
-10. **GIS and Excel loaders** (Shapefile, GeoPackage, GeoJSON, Excel) in OpenAVMKit itself.
+10. **GIS and Excel loaders** in OpenAVMKit itself. GeoPackage and shapefile: **done** on topic branch `engine/gis-loaders` (also case-insensitive extensions and a GeoPackage `layer` option), merged into `openavmkit-oakbox`. Still to do: GeoJSON, zipped shapefile, FileGDB, Excel, and a fixed-width loader for PACS exports.
 
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).
