@@ -48,6 +48,38 @@ jobs:
           (cd web && npm run -s api)
           git diff --exit-code web/openapi.json web/src/api/schema.d.ts
 
+  # The real window and its Win32 menu bar, from source, so it doesn't wait on the bundle.
+  menus-windows:
+    needs: checks
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: openavmkit-oakbox
+          path: build/engine
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Python dependencies
+        shell: pwsh
+        run: |
+          $engine = (Join-Path (Get-Location) "build/engine") -replace '\\', '/'
+          git config --global url."$engine".insteadOf https://github.com/larsiusprime/oakbox
+          uv sync
+      - name: Build the UI
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Native menus (opens the real window, checks and clicks its Win32 menu bar)
+        timeout-minutes: 5
+        run: uv run python -m oakbox --selftest-menus
+
   build:
     needs: checks
     runs-on: ubuntu-latest
@@ -75,7 +107,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.tar.gz
-          retention-days: 7
+          retention-days: 1  # each Windows bundle is ~550 MB; the artifact quota is shared
 
   smoke-windows:
     needs: build
@@ -92,12 +124,6 @@ jobs:
         run: |
           set PATH=C:\Windows\system32;C:\Windows
           C:\oak\oakbox-win64\smoke.cmd
-      - name: Native menus (opens the real window, checks and clicks its Win32 menu bar)
-        shell: cmd
-        timeout-minutes: 5
-        run: |
-          set PATH=C:\Windows\system32;C:\Windows
-          C:\oak\oakbox-win64\python\python.exe -m oakbox --selftest-menus
 
   smoke-linux:
     needs: build
