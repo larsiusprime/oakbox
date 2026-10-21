@@ -685,6 +685,11 @@ a.row-title:hover {
 
 /* ---------- Errors ---------- */
 
+.warning {
+  color: var(--warn);
+  font-weight: 600;
+}
+
 .error {
   color: var(--bad);
   font-weight: 600;

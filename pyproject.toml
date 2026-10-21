@@ -18,7 +18,7 @@ dependencies = [
 dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.8", "pyright>=1.1.390"]
 
 [tool.uv.sources]
-openavmkit = { git = "https://github.com/larsiusprime/oakbox", rev = "c4c50e077ec4660261bb9e122d31d9903af164df" }
+openavmkit = { git = "https://github.com/larsiusprime/oakbox", rev = "e1cf15669c92bf1bddd0b0584fd8c3de91318390" }
 
 [build-system]
 requires = ["hatchling"]

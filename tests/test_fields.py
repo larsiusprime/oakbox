@@ -101,8 +101,11 @@ def test_date_format_check_reads_like_openavmkit(client):
 def test_dictionary_offers_openavmkit_fields(client):
     fields = {f["key"]: f for f in client.get("/api/dictionary").json()}
     assert fields["sale_price"]["name"] == "Sale price" and fields["sale_price"]["groups"] == ["sale"]
-    assert "land_area_sqft" in fields  # "either": computed only when missing
-    assert "model_group" not in fields and "sale_year" not in fields  # "derived": always computed
+    offered = {k for k, f in fields.items() if f["offered"]}
+    assert {"sale_price", "land_area_sqft"} <= offered  # input; either (computed only when missing)
+    # derived (always computed), reserved (kept for computed values), and dist_to_* (computed when configured)
+    assert not offered & {"model_group", "sale_year", "model_market_value", "osm_is_corner_lot", "dist_to_cbd"}
+    assert fields["model_group"]["source"] == "derived" and fields["model_market_value"]["source"] == "reserved"
 
 
 def test_rename_and_remove_keep_the_load(client, pid):

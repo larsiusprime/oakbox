@@ -138,7 +138,7 @@ function lowerName(column: string): string {
 /** What ticking a column would choose: a dictionary field its name matches, else its own name. */
 function suggest(column: FileColumn, dictionary: DictionaryField[]): Row {
   const match = dictionary.find(
-    (d) => squash(d.key) === squash(column.name) || squash(d.name) === squash(column.name),
+    (d) => d.offered && (squash(d.key) === squash(column.name) || squash(d.name) === squash(column.name)),
   );
   // A text column whose samples read as dates is suggested as a date (SPEC F3c).
   const cast = castFor(match?.type ?? (column.date_format ? "date" : null), column.type);
@@ -157,7 +157,8 @@ function initialRows(
   file: FileColumns,
   dictionary: DictionaryField[],
 ): Row[] {
-  const known = new Set(dictionary.map((d) => d.key));
+  // A loaded field the dropdown doesn't offer shows as a custom name (and is flagged if computed).
+  const known = new Set(dictionary.filter((d) => d.offered).map((d) => d.key));
   const byColumn = new Map(Object.entries(load).map(([field, spec]) => [spec[0] ?? "", { field, spec }]));
   const rows: Row[] = [];
   // Columns the entry loads that the file doesn't have come first (SPEC F3c).
@@ -191,6 +192,15 @@ function initialRows(
     }
   }
   return rows;
+}
+
+/** A flag for a loaded field OpenAVMKit computes itself, picked or typed (SPEC F3c); null otherwise. */
+function computedWarning(row: Row, dictionary: DictionaryField[]): string | null {
+  if (!row.loaded || row.notInFile) return null;
+  const source = dictionary.find((d) => d.key === row.field)?.source;
+  if (source === "derived") return t.fields.derived(row.field);
+  if (source === "reserved") return t.fields.reserved(row.field);
+  return null;
 }
 
 /** Why a loaded row can't be written yet, or null when it can (SPEC F3c: saving). */
@@ -365,6 +375,7 @@ function FieldRow(props: {
   const f = t.fields;
   const { row, column } = props;
   const why = problem(row, props.rows);
+  const warning = why ? null : computedWarning(row, props.dictionary);
   const off = !row.loaded;
   const pickField = (key: string) => {
     if (key === CUSTOM) {
@@ -479,6 +490,16 @@ function FieldRow(props: {
           </td>
         </tr>
       )}
+      {warning && (
+        <tr className="field-problem">
+          <td />
+          <td colSpan={6}>
+            <span className="warning" role="status">
+              ⚠ {warning}
+            </span>
+          </td>
+        </tr>
+      )}
     </>
   );
 }
@@ -494,7 +515,7 @@ function FieldPicker(props: {
   const f = t.fields;
   const groups = useMemo(() => {
     const out = new Map<string, DictionaryField[]>();
-    for (const d of props.dictionary) {
+    for (const d of props.dictionary.filter((x) => x.offered)) {
       const group = d.groups[0] ?? t.fields.otherGroup;
       out.set(group, [...(out.get(group) ?? []), d]);
     }

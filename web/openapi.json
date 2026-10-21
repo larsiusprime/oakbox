@@ -1013,6 +1013,22 @@
       },
       "type": "array",
       "title": "Groups"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "input",
+       "derived",
+       "either",
+       "reserved"
+      ],
+      "title": "Source",
+      "description": "input: only from your data; derived: always computed by OpenAVMKit; either: computed when missing; reserved: a name kept for a field OpenAVMKit means to compute (\u00a77 B11)."
+     },
+     "offered": {
+      "type": "boolean",
+      "title": "Offered",
+      "description": "Listed in the Field dropdown (SPEC F3c)."
      }
     },
     "type": "object",
@@ -1021,7 +1037,9 @@
      "name",
      "description",
      "type",
-     "groups"
+     "groups",
+     "source",
+     "offered"
     ],
     "title": "DictionaryField"
    },

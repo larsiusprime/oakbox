@@ -286,7 +286,8 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
 - **Load** puts the column in `load`, or takes it out.
 - **Field and Type on an unticked row** are shown greyed out. They hold what ticking would choose, so you can see that before ticking.
 - **Field** is a searchable dropdown of OpenAVMKit's data dictionary:
-  - It offers the `input` and `either` fields (§7 B11) and is grouped by the dictionary's groups.
+  - It offers the `input` and `either` fields (§7 B11), except `dist_to_*` (computed when a distance is configured), grouped by the dictionary's groups.
+  - **A loaded field OpenAVMKit computes is flagged**, whether picked or typed under Custom…: `derived` ("OpenAVMKit computes it, so it will overwrite this column") or `reserved` ("kept for a value it computes; load this column under another name"). The row is still saved. `either` fields aren't flagged: your column is used.
   - Each option shows the readable name with the key in brackets; the description is a tooltip (D42).
   - **Custom…**, at the top, turns it into a text box. Custom names follow the entry-name rules (F3b).
   - Ticking a column suggests the field whose key or name matches the column name; otherwise Custom… with the column name in lowercase.
@@ -969,7 +970,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
     - `"derived"`: always computed by OpenAVMKit, so loading a column into it is overwritten (e.g. `model_market_value`, `geom_vertices`, `dist_to_cbd`);
     - `"either"`: computed when missing, kept when given (e.g. `land_area_sqft` from GIS, `bldg_age_years` from year built).
 
-    **Done** on `engine/dictionary-source`, merged into `openavmkit-oakbox`: 106 input, 42 derived, 15 either. Each value was checked against the code that writes the field; the classification is open for the maintainer's review. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
+    **Done** on `engine/dictionary-source` and `engine/dictionary-reserved`, merged into `openavmkit-oakbox`: 63 input, 42 derived, 15 either, 43 `reserved` (names kept for values OpenAVMKit means to compute but nothing writes yet: model outputs, assessor and "true" ratios, OSM street/corner/waterfront fields, vacancy warnings, some geometry metrics). Reviewed by the maintainer. Each value was checked against the code that writes the field; the classification is open for the maintainer's review. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
 12. **CSV yes/no columns.** **Done** on `engine/csv-bool`, merged: `data.load` passed `bool` to `pd.read_csv`, which fails on "Y"/"N"; such columns are now read as text and converted after loading, as dates already were. Also, a blank value became True whatever `na_handling` said ("<NA>" and "" weren't treated as missing). Still as before: any unrecognised text counts as Yes.
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).

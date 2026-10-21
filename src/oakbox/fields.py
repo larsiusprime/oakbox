@@ -43,12 +43,24 @@ class FileColumns(BaseModel):
     date_formats: list[str] = Field(default=list(DATE_FORMATS), description="Common date formats to offer.")
 
 
+Source = Literal["input", "derived", "either", "reserved"]
+
+
 class DictionaryField(BaseModel):
     key: str
     name: str
     description: str
     type: str
     groups: list[str]
+    source: Source = Field(
+        description="input: only from your data; derived: always computed by OpenAVMKit; either: computed when "
+        "missing; reserved: a name kept for a field OpenAVMKit means to compute (§7 B11)."
+    )
+    offered: bool = Field(description="Listed in the Field dropdown (SPEC F3c).")
+
+
+# Computed when configured, so not offered by default; your own column would still win (SPEC F3c).
+NOT_OFFERED_PREFIXES = ("dist_to_",)
 
 
 class DateCheck(BaseModel):
@@ -141,7 +153,11 @@ def check_dates(samples: list[str], fmt: str) -> DateCheck:
 
 @cache
 def dictionary() -> list[DictionaryField]:
-    """OpenAVMKit's data dictionary: the fields a column can be loaded into (input or either, §7 B11)."""
+    """OpenAVMKit's data dictionary, every field, with whether the Field dropdown offers it (§7 B11, F3c).
+
+    Offered: input and either fields, except those computed only when configured (dist_to_*).
+    The rest are still sent, so a name typed under Custom… can be flagged when OpenAVMKit computes it.
+    """
     raw = json.loads(resources.files("openavmkit.resources.settings").joinpath("data_dictionary.json").read_text())
     return [
         DictionaryField(
@@ -150,9 +166,10 @@ def dictionary() -> list[DictionaryField]:
             description=entry.get("description") or "",
             type=entry.get("type") or "string",
             groups=entry.get("groups") or [],
+            source=entry["source"],
+            offered=entry["source"] in ("input", "either") and not key.startswith(NOT_OFFERED_PREFIXES),
         )
         for key, entry in raw.items()
-        if entry["source"] in ("input", "either")
     ]
 
 

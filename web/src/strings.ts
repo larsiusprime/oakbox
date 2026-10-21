@@ -138,6 +138,9 @@ export const t = {
     badName: "Use lowercase letters, digits and underscores, starting with a letter.",
     clash: (field: string) => `Another column is already loaded as ${field}.`,
     needsFormat: "Choose the date format.",
+    derived: (field: string) => `OpenAVMKit computes ${field} itself, so it will overwrite this column.`,
+    reserved: (field: string) =>
+      `OpenAVMKit keeps ${field} for a value it computes. Load this column under another name.`,
     unreadable: "These samples don't read with this format.",
     noMatches: "No columns match.",
     reading: "Reading the file…",

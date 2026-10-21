@@ -455,6 +455,17 @@ export interface components {
             type: string;
             /** Groups */
             groups: string[];
+            /**
+             * Source
+             * @description input: only from your data; derived: always computed by OpenAVMKit; either: computed when missing; reserved: a name kept for a field OpenAVMKit means to compute (§7 B11).
+             * @enum {string}
+             */
+            source: "input" | "derived" | "either" | "reserved";
+            /**
+             * Offered
+             * @description Listed in the Field dropdown (SPEC F3c).
+             */
+            offered: boolean;
         };
         /** DiskUsage */
         DiskUsage: {
