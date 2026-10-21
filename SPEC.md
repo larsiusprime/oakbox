@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.9 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.10 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -55,6 +55,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D39 | Show the work | Every stage shows what it will do and what it did, with counts and reasons. **Under the hood** (collapsed, open to everyone) shows the settings it wrote. |
 | D40 | Sample | Superseded by D19: no sample in the app for now. |
 | D41 | Mirror OpenAVMKit | OAK box is a GUI for OpenAVMKit, not logic on top of it. Every screen maps to something OpenAVMKit does or a setting it reads, and the user's choices are written as OpenAVMKit settings. When OpenAVMKit can't do something a user needs, the change goes upstream (§7), not into OAK box. OAK box's own logic is limited to presentation: previews, explanations, defaults and checks that read data without changing it. |
+| D42 | Help on hover | Explanations go in hover tooltips (also shown on keyboard focus), not in lines of text on the screen. Screens carry only labels and what the user needs to act. Applies to new screens and to screens as they are revised. |
 
 ## 3. What the user sees
 
@@ -106,6 +107,35 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
 - **What gets written:** `data.load.<name> = {"filename": ...}` (plus `layer`). Nothing else. OpenAVMKit only loads columns an entry maps, so a new entry contributes nothing until later features map its columns.
 
 - **Built:** Copy is pre-selected, as the choice that can't lose anything. A file already in `in/` is only declared, not moved. A shapefile missing its `.shx` or `.dbf` is refused before anything moves.
+
+- **The add flow** *(revised after F3; draft, pending the maintainer's approval).* The file picker drives it:
+  - **Add a file** opens the system file picker straight away. Cancelling the picker changes nothing.
+  - Picking a file checks it at once (exists, supported format, shapefile companions, layers, size). There is no Check button.
+  - The path is shown, not typed. **Browse…** picks another file; **Cancel** closes the form.
+  - Format and size are pills next to the path. A shapefile's companions are a third pill.
+  - A file that can't be used shows the reason in red under the path, and **Add file** stays disabled.
+  - The file name isn't repeated below the path.
+  - The name's explanation is a hover tooltip on the field (D42).
+  - Outside the OAK box window (browser mode) there is no file picker, so **Add a file** is disabled, with a tooltip saying why.
+
+  ```
+  File
+  [ L:\git\...\us-va-petersburg\cama.csv   ] (CSV) (11 MB)  [Browse…] [Cancel]
+
+  Name            How to import
+  [ cama      ]   (•) Copy it (a new copy is made for the project)
+                  ( ) Move it (the original moves into the project)
+
+  [ + Add file ]
+  ```
+
+  Other cases fit into that layout:
+  - **GeoPackage with several layers:** a **Layer** column (a drop-down) between Name and How to import.
+  - **Shapefile:** pills `(Shapefile) (2 MB) (+ .shx .dbf .prj)`.
+  - **Filename already taken in `in/`:** a **New file name** field under Name, with the reason in its tooltip.
+  - **File already in `in/`:** How to import reads "Already in the project folder", with no copy/move choice.
+  - **Unusable file:** for example "Shapefile is missing its .dbf" in red under the path.
+  - The path field and the buttons share one centreline.
 
 **Not in F2:** looking inside the file, its ID, column mapping, joins, and removing a file (its own feature).
 
