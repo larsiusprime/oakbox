@@ -33,21 +33,21 @@ export function InputFileList({ project, files }: { project: Project; files: Inp
   return (
     <table className="file-table">
       <colgroup>
+        <col className="col-actions" />
         <col />
         <col className="col-type" />
         <col className="col-size" />
         <col className="col-geometry" />
-        <col className="col-actions" />
       </colgroup>
       <thead>
         <tr>
+          <th>
+            <span className="visually-hidden">{f.columns.actions}</span>
+          </th>
           <th>{f.columns.name}</th>
           <th>{f.columns.type}</th>
           <th className="num">{f.columns.size}</th>
           <th>{f.columns.geometry}</th>
-          <th>
-            <span className="visually-hidden">{f.columns.actions}</span>
-          </th>
         </tr>
       </thead>
       <tbody>
@@ -62,14 +62,8 @@ export function InputFileList({ project, files }: { project: Project; files: Inp
             />
           ) : (
             <tr key={file.name} className="file-row">
-              <td>
-                <span className="file-name">
-                  <span className="mono">{file.name}</span>
-                  <ShowFile project={project} file={file} />
-                </span>
-              </td>
-              <FileFacts file={file} />
               <td className="row-actions">
+                <ShowFile project={project} file={file} />
                 <Tip text={f.rename}>
                   <Button
                     className="icon-button"
@@ -81,6 +75,8 @@ export function InputFileList({ project, files }: { project: Project; files: Inp
                 </Tip>
                 <RemoveFile project={project} file={file} />
               </td>
+              <td className="mono">{file.name}</td>
+              <FileFacts file={file} />
             </tr>
           ),
         )}
@@ -161,43 +157,45 @@ function RenameRow(props: { project: Project; file: InputFile; taken: string[]; 
   return (
     <>
       <tr className="file-row renaming">
+        <td className="row-actions" />
         <td>
-          <TextField
-            className="field"
-            aria-label={f.newName(file.name)}
-            value={name}
-            onChange={setName}
-            isInvalid={Boolean(error)}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-              if (e.key === "Escape") props.onDone();
-            }}
-          >
-            <Input
-              className="input rename-input"
-              {...(error ? { "aria-describedby": `rename-error-${file.name}` } : {})}
-            />
-          </TextField>
+          <div className="rename-cell">
+            <TextField
+              className="field"
+              aria-label={f.newName(file.name)}
+              value={name}
+              onChange={setName}
+              isInvalid={Boolean(error)}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+                if (e.key === "Escape") props.onDone();
+              }}
+            >
+              <Input
+                className="input rename-input"
+                {...(error ? { "aria-describedby": `rename-error-${file.name}` } : {})}
+              />
+            </TextField>
+            <Button
+              className="button button-primary"
+              isDisabled={Boolean(error) || save.isPending}
+              onPress={submit}
+            >
+              {f.save}
+            </Button>
+            <Button className="button" onPress={props.onDone}>
+              {f.cancel}
+            </Button>
+          </div>
         </td>
         <FileFacts file={file} />
-        <td className="row-actions">
-          <Button
-            className="button button-primary"
-            isDisabled={Boolean(error) || save.isPending}
-            onPress={submit}
-          >
-            {f.save}
-          </Button>
-          <Button className="button" onPress={props.onDone}>
-            {f.cancel}
-          </Button>
-        </td>
       </tr>
       {/* On a line of its own, so a long message neither widens nor misaligns the row. */}
       {error && (
         <tr className="rename-error">
-          <td colSpan={5}>
+          <td />
+          <td colSpan={4}>
             <span id={`rename-error-${file.name}`} className="error" role="alert">
               {error}
             </span>

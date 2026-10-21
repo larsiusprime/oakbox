@@ -1127,7 +1127,7 @@ a.row-title:hover {
 }
 
 .col-actions {
-  width: 11rem;
+  width: 7.5rem; /* show, rename, remove */
 }
 
 .file-table th {
@@ -1160,32 +1160,18 @@ a.row-title:hover {
   font-variant-numeric: tabular-nums;
 }
 
-.file-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.row-actions {
-  text-align: right;
-}
-
 .file-table td.row-actions {
-  padding-right: 0;
+  padding-right: 1rem;
 }
 
 .row-actions > * + * {
   margin-left: 0.25rem;
 }
 
-/* Rename and Remove show only on the hovered (or keyboard-focused) row. Still focusable while hidden. */
-.file-row:not(.renaming) .row-actions {
-  opacity: 0;
-}
-
-.file-row:hover .row-actions,
-.file-row:focus-within .row-actions {
-  opacity: 1;
+.rename-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .rename-input {
