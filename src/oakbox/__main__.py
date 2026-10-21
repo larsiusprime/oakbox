@@ -178,7 +178,7 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
     from oakbox import appsettings
 
     def check(label: str, ok: bool, detail: object = "") -> None:
-        print(f"{'PASS' if ok else 'FAIL'}: {label} {detail}", flush=True)
+        print(f"PASS: {label}" if ok else f"FAIL: {label} {detail}", flush=True)
         if not ok:
             failures.append(label)
 

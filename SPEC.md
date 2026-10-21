@@ -689,7 +689,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   - Each menu is brought up to date as it opens. That includes **Open recent**: the last 8 projects opened, kept in OAK box's settings.
   - The web view keeps the keyboard, so the page handles the shortcuts and passes Alt (+ a letter) on to the menu bar.
   - Python owns what the menus show. View items save the setting there and tell the page to restyle; the page says which project is open.
-  - CI opens the real window on Windows and clicks through the menus (`python -m oakbox --selftest-menus`).
+  - CI opens the real window on Windows and clicks through the menus (`python -m oakbox --selftest-menus`). The keyboard (Alt, Alt+letter, Ctrl+N/1/2), which the self-test can't press, was checked by hand on Windows.
 - **Elsewhere,** pywebview's own menus are the fallback: same items, but fixed at start-up (no check marks or greyed items). The Linux bundle has no native window today (no GTK in the bundle), so this only applies from source. GTK menus with the same features, and macOS, come when those platforms get a native window.
 
 ## 4. Inputs, outputs and reports
