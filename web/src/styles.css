@@ -1034,8 +1034,6 @@ a.row-title:hover {
 
 .folder-tab-list {
   display: flex;
-  gap: 0.25rem;
-  padding-left: 0.5rem;
   margin-bottom: -1px; /* the selected tab sits on the panel's top edge */
 }
 
@@ -1053,7 +1051,13 @@ a.row-title:hover {
   outline: none;
 }
 
+/* Tabs touch: each shares its left edge with the one before, and the first is flush with the panel. */
+.folder-tab + .folder-tab {
+  margin-left: -1px;
+}
+
 .folder-tab[data-selected] {
+  position: relative; /* its edges sit over its neighbours' */
   background: var(--panel);
   border-bottom-color: var(--panel);
   color: var(--text);
