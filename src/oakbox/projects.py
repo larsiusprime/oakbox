@@ -228,7 +228,23 @@ def delete(project_id: str) -> None:
 
 
 def show_in_folder(project_id: str) -> None:
-    folder = project_dir(project_id)
+    _open_in_file_manager(project_dir(project_id))
+
+
+def show_file(path: Path) -> None:
+    """Show a file in the file manager: selected in Explorer and Finder; elsewhere its folder opens."""
+    if not path.is_file():
+        _open_in_file_manager(path.parent)
+    elif sys.platform == "win32":
+        # As one string: Explorer wants exactly /select,"<path>", which list quoting doesn't produce.
+        subprocess.Popen(f'explorer /select,"{path}"')  # noqa: S602, S607
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", "-R", str(path)])
+    else:
+        _open_in_file_manager(path.parent)
+
+
+def _open_in_file_manager(folder: Path) -> None:
     if sys.platform == "win32":
         import os
 

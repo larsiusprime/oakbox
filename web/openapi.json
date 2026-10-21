@@ -409,6 +409,167 @@
      }
     }
    }
+  },
+  "/api/projects/{project_id}/files/{name}/name": {
+   "put": {
+    "summary": "Rename File",
+    "description": "Rename a data.load entry; the file keeps its name (SPEC \u00a73.0 F3b).",
+    "operationId": "rename_file_api_projects__project_id__files__name__name_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EntryName"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/files/{name}": {
+   "delete": {
+    "summary": "Remove File",
+    "description": "Drop a data.load entry; with trash, its file goes to the Recycle Bin (SPEC \u00a73.0 F3b).",
+    "operationId": "remove_file_api_projects__project_id__files__name__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "trash",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Trash"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/files/{name}/show": {
+   "post": {
+    "summary": "Show File",
+    "description": "Show an input file in the file manager (SPEC \u00a73.0 F3b).",
+    "operationId": "show_file_api_projects__project_id__files__name__show_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -538,6 +699,19 @@
      "folder"
     ],
     "title": "DiskUsage"
+   },
+   "EntryName": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "EntryName"
    },
    "FileCheck": {
     "properties": {
@@ -683,6 +857,23 @@
       "type": "integer",
       "title": "Size Bytes",
       "description": "0 when the file is missing from in/."
+     },
+     "missing": {
+      "type": "boolean",
+      "title": "Missing",
+      "description": "The file isn't in in/."
+     },
+     "geometry": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Geometry",
+      "description": "OpenAVMKit sees a geometry column. None if missing or unreadable."
      }
     },
     "type": "object",
@@ -691,7 +882,9 @@
      "filename",
      "layer",
      "format",
-     "size_bytes"
+     "size_bytes",
+     "missing",
+     "geometry"
     ],
     "title": "InputFile",
     "description": "An input file as the Input files tab shows it (SPEC \u00a73.0 F3)."

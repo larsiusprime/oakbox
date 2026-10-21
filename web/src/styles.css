@@ -303,11 +303,6 @@ a {
   align-items: flex-start;
 }
 
-.steps-panel {
-  flex: 1 1 30rem;
-  max-width: 36rem;
-}
-
 .results-stack {
   flex: 999 1 40rem;
   min-width: 0;
@@ -382,10 +377,6 @@ a.row-title:hover {
   font-size: 0.9rem;
 }
 
-.row-progress {
-  flex: 0 1 18rem;
-}
-
 .empty {
   color: var(--muted);
   padding: 0 1rem 1rem;
@@ -426,7 +417,6 @@ a.row-title:hover {
 }
 
 .button[data-focus-visible],
-.explain-button[data-focus-visible],
 .disclosure-trigger[data-focus-visible] {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
@@ -629,45 +619,6 @@ a.row-title:hover {
   overflow-x: auto;
 }
 
-.data-table {
-  border-collapse: collapse;
-  width: 100%;
-  font-variant-numeric: tabular-nums;
-}
-
-.data-table th,
-.data-table td {
-  text-align: left;
-  padding: 0.6rem 0.75rem;
-  border-top: 1px solid var(--rule);
-  vertical-align: top;
-}
-
-.data-table th:first-child,
-.data-table td:first-child {
-  padding-left: 1rem;
-}
-
-.data-table thead th {
-  background: var(--head);
-  font-size: 0.875rem;
-  font-weight: 600;
-  border-bottom: 1px solid var(--panel-edge);
-}
-
-.data-table tbody th {
-  font-weight: 600;
-  min-width: 8rem;
-}
-
-.data-table .num {
-  text-align: right;
-}
-
-.data-table .note {
-  color: var(--muted);
-}
-
 .th-label {
   white-space: nowrap;
   display: inline-flex;
@@ -682,10 +633,6 @@ a.row-title:hover {
   font-size: 0.8rem;
 }
 
-.data-table td > span {
-  display: block;
-}
-
 .stat-value {
   font-size: 1.35rem;
   font-weight: 500;
@@ -696,28 +643,6 @@ a.row-title:hover {
   white-space: nowrap;
   font-size: 0.8rem;
   color: var(--muted);
-}
-
-.data-table td > .mark {
-  display: inline-flex;
-  margin-top: 0.15rem;
-}
-
-.explain-button {
-  display: inline-grid;
-  place-items: center;
-  padding: 0;
-  width: 1.4rem;
-  height: 1.4rem;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-radius: 50%;
-  cursor: help;
-}
-
-.explain-button[data-hovered] {
-  color: var(--link);
 }
 
 .popover {
@@ -1060,12 +985,6 @@ a.row-title:hover {
   margin: 0;
 }
 
-.facts-panel {
-  padding: 1rem 1.25rem;
-  display: grid;
-  gap: 0.75rem;
-}
-
 .facts {
   margin: 0;
   display: grid;
@@ -1188,31 +1107,136 @@ a.row-title:hover {
   padding: 0;
 }
 
-.file-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr) max-content;
-  column-gap: 2rem;
+/* Fixed column widths, so nothing shifts when a row switches to renaming. */
+.file-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
 }
 
-/* One grid for all rows, so the columns line up. */
-.file-row {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: baseline;
-  padding: 0.55rem 0;
+.col-type {
+  width: 8.5rem;
+}
+
+.col-size {
+  width: 6.5rem;
+}
+
+.col-geometry {
+  width: 7rem;
+}
+
+.col-actions {
+  width: 11rem;
+}
+
+.file-table th {
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 1.5rem 0.35rem 0;
+}
+
+.file-table td {
+  padding: 0.3rem 1.5rem 0.3rem 0;
   border-top: 1px solid var(--rule);
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
-.file-row:last-child {
+.file-table tr.rename-error td {
+  border-top: none;
+  padding: 0 0 0.4rem;
+  white-space: normal;
+}
+
+.file-table tr:last-child td {
   border-bottom: 1px solid var(--rule);
 }
 
-.file-row > * {
-  overflow-wrap: anywhere;
+.file-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.row-actions {
+  text-align: right;
+}
+
+.file-table td.row-actions {
+  padding-right: 0;
+}
+
+.row-actions > * + * {
+  margin-left: 0.25rem;
+}
+
+/* Rename and Remove show only on the hovered (or keyboard-focused) row. Still focusable while hidden. */
+.file-row:not(.renaming) .row-actions {
+  opacity: 0;
+}
+
+.file-row:hover .row-actions,
+.file-row:focus-within .row-actions {
+  opacity: 1;
+}
+
+.rename-input {
+  width: 14rem;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+  outline: none;
+}
+
+.icon-button img {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.icon-button[data-hovered] {
+  background: var(--head);
+  border-color: var(--rule);
+}
+
+.icon-button[data-pressed] {
+  background: var(--well);
+}
+
+.icon-button[data-focus-visible] {
+  outline: 2px solid var(--focus);
+}
+
+.error-text {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .add-file {
@@ -1352,9 +1376,7 @@ a.row-title:hover {
 
   .titlebar,
   .back-link,
-  .button,
-  .explain-button,
-  .steps-panel {
+  .button {
     display: none;
   }
 
@@ -1365,14 +1387,6 @@ a.row-title:hover {
 
   .panel {
     box-shadow: none;
-    break-inside: avoid;
-  }
-
-  .data-table thead {
-    display: table-header-group;
-  }
-
-  .data-table tr {
     break-inside: avoid;
   }
 }

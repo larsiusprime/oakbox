@@ -1,4 +1,4 @@
-"""F2, Add a data file (SPEC §3.0): put a file in the project's in/ and declare it under data.load.
+"""F2 and F3b (SPEC §3.0): put a file in the project's in/, declare it under data.load, rename, remove.
 
 Mirrors OpenAVMKit: raw files live in the locality's in/, and each is an entry in
 ``data.load`` with its ``filename`` (and ``layer`` for a GeoPackage). Nothing here
@@ -16,7 +16,7 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
 # Exactly what OpenAVMKit's data.load reads (by extension, case-insensitively).
-FORMATS = {"csv": "CSV", "parquet": "Parquet", "geoparquet": "GeoParquet", "gpkg": "GeoPackage", "shp": "Shapefile"}
+FORMATS = {"csv": "CSV", "parquet": "Parquet", "geoparquet": "Parquet", "gpkg": "GeoPackage", "shp": "Shapefile"}
 # A shapefile can't be read without these next to the .shp.
 SHAPEFILE_REQUIRED = ("shx", "dbf")
 NAME = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -80,7 +80,7 @@ def check(in_dir: Path, path_text: str, files: list[DataFile]) -> FileCheck:
         return out
     ext = _ext(path)
     if ext not in FORMATS:
-        listed = ", ".join(FORMATS.values())
+        listed = ", ".join(dict.fromkeys(FORMATS.values()))
         out.problem = f"OpenAVMKit can't read .{ext or '?'} files yet. It reads {listed}."
         return out
     out.format = FORMATS[ext]
@@ -179,3 +179,46 @@ def data_load(files: list[DataFile]) -> dict:
             entry["layer"] = f.layer
         out[f.name] = entry
     return out
+
+
+def has_geometry(path: Path, layer: str | None) -> bool | None:
+    """Whether OpenAVMKit sees a geometry column, reading only column names. None if unreadable."""
+    from openavmkit.data import _snoop_column_names
+
+    try:
+        return "geometry" in _snoop_column_names(str(path), layer)
+    except Exception:  # noqa: BLE001 - a damaged file shows as unknown, not an error page
+        return None
+
+
+def rename(files: list[DataFile], old: str, new: str) -> None:
+    """Rename a data.load entry in place. The file keeps its name (SPEC F3b)."""
+    entry = _entry(files, old)
+    if new == old:
+        return
+    if not NAME.fullmatch(new):
+        raise ValueError("Names use lowercase letters, digits and underscores, and start with a letter.")
+    if new in {f.name for f in files}:
+        raise ValueError(f"This project already has a file called {new}.")
+    entry.name = new
+
+
+def remove(in_dir: Path, files: list[DataFile], name: str, trash: bool) -> None:
+    """Drop a data.load entry and, if asked, send its file (and sidecars) to the Recycle Bin."""
+    entry = _entry(files, name)
+    path = in_dir / entry.filename
+    if trash and path.is_file():
+        if any(f.filename == entry.filename for f in files if f is not entry):
+            raise ValueError(f"Another entry also uses {entry.filename}, so it stays in the project folder.")
+        from send2trash import send2trash
+
+        for p in companions(path):
+            send2trash(str(p))
+    files.remove(entry)
+
+
+def _entry(files: list[DataFile], name: str) -> DataFile:
+    for f in files:
+        if f.name == name:
+            return f
+    raise LookupError(name)

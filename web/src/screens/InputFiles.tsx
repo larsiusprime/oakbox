@@ -7,12 +7,7 @@ import { Choice, Field } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
-
-function size(bytes: number): string {
-  if (bytes >= 2 ** 30) return `${(bytes / 2 ** 30).toFixed(1)} GB`;
-  if (bytes >= 2 ** 20) return `${(bytes / 2 ** 20).toFixed(0)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
+import { InputFileList, size } from "./InputFileList";
 
 /** F3: the Input files tab, the project's data.load entries (SPEC §3.0). */
 export function InputFilesTab({ detail }: { detail: ProjectDetail }) {
@@ -55,19 +50,7 @@ export function InputFilesTab({ detail }: { detail: ProjectDetail }) {
           {addButton}
         </div>
       )}
-      {files.length > 0 && (
-        <ul className="file-rows">
-          {files.map((file) => (
-            <li key={file.name} className="file-row">
-              <span className="mono">{file.name}</span>
-              <span>{f.file(file.filename, file.layer)}</span>
-              <span className={file.size_bytes ? "row-meta" : "error"}>
-                {file.size_bytes ? `${file.format} · ${size(file.size_bytes)}` : f.missing}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {files.length > 0 && <InputFileList project={project} files={files} />}
     </div>
   );
 }

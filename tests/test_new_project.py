@@ -22,7 +22,6 @@ TRAVIS = {
 @pytest.fixture(autouse=True)
 def oakbox_home(tmp_path, monkeypatch):
     monkeypatch.setenv("OAKBOX_HOME", str(tmp_path))
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
     return tmp_path
 
 

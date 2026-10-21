@@ -184,7 +184,6 @@ Under the project's name and tax year, everything about a project lives in one t
 **The sample county is removed** (D19): the home screen's sample, the old steps screen (Run, Stop, results), and the code and API behind them, including the M1a settings generator. Projects made from the sample by earlier builds are no longer listed. The CI smoke test changes with it (§8).
 
 #### F3b. The input file list: show, rename, remove
-*Draft, pending the maintainer's approval.*
 
 OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with its `filename` (and `layer`).
 
@@ -231,6 +230,7 @@ OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with it
 - **Remove** deletes the `data.load` entry.
 - The box is not ticked by default. Unticked, the file stays in `in/`. Ticked, it goes to the Recycle Bin (send2trash), with a shapefile's companions.
 - For a missing file, there is no box.
+- **Built:** if another entry uses the same file (e.g. two layers of one GeoPackage), the file is not sent to the Recycle Bin; the dialog says why and nothing is removed.
 - A removed file left in `in/` can be added again later. Its add form shows "Already in the project folder" instead of the copy/move choice (F2).
 
 #### F4 onwards: building the joins (intent; to be designed feature by feature)

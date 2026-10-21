@@ -2,3 +2,6 @@ Icons from [Noto Color Emoji](https://github.com/googlefonts/noto-emoji) (`2D/sv
 
 - `emoji_u2699.svg`: gear (Metadata tab)
 - `emoji_u1f5c3.svg`: card file box (Input files tab)
+- `emoji_u1f4c1.svg`: file folder (show an input file)
+- `emoji_u270f.svg`: pencil (rename an input file)
+- `emoji_u1f5d1.svg`: wastebasket (remove an input file)

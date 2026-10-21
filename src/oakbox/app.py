@@ -8,6 +8,9 @@ client.
 from __future__ import annotations
 
 import mimetypes
+import threading
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
@@ -57,6 +60,12 @@ class InputFile(BaseModel):
     layer: str | None = None
     format: str
     size_bytes: int = Field(description="0 when the file is missing from in/.")
+    missing: bool = Field(description="The file isn't in in/.")
+    geometry: bool | None = Field(description="OpenAVMKit sees a geometry column. None if missing or unreadable.")
+
+
+class EntryName(BaseModel):
+    name: str
 
 
 class ProjectDetail(BaseModel):
@@ -119,19 +128,32 @@ def _settings_view() -> AppSettingsView:
 
 def _view(in_dir: Path, f: datafiles.DataFile) -> InputFile:
     path = in_dir / f.filename
-    size = sum(p.stat().st_size for p in datafiles.companions(path)) if path.is_file() else 0
+    present = path.is_file()
     return InputFile(
         name=f.name,
         filename=f.filename,
         layer=f.layer,
         format=datafiles.FORMATS.get(path.suffix.lower().lstrip("."), ""),
-        size_bytes=size,
+        size_bytes=sum(p.stat().st_size for p in datafiles.companions(path)) if present else 0,
+        missing=not present,
+        geometry=datafiles.has_geometry(path, f.layer) if present else None,
     )
+
+
+def _warm_engine() -> None:
+    import openavmkit.data  # noqa: F401
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Importing OpenAVMKit takes seconds; start it now so the first project opened doesn't wait.
+    threading.Thread(target=_warm_engine, daemon=True).start()
+    yield
 
 
 def create_app() -> FastAPI:
     pin_ui_content_types()
-    app = FastAPI(title="OAK box", version=__version__)
+    app = FastAPI(title="OAK box", version=__version__, lifespan=_lifespan)
 
     @app.get("/api/version")
     def version() -> dict[str, str]:
@@ -237,6 +259,46 @@ def create_app() -> FastAPI:
         projects.save(project)
         projects.write_settings(project)
         return project
+
+    @app.put("/api/projects/{project_id}/files/{name}/name")
+    def rename_file(project_id: str, name: str, body: EntryName) -> None:
+        """Rename a data.load entry; the file keeps its name (SPEC §3.0 F3b)."""
+        project = _load(project_id)
+        try:
+            datafiles.rename(project.files, name, body.name.strip())
+        except LookupError as e:
+            raise HTTPException(404, "No such input file") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        projects.write_settings(project)
+
+    @app.delete("/api/projects/{project_id}/files/{name}")
+    def remove_file(project_id: str, name: str, trash: bool = False) -> None:
+        """Drop a data.load entry; with trash, its file goes to the Recycle Bin (SPEC §3.0 F3b)."""
+        project = _load(project_id)
+        try:
+            datafiles.remove(projects.project_dir(project_id) / "in", project.files, name, trash)
+        except LookupError as e:
+            raise HTTPException(404, "No such input file") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        except OSError as e:
+            raise HTTPException(500, f"Couldn't move the file to the Recycle Bin: {e}") from e
+        projects.save(project)
+        projects.write_settings(project)
+
+    @app.post("/api/projects/{project_id}/files/{name}/show")
+    def show_file(project_id: str, name: str) -> None:
+        """Show an input file in the file manager (SPEC §3.0 F3b)."""
+        project = _load(project_id)
+        entry = next((f for f in project.files if f.name == name), None)
+        if entry is None:
+            raise HTTPException(404, "No such input file")
+        try:
+            projects.show_file(projects.project_dir(project_id) / "in" / entry.filename)
+        except OSError as e:
+            raise HTTPException(500, str(e)) from e
 
     @app.get("/api/projects/{project_id}")
     def get_project(project_id: str) -> ProjectDetail:
