@@ -21,13 +21,21 @@ WM_SYSCOMMAND = 0x0112
 SC_KEYMENU = 0xF100
 
 
-def available() -> bool:
+def unavailable() -> str | None:
+    """Why the Win32 menu bar can't be used here, or None when it can."""
+    import sys
+
+    if sys.platform != "win32":
+        return "not Windows"
     try:
-        import clr  # type: ignore[import-not-found]  # noqa: F401  # pythonnet, which pywebview uses on Windows
+        import clr  # type: ignore[import-not-found]  # pythonnet, which pywebview uses on Windows
+
+        # Load Windows Forms before importing from it, as pywebview does (it hasn't yet at start-up).
+        clr.AddReference("System.Windows.Forms")
         from System.Windows.Forms import MainMenu  # type: ignore[import-not-found]  # noqa: F401
-    except Exception:  # noqa: BLE001 - not Windows, or a .NET without the classic menus
-        return False
-    return True
+    except Exception as e:  # noqa: BLE001 - e.g. a .NET without the classic menus
+        return f"{type(e).__name__}: {e}"
+    return None
 
 
 def _on_ui(form: Any, fn) -> Any:

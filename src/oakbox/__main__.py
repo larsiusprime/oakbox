@@ -102,7 +102,8 @@ def _window(url: str, selftest: bool = False) -> bool:
     controller = menus.Controller(send=menus.page_sender(window), close=window.destroy, set_title=window.set_title)
     picker._window, picker._controller = window, controller
 
-    native_menus = winmenu.available()
+    why_not = winmenu.unavailable()
+    native_menus = why_not is None
     if native_menus:
         # A real Win32 menu bar, added once the form exists (SPEC §3.14).
         def attach() -> None:
@@ -111,7 +112,7 @@ def _window(url: str, selftest: bool = False) -> bool:
 
         window.events.shown += attach
     elif selftest:
-        sys.exit("The menu self-test needs Windows.")
+        sys.exit(f"The menu self-test needs the Win32 menu bar, which isn't available: {why_not}")
 
     failures: list[str] = []
     try:
