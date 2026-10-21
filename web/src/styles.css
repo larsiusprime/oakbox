@@ -413,25 +413,32 @@ a.row-title:hover {
   justify-content: center;
   gap: 0.35rem;
   min-height: var(--ctl-h);
-  padding: 0 0.9rem;
+  padding: 0 0.85rem;
   color: var(--btn-text);
-  background: linear-gradient(#ffffff, #e6e6e6 50%, #dadada 51%, #f2f2f2);
-  border: 1px solid var(--btn-edge);
-  border-radius: calc(var(--ctl-h) / 2);
-  box-shadow: none;
+  background: #efefed;
+  border: 1px solid #505357;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8e9195,
+    inset 2px 2px 0 #f6f6f4,
+    inset -2px -2px 0 #b9bbbe;
   cursor: pointer;
   white-space: nowrap;
   flex: none;
 }
 
 .button[data-hovered] {
-  background: linear-gradient(#ffffff, #eeeeee 50%, #e2e2e2 51%, #f7f7f7);
+  background: #f7f7f5;
 }
 
 .button[data-pressed] {
-  background: linear-gradient(#d4d4d4, #e0e0e0 50%, #d0d0d0 51%, #e6e6e6);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) inset;
-  transform: translateY(1px);
+  background: #e0e0de;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #b9bbbe;
+  transform: translate(1px, 1px);
 }
 
 .button[data-focus-visible],
@@ -443,27 +450,34 @@ a.row-title:hover {
 .button[data-disabled] {
   cursor: default;
   color: #8a8c8f;
-  background: #e8e8e6;
-  border-color: #c3c5c7;
-  box-shadow: none;
+  background: #ececea;
+  border-color: #b9bbbe;
+  box-shadow: inset 1px 1px 0 #ffffff;
   transform: none;
 }
 
 .button-primary {
-  color: #0d2340;
-  background: linear-gradient(#d6e9fd, #8fbdf3 50%, #6fa7ec 51%, #bfdcfb);
-  border-color: #4a76b8;
+  color: #ffffff;
+  background: #2f6bc0;
+  border-color: #0f2f5c;
   text-shadow: none;
-  box-shadow: none;
+  box-shadow:
+    inset 1px 1px 0 #82b0ee,
+    inset -1px -1px 0 #173f78,
+    inset 2px 2px 0 #4d84d2,
+    inset -2px -2px 0 #22559f;
 }
 
 .button-primary[data-hovered] {
-  background: linear-gradient(#e2f0fe, #9ec7f5 50%, #7fb2ef 51%, #cde4fc);
+  background: #3a77cd;
 }
 
 .button-primary[data-pressed] {
-  background: linear-gradient(#a9cdf6, #6fa7ec 50%, #5b97e4 51%, #9cc8f6);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) inset;
+  background: #285ea9;
+  box-shadow:
+    inset 1px 1px 0 #173f78,
+    inset -1px -1px 0 #82b0ee,
+    inset 2px 2px 0 #22559f;
 }
 
 .button-primary[data-disabled] {
@@ -785,16 +799,24 @@ a.row-title:hover {
   min-height: var(--ctl-h);
   padding: 0 0.35rem 0 0.5rem;
   color: var(--btn-text);
-  background: linear-gradient(#ffffff, #eaeaea);
-  border: 1px solid var(--btn-edge);
-  border-radius: var(--btn-radius);
-  box-shadow: none;
+  background: #ffffff;
+  border: 1px solid #505357;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8e9195,
+    inset 2px 2px 0 #f6f6f4,
+    inset -2px -2px 0 #b9bbbe;
   cursor: pointer;
   text-align: left;
 }
 
 .choice-button[data-pressed] {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) inset;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #b9bbbe;
+  background: #f0f0f0;
 }
 
 .choice-button[data-focus-visible] {
@@ -953,21 +975,26 @@ a.row-title:hover {
 
 .button-danger {
   color: #ffffff;
-  background: linear-gradient(to bottom, #d05a4e, #a8322a);
-  border-color: #7d211b;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  background: #b53a30;
+  border-color: #541510;
+  text-shadow: none;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.3) inset,
-    0 1px 2px rgba(0, 0, 0, 0.3);
+    inset 1px 1px 0 #ea8a80,
+    inset -1px -1px 0 #6c1d17,
+    inset 2px 2px 0 #c95348,
+    inset -2px -2px 0 #922b23;
 }
 
 .button-danger[data-hovered] {
-  background: linear-gradient(#d86a5f, #b23a31);
+  background: #c1453b;
 }
 
 .button-danger[data-pressed] {
-  background: linear-gradient(to bottom, #a8322a, #d05a4e);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) inset;
+  background: #a1332a;
+  box-shadow:
+    inset 1px 1px 0 #6c1d17,
+    inset -1px -1px 0 #ea8a80,
+    inset 2px 2px 0 #922b23;
 }
 
 .modal-overlay {
@@ -1226,7 +1253,7 @@ a.row-title:hover {
   height: var(--ctl-h);
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: 2px;
   background: transparent;
   cursor: pointer;
   vertical-align: middle;
@@ -1239,12 +1266,22 @@ a.row-title:hover {
 }
 
 .icon-button[data-hovered] {
-  background: var(--head);
-  border-color: var(--rule);
+  background: #efefed;
+  border-color: #505357;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8e9195,
+    inset 2px 2px 0 #f6f6f4,
+    inset -2px -2px 0 #b9bbbe;
 }
 
 .icon-button[data-pressed] {
-  background: var(--well);
+  background: #e0e0de;
+  border-color: #505357;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #b9bbbe;
 }
 
 .icon-button[data-focus-visible] {
