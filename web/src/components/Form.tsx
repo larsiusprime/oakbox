@@ -81,7 +81,9 @@ export function Choice<V extends string>(props: {
       {!props.hideLabel && <Label className="field-label">{props.label}</Label>}
       <Button className="choice-button">
         <SelectValue className="choice-value" />
-        <ChevronDown aria-hidden="true" size="1em" />
+        <span className="combo-arrow" aria-hidden="true">
+          <ChevronDown size="0.9em" />
+        </span>
       </Button>
       <Popover className="popover choice-popover">
         <ListBox className="choice-list">

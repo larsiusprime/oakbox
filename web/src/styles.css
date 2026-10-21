@@ -790,33 +790,58 @@ a.row-title:hover {
   min-width: 14rem;
 }
 
+/* Every dropdown is a classic combo box: a sunken white field, like a text input, with a
+   bevelled arrow button inside its right edge (SPEC D43). Pick-lists and searchable lists alike. */
 .choice-button {
   font: inherit;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 0.5rem;
   min-height: var(--ctl-h);
-  padding: 0 0.35rem 0 0.5rem;
-  color: var(--btn-text);
+  padding: 2px 2px 2px 0.5rem;
+  color: var(--text);
   background: #ffffff;
-  border: 1px solid #505357;
+  border: 1px solid var(--well-edge);
   border-radius: 2px;
-  box-shadow:
-    inset 1px 1px 0 #ffffff,
-    inset -1px -1px 0 #8e9195,
-    inset 2px 2px 0 #f6f6f4,
-    inset -2px -2px 0 #b9bbbe;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
   cursor: pointer;
   text-align: left;
 }
 
-.choice-button[data-pressed] {
+.choice-button .choice-value {
+  align-self: center;
+}
+
+.combo-arrow,
+.picker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: calc(var(--ctl-h) - 0.4rem);
+  padding: 0;
+  color: var(--text);
+  background: #efefed;
+  border: 1px solid #6f7276;
+  border-radius: 1px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8e9195;
+  cursor: pointer;
+}
+
+.choice-button[data-hovered] .combo-arrow,
+.picker-button[data-hovered] {
+  background: #f7f7f5;
+}
+
+.choice-button[data-pressed] .combo-arrow,
+.picker-button[data-pressed] {
+  background: #e0e0de;
   box-shadow:
     inset 1px 1px 0 #8e9195,
-    inset -1px -1px 0 #ffffff,
-    inset 2px 2px 0 #b9bbbe;
-  background: #f0f0f0;
+    inset -1px -1px 0 #ffffff;
 }
 
 .choice-button[data-focus-visible] {
@@ -1471,19 +1496,12 @@ a.row-title:hover {
   position: relative;
 }
 
+/* In a searchable box the arrow sits inside the text field's right edge. */
 .picker-button {
   position: absolute;
-  right: 0.2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(var(--ctl-h) - 0.25rem);
-  height: calc(var(--ctl-h) - 0.25rem);
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
+  top: 3px;
+  right: 3px;
+  bottom: 3px;
 }
 
 .picker-popover {
