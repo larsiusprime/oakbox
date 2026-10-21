@@ -196,7 +196,7 @@ OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with it
   [📁] [✏️] [🗑️]      old_sales    CSV          —        Missing
 ```
 
-- **Columns:** Name, Type, Size, Geometry. There is no Source column.
+- **Columns:** Name, Type, Size, Geometry, and Fields (F3c). There is no Source column.
 - **Row buttons:** show (📁), rename (✏️) and remove (🗑️) sit to the left of the name, always shown (revised from hover-only after review). The folder button shows the file in the system's file manager (Explorer selects it; elsewhere its folder opens). Its tooltip is the file name, and the layer for a GeoPackage, e.g. "county.gpkg, layer parcels" (D42). For a missing file it opens `in/`.
 - **Type** comes from the extension: CSV, Parquet (`.parquet` and `.geoparquet` alike), GeoPackage, Shapefile.
 - **Size** includes a shapefile's companions.
@@ -232,6 +232,75 @@ OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with it
 - For a missing file, there is no box.
 - **Built:** if another entry uses the same file (e.g. two layers of one GeoPackage), the file is not sent to the Recycle Bin; the dialog says why and nothing is removed.
 - A removed file left in `in/` can be added again later. Its add form shows "Already in the project folder" instead of the copy/move choice (F2).
+
+#### F3c. Choosing a file's fields
+*Draft, pending the maintainer's approval.*
+
+OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed to a field and optionally cast:
+
+```json
+"load": {
+  "key":        "PIN",
+  "sale_price": ["PRICE", "float"],
+  "sale_date":  ["SALEDT", "datetime", "%m/%d/%Y"],
+  "is_vacant":  ["VAC", "bool", "na_false"]
+}
+```
+
+**From the list (F3b):** a Fields column with the count and a **Choose fields** button on every row.
+
+```
+              Name        Type      Size    Geometry   Fields
+  📁 ✏️ 🗑️   parcels     Parquet   4 MB    Yes        3 of 12      [ Choose fields ]
+  📁 ✏️ 🗑️   cama        CSV       11 MB   No         None yet     [ Choose fields ]
+  📁 ✏️ 🗑️   old_sales   CSV       —       Missing    —            [ Choose fields ]  (disabled)
+```
+
+- The count is loaded columns out of the file's columns. "None yet" when nothing is loaded.
+- A missing file shows "—", and its button is disabled with a tooltip.
+- The button looks the same on every row. Adding a file returns to the list; it does not open this view.
+
+**The field view** replaces the list inside the Input files tab, at `#/projects/<id>/files/<name>`, with "‹ Input files" to go back.
+
+```
+  ‹ Input files
+
+  cama   cama.csv · CSV · 11 MB · 48,210 rows
+
+  [ Filter columns…        ]   Show: (•) All 52  ( ) Loaded 4
+
+  Load  Column       In file   Sample values                  Field                              Type
+  [x]   PIN          text      0012-001, 0012-002, 0013-…     [ Primary key (key)          ▾ ]   [ Text     ▾ ]
+  [x]   PRICE        number    185000, 92500, 240000          [ Sale price (sale_price)    ▾ ]   [ Number   ▾ ]
+  [x]   SALEDT       text      03/14/2025, 11/02/2024         [ Sale date (sale_date)      ▾ ]   [ Date     ▾ ]  [ %m/%d/%Y  ▾ ]  ✓ 2025-03-14
+  [x]   VAC          text      Y, N                           [ Custom… → is_vacant_lot      ]   [ Yes/No   ▾ ]  [ Blank = No ▾ ]
+  [ ]   OWNER_NAME   text      SMITH JOHN, …                  ( greyed )                         ( greyed )
+        geometry     geometry                                 always loaded
+```
+
+- **Column, In file, Sample values:**
+  - These are read from the file without changing it: the column list (as for Geometry, F3b), and a few distinct non-blank values from its first rows.
+  - "In file" is the column's own type: Text, Number, Yes/No, Date or Geometry.
+  - The row count is shown when it's cheap to get (Parquet and GeoPackage metadata). For CSV it's left out rather than read.
+- **Load** puts the column in `load`, or takes it out.
+- **Field and Type on an unticked row** are shown greyed out. They hold what ticking would choose, so you can see that before ticking.
+- **Field** is a searchable dropdown of OpenAVMKit's data dictionary:
+  - It offers the `input` and `either` fields (§7 B11) and is grouped by the dictionary's groups.
+  - Each option shows the readable name with the key in brackets; the description is a tooltip (D42).
+  - **Custom…**, at the top, turns it into a text box. Custom names follow the entry-name rules (F3b).
+  - Ticking a column suggests the field whose key or name matches the column name; otherwise Custom… with the column name in lowercase.
+  - Two loaded columns of one file can't share a field.
+- **Type:** Text, Number, Whole number, Yes/No, Date (`string`, `float`, `int`, `bool`, `datetime`).
+  - A standard field preselects its dictionary type (number → Number, string → Text, boolean → Yes/No, date → Date, percent → Number). It can be changed.
+  - **Date** needs a format: common formats plus Custom…, checked live against the sample values. "✓ 2025-03-14" shows the first sample as read; red means the samples don't read with that format. Ticking a date column preselects the first common format that reads all its samples.
+  - **Yes/No** needs blank handling: Blank = No (`na_false`, preselected) or Blank = Yes (`na_true`). Which values count as yes is OpenAVMKit's rule, given in a tooltip.
+  - A type with no extra is written as `[column, type]`; one with an extra as `[column, type, extra]`.
+- **Filter** matches column names and sample values. **Show: Loaded** lists only ticked columns.
+- **Geometry** is always loaded by OpenAVMKit, so it's a fixed row.
+- **Saving:** each change saves at once to `oakbox.json` and `settings.json`. A row that isn't complete is not written, and says why in red: a Custom… field with no name, a clashing name, or a date with no format. It is written as soon as it is complete. Nothing else in the entry changes.
+- **Columns in `load` that the file doesn't have** (e.g. after the file was replaced) are listed first, in red, with only Load (to untick them).
+
+**Not in F3c:** `calc`, `tweak` and `drop_fields` (next), field classification (deferred), and joins (F4).
 
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
@@ -868,6 +937,13 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 8. **Machine-readable model outliers** for the sales register.
 9. **Vectorise the Overture parcel × building intersection.**
 10. **GIS and Excel loaders** in OpenAVMKit itself. GeoPackage and shapefile: **done** on topic branch `engine/gis-loaders` (also case-insensitive extensions and a GeoPackage `layer` option), merged into `openavmkit-oakbox`. Still to do: GeoJSON, zipped shapefile, FileGDB, Excel, and a fixed-width loader for PACS exports.
+
+11. **Data dictionary: which fields OpenAVMKit computes.** Each entry in `resources/settings/data_dictionary.json` gets `"source"`:
+    - `"input"`: only ever comes from the user's data (e.g. `sale_price`, `bldg_area_finished_sqft`);
+    - `"derived"`: always computed by OpenAVMKit, so loading a column into it is overwritten (e.g. `model_market_value`, `geom_vertices`, `dist_to_cbd`);
+    - `"either"`: computed when missing, kept when given (e.g. `land_area_sqft` from GIS, `bldg_age_years` from year built).
+
+    Each value is checked against the code that writes the field and listed for the maintainer's review before use. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
 
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).
