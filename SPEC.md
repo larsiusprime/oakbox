@@ -112,15 +112,15 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
   - **Add a file** opens the system file picker straight away. Cancelling the picker changes nothing.
   - Picking a file checks it at once (exists, supported format, shapefile companions, layers, size). There is no Check button.
   - The path is shown, not typed. **Browse…** picks another file; **Cancel** closes the form.
-  - Format and size are pills next to the path. A shapefile's companions are a third pill.
+  - Format and size are pills on the File label's line, right-aligned to the path field's edge. A shapefile's companions are a third pill. The path field has a fixed width, so the buttons never move. A long path is cut short with "…", and the full path is in a tooltip.
   - A file that can't be used shows the reason in red under the path, and **Add file** stays disabled.
   - The file name isn't repeated below the path.
   - The name's explanation is a hover tooltip on the field (D42).
   - Outside the OAK box window (browser mode) there is no file picker, so **Add a file** is disabled, with a tooltip saying why.
 
   ```
-  File
-  [ L:\git\...\us-va-petersburg\cama.csv   ] (CSV) (11 MB)  [Browse…] [Cancel]
+  File                               (CSV) (11 MB)
+  [ L:\git\...\us-va-petersburg\cama.csv   ]  [Browse…] [Cancel]
 
   Name            How to import
   [ cama      ]   (•) Copy it (a new copy is made for the project)
