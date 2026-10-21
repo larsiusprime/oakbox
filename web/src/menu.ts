@@ -1,20 +1,20 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 
-/** Commands from the native menus (SPEC §3.14), sent by oakbox/menus.py. Keep in step with PAGE_COMMANDS. */
+/**
+ * Commands from the menus (SPEC §3.14), sent by oakbox/menus.py: its PAGE_COMMANDS, then "display"
+ * (the View settings changed). Open recent sends "open-project:<id>".
+ */
 export const MENU_COMMANDS = [
   "new-project",
   "show-folder",
   "close-project",
-  "density-compact",
-  "density-comfortable",
-  "large-text",
-  "high-contrast",
   "tab-metadata",
   "tab-files",
   "add-file",
   "about",
+  "display",
 ] as const;
-export type MenuCommand = (typeof MENU_COMMANDS)[number];
+export type MenuCommand = (typeof MENU_COMMANDS)[number] | { open: string };
 
 declare global {
   interface Window {
@@ -30,7 +30,9 @@ export function useMenu(handler: (command: MenuCommand) => void): void {
   });
   useEffect(() => {
     window.oakboxMenu = (command) => {
-      if ((MENU_COMMANDS as readonly string[]).includes(command)) latest.current(command as MenuCommand);
+      const project = /^open-project:([a-z0-9-]+)$/.exec(command)?.[1];
+      if (project) latest.current({ open: project });
+      else if ((MENU_COMMANDS as readonly string[]).includes(command)) latest.current(command as MenuCommand);
     };
     return () => {
       delete window.oakboxMenu;

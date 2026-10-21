@@ -27,6 +27,7 @@ class AppSettings(BaseModel):
     )
     large_text: bool = False
     high_contrast: bool = False
+    recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
 
 
 def _override() -> Path | None:

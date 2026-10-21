@@ -2,12 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate, type Route } from "./App";
-import { type AppSettingsView, api, unwrap } from "./api/client";
+import { api, unwrap } from "./api/client";
 import { desktop } from "./desktop";
 import { type MenuCommand, requestAddFile, useMenu } from "./menu";
 import { t } from "./strings";
-
-type Display = AppSettingsView["display"];
 
 /** What the native menus and their shortcuts do on the page (SPEC §3.14), and the display settings (D43). */
 export function AppMenus({ route }: { route: Route }) {
@@ -18,10 +16,6 @@ export function AppMenus({ route }: { route: Route }) {
     queryFn: async () => unwrap(await api.GET("/api/app-settings")),
   });
   const display = settings.data?.display;
-  const setDisplay = useMutation({
-    mutationFn: async (next: Display) => unwrap(await api.PUT("/api/app-settings/display", { body: next })),
-    onSuccess: (view) => queryClient.setQueryData(["app-settings"], view),
-  });
 
   // Display settings live on <html>, where the styles read them.
   useEffect(() => {
@@ -36,7 +30,7 @@ export function AppMenus({ route }: { route: Route }) {
 
   // Projects and New project say "OAK box"; a project sets its own title (ProjectScreen).
   useEffect(() => {
-    if (route.name !== "project") desktop.setTitle(t.appTitle);
+    if (route.name !== "project") desktop.setContext(t.appTitle, null);
   }, [route.name]);
 
   const projectId = route.name === "project" ? route.id : null;
@@ -48,7 +42,7 @@ export function AppMenus({ route }: { route: Route }) {
   });
 
   const run = (command: MenuCommand) => {
-    const change = (patch: Partial<Display>) => display && setDisplay.mutate({ ...display, ...patch });
+    if (typeof command === "object") return navigate({ name: "project", id: command.open });
     switch (command) {
       case "new-project":
         return navigate({ name: "new" });
@@ -56,15 +50,10 @@ export function AppMenus({ route }: { route: Route }) {
         return navigate({ name: "home" });
       case "show-folder":
         return projectId && showFolder.mutate(projectId);
-      case "density-compact":
-        return change({ density: "compact" });
-      case "density-comfortable":
-        return change({ density: "comfortable" });
-      case "large-text":
-        return change({ large_text: !display?.large_text });
-      case "high-contrast":
-        return change({ high_contrast: !display?.high_contrast });
-      // Project items do nothing outside a project: pywebview can't grey them out.
+      // The View items save the setting in OAK box (oakbox/menus.py); restyle to match.
+      case "display":
+        return void queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+      // The menu greys these out outside a project; the shortcuts still arrive here.
       case "tab-metadata":
         return projectId && navigate({ name: "project", id: projectId, tab: "metadata" });
       case "tab-files":
@@ -79,18 +68,36 @@ export function AppMenus({ route }: { route: Route }) {
   };
   useMenu(run);
 
-  // The menus can't carry shortcuts in pywebview, so the page does (and they work in browser mode too).
+  // The web view has the keyboard, so the page handles the shortcuts the menus show, and passes
+  // Alt (+ a letter) on to the Windows menu bar, as Windows would.
   useEffect(() => {
+    let altAlone = false;
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-      const command = ({ n: "new-project", "1": "tab-metadata", "2": "tab-files" } as const)[e.key];
-      if (command) {
+      altAlone = e.key === "Alt" && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+        const command = ({ n: "new-project", "1": "tab-metadata", "2": "tab-files" } as const)[e.key];
+        if (command) {
+          e.preventDefault();
+          window.oakboxMenu?.(command);
+        }
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey && /^[a-z]$/i.test(e.key) && desktop.hasMenuBar()) {
         e.preventDefault();
-        window.oakboxMenu?.(command);
+        desktop.menuKey(e.key);
       }
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt" && altAlone && desktop.hasMenuBar()) {
+        e.preventDefault();
+        desktop.menuKey("");
+      }
+      altAlone = false;
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+    };
   }, []);
 
   return <About isOpen={about} onClose={() => setAbout(false)} />;

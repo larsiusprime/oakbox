@@ -684,13 +684,13 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **No Edit menu.** Ctrl+C / V / X / A work in text boxes without one on Windows and Linux. On macOS, where the shortcuts need an Edit menu, pywebview adds the standard one itself; OAK box's own View menu replaces pywebview's default one there.
 - **No Undo or Save:** changes save as they are made, and a partial undo would mislead.
 - **The title** changes with the screen: "OAK box" on Projects and New project, "<project name> – OAK box" inside a project.
-- **Built, within what pywebview's menus allow** (fixed at start-up: no shortcuts, check marks or greyed-out items):
-  - Each item sends a command to the page, which carries it out (`oakbox/menus.py`, `web/src/menu.ts`; a test keeps the two lists in step).
-  - **Shortcuts** (Ctrl+N, Ctrl+1, Ctrl+2) are handled by the page, so they also work in browser mode. The menus don't show them.
-  - **Project items do nothing on the home screen** instead of being greyed out.
-  - **Large text and High contrast toggle**; Density sets Compact or Comfortable. The menus can't show which is on. The choice is saved in OAK box's settings.
-  - **Open recent is left out:** the menu can't change after start-up, so it would go stale. The Projects screen lists every project.
-  - **macOS** isn't built yet (no macOS bundle). When it is, pywebview's default View menu (Enter Full Screen) needs merging with ours.
+- **Built (Windows):** a real Win32 menu bar on pywebview's window, using .NET's classic `MainMenu` (`oakbox/winmenu.py`). One definition (`oakbox/menus.py`) drives it:
+  - Shortcut labels (Ctrl+N, Ctrl+1, Ctrl+2), Alt-key letters, check marks (Large text, High contrast), radio items (Density), and Project items greyed out on the home screen.
+  - Each menu is brought up to date as it opens. That includes **Open recent**: the last 8 projects opened, kept in OAK box's settings.
+  - The web view keeps the keyboard, so the page handles the shortcuts and passes Alt (+ a letter) on to the menu bar.
+  - Python owns what the menus show. View items save the setting there and tell the page to restyle; the page says which project is open.
+  - CI opens the real window on Windows and clicks through the menus (`python -m oakbox --selftest-menus`).
+- **Elsewhere,** pywebview's own menus are the fallback: same items, but fixed at start-up (no check marks or greyed items). The Linux bundle has no native window today (no GTK in the bundle), so this only applies from source. GTK menus with the same features, and macOS, come when those platforms get a native window.
 
 ## 4. Inputs, outputs and reports
 

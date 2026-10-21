@@ -92,6 +92,12 @@ jobs:
         run: |
           set PATH=C:\Windows\system32;C:\Windows
           C:\oak\oakbox-win64\smoke.cmd
+      - name: Native menus (opens the real window, checks and clicks its Win32 menu bar)
+        shell: cmd
+        timeout-minutes: 5
+        run: |
+          set PATH=C:\Windows\system32;C:\Windows
+          C:\oak\oakbox-win64\python\python.exe -m oakbox --selftest-menus
 
   smoke-linux:
     needs: build

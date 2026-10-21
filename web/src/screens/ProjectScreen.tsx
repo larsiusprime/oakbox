@@ -49,7 +49,7 @@ function ProjectView({
   const projectId = project.id;
   // Input files first while there are none: adding them is the next thing to do. Decided once,
   // when the project opens, so adding the first file doesn't switch tabs.
-  useEffect(() => desktop.setTitle(t.project.title(project.name)), [project.name]);
+  useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
   const [opening] = useState<TabId>(() => (detail.files.length === 0 ? "files" : "metadata"));
   const selected = tab ?? opening;
 
