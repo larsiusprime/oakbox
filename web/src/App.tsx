@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { AppMenus } from "./AppMenus";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
 import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
 
-type Route =
+export type Route =
   | { name: "home" }
   | { name: "new" }
   | { name: "project"; id: string; tab?: TabId | null; file?: string | null };
@@ -45,6 +46,7 @@ export function App() {
           <ProjectScreen projectId={route.id} tab={route.tab ?? null} file={route.file ?? null} />
         )}
       </main>
+      <AppMenus route={route} />
     </div>
   );
 }

@@ -143,6 +143,14 @@ export const t = {
     reading: "Reading the file…",
   },
 
+  about: {
+    version: "OAK box",
+    openavmkit: "OpenAVMKit",
+    licences:
+      "OAK box is free software under the MIT licence. Fonts: IBM Plex (SIL Open Font License). Icons: Noto Color Emoji (Apache 2.0).",
+    close: "Close",
+  },
+
   deleteProject: {
     title: (name: string) => `Delete ${name}?`,
     body: (size: string, files: number) =>
@@ -169,6 +177,7 @@ export const t = {
   },
 
   project: {
+    title: (name: string) => `${name} – OAK box`,
     back: "Projects",
     taxYear: (year: number) => `Tax year ${year}`,
     loading: "Loading…",

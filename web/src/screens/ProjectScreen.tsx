@@ -1,11 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
 import cardFileBox from "../assets/noto/emoji_u1f5c3.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
+import { desktop } from "../desktop";
 import { t } from "../strings";
 import { FieldView } from "./FieldView";
 import { InputFilesTab } from "./InputFiles";
@@ -48,6 +49,7 @@ function ProjectView({
   const projectId = project.id;
   // Input files first while there are none: adding them is the next thing to do. Decided once,
   // when the project opens, so adding the first file doesn't switch tabs.
+  useEffect(() => desktop.setTitle(t.project.title(project.name)), [project.name]);
   const [opening] = useState<TabId>(() => (detail.files.length === 0 ? "files" : "metadata"));
   const selected = tab ?? opening;
 

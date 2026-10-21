@@ -99,9 +99,35 @@ class Regions(BaseModel):
     subdivisions: dict[str, list[Region]]
 
 
+class Versions(BaseModel):
+    version: str
+    openavmkit: str
+
+
+def _openavmkit_version() -> str:
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as package_version
+
+    try:
+        return package_version("openavmkit")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+class Display(BaseModel):
+    """How the app looks (SPEC D43, View menu)."""
+
+    density: Literal["compact", "comfortable"] | None = Field(
+        default=None, description="None: compact, or comfortable on touch screens."
+    )
+    large_text: bool = False
+    high_contrast: bool = False
+
+
 class AppSettingsView(BaseModel):
     storage_location: str
     default_storage_location: str
+    display: Display
 
 
 class StorageLocation(BaseModel):
@@ -133,9 +159,11 @@ def _regions() -> Regions:
 
 
 def _settings_view() -> AppSettingsView:
+    s = appsettings.load()
     return AppSettingsView(
         storage_location=str(appsettings.storage_location()),
         default_storage_location=str(appsettings.default_storage()),
+        display=Display(density=s.density, large_text=s.large_text, high_contrast=s.high_contrast),
     )
 
 
@@ -172,8 +200,16 @@ def create_app() -> FastAPI:
     app = FastAPI(title="OAK box", version=__version__, lifespan=_lifespan)
 
     @app.get("/api/version")
-    def version() -> dict[str, str]:
-        return {"version": __version__}
+    def version() -> Versions:
+        return Versions(version=__version__, openavmkit=_openavmkit_version())
+
+    @app.put("/api/app-settings/display")
+    def put_display(body: Display) -> AppSettingsView:
+        """Density, large text and high contrast (SPEC D43, View menu)."""
+        s = appsettings.load()
+        s.density, s.large_text, s.high_contrast = body.density, body.large_text, body.high_contrast
+        appsettings.save(s)
+        return _settings_view()
 
     @app.get("/api/regions")
     def regions() -> Regions:

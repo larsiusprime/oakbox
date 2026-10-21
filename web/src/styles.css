@@ -1146,7 +1146,7 @@ a.row-title:hover {
 }
 
 .col-actions {
-  width: 6.75rem;
+  width: calc(3 * var(--ctl-h) + 1.5rem); /* show, rename, remove */
 }
 
 .file-table th {

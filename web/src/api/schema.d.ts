@@ -21,6 +21,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/app-settings/display": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Display
+         * @description Density, large text and high contrast (SPEC D43, View menu).
+         */
+        put: operations["put_display_api_app_settings_display_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regions": {
         parameters: {
             query?: never;
@@ -357,6 +377,7 @@ export interface components {
             storage_location: string;
             /** Default Storage Location */
             default_storage_location: string;
+            display: components["schemas"]["Display-Output"];
         };
         /** Column */
         Column: {
@@ -443,6 +464,48 @@ export interface components {
             files: number;
             /** Folder */
             folder: string;
+        };
+        /**
+         * Display
+         * @description How the app looks (SPEC D43, View menu).
+         */
+        "Display-Input": {
+            /**
+             * Density
+             * @description None: compact, or comfortable on touch screens.
+             */
+            density?: ("compact" | "comfortable") | null;
+            /**
+             * Large Text
+             * @default false
+             */
+            large_text: boolean;
+            /**
+             * High Contrast
+             * @default false
+             */
+            high_contrast: boolean;
+        };
+        /**
+         * Display
+         * @description How the app looks (SPEC D43, View menu).
+         */
+        "Display-Output": {
+            /**
+             * Density
+             * @description None: compact, or comfortable on touch screens.
+             */
+            density: ("compact" | "comfortable") | null;
+            /**
+             * Large Text
+             * @default false
+             */
+            large_text: boolean;
+            /**
+             * High Contrast
+             * @default false
+             */
+            high_contrast: boolean;
         };
         /** EntryLoad */
         EntryLoad: {
@@ -711,6 +774,13 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** Versions */
+        Versions: {
+            /** Version */
+            version: string;
+            /** Openavmkit */
+            openavmkit: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -735,9 +805,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["Versions"];
+                };
+            };
+        };
+    };
+    put_display_api_app_settings_display_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Display-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

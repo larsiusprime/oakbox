@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 type DesktopApi = {
   pick_folder?: () => Promise<string | null>;
   pick_file?: () => Promise<string | null>;
+  set_title?: (title: string) => Promise<void>;
 };
 
 declare global {
@@ -17,6 +18,11 @@ export const desktop = {
   canPickFile: () => Boolean(window.pywebview?.api?.pick_file),
   pickFolder: async () => (await window.pywebview?.api?.pick_folder?.()) ?? null,
   pickFile: async () => (await window.pywebview?.api?.pick_file?.()) ?? null,
+  /** The native title bar (SPEC D44); the browser tab in browser mode. */
+  setTitle: (title: string) => {
+    document.title = title;
+    void window.pywebview?.api?.set_title?.(title);
+  },
 };
 
 /** Whether the file picker is there. pywebview injects its API after the page loads. */

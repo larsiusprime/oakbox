@@ -6,6 +6,7 @@ import { api, type FileCheck, type Project, type ProjectDetail, unwrap } from ".
 import { Choice, Field } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
+import { useAddFileRequest } from "../menu";
 import { t } from "../strings";
 import { InputFileList, size } from "./InputFileList";
 
@@ -20,6 +21,7 @@ export function InputFilesTab({ detail }: { detail: ProjectDetail }) {
     const path = await desktop.pickFile();
     if (path) setPicked(path);
   };
+  useAddFileRequest(() => void pick()); // Project → Add a file… (SPEC §3.14)
   const addButton = canPick ? (
     <Button className="button" onPress={() => void pick()}>
       <Plus aria-hidden="true" size="1em" />

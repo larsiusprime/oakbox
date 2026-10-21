@@ -57,7 +57,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D41 | Mirror OpenAVMKit | OAK box is a GUI for OpenAVMKit, not logic on top of it. Every screen maps to something OpenAVMKit does or a setting it reads, and the user's choices are written as OpenAVMKit settings. When OpenAVMKit can't do something a user needs, the change goes upstream (§7), not into OAK box. OAK box's own logic is limited to presentation: previews, explanations, defaults and checks that read data without changing it. |
 | D42 | Help on hover | Explanations go in hover tooltips (also shown on keyboard focus), not in lines of text on the screen. Screens carry only labels and what the user needs to act. Applies to new screens and to screens as they are revised. |
 | D43 | Dense by default | Compact, information-dense presentation, after classic desktop software (Windows 2000/XP): 14 px text, about 24 px controls and table rows, grey window background, square inputs, ruled grids with a bevelled header bar and alternate-row tint, little padding. **Comfortable** density (about 36 px controls and rows, same text size) is used automatically on touch screens and can be chosen under View → Density (with the menus, D44); the choice is kept in OAK box's settings. **Built:** touch screens get it automatically (`pointer: coarse`); the setting itself arrives with the menus. Large text scales everything up. |
-| D44 | Native window | *Draft, pending the maintainer's approval.* The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (pywebview) and hold only what exists (§3.9). Browser mode has no menus; everything in them is also reachable on the page. |
+| D44 | Native window | The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (pywebview) and hold only what exists (§3.9). Browser mode has no menus; everything in them is also reachable on the page. |
 
 ## 3. What the user sees
 
@@ -668,7 +668,6 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **"Correct this parcel's value"** in the parcel pop-up. Stored as `tweak`, and listed in the Data corrections appendix.
 
 ### 3.14 Menus and window
-*Draft, pending the maintainer's approval (D43, D44).*
 
 ```
 ┌ Travis County 2026 – OAK box ───────────────────────────── _ □ × ┐
@@ -685,6 +684,13 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **No Edit menu.** Ctrl+C / V / X / A work in text boxes without one on Windows and Linux. On macOS, where the shortcuts need an Edit menu, pywebview adds the standard one itself; OAK box's own View menu replaces pywebview's default one there.
 - **No Undo or Save:** changes save as they are made, and a partial undo would mislead.
 - **The title** changes with the screen: "OAK box" on Projects and New project, "<project name> – OAK box" inside a project.
+- **Built, within what pywebview's menus allow** (fixed at start-up: no shortcuts, check marks or greyed-out items):
+  - Each item sends a command to the page, which carries it out (`oakbox/menus.py`, `web/src/menu.ts`; a test keeps the two lists in step).
+  - **Shortcuts** (Ctrl+N, Ctrl+1, Ctrl+2) are handled by the page, so they also work in browser mode. The menus don't show them.
+  - **Project items do nothing on the home screen** instead of being greyed out.
+  - **Large text and High contrast toggle**; Density sets Compact or Comfortable. The menus can't show which is on. The choice is saved in OAK box's settings.
+  - **Open recent is left out:** the menu can't change after start-up, so it would go stale. The Projects screen lists every project.
+  - **macOS** isn't built yet (no macOS bundle). When it is, pywebview's default View menu (Enter Full Screen) needs merging with ours.
 
 ## 4. Inputs, outputs and reports
 

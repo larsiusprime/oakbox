@@ -15,11 +15,46 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": {
-          "type": "string"
-         },
-         "type": "object",
-         "title": "Response Version Api Version Get"
+         "$ref": "#/components/schemas/Versions"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/app-settings/display": {
+   "put": {
+    "summary": "Put Display",
+    "description": "Density, large text and high contrast (SPEC D43, View menu).",
+    "operationId": "put_display_api_app_settings_display_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Display-Input"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AppSettingsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
@@ -802,12 +837,16 @@
      "default_storage_location": {
       "type": "string",
       "title": "Default Storage Location"
+     },
+     "display": {
+      "$ref": "#/components/schemas/Display-Output"
      }
     },
     "type": "object",
     "required": [
      "storage_location",
-     "default_storage_location"
+     "default_storage_location",
+     "display"
     ],
     "title": "AppSettingsView"
    },
@@ -1008,6 +1047,77 @@
      "folder"
     ],
     "title": "DiskUsage"
+   },
+   "Display-Input": {
+    "properties": {
+     "density": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "compact",
+         "comfortable"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Density",
+      "description": "None: compact, or comfortable on touch screens."
+     },
+     "large_text": {
+      "type": "boolean",
+      "title": "Large Text",
+      "default": false
+     },
+     "high_contrast": {
+      "type": "boolean",
+      "title": "High Contrast",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "Display",
+    "description": "How the app looks (SPEC D43, View menu)."
+   },
+   "Display-Output": {
+    "properties": {
+     "density": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "compact",
+         "comfortable"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Density",
+      "description": "None: compact, or comfortable on touch screens."
+     },
+     "large_text": {
+      "type": "boolean",
+      "title": "Large Text",
+      "default": false
+     },
+     "high_contrast": {
+      "type": "boolean",
+      "title": "High Contrast",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "density",
+     "large_text",
+     "high_contrast"
+    ],
+    "title": "Display",
+    "description": "How the app looks (SPEC D43, View menu)."
    },
    "EntryLoad": {
     "properties": {
@@ -1560,6 +1670,24 @@
      "type"
     ],
     "title": "ValidationError"
+   },
+   "Versions": {
+    "properties": {
+     "version": {
+      "type": "string",
+      "title": "Version"
+     },
+     "openavmkit": {
+      "type": "string",
+      "title": "Openavmkit"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "openavmkit"
+    ],
+    "title": "Versions"
    }
   }
  }

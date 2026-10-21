@@ -72,11 +72,14 @@ def main() -> None:
         try:
             import webview
 
+            from oakbox import menus
+
             picker = _Picker()
-            picker._window = webview.create_window(
-                "OAK box", url, width=1280, height=860, min_size=(960, 640), js_api=picker
-            )
-            webview.start()
+            window = webview.create_window("OAK box", url, width=1280, height=860, min_size=(960, 640), js_api=picker)
+            if window is None:
+                raise RuntimeError("pywebview made no window")
+            picker._window = window
+            webview.start(menu=menus.build(menus.page_sender(window), window.destroy))
             server.should_exit = True
             return
         except Exception:  # noqa: BLE001 - no usable native window toolkit; fall back
@@ -90,7 +93,7 @@ def main() -> None:
 
 
 class _Picker:
-    """Exposed to the UI as window.pywebview.api: native file and folder dialogs.
+    """Exposed to the UI as window.pywebview.api: native file and folder dialogs, and the title.
 
     pywebview exposes every public attribute of this object to the page, walking into
     nested objects. Anything that isn't meant for the page must start with "_": a public
@@ -99,6 +102,11 @@ class _Picker:
 
     def __init__(self) -> None:
         self._window: Any = None
+
+    def set_title(self, title: str) -> None:
+        """The native title bar says where you are (SPEC D44)."""
+        if self._window is not None:
+            self._window.set_title(title)
 
     def pick_folder(self) -> str | None:
         import webview

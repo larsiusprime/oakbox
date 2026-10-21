@@ -1,4 +1,4 @@
-"""OAK box's own settings: where projects are kept, and which projects it knows about.
+"""OAK box's own settings: where projects are kept, which projects it knows about, and display.
 
 Stored as JSON in the per-user config folder (``%APPDATA%\\OAK box`` on Windows,
 ``~/.config/oakbox`` on Linux). Projects can live anywhere, so OAK box keeps a list
@@ -14,6 +14,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,6 +22,11 @@ from pydantic import BaseModel, Field
 class AppSettings(BaseModel):
     storage_location: str | None = Field(default=None, description="None: the default, Documents/OAK box.")
     projects: dict[str, str] = Field(default_factory=dict, description="Project id -> project folder.")
+    density: Literal["compact", "comfortable"] | None = Field(
+        default=None, description="None: compact, or comfortable on touch screens (SPEC D43)."
+    )
+    large_text: bool = False
+    high_contrast: bool = False
 
 
 def _override() -> Path | None:
