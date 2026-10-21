@@ -197,7 +197,7 @@ OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with it
 ```
 
 - **Columns:** Name, Type, Size, Geometry. There is no Source column.
-- **Row buttons:** show (📁), rename (✏️) and remove (🗑️) sit to the left of the name, always shown (revised from hover-only after review). The folder button It shows the file in the system's file manager (Explorer selects it; elsewhere its folder opens). Its tooltip is the file name, and the layer for a GeoPackage, e.g. "county.gpkg, layer parcels" (D42). For a missing file it opens `in/`.
+- **Row buttons:** show (📁), rename (✏️) and remove (🗑️) sit to the left of the name, always shown (revised from hover-only after review). The folder button shows the file in the system's file manager (Explorer selects it; elsewhere its folder opens). Its tooltip is the file name, and the layer for a GeoPackage, e.g. "county.gpkg, layer parcels" (D42). For a missing file it opens `in/`.
 - **Type** comes from the extension: CSV, Parquet (`.parquet` and `.geoparquet` alike), GeoPackage, Shapefile.
 - **Size** includes a shapefile's companions.
 - **Geometry** is checked in the file itself, the way OpenAVMKit does it: the file has a column named `geometry` (`data._snoop_column_names`: the Parquet schema, or pyogrio's layer info). Only column names are read, never the data.
