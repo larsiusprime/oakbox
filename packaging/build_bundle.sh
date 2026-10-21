@@ -23,8 +23,9 @@ case "$PLATFORM" in
     SITE=python/Lib/site-packages ;;
   linux)
     PY_ASSET="cpython-3.11.15%2B20260718-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
-    # manylinux_2_28 = glibc 2.28+: Ubuntu 20.04+, Debian 10+, RHEL/Rocky 8+.
-    UV_PLATFORM=x86_64-manylinux_2_28
+    # manylinux_2_34 = glibc 2.34+: Ubuntu 22.04+, Debian 12+, RHEL/Rocky 9+, Fedora 35+.
+    # (Qt's PySide6 wheels, for the native window, need 2.34.)
+    UV_PLATFORM=x86_64-manylinux_2_34
     NAME=oakbox-linux-x86_64
     SITE=python/lib/python3.11/site-packages ;;
   *) echo "unknown platform: $PLATFORM" >&2; exit 2 ;;
@@ -75,7 +76,8 @@ CMD
 else
   cat > "$OUT/oakbox.sh" <<'SH'
 #!/bin/sh
-# Start Oakbox (native window if WebKitGTK is installed, otherwise a browser window).
+# Start OAK box: a native Qt window, or a browser window if Qt can't open one here
+# (it needs the desktop's usual display libraries, e.g. libEGL and libxcb-cursor on X11).
 HERE=$(cd "$(dirname "$0")" && pwd)
 exec "$HERE/python/bin/python3" -m oakbox "$@"
 SH

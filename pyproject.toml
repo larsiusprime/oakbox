@@ -10,7 +10,11 @@ dependencies = [
     "psutil>=6",
     "fastapi>=0.115",
     "uvicorn>=0.32",
-    "pywebview>=5.3",
+    # The native menus use pywebview's window internals (oakbox/winmenu.py, qtmenu.py): keep to one series.
+    "pywebview>=6.2.1,<6.3",
+    # Linux: Qt for the native window and its menus (SPEC §3.14); Windows uses WebView2.
+    "PySide6>=6.12; sys_platform == 'linux'",  # needs glibc 2.34+ (Ubuntu 22.04, Debian 12)
+    "QtPy>=2.4; sys_platform == 'linux'",
     "send2trash>=2.1.0",
 ]
 

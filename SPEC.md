@@ -19,7 +19,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D3 | Jurisdictions | Generic, not Texas-specific. Test with OpenAVMKit's public sample localities. Non-disclosure states come later. |
 | D4 | Data model | GIS-first. A parcel geometry layer is required. |
 | D5 | Scale | 500k+ parcels supported on suitable hardware. Small jurisdictions run on the low-end floor (§5). |
-| D6 | Platform | Windows 10 64-bit minimum is the primary target. **Linux x86_64 is also supported** (glibc 2.28+: Ubuntu 20.04+, Debian 10+, RHEL/Rocky 8+), from the same codebase and CI. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
+| D6 | Platform | Windows 10 64-bit minimum is the primary target. **Linux x86_64 is also supported** (glibc 2.34+: Ubuntu 22.04+, Debian 12+, RHEL/Rocky 9+), from the same codebase and CI. Installs per user, with no admin rights. A later macOS version must stay possible (§6.1). |
 | D7 | Network | Works offline. Internet is only needed for optional enrichment, the map background, update checks and the sample download. |
 | D8 | Updates | The user approves each update. IT-managed deployment comes later. |
 | D9 | Input/output | In: Shapefile, GeoPackage, GeoJSON, (Geo)Parquet, CSV, Excel, fixed-width text with a layout (PACS exports). Out: (Geo)Parquet, GeoPackage, Shapefile, CSV, Excel. Polished PDF reports. Custom reports. |
@@ -685,13 +685,15 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **No Edit menu.** Ctrl+C / V / X / A work in text boxes without one on Windows and Linux. On macOS, where the shortcuts need an Edit menu, pywebview adds the standard one itself; OAK box's own View menu replaces pywebview's default one there.
 - **No Undo or Save:** changes save as they are made, and a partial undo would mislead.
 - **The title** changes with the screen: "OAK box" on Projects and New project, "<project name> – OAK box" inside a project.
-- **Built (Windows):** a real Win32 menu bar on pywebview's window, using .NET's classic `MainMenu` (`oakbox/winmenu.py`). One definition (`oakbox/menus.py`) drives it:
+- **Built (Windows and Linux):** real native menu bars from one definition (`oakbox/menus.py`):
+  - Windows: the Win32 menu bar on pywebview's window, using .NET's classic `MainMenu` (`oakbox/winmenu.py`).
+  - Linux: pywebview runs on Qt (PySide6, LGPL), and the menus are Qt's own menu bar on its window (`oakbox/qtmenu.py`). See §6.1 for the window.
   - Shortcut labels (Ctrl+N, Ctrl+1, Ctrl+2), Alt-key letters, check marks (Large text, High contrast), radio items (Density), and Project items greyed out on the home screen.
   - Each menu is brought up to date as it opens. That includes **Open recent**: the last 8 projects opened, kept in OAK box's settings.
   - The web view keeps the keyboard, so the page handles the shortcuts and passes Alt (+ a letter) on to the menu bar.
   - Python owns what the menus show. View items save the setting there and tell the page to restyle; the page says which project is open.
-  - CI opens the real window on Windows and clicks through the menus (`python -m oakbox --selftest-menus`). The keyboard (Alt, Alt+letter, Ctrl+N/1/2), which the self-test can't press, was checked by hand on Windows.
-- **Elsewhere,** pywebview's own menus are the fallback: same items, but fixed at start-up (no check marks or greyed items). The Linux bundle has no native window today (no GTK in the bundle), so this only applies from source. GTK menus with the same features, and macOS, come when those platforms get a native window.
+  - CI opens the real window on Windows, and on Linux under a virtual display, and clicks through the menus (`python -m oakbox --selftest-menus`). The keyboard (Alt, Alt+letter, Ctrl+N/1/2), which the self-test can't press, was checked by hand on Windows.
+- **Elsewhere** (macOS, from source), pywebview's own menus are the fallback: same items, but fixed at start-up (no check marks or greyed items). macOS gets native menus when it gets a native window.
 
 ## 4. Inputs, outputs and reports
 
@@ -788,7 +790,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   Bundled: standalone CPython 3.11 + hash-locked wheels (uv)
 ```
 
-- **Python backend, TypeScript frontend** (§6.5). WebView2 ships with Windows 10 through Windows Update; on Linux the window is WebKitGTK or a browser app window (§6.1).
+- **Python backend, TypeScript frontend** (§6.5). WebView2 ships with Windows 10 through Windows Update; on Linux the window is Qt, or a browser app window (§6.1).
 - **The engine runs in a worker process.** OpenAVMKit changes the working folder, uses relative paths, and can crash or run out of memory. The worker is given an explicit project directory and environment (API keys).
 - **Large maps.** The app service builds vector tiles on the fly from GeoParquet, so the browser never loads 500k polygons.
 - **Packaging:**
@@ -803,12 +805,11 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 
 ### 6.1 Cross-platform: Linux now, macOS possible
 **Linux (supported).** It's the development environment as well as a target. Many contributors and most CI already run on it, and the engine runs there unchanged.
-- **Window:** pywebview's Linux backends need system libraries (WebKitGTK through PyGObject, or Qt WebEngine). These can't be relied on across distributions. So on Linux, Oakbox:
-  - uses a native window when WebKitGTK is present;
-  - otherwise opens the UI in the user's browser, in Chromium/Chrome "app" mode (a chromeless window) when one is installed, else in a normal tab.
+- **Window:** a native Qt window (pywebview on PySide6, which the bundle includes). Qt still needs the desktop's usual display libraries (libEGL, and libxcb-cursor on X11), which some minimal installs lack. Before opening the window, OAK box tries Qt in a short-lived process (a missing library makes Qt abort rather than fail cleanly). If that fails, it opens the UI in the user's browser instead: Chromium/Chrome "app" mode (a chromeless window) when one is installed, else a normal tab.
 
-  The UI is identical either way.
-- **Baseline:** glibc 2.28+ (the `manylinux_2_28` wheels), x86_64. ARM64 Linux is later; its wheels mostly exist.
+  The UI is identical either way; only the native menus (§3.14) are missing in a browser.
+- Chromium's sandbox inside Qt WebEngine is off: the window only shows OAK box's own UI from 127.0.0.1, and the sandbox can't start on some systems (as root, or under Ubuntu 24.04's user-namespace restriction).
+- **Baseline:** glibc 2.34+ (the `manylinux_2_34` wheels, which Qt needs): Ubuntu 22.04+, Debian 12+, RHEL/Rocky 9+. x86_64. ARM64 Linux is later; its wheels mostly exist.
 - **Shipped as** a per-user `.tar.gz`. It needs no root, Python or package manager (§6). There are no distro packages (.deb/.rpm) in v1.
 - **Tested in CI:** an empty-environment smoke test on `ubuntu-latest` (passes in M0), plus the full test suite.
 - **Platform differences** are kept small:

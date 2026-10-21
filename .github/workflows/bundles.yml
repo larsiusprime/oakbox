@@ -80,6 +80,42 @@ jobs:
         timeout-minutes: 5
         run: uv run python -m oakbox --selftest-menus
 
+  # The same on Linux: the Qt window and its menu bar, under a virtual display.
+  menus-linux:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: openavmkit-oakbox
+          path: build/engine
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Display libraries Qt needs (a desktop has them already)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1 libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libnss3 libasound2t64
+      - name: Python dependencies
+        run: |
+          git config --global url."$(pwd)/build/engine".insteadOf https://github.com/larsiusprime/oakbox
+          uv sync
+      - name: Build the UI
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Native menus (opens the real window, checks and clicks its Qt menu bar)
+        timeout-minutes: 5
+        run: xvfb-run -a uv run python -m oakbox --selftest-menus
+
   build:
     needs: checks
     runs-on: ubuntu-latest

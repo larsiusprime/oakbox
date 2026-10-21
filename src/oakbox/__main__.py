@@ -2,9 +2,9 @@
 
 Usage: python -m oakbox [--browser] [--port N] [--no-window] [--selftest-menus]
 
-Opens a native window (Edge WebView2 on Windows, WebKitGTK on Linux when
-installed). On Linux without WebKitGTK, or with --browser, it opens the UI in
-Chromium/Chrome "app" mode if available, else in the default browser (SPEC §6.1).
+Opens a native window (Edge WebView2 on Windows, Qt on Linux). Where Qt can't open a
+window, or with --browser, it opens the UI in Chromium/Chrome "app" mode if available,
+else in the default browser (SPEC §6.1).
 """
 
 from __future__ import annotations
@@ -91,7 +91,7 @@ def _window(url: str, selftest: bool = False) -> bool:
     try:
         import webview
 
-        from oakbox import menus, winmenu
+        from oakbox import menus, qtmenu, winmenu
 
         picker = _Picker()
         window = webview.create_window("OAK box", url, width=1280, height=860, min_size=(960, 640), js_api=picker)
@@ -102,24 +102,36 @@ def _window(url: str, selftest: bool = False) -> bool:
     controller = menus.Controller(send=menus.page_sender(window), close=window.destroy, set_title=window.set_title)
     picker._window, picker._controller = window, controller
 
-    why_not = winmenu.unavailable()
-    native_menus = why_not is None
-    if native_menus:
-        # A real Win32 menu bar, added once the form exists (SPEC §3.14).
+    # Native menus (SPEC §3.14): the Win32 menu bar on Windows, Qt's on Linux. Both are
+    # added once the window exists. Anywhere else, pywebview's own (simpler) menus.
+    native: Any = None
+    gui = None
+    if sys.platform == "win32":
+        why_not, native = winmenu.unavailable(), winmenu.WinMenu
+    elif sys.platform.startswith("linux"):
+        qtmenu.prepare()
+        why_not, native, gui = qtmenu.unavailable(), qtmenu.QtMenu, "qt"
+    else:
+        why_not = "no native menus on this platform yet"
+    if why_not is not None:
+        native = gui = None
+    if native is not None:
+        menu_class = native
+
         def attach() -> None:
-            picker._winmenu = winmenu.WinMenu(window.native, controller)
-            picker._winmenu.attach()
+            picker._menu = menu_class(window.native, controller)
+            picker._menu.attach()
 
         window.events.shown += attach
     elif selftest:
-        sys.exit(f"The menu self-test needs the Win32 menu bar, which isn't available: {why_not}")
+        sys.exit(f"The menu self-test needs native menus, which aren't available: {why_not}")
 
     failures: list[str] = []
     try:
         if selftest:
-            webview.start(func=_selftest_menus, args=(window, picker, url, failures))
-        elif native_menus:
-            webview.start()
+            webview.start(func=_selftest_menus, args=(window, picker, url, failures), gui=gui)
+        elif native is not None:
+            webview.start(gui=gui)
         else:
             webview.start(menu=menus.pywebview_menus(controller))  # elsewhere: pywebview's own menus
     except Exception:  # noqa: BLE001 - the toolkit failed to start; fall back to a browser
@@ -142,7 +154,7 @@ class _Picker:
     def __init__(self) -> None:
         self._window: Any = None
         self._controller: Any = None
-        self._winmenu: Any = None
+        self._menu: Any = None
 
     def set_context(self, title: str, project_id: str | None) -> None:
         """Where the page is: the title bar says so (SPEC D44), and the menus follow (§3.14)."""
@@ -150,9 +162,9 @@ class _Picker:
             self._controller.set_context(title, project_id)
 
     def menu_key(self, key: str) -> None:
-        """Alt (+ a letter) typed in the page opens the Windows menu bar."""
-        if self._winmenu is not None:
-            self._winmenu.menu_key(key)
+        """Alt (+ a letter) typed in the page opens the menu bar (the web view keeps those keys)."""
+        if self._menu is not None:
+            self._menu.menu_key(key)
 
     def pick_folder(self) -> str | None:
         import webview
@@ -174,7 +186,7 @@ class _Picker:
 
 
 def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str]) -> None:
-    """Check the real Windows menu bar end to end, then close (CI: python -m oakbox --selftest-menus)."""
+    """Check the real native menu bar end to end, then close (CI: python -m oakbox --selftest-menus)."""
     from oakbox import appsettings
 
     def check(label: str, ok: bool, detail: object = "") -> None:
@@ -194,9 +206,9 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
 
     try:
         deadline = time.time() + 60
-        while picker._winmenu is None and time.time() < deadline:
+        while picker._menu is None and time.time() < deadline:
             time.sleep(0.25)
-        menu = picker._winmenu
+        menu = picker._menu
         check("menu bar attached", menu is not None)
         if menu is None:
             return
