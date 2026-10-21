@@ -47,8 +47,6 @@ def test_new_project_writes_only_the_locality_and_valuation_date(client, oakbox_
     assert settings["modeling"] == {"metadata": {"valuation_date": "2026-01-01"}}
     assert "data" not in settings and "center" not in settings["locality"]
     assert client.get(f"/api/projects/{p['id']}").json()["project"]["jurisdiction"] == "Travis County"
-    # Nothing to run until data is set up.
-    assert client.post(f"/api/projects/{p['id']}/steps/bring_in_data/run").status_code == 409
 
 
 def test_new_project_checks_what_the_user_entered(client):
@@ -85,8 +83,7 @@ def test_projects_from_the_first_builds_are_still_found(tmp_path, monkeypatch):
         "name": "City of Petersburg",
         "tax_year": 2026,
         "created_at": "2026-10-01T00:00:00Z",
-        "sample": "us-va-petersburgcity",
-        "answers": None,
+        "sample": None,
     }
     (legacy / "oakbox.json").write_text(json.dumps(old))
     monkeypatch.setattr(appsettings, "legacy_storage", lambda: legacy.parent)

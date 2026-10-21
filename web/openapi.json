@@ -27,68 +27,6 @@
     }
    }
   },
-  "/api/samples": {
-   "get": {
-    "summary": "List Samples",
-    "operationId": "list_samples_api_samples_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/SampleInfo"
-         },
-         "type": "array",
-         "title": "Response List Samples Api Samples Get"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/samples/{sample_id}": {
-   "post": {
-    "summary": "Create From Sample",
-    "description": "Create a project from a sample and start downloading its data.",
-    "operationId": "create_from_sample_api_samples__sample_id__post",
-    "parameters": [
-     {
-      "name": "sample_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Sample Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JobInfo"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/regions": {
    "get": {
     "summary": "Regions",
@@ -471,180 +409,6 @@
      }
     }
    }
-  },
-  "/api/projects/{project_id}/steps/{step}/run": {
-   "post": {
-    "summary": "Run Step",
-    "operationId": "run_step_api_projects__project_id__steps__step__run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "step",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "enum": [
-        "bring_in_data",
-        "model_groups",
-        "check_sales",
-        "check_values"
-       ],
-       "type": "string",
-       "title": "Step"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JobInfo"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/jobs/{job_id}/cancel": {
-   "post": {
-    "summary": "Cancel Job",
-    "operationId": "cancel_job_api_jobs__job_id__cancel_post",
-    "parameters": [
-     {
-      "name": "job_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Job Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/JobInfo"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/jobs/{job_id}/events": {
-   "get": {
-    "summary": "Job Events",
-    "description": "Server-sent events: every event so far, then new ones until the job ends.",
-    "operationId": "job_events_api_jobs__job_id__events_get",
-    "parameters": [
-     {
-      "name": "job_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Job Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/results/value-studies": {
-   "get": {
-    "summary": "Value Studies",
-    "operationId": "value_studies_api_projects__project_id__results_value_studies_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/ValueStudy"
-         },
-         "title": "Response Value Studies Api Projects  Project Id  Results Value Studies Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
   }
  },
  "components": {
@@ -752,32 +516,6 @@
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
    },
-   "Dates": {
-    "properties": {
-     "valuation_date": {
-      "type": "string",
-      "format": "date",
-      "title": "Valuation Date"
-     },
-     "use_sales_from": {
-      "type": "integer",
-      "title": "Use Sales From",
-      "description": "First sale year used for modeling."
-     },
-     "ratio_study_years": {
-      "type": "integer",
-      "title": "Ratio Study Years",
-      "default": 1
-     }
-    },
-    "type": "object",
-    "required": [
-     "valuation_date",
-     "use_sales_from",
-     "ratio_study_years"
-    ],
-    "title": "Dates"
-   },
    "DiskUsage": {
     "properties": {
      "bytes": {
@@ -800,55 +538,6 @@
      "folder"
     ],
     "title": "DiskUsage"
-   },
-   "FieldSource": {
-    "properties": {
-     "column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Column"
-     },
-     "transform": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/Transform"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "dtype": {
-      "anyOf": [
-       {
-        "type": "string",
-        "enum": [
-         "string",
-         "float",
-         "int"
-        ]
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Dtype"
-     }
-    },
-    "type": "object",
-    "required": [
-     "column",
-     "transform",
-     "dtype"
-    ],
-    "title": "FieldSource",
-    "description": "Where one OpenAVMKit field comes from: a source column, or a transform of one."
    },
    "FileCheck": {
     "properties": {
@@ -952,50 +641,6 @@
     ],
     "title": "FilePath"
    },
-   "GroupStudy": {
-    "properties": {
-     "count_sales": {
-      "type": "integer",
-      "title": "Count Sales"
-     },
-     "count_parcels": {
-      "type": "integer",
-      "title": "Count Parcels"
-     },
-     "ratio": {
-      "$ref": "#/components/schemas/RatioStats"
-     },
-     "vertical": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/VerticalStats"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "horizontal": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/HorizontalStats"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     }
-    },
-    "type": "object",
-    "required": [
-     "count_sales",
-     "count_parcels",
-     "ratio",
-     "vertical",
-     "horizontal"
-    ],
-    "title": "GroupStudy"
-   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -1009,87 +654,47 @@
     "type": "object",
     "title": "HTTPValidationError"
    },
-   "HorizontalStats": {
+   "InputFile": {
     "properties": {
-     "parcels": {
-      "type": "integer",
-      "title": "Parcels"
+     "name": {
+      "type": "string",
+      "title": "Name"
      },
-     "clusters": {
-      "type": "integer",
-      "title": "Clusters"
+     "filename": {
+      "type": "string",
+      "title": "Filename"
      },
-     "median_chd": {
+     "layer": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "string"
        },
        {
         "type": "null"
        }
       ],
-      "title": "Median Chd"
+      "title": "Layer"
+     },
+     "format": {
+      "type": "string",
+      "title": "Format"
+     },
+     "size_bytes": {
+      "type": "integer",
+      "title": "Size Bytes",
+      "description": "0 when the file is missing from in/."
      }
     },
     "type": "object",
     "required": [
-     "parcels",
-     "clusters",
-     "median_chd"
+     "name",
+     "filename",
+     "layer",
+     "format",
+     "size_bytes"
     ],
-    "title": "HorizontalStats"
-   },
-   "JobInfo": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "project_id": {
-      "type": "string",
-      "title": "Project Id"
-     },
-     "step": {
-      "type": "string",
-      "title": "Step"
-     },
-     "state": {
-      "type": "string",
-      "enum": [
-       "running",
-       "done",
-       "failed",
-       "cancelled"
-      ],
-      "title": "State"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "project_id",
-     "step",
-     "state"
-    ],
-    "title": "JobInfo"
-   },
-   "ModelGroup": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "name"
-    ],
-    "title": "ModelGroup"
+    "title": "InputFile",
+    "description": "An input file as the Input files tab shows it (SPEC \u00a73.0 F3)."
    },
    "NewProject": {
     "properties": {
@@ -1143,96 +748,6 @@
     ],
     "title": "NewProject",
     "description": "What the user enters to create a project (SPEC \u00a73.0 F1)."
-   },
-   "ParcelDetails": {
-    "properties": {
-     "file": {
-      "type": "string",
-      "title": "File"
-     },
-     "id_column": {
-      "type": "string",
-      "title": "Id Column"
-     },
-     "fields": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/FieldSource"
-      },
-      "type": "object",
-      "title": "Fields",
-      "description": "OpenAVMKit field name -> source. E.g. 'bldg_area_finished_sqft'."
-     }
-    },
-    "type": "object",
-    "required": [
-     "file",
-     "id_column",
-     "fields"
-    ],
-    "title": "ParcelDetails",
-    "description": "A table of parcel characteristics joined to the parcel layer by ID."
-   },
-   "ParcelLayer": {
-    "properties": {
-     "file": {
-      "type": "string",
-      "title": "File"
-     },
-     "id_column": {
-      "type": "string",
-      "title": "Id Column"
-     }
-    },
-    "type": "object",
-    "required": [
-     "file",
-     "id_column"
-    ],
-    "title": "ParcelLayer",
-    "description": "The GIS parcel file and its parcel-ID column."
-   },
-   "Place": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "state": {
-      "type": "string",
-      "title": "State"
-     },
-     "tax_year": {
-      "type": "integer",
-      "title": "Tax Year"
-     },
-     "units": {
-      "type": "string",
-      "enum": [
-       "imperial",
-       "metric"
-      ],
-      "title": "Units",
-      "default": "imperial"
-     },
-     "center_lat": {
-      "type": "number",
-      "title": "Center Lat"
-     },
-     "center_lon": {
-      "type": "number",
-      "title": "Center Lon"
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "state",
-     "tax_year",
-     "units",
-     "center_lat",
-     "center_lon"
-    ],
-    "title": "Place"
    },
    "Project": {
     "properties": {
@@ -1300,17 +815,6 @@
       ],
       "title": "Sample"
      },
-     "answers": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/WizardAnswers"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "Sample projects only, until data setup exists."
-     },
      "files": {
       "items": {
        "$ref": "#/components/schemas/DataFile"
@@ -1318,21 +822,6 @@
       "type": "array",
       "title": "Files",
       "description": "data.load entries (SPEC \u00a73.0 F2)."
-     },
-     "steps": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/StepStatus"
-      },
-      "propertyNames": {
-       "enum": [
-        "bring_in_data",
-        "model_groups",
-        "check_sales",
-        "check_values"
-       ]
-      },
-      "type": "object",
-      "title": "Steps"
      }
     },
     "type": "object",
@@ -1347,9 +836,7 @@
      "valuation_date",
      "units",
      "sample",
-     "answers",
-     "files",
-     "steps"
+     "files"
     ],
     "title": "Project"
    },
@@ -1358,48 +845,25 @@
      "project": {
       "$ref": "#/components/schemas/Project"
      },
-     "running_job": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/JobInfo"
-       },
-       {
-        "type": "null"
-       }
-      ]
+     "folder": {
+      "type": "string",
+      "title": "Folder"
+     },
+     "files": {
+      "items": {
+       "$ref": "#/components/schemas/InputFile"
+      },
+      "type": "array",
+      "title": "Files"
      }
     },
     "type": "object",
     "required": [
      "project",
-     "running_job"
+     "folder",
+     "files"
     ],
     "title": "ProjectDetail"
-   },
-   "RatioStats": {
-    "properties": {
-     "count": {
-      "type": "integer",
-      "title": "Count"
-     },
-     "median_ratio": {
-      "$ref": "#/components/schemas/Stat"
-     },
-     "cod": {
-      "$ref": "#/components/schemas/Stat"
-     },
-     "prd": {
-      "$ref": "#/components/schemas/Stat"
-     }
-    },
-    "type": "object",
-    "required": [
-     "count",
-     "median_ratio",
-     "cod",
-     "prd"
-    ],
-    "title": "RatioStats"
    },
    "Region": {
     "properties": {
@@ -1447,185 +911,6 @@
     "title": "Regions",
     "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."
    },
-   "Sales": {
-    "properties": {
-     "file": {
-      "type": "string",
-      "title": "File"
-     },
-     "parcel_id_column": {
-      "type": "string",
-      "title": "Parcel Id Column"
-     },
-     "date_column": {
-      "type": "string",
-      "title": "Date Column"
-     },
-     "date_format": {
-      "type": "string",
-      "title": "Date Format",
-      "description": "strftime format, e.g. '%m/%d/%Y'"
-     },
-     "price_column": {
-      "type": "string",
-      "title": "Price Column"
-     },
-     "sale_id_columns": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Sale Id Columns",
-      "description": "Columns combined with parcel ID and date to make a unique sale ID."
-     },
-     "validity_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Validity Column"
-     },
-     "valid_codes": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Valid Codes"
-     },
-     "vacant_codes": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Vacant Codes",
-      "description": "Codes meaning 'vacant when sold'. Empty means: follow the parcel's current vacancy."
-     }
-    },
-    "type": "object",
-    "required": [
-     "file",
-     "parcel_id_column",
-     "date_column",
-     "date_format",
-     "price_column",
-     "sale_id_columns",
-     "validity_column",
-     "valid_codes",
-     "vacant_codes"
-    ],
-    "title": "Sales"
-   },
-   "SampleInfo": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "description": {
-      "type": "string",
-      "title": "Description"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "name",
-     "description"
-    ],
-    "title": "SampleInfo"
-   },
-   "Stat": {
-    "properties": {
-     "value": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Value"
-     },
-     "low": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Low"
-     },
-     "high": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "High"
-     }
-    },
-    "type": "object",
-    "required": [
-     "value",
-     "low",
-     "high"
-    ],
-    "title": "Stat"
-   },
-   "StepStatus": {
-    "properties": {
-     "state": {
-      "type": "string",
-      "enum": [
-       "not_run",
-       "running",
-       "done",
-       "failed",
-       "stale"
-      ],
-      "title": "State",
-      "default": "not_run"
-     },
-     "finished_at": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date-time"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Finished At"
-     },
-     "message": {
-      "type": "string",
-      "title": "Message",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "state",
-     "finished_at",
-     "message"
-    ],
-    "title": "StepStatus"
-   },
    "StorageLocation": {
     "properties": {
      "storage_location": {
@@ -1643,31 +928,6 @@
     },
     "type": "object",
     "title": "StorageLocation"
-   },
-   "Transform": {
-    "properties": {
-     "kind": {
-      "type": "string",
-      "const": "multiply",
-      "title": "Kind"
-     },
-     "column": {
-      "type": "string",
-      "title": "Column"
-     },
-     "factor": {
-      "type": "number",
-      "title": "Factor"
-     }
-    },
-    "type": "object",
-    "required": [
-     "kind",
-     "column",
-     "factor"
-    ],
-    "title": "Transform",
-    "description": "A typed column transform (SPEC \u00a73.13). M1a supports a numeric multiplier."
    },
    "ValidationError": {
     "properties": {
@@ -1708,149 +968,6 @@
      "type"
     ],
     "title": "ValidationError"
-   },
-   "ValueStudy": {
-    "properties": {
-     "field": {
-      "type": "string",
-      "title": "Field"
-     },
-     "window": {
-      "additionalProperties": {
-       "type": "string"
-      },
-      "type": "object",
-      "title": "Window"
-     },
-     "confidence_interval": {
-      "type": "number",
-      "title": "Confidence Interval"
-     },
-     "groups": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/GroupStudy"
-      },
-      "type": "object",
-      "title": "Groups"
-     },
-     "overall": {
-      "$ref": "#/components/schemas/GroupStudy"
-     }
-    },
-    "type": "object",
-    "required": [
-     "field",
-     "window",
-     "confidence_interval",
-     "groups",
-     "overall"
-    ],
-    "title": "ValueStudy"
-   },
-   "VerticalStats": {
-    "properties": {
-     "prd": {
-      "$ref": "#/components/schemas/Stat"
-     },
-     "prb": {
-      "$ref": "#/components/schemas/Stat"
-     },
-     "vei": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Vei"
-     },
-     "vei_significance": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Vei Significance"
-     }
-    },
-    "type": "object",
-    "required": [
-     "prd",
-     "prb",
-     "vei",
-     "vei_significance"
-    ],
-    "title": "VerticalStats"
-   },
-   "WizardAnswers": {
-    "properties": {
-     "place": {
-      "$ref": "#/components/schemas/Place"
-     },
-     "parcels": {
-      "$ref": "#/components/schemas/ParcelLayer"
-     },
-     "details": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/ParcelDetails"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "sales": {
-      "$ref": "#/components/schemas/Sales"
-     },
-     "value_fields": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Value Fields",
-      "description": "OpenAVMKit field names of the total values to check, e.g. ['assr_market_value']."
-     },
-     "location_field": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Location Field",
-      "description": "Field used as the main location, e.g. 'neighborhood'."
-     },
-     "model_groups": {
-      "items": {
-       "$ref": "#/components/schemas/ModelGroup"
-      },
-      "type": "array",
-      "title": "Model Groups"
-     },
-     "dates": {
-      "$ref": "#/components/schemas/Dates"
-     }
-    },
-    "type": "object",
-    "required": [
-     "place",
-     "parcels",
-     "details",
-     "sales",
-     "value_fields",
-     "location_field",
-     "model_groups",
-     "dates"
-    ],
-    "title": "WizardAnswers"
    }
   }
  }

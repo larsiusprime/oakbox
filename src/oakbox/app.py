@@ -7,20 +7,17 @@ client.
 
 from __future__ import annotations
 
-import json
 import mimetypes
 from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
 from oakbox import __version__, appsettings, datafiles, projects
-from oakbox.jobs import JobManager
-from oakbox.samples import SAMPLES
 
 WEB_DIST = Path(__file__).parent / "web"
 
@@ -52,64 +49,20 @@ class BaseModel(_PydanticBase):
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 
-class SampleInfo(BaseModel):
-    id: str
+class InputFile(BaseModel):
+    """An input file as the Input files tab shows it (SPEC §3.0 F3)."""
+
     name: str
-    description: str
-
-
-class JobInfo(BaseModel):
-    id: str
-    project_id: str
-    step: str
-    state: Literal["running", "done", "failed", "cancelled"]
+    filename: str
+    layer: str | None = None
+    format: str
+    size_bytes: int = Field(description="0 when the file is missing from in/.")
 
 
 class ProjectDetail(BaseModel):
     project: projects.Project
-    running_job: JobInfo | None = None
-
-
-class Stat(BaseModel):
-    value: float | None = None
-    low: float | None = None
-    high: float | None = None
-
-
-class RatioStats(BaseModel):
-    count: int
-    median_ratio: Stat
-    cod: Stat
-    prd: Stat
-
-
-class VerticalStats(BaseModel):
-    prd: Stat
-    prb: Stat
-    vei: float | None = None
-    vei_significance: float | None = None
-
-
-class HorizontalStats(BaseModel):
-    parcels: int
-    clusters: int
-    median_chd: float | None = None
-
-
-class GroupStudy(BaseModel):
-    count_sales: int
-    count_parcels: int
-    ratio: RatioStats
-    vertical: VerticalStats | None = None
-    horizontal: HorizontalStats | None = None
-
-
-class ValueStudy(BaseModel):
-    field: str
-    window: dict[str, str]
-    confidence_interval: float
-    groups: dict[str, GroupStudy]
-    overall: GroupStudy
+    folder: str
+    files: list[InputFile]
 
 
 class Region(BaseModel):
@@ -164,31 +117,25 @@ def _settings_view() -> AppSettingsView:
     )
 
 
-def _job_info(job) -> JobInfo:
-    return JobInfo(id=job.id, project_id=job.project_id, step=job.step, state=job.state)
+def _view(in_dir: Path, f: datafiles.DataFile) -> InputFile:
+    path = in_dir / f.filename
+    size = sum(p.stat().st_size for p in datafiles.companions(path)) if path.is_file() else 0
+    return InputFile(
+        name=f.name,
+        filename=f.filename,
+        layer=f.layer,
+        format=datafiles.FORMATS.get(path.suffix.lower().lstrip("."), ""),
+        size_bytes=size,
+    )
 
 
 def create_app() -> FastAPI:
     pin_ui_content_types()
     app = FastAPI(title="OAK box", version=__version__)
-    jobs = JobManager()
 
     @app.get("/api/version")
     def version() -> dict[str, str]:
         return {"version": __version__}
-
-    @app.get("/api/samples")
-    def list_samples() -> list[SampleInfo]:
-        return [SampleInfo(id=s.id, name=s.name, description=s.description) for s in SAMPLES.values()]
-
-    @app.post("/api/samples/{sample_id}")
-    def create_from_sample(sample_id: str) -> JobInfo:
-        """Create a project from a sample and start downloading its data."""
-        sample = SAMPLES.get(sample_id)
-        if sample is None:
-            raise HTTPException(404, "Unknown sample")
-        project = projects.create_from_sample(sample.answers(), sample.id)
-        return _job_info(jobs.start(project.id, "download_sample"))
 
     @app.get("/api/regions")
     def regions() -> Regions:
@@ -251,8 +198,6 @@ def create_app() -> FastAPI:
     @app.delete("/api/projects/{project_id}")
     def delete_project(project_id: str) -> None:
         _load(project_id)
-        if jobs.running_for(project_id) is not None:
-            raise HTTPException(409, "Stop the running step before deleting this project.")
         try:
             projects.delete(project_id)
         except OSError as e:
@@ -266,14 +211,6 @@ def create_app() -> FastAPI:
         except OSError as e:
             raise HTTPException(500, str(e)) from e
 
-    def _with_own_data(project_id: str) -> projects.Project:
-        project = _load(project_id)
-        if project.answers is not None:
-            raise HTTPException(409, "Sample projects come with their data already set up.")
-        if jobs.running_for(project_id) is not None:
-            raise HTTPException(409, "Wait for the running step to finish first.")
-        return project
-
     @app.post("/api/projects/{project_id}/files/check")
     def check_file(project_id: str, body: FilePath) -> datafiles.FileCheck:
         """What OAK box can tell about a file before adding it (SPEC §3.0 F2)."""
@@ -283,7 +220,7 @@ def create_app() -> FastAPI:
     @app.post("/api/projects/{project_id}/files")
     def add_file(project_id: str, body: AddFile) -> projects.Project:
         """Move or copy a file into in/ and add its data.load entry (SPEC §3.0 F2)."""
-        project = _with_own_data(project_id)
+        project = _load(project_id)
         try:
             entry = datafiles.add(
                 projects.project_dir(project_id) / "in",
@@ -304,64 +241,10 @@ def create_app() -> FastAPI:
     @app.get("/api/projects/{project_id}")
     def get_project(project_id: str) -> ProjectDetail:
         project = _load(project_id)
-        job = jobs.running_for(project_id)
-        return ProjectDetail(project=project, running_job=_job_info(job) if job else None)
-
-    @app.post("/api/projects/{project_id}/steps/{step}/run")
-    def run_step(project_id: str, step: projects.StepId) -> JobInfo:
-        project = _load(project_id)
-        if project.answers is None:
-            raise HTTPException(409, "This project has no data set up yet.")
-        index = projects.STEP_ORDER.index(step)
-        for earlier in projects.STEP_ORDER[:index]:
-            if project.steps[earlier].state != "done":
-                raise HTTPException(409, f"Run '{earlier}' first.")
-        try:
-            return _job_info(jobs.start(project_id, step))
-        except RuntimeError as e:
-            raise HTTPException(409, str(e)) from e
-
-    @app.post("/api/jobs/{job_id}/cancel")
-    def cancel_job(job_id: str) -> JobInfo:
-        job = jobs.get(job_id)
-        if job is None:
-            raise HTTPException(404, "Job not found")
-        jobs.cancel(job_id)
-        return _job_info(job)
-
-    @app.get("/api/jobs/{job_id}/events")
-    def job_events(job_id: str) -> StreamingResponse:
-        """Server-sent events: every event so far, then new ones until the job ends."""
-        job = jobs.get(job_id)
-        if job is None:
-            raise HTTPException(404, "Job not found")
-
-        def stream():
-            seen = 0
-            while True:
-                job.wait_for(seen, timeout=15)
-                events = job.events[seen:]
-                seen += len(events)
-                for event in events:
-                    yield f"data: {json.dumps(event)}\n\n"
-                if job.state != "running" and seen >= len(job.events):
-                    yield f"event: end\ndata: {json.dumps({'state': job.state})}\n\n"
-                    return
-                if not events:
-                    yield ": keep-alive\n\n"
-
-        return StreamingResponse(stream(), media_type="text/event-stream")
-
-    @app.get("/api/projects/{project_id}/results/value-studies")
-    def value_studies(project_id: str) -> list[ValueStudy]:
-        project = _load(project_id)
-        out = projects.project_dir(project_id) / "out" / "studies"
-        results: list[ValueStudy] = []
-        for field in project.answers.value_fields if project.answers else []:
-            path = out / f"{field}.json"
-            if path.exists():
-                results.append(ValueStudy.model_validate(json.loads(path.read_text())))
-        return results
+        folder = projects.project_dir(project_id)
+        return ProjectDetail(
+            project=project, folder=str(folder), files=[_view(folder / "in", f) for f in project.files]
+        )
 
     if WEB_DIST.exists():
         app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")

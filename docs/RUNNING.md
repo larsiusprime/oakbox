@@ -10,11 +10,11 @@
    - **Linux:** run `./oakbox-linux-x86_64/oakbox.sh`.
 
    It opens a native window. On Linux without WebKitGTK it opens a browser window instead.
-4. Click **New project** to start one of your own (adding data files comes next). Or, under **Sample county**, click **Download and open**, then **Run** each step in order.
+4. Click **New project**, fill in the jurisdiction and tax year, then add files on the project's **Input files** tab.
 
 Projects are kept in `Documents/OAK box/` by default; change it under **Where projects are kept** on the home screen. Projects made by earlier builds in `Documents/Oakbox/` still appear. (`OAKBOX_HOME` puts projects and OAK box's own settings in one folder, for testing.)
 
-**Unattended test:** `smoke.cmd` / `smoke.sh` downloads the sample, runs steps 1–4 through the app service, and prints `SMOKE OK`.
+**Unattended test:** `smoke.cmd` / `smoke.sh` downloads Petersburg's public data and runs OpenAVMKit on it directly (assemble, clean, ratio study). Then it starts the app service, creates a project and adds a file. It prints `SMOKE OK`. It needs internet.
 
 ## From source
 Requires [uv](https://docs.astral.sh/uv/), git and Node 22.

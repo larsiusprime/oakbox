@@ -5,8 +5,6 @@ from fastapi.testclient import TestClient
 
 from oakbox import projects
 from oakbox.app import create_app
-from oakbox.samples import SAMPLES
-from oakbox.settings_gen import generate
 
 
 @pytest.fixture(autouse=True)
@@ -16,52 +14,37 @@ def oakbox_home(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _sample():
-    return projects.create_from_sample(SAMPLES["us-va-petersburgcity"].answers(), "us-va-petersburgcity")
+def test_smoke_settings_are_complete_and_explicit():
+    # The engine smoke test runs OpenAVMKit on Petersburg with these checked-in settings.
+    from importlib import resources
 
-
-def test_petersburg_settings_are_explicit():
-    s = generate(SAMPLES["us-va-petersburgcity"].answers())
+    s = json.loads(resources.files("oakbox.smokedata").joinpath("us-va-petersburgcity-settings.json").read_text())
     load = s["data"]["load"]
-    # Every file states its de-dupe key (SPEC §6.3).
-    assert all(entry["dupes"]["subset"] for entry in load.values())
+    assert all(entry["dupes"]["subset"] for entry in load.values())  # SPEC §6.3
     assert set(load["sales"]["calc"]) == {"valid_sale", "vacant_sale", "key_sale"}
-    assert s["data"]["process"]["merge"] == {"universe": ["parcels"], "sales": ["sales"]}
-    assert s["modeling"]["instructions"]["main"]["run"] == ["lightgbm"]
-    assert s["data"]["process"]["enrich"]["spatial_lag"]["model_groups"]["all"]["sample_from"] == ["all"]
-    ind_vars = s["modeling"]["models"]["main"]["default"]["ind_vars"]
-    assert "bldg_effective_age_years" in ind_vars and "neighborhood" in ind_vars
-    assert "bldg_condition_num" not in ind_vars  # Petersburg has no condition field
+    assert s["locality"]["slug"] == "us-va-cityofpetersburg"
 
 
-def test_create_project_writes_settings_and_steps(oakbox_home):
-    p = _sample()
-    pdir = oakbox_home / "City of Petersburg 2026 (sample)"
-    assert projects.project_dir(p.id) == pdir
-    assert json.loads((pdir / "in" / "settings.json").read_text())["locality"]["slug"] == "us-va-cityofpetersburg"
-    assert [s for s in p.steps] == list(projects.STEP_ORDER)
-    p2 = _sample()
-    assert p2.id != p.id and projects.project_dir(p2.id).name == "City of Petersburg 2026 (sample) (2)"
-
-
-def test_finishing_a_step_marks_later_steps_stale():
-    p = _sample()
-    for step in projects.STEP_ORDER:
-        p = projects.mark_step(p, step, "done")
-    p = projects.mark_step(p, "check_sales", "done")
-    assert p.steps["check_values"].state == "stale"
-    assert p.steps["bring_in_data"].state == "done"
-
-
-def test_api_lists_and_guards_step_order():
-    client = TestClient(create_app())
-    assert client.get("/api/samples").json()[0]["id"] == "us-va-petersburgcity"
-    p = _sample()
-    assert client.get("/api/projects").json()[0]["id"] == p.id
-    r = client.post(f"/api/projects/{p.id}/steps/check_values/run")
-    assert r.status_code == 409
-    assert client.get("/api/projects/nope").status_code == 404
-    assert "/api/projects/{project_id}/results/value-studies" in client.get("/openapi.json").json()["paths"]
+def test_sample_projects_from_earlier_builds_are_not_listed(oakbox_home):
+    # SPEC D19: the sample county is gone; projects made from it are no longer listed.
+    old = oakbox_home / "City of Petersburg 2026 (sample)"
+    old.mkdir()
+    (old / "oakbox.json").write_text(
+        json.dumps(
+            {
+                "id": "abc123",
+                "name": "x",
+                "created_at": "2026-10-01T00:00:00Z",
+                "tax_year": 2026,
+                "sample": "us-va-petersburgcity",
+                "answers": {},
+                "steps": {},
+            }
+        )
+    )
+    assert projects.list_projects() == []
+    assert TestClient(create_app()).get("/api/projects/abc123").status_code == 404
+    assert "/api/samples" not in TestClient(create_app()).get("/openapi.json").json()["paths"]
 
 
 def test_ui_assets_have_browser_safe_content_types(tmp_path, monkeypatch):

@@ -3,7 +3,7 @@
 Layout (SPEC §3.0 F1, §6)::
 
     <storage location>/<project name>/
-        oakbox.json        OAK box's own state: project facts, step status
+        oakbox.json        OAK box's own state: the project's facts and input files
         in/                the user's data files + settings.json for OpenAVMKit
         out/               OpenAVMKit outputs
         cache/             enrichment cache
@@ -30,25 +30,13 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
 from oakbox import appsettings
-from oakbox.answers import WizardAnswers
 from oakbox.datafiles import DataFile, data_load
-from oakbox.settings_gen import generate
-
-StepId = Literal["bring_in_data", "model_groups", "check_sales", "check_values"]
-STEP_ORDER: tuple[StepId, ...] = ("bring_in_data", "model_groups", "check_sales", "check_values")
-StepState = Literal["not_run", "running", "done", "failed", "stale"]
 
 
 class BaseModel(_PydanticBase):
     # Fields with defaults are always present in responses; say so in the schema so
     # the generated TypeScript types are exact (no spurious optionals).
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
-
-
-class StepStatus(BaseModel):
-    state: StepState = "not_run"
-    finished_at: dt.datetime | None = None
-    message: str = ""
 
 
 Units = Literal["imperial", "metric"]
@@ -77,9 +65,7 @@ class Project(BaseModel):
     valuation_date: dt.date | None = None
     units: Units = "imperial"
     sample: str | None = None
-    answers: WizardAnswers | None = Field(default=None, description="Sample projects only, until data setup exists.")
     files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
-    steps: dict[StepId, StepStatus] = Field(default_factory=lambda: {s: StepStatus() for s in STEP_ORDER})
 
 
 # ---------- Finding projects ----------
@@ -93,10 +79,12 @@ def _register(project_id: str, folder: Path) -> None:
 
 
 def _read(folder: Path) -> Project | None:
+    """The project in a folder; None for damaged files and for sample projects of earlier builds (SPEC D19)."""
     try:
-        return Project.model_validate_json((folder / "oakbox.json").read_text())
+        project = Project.model_validate_json((folder / "oakbox.json").read_text())
     except (OSError, ValueError):
         return None
+    return None if project.sample is not None else project
 
 
 def _discover() -> dict[str, Path]:
@@ -190,25 +178,6 @@ def create(new: NewProject) -> Project:
     return _start(project, _new_folder(new.name))
 
 
-def create_from_sample(answers: WizardAnswers, sample: str) -> Project:
-    """A project pre-filled from a sample county."""
-    p = answers.place
-    project = Project(
-        id=uuid.uuid4().hex[:12],
-        name=f"{p.name} {p.tax_year} (sample)",
-        created_at=dt.datetime.now(dt.UTC),
-        country="US",
-        region=p.state,
-        jurisdiction=p.name,
-        tax_year=p.tax_year,
-        valuation_date=answers.dates.valuation_date,
-        units=p.units,
-        sample=sample,
-        answers=answers,
-    )
-    return _start(project, _new_folder(project.name))
-
-
 def base_settings(project: Project) -> dict:
     """What a project writes so far: the locality, the valuation date, and each data file's data.load entry."""
     return {
@@ -229,7 +198,7 @@ def base_settings(project: Project) -> dict:
 def write_settings(project: Project) -> Path:
     path = project_dir(project.id) / "in" / "settings.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    settings = generate(project.answers) if project.answers is not None else base_settings(project)
+    settings = base_settings(project)
     path.write_text(json.dumps(settings, indent=2))
     return path
 
@@ -270,18 +239,3 @@ def show_in_folder(project_id: str) -> None:
         subprocess.Popen(["xdg-open", str(folder)])
     else:
         raise OSError("No file manager found to open the folder.")
-
-
-def mark_step(project: Project, step: StepId, state: StepState, message: str = "") -> Project:
-    """Record a step's outcome. A finished step makes every later step stale."""
-    project.steps[step] = StepStatus(
-        state=state,
-        message=message,
-        finished_at=dt.datetime.now(dt.UTC) if state in ("done", "failed") else None,
-    )
-    if state == "done":
-        for later in STEP_ORDER[STEP_ORDER.index(step) + 1 :]:
-            if project.steps[later].state == "done":
-                project.steps[later] = StepStatus(state="stale", message="An earlier step was re-run.")
-    save(project)
-    return project

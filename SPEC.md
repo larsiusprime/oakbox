@@ -110,7 +110,6 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
 **Not in F2:** looking inside the file, its ID, column mapping, joins, and removing a file (its own feature).
 
 #### F3. The project view: one tabbed panel
-*Draft, pending the maintainer's approval.*
 
 Under the project's name and tax year, everything about a project lives in one tabbed panel. Each later feature becomes a tab; a tab's own design always assumes this frame.
 

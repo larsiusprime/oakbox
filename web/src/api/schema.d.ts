@@ -21,43 +21,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/samples": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Samples */
-        get: operations["list_samples_api_samples_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/samples/{sample_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create From Sample
-         * @description Create a project from a sample and start downloading its data.
-         */
-        post: operations["create_from_sample_api_samples__sample_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/regions": {
         parameters: {
             query?: never;
@@ -222,77 +185,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{project_id}/steps/{step}/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Run Step */
-        post: operations["run_step_api_projects__project_id__steps__step__run_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/jobs/{job_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel Job */
-        post: operations["cancel_job_api_jobs__job_id__cancel_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/jobs/{job_id}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Job Events
-         * @description Server-sent events: every event so far, then new ones until the job ends.
-         */
-        get: operations["job_events_api_jobs__job_id__events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{project_id}/results/value-studies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Value Studies */
-        get: operations["value_studies_api_projects__project_id__results_value_studies_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -347,24 +239,6 @@ export interface components {
              */
             layer: string | null;
         };
-        /** Dates */
-        Dates: {
-            /**
-             * Valuation Date
-             * Format: date
-             */
-            valuation_date: string;
-            /**
-             * Use Sales From
-             * @description First sale year used for modeling.
-             */
-            use_sales_from: number;
-            /**
-             * Ratio Study Years
-             * @default 1
-             */
-            ratio_study_years: number;
-        };
         /** DiskUsage */
         DiskUsage: {
             /** Bytes */
@@ -373,17 +247,6 @@ export interface components {
             files: number;
             /** Folder */
             folder: string;
-        };
-        /**
-         * FieldSource
-         * @description Where one OpenAVMKit field comes from: a source column, or a transform of one.
-         */
-        FieldSource: {
-            /** Column */
-            column: string | null;
-            transform: components["schemas"]["Transform"] | null;
-            /** Dtype */
-            dtype: ("string" | "float" | "int") | null;
         };
         /**
          * FileCheck
@@ -440,50 +303,29 @@ export interface components {
             /** Path */
             path: string;
         };
-        /** GroupStudy */
-        GroupStudy: {
-            /** Count Sales */
-            count_sales: number;
-            /** Count Parcels */
-            count_parcels: number;
-            ratio: components["schemas"]["RatioStats"];
-            vertical: components["schemas"]["VerticalStats"] | null;
-            horizontal: components["schemas"]["HorizontalStats"] | null;
-        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** HorizontalStats */
-        HorizontalStats: {
-            /** Parcels */
-            parcels: number;
-            /** Clusters */
-            clusters: number;
-            /** Median Chd */
-            median_chd: number | null;
-        };
-        /** JobInfo */
-        JobInfo: {
-            /** Id */
-            id: string;
-            /** Project Id */
-            project_id: string;
-            /** Step */
-            step: string;
-            /**
-             * State
-             * @enum {string}
-             */
-            state: "running" | "done" | "failed" | "cancelled";
-        };
-        /** ModelGroup */
-        ModelGroup: {
-            /** Id */
-            id: string;
+        /**
+         * InputFile
+         * @description An input file as the Input files tab shows it (SPEC §3.0 F3).
+         */
+        InputFile: {
             /** Name */
             name: string;
+            /** Filename */
+            filename: string;
+            /** Layer */
+            layer: string | null;
+            /** Format */
+            format: string;
+            /**
+             * Size Bytes
+             * @description 0 when the file is missing from in/.
+             */
+            size_bytes: number;
         };
         /**
          * NewProject
@@ -523,52 +365,6 @@ export interface components {
              */
             units: "imperial" | "metric";
         };
-        /**
-         * ParcelDetails
-         * @description A table of parcel characteristics joined to the parcel layer by ID.
-         */
-        ParcelDetails: {
-            /** File */
-            file: string;
-            /** Id Column */
-            id_column: string;
-            /**
-             * Fields
-             * @description OpenAVMKit field name -> source. E.g. 'bldg_area_finished_sqft'.
-             */
-            fields: {
-                [key: string]: components["schemas"]["FieldSource"];
-            };
-        };
-        /**
-         * ParcelLayer
-         * @description The GIS parcel file and its parcel-ID column.
-         */
-        ParcelLayer: {
-            /** File */
-            file: string;
-            /** Id Column */
-            id_column: string;
-        };
-        /** Place */
-        Place: {
-            /** Name */
-            name: string;
-            /** State */
-            state: string;
-            /** Tax Year */
-            tax_year: number;
-            /**
-             * Units
-             * @default imperial
-             * @enum {string}
-             */
-            units: "imperial" | "metric";
-            /** Center Lat */
-            center_lat: number;
-            /** Center Lon */
-            center_lon: number;
-        };
         /** Project */
         Project: {
             /** Id */
@@ -607,30 +403,19 @@ export interface components {
             units: "imperial" | "metric";
             /** Sample */
             sample: string | null;
-            /** @description Sample projects only, until data setup exists. */
-            answers: components["schemas"]["WizardAnswers"] | null;
             /**
              * Files
              * @description data.load entries (SPEC §3.0 F2).
              */
             files: components["schemas"]["DataFile"][];
-            /** Steps */
-            steps: {
-                [key: string]: components["schemas"]["StepStatus"];
-            };
         };
         /** ProjectDetail */
         ProjectDetail: {
             project: components["schemas"]["Project"];
-            running_job: components["schemas"]["JobInfo"] | null;
-        };
-        /** RatioStats */
-        RatioStats: {
-            /** Count */
-            count: number;
-            median_ratio: components["schemas"]["Stat"];
-            cod: components["schemas"]["Stat"];
-            prd: components["schemas"]["Stat"];
+            /** Folder */
+            folder: string;
+            /** Files */
+            files: components["schemas"]["InputFile"][];
         };
         /** Region */
         Region: {
@@ -651,70 +436,6 @@ export interface components {
                 [key: string]: components["schemas"]["Region"][];
             };
         };
-        /** Sales */
-        Sales: {
-            /** File */
-            file: string;
-            /** Parcel Id Column */
-            parcel_id_column: string;
-            /** Date Column */
-            date_column: string;
-            /**
-             * Date Format
-             * @description strftime format, e.g. '%m/%d/%Y'
-             */
-            date_format: string;
-            /** Price Column */
-            price_column: string;
-            /**
-             * Sale Id Columns
-             * @description Columns combined with parcel ID and date to make a unique sale ID.
-             */
-            sale_id_columns: string[];
-            /** Validity Column */
-            validity_column: string | null;
-            /** Valid Codes */
-            valid_codes: string[];
-            /**
-             * Vacant Codes
-             * @description Codes meaning 'vacant when sold'. Empty means: follow the parcel's current vacancy.
-             */
-            vacant_codes: string[];
-        };
-        /** SampleInfo */
-        SampleInfo: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Description */
-            description: string;
-        };
-        /** Stat */
-        Stat: {
-            /** Value */
-            value: number | null;
-            /** Low */
-            low: number | null;
-            /** High */
-            high: number | null;
-        };
-        /** StepStatus */
-        StepStatus: {
-            /**
-             * State
-             * @default not_run
-             * @enum {string}
-             */
-            state: "not_run" | "running" | "done" | "failed" | "stale";
-            /** Finished At */
-            finished_at: string | null;
-            /**
-             * Message
-             * @default
-             */
-            message: string;
-        };
         /** StorageLocation */
         StorageLocation: {
             /**
@@ -722,21 +443,6 @@ export interface components {
              * @description None resets to the default.
              */
             storage_location?: string | null;
-        };
-        /**
-         * Transform
-         * @description A typed column transform (SPEC §3.13). M1a supports a numeric multiplier.
-         */
-        Transform: {
-            /**
-             * Kind
-             * @constant
-             */
-            kind: "multiply";
-            /** Column */
-            column: string;
-            /** Factor */
-            factor: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -750,51 +456,6 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
-        };
-        /** ValueStudy */
-        ValueStudy: {
-            /** Field */
-            field: string;
-            /** Window */
-            window: {
-                [key: string]: string;
-            };
-            /** Confidence Interval */
-            confidence_interval: number;
-            /** Groups */
-            groups: {
-                [key: string]: components["schemas"]["GroupStudy"];
-            };
-            overall: components["schemas"]["GroupStudy"];
-        };
-        /** VerticalStats */
-        VerticalStats: {
-            prd: components["schemas"]["Stat"];
-            prb: components["schemas"]["Stat"];
-            /** Vei */
-            vei: number | null;
-            /** Vei Significance */
-            vei_significance: number | null;
-        };
-        /** WizardAnswers */
-        WizardAnswers: {
-            place: components["schemas"]["Place"];
-            parcels: components["schemas"]["ParcelLayer"];
-            details: components["schemas"]["ParcelDetails"] | null;
-            sales: components["schemas"]["Sales"];
-            /**
-             * Value Fields
-             * @description OpenAVMKit field names of the total values to check, e.g. ['assr_market_value'].
-             */
-            value_fields: string[];
-            /**
-             * Location Field
-             * @description Field used as the main location, e.g. 'neighborhood'.
-             */
-            location_field: string | null;
-            /** Model Groups */
-            model_groups: components["schemas"]["ModelGroup"][];
-            dates: components["schemas"]["Dates"];
         };
     };
     responses: never;
@@ -823,57 +484,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
-                };
-            };
-        };
-    };
-    list_samples_api_samples_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SampleInfo"][];
-                };
-            };
-        };
-    };
-    create_from_sample_api_samples__sample_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sample_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1185,131 +795,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    run_step_api_projects__project_id__steps__step__run_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                step: "bring_in_data" | "model_groups" | "check_sales" | "check_values";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cancel_job_api_jobs__job_id__cancel_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    job_events_api_jobs__job_id__events_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    value_studies_api_projects__project_id__results_value_studies_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValueStudy"][];
                 };
             };
             /** @description Validation Error */

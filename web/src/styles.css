@@ -1086,24 +1086,141 @@ a.row-title:hover {
   font-weight: 600;
 }
 
-/* ---------- Project setup: facts and data files ---------- */
+/* ---------- Project view: one tabbed panel (F3) ---------- */
 
-.project-setup {
+.project {
   display: grid;
-  gap: 1.25rem;
-  max-width: 52rem;
+  gap: 1rem;
+  max-width: 60rem;
 }
 
-.panel-note {
+.folder-tab-list {
+  display: flex;
+  gap: 0.25rem;
+  padding-left: 0.5rem;
+  margin-bottom: -1px; /* the selected tab sits on the panel's top edge */
+}
+
+.folder-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--panel-edge);
+  border-bottom-color: var(--panel-edge);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--head);
+  color: var(--muted);
+  cursor: default;
+  outline: none;
+}
+
+.folder-tab[data-selected] {
+  background: var(--panel);
+  border-bottom-color: var(--panel);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.folder-tab[data-hovered]:not([data-selected]):not([data-disabled]) {
+  color: var(--text);
+}
+
+.folder-tab[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+
+.folder-tab[data-disabled] {
+  background: var(--well);
+  border-color: var(--rule);
+  border-bottom-color: var(--panel-edge);
+  color: var(--well-edge);
+  min-width: 3.5rem;
+  justify-content: center;
+}
+
+.tab-icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.folder-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1.25rem;
+  min-height: 12rem;
+  outline: none;
+}
+
+.folder-panel[data-focus-visible] {
+  outline: 2px solid var(--focus);
+}
+
+.folder-path {
+  margin-right: 0.75rem;
+  font-weight: 400;
+}
+
+.fact dd .button {
+  vertical-align: middle;
+}
+
+.input-files {
+  display: grid;
+  gap: 1rem;
+}
+
+.tab-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tab-empty {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+}
+
+.tab-empty .empty {
+  padding: 0;
+}
+
+.file-rows {
+  list-style: none;
   margin: 0;
-  padding: 0 1rem 0.75rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr) max-content;
+  column-gap: 2rem;
+}
+
+/* One grid for all rows, so the columns line up. */
+.file-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.file-row:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.file-row > * {
+  overflow-wrap: anywhere;
 }
 
 .add-file {
   display: grid;
   gap: 1rem;
   padding: 1rem;
-  border-top: 1px solid var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
   background: var(--head);
 }
 

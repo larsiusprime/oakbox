@@ -13,42 +13,46 @@ function size(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-/** F2: the project's data.load entries, and adding a file to in/ (SPEC §3.0). */
-export function DataFiles({ project }: { project: Project }) {
+/** F3: the Input files tab, the project's data.load entries (SPEC §3.0). */
+export function InputFilesTab({ detail }: { detail: ProjectDetail }) {
   const [adding, setAdding] = useState(false);
-  const f = t.dataFiles;
+  const f = t.inputFiles;
+  const { project, files } = detail;
+  const addButton = (
+    <Button className="button" onPress={() => setAdding(true)}>
+      <Plus aria-hidden="true" size="1em" />
+      {f.add}
+    </Button>
+  );
   return (
-    <section className="panel" aria-labelledby="files-title">
-      <header className="panel-head">
-        <h2 id="files-title">{f.title}</h2>
-        {!adding && (
-          <Button className="button panel-head-action" onPress={() => setAdding(true)}>
-            <Plus aria-hidden="true" size="1em" />
-            {f.add}
-          </Button>
-        )}
-      </header>
-      <p className="row-meta panel-note">{f.note}</p>
-      {project.files.length === 0 && !adding && <p className="empty">{f.none}</p>}
-      {project.files.length > 0 && (
-        <ul className="rows">
-          {project.files.map((file) => (
-            <li key={file.name} className="row">
-              <div className="row-main">
-                <span className="row-title mono">{file.name}</span>
-                <span className="row-meta">{f.entry(file.filename, file.layer)}</span>
-              </div>
+    <div className="input-files">
+      {files.length > 0 && !adding && <div className="tab-actions">{addButton}</div>}
+      {adding && <AddFile project={project} onDone={() => setAdding(false)} />}
+      {files.length === 0 && !adding && (
+        <div className="tab-empty">
+          <p className="empty">{f.none}</p>
+          {addButton}
+        </div>
+      )}
+      {files.length > 0 && (
+        <ul className="file-rows">
+          {files.map((file) => (
+            <li key={file.name} className="file-row">
+              <span className="mono">{file.name}</span>
+              <span>{f.file(file.filename, file.layer)}</span>
+              <span className={file.size_bytes ? "row-meta" : "error"}>
+                {file.size_bytes ? `${file.format} · ${size(file.size_bytes)}` : f.missing}
+              </span>
             </li>
           ))}
         </ul>
       )}
-      {adding && <AddFile project={project} onDone={() => setAdding(false)} />}
-    </section>
+    </div>
   );
 }
 
 function AddFile({ project, onDone }: { project: Project; onDone: () => void }) {
-  const f = t.dataFiles;
+  const f = t.inputFiles;
   const [path, setPath] = useState("");
   const check = useMutation({
     mutationFn: async (p: string) =>
@@ -106,7 +110,7 @@ function AddFile({ project, onDone }: { project: Project; onDone: () => void }) 
 }
 
 function Choices({ project, found, onDone }: { project: Project; found: FileCheck; onDone: () => void }) {
-  const f = t.dataFiles;
+  const f = t.inputFiles;
   const queryClient = useQueryClient();
   const [name, setName] = useState(found.suggested_name);
   const [mode, setMode] = useState<"move" | "copy">("copy");
@@ -129,10 +133,8 @@ function Choices({ project, found, onDone }: { project: Project; found: FileChec
           },
         }),
       ),
-    onSuccess: (p) => {
-      queryClient.setQueryData<ProjectDetail>(["project", project.id], (old) =>
-        old ? { ...old, project: p } : old,
-      );
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["project", project.id] });
       onDone();
     },
   });

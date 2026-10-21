@@ -1,31 +1,38 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Play, RotateCw, Square } from "lucide-react";
-import { useCallback } from "react";
-import { Button, Disclosure, DisclosurePanel, Heading } from "react-aria-components";
-import { api, type Project, type ProjectDetail, STEP_ORDER, type StepId, unwrap } from "../api/client";
-import { useJobEvents } from "../api/events";
-import { Progress } from "../components/Progress";
-import { Status } from "../components/Status";
-import { ValueStudyTable } from "../components/ValueStudyTable";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { ChevronLeft, FolderOpen } from "lucide-react";
+import { useState } from "react";
+import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
+import { navigate } from "../App";
+import { api, type ProjectDetail, unwrap } from "../api/client";
+import cardFileBox from "../assets/noto/emoji_u1f5c3.svg";
+import gear from "../assets/noto/emoji_u2699.svg";
 import { t } from "../strings";
-import { DataFiles } from "./DataFiles";
+import { InputFilesTab } from "./InputFiles";
 
-export function ProjectScreen({ projectId }: { projectId: string }) {
-  const queryClient = useQueryClient();
+export const TABS = ["metadata", "files"] as const;
+export type TabId = (typeof TABS)[number];
+const PLACEHOLDERS = ["later-1", "later-2", "later-3"] as const;
+
+/** F3: the project view, one tabbed panel (SPEC §3.0). */
+export function ProjectScreen({ projectId, tab }: { projectId: string; tab: TabId | null }) {
   const detail = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () =>
       unwrap(await api.GET("/api/projects/{project_id}", { params: { path: { project_id: projectId } } })),
   });
 
-  const refresh = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-    void queryClient.invalidateQueries({ queryKey: ["studies", projectId] });
-  }, [queryClient, projectId]);
-
-  if (detail.isPending) return <p className="empty">{t.project.working}</p>;
+  if (detail.isPending) return <p className="empty">{t.project.loading}</p>;
   if (detail.error) return <p className="error">{detail.error.message}</p>;
-  const { project, running_job } = detail.data;
+  return <ProjectView detail={detail.data} tab={tab} />;
+}
+
+function ProjectView({ detail, tab }: { detail: ProjectDetail; tab: TabId | null }) {
+  const { project } = detail;
+  const projectId = project.id;
+  // Input files first while there are none: adding them is the next thing to do. Decided once,
+  // when the project opens, so adding the first file doesn't switch tabs.
+  const [opening] = useState<TabId>(() => (detail.files.length === 0 ? "files" : "metadata"));
+  const selected = tab ?? opening;
 
   return (
     <div className="project">
@@ -37,177 +44,79 @@ export function ProjectScreen({ projectId }: { projectId: string }) {
         <h1>{project.name}</h1>
         <span className="page-meta">{t.project.taxYear(project.tax_year)}</span>
       </header>
-      {project.answers === null ? (
-        <div className="project-setup">
-          <ProjectFacts project={project} />
-          <DataFiles project={project} />
-        </div>
-      ) : (
-        <div className="project-body">
-          <section className="panel steps-panel" aria-labelledby="steps-title">
-            <header className="panel-head">
-              <h2 id="steps-title">{t.project.stepsTitle}</h2>
-            </header>
-            <ol className="rows steps">
-              {STEP_ORDER.map((step, i) => (
-                <StepRow
-                  key={step}
-                  index={i + 1}
-                  step={step}
-                  detail={detail.data}
-                  blocked={STEP_ORDER.slice(0, i).some((s) => project.steps[s]?.state !== "done")}
-                  runningJobId={running_job?.step === step ? running_job.id : null}
-                  onChange={refresh}
-                />
-              ))}
-            </ol>
-          </section>
-          {project.steps.check_values?.state === "done" && <Results projectId={projectId} />}
-        </div>
-      )}
+      <Tabs
+        className="folder-tabs"
+        selectedKey={selected}
+        onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
+        disabledKeys={PLACEHOLDERS}
+      >
+        <TabList className="folder-tab-list" aria-label={project.name}>
+          <Tab id="metadata" className="folder-tab">
+            <img src={gear} alt="" className="tab-icon" />
+            {t.tabs.metadata}
+          </Tab>
+          <Tab id="files" className="folder-tab">
+            <img src={cardFileBox} alt="" className="tab-icon" />
+            {t.tabs.inputFiles}
+          </Tab>
+          {PLACEHOLDERS.map((id) => (
+            <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>
+              <span aria-hidden="true">· · ·</span>
+            </Tab>
+          ))}
+        </TabList>
+        <TabPanel id="metadata" className="folder-panel">
+          <MetadataTab detail={detail} />
+        </TabPanel>
+        <TabPanel id="files" className="folder-panel">
+          <InputFilesTab detail={detail} />
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }
 
-type StepRowProps = {
-  index: number;
-  step: StepId;
-  detail: ProjectDetail;
-  blocked: boolean;
-  runningJobId: string | null;
-  onChange: () => void;
-};
-
-function StepRow({ index, step, detail, blocked, runningJobId, onChange }: StepRowProps) {
-  const status = detail.project.steps[step];
-  const state = status?.state ?? "not_run";
-  const anyRunning = detail.running_job !== null && detail.running_job !== undefined;
-  const run = useMutation({
+function MetadataTab({ detail }: { detail: ProjectDetail }) {
+  const { project } = detail;
+  const m = t.metadata;
+  const show = useMutation({
     mutationFn: async () =>
       unwrap(
-        await api.POST("/api/projects/{project_id}/steps/{step}/run", {
-          params: { path: { project_id: detail.project.id, step } },
-        }),
-      ),
-    onSuccess: onChange,
-  });
-  const cancel = useMutation({
-    mutationFn: async (jobId: string) =>
-      unwrap(await api.POST("/api/jobs/{job_id}/cancel", { params: { path: { job_id: jobId } } })),
-  });
-  const view = useJobEvents(runningJobId, onChange);
-  const running = runningJobId !== null && !view.finished;
-  const info = t.steps[step];
-  const again = state === "done" || state === "stale";
-
-  return (
-    <li className={`row step step-${running ? "running" : state}`}>
-      <span className="step-number" aria-hidden="true">
-        {index}
-      </span>
-      <div className="row-main">
-        <div className="step-head">
-          <h3 className="row-title">{info.title}</h3>
-          <Status state={running ? "running" : state} />
-        </div>
-        <span className="row-meta">{info.what}</span>
-        {running ? (
-          <Progress
-            fraction={view.fraction}
-            label={view.latest?.type === "progress" ? view.latest.message : t.project.working}
-          />
-        ) : (
-          <>
-            {blocked && <span className="row-meta">{t.project.needsEarlier}</span>}
-            {!blocked && state !== "failed" && status?.message && (
-              <span className="step-result">{status.message}</span>
-            )}
-            {state === "failed" && <StepError message={status?.message ?? ""} />}
-          </>
-        )}
-        {run.error && (
-          <p className="error" role="alert">
-            {run.error.message}
-          </p>
-        )}
-      </div>
-      {running ? (
-        <Button
-          className="button"
-          isDisabled={cancel.isPending}
-          onPress={() => runningJobId && cancel.mutate(runningJobId)}
-        >
-          <Square aria-hidden="true" size="0.9em" />
-          {cancel.isPending ? t.project.stopping : t.project.cancel}
-        </Button>
-      ) : (
-        <Button
-          className={again ? "button" : "button button-primary"}
-          isDisabled={blocked || anyRunning || run.isPending}
-          onPress={() => run.mutate()}
-        >
-          {again ? <RotateCw aria-hidden="true" size="1em" /> : <Play aria-hidden="true" size="1em" />}
-          {again ? t.project.runAgain : t.project.run}
-        </Button>
-      )}
-    </li>
-  );
-}
-
-function StepError({ message }: { message: string }) {
-  return (
-    <Disclosure className="disclosure">
-      <Heading>
-        <Button slot="trigger" className="disclosure-trigger">
-          {t.project.showDetails}
-        </Button>
-      </Heading>
-      <DisclosurePanel>
-        <pre className="error-detail">{message}</pre>
-      </DisclosurePanel>
-    </Disclosure>
-  );
-}
-
-function Results({ projectId }: { projectId: string }) {
-  const studies = useQuery({
-    queryKey: ["studies", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/results/value-studies", {
-          params: { path: { project_id: projectId } },
+        await api.POST("/api/projects/{project_id}/show-in-folder", {
+          params: { path: { project_id: project.id } },
         }),
       ),
   });
-  return (
-    <div className="results-stack">
-      {studies.data?.map((s) => (
-        <ValueStudyTable key={s.field} study={s} />
-      ))}
-    </div>
-  );
-}
-
-/** A project with no data yet: what it is, and what comes next (SPEC §3.0 F1). */
-function ProjectFacts({ project }: { project: Project }) {
-  const f = t.projectFacts;
   const rows = [
-    [f.jurisdiction, project.jurisdiction],
-    [f.region, `${project.region}, ${project.country}`],
-    [f.valuationDate, project.valuation_date ?? ""],
-    [f.units, project.units === "imperial" ? t.newProject.imperial : t.newProject.metric],
+    [m.jurisdiction, project.jurisdiction],
+    [m.region, `${project.region}, ${project.country}`],
+    [m.taxYear, String(project.tax_year)],
+    [m.valuationDate, project.valuation_date ?? ""],
+    [m.units, project.units === "imperial" ? t.newProject.imperial : t.newProject.metric],
   ] as const;
   return (
-    <section className="panel facts-panel">
-      <dl className="facts">
-        {rows.map(([k, v]) => (
-          <div key={k} className="fact">
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-      </dl>
-      {project.files.length === 0 && <p className="row-meta">{f.next}</p>}
-    </section>
+    <dl className="facts">
+      {rows.map(([k, v]) => (
+        <div key={k} className="fact">
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+      <div className="fact">
+        <dt>{m.folder}</dt>
+        <dd>
+          <span className="mono folder-path">{detail.folder}</span>
+          <Button className="button" isDisabled={show.isPending} onPress={() => show.mutate()}>
+            <FolderOpen aria-hidden="true" size="1em" />
+            {m.showInFolder}
+          </Button>
+          {show.error && (
+            <span className="error" role="alert">
+              {show.error.message}
+            </span>
+          )}
+        </dd>
+      </div>
+    </dl>
   );
 }
