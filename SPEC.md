@@ -58,6 +58,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D42 | Help on hover | Explanations go in hover tooltips (also shown on keyboard focus), not in lines of text on the screen. Screens carry only labels and what the user needs to act. Applies to new screens and to screens as they are revised. |
 | D43 | Dense by default | Compact, information-dense presentation, after mid-2000s desktop software (Mac OS X Tiger): 14 px text, about 24 px controls and table rows, a light grey window, softly rounded panels and tabs, buttons with a classic two-step bevel (two rings of light and shadow, swapped when pressed; grey, blue for the main action, red for danger; hovered icon buttons share it); every dropdown, pick-list or searchable, is a classic combo box: a sunken white field with a bevelled arrow button inside its right edge, folder tabs that touch, the first flush with the panel, slightly rounded inputs, little padding. Tables keep full outlines: an outer border, a gradient header bar, column lines and row lines, with a blue alternate-row tint. **Comfortable** density (about 36 px controls and rows, same text size) is used automatically on touch screens and can be chosen under View → Density (with the menus, D44); the choice is kept in OAK box's settings. **Built:** touch screens get it automatically (`pointer: coarse`); the setting itself arrives with the menus. Large text scales everything up. |
 | D44 | Native window | The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (pywebview) and hold only what exists (§3.9). Browser mode has no menus; everything in them is also reachable on the page. |
+| D45 | Fields wizard | Fields are chosen in a guided wizard over all of a project's files, one small question at a time (F3d), with the per-file table (F3c) as the Advanced view. Guesses are preselected only on a name match that passes the field's check. |
 
 ## 3. What the user sees
 
@@ -303,7 +304,105 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
 - **Saving:** each change saves at once to `oakbox.json` and `settings.json`. A row that isn't complete is not written, and says why in red: a Custom… field with no name, a clashing name, or a date with no format. It is written as soon as it is complete. Nothing else in the entry changes.
 - **Columns in `load` that the file doesn't have** (e.g. after the file was replaced) are listed first, in red, with only Load (to untick them).
 
-**Not in F3c:** `calc`, `tweak` and `drop_fields` (next), field classification (deferred), and joins (F4).
+**Not in F3c:** `calc`, `tweak` and `drop_fields` (next), field classification (deferred), and joins (F3d, F4).
+
+#### F3d. The Fields tab: a guided wizard over all the files
+
+Choosing fields file by file (F3c) shows every column of every file, most of them blank. The **Fields** tab instead asks one small question at a time, across the whole project, and writes the same OpenAVMKit settings: each file's `load`, plus the merge lists that stitch the files together (`data.process.merge`). F3c stays as the **Advanced view**. Both edit the same settings, so you can switch at any point.
+
+**Where:** a third tab, **Fields**, after Input files (`#/projects/<id>/fields`, with `/<step>` for each step). It opens at the first step that isn't done, or at Review when all are.
+
+```
+┌─────────────────────┬───────────────────────────────────────────────────────────────┐
+│ 1 Your files        │ STEP 5 OF 9 · BUILDING › AGE                                  │
+│ ✓ Shapes            │ When were the buildings built?                                │
+│ ✓ Location          │ Age drives depreciation. If you only have one of these, fine. │
+│ ✓ Land              │                                                               │
+│ 5 Building          │ Year built            [ YR_BLT · cama  ▾ ]  ✓ years 1890–2025 │
+│   ✓ Basics          │ Effective year built  [ (none)         ▾ ]                    │
+│   ✓ Size            │ Age in years          [ (none)         ▾ ]  Worked out from…  │
+│   ▸ Age             │                                                               │
+│     Quality & cond. │                                                               │
+│     Rooms           │                                                               │
+│     Features        │                                                               │
+│ 6 Sales             │                                                               │
+│ 7 Assessed values   │                                                               │
+│ 8 Other details     │                                                               │
+│ 9 Review            ├───────────────────────────────────────────────────────────────┤
+│                     │ Advanced view            [‹ Back] [I don't have these] [Next ›]│
+└─────────────────────┴───────────────────────────────────────────────────────────────┘
+```
+
+- **Layout:** a classic installer wizard. The step list on the left shows done (✓), skipped (–) and the current step, and any step can be clicked. The question is on the right, with Back / I don't have these / Next at the bottom. **Advanced view** goes to the Input files list (F3b), where each file's Choose fields opens F3c.
+- **Saving:** each pick saves at once, as in F3c. Next only moves on.
+
+**Step 1: Your files.** One table, one row per data file:
+
+```
+  File      Rows     Holds          Parcel ID column
+  parcels   48,310   [ Parcels  ▾ ] [ PARCEL_ID ▾ ]  ✓ one row per parcel · has shapes
+  cama      48,212   [ Parcels  ▾ ] [ PROP_ID   ▾ ]  ✓ one row per parcel · 99.8% match parcels
+  sales     61,804   [ Sales    ▾ ] [ PROP_ID   ▾ ]  ✓ 99.5% of sales match a parcel
+  permits    9,140   [ Not used ▾ ] [ PERMIT_PR ▾ ]  several rows per parcel: not used yet
+
+  Each sale also needs its own ID
+  sales              Sale ID column  [ Make one: parcel ID + date ▾ ]
+```
+
+- **Holds:** Parcels (one row per parcel), Sales (one row per sale) or Not used.
+  - **Guessed:** a file with a price-like and a date-like column is Sales; any other file is Parcels.
+  - Parcel files go into `merge.universe`, sales files into `merge.sales`. Not used files are in neither, and keep their `load`.
+  - **The base** is the first parcel file with shapes (else the first parcel file). It is first in `merge.universe`, so every parcel in it is kept and the others left-join to it on `key`. The rest follow in file-list order.
+  - v1 has one sales file. Several sales files (e.g. one per year, appended) come later.
+- **Parcel ID column** is loaded as `key` in that file.
+  - **Guessed:** a column whose name looks like an ID (PIN, PARCEL, PROP_ID, ACCOUNT, KEY, GEO_ID…) and whose values are all, or nearly all, different.
+  - **Checked once picked**, on the whole column:
+    - parcel files: whether each parcel appears once, and, other than the base, how many of its IDs are in the base;
+    - sales files: how many sales find a parcel in the base (repeats are normal).
+  - **A parcel file with repeats** (permits, several buildings per parcel) is set to Not used, with "several rows per parcel: not used yet". Summarising such files comes later.
+  - **A file with no usable ID** is flagged on its row, and can't be Parcels or Sales. (An ID made from row numbers, for a single parcel file, needs an engine change: §7 B14.)
+- **Sale ID** (`key_sale`, §7 B13): a column of the sales file whose values are all different, or **Make one: parcel ID + date**, written as an entry `calc` that joins `key` and `sale_date`.
+- **Second ID** (`key2`) is asked here too, per parcel file, and is optional.
+
+**Steps 2 to 8: one topic at a time.** Each asks for at most about five fields, from the data dictionary's groups:
+
+| Step | Fields |
+|---|---|
+| 2 Shapes | `geometry`: shown, not asked (which file has it). "No shapes" when no parcel file has any. |
+| 3 Location | Address, neighborhood, city, school district, census tract and block group, flood risk… |
+| 4 Land | Land area, zoning (code, description), land class, minimum buildable size |
+| 5 Building: Basics | Building type, class, description, count, units, stories |
+| Building: Size | Finished area, footprint |
+| Building: Age | Year built, effective year built, age, effective age |
+| Building: Quality & condition | Quality and condition (as text, or as a number) |
+| Building: Rooms | Bedrooms, bathrooms (total, full, half) |
+| Building: Features | Style, exterior, heating, AC, foundation |
+| 6 Sales | Sale price, sale date, valid sale, vacant sale |
+| 7 Assessed values | Assessor's land, improvement and market values |
+| 8 Other details | Deed (book, page, grantor, grantee) and mailing address fields |
+
+- **Each field is a row:** its readable name (description on hover, D42), a column dropdown, then a check and a few sample values.
+- **The column dropdown** lists columns grouped by file: every parcel file for parcel fields, the sales file for sales fields, plus (none). A column already used shows as "used: Year built" and can't be picked twice.
+- **The check** reads the samples for that field's type: numbers, a year range for years, the date format found ("✓ reads as month/day/year"), the yes/no reading ("✓ Y = yes, blank = no"). A column that doesn't read as its field's type is shown in red, not saved, with the Advanced view as the place to fix it.
+- **Types and formats are not asked:** the type is the dictionary's (as in F3c), dates take the first common format that reads all samples, and yes/no columns are Blank = No.
+- **Guessed, but not too clever:** a field is preselected only when a column's name matches the field's key or name, or a short alias list (e.g. YR_BLT, YEAR_BUILT → `bldg_year_built`), and the column passes the field's check. Otherwise it stays (none). Nothing fuzzy. A guess never replaces a choice already made, including (none).
+- **Computed fields** (`either`) are asked only when what they're computed from isn't loaded: "Age in years" only without a year built. They're labelled "Only if there's no year built".
+- **I don't have these** sets the step's fields to (none) and marks it skipped (–).
+- **Valid sale and vacant sale are required** (OpenAVMKit won't run without them). Each has a last option: **I don't have this: treat all sales as valid** / **…treat no sales as vacant**. Picking it asks for confirmation in a warning dialog ("Every sale will be used to build and test the models, including ones that aren't arm's-length." / "…vacant-land sales will be treated as improved."). It's written as an entry `calc` setting the field to true / false, and shows as **Assumed** everywhere.
+
+**Step 9: Review.** Every field with its source, grouped by step: the file and column, "Assumed", or "—". Each has **Change**, which opens its step. Above, a count and the columns not loaded ("18 fields from 24 columns. Not loaded: OWNER_NAME, MAIL_ADDR and 4 more"). Problems are listed first: no parcel ID, no sales, a missing valid/vacant sale, a column that doesn't read.
+
+**What it writes**, and nothing else:
+- each file's `load` (as F3c), and the entry `calc` for a made-up sale ID and for assumed valid/vacant sales;
+- `data.process.merge.universe` and `.sales`, rebuilt from the Holds column whenever it or the file list changes.
+
+**What it keeps in `oakbox.json`:** only its own state: skipped steps and the confirmed assumptions. The files' roles are read back from the merge lists.
+
+**Changes made elsewhere:** the wizard reads the settings each time. A field loaded from two parcel files (possible in the Advanced view) shows both, with a warning, until one is set to (none).
+
+**Templates** for common CAMA exports fit on top later: a template is a set of file roles and a column → field map, recognised by its column names. Not in F3d.
+
+**Not in F3d:** files with several rows per parcel, several sales files, `calc`/`tweak` beyond the two above, templates, and the joined-result preview (F4).
 
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
@@ -973,6 +1072,8 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
     **Done** on `engine/dictionary-source` and `engine/dictionary-reserved`, merged into `openavmkit-oakbox`: 63 input, 42 derived, 15 either, 43 `reserved` (names kept for values OpenAVMKit means to compute but nothing writes yet: model outputs, assessor and "true" ratios, OSM street/corner/waterfront fields, vacancy warnings, some geometry metrics). Reviewed by the maintainer. Each value was checked against the code that writes the field; the classification is open for the maintainer's review. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
 12. **CSV yes/no columns.** **Done** on `engine/csv-bool`, merged: `data.load` passed `bool` to `pd.read_csv`, which fails on "Y"/"N"; such columns are now read as text and converted after loading, as dates already were. Also, a blank value became True whatever `na_handling` said ("<NA>" and "" weren't treated as missing). Still as before: any unrecognised text counts as Yes.
+13. **The sale ID in the data dictionary.** `key_sale` is required by the sales merge but has no dictionary entry. Add it (`"source": "input"`, type string). Topic branch `engine/dictionary-key-sale`.
+14. **An ID from row numbers** (optional): a `calc` operation giving each row its number, so a single parcel file with no ID column can still be loaded. Topic branch `engine/calc-row-number`, only if F3d needs it in use.
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).
 2. **Default per-group model configuration** and a "choose for me" policy with a small-sample fallback.
