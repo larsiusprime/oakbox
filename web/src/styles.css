@@ -9,19 +9,19 @@
   /* Plex covers Latin, Cyrillic and Greek; Noto picks up every other script. */
   --font: "IBM Plex Sans Variable", "IBM Plex Sans", "Noto Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", "Noto Sans Mono", Consolas, monospace;
-  --font-size: 16px;
+  --font-size: 14px;
 
-  --bg: #e5e6e6;
+  --bg: #d4d0c8;
   --panel: #ffffff;
-  --panel-edge: #b4b7ba;
-  --head: #f2f3f3;
+  --panel-edge: #808080;
+  --head: #ece9d8;
   --text: #1c1e20;
   --muted: #565b61;
-  --rule: #dcdee0;
+  --rule: #d6d2c9;
 
   --btn-top: #ffffff;
-  --btn-bottom: #e2e2df;
-  --btn-edge: #8b8d8f;
+  --btn-bottom: #e3e1d9;
+  --btn-edge: #707070;
   --btn-text: #1c1e20;
   --primary-top: #4a86d8;
   --primary-bottom: #2c62b4;
@@ -29,8 +29,8 @@
   --focus: #1f6fe0;
   --link: #1d5bb8;
 
-  --well: #dadcdd;
-  --well-edge: #9fa3a6;
+  --well: #e0ddd5;
+  --well-edge: #7f9db9;
   --fill-top: #5b95e3;
   --fill-bottom: #2f68ba;
 
@@ -39,11 +39,30 @@
   --bad: #a3231b;
   --active: #1f4b8e;
 
-  --radius: 3px;
+  --radius: 0;
+  --btn-radius: 2px;
+  /* Density (D43): compact by default; comfortable on touch screens or when chosen. */
+  --ctl-h: 1.75rem;
+  --cell-y: 0.1rem;
+  --pad: 0.5rem;
 }
 
 :root[data-text="large"] {
-  --font-size: 20px;
+  --font-size: 18px;
+}
+
+:root[data-density="comfortable"] {
+  --ctl-h: 2.6rem;
+  --cell-y: 0.3rem;
+  --pad: 0.9rem;
+}
+
+@media (pointer: coarse) {
+  :root:not([data-density="compact"]) {
+    --ctl-h: 2.6rem;
+    --cell-y: 0.3rem;
+    --pad: 0.9rem;
+  }
 }
 
 :root[data-contrast="high"] {
@@ -70,7 +89,7 @@ body {
   font-family: var(--font);
   color: var(--text);
   background: var(--bg);
-  line-height: 1.45;
+  line-height: 1.3;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -82,12 +101,12 @@ h3 {
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
 h2 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 600;
 }
 
@@ -100,7 +119,7 @@ a {
   color: var(--link);
 }
 
-/* ---------- Titlebar: polished oak ---------- */
+/* ---------- Titlebar (not shown for now, D21; kept to bring back when chrome is needed): polished oak ---------- */
 
 .titlebar {
   display: flex;
@@ -261,7 +280,7 @@ a {
 .content {
   max-width: 1680px;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem 3rem;
+  padding: 0.6rem 0.9rem 1.5rem;
 }
 
 .home {
@@ -275,8 +294,8 @@ a {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  margin-bottom: 1rem;
+  gap: 0.1rem 0.75rem;
+  margin-bottom: 0.4rem;
 }
 
 .page-meta {
@@ -317,7 +336,7 @@ a {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .panel-head {
@@ -325,7 +344,7 @@ a {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.25rem 1rem;
-  padding: 0.8rem 1rem 0.6rem;
+  padding: 0.45rem var(--pad) 0.35rem;
 }
 
 .panel-head h1 {
@@ -347,8 +366,9 @@ a {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 1rem;
+  padding: var(--cell-y) var(--pad);
   border-top: 1px solid var(--rule);
+  min-height: calc(var(--ctl-h) + 0.25rem);
 }
 
 .row-main {
@@ -379,7 +399,7 @@ a.row-title:hover {
 
 .empty {
   color: var(--muted);
-  padding: 0 1rem 1rem;
+  padding: 0 var(--pad) var(--pad);
   margin: 0;
 }
 
@@ -391,16 +411,14 @@ a.row-title:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  min-height: 2.5rem;
-  padding: 0.4rem 1.1rem;
+  gap: 0.35rem;
+  min-height: var(--ctl-h);
+  padding: 0 0.75rem;
   color: var(--btn-text);
   background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
   border: 1px solid var(--btn-edge);
-  border-radius: 4px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 1px 2px rgba(0, 0, 0, 0.25);
+  border-radius: var(--btn-radius);
+  box-shadow: none;
   cursor: pointer;
   white-space: nowrap;
   flex: none;
@@ -432,13 +450,11 @@ a.row-title:hover {
 }
 
 .button-primary {
-  color: #ffffff;
-  background: linear-gradient(to bottom, var(--primary-top), var(--primary-bottom));
-  border-color: var(--primary-edge);
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 1px 2px rgba(0, 0, 0, 0.3);
+  color: var(--btn-text);
+  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  border-color: #00309c;
+  text-shadow: none;
+  box-shadow: 0 0 0 1px #7da2ce inset;
 }
 
 .button-primary[data-hovered] {
@@ -736,17 +752,17 @@ a.row-title:hover {
 
 .input {
   font: inherit;
-  min-height: 2.4rem;
-  padding: 0.35rem 0.6rem;
+  min-height: var(--ctl-h);
+  padding: 0 0.4rem;
   color: var(--text);
   background: #ffffff;
   border: 1px solid var(--well-edge);
   border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) inset;
+  box-shadow: none;
 }
 
 .input[data-focused] {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 0;
   border-color: var(--focus);
 }
@@ -760,16 +776,14 @@ a.row-title:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  min-height: 2.4rem;
-  padding: 0.35rem 0.6rem 0.35rem 0.75rem;
+  gap: 0.5rem;
+  min-height: var(--ctl-h);
+  padding: 0 0.35rem 0 0.5rem;
   color: var(--btn-text);
   background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
   border: 1px solid var(--btn-edge);
-  border-radius: 4px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: var(--btn-radius);
+  box-shadow: none;
   cursor: pointer;
   text-align: left;
 }
@@ -799,7 +813,7 @@ a.row-title:hover {
 }
 
 .choice-item {
-  padding: 0.4rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   cursor: pointer;
   outline: none;
 }
@@ -824,20 +838,20 @@ a.row-title:hover {
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  min-height: 1.9rem;
+  min-height: var(--ctl-h);
 }
 
 .tick-box,
 .radio-dot {
   flex: none;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 0.95rem;
+  height: 0.95rem;
   display: grid;
   place-items: center;
   background: #ffffff;
   border: 1px solid var(--well-edge);
-  border-radius: 3px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) inset;
+  border-radius: 0;
+  box-shadow: none;
   color: #ffffff;
 }
 
@@ -885,14 +899,14 @@ a.row-title:hover {
 }
 
 .settings-body {
-  padding: 0 1rem 1rem;
+  padding: 0 var(--pad) var(--pad);
 }
 
 .setting-line {
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .mono {
@@ -911,8 +925,8 @@ a.row-title:hover {
 
 .form-panel {
   display: grid;
-  gap: 1.1rem;
-  padding: 1.25rem;
+  gap: 0.7rem;
+  padding: 0.8rem var(--pad);
 }
 
 .form-panel > .row-meta {
@@ -966,13 +980,13 @@ a.row-title:hover {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .modal-body {
   display: grid;
-  gap: 0.75rem;
-  padding: 1.25rem;
+  gap: 0.6rem;
+  padding: 0.9rem;
   outline: none;
 }
 
@@ -989,7 +1003,7 @@ a.row-title:hover {
   margin: 0;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.4rem 1.5rem;
+  gap: 0.2rem 1.25rem;
 }
 
 .fact {
@@ -1009,7 +1023,7 @@ a.row-title:hover {
 
 .project {
   display: grid;
-  gap: 1rem;
+  gap: 0.5rem;
   max-width: 76rem; /* room for the field view's table (F3c) */
 }
 
@@ -1023,11 +1037,11 @@ a.row-title:hover {
 .folder-tab {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.9rem;
+  gap: 0.35rem;
+  padding: 0.2rem 0.7rem;
   border: 1px solid var(--panel-edge);
   border-bottom-color: var(--panel-edge);
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: 3px 3px 0 0;
   background: var(--head);
   color: var(--muted);
   cursor: default;
@@ -1060,17 +1074,17 @@ a.row-title:hover {
 }
 
 .tab-icon {
-  width: 1.2em;
-  height: 1.2em;
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .folder-panel {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: 0 var(--radius) var(--radius) var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  padding: 1rem 1.25rem;
-  min-height: 12rem;
+  box-shadow: none;
+  padding: var(--pad);
+  min-height: 6rem;
   outline: none;
 }
 
@@ -1089,7 +1103,7 @@ a.row-title:hover {
 
 .input-files {
   display: grid;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .tab-actions {
@@ -1100,7 +1114,7 @@ a.row-title:hover {
 .tab-empty {
   display: grid;
   justify-items: start;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .tab-empty .empty {
@@ -1112,18 +1126,19 @@ a.row-title:hover {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  border: 1px solid var(--panel-edge);
 }
 
 .col-type {
-  width: 8.5rem;
+  width: 7rem;
 }
 
 .col-size {
-  width: 6.5rem;
+  width: 5.5rem;
 }
 
 .col-geometry {
-  width: 7rem;
+  width: 5.5rem;
 }
 
 .col-fields {
@@ -1131,32 +1146,44 @@ a.row-title:hover {
 }
 
 .col-actions {
-  width: 7.5rem; /* show, rename, remove */
+  width: 6.75rem;
 }
 
 .file-table th {
   text-align: left;
   font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 0 1.5rem 0.35rem 0;
+  font-weight: 400;
+  color: var(--text);
+  padding: 0.15rem 0.45rem;
+  background: linear-gradient(to bottom, #fdfdfb, #e9e6dc);
+  border-right: 1px solid #c8c4bb;
+  border-bottom: 1px solid #a0a0a0;
 }
 
 .file-table td {
-  padding: 0.3rem 1.5rem 0.3rem 0;
-  border-top: 1px solid var(--rule);
+  padding: var(--cell-y) 0.45rem;
+  border-top: 1px solid #e6e3da;
   vertical-align: middle;
   white-space: nowrap;
+  border-right: 1px solid #efede7;
 }
 
 .file-table tr.rename-error td {
   border-top: none;
-  padding: 0 0 0.4rem;
+  padding: 0 0.45rem 0.3rem;
   white-space: normal;
 }
 
 .file-table tr:last-child td {
-  border-bottom: 1px solid var(--rule);
+  border-bottom: none;
+}
+
+.file-table tbody tr:nth-child(even) td {
+  background: #f7f7f3;
+}
+
+.file-table tbody tr:hover td {
+  background: #e8eefa;
 }
 
 .file-table .num {
@@ -1165,7 +1192,7 @@ a.row-title:hover {
 }
 
 .file-table td.row-actions {
-  padding-right: 1rem;
+  padding-right: 0.45rem;
 }
 
 .row-actions > * + * {
@@ -1186,8 +1213,8 @@ a.row-title:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: var(--ctl-h);
+  height: var(--ctl-h);
   padding: 0;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -1198,8 +1225,8 @@ a.row-title:hover {
 }
 
 .icon-button img {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 .icon-button[data-hovered] {
@@ -1233,7 +1260,7 @@ a.row-title:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .fields-count {
@@ -1245,7 +1272,7 @@ a.row-title:hover {
 
 .field-view {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.5rem;
 }
 
 .field-view .back-link {
@@ -1258,7 +1285,7 @@ a.row-title:hover {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1rem;
 }
 
 .field-view-title .row-meta {
@@ -1270,11 +1297,11 @@ a.row-title:hover {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem 2rem;
+  gap: 0.5rem 1.25rem;
 }
 
 .field-search .input {
-  width: 18rem;
+  width: 14rem;
 }
 
 .show-choice {
@@ -1287,50 +1314,55 @@ a.row-title:hover {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  border: 1px solid var(--panel-edge);
 }
 
 .col-load {
-  width: 3.5rem;
+  width: 2.5rem;
 }
 
 .col-column {
-  width: 11rem;
+  width: 9.5rem;
 }
 
 .col-kind {
-  width: 5.5rem;
+  width: 4.5rem;
 }
 
 .col-field {
-  width: 18rem;
+  width: 16rem;
 }
 
 .col-cast {
-  width: 10rem;
+  width: 8rem;
 }
 
 .col-extra {
-  width: 17rem;
+  width: 14rem;
 }
 
 .field-table th {
   text-align: left;
   font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 0 0.75rem 0.35rem 0;
+  font-weight: 400;
+  color: var(--text);
+  padding: 0.15rem 0.45rem;
+  background: linear-gradient(to bottom, #fdfdfb, #e9e6dc);
+  border-right: 1px solid #c8c4bb;
+  border-bottom: 1px solid #a0a0a0;
 }
 
 /* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
 .field-table td {
-  padding: 0.3rem 0.75rem 0.3rem 0;
-  border-top: 1px solid var(--rule);
+  padding: var(--cell-y) 0.45rem;
+  border-top: 1px solid #e6e3da;
   vertical-align: middle;
+  border-right: 1px solid #efede7;
 }
 
-.field-table tr.field-problem td {
+.field-table tbody tr.field-problem td {
   border-top: none;
-  padding: 0 0 0.4rem;
+  padding: 0 0.45rem 0.3rem;
 }
 
 .cell-clip {
@@ -1365,7 +1397,7 @@ a.row-title:hover {
 }
 
 .picker-input .input {
-  padding-right: 2.2rem;
+  padding-right: var(--ctl-h);
 }
 
 .field-table [data-disabled] .input,
@@ -1399,8 +1431,8 @@ a.row-title:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: calc(var(--ctl-h) - 0.25rem);
+  height: calc(var(--ctl-h) - 0.25rem);
   padding: 0;
   border: none;
   background: transparent;
@@ -1436,7 +1468,7 @@ a.row-title:hover {
 
 .date-format > :first-child {
   flex: none;
-  width: 10rem;
+  width: calc(6.5rem + var(--ctl-h));
 }
 
 .date-ok {
@@ -1445,14 +1477,22 @@ a.row-title:hover {
   white-space: nowrap;
 }
 
-.field-table tr.geometry-row td {
+.field-table tbody tr.geometry-row td {
   color: var(--muted);
+}
+
+.field-table tbody tr:nth-child(even) td {
+  background: #f7f7f3;
+}
+
+.field-table tbody tr:hover td {
+  background: #e8eefa;
 }
 
 .add-file {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.6rem;
+  padding: 0.6rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--head);
@@ -1498,9 +1538,9 @@ a.row-title:hover {
 .path-box {
   display: block;
   box-sizing: border-box;
-  height: 2.5rem; /* the buttons' height, so they share a centreline */
-  line-height: calc(2.5rem - 2px);
-  padding: 0 0.6rem;
+  height: var(--ctl-h);
+  line-height: calc(var(--ctl-h) - 2px);
+  padding: 0 0.4rem;
   background: var(--head);
   border: 1px solid var(--well-edge);
   border-radius: var(--radius);
