@@ -138,6 +138,13 @@ def _window(url: str, selftest: bool = False) -> bool:
         if selftest:
             raise
         return False
+    if gui == "qt":
+        # Qt WebEngine's threads abort the process ("terminate called without an active
+        # exception") if Python tears Qt down at exit. Nothing is left to save (settings and
+        # projects are written as they change), so leave without that teardown.
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1 if failures else 0)
     if selftest:
         sys.exit(1 if failures else 0)
     return True
