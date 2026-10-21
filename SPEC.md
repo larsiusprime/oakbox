@@ -290,6 +290,7 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
   - It offers the `input` and `either` fields (§7 B11), except `dist_to_*` (computed when a distance is configured), grouped by the dictionary's groups.
   - **A loaded field OpenAVMKit computes is flagged**, whether picked or typed under Custom…: `derived` ("OpenAVMKit computes it, so it will overwrite this column") or `reserved` ("kept for a value it computes; load this column under another name"). The row is still saved. `either` fields aren't flagged: your column is used.
   - Each option shows the readable name with the key in brackets; the description is a tooltip (D42).
+  - Where OpenAVMKit's dictionary says `{jurisdiction}` (assessed values, land-area checks), the project's jurisdiction is filled in: "Travis County land value". The wizard (F3d) shows the same names.
   - **Custom…**, at the top, turns it into a text box. Custom names follow the entry-name rules (F3b).
   - Ticking a column suggests the field whose key or name matches the column name; otherwise Custom… with the column name in lowercase.
   - Two loaded columns of one file can't share a field.

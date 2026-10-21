@@ -195,3 +195,14 @@ def test_openavmkit_loads_and_joins_what_the_wizard_wrote(client, pid, monkeypat
     assert sales["key_sale"].tolist()[0] == "0012-001-2023-03-14"
     assert bool(sales["valid_sale"].all()) and not bool(sales["vacant_sale"].any())
     assert os.path.basename(settings["data"]["load"]["geo_parcels"]["filename"]) == "shapes.parquet"
+
+
+def test_names_say_the_jurisdiction_where_openavmkit_has_a_placeholder(client, pid):
+    w = client.get(f"/api/projects/{pid}/wizard").json()
+    jurisdiction = projects.load(pid).jurisdiction
+    assert _field(w, "assr_land_value")["name"] == f"{jurisdiction} land value"
+    d = {f["key"]: f for f in client.get("/api/dictionary", params={"jurisdiction": jurisdiction}).json()}
+    assert d["assr_market_value"]["name"] == f"{jurisdiction} market value"
+    plain = {f["key"]: f for f in client.get("/api/dictionary").json()}
+    assert plain["assr_land_value"]["name"] == "Assessor's land value"
+    assert not any("{jurisdiction}" in f["name"] + f["description"] for f in plain.values())

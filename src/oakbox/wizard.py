@@ -515,7 +515,7 @@ def renamed(project: Project, old: str, new: str) -> None:
 
 def view(project: Project, in_dir: Path) -> Wizard:
     files = _Files(project, in_dir)
-    by_key = _by_key()
+    by_key = {d.key: d for d in fields.dictionary(project.jurisdiction)}
     base = project.wizard.base
     used = _used(project)
     loaded = {field: f for f in project.files if f.holds in ("parcels", "sales") for field in f.load}

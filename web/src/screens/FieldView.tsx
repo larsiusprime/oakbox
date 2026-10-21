@@ -64,8 +64,13 @@ export function FieldView({ detail, name }: { detail: ProjectDetail; name: strin
     enabled: Boolean(file && !file.missing),
   });
   const dictionary = useQuery({
-    queryKey: ["dictionary"],
-    queryFn: async () => unwrap(await api.GET("/api/dictionary")),
+    queryKey: ["dictionary", detail.project.jurisdiction],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/dictionary", {
+          params: { query: { jurisdiction: detail.project.jurisdiction } },
+        }),
+      ),
     staleTime: Number.POSITIVE_INFINITY,
   });
 

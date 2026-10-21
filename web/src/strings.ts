@@ -176,7 +176,6 @@ export const t = {
     fewer: "Fewer fields",
     none: "(none)",
     used: (field: string) => `used: ${field}`,
-    assessors: "Assessor's",
     idNames: { key: "Parcel ID", key2: "Second ID", key_sale: "Sale ID" } as Record<string, string>,
     columnFor: (field: string) => `Column for ${field}`,
     steps: {

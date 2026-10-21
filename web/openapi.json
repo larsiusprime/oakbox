@@ -1021,19 +1021,41 @@
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
-    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC \u00a73.0 F3c).",
+    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC \u00a73.0 F3c).\n\nWith the project's jurisdiction, names say it where OpenAVMKit writes \"{jurisdiction}\".",
     "operationId": "dictionary_api_dictionary_get",
+    "parameters": [
+     {
+      "name": "jurisdiction",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Jurisdiction"
+      }
+     }
+    ],
     "responses": {
      "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
         "schema": {
+         "type": "array",
          "items": {
           "$ref": "#/components/schemas/DictionaryField"
          },
-         "type": "array",
          "title": "Response Dictionary Api Dictionary Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }

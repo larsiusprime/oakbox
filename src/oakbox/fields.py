@@ -8,6 +8,7 @@ field list is OpenAVMKit's own data dictionary. Reading a file here only preview
 from __future__ import annotations
 
 import json
+import re
 from functools import cache
 from importlib import resources
 from pathlib import Path
@@ -152,18 +153,20 @@ def check_dates(samples: list[str], fmt: str) -> DateCheck:
 
 
 @cache
-def dictionary() -> list[DictionaryField]:
+def dictionary(jurisdiction: str = "") -> list[DictionaryField]:
     """OpenAVMKit's data dictionary, every field, with whether the Field dropdown offers it (§7 B11, F3c).
 
     Offered: input and either fields, except those computed only when configured (dist_to_*).
     The rest are still sent, so a name typed under Custom… can be flagged when OpenAVMKit computes it.
+    Names and descriptions say "{jurisdiction}" for the assessing office: that becomes the
+    project's jurisdiction ("Travis County land value"), or the assessor without one.
     """
     raw = json.loads(resources.files("openavmkit.resources.settings").joinpath("data_dictionary.json").read_text())
     return [
         DictionaryField(
             key=key,
-            name=entry.get("name") or key,
-            description=entry.get("description") or "",
+            name=_fill(entry.get("name") or key, jurisdiction),
+            description=_fill(entry.get("description") or "", jurisdiction),
             type=entry.get("type") or "string",
             groups=entry.get("groups") or [],
             source=entry["source"],
@@ -171,6 +174,16 @@ def dictionary() -> list[DictionaryField]:
         )
         for key, entry in raw.items()
     ]
+
+
+def _fill(text: str, jurisdiction: str) -> str:
+    if jurisdiction.strip():
+        return text.replace("{jurisdiction}", jurisdiction.strip())
+    # No project: "Assessor's land value", "the assessor's estimate", "as given by the assessor".
+    out = text.replace("{jurisdiction}'s", "the assessor's")
+    out = re.sub(r"^\{jurisdiction\} ", "Assessor's ", out)
+    out = out.replace("{jurisdiction}", "the assessor")
+    return out[:1].upper() + out[1:]
 
 
 def set_load(entry: DataFile, load: dict[str, list[str]]) -> None:

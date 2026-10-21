@@ -435,6 +435,8 @@ export interface paths {
         /**
          * Dictionary
          * @description OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).
+         *
+         *     With the project's jurisdiction, names say it where OpenAVMKit writes "{jurisdiction}".
          */
         get: operations["dictionary_api_dictionary_get"];
         put?: never;
@@ -1896,7 +1898,9 @@ export interface operations {
     };
     dictionary_api_dictionary_get: {
         parameters: {
-            query?: never;
+            query?: {
+                jurisdiction?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1910,6 +1914,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DictionaryField"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

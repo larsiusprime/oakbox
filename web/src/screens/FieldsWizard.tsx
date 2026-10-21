@@ -463,8 +463,6 @@ function FieldRow({
 
 /** The dictionary's name, without "Building" inside the Building steps ("Year built"). */
 function shortName(field: WizardField): string {
-  // OpenAVMKit's names for assessed values hold a template ("{jurisdiction} land value").
-  if (field.name.includes("{jurisdiction}")) return field.name.replace("{jurisdiction}", w.assessors);
   if (!field.step.startsWith("building_")) return field.name;
   const rest = field.name.replace(/^Building /, "");
   return rest.charAt(0).toUpperCase() + rest.slice(1);

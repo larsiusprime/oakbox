@@ -454,9 +454,12 @@ def create_app() -> FastAPI:
         return _change(project_id, lambda p, d: wizard.set_field(p, d, key, body.file, body.column, body.assume))
 
     @app.get("/api/dictionary")
-    def dictionary() -> list[fields.DictionaryField]:
-        """OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c)."""
-        return fields.dictionary()
+    def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
+        """OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).
+
+        With the project's jurisdiction, names say it where OpenAVMKit writes "{jurisdiction}".
+        """
+        return fields.dictionary(jurisdiction)
 
     @app.post("/api/date-format")
     def date_format(body: DateFormatCheck) -> fields.DateCheck:
