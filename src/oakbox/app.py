@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, datafiles, fields, projects
+from oakbox import __version__, appsettings, datafiles, fields, projects, wizard
 
 WEB_DIST = Path(__file__).parent / "web"
 
@@ -74,6 +74,26 @@ class EntryName(BaseModel):
 
 class EntryLoad(BaseModel):
     load: dict[str, list[str]]
+
+
+class WizardFileChoice(BaseModel):
+    """Step 1 of the Fields wizard, for one file (F3d). Leave a value out to keep it."""
+
+    holds: datafiles.Holds | None = None
+    id_column: str | None = None
+    key2_column: str | None = None
+    key2_set: bool = Field(default=False, description="Set key2 to key2_column (null: none).")
+
+
+class WizardSaleId(BaseModel):
+    column: str | None = None
+    make: bool = Field(default=False, description="Make one from parcel ID + sale date.")
+
+
+class WizardFieldChoice(BaseModel):
+    file: str | None = None
+    column: str | None = None
+    assume: bool = Field(default=False, description="Valid/vacant sale only: all valid, none vacant.")
 
 
 class DateFormatCheck(BaseModel):
@@ -308,6 +328,7 @@ def create_app() -> FastAPI:
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
         project.files.append(entry)
+        wizard.update_base(project, projects.project_dir(project_id) / "in")
         projects.save(project)
         projects.write_settings(project)
         return project
@@ -318,6 +339,7 @@ def create_app() -> FastAPI:
         project = _load(project_id)
         try:
             datafiles.rename(project.files, name, body.name.strip())
+            wizard.renamed(project, name, body.name.strip())
         except LookupError as e:
             raise HTTPException(404, "No such input file") from e
         except ValueError as e:
@@ -337,6 +359,7 @@ def create_app() -> FastAPI:
             raise HTTPException(422, str(e)) from e
         except OSError as e:
             raise HTTPException(500, f"Couldn't move the file to the Recycle Bin: {e}") from e
+        wizard.update_base(project, projects.project_dir(project_id) / "in")
         projects.save(project)
         projects.write_settings(project)
 
@@ -377,6 +400,58 @@ def create_app() -> FastAPI:
             raise HTTPException(422, str(e)) from e
         projects.save(project)
         projects.write_settings(project)
+
+    # ---------- F3d: the Fields wizard ----------
+
+    def _wizard(project: projects.Project) -> wizard.Wizard:
+        return wizard.view(project, projects.project_dir(project.id) / "in")
+
+    def _change(project_id: str, change) -> wizard.Wizard:
+        project = _load(project_id)
+        try:
+            change(project, projects.project_dir(project_id) / "in")
+        except LookupError as e:
+            raise HTTPException(404, f"No such step or field: {e}") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        projects.write_settings(project)
+        return _wizard(project)
+
+    @app.get("/api/projects/{project_id}/wizard")
+    def get_wizard(project_id: str) -> wizard.Wizard:
+        """Every step, file and field of the Fields wizard as it stands (SPEC §3.0 F3d)."""
+        return _wizard(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/wizard/steps/{step}/visit")
+    def visit_step(project_id: str, step: str) -> wizard.Wizard:
+        """A step is shown: fill in guesses for what on it hasn't been decided yet (F3d)."""
+        return _change(project_id, lambda p, d: wizard.visit(p, d, step))
+
+    @app.post("/api/projects/{project_id}/wizard/steps/{step}/skip")
+    def skip_step(project_id: str, step: str) -> wizard.Wizard:
+        """'I don't have these': nothing loaded for the step's fields (F3d)."""
+        return _change(project_id, lambda p, _d: wizard.skip(p, step))
+
+    @app.put("/api/projects/{project_id}/wizard/files/{name}")
+    def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wizard:
+        """What a file holds and its parcel ID (F3d step 1)."""
+        project = _load(project_id)
+        _entry(project, name)
+        return _change(
+            project_id,
+            lambda p, d: wizard.set_file(p, d, name, body.holds, body.id_column, body.key2_column, body.key2_set),
+        )
+
+    @app.put("/api/projects/{project_id}/wizard/sale-id")
+    def wizard_sale_id(project_id: str, body: WizardSaleId) -> wizard.Wizard:
+        """The sales file's sale ID: a column, or made from parcel ID + sale date (F3d)."""
+        return _change(project_id, lambda p, _d: wizard.set_sale_id(p, body.column, body.make))
+
+    @app.put("/api/projects/{project_id}/wizard/fields/{key}")
+    def wizard_field(project_id: str, key: str, body: WizardFieldChoice) -> wizard.Wizard:
+        """Load a field from a file's column, from nowhere, or as an assumption (F3d)."""
+        return _change(project_id, lambda p, d: wizard.set_field(p, d, key, body.file, body.column, body.assume))
 
     @app.get("/api/dictionary")
     def dictionary() -> list[fields.DictionaryField]:

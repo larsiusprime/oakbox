@@ -4,26 +4,30 @@ import { useEffect, useState } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
+import clipboard from "../assets/noto/emoji_u1f4cb.svg";
 import cardFileBox from "../assets/noto/emoji_u1f5c3.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
 import { desktop } from "../desktop";
 import { t } from "../strings";
+import { FieldsTab } from "./FieldsWizard";
 import { FieldView } from "./FieldView";
 import { InputFilesTab } from "./InputFiles";
 
-export const TABS = ["metadata", "files"] as const;
+export const TABS = ["metadata", "files", "fields"] as const;
 export type TabId = (typeof TABS)[number];
-const PLACEHOLDERS = ["later-1", "later-2", "later-3"] as const;
+const PLACEHOLDERS = ["later-1", "later-2"] as const;
 
 /** F3: the project view, one tabbed panel (SPEC §3.0). */
 export function ProjectScreen({
   projectId,
   tab,
   file,
+  step,
 }: {
   projectId: string;
   tab: TabId | null;
   file: string | null;
+  step: string | null;
 }) {
   const detail = useQuery({
     queryKey: ["project", projectId],
@@ -33,17 +37,19 @@ export function ProjectScreen({
 
   if (detail.isPending) return <p className="empty">{t.project.loading}</p>;
   if (detail.error) return <p className="error">{detail.error.message}</p>;
-  return <ProjectView detail={detail.data} tab={tab} file={file} />;
+  return <ProjectView detail={detail.data} tab={tab} file={file} step={step} />;
 }
 
 function ProjectView({
   detail,
   tab,
   file,
+  step,
 }: {
   detail: ProjectDetail;
   tab: TabId | null;
   file: string | null;
+  step: string | null;
 }) {
   const { project } = detail;
   const projectId = project.id;
@@ -78,6 +84,10 @@ function ProjectView({
             <img src={cardFileBox} alt="" className="tab-icon" />
             {t.tabs.inputFiles}
           </Tab>
+          <Tab id="fields" className="folder-tab">
+            <img src={clipboard} alt="" className="tab-icon" />
+            {t.tabs.fields}
+          </Tab>
           {PLACEHOLDERS.map((id) => (
             <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>
               <span aria-hidden="true">· · ·</span>
@@ -89,6 +99,9 @@ function ProjectView({
         </TabPanel>
         <TabPanel id="files" className="folder-panel">
           {file ? <FieldView detail={detail} name={file} /> : <InputFilesTab detail={detail} />}
+        </TabPanel>
+        <TabPanel id="fields" className="folder-panel">
+          <FieldsTab detail={detail} step={step} />
         </TabPanel>
       </Tabs>
     </div>

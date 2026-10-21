@@ -54,6 +54,17 @@ class NewProject(BaseModel):
     units: Units
 
 
+class WizardState(BaseModel):
+    """The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."""
+
+    base: str | None = Field(default=None, description="The parcel file the others join to.")
+    visited: list[str] = Field(default_factory=list, description="Steps shown at least once.")
+    skipped: list[str] = Field(default_factory=list, description='Steps answered with "I don\'t have these".')
+    decided: list[str] = Field(
+        default_factory=list, description="Fields chosen or guessed once, so a guess never replaces them."
+    )
+
+
 class Project(BaseModel):
     id: str
     name: str
@@ -66,6 +77,7 @@ class Project(BaseModel):
     units: Units = "imperial"
     sample: str | None = None
     files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
+    wizard: WizardState = Field(default_factory=WizardState)
 
 
 # ---------- Finding projects ----------
@@ -191,8 +203,22 @@ def base_settings(project: Project) -> dict:
         "modeling": {
             "metadata": {"valuation_date": project.valuation_date.isoformat() if project.valuation_date else None}
         },
-        **({"data": {"load": data_load(project.files)}} if project.files else {}),
+        **({"data": _data(project)} if project.files else {}),
     }
+
+
+def _data(project: Project) -> dict:
+    """data.load, plus the merge lists once any file says what it holds (F3d): the base first."""
+    out: dict = {"load": data_load(project.files)}
+    parcels = [f.name for f in project.files if f.holds == "parcels"]
+    sales = [f.name for f in project.files if f.holds == "sales"]
+    if parcels or sales:
+        base = project.wizard.base
+        if base in parcels:
+            parcels.remove(base)
+            parcels.insert(0, base)
+        out["process"] = {"merge": {"universe": parcels, "sales": sales}}
+    return out
 
 
 def write_settings(project: Project) -> Path:

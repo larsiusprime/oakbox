@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
@@ -26,6 +26,9 @@ class BaseModel(_PydanticBase):
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 
+Holds = Literal["parcels", "sales", "unused"]
+
+
 class DataFile(BaseModel):
     """One data.load entry, as OAK box wrote it."""
 
@@ -35,6 +38,13 @@ class DataFile(BaseModel):
     load: dict[str, list[str]] = Field(
         default_factory=dict,
         description="data.load.<name>.load: field -> [column] or [column, type] or [column, type, extra] (F3c).",
+    )
+    calc: dict[str, list[Any]] = Field(
+        default_factory=dict, description="data.load.<name>.calc: fields OpenAVMKit works out after loading (F3d)."
+    )
+    holds: Holds | None = Field(
+        default=None,
+        description="What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.",
     )
 
 
@@ -183,6 +193,11 @@ def data_load(files: list[DataFile]) -> dict:
             entry["layer"] = f.layer
         if f.load:
             entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in f.load.items()}
+        if f.calc:
+            entry["calc"] = dict(f.calc)
+        if f.holds == "sales":
+            # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.
+            entry["dupes"] = {"subset": ["key_sale"], "sort_by": ["key_sale", "asc"], "drop": True}
         out[f.name] = entry
     return out
 

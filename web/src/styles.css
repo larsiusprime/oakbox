@@ -1704,3 +1704,300 @@ a.row-title:hover {
     break-inside: avoid;
   }
 }
+
+/* ---------- F3d: the Fields wizard ---------- */
+
+.wiz {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  min-height: 25rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+}
+
+.wiz-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0;
+  font-size: 0.92rem;
+  background: linear-gradient(90deg, #f4f4f4, #ebebeb);
+  border-right: 1px solid var(--panel-edge);
+}
+
+.wiz-step button {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.16rem 0.75rem 0.16rem 0.6rem;
+  font: inherit;
+  color: #34383c;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.wiz-step .n {
+  width: 1.1rem;
+  text-align: right;
+  color: #767b80;
+  font-variant-numeric: tabular-nums;
+}
+
+.wiz-step.done .n {
+  color: var(--ok);
+}
+
+.wiz-step.skipped button {
+  color: #8a8f94;
+}
+
+.wiz-step.sub button {
+  padding-left: 2.25rem;
+  font-size: 0.88rem;
+}
+
+.wiz-step.now button {
+  color: #ffffff;
+  font-weight: 600;
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+}
+
+.wiz-step.now .n {
+  color: #ffffff;
+}
+
+.wiz-step button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.wiz-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wiz-body {
+  flex: 1;
+  padding: 0.8rem 1.1rem;
+}
+
+.wiz-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wiz-q {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.wiz-lede {
+  margin: 0 0 0.8rem;
+  max-width: 46rem;
+  color: var(--muted);
+}
+
+.wiz-sub {
+  margin: 0.9rem 0 0.35rem;
+  font-size: 1rem;
+}
+
+.wiz-grid {
+  display: grid;
+  grid-template-columns: 12rem 16rem minmax(0, 1fr);
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+  max-width: 56rem;
+}
+
+.wiz-label {
+  font-weight: 600;
+}
+
+.wiz-label small {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.wiz-choice .choice-button {
+  width: 100%;
+}
+
+.wiz-samples {
+  overflow: hidden;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wiz-sample-values,
+.wiz-from,
+.wiz-none {
+  color: var(--muted);
+}
+
+.wiz-ok {
+  color: var(--ok);
+}
+
+.wiz-warn {
+  color: var(--warn);
+}
+
+.wiz-note {
+  margin: 0.8rem 0 0;
+  max-width: 46rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.wiz-more,
+.wiz-link {
+  padding: 0;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--link);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.wiz-more {
+  margin-top: 0.6rem;
+}
+
+.wiz-foot {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  background: linear-gradient(#f7f7f7, #e9e9e9);
+  border-top: 1px solid var(--panel-edge);
+}
+
+.wiz-grow {
+  flex: 1;
+}
+
+.wiz-table {
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.wiz-table th {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-align: left;
+  color: #222222;
+  background: linear-gradient(#fefefe, #e4e4e4);
+  border: 1px solid #bcbcbc;
+}
+
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
+.wiz-table td {
+  padding: 0.12rem 0.5rem;
+  vertical-align: middle;
+  border: 1px solid #e1e1e1;
+}
+
+.wiz-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wiz-table .choice {
+  min-width: 0;
+}
+
+.wiz-table .choice-button {
+  width: 9.5rem;
+}
+
+.wiz-table td.wiz-check {
+  min-width: 12rem;
+  max-width: 17rem;
+}
+
+.wiz-base {
+  font-family: var(--font);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.wiz-section-head {
+  padding: 0.3rem 0.6rem 0.1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-top: 1px solid #eeeeee;
+}
+
+.wiz-popover {
+  max-width: 26rem;
+}
+
+.wiz-item {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-left: 1.1rem;
+}
+
+.wiz-item-note {
+  overflow: hidden;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.wiz-item[data-disabled] {
+  color: #9a9ea3;
+  cursor: default;
+}
+
+.wiz-problems {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+}
+
+.wiz-review {
+  width: 100%;
+  max-width: 40rem;
+  font-size: 0.92rem;
+  border-collapse: collapse;
+}
+
+.wiz-review-head th {
+  padding: 0.45rem 0.4rem 0.15rem;
+  text-align: left;
+  border-bottom: 1px solid #d0d0d0;
+}
+
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
+.wiz-review td {
+  padding: 0.1rem 0.4rem;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.wiz-warn-title {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wiz-warn-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}

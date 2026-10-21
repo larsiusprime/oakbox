@@ -712,6 +712,312 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard": {
+   "get": {
+    "summary": "Get Wizard",
+    "description": "Every step, file and field of the Fields wizard as it stands (SPEC \u00a73.0 F3d).",
+    "operationId": "get_wizard_api_projects__project_id__wizard_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/steps/{step}/visit": {
+   "post": {
+    "summary": "Visit Step",
+    "description": "A step is shown: fill in guesses for what on it hasn't been decided yet (F3d).",
+    "operationId": "visit_step_api_projects__project_id__wizard_steps__step__visit_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "step",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Step"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/steps/{step}/skip": {
+   "post": {
+    "summary": "Skip Step",
+    "description": "'I don't have these': nothing loaded for the step's fields (F3d).",
+    "operationId": "skip_step_api_projects__project_id__wizard_steps__step__skip_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "step",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Step"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/files/{name}": {
+   "put": {
+    "summary": "Wizard File",
+    "description": "What a file holds and its parcel ID (F3d step 1).",
+    "operationId": "wizard_file_api_projects__project_id__wizard_files__name__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardFileChoice"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/sale-id": {
+   "put": {
+    "summary": "Wizard Sale Id",
+    "description": "The sales file's sale ID: a column, or made from parcel ID + sale date (F3d).",
+    "operationId": "wizard_sale_id_api_projects__project_id__wizard_sale_id_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardSaleId"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/fields/{key}": {
+   "put": {
+    "summary": "Wizard Field",
+    "description": "Load a field from a file's column, from nowhere, or as an assumption (F3d).",
+    "operationId": "wizard_field_api_projects__project_id__wizard_fields__key__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardFieldChoice"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -850,6 +1156,25 @@
     ],
     "title": "AppSettingsView"
    },
+   "Check": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text",
+      "description": "Short: '\u2713 years 1890\u20132025', 'several rows per parcel'."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "text"
+    ],
+    "title": "Check"
+   },
    "Column": {
     "properties": {
      "name": {
@@ -932,6 +1257,32 @@
       "type": "object",
       "title": "Load",
       "description": "data.load.<name>.load: field -> [column] or [column, type] or [column, type, extra] (F3c)."
+     },
+     "calc": {
+      "additionalProperties": {
+       "items": {},
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Calc",
+      "description": "data.load.<name>.calc: fields OpenAVMKit works out after loading (F3d)."
+     },
+     "holds": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "parcels",
+         "sales",
+         "unused"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Holds",
+      "description": "What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen."
      }
     },
     "type": "object",
@@ -939,7 +1290,9 @@
      "name",
      "filename",
      "layer",
-     "load"
+     "load",
+     "calc",
+     "holds"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -1469,6 +1822,27 @@
     "title": "NewProject",
     "description": "What the user enters to create a project (SPEC \u00a73.0 F1)."
    },
+   "NotLoaded": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "columns": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Columns"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "columns"
+    ],
+    "title": "NotLoaded"
+   },
    "Project": {
     "properties": {
      "id": {
@@ -1542,6 +1916,9 @@
       "type": "array",
       "title": "Files",
       "description": "data.load entries (SPEC \u00a73.0 F2)."
+     },
+     "wizard": {
+      "$ref": "#/components/schemas/WizardState"
      }
     },
     "type": "object",
@@ -1556,7 +1933,8 @@
      "valuation_date",
      "units",
      "sample",
-     "files"
+     "files",
+     "wizard"
     ],
     "title": "Project"
    },
@@ -1630,6 +2008,131 @@
     ],
     "title": "Regions",
     "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."
+   },
+   "SaleId": {
+    "properties": {
+     "file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File",
+      "description": "The sales file."
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "Its sale ID column (loaded as key_sale)."
+     },
+     "made": {
+      "type": "boolean",
+      "title": "Made",
+      "description": "Made from parcel ID + sale date (an entry calc)."
+     },
+     "check": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Check"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "column",
+     "made",
+     "check"
+    ],
+    "title": "SaleId"
+   },
+   "Source": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "column"
+    ],
+    "title": "Source"
+   },
+   "StepView": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "parent": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Parent"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "todo",
+       "done",
+       "skipped"
+      ],
+      "title": "Status"
+     },
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields"
+     },
+     "more": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "More"
+     },
+     "sales": {
+      "type": "boolean",
+      "title": "Sales"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "parent",
+     "status",
+     "fields",
+     "more",
+     "sales"
+    ],
+    "title": "StepView"
    },
    "StorageLocation": {
     "properties": {
@@ -1706,6 +2209,416 @@
      "openavmkit"
     ],
     "title": "Versions"
+   },
+   "Wizard": {
+    "properties": {
+     "steps": {
+      "items": {
+       "$ref": "#/components/schemas/StepView"
+      },
+      "type": "array",
+      "title": "Steps"
+     },
+     "files": {
+      "items": {
+       "$ref": "#/components/schemas/WizardFile"
+      },
+      "type": "array",
+      "title": "Files"
+     },
+     "sale_id": {
+      "$ref": "#/components/schemas/SaleId"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/WizardField"
+      },
+      "type": "array",
+      "title": "Fields"
+     },
+     "used": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "type": "string"
+       },
+       "type": "object"
+      },
+      "type": "object",
+      "title": "Used",
+      "description": "file -> column -> the field it's loaded as."
+     },
+     "problems": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Problems"
+     },
+     "not_loaded": {
+      "items": {
+       "$ref": "#/components/schemas/NotLoaded"
+      },
+      "type": "array",
+      "title": "Not Loaded"
+     }
+    },
+    "type": "object",
+    "required": [
+     "steps",
+     "files",
+     "sale_id",
+     "fields",
+     "used",
+     "problems",
+     "not_loaded"
+    ],
+    "title": "Wizard"
+   },
+   "WizardField": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "type": {
+      "type": "string",
+      "title": "Type"
+     },
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "more": {
+      "type": "boolean",
+      "title": "More"
+     },
+     "sources": {
+      "items": {
+       "$ref": "#/components/schemas/Source"
+      },
+      "type": "array",
+      "title": "Sources",
+      "description": "Where it's loaded from; more than one is a conflict."
+     },
+     "assumed": {
+      "type": "boolean",
+      "title": "Assumed",
+      "description": "Valid/vacant sale with no column: all valid, none vacant (F3d)."
+     },
+     "check": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Check"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "hidden": {
+      "type": "boolean",
+      "title": "Hidden",
+      "description": "Computed from a field that's loaded, so not asked (e.g. age from year built)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "description",
+     "type",
+     "step",
+     "more",
+     "sources",
+     "assumed",
+     "check",
+     "hidden"
+    ],
+    "title": "WizardField"
+   },
+   "WizardFieldChoice": {
+    "properties": {
+     "file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column"
+     },
+     "assume": {
+      "type": "boolean",
+      "title": "Assume",
+      "description": "Valid/vacant sale only: all valid, none vacant.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "WizardFieldChoice"
+   },
+   "WizardFile": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename"
+     },
+     "missing": {
+      "type": "boolean",
+      "title": "Missing"
+     },
+     "problem": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Problem",
+      "description": "Why it can't be read."
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "geometry": {
+      "type": "boolean",
+      "title": "Geometry"
+     },
+     "holds": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "parcels",
+         "sales",
+         "unused"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Holds"
+     },
+     "id_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id Column",
+      "description": "Loaded as key in this file."
+     },
+     "id_check": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Check"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "key2_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key2 Column"
+     },
+     "columns": {
+      "items": {
+       "$ref": "#/components/schemas/Column"
+      },
+      "type": "array",
+      "title": "Columns"
+     },
+     "base": {
+      "type": "boolean",
+      "title": "Base"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "filename",
+     "missing",
+     "problem",
+     "rows",
+     "geometry",
+     "holds",
+     "id_column",
+     "id_check",
+     "key2_column",
+     "columns",
+     "base"
+    ],
+    "title": "WizardFile"
+   },
+   "WizardFileChoice": {
+    "properties": {
+     "holds": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "parcels",
+         "sales",
+         "unused"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Holds"
+     },
+     "id_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Id Column"
+     },
+     "key2_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key2 Column"
+     },
+     "key2_set": {
+      "type": "boolean",
+      "title": "Key2 Set",
+      "description": "Set key2 to key2_column (null: none).",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "WizardFileChoice",
+    "description": "Step 1 of the Fields wizard, for one file (F3d). Leave a value out to keep it."
+   },
+   "WizardSaleId": {
+    "properties": {
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column"
+     },
+     "make": {
+      "type": "boolean",
+      "title": "Make",
+      "description": "Make one from parcel ID + sale date.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "WizardSaleId"
+   },
+   "WizardState": {
+    "properties": {
+     "base": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base",
+      "description": "The parcel file the others join to."
+     },
+     "visited": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Visited",
+      "description": "Steps shown at least once."
+     },
+     "skipped": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Skipped",
+      "description": "Steps answered with \"I don't have these\"."
+     },
+     "decided": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Decided",
+      "description": "Fields chosen or guessed once, so a guess never replaces them."
+     }
+    },
+    "type": "object",
+    "required": [
+     "base",
+     "visited",
+     "skipped",
+     "decided"
+    ],
+    "title": "WizardState",
+    "description": "The Fields wizard's own state (SPEC \u00a73.0 F3d). Everything it chooses is in the files' entries."
    }
   }
  }

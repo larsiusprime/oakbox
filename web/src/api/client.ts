@@ -22,3 +22,8 @@ export function unwrap<T>(result: { data?: T; error?: unknown }): T {
 export type FileColumns = components["schemas"]["FileColumns"];
 export type FileColumn = components["schemas"]["Column"];
 export type DictionaryField = components["schemas"]["DictionaryField"];
+export type Wizard = components["schemas"]["Wizard"];
+export type WizardField = components["schemas"]["WizardField"];
+export type WizardFile = components["schemas"]["WizardFile"];
+export type WizardStep = components["schemas"]["StepView"];
+export type WizardCheck = components["schemas"]["Check"];

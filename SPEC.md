@@ -352,7 +352,9 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 - **Holds:** Parcels (one row per parcel), Sales (one row per sale) or Not used.
   - **Guessed:** a file with a price-like and a date-like column is Sales; any other file is Parcels.
   - Parcel files go into `merge.universe`, sales files into `merge.sales`. Not used files are in neither, and keep their `load`.
-  - **The base** is the first parcel file with shapes (else the first parcel file). It is first in `merge.universe`, so every parcel in it is kept and the others left-join to it on `key`. The rest follow in file-list order.
+  - **The base** is the first parcel file with shapes. It is first in `merge.universe`, so every parcel in it is kept and the others left-join to it on `key`. The rest follow in file-list order.
+  - **OpenAVMKit requires the base to be named `geo_parcels`** and to have shapes (`load_dataframes`, and enrichment and condos use that name). So the wizard renames the base's entry `geo_parcels` (an entry already using that name gets another), and a project with no parcel file with shapes is a problem listed on Review, not a "No shapes" step.
+  - **Built:** what a file holds is kept on its entry in `oakbox.json` (`holds`), and the merge lists are written from it.
   - v1 has one sales file. Several sales files (e.g. one per year, appended) come later.
 - **Parcel ID column** is loaded as `key` in that file.
   - **Guessed:** a column whose name looks like an ID (PIN, PARCEL, PROP_ID, ACCOUNT, KEY, GEO_ID…) and whose values are all, or nearly all, different.
@@ -368,7 +370,7 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 
 | Step | Fields |
 |---|---|
-| 2 Shapes | `geometry`: shown, not asked (which file has it). "No shapes" when no parcel file has any. |
+| 2 Shapes | `geometry`: shown, not asked (which file has it). Without a parcel file with shapes, it says OpenAVMKit needs one. |
 | 3 Location | Address, neighborhood, city, school district, census tract and block group, flood risk… |
 | 4 Land | Land area, zoning (code, description), land class, minimum buildable size |
 | 5 Building: Basics | Building type, class, description, count, units, stories |
@@ -385,6 +387,7 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 - **The column dropdown** lists columns grouped by file: every parcel file for parcel fields, the sales file for sales fields, plus (none). A column already used shows as "used: Year built" and can't be picked twice.
 - **The check** reads the samples for that field's type: numbers, a year range for years, the date format found ("✓ reads as month/day/year"), the yes/no reading ("✓ Y = yes, blank = no"). A column that doesn't read as its field's type is shown in red, not saved, with the Advanced view as the place to fix it.
 - **Types and formats are not asked:** the type is the dictionary's (as in F3c), dates take the first common format that reads all samples, and yes/no columns are Blank = No.
+- **Guesses are made when a step is first shown**, and saved like a choice, so the settings always match the screen.
 - **Guessed, but not too clever:** a field is preselected only when a column's name matches the field's key or name, or a short alias list (e.g. YR_BLT, YEAR_BUILT → `bldg_year_built`), and the column passes the field's check. Otherwise it stays (none). Nothing fuzzy. A guess never replaces a choice already made, including (none).
 - **Computed fields** (`either`) are asked only when what they're computed from isn't loaded: "Age in years" only without a year built. They're labelled "Only if there's no year built".
 - **I don't have these** sets the step's fields to (none) and marks it skipped (–).
@@ -393,16 +396,17 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 **Step 9: Review.** Every field with its source, grouped by step: the file and column, "Assumed", or "—". Each has **Change**, which opens its step. Above, a count and the columns not loaded ("18 fields from 24 columns. Not loaded: OWNER_NAME, MAIL_ADDR and 4 more"). Problems are listed first: no parcel ID, no sales, a missing valid/vacant sale, a column that doesn't read.
 
 **What it writes**, and nothing else:
-- each file's `load` (as F3c), and the entry `calc` for a made-up sale ID and for assumed valid/vacant sales;
+- each file's `load` (as F3c), and the entry `calc` for a made-up sale ID (`["join", ["values", "key", "sale_date"], "str:-"]`) and for assumed valid/vacant sales (`["set", true]` / `["set", false]`);
+- the sales file's `dupes`, on `key_sale`. Without it OpenAVMKit de-duplicates on `key`, which drops every repeat sale of a parcel;
 - `data.process.merge.universe` and `.sales`, rebuilt from the Holds column whenever it or the file list changes.
 
-**What it keeps in `oakbox.json`:** only its own state: skipped steps and the confirmed assumptions. The files' roles are read back from the merge lists.
+**What it keeps in `oakbox.json`:** only its own state: the base, the steps seen and skipped, and the fields already decided (so a guess is made once). The assumptions are the `calc` entries themselves.
 
 **Changes made elsewhere:** the wizard reads the settings each time. A field loaded from two parcel files (possible in the Advanced view) shows both, with a warning, until one is set to (none).
 
 **Templates** for common CAMA exports fit on top later: a template is a set of file roles and a column → field map, recognised by its column names. Not in F3d.
 
-**Not in F3d:** files with several rows per parcel, several sales files, `calc`/`tweak` beyond the two above, templates, and the joined-result preview (F4).
+**Not in F3d:** files with several rows per parcel, several sales files, ``calc`/`tweak` beyond the three above, templates, and the joined-result preview (F4).
 
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
@@ -1072,7 +1076,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
     **Done** on `engine/dictionary-source` and `engine/dictionary-reserved`, merged into `openavmkit-oakbox`: 63 input, 42 derived, 15 either, 43 `reserved` (names kept for values OpenAVMKit means to compute but nothing writes yet: model outputs, assessor and "true" ratios, OSM street/corner/waterfront fields, vacancy warnings, some geometry metrics). Reviewed by the maintainer. Each value was checked against the code that writes the field; the classification is open for the maintainer's review. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
 12. **CSV yes/no columns.** **Done** on `engine/csv-bool`, merged: `data.load` passed `bool` to `pd.read_csv`, which fails on "Y"/"N"; such columns are now read as text and converted after loading, as dates already were. Also, a blank value became True whatever `na_handling` said ("<NA>" and "" weren't treated as missing). Still as before: any unrecognised text counts as Yes.
-13. **The sale ID in the data dictionary.** `key_sale` is required by the sales merge but has no dictionary entry. Add it (`"source": "input"`, type string). Topic branch `engine/dictionary-key-sale`.
+13. **The sale ID in the data dictionary.** `key_sale` is required by the sales merge but has no dictionary entry. Add it (`"source": "input"`, type string). **Done** on `engine/dictionary-key-sale`, merged into `openavmkit-oakbox`.
 14. **An ID from row numbers** (optional): a `calc` operation giving each row its number, so a single parcel file with no ID column can still be loaded. Topic branch `engine/calc-row-number`, only if F3d needs it in use.
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).

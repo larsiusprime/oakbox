@@ -305,6 +305,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Wizard
+         * @description Every step, file and field of the Fields wizard as it stands (SPEC §3.0 F3d).
+         */
+        get: operations["get_wizard_api_projects__project_id__wizard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/steps/{step}/visit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Visit Step
+         * @description A step is shown: fill in guesses for what on it hasn't been decided yet (F3d).
+         */
+        post: operations["visit_step_api_projects__project_id__wizard_steps__step__visit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/steps/{step}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Skip Step
+         * @description 'I don't have these': nothing loaded for the step's fields (F3d).
+         */
+        post: operations["skip_step_api_projects__project_id__wizard_steps__step__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/files/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard File
+         * @description What a file holds and its parcel ID (F3d step 1).
+         */
+        put: operations["wizard_file_api_projects__project_id__wizard_files__name__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/sale-id": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Sale Id
+         * @description The sales file's sale ID: a column, or made from parcel ID + sale date (F3d).
+         */
+        put: operations["wizard_sale_id_api_projects__project_id__wizard_sale_id_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/fields/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Field
+         * @description Load a field from a file's column, from nowhere, or as an assumption (F3d).
+         */
+        put: operations["wizard_field_api_projects__project_id__wizard_fields__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -379,6 +499,16 @@ export interface components {
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
         };
+        /** Check */
+        Check: {
+            /** Ok */
+            ok: boolean;
+            /**
+             * Text
+             * @description Short: '✓ years 1890–2025', 'several rows per parcel'.
+             */
+            text: string;
+        };
         /** Column */
         Column: {
             /** Name */
@@ -427,6 +557,18 @@ export interface components {
             load: {
                 [key: string]: string[];
             };
+            /**
+             * Calc
+             * @description data.load.<name>.calc: fields OpenAVMKit works out after loading (F3d).
+             */
+            calc: {
+                [key: string]: unknown[];
+            };
+            /**
+             * Holds
+             * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
+             */
+            holds: ("parcels" | "sales" | "unused") | null;
         };
         /** DateCheck */
         DateCheck: {
@@ -693,6 +835,13 @@ export interface components {
              */
             units: "imperial" | "metric";
         };
+        /** NotLoaded */
+        NotLoaded: {
+            /** File */
+            file: string;
+            /** Columns */
+            columns: string[];
+        };
         /** Project */
         Project: {
             /** Id */
@@ -736,6 +885,7 @@ export interface components {
              * @description data.load entries (SPEC §3.0 F2).
              */
             files: components["schemas"]["DataFile"][];
+            wizard: components["schemas"]["WizardState"];
         };
         /** ProjectDetail */
         ProjectDetail: {
@@ -764,6 +914,50 @@ export interface components {
                 [key: string]: components["schemas"]["Region"][];
             };
         };
+        /** SaleId */
+        SaleId: {
+            /**
+             * File
+             * @description The sales file.
+             */
+            file: string | null;
+            /**
+             * Column
+             * @description Its sale ID column (loaded as key_sale).
+             */
+            column: string | null;
+            /**
+             * Made
+             * @description Made from parcel ID + sale date (an entry calc).
+             */
+            made: boolean;
+            check: components["schemas"]["Check"] | null;
+        };
+        /** Source */
+        Source: {
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+        };
+        /** StepView */
+        StepView: {
+            /** Key */
+            key: string;
+            /** Parent */
+            parent: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "todo" | "done" | "skipped";
+            /** Fields */
+            fields: string[];
+            /** More */
+            more: string[];
+            /** Sales */
+            sales: boolean;
+        };
         /** StorageLocation */
         StorageLocation: {
             /**
@@ -791,6 +985,160 @@ export interface components {
             version: string;
             /** Openavmkit */
             openavmkit: string;
+        };
+        /** Wizard */
+        Wizard: {
+            /** Steps */
+            steps: components["schemas"]["StepView"][];
+            /** Files */
+            files: components["schemas"]["WizardFile"][];
+            sale_id: components["schemas"]["SaleId"];
+            /** Fields */
+            fields: components["schemas"]["WizardField"][];
+            /**
+             * Used
+             * @description file -> column -> the field it's loaded as.
+             */
+            used: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+            /** Problems */
+            problems: string[];
+            /** Not Loaded */
+            not_loaded: components["schemas"]["NotLoaded"][];
+        };
+        /** WizardField */
+        WizardField: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Type */
+            type: string;
+            /** Step */
+            step: string;
+            /** More */
+            more: boolean;
+            /**
+             * Sources
+             * @description Where it's loaded from; more than one is a conflict.
+             */
+            sources: components["schemas"]["Source"][];
+            /**
+             * Assumed
+             * @description Valid/vacant sale with no column: all valid, none vacant (F3d).
+             */
+            assumed: boolean;
+            check: components["schemas"]["Check"] | null;
+            /**
+             * Hidden
+             * @description Computed from a field that's loaded, so not asked (e.g. age from year built).
+             */
+            hidden: boolean;
+        };
+        /** WizardFieldChoice */
+        WizardFieldChoice: {
+            /** File */
+            file?: string | null;
+            /** Column */
+            column?: string | null;
+            /**
+             * Assume
+             * @description Valid/vacant sale only: all valid, none vacant.
+             * @default false
+             */
+            assume: boolean;
+        };
+        /** WizardFile */
+        WizardFile: {
+            /** Name */
+            name: string;
+            /** Filename */
+            filename: string;
+            /** Missing */
+            missing: boolean;
+            /**
+             * Problem
+             * @description Why it can't be read.
+             */
+            problem: string | null;
+            /** Rows */
+            rows: number | null;
+            /** Geometry */
+            geometry: boolean;
+            /** Holds */
+            holds: ("parcels" | "sales" | "unused") | null;
+            /**
+             * Id Column
+             * @description Loaded as key in this file.
+             */
+            id_column: string | null;
+            id_check: components["schemas"]["Check"] | null;
+            /** Key2 Column */
+            key2_column: string | null;
+            /** Columns */
+            columns: components["schemas"]["Column"][];
+            /** Base */
+            base: boolean;
+        };
+        /**
+         * WizardFileChoice
+         * @description Step 1 of the Fields wizard, for one file (F3d). Leave a value out to keep it.
+         */
+        WizardFileChoice: {
+            /** Holds */
+            holds?: ("parcels" | "sales" | "unused") | null;
+            /** Id Column */
+            id_column?: string | null;
+            /** Key2 Column */
+            key2_column?: string | null;
+            /**
+             * Key2 Set
+             * @description Set key2 to key2_column (null: none).
+             * @default false
+             */
+            key2_set: boolean;
+        };
+        /** WizardSaleId */
+        WizardSaleId: {
+            /** Column */
+            column?: string | null;
+            /**
+             * Make
+             * @description Make one from parcel ID + sale date.
+             * @default false
+             */
+            make: boolean;
+        };
+        /**
+         * WizardState
+         * @description The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries.
+         */
+        WizardState: {
+            /**
+             * Base
+             * @description The parcel file the others join to.
+             */
+            base: string | null;
+            /**
+             * Visited
+             * @description Steps shown at least once.
+             */
+            visited: string[];
+            /**
+             * Skipped
+             * @description Steps answered with "I don't have these".
+             */
+            skipped: string[];
+            /**
+             * Decided
+             * @description Fields chosen or guessed once, so a guess never replaces them.
+             */
+            decided: string[];
         };
     };
     responses: never;
@@ -1331,6 +1679,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_wizard_api_projects__project_id__wizard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    visit_step_api_projects__project_id__wizard_steps__step__visit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                step: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    skip_step_api_projects__project_id__wizard_steps__step__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                step: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_file_api_projects__project_id__wizard_files__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardFileChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_sale_id_api_projects__project_id__wizard_sale_id_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardSaleId"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_field_api_projects__project_id__wizard_fields__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardFieldChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
                 };
             };
             /** @description Validation Error */
