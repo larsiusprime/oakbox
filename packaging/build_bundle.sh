@@ -60,6 +60,9 @@ uv pip install -q \
   --target "$OUT/$SITE" \
   -r build/requirements.txt build/wheels/openavmkit-*.whl build/wheels/oakbox-*.whl
 
+# Linux: keep only the parts of Qt the window loads (about 270 MB less).
+[ "$PLATFORM" = linux ] && python3 packaging/prune_qt.py "$OUT/$SITE"
+
 if [ "$PLATFORM" = windows ]; then
   cat > "$OUT/Oakbox.cmd" <<'CMD'
 @echo off
