@@ -1010,7 +1010,7 @@ a.row-title:hover {
 .project {
   display: grid;
   gap: 1rem;
-  max-width: 60rem;
+  max-width: 76rem; /* room for the field view's table (F3c) */
 }
 
 .folder-tab-list {
@@ -1126,6 +1126,10 @@ a.row-title:hover {
   width: 7rem;
 }
 
+.col-fields {
+  width: 15rem;
+}
+
 .col-actions {
   width: 7.5rem; /* show, rename, remove */
 }
@@ -1223,6 +1227,226 @@ a.row-title:hover {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.fields-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fields-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- F3c: a file's fields ---------- */
+
+.field-view {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.field-view .back-link {
+  justify-self: start;
+}
+
+.field-view-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.field-view-title .row-meta {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.field-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+}
+
+.field-search .input {
+  width: 18rem;
+}
+
+.show-choice {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.field-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.col-load {
+  width: 3.5rem;
+}
+
+.col-column {
+  width: 11rem;
+}
+
+.col-kind {
+  width: 5.5rem;
+}
+
+.col-field {
+  width: 18rem;
+}
+
+.col-cast {
+  width: 10rem;
+}
+
+.col-extra {
+  width: 17rem;
+}
+
+.field-table th {
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 0.75rem 0.35rem 0;
+}
+
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
+.field-table td {
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  border-top: 1px solid var(--rule);
+  vertical-align: middle;
+}
+
+.field-table tr.field-problem td {
+  border-top: none;
+  padding: 0 0 0.4rem;
+}
+
+.cell-clip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.samples {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Unticked rows show what ticking would choose, greyed out. */
+.field-row.unloaded .mono,
+.field-row.unloaded .samples {
+  color: var(--muted);
+}
+
+.field-table .choice {
+  min-width: 0;
+}
+
+.field-table .choice-button {
+  width: 100%;
+}
+
+.field-table .input {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.picker-input .input {
+  padding-right: 2.2rem;
+}
+
+.field-table [data-disabled] .input,
+.field-table .input[data-disabled],
+.field-table .choice-button[data-disabled],
+.field-table .picker-button[data-disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.custom-field {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.custom-field > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-input {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.picker-button {
+  position: absolute;
+  right: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.picker-popover {
+  max-height: 22rem;
+  max-width: 30rem;
+  overflow: auto;
+}
+
+.picker-header {
+  padding: 0.45rem 0.75rem 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.picker-custom {
+  font-style: italic;
+  border-bottom: 1px solid var(--rule);
+}
+
+.date-format {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.date-format > :first-child {
+  flex: none;
+  width: 10rem;
+}
+
+.date-ok {
+  color: var(--ok);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.field-table tr.geometry-row td {
+  color: var(--muted);
 }
 
 .add-file {

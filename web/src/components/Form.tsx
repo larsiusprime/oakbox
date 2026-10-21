@@ -67,10 +67,12 @@ export function Choice<V extends string>(props: {
   onChange: (v: V) => void;
   placeholder?: string;
   hideLabel?: boolean;
+  isDisabled?: boolean;
 }) {
   return (
     <Select
       className="field choice"
+      {...(props.isDisabled ? { isDisabled: true } : {})}
       selectedKey={props.value}
       onSelectionChange={(k) => k !== null && props.onChange(String(k) as V)}
       placeholder={props.placeholder ?? ""}

@@ -32,6 +32,10 @@ class DataFile(BaseModel):
     name: str = Field(description="The data.load key.")
     filename: str = Field(description="File name inside in/.")
     layer: str | None = Field(default=None, description="GeoPackage layer.")
+    load: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="data.load.<name>.load: field -> [column] or [column, type] or [column, type, extra] (F3c).",
+    )
 
 
 class FileCheck(BaseModel):
@@ -171,24 +175,32 @@ def add(
 
 
 def data_load(files: list[DataFile]) -> dict:
-    """The data.load block: only what F2 knows, the file (and layer) per entry."""
+    """The data.load block: per entry, the file (and layer) and the columns it loads."""
     out = {}
     for f in files:
         entry: dict = {"filename": f.filename}
         if f.layer:
             entry["layer"] = f.layer
+        if f.load:
+            entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in f.load.items()}
         out[f.name] = entry
     return out
 
 
-def has_geometry(path: Path, layer: str | None) -> bool | None:
-    """Whether OpenAVMKit sees a geometry column, reading only column names. None if unreadable."""
+def column_names(path: Path, layer: str | None) -> list[str] | None:
+    """The file's columns as OpenAVMKit sees them (geometry included), reading names only. None if unreadable."""
     from openavmkit.data import _snoop_column_names
 
     try:
-        return "geometry" in _snoop_column_names(str(path), layer)
+        return [str(c) for c in _snoop_column_names(str(path), layer)]
     except Exception:  # noqa: BLE001 - a damaged file shows as unknown, not an error page
         return None
+
+
+def has_geometry(path: Path, layer: str | None) -> bool | None:
+    """Whether OpenAVMKit sees a geometry column."""
+    names = column_names(path, layer)
+    return None if names is None else "geometry" in names
 
 
 def rename(files: list[DataFile], old: str, new: str) -> None:

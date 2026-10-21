@@ -10,12 +10,13 @@ import {
   ModalOverlay,
   TextField,
 } from "react-aria-components";
+import { navigate } from "../App";
 import { api, type InputFile, type Project, unwrap } from "../api/client";
 import folderIcon from "../assets/noto/emoji_u1f4c1.svg";
 import binIcon from "../assets/noto/emoji_u1f5d1.svg";
 import pencilIcon from "../assets/noto/emoji_u270f.svg";
 import { Tick } from "../components/Form";
-import { Tip } from "../components/Tip";
+import { Tip, TipOn } from "../components/Tip";
 import { t } from "../strings";
 
 const NAME = /^[a-z][a-z0-9_]*$/;
@@ -38,6 +39,7 @@ export function InputFileList({ project, files }: { project: Project; files: Inp
         <col className="col-type" />
         <col className="col-size" />
         <col className="col-geometry" />
+        <col className="col-fields" />
       </colgroup>
       <thead>
         <tr>
@@ -48,6 +50,7 @@ export function InputFileList({ project, files }: { project: Project; files: Inp
           <th>{f.columns.type}</th>
           <th className="num">{f.columns.size}</th>
           <th>{f.columns.geometry}</th>
+          <th>{f.columns.fields}</th>
         </tr>
       </thead>
       <tbody>
@@ -77,6 +80,9 @@ export function InputFileList({ project, files }: { project: Project; files: Inp
               </td>
               <td className="mono">{file.name}</td>
               <FileFacts file={file} />
+              <td>
+                <ChooseFields project={project} file={file} />
+              </td>
             </tr>
           ),
         )}
@@ -103,6 +109,31 @@ function FileFacts({ file }: { file: InputFile }) {
         )}
       </td>
     </>
+  );
+}
+
+function ChooseFields({ project, file }: { project: Project; file: InputFile }) {
+  const f = t.inputFiles;
+  const count =
+    file.missing || file.columns === null
+      ? "—"
+      : file.fields_loaded === 0
+        ? f.noFields
+        : f.fieldCount(file.fields_loaded, file.columns);
+  const button = (
+    <Button
+      className="button"
+      isDisabled={file.missing}
+      onPress={() => navigate({ name: "project", id: project.id, tab: "files", file: file.name })}
+    >
+      {f.chooseFields}
+    </Button>
+  );
+  return (
+    <span className="fields-cell">
+      <span className="fields-count">{count}</span>
+      {file.missing ? <TipOn text={f.missingFile(file.filename)}>{button}</TipOn> : button}
+    </span>
   );
 }
 
@@ -190,12 +221,13 @@ function RenameRow(props: { project: Project; file: InputFile; taken: string[]; 
           </div>
         </td>
         <FileFacts file={file} />
+        <td />
       </tr>
       {/* On a line of its own, so a long message neither widens nor misaligns the row. */}
       {error && (
         <tr className="rename-error">
           <td />
-          <td colSpan={4}>
+          <td colSpan={5}>
             <span id={`rename-error-${file.name}`} className="error" role="alert">
               {error}
             </span>

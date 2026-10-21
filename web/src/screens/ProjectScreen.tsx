@@ -7,6 +7,7 @@ import { api, type ProjectDetail, unwrap } from "../api/client";
 import cardFileBox from "../assets/noto/emoji_u1f5c3.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
 import { t } from "../strings";
+import { FieldView } from "./FieldView";
 import { InputFilesTab } from "./InputFiles";
 
 export const TABS = ["metadata", "files"] as const;
@@ -14,7 +15,15 @@ export type TabId = (typeof TABS)[number];
 const PLACEHOLDERS = ["later-1", "later-2", "later-3"] as const;
 
 /** F3: the project view, one tabbed panel (SPEC §3.0). */
-export function ProjectScreen({ projectId, tab }: { projectId: string; tab: TabId | null }) {
+export function ProjectScreen({
+  projectId,
+  tab,
+  file,
+}: {
+  projectId: string;
+  tab: TabId | null;
+  file: string | null;
+}) {
   const detail = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () =>
@@ -23,10 +32,18 @@ export function ProjectScreen({ projectId, tab }: { projectId: string; tab: TabI
 
   if (detail.isPending) return <p className="empty">{t.project.loading}</p>;
   if (detail.error) return <p className="error">{detail.error.message}</p>;
-  return <ProjectView detail={detail.data} tab={tab} />;
+  return <ProjectView detail={detail.data} tab={tab} file={file} />;
 }
 
-function ProjectView({ detail, tab }: { detail: ProjectDetail; tab: TabId | null }) {
+function ProjectView({
+  detail,
+  tab,
+  file,
+}: {
+  detail: ProjectDetail;
+  tab: TabId | null;
+  file: string | null;
+}) {
   const { project } = detail;
   const projectId = project.id;
   // Input files first while there are none: adding them is the next thing to do. Decided once,
@@ -69,7 +86,7 @@ function ProjectView({ detail, tab }: { detail: ProjectDetail; tab: TabId | null
           <MetadataTab detail={detail} />
         </TabPanel>
         <TabPanel id="files" className="folder-panel">
-          <InputFilesTab detail={detail} />
+          {file ? <FieldView detail={detail} name={file} /> : <InputFilesTab detail={detail} />}
         </TabPanel>
       </Tabs>
     </div>

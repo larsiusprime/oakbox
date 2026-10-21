@@ -234,7 +234,6 @@ OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with it
 - A removed file left in `in/` can be added again later. Its add form shows "Already in the project folder" instead of the copy/move choice (F2).
 
 #### F3c. Choosing a file's fields
-*Draft, pending the maintainer's approval.*
 
 OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed to a field and optionally cast:
 
@@ -295,6 +294,7 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
   - **Date** needs a format: common formats plus Custom…, checked live against the sample values. "✓ 2025-03-14" shows the first sample as read; red means the samples don't read with that format. Ticking a date column preselects the first common format that reads all its samples.
   - **Yes/No** needs blank handling: Blank = No (`na_false`, preselected) or Blank = Yes (`na_true`). Which values count as yes is OpenAVMKit's rule, given in a tooltip.
   - A type with no extra is written as `[column, type]`; one with an extra as `[column, type, extra]`.
+  - **Built:** the list also has **As in file**, which writes the bare column (`"field": "COLUMN"`), so entries written that way elsewhere show as they are. A text column whose samples read as dates is suggested as Date.
 - **Filter** matches column names and sample values. **Show: Loaded** lists only ticked columns.
 - **Geometry** is always loaded by OpenAVMKit, so it's a fixed row.
 - **Saving:** each change saves at once to `oakbox.json` and `settings.json`. A row that isn't complete is not written, and says why in red: a Custom… field with no name, a clashing name, or a date with no format. It is written as soon as it is complete. Nothing else in the entry changes.
@@ -942,8 +942,8 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
     - `"derived"`: always computed by OpenAVMKit, so loading a column into it is overwritten (e.g. `model_market_value`, `geom_vertices`, `dist_to_cbd`);
     - `"either"`: computed when missing, kept when given (e.g. `land_area_sqft` from GIS, `bldg_age_years` from year built).
 
-    Each value is checked against the code that writes the field and listed for the maintainer's review before use. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
-
+    **Done** on `engine/dictionary-source`, merged into `openavmkit-oakbox`: 106 input, 42 derived, 15 either. Each value was checked against the code that writes the field; the classification is open for the maintainer's review. Entries missing a name or type (14 today) are filled in at the same time. A test asserts every entry has a valid `source`. Topic branch `engine/dictionary-source`. OAK box's field list (F3c) offers `input` and `either` fields.
+12. **CSV yes/no columns.** **Done** on `engine/csv-bool`, merged: `data.load` passed `bool` to `pd.read_csv`, which fails on "Y"/"N"; such columns are now read as text and converted after loading, as dates already were. Also, a blank value became True whatever `na_handling` said ("<NA>" and "" weren't treated as missing). Still as before: any unrecognised text counts as Yes.
 ### C. Needed for M3 (model values) and later
 1. **Headless `try_variables`** with a configurable test list (VIF, p-value, coefficient sign).
 2. **Default per-group model configuration** and a "choose for me" policy with a small-sample fallback.

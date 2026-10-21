@@ -19,3 +19,6 @@ export function unwrap<T>(result: { data?: T; error?: unknown }): T {
   }
   return result.data;
 }
+export type FileColumns = components["schemas"]["FileColumns"];
+export type FileColumn = components["schemas"]["Column"];
+export type DictionaryField = components["schemas"]["DictionaryField"];

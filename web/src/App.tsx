@@ -4,20 +4,25 @@ import { NewProjectScreen } from "./screens/NewProjectScreen";
 import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
 import { t } from "./strings";
 
-type Route = { name: "home" } | { name: "new" } | { name: "project"; id: string; tab?: TabId | null };
+type Route =
+  | { name: "home" }
+  | { name: "new" }
+  | { name: "project"; id: string; tab?: TabId | null; file?: string | null };
 
 function parseHash(hash: string): Route {
   if (hash === "#/new") return { name: "new" };
-  const match = /^#\/projects\/([a-z0-9-]+)(?:\/([a-z]+))?$/.exec(hash);
+  const match = /^#\/projects\/([a-z0-9-]+)(?:\/([a-z]+)(?:\/([a-z0-9_]+))?)?$/.exec(hash);
   if (!match?.[1]) return { name: "home" };
   const wanted = match[2];
   const tab = TABS.find((x) => x === wanted) ?? null;
-  return { name: "project", id: match[1], tab };
+  // #/projects/<id>/files/<name>: one input file's fields (SPEC F3c).
+  return { name: "project", id: match[1], tab, file: tab === "files" ? (match[3] ?? null) : null };
 }
 
 export function navigate(route: Route): void {
   if (route.name === "project") {
-    window.location.hash = `#/projects/${route.id}${route.tab ? `/${route.tab}` : ""}`;
+    const file = route.tab === "files" && route.file ? `/${route.file}` : "";
+    window.location.hash = `#/projects/${route.id}${route.tab ? `/${route.tab}` : ""}${file}`;
   } else {
     window.location.hash = route.name === "new" ? "#/new" : "#/";
   }
@@ -47,7 +52,9 @@ export function App() {
       <main className="content">
         {route.name === "home" && <HomeScreen />}
         {route.name === "new" && <NewProjectScreen />}
-        {route.name === "project" && <ProjectScreen projectId={route.id} tab={route.tab ?? null} />}
+        {route.name === "project" && (
+          <ProjectScreen projectId={route.id} tab={route.tab ?? null} file={route.file ?? null} />
+        )}
       </main>
     </div>
   );

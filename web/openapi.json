@@ -570,6 +570,174 @@
      }
     }
    }
+  },
+  "/api/projects/{project_id}/files/{name}/columns": {
+   "get": {
+    "summary": "File Columns",
+    "description": "The file's columns, their types and sample values, read without changing it (SPEC \u00a73.0 F3c).",
+    "operationId": "file_columns_api_projects__project_id__files__name__columns_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FileColumns"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/files/{name}/load": {
+   "put": {
+    "summary": "Set Load",
+    "description": "Replace the entry's load: field -> [column, type, extra] (SPEC \u00a73.0 F3c).",
+    "operationId": "set_load_api_projects__project_id__files__name__load_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EntryLoad"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/dictionary": {
+   "get": {
+    "summary": "Dictionary",
+    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC \u00a73.0 F3c).",
+    "operationId": "dictionary_api_dictionary_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/DictionaryField"
+         },
+         "type": "array",
+         "title": "Response Dictionary Api Dictionary Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/date-format": {
+   "post": {
+    "summary": "Date Format",
+    "description": "Read sample values with a date format, as OpenAVMKit would (SPEC \u00a73.0 F3c).",
+    "operationId": "date_format_api_date_format_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DateFormatCheck"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DateCheck"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -643,6 +811,54 @@
     ],
     "title": "AppSettingsView"
    },
+   "Column": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "text",
+       "number",
+       "yes/no",
+       "date",
+       "geometry"
+      ],
+      "title": "Type",
+      "description": "The column's own type in the file."
+     },
+     "samples": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Samples",
+      "description": "A few distinct non-blank values from the first rows."
+     },
+     "date_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Format",
+      "description": "The first common format that reads every sample, for text columns."
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "type",
+     "samples",
+     "date_format"
+    ],
+    "title": "Column"
+   },
    "DataFile": {
     "properties": {
      "name": {
@@ -666,16 +882,109 @@
       ],
       "title": "Layer",
       "description": "GeoPackage layer."
+     },
+     "load": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Load",
+      "description": "data.load.<name>.load: field -> [column] or [column, type] or [column, type, extra] (F3c)."
      }
     },
     "type": "object",
     "required": [
      "name",
      "filename",
-     "layer"
+     "layer",
+     "load"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
+   },
+   "DateCheck": {
+    "properties": {
+     "parsed": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Parsed",
+      "description": "Each sample as read with the format (ISO date), or null."
+     }
+    },
+    "type": "object",
+    "required": [
+     "parsed"
+    ],
+    "title": "DateCheck"
+   },
+   "DateFormatCheck": {
+    "properties": {
+     "samples": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Samples"
+     },
+     "format": {
+      "type": "string",
+      "title": "Format"
+     }
+    },
+    "type": "object",
+    "required": [
+     "samples",
+     "format"
+    ],
+    "title": "DateFormatCheck"
+   },
+   "DictionaryField": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "type": {
+      "type": "string",
+      "title": "Type"
+     },
+     "groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Groups"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "description",
+     "type",
+     "groups"
+    ],
+    "title": "DictionaryField"
    },
    "DiskUsage": {
     "properties": {
@@ -699,6 +1008,25 @@
      "folder"
     ],
     "title": "DiskUsage"
+   },
+   "EntryLoad": {
+    "properties": {
+     "load": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Load"
+     }
+    },
+    "type": "object",
+    "required": [
+     "load"
+    ],
+    "title": "EntryLoad"
    },
    "EntryName": {
     "properties": {
@@ -802,6 +1130,58 @@
     "title": "FileCheck",
     "description": "What OAK box can tell about a file before adding it, without reading its data."
    },
+   "FileColumns": {
+    "properties": {
+     "rows": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows",
+      "description": "Row count, when the file's metadata has it (not CSV)."
+     },
+     "columns": {
+      "items": {
+       "$ref": "#/components/schemas/Column"
+      },
+      "type": "array",
+      "title": "Columns"
+     },
+     "geometry": {
+      "type": "boolean",
+      "title": "Geometry"
+     },
+     "date_formats": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Date Formats",
+      "description": "Common date formats to offer.",
+      "default": [
+       "%Y-%m-%d",
+       "%m/%d/%Y",
+       "%m/%d/%y",
+       "%d/%m/%Y",
+       "%Y%m%d",
+       "%Y-%m-%d %H:%M:%S",
+       "%m/%d/%Y %H:%M"
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "rows",
+     "columns",
+     "geometry",
+     "date_formats"
+    ],
+    "title": "FileColumns"
+   },
    "FilePath": {
     "properties": {
      "path": {
@@ -874,6 +1254,23 @@
       ],
       "title": "Geometry",
       "description": "OpenAVMKit sees a geometry column. None if missing or unreadable."
+     },
+     "fields_loaded": {
+      "type": "integer",
+      "title": "Fields Loaded",
+      "description": "Columns in the entry's load (F3c)."
+     },
+     "columns": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Columns",
+      "description": "Columns in the file, not counting geometry. None if missing or unreadable."
      }
     },
     "type": "object",
@@ -884,7 +1281,9 @@
      "format",
      "size_bytes",
      "missing",
-     "geometry"
+     "geometry",
+     "fields_loaded",
+     "columns"
     ],
     "title": "InputFile",
     "description": "An input file as the Input files tab shows it (SPEC \u00a73.0 F3)."

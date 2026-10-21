@@ -245,6 +245,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/files/{name}/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File Columns
+         * @description The file's columns, their types and sample values, read without changing it (SPEC §3.0 F3c).
+         */
+        get: operations["file_columns_api_projects__project_id__files__name__columns_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/files/{name}/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Load
+         * @description Replace the entry's load: field -> [column, type, extra] (SPEC §3.0 F3c).
+         */
+        put: operations["set_load_api_projects__project_id__files__name__load_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dictionary
+         * @description OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).
+         */
+        get: operations["dictionary_api_dictionary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Date Format
+         * @description Read sample values with a date format, as OpenAVMKit would (SPEC §3.0 F3c).
+         */
+        post: operations["date_format_api_date_format_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -278,6 +358,27 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
         };
+        /** Column */
+        Column: {
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @description The column's own type in the file.
+             * @enum {string}
+             */
+            type: "text" | "number" | "yes/no" | "date" | "geometry";
+            /**
+             * Samples
+             * @description A few distinct non-blank values from the first rows.
+             */
+            samples: string[];
+            /**
+             * Date Format
+             * @description The first common format that reads every sample, for text columns.
+             */
+            date_format: string | null;
+        };
         /**
          * DataFile
          * @description One data.load entry, as OAK box wrote it.
@@ -298,6 +399,41 @@ export interface components {
              * @description GeoPackage layer.
              */
             layer: string | null;
+            /**
+             * Load
+             * @description data.load.<name>.load: field -> [column] or [column, type] or [column, type, extra] (F3c).
+             */
+            load: {
+                [key: string]: string[];
+            };
+        };
+        /** DateCheck */
+        DateCheck: {
+            /**
+             * Parsed
+             * @description Each sample as read with the format (ISO date), or null.
+             */
+            parsed: (string | null)[];
+        };
+        /** DateFormatCheck */
+        DateFormatCheck: {
+            /** Samples */
+            samples: string[];
+            /** Format */
+            format: string;
+        };
+        /** DictionaryField */
+        DictionaryField: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Type */
+            type: string;
+            /** Groups */
+            groups: string[];
         };
         /** DiskUsage */
         DiskUsage: {
@@ -307,6 +443,13 @@ export interface components {
             files: number;
             /** Folder */
             folder: string;
+        };
+        /** EntryLoad */
+        EntryLoad: {
+            /** Load */
+            load: {
+                [key: string]: string[];
+            };
         };
         /** EntryName */
         EntryName: {
@@ -363,6 +506,32 @@ export interface components {
              */
             filename_taken: boolean;
         };
+        /** FileColumns */
+        FileColumns: {
+            /**
+             * Rows
+             * @description Row count, when the file's metadata has it (not CSV).
+             */
+            rows: number | null;
+            /** Columns */
+            columns: components["schemas"]["Column"][];
+            /** Geometry */
+            geometry: boolean;
+            /**
+             * Date Formats
+             * @description Common date formats to offer.
+             * @default [
+             *       "%Y-%m-%d",
+             *       "%m/%d/%Y",
+             *       "%m/%d/%y",
+             *       "%d/%m/%Y",
+             *       "%Y%m%d",
+             *       "%Y-%m-%d %H:%M:%S",
+             *       "%m/%d/%Y %H:%M"
+             *     ]
+             */
+            date_formats: string[];
+        };
         /** FilePath */
         FilePath: {
             /** Path */
@@ -401,6 +570,16 @@ export interface components {
              * @description OpenAVMKit sees a geometry column. None if missing or unreadable.
              */
             geometry: boolean | null;
+            /**
+             * Fields Loaded
+             * @description Columns in the entry's load (F3c).
+             */
+            fields_loaded: number;
+            /**
+             * Columns
+             * @description Columns in the file, not counting geometry. None if missing or unreadable.
+             */
+            columns: number | null;
         };
         /**
          * NewProject
@@ -972,6 +1151,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_columns_api_projects__project_id__files__name__columns_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileColumns"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_load_api_projects__project_id__files__name__load_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryLoad"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dictionary_api_dictionary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryField"][];
+                };
+            };
+        };
+    };
+    date_format_api_date_format_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DateFormatCheck"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DateCheck"];
                 };
             };
             /** @description Validation Error */

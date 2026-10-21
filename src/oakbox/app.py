@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, datafiles, projects
+from oakbox import __version__, appsettings, datafiles, fields, projects
 
 WEB_DIST = Path(__file__).parent / "web"
 
@@ -62,10 +62,23 @@ class InputFile(BaseModel):
     size_bytes: int = Field(description="0 when the file is missing from in/.")
     missing: bool = Field(description="The file isn't in in/.")
     geometry: bool | None = Field(description="OpenAVMKit sees a geometry column. None if missing or unreadable.")
+    fields_loaded: int = Field(description="Columns in the entry's load (F3c).")
+    columns: int | None = Field(
+        description="Columns in the file, not counting geometry. None if missing or unreadable."
+    )
 
 
 class EntryName(BaseModel):
     name: str
+
+
+class EntryLoad(BaseModel):
+    load: dict[str, list[str]]
+
+
+class DateFormatCheck(BaseModel):
+    samples: list[str]
+    format: str
 
 
 class ProjectDetail(BaseModel):
@@ -129,6 +142,7 @@ def _settings_view() -> AppSettingsView:
 def _view(in_dir: Path, f: datafiles.DataFile) -> InputFile:
     path = in_dir / f.filename
     present = path.is_file()
+    names = datafiles.column_names(path, f.layer) if present else None
     return InputFile(
         name=f.name,
         filename=f.filename,
@@ -136,7 +150,9 @@ def _view(in_dir: Path, f: datafiles.DataFile) -> InputFile:
         format=datafiles.FORMATS.get(path.suffix.lower().lstrip("."), ""),
         size_bytes=sum(p.stat().st_size for p in datafiles.companions(path)) if present else 0,
         missing=not present,
-        geometry=datafiles.has_geometry(path, f.layer) if present else None,
+        geometry=None if names is None else "geometry" in names,
+        fields_loaded=len(f.load),
+        columns=None if names is None else len([n for n in names if n != "geometry"]),
     )
 
 
@@ -291,14 +307,50 @@ def create_app() -> FastAPI:
     @app.post("/api/projects/{project_id}/files/{name}/show")
     def show_file(project_id: str, name: str) -> None:
         """Show an input file in the file manager (SPEC §3.0 F3b)."""
-        project = _load(project_id)
-        entry = next((f for f in project.files if f.name == name), None)
-        if entry is None:
-            raise HTTPException(404, "No such input file")
+        entry = _entry(_load(project_id), name)
         try:
             projects.show_file(projects.project_dir(project_id) / "in" / entry.filename)
         except OSError as e:
             raise HTTPException(500, str(e)) from e
+
+    def _entry(project: projects.Project, name: str) -> datafiles.DataFile:
+        entry = next((f for f in project.files if f.name == name), None)
+        if entry is None:
+            raise HTTPException(404, "No such input file")
+        return entry
+
+    @app.get("/api/projects/{project_id}/files/{name}/columns")
+    def file_columns(project_id: str, name: str) -> fields.FileColumns:
+        """The file's columns, their types and sample values, read without changing it (SPEC §3.0 F3c)."""
+        entry = _entry(_load(project_id), name)
+        path = projects.project_dir(project_id) / "in" / entry.filename
+        if not path.is_file():
+            raise HTTPException(404, f"{entry.filename} is missing from the project folder.")
+        try:
+            return fields.columns(path, entry.layer)
+        except Exception as e:  # noqa: BLE001 - a damaged file: say so in the view
+            raise HTTPException(422, f"Couldn't read {entry.filename}: {e}") from e
+
+    @app.put("/api/projects/{project_id}/files/{name}/load")
+    def set_load(project_id: str, name: str, body: EntryLoad) -> None:
+        """Replace the entry's load: field -> [column, type, extra] (SPEC §3.0 F3c)."""
+        project = _load(project_id)
+        try:
+            fields.set_load(_entry(project, name), body.load)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        projects.write_settings(project)
+
+    @app.get("/api/dictionary")
+    def dictionary() -> list[fields.DictionaryField]:
+        """OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c)."""
+        return fields.dictionary()
+
+    @app.post("/api/date-format")
+    def date_format(body: DateFormatCheck) -> fields.DateCheck:
+        """Read sample values with a date format, as OpenAVMKit would (SPEC §3.0 F3c)."""
+        return fields.check_dates(body.samples, body.format)
 
     @app.get("/api/projects/{project_id}")
     def get_project(project_id: str) -> ProjectDetail:
