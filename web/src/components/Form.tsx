@@ -4,6 +4,7 @@ import {
   Checkbox,
   CheckboxGroup,
   FieldError,
+  Focusable,
   Input,
   Label,
   ListBox,
@@ -14,6 +15,7 @@ import {
   Text,
   TextField,
 } from "react-aria-components";
+import { Tip } from "./Tip";
 
 /** A labelled text input. Inputs look sunken; they are filled, not pressed. */
 export function Field(props: {
@@ -22,6 +24,8 @@ export function Field(props: {
   onChange: (v: string) => void;
   onBlur?: () => void;
   help?: string;
+  /** Help shown on hover and focus instead (SPEC D42). */
+  tip?: string;
   type?: "text" | "date" | "number";
   width?: "short" | "medium" | "long";
   autoFocus?: boolean;
@@ -36,7 +40,15 @@ export function Field(props: {
       {...(props.autoFocus ? { autoFocus: true } : {})}
     >
       <Label className="field-label">{props.label}</Label>
-      <Input className="input" />
+      {props.tip ? (
+        <Tip text={props.tip}>
+          <Focusable>
+            <Input className="input" />
+          </Focusable>
+        </Tip>
+      ) : (
+        <Input className="input" />
+      )}
       {props.help && (
         <Text slot="description" className="field-help">
           {props.help}

@@ -1224,6 +1224,110 @@ a.row-title:hover {
   background: var(--head);
 }
 
+/* The picked file: label and pills above a fixed-width path, so the buttons never move. */
+.pick-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.pick-file {
+  display: grid;
+  gap: 0.25rem;
+  width: min(100%, 34rem);
+}
+
+.pick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+}
+
+.pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pill {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  padding: 0 0.55rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.path-box {
+  display: block;
+  box-sizing: border-box;
+  height: 2.5rem; /* the buttons' height, so they share a centreline */
+  line-height: calc(2.5rem - 2px);
+  padding: 0 0.6rem;
+  background: var(--head);
+  border: 1px solid var(--well-edge);
+  border-radius: var(--radius);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl; /* the "…" cuts the start of the path, so the file name stays visible */
+  text-align: left;
+  outline: none;
+}
+
+.path-box[data-focus-visible],
+.path-box:focus-visible,
+.tip-target:focus-visible {
+  outline: 3px solid var(--focus);
+}
+
+.tip-target {
+  display: inline-flex;
+  outline: none;
+}
+
+.tooltip {
+  max-width: 24rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.85rem;
+  color: #ffffff;
+  background: #2a2d31;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  overflow-wrap: anywhere;
+}
+
+.tooltip-arrow svg {
+  display: block;
+  fill: #2a2d31;
+}
+
+.tooltip[data-placement="bottom"] .tooltip-arrow svg {
+  transform: rotate(180deg);
+}
+
+.choice-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 2.5rem;
+}
+
+.choice-column {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.already {
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+
 .file-choices {
   display: grid;
   gap: 0.9rem;

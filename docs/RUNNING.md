@@ -33,6 +33,7 @@ In two terminals:
 uv run python -m oakbox --no-window --port 8765
 cd web && npm run dev                # opens http://localhost:5173, proxies /api to 8765
 ```
+In a browser there is no file picker, so **Add a file** is disabled; use the OAK box window to add files.
 
 ## Checks (the same ones CI runs)
 ```

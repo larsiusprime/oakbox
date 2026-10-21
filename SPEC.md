@@ -108,7 +108,7 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
 
 - **Built:** Copy is pre-selected, as the choice that can't lose anything. A file already in `in/` is only declared, not moved. A shapefile missing its `.shx` or `.dbf` is refused before anything moves.
 
-- **The add flow** *(revised after F3; draft, pending the maintainer's approval).* The file picker drives it:
+- **The add flow** *(revised after F3).* The file picker drives it:
   - **Add a file** opens the system file picker straight away. Cancelling the picker changes nothing.
   - Picking a file checks it at once (exists, supported format, shapefile companions, layers, size). There is no Check button.
   - The path is shown, not typed. **Browse…** picks another file; **Cancel** closes the form.
