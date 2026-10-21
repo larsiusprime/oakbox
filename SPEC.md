@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.10 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.11 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
 
 ## 1. Purpose
 
@@ -34,7 +34,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
 | D19 | Sample county | **Removed for now** (F3). It may be rebuilt on the new flow later. CI still runs OpenAVMKit end to end on `us-va-petersburgcity`, outside the app (§8 smoke test). |
 | D20 | Model choice | The assessor picks a model, or "Choose for me": LightGBM with Oakbox's default variables and a small-sample fallback (§3.10). |
-| D21 | Name and look | "OAK box" (written "Oakbox" in code and folder names). An oak-grain titlebar is the one decorative element; everything else is flat and edged, and only pressable things look raised. Type is IBM Plex Sans and Plex Mono (OFL), bundled, with Noto Sans as the fallback for other scripts. |
+| D21 | Name and look | "OAK box" (written "Oakbox" in code and folder names). The look is a dense desktop tool (D43). There is no decorative chrome for now: the oak-grain titlebar and brass plate are dropped, but their styles stay in the code to bring back when chrome is needed. Type is IBM Plex Sans and Plex Mono (OFL), bundled, with Noto Sans as the fallback for other scripts. |
 | D22 | Model groups | A dedicated builder with live map feedback (§3.5). |
 | D23 | Sale validity | Office codes and OpenAVMKit scrutiny together. The assessor can overrule any sale. **A sale flagged invalid never enters the modeling pipeline.** Review happens in Oakbox's separate sales register (§3.6). |
 | D24 | Years | One project per jurisdiction per tax year (§3.7). |
@@ -56,6 +56,8 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D40 | Sample | Superseded by D19: no sample in the app for now. |
 | D41 | Mirror OpenAVMKit | OAK box is a GUI for OpenAVMKit, not logic on top of it. Every screen maps to something OpenAVMKit does or a setting it reads, and the user's choices are written as OpenAVMKit settings. When OpenAVMKit can't do something a user needs, the change goes upstream (§7), not into OAK box. OAK box's own logic is limited to presentation: previews, explanations, defaults and checks that read data without changing it. |
 | D42 | Help on hover | Explanations go in hover tooltips (also shown on keyboard focus), not in lines of text on the screen. Screens carry only labels and what the user needs to act. Applies to new screens and to screens as they are revised. |
+| D43 | Dense by default | *Draft, pending the maintainer's approval.* Compact, information-dense presentation, after classic desktop software (Windows 2000/XP): 14 px text, about 24 px controls and table rows, grey window background, square inputs, ruled grids with a bevelled header bar and alternate-row tint, little padding. **Comfortable** density (about 36 px controls and rows, same text size) is used automatically on touch screens and can be chosen under View → Density; the choice is kept in OAK box's settings. Large text scales everything up. |
+| D44 | Native window | *Draft, pending the maintainer's approval.* The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (pywebview) and hold only what exists (§3.9). Browser mode has no menus; everything in them is also reachable on the page. |
 
 ## 3. What the user sees
 
@@ -664,6 +666,25 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **Where they go.** Transforms referencing only the source file go into `data.load.<file>.calc`. Ones that reference enriched fields go into `data.process.enrich.calc`. Scratch columns are removed with `drop_fields`.
 - **Advanced → Formula builder.** An operator picker over OpenAVMKit's calc reference, with a row preview. Safe defaults: divide-by-zero gives blank, empty → fill.
 - **"Correct this parcel's value"** in the parcel pop-up. Stored as `tweak`, and listed in the Data corrections appendix.
+
+### 3.14 Menus and window
+*Draft, pending the maintainer's approval (D43, D44).*
+
+```
+┌ Travis County 2026 – OAK box ───────────────────────────── _ □ × ┐
+│ File  View  Project  Help                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ ‹ Projects   Travis County 2026   Tax year 2026                  │
+│ [⚙ Metadata][🗃 Input files][···][···][···]                      │
+```
+
+- **File:** New project… (Ctrl+N), Open recent ▸ (the last projects opened), Show project folder, Close project (back to Projects), Exit.
+- **View:** Density ▸ Compact · Comfortable; Large text; High contrast (the existing modes from §3.4, now switchable here).
+- **Project:** Metadata (Ctrl+1), Input files (Ctrl+2), Add a file…. Greyed out on the home screen.
+- **Help:** OpenAVMKit documentation (opens in the browser), About OAK box (version, OpenAVMKit version, licences).
+- **No Edit menu.** Ctrl+C / V / X / A work in text boxes without one on Windows and Linux. On macOS, where the shortcuts need an Edit menu, pywebview adds the standard one itself; OAK box's own View menu replaces pywebview's default one there.
+- **No Undo or Save:** changes save as they are made, and a partial undo would mislead.
+- **The title** changes with the screen: "OAK box" on Projects and New project, "<project name> – OAK box" inside a project.
 
 ## 4. Inputs, outputs and reports
 
