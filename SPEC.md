@@ -937,7 +937,6 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 8. **Machine-readable model outliers** for the sales register.
 9. **Vectorise the Overture parcel × building intersection.**
 10. **GIS and Excel loaders** in OpenAVMKit itself. GeoPackage and shapefile: **done** on topic branch `engine/gis-loaders` (also case-insensitive extensions and a GeoPackage `layer` option), merged into `openavmkit-oakbox`. Still to do: GeoJSON, zipped shapefile, FileGDB, Excel, and a fixed-width loader for PACS exports.
-
 11. **Data dictionary: which fields OpenAVMKit computes.** Each entry in `resources/settings/data_dictionary.json` gets `"source"`:
     - `"input"`: only ever comes from the user's data (e.g. `sale_price`, `bldg_area_finished_sqft`);
     - `"derived"`: always computed by OpenAVMKit, so loading a column into it is overwritten (e.g. `model_market_value`, `geom_vertices`, `dist_to_cbd`);
