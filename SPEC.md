@@ -32,7 +32,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D16 | Checking values | The user names the total-value field(s) to check. No particular field is required. Land values are out of scope: a separate land-value tool is planned. |
 | D17 | Online notices | Anything that goes online says what it sends, in a calm one-time notice (§3.11). |
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
-| D19 | Sample county | `us-va-petersburgcity`, because it runs fast. Downloaded on first use, after a prompt. |
+| D19 | Sample county | **Removed for now** (F3). It may be rebuilt on the new flow later. CI still runs OpenAVMKit end to end on `us-va-petersburgcity`, outside the app (§8 smoke test). |
 | D20 | Model choice | The assessor picks a model, or "Choose for me": LightGBM with Oakbox's default variables and a small-sample fallback (§3.10). |
 | D21 | Name and look | "OAK box" (written "Oakbox" in code and folder names). An oak-grain titlebar is the one decorative element; everything else is flat and edged, and only pressable things look raised. Type is IBM Plex Sans and Plex Mono (OFL), bundled, with Noto Sans as the fallback for other scripts. |
 | D22 | Model groups | A dedicated builder with live map feedback (§3.5). |
@@ -53,7 +53,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D37 | Guided build | No up-front wizard. The project screen is the guide: setup stages, then steps, each with Decide → Check → Run → Receipt, and done only after **Looks right** (§3.2). |
 | D38 | Datasets | Any number of input files, each declared as one of seven kinds, stitched by an explicit, user-confirmed plan with match rates and ID fixes (§3.2). |
 | D39 | Show the work | Every stage shows what it will do and what it did, with counts and reasons. **Under the hood** (collapsed, open to everyone) shows the settings it wrote. |
-| D40 | Sample | The sample county is a pre-filled walkthrough of the same screens. No run-all button in the app; CI drives the API directly. |
+| D40 | Sample | Superseded by D19: no sample in the app for now. |
 | D41 | Mirror OpenAVMKit | OAK box is a GUI for OpenAVMKit, not logic on top of it. Every screen maps to something OpenAVMKit does or a setting it reads, and the user's choices are written as OpenAVMKit settings. When OpenAVMKit can't do something a user needs, the change goes upstream (§7), not into OAK box. OAK box's own logic is limited to presentation: previews, explanations, defaults and checks that read data without changing it. |
 
 ## 3. What the user sees
@@ -109,15 +109,58 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
 
 **Not in F2:** looking inside the file, its ID, column mapping, joins, and removing a file (its own feature).
 
-#### F3 onwards: building the joins (intent; to be designed feature by feature)
+#### F3. The project view: one tabbed panel
+*Draft, pending the maintainer's approval.*
+
+Under the project's name and tax year, everything about a project lives in one tabbed panel. Each later feature becomes a tab; a tab's own design always assumes this frame.
+
+```
+  < Projects
+  Travis County 2026   Tax year 2026
+
+ +-------------+-----------------+ - - - - + - - - - + - - - - +
+ | [⚙] Metadata| [🗃] Input files |  · · ·  |  · · ·  |  · · ·  |
+ +-------------+                 +---------+---------+---------+------------+
+ |                                                         [ + Add a file ] |
+ |   parcels        parcels.geoparquet               GeoParquet · 4 MB      |
+ |   cama_2026      petersburg-dbo-cama-fix.parquet  Parquet · 3 MB         |
+ |   county         county.gpkg (layer: parcels)     GeoPackage · 388 KB    |
+ +--------------------------------------------------------------------------+
+```
+
+- **Tabs:**
+  - **Metadata**, with a gear (⚙).
+  - **Input files**, with a card file box (🗃). This is F2's "Data files", renamed.
+  - Three placeholder tabs, shown as `· · ·`. They are greyed out and do nothing.
+- **Tab icons** are the Noto Color Emoji images: the SVG files from Google's `noto-emoji` repository (Apache 2.0), bundled with the app. They are never the system's emoji font. They are placeholders for OAK box's own imagery later.
+- **Look:** the selected tab joins the panel below it, like a folder tab. Other tabs sit behind it.
+- **Which tab opens:** Input files when the project has no input files yet, otherwise Metadata.
+- **Addresses:** each tab has one (`#/projects/<id>/metadata`, `#/projects/<id>/files`), so back and forward, and reopening a project, land on the same tab. The desktop window doesn't show addresses; this mostly matters in browser mode.
+- **Text:** as little as possible. No explanatory sentences unless the maintainer asks for one.
+
+**Metadata tab:** the F1 facts, read-only (editing is still open under F1), plus the project folder.
+
+```
+ |   Jurisdiction     Travis County                                         |
+ |   Region           TX, United States                                     |
+ |   Tax year         2026                                                  |
+ |   Valuation date   2026-01-01                                            |
+ |   Units            Imperial (square feet, acres)                         |
+ |   Project folder   C:\Users\lars\Documents\OAK box\Travis County 2026    |
+ |                    [ Show in folder ]                                    |
+```
+
+**Input files tab:** F2, unchanged in what it does. One line per file: entry name, file name (and layer), format and size. **Add a file** sits at the top right; the add flow opens inline at the top of the tab, above the list. Empty state: "No input files yet." with **Add a file**.
+
+**The sample county is removed** (D19): the home screen's sample, the old steps screen (Run, Stop, results), and the code and API behind them, including the M1a settings generator. Projects made from the sample by earlier builds are no longer listed. The CI smoke test changes with it (§8).
+
+#### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
 
 ### 3.1 Home screen
-- **My projects**, shown as cards: jurisdiction, tax year, last opened, and how far along the steps it is.
-- **New project** asks for a name and opens the project at its first setup stage (§3.2).
-- **Try a sample county** opens `us-va-petersburgcity` as a walkthrough (§3.2). This is the first-run experience and also the training mode.
-  - **First use** asks: "Download the sample county (about N MB) from OpenAVMKit's public server?" After that, it's local.
-  - It's fetched download-only. Oakbox never uses `cloud_sync`, which can also upload.
+- **Projects**: name and tax year.
+- **New project** (§3.0 F1), and **Show in folder** and **Delete** on each project (F1b).
+- *(The sample county is removed for now, D19.)*
 
 ### 3.2 The guided build
 *Being redesigned feature by feature in §3.0. The text below is the earlier draft, kept for reference until each part is re-agreed.*
@@ -779,6 +822,11 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
   - Rewrite §5 and the enrichment cost coefficients with measured numbers.
 - **M1 — "Check my values."** Built as four slices, each one runnable:
+  - **CI smoke test, after F3** (replacing the sample walk-through). On each platform, using only the bundled Python:
+    1. **Engine:** download `us-va-petersburgcity` (download-only) and run OpenAVMKit's own stages (assemble, clean, value studies) on it with a checked-in `settings.json`, outside the app. This proves a bundle can run the engine.
+    2. **App:** start the app service, load the UI (its script must be served as JavaScript), create a project and add one of the downloaded files to it.
+
+    When the app's own flow can run steps again, the smoke test goes back to driving it.
   - **M1a, walking skeleton (done).** Real app shell: home screen, sample county download, steps 1–4 with live progress and Stop, and the results table with IAAO default targets. Engine changes: A1, A2, A3, A11, A12 (horizontal equity), plus a CatBoost Windows fix found by a user run. Bundles ship the app, and CI smoke-tests it end to end on Windows and Linux.
   - **M1b, own data.** The guided build's frame (four-part stages, Looks right, Under the hood, staleness of decisions) and the first three setup stages: Basics, Your files and Stitch, with their quick checks. Fixed-width import with the PACS layout, tested on the Travis CAD export. Step 1's receipt (upstream A14 for its counts). The sample becomes a walkthrough of the stages built so far.
   - **M1c, trust the data.** Setup stages Columns and Sales basics; the sales funnel and the receipts for steps 2–4; Data health, Field profile, the "From a field" model group builder, the read-only sales register.
