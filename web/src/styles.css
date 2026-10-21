@@ -11,17 +11,17 @@
   --mono: "IBM Plex Mono", "Noto Sans Mono", Consolas, monospace;
   --font-size: 14px;
 
-  --bg: #d4d0c8;
+  --bg: #e8e8e8;
   --panel: #ffffff;
-  --panel-edge: #808080;
-  --head: #ece9d8;
+  --panel-edge: #a5a5a5;
+  --head: #f3f3f3;
   --text: #1c1e20;
   --muted: #565b61;
-  --rule: #d6d2c9;
+  --rule: #d9d9d9;
 
   --btn-top: #ffffff;
-  --btn-bottom: #e3e1d9;
-  --btn-edge: #707070;
+  --btn-bottom: #dadada;
+  --btn-edge: #9a9a9a;
   --btn-text: #1c1e20;
   --primary-top: #4a86d8;
   --primary-bottom: #2c62b4;
@@ -29,8 +29,8 @@
   --focus: #1f6fe0;
   --link: #1d5bb8;
 
-  --well: #e0ddd5;
-  --well-edge: #7f9db9;
+  --well: #e3e3e3;
+  --well-edge: #a3a6aa;
   --fill-top: #5b95e3;
   --fill-bottom: #2f68ba;
 
@@ -39,8 +39,8 @@
   --bad: #a3231b;
   --active: #1f4b8e;
 
-  --radius: 0;
-  --btn-radius: 2px;
+  --radius: 4px;
+  --btn-radius: 4px;
   /* Density (D43): compact by default; comfortable on touch screens or when chosen. */
   --ctl-h: 1.75rem;
   --cell-y: 0.1rem;
@@ -336,7 +336,7 @@ a {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: var(--radius);
-  box-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .panel-head {
@@ -413,11 +413,11 @@ a.row-title:hover {
   justify-content: center;
   gap: 0.35rem;
   min-height: var(--ctl-h);
-  padding: 0 0.75rem;
+  padding: 0 0.9rem;
   color: var(--btn-text);
-  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  background: linear-gradient(#ffffff, #e6e6e6 50%, #dadada 51%, #f2f2f2);
   border: 1px solid var(--btn-edge);
-  border-radius: var(--btn-radius);
+  border-radius: calc(var(--ctl-h) / 2);
   box-shadow: none;
   cursor: pointer;
   white-space: nowrap;
@@ -425,11 +425,11 @@ a.row-title:hover {
 }
 
 .button[data-hovered] {
-  background: linear-gradient(#ffffff, #ebebe8);
+  background: linear-gradient(#ffffff, #eeeeee 50%, #e2e2e2 51%, #f7f7f7);
 }
 
 .button[data-pressed] {
-  background: linear-gradient(to bottom, var(--btn-bottom), var(--btn-top));
+  background: linear-gradient(#d4d4d4, #e0e0e0 50%, #d0d0d0 51%, #e6e6e6);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) inset;
   transform: translateY(1px);
 }
@@ -450,19 +450,19 @@ a.row-title:hover {
 }
 
 .button-primary {
-  color: var(--btn-text);
-  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
-  border-color: #00309c;
+  color: #0d2340;
+  background: linear-gradient(#d6e9fd, #8fbdf3 50%, #6fa7ec 51%, #bfdcfb);
+  border-color: #4a76b8;
   text-shadow: none;
-  box-shadow: 0 0 0 1px #7da2ce inset;
+  box-shadow: none;
 }
 
 .button-primary[data-hovered] {
-  background: linear-gradient(#5a93e0, #326cc0);
+  background: linear-gradient(#e2f0fe, #9ec7f5 50%, #7fb2ef 51%, #cde4fc);
 }
 
 .button-primary[data-pressed] {
-  background: linear-gradient(to bottom, var(--primary-bottom), var(--primary-top));
+  background: linear-gradient(#a9cdf6, #6fa7ec 50%, #5b97e4 51%, #9cc8f6);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) inset;
 }
 
@@ -762,8 +762,8 @@ a.row-title:hover {
   color: var(--text);
   background: #ffffff;
   border: 1px solid var(--well-edge);
-  border-radius: var(--radius);
-  box-shadow: none;
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
 }
 
 .input[data-focused] {
@@ -785,7 +785,7 @@ a.row-title:hover {
   min-height: var(--ctl-h);
   padding: 0 0.35rem 0 0.5rem;
   color: var(--btn-text);
-  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  background: linear-gradient(#ffffff, #eaeaea);
   border: 1px solid var(--btn-edge);
   border-radius: var(--btn-radius);
   box-shadow: none;
@@ -855,7 +855,7 @@ a.row-title:hover {
   place-items: center;
   background: #ffffff;
   border: 1px solid var(--well-edge);
-  border-radius: 0;
+  border-radius: 3px;
   box-shadow: none;
   color: #ffffff;
 }
@@ -1046,8 +1046,8 @@ a.row-title:hover {
   padding: 0.2rem 0.7rem;
   border: 1px solid var(--panel-edge);
   border-bottom-color: var(--panel-edge);
-  border-radius: 3px 3px 0 0;
-  background: var(--head);
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(#f6f6f6, #dcdcdc);
   color: var(--muted);
   cursor: default;
   outline: none;
@@ -1087,7 +1087,7 @@ a.row-title:hover {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: 0 var(--radius) var(--radius) var(--radius);
-  box-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   padding: var(--pad);
   min-height: 6rem;
   outline: none;
@@ -1158,19 +1158,19 @@ a.row-title:hover {
   text-align: left;
   font-size: 0.85rem;
   font-weight: 400;
-  color: var(--text);
+  color: #222222;
   padding: 0.15rem 0.45rem;
-  background: linear-gradient(to bottom, #fdfdfb, #e9e6dc);
-  border-right: 1px solid #c8c4bb;
-  border-bottom: 1px solid #a0a0a0;
+  background: linear-gradient(#fefefe, #e4e4e4);
+  border-right: 1px solid #d0d0d0;
+  border-bottom: 1px solid #b5b5b5;
 }
 
 .file-table td {
   padding: var(--cell-y) 0.45rem;
-  border-top: 1px solid #e6e3da;
+  border-top: 1px solid #e6e6e6;
   vertical-align: middle;
   white-space: nowrap;
-  border-right: 1px solid #efede7;
+  border-right: 1px solid #ececec;
 }
 
 .file-table tr.rename-error td {
@@ -1184,11 +1184,11 @@ a.row-title:hover {
 }
 
 .file-table tbody tr:nth-child(even) td {
-  background: #f7f7f3;
+  background: #edf3fe;
 }
 
 .file-table tbody tr:hover td {
-  background: #e8eefa;
+  background: #dce9fd;
 }
 
 .file-table .num {
@@ -1350,19 +1350,19 @@ a.row-title:hover {
   text-align: left;
   font-size: 0.85rem;
   font-weight: 400;
-  color: var(--text);
+  color: #222222;
   padding: 0.15rem 0.45rem;
-  background: linear-gradient(to bottom, #fdfdfb, #e9e6dc);
-  border-right: 1px solid #c8c4bb;
-  border-bottom: 1px solid #a0a0a0;
+  background: linear-gradient(#fefefe, #e4e4e4);
+  border-right: 1px solid #d0d0d0;
+  border-bottom: 1px solid #b5b5b5;
 }
 
 /* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
 .field-table td {
   padding: var(--cell-y) 0.45rem;
-  border-top: 1px solid #e6e3da;
+  border-top: 1px solid #e6e6e6;
   vertical-align: middle;
-  border-right: 1px solid #efede7;
+  border-right: 1px solid #ececec;
 }
 
 .field-table tbody tr.field-problem td {
@@ -1487,11 +1487,11 @@ a.row-title:hover {
 }
 
 .field-table tbody tr:nth-child(even) td {
-  background: #f7f7f3;
+  background: #edf3fe;
 }
 
 .field-table tbody tr:hover td {
-  background: #e8eefa;
+  background: #dce9fd;
 }
 
 .add-file {
@@ -1548,7 +1548,7 @@ a.row-title:hover {
   padding: 0 0.4rem;
   background: var(--head);
   border: 1px solid var(--well-edge);
-  border-radius: var(--radius);
+  border-radius: 2px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
