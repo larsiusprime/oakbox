@@ -137,7 +137,7 @@ OpenAVMKit: raw files live in the locality's `in/`, and each one is declared as 
   - **Unusable file:** for example "Shapefile is missing its .dbf" in red under the path.
   - The path field and the buttons share one centreline.
 
-**Not in F2:** looking inside the file, its ID, column mapping, joins, and removing a file (its own feature).
+**Not in F2:** looking inside the file, its ID, column mapping, joins, and removing a file (F3b).
 
 #### F3. The project view: one tabbed panel
 
@@ -179,9 +179,59 @@ Under the project's name and tax year, everything about a project lives in one t
  |                    [ Show in folder ]                                    |
 ```
 
-**Input files tab:** F2, unchanged in what it does. One line per file: entry name, file name (and layer), format and size. **Add a file** sits at the top right; the add flow opens inline at the top of the tab, above the list. Empty state: "No input files yet." with **Add a file**.
+**Input files tab:** F2, unchanged in what it does. One line per file (its columns are in F3b). **Add a file** sits at the top right; the add flow opens inline at the top of the tab, above the list. Empty state: "No input files yet." with **Add a file**.
 
 **The sample county is removed** (D19): the home screen's sample, the old steps screen (Run, Stop, results), and the code and API behind them, including the M1a settings generator. Projects made from the sample by earlier builds are no longer listed. The CI smoke test changes with it (§8).
+
+#### F3b. The input file list: show, rename, remove
+*Draft, pending the maintainer's approval.*
+
+OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with its `filename` (and `layer`).
+
+```
+                                                          [ + Add a file ]
+  Name              Type         Size     Geometry
+  parcels    [📁]   Parquet      4 MB     Yes                    [✏️] [🗑️]
+  cama       [📁]   CSV          11 MB    No
+  county     [📁]   GeoPackage   388 KB   Yes
+  old_sales  [📁]   CSV          —        Missing
+```
+
+- **Columns:** Name, Type, Size, Geometry. There is no Source column.
+- **The folder button** (📁) is next to the name, always shown. It shows the file in the system's file manager (Explorer selects it; elsewhere its folder opens). Its tooltip is the file name, and the layer for a GeoPackage, e.g. "county.gpkg, layer parcels" (D42). For a missing file it opens `in/`.
+- **Type** comes from the extension: CSV, Parquet (`.parquet` and `.geoparquet` alike), GeoPackage, Shapefile.
+- **Size** includes a shapefile's companions.
+- **Geometry** is checked in the file itself, the way OpenAVMKit does it: the file has a column named `geometry` (`data._snoop_column_names`: the Parquet schema, or pyogrio's layer info). Only column names are read, never the data.
+- **A missing file** has "—" for size and "Missing" (red) for geometry.
+- **Rename (✏️) and Remove (🗑️)** appear only while the row is hovered or has keyboard focus. Their tooltips are "Rename" and "Remove". The icons are Noto Color Emoji SVGs, like the tabs.
+
+**Rename** edits the row in place:
+
+```
+  [ cama_2026       ]  [📁]  CSV   11 MB   No             [ Save ] [ Cancel ]
+```
+
+- Enter saves and Esc cancels.
+- It renames the `data.load` key only. The file keeps its name.
+- The new name follows the suggested-name rules (lowercase letters, digits and underscores) and must not clash with another entry. A problem shows in red under the field, and Save stays disabled.
+- Rule for later features: anything that refers to an entry by name (column mapping, joins) is updated by a rename.
+
+**Remove** asks first:
+
+```
+  +-----------------------------------------------------+
+  |  Remove cama from the project?                      |
+  |                                                     |
+  |  [ ] Also move cama.csv to the Recycle Bin          |
+  |                                                     |
+  |                          [ Cancel ]  [ Remove ]     |
+  +-----------------------------------------------------+
+```
+
+- **Remove** deletes the `data.load` entry.
+- The box is not ticked by default. Unticked, the file stays in `in/`. Ticked, it goes to the Recycle Bin (send2trash), with a shapefile's companions.
+- For a missing file, there is no box.
+- A removed file left in `in/` can be added again later. Its add form shows "Already in the project folder" instead of the copy/move choice (F2).
 
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
