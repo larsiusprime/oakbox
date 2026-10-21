@@ -52,7 +52,9 @@ rm -rf build/wheels && uv build -q --wheel --out-dir build/wheels build/engine
 (cd web && npm ci --silent && npm run -s build)
 uv build -q --wheel --out-dir build/wheels .
 
-uv export --frozen --no-dev --no-emit-project --format requirements.txt \
+# Left out: NVIDIA's NCCL (~470 MB on Linux), which xgboost loads only to train one
+# model across several GPUs; CPU and single-GPU training don't need it.
+uv export --frozen --no-dev --no-emit-project --format requirements.txt --prune nvidia-nccl-cu12 \
   | grep -v '^openavmkit @' > build/requirements.txt
 uv pip install -q \
   --python-platform "$UV_PLATFORM" --python-version 3.11 \

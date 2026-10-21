@@ -192,6 +192,15 @@ jobs:
         run: mkdir -p /tmp/oak && tar -xzf oakbox-linux-x86_64.tar.gz -C /tmp/oak
       - name: Smoke test (bundled Python only, empty environment)
         run: env -i HOME=/tmp/oak PATH=/usr/bin:/bin /tmp/oak/oakbox-linux-x86_64/smoke.sh
+      - name: Models train from the bundle (it leaves out xgboost's multi-GPU library, NCCL)
+        run: |
+          /tmp/oak/oakbox-linux-x86_64/python/bin/python3 -c "
+          import numpy as np, xgboost, lightgbm, catboost
+          X, y = np.random.rand(500, 4), np.random.rand(500)
+          xgboost.XGBRegressor(n_estimators=10).fit(X, y)
+          lightgbm.LGBMRegressor(n_estimators=10, verbose=-1).fit(X, y)
+          catboost.CatBoostRegressor(iterations=10, verbose=0, allow_writing_files=False).fit(X, y)
+          print('xgboost, lightgbm, catboost train')"
       # The bundle's Qt is pruned (packaging/prune_qt.py): check the window and menus still work from it.
       - name: Display libraries Qt needs (a desktop has them already)
         run: |
