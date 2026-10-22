@@ -2121,3 +2121,7 @@ a.row-title:hover {
 .wiz-sep {
   color: var(--muted);
 }
+
+.wiz-resolved {
+  color: var(--ok);
+}

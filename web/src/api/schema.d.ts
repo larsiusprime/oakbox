@@ -538,9 +538,9 @@ export interface components {
             warn: boolean;
             /**
              * Issues
-             * @description What's worth a look, each short: '1 repeated ID, first kept'.
+             * @description What's worth a look, each short.
              */
-            issues: string[];
+            issues: components["schemas"]["Issue"][];
         };
         /** Column */
         Column: {
@@ -852,6 +852,19 @@ export interface components {
              * @description Columns in the file, not counting geometry. None if missing or unreadable.
              */
             columns: number | null;
+        };
+        /** Issue */
+        Issue: {
+            /**
+             * Text
+             * @description '1 repeated ID'; once resolved, with the choice: '1 repeated ID, first kept'.
+             */
+            text: string;
+            /**
+             * Resolved
+             * @description A choice was made for it (the duplicates dialog).
+             */
+            resolved: boolean;
         };
         /**
          * NewProject

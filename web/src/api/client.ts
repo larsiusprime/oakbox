@@ -27,3 +27,4 @@ export type WizardField = components["schemas"]["WizardField"];
 export type WizardFile = components["schemas"]["WizardFile"];
 export type WizardStep = components["schemas"]["StepView"];
 export type WizardCheck = components["schemas"]["Check"];
+export type WizardIssue = components["schemas"]["Issue"];

@@ -281,17 +281,20 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
     w = _put_file(client, pid, "big", universe=True, id_column="REID").json()
     base = _file(w, "geo_parcels")
-    assert base["id_check"] == {
+    assert base["id_check"] == {  # nothing chosen yet: both are warnings
         "ok": True,
         "text": "1,496 parcels",
         "warn": True,
-        "issues": ["1 repeated ID, first kept", "3 blank IDs, dropped"],
+        "issues": [{"text": "1 repeated ID", "resolved": False}, {"text": "3 blank IDs, dropped", "resolved": False}],
     }
     r = base["repeats"]
     assert (r["rows"], r["blank"], r["distinct"], r["repeated"], r["extra"], r["few"]) == (1500, 3, 1496, 1, 1, True)
     assert not any("geo_parcels" in p for p in w["problems"])
     assert "geo_parcels: 3 rows have no ID and will be dropped. That can mean REID isn't the right ID." in w["warnings"]
-    assert "geo_parcels: 1 ID repeats; the first row of each is kept." in w["warnings"]
+    assert (
+        "geo_parcels: 1 ID repeats. Resolve it on its step; until then OpenAVMKit keeps the first row of each."
+        in w["warnings"]
+    )
     assert _settings(pid)["data"]["load"]["geo_parcels"]["dupes"] == {
         "subset": ["key"],
         "sort_by": ["key", "asc"],
@@ -304,3 +307,6 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     _put_file(client, pid, "geo_parcels", key2_column="PIN", key2_set=True)
     w = _put_file(client, pid, "geo_parcels", dupes="first", dupes_sort="key2", dupes_desc=True).json()
     assert _settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == ["key2", "desc"]
+    issues = _file(w, "geo_parcels")["id_check"]["issues"]
+    assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True}  # chosen: resolved
+    assert not any("repeat" in x for x in w["warnings"])

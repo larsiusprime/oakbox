@@ -1246,11 +1246,11 @@
      },
      "issues": {
       "items": {
-       "type": "string"
+       "$ref": "#/components/schemas/Issue"
       },
       "type": "array",
       "title": "Issues",
-      "description": "What's worth a look, each short: '1 repeated ID, first kept'."
+      "description": "What's worth a look, each short."
      }
     },
     "type": "object",
@@ -1903,6 +1903,26 @@
     ],
     "title": "InputFile",
     "description": "An input file as the Input files tab shows it (SPEC \u00a73.0 F3)."
+   },
+   "Issue": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text",
+      "description": "'1 repeated ID'; once resolved, with the choice: '1 repeated ID, first kept'."
+     },
+     "resolved": {
+      "type": "boolean",
+      "title": "Resolved",
+      "description": "A choice was made for it (the duplicates dialog)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "text",
+     "resolved"
+    ],
+    "title": "Issue"
    },
    "NewProject": {
     "properties": {

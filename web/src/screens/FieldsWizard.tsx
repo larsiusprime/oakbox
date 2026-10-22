@@ -28,9 +28,11 @@ import {
   type WizardCheck,
   type WizardField,
   type WizardFile,
+  type WizardIssue,
   type WizardStep,
 } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
+import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Choice } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
@@ -271,16 +273,16 @@ function CheckText({ check }: { check: WizardCheck | null | undefined }) {
   return <span className={check.ok ? "wiz-result" : "wiz-warn"}>{check.text}</span>;
 }
 
-/** The second line of a check: each issue with a warning sign, then the action if there is one. */
-function Issues({ issues, action }: { issues: string[]; action?: ReactNode }) {
+/** The second line of a check: each issue, ⚠ until a choice resolves it, then the action. */
+function Issues({ issues, action }: { issues: WizardIssue[]; action?: ReactNode }) {
   if (issues.length === 0 && !action) return null;
   return (
     <span className="wiz-issues">
       {issues.map((issue, i) => (
-        <span key={issue} className="wiz-caution">
+        <span key={issue.text} className={issue.resolved ? "wiz-resolved" : "wiz-caution"}>
           {i > 0 && <span className="wiz-sep"> · </span>}
-          <img src={warningIcon} alt="" className="wiz-inline-icon" />
-          {issue}
+          <img src={issue.resolved ? resolvedIcon : warningIcon} alt="" className="wiz-inline-icon" />
+          {issue.text}
         </span>
       ))}
       {action}
@@ -353,12 +355,12 @@ function DupesDialog({
       ),
   });
   const id = file.base ? "key" : file.match;
-  const [policy, setPolicy] = useState<"first" | "all">(r?.policy ?? "first");
+  const [policy, setPolicy] = useState<"first" | "all" | null>(r?.policy ?? null);
   const [sort, setSort] = useState<string>(r?.sort ?? id);
   const [desc, setDesc] = useState<boolean>(r?.descending ?? false);
   if (!r) return null;
   const fieldsHere = Object.values(data.used[file.name] ?? {});
-  const kept = policy === "all" ? r.singles : r.distinct;
+  const kept = policy === "all" ? r.singles : policy === "first" ? r.distinct : null;
   const nameOf = (key: string) => w.idNames[key] ?? data.fields.find((f) => f.key === key)?.name ?? key;
   return (
     <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(o) => !o && close()}>
@@ -430,13 +432,15 @@ function DupesDialog({
           </RadioGroup>
           <p className="wiz-note">{d.combineLater}</p>
           <p>
-            <strong>{d.result(r.rows, kept)}</strong>
+            {kept !== null && <strong>{d.result(r.rows, kept)}</strong>}
             {r.blank > 0 && <span className="wiz-caution"> {d.blank(r.blank)}</span>}
           </p>
           <div className="form-actions">
             <Button
               className="button button-primary"
+              isDisabled={policy === null}
               onPress={() =>
+                policy &&
                 change(
                   {
                     kind: "file",

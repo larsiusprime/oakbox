@@ -261,7 +261,7 @@ export const t = {
       summary: (repeated: number, extra: number, rows: number, few: boolean) =>
         `${repeated.toLocaleString()} ${repeated === 1 ? "ID is" : "IDs are"} on more than one row: ${extra.toLocaleString()} extra ${extra === 1 ? "row" : "rows"} out of ${rows.toLocaleString()}. ` +
         (few
-          ? "That's a few stray repeats, so the first row of each is kept unless you choose otherwise."
+          ? "That's a few stray repeats. Choose what to do with them."
           : "That's more than a few: it may be a file with several rows per parcel, or not the right ID."),
       what: "What to do with them",
       first: "Keep the first row of each",

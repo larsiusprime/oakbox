@@ -188,13 +188,16 @@ def _norm(text: str) -> str:
 # ---------- What the wizard sends ----------
 
 
+class Issue(BaseModel):
+    text: str = Field(description="'1 repeated ID'; once resolved, with the choice: '1 repeated ID, first kept'.")
+    resolved: bool = Field(description="A choice was made for it (the duplicates dialog).")
+
+
 class Check(BaseModel):
     ok: bool
     text: str = Field(description="Short: '✓ years 1890–2025', 'several rows per parcel'.")
     warn: bool = Field(default=False, description="Usable, but worth a look (repeats handled, blank IDs dropped).")
-    issues: list[str] = Field(
-        default_factory=list, description="What's worth a look, each short: '1 repeated ID, first kept'."
-    )
+    issues: list[Issue] = Field(default_factory=list, description="What's worth a look, each short.")
 
 
 class Repeats(BaseModel):
@@ -435,34 +438,40 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     r = _repeats_of(files, name, spec[0])
     present = [v for v in files.values(name, spec[0]) if v]
     flagged = r if (r.extra or r.blank) else None
-    issues = []
+    issues: list[Issue] = []
     if r.extra and holds == "parcels" and (r.few or r.policy):
-        how = "all dropped" if r.policy == "all" else "first kept"
-        issues.append(f"{_n(r.repeated, 'repeated ID')}, {how}")
+        repeated = _n(r.repeated, "repeated ID")
+        if r.policy is None:  # nothing chosen yet (OpenAVMKit would keep the first)
+            issues.append(Issue(text=repeated, resolved=False))
+        else:
+            how = "all dropped" if r.policy == "all" else "first kept"
+            issues.append(Issue(text=f"{repeated}, {how}", resolved=True))
     if r.blank:
-        issues.append(f"{_n(r.blank, 'blank ID')}, dropped")
+        issues.append(Issue(text=f"{_n(r.blank, 'blank ID')}, dropped", resolved=False))
+    open_issues = any(not i.resolved for i in issues)
     if holds == "sales":
         flagged = r if r.blank else None
         if base is None or base == name:
-            return Check(ok=True, text=f"{r.rows:,} sales", warn=bool(issues), issues=issues), flagged
+            return Check(ok=True, text=f"{r.rows:,} sales", warn=open_issues, issues=issues), flagged
         base_ids = _base_ids(files, base, match)
         found = sum(1 for v in present if v in base_ids)
         text = f"{_pct(found, r.rows)} of sales match a parcel"
-        return Check(ok=found > 0, text=text, warn=bool(issues), issues=issues), flagged
+        return Check(ok=found > 0, text=text, warn=open_issues, issues=issues), flagged
     if holds != "parcels":
         text = "several rows per parcel" if r.extra and not r.few else "one row per parcel"
-        return Check(ok=True, text=text, warn=bool(issues), issues=issues), flagged
+        return Check(ok=True, text=text, warn=open_issues, issues=issues), flagged
     if r.extra and not r.few and r.policy is None:
         text = f"{_n(r.repeated, 'repeated ID')} ({_n(r.extra, 'extra row')}): choose what to do"
         return Check(ok=False, text=text, issues=issues), flagged
     kept = r.singles if r.policy == "all" else r.distinct
+    tick = "" if open_issues else "✓ "
     if name == base:
-        text = f"{kept:,} parcels" if issues else f"✓ {kept:,} parcels, all different"
-        return Check(ok=True, text=text, warn=bool(issues), issues=issues), flagged
+        text = f"{tick}{kept:,} parcels" + ("" if issues else ", all different")
+        return Check(ok=True, text=text, warn=open_issues, issues=issues), flagged
     base_ids = _base_ids(files, base, match)
     found = len(set(present) & base_ids)
-    text = f"{'' if issues else '✓ '}one row per parcel · {_pct(found, len(set(present)))} match parcels"
-    return Check(ok=found > 0, text=text, warn=bool(issues), issues=issues), flagged
+    text = f"{tick}one row per parcel · {_pct(found, len(set(present)))} match parcels"
+    return Check(ok=found > 0, text=text, warn=open_issues, issues=issues), flagged
 
 
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
@@ -756,9 +765,11 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
                 f"{f.name}: {what} {'has' if r.blank == 1 else 'have'} no ID and will be dropped. "
                 f"That can mean {f.id_column} isn't the right ID."
             )
-        if f.holds == "parcels" and r.extra and (r.few or r.policy):
-            how = "only rows with a unique ID are kept" if r.policy == "all" else "the first row of each is kept"
-            out.append(f"{f.name}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}; {how}.")
+        if f.holds == "parcels" and r.extra and r.few and r.policy is None:
+            out.append(
+                f"{f.name}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}. "
+                "Resolve it on its step; until then OpenAVMKit keeps the first row of each."
+            )
     for group in RECOMMENDED:
         if not any(by_key[k].sources for k in group if k in by_key):
             first = by_key.get(group[0])

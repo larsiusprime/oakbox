@@ -320,7 +320,8 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
 - **"In another file…"** on every parcel field: pick or add the file, its ID column (matching the parcel ID, or the second ID), and the field's column. The file joins the universe (`merge.universe`, on `key2` when matched that way), and the steps already seen guess from it too.
 - One universe file and one sales file for now; more complex merges come later.
 - **Repeated and blank IDs** (one standard notice and dialog, wherever an ID is checked):
-  - **Stray repeats** (fewer than 10 extra rows *and* under 1% of the rows) aren't an error: the first row of each is kept, as OpenAVMKit does by default, and the check says so ("1 ID repeats: keeping the first"). More than that blocks until you choose, since it usually means several rows per parcel or the wrong ID.
+  - **Stray repeats** (fewer than 10 extra rows *and* under 1% of the rows) are a warning, not an error: "⚠ 1 repeated ID", with no choice made for you (OpenAVMKit would keep the first row of each meanwhile). Once you choose, it shows as resolved with the choice: "✅ 1 repeated ID, first kept". More than that blocks until you choose, since it usually means several rows per parcel or the wrong ID.
+  - **The check is two lines:** the result ("219,381 parcels"), then the issues, each with ⚠ or ✅, then Resolve….
   - **Resolve…** opens the duplicates dialog: every row of a few repeated IDs side by side, then keep the first (sorted by a loaded field, ascending or descending) or drop every repeated row, with the result ("2,000 rows → 1,995 parcels"). Combining rows (`agg`) comes later. Written as the file's `dupes`.
   - **Blank IDs** are dropped: OpenAVMKit drops rows with no `key` when it joins the parcel files. The check and Review flag it ("441 rows have no ID and will be dropped. That can mean GDV_REID isn't the right ID.").
 
