@@ -497,9 +497,23 @@ function FieldsStep({
   return (
     <>
       <div className="wiz-grid">
-        {shown.map((f) => (
-          <FieldRow key={f.key} project={project} data={data} field={f} sales={step.sales} change={change} />
-        ))}
+        {groupsFor(step.key, shown).map(([title, fields]) => [
+          title && (
+            <h3 key={`group-${title}`} className="wiz-group">
+              {title}
+            </h3>
+          ),
+          ...fields.map((f) => (
+            <FieldRow
+              key={f.key}
+              project={project}
+              data={data}
+              field={f}
+              sales={step.sales}
+              change={change}
+            />
+          )),
+        ])}
       </div>
       {hasMore && (
         <Button className="wiz-more" onPress={() => setMore(!more)}>
@@ -508,6 +522,15 @@ function FieldsStep({
       )}
     </>
   );
+}
+
+/** The Big five step's numbered sections (year built and effective year built are one: age). */
+function groupsFor(step: string, fields: WizardField[]): [string | null, WizardField[]][] {
+  if (step !== "big_five") return [[null, fields]];
+  return w.bigFive
+    .map(([title, keys], i) => [`${i + 1}. ${title}`, fields.filter((f) => keys.includes(f.key))] as const)
+    .filter(([, group]) => group.length > 0)
+    .map(([title, group]) => [title, [...group]]);
 }
 
 function FieldRow({

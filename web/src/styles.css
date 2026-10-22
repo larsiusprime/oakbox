@@ -2055,3 +2055,15 @@ a.row-title:hover {
 .wiz-grid-dialog {
   grid-template-columns: 9rem 16rem minmax(0, 1fr);
 }
+
+.wiz-group {
+  grid-column: 1 / -1;
+  margin: 0.5rem 0 -0.1rem;
+  padding-bottom: 0.1rem;
+  font-size: 0.92rem;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.wiz-group:first-child {
+  margin-top: 0;
+}

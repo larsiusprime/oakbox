@@ -253,6 +253,13 @@ export const t = {
     otherColumn: (field: string) => `Column for ${field}`,
     save: "Save",
     warnings: "Recommended",
+    bigFive: [
+      ["Building size", ["bldg_area_finished_sqft"]],
+      ["Land size", ["land_area_sqft"]],
+      ["Age", ["bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "bldg_effective_age_years"]],
+      ["Quality", ["bldg_quality_txt", "bldg_quality_num"]],
+      ["Condition", ["bldg_condition_txt", "bldg_condition_num"]],
+    ] as [string, string[]][],
     hints: {
       bldg_year_built: "e.g. 1987",
       bldg_effective_year_built: "After major renovation",
