@@ -119,7 +119,6 @@ export function AddFile(props: {
       ) : (
         <div className="form-actions">
           <Button className="button button-primary" isDisabled>
-            <Plus aria-hidden="true" size="1em" />
             {f.addButton}
           </Button>
         </div>
@@ -233,7 +232,6 @@ function Choices({
           isDisabled={!ready || add.isPending}
           onPress={() => add.mutate()}
         >
-          <Plus aria-hidden="true" size="1em" />
           {add.isPending ? f.adding(mode) : f.addButton}
         </Button>
       </div>

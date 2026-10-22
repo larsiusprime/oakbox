@@ -61,7 +61,8 @@ export const t = {
     how: "How to import",
     copy: "Copy it (a new copy is made for the project)",
     move: "Move it (the original moves into the project)",
-    addButton: "Add file",
+    // Confirms the choices for the picked file; "Add file" read like it would open another dialog.
+    addButton: "Okay",
     adding: (mode: "move" | "copy") => (mode === "move" ? "Moving…" : "Copying…"),
     file: (filename: string, layer: string | null) => (layer ? `${filename}, layer ${layer}` : filename),
     missing: "Missing",
