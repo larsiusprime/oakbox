@@ -57,7 +57,14 @@ export function InputFilesTab({ detail }: { detail: ProjectDetail }) {
   );
 }
 
-function AddFile(props: { project: Project; path: string; onBrowse: () => void; onDone: () => void }) {
+/** Pick-then-add (SPEC F2), also used inside the Data wizard (F3d), which learns the new entry's name. */
+export function AddFile(props: {
+  project: Project;
+  path: string;
+  onBrowse: () => void;
+  onDone: () => void;
+  onAdded?: (name: string) => void;
+}) {
   const f = t.inputFiles;
   const { project, path } = props;
   const check = useQuery({
@@ -102,7 +109,13 @@ function AddFile(props: { project: Project; path: string; onBrowse: () => void; 
       )}
       {found ? (
         // Keyed by path, so picking another file starts its choices afresh.
-        <Choices key={found.path} project={project} found={found} onDone={props.onDone} />
+        <Choices
+          key={found.path}
+          project={project}
+          found={found}
+          onDone={props.onDone}
+          {...(props.onAdded ? { onAdded: props.onAdded } : {})}
+        />
       ) : (
         <div className="form-actions">
           <Button className="button button-primary" isDisabled>
@@ -130,7 +143,17 @@ function Pills({ found }: { found: FileCheck }) {
 
 const f_companions = (exts: string[]) => t.inputFiles.companions(exts.join(" "));
 
-function Choices({ project, found, onDone }: { project: Project; found: FileCheck; onDone: () => void }) {
+function Choices({
+  project,
+  found,
+  onDone,
+  onAdded,
+}: {
+  project: Project;
+  found: FileCheck;
+  onDone: () => void;
+  onAdded?: (name: string) => void;
+}) {
   const f = t.inputFiles;
   const queryClient = useQueryClient();
   const [name, setName] = useState(found.suggested_name);
@@ -157,6 +180,7 @@ function Choices({ project, found, onDone }: { project: Project; found: FileChec
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["project", project.id] });
+      onAdded?.(name.trim());
       onDone();
     },
   });

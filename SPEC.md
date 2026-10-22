@@ -309,6 +309,18 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
 
 #### F3d. The Fields tab: a guided wizard over all the files
 
+**Revised (built): the wizard comes first, and collects the files itself.** It supersedes "Step 1: Your files" below; the field steps, checks, guesses, assumptions and Review carry over.
+
+- **New project → the Data tab** (first after Metadata; Input files is the advanced view after it). Steps:
+  1. **Welcome:** the two datasets, SALES and the PARCEL UNIVERSE, and why both are needed.
+  2. **Parcel universe:** add one file (or take one already in the project). It must have shapes ("✓ Geometry detected") and becomes `geo_parcels`. Pick its parcel ID; optionally a second ID (`key2`).
+  3. **Sales:** add one file. It matches the universe by parcel ID, or by the second ID when the universe has one (OpenAVMKit then looks up `key` from `geo_parcels` by `key2`: `data.process.enrich.ref_tables.sales`). Sale ID (a column, or made from the ID + sale date), sale price, sale date, valid and vacant sale (or assumed, after a warning).
+  4. **More details:** Big five (building size, required; land size, filled from the shapes if missing; year built / effective year built, quality, condition, recommended), Location, Land, Building, Rooms & features, Assessed values, Other details.
+  5. **Review:** what blocks a run, then what's recommended, then every source.
+- **"In another file…"** on every parcel field: pick or add the file, its ID column (matching the parcel ID, or the second ID), and the field's column. The file joins the universe (`merge.universe`, on `key2` when matched that way), and the steps already seen guess from it too.
+- One universe file and one sales file for now; more complex merges come later.
+
+
 Choosing fields file by file (F3c) shows every column of every file, most of them blank. The **Fields** tab instead asks one small question at a time, across the whole project, and writes the same OpenAVMKit settings: each file's `load`, plus the merge lists that stitch the files together (`data.process.merge`). F3c stays as the **Advanced view**. Both edit the same settings, so you can switch at any point.
 
 **Where:** a third tab, **Fields**, after Input files (`#/projects/<id>/fields`, with `/<step>` for each step). It opens at the first step that isn't done, or at Review when all are.

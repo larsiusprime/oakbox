@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, FolderOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
@@ -53,11 +53,9 @@ function ProjectView({
 }) {
   const { project } = detail;
   const projectId = project.id;
-  // Input files first while there are none: adding them is the next thing to do. Decided once,
-  // when the project opens, so adding the first file doesn't switch tabs.
+  // A project opens on the Data wizard, where its files are added and described (SPEC F3d).
   useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
-  const [opening] = useState<TabId>(() => (detail.files.length === 0 ? "files" : "metadata"));
-  const selected = tab ?? opening;
+  const selected = tab ?? "fields";
 
   return (
     <div className="project">
@@ -80,13 +78,13 @@ function ProjectView({
             <img src={gear} alt="" className="tab-icon" />
             {t.tabs.metadata}
           </Tab>
-          <Tab id="files" className="folder-tab">
-            <img src={cardFileBox} alt="" className="tab-icon" />
-            {t.tabs.inputFiles}
-          </Tab>
           <Tab id="fields" className="folder-tab">
             <img src={clipboard} alt="" className="tab-icon" />
             {t.tabs.fields}
+          </Tab>
+          <Tab id="files" className="folder-tab">
+            <img src={cardFileBox} alt="" className="tab-icon" />
+            {t.tabs.inputFiles}
           </Tab>
           {PLACEHOLDERS.map((id) => (
             <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>

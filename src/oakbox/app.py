@@ -80,9 +80,11 @@ class WizardFileChoice(BaseModel):
     """Step 1 of the Fields wizard, for one file (F3d). Leave a value out to keep it."""
 
     holds: datafiles.Holds | None = None
-    id_column: str | None = None
+    universe: bool = Field(default=False, description="Make this the parcel universe file (it needs shapes).")
+    match: datafiles.Match | None = Field(default=None, description="Join on the parcel ID (key) or second ID (key2).")
+    id_column: str | None = Field(default=None, description="The column loaded as the ID it joins on.")
     key2_column: str | None = None
-    key2_set: bool = Field(default=False, description="Set key2 to key2_column (null: none).")
+    key2_set: bool = Field(default=False, description="Set the universe's key2 to key2_column (null: none).")
 
 
 class WizardSaleId(BaseModel):
@@ -435,12 +437,14 @@ def create_app() -> FastAPI:
 
     @app.put("/api/projects/{project_id}/wizard/files/{name}")
     def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wizard:
-        """What a file holds and its parcel ID (F3d step 1)."""
+        """A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d)."""
         project = _load(project_id)
         _entry(project, name)
         return _change(
             project_id,
-            lambda p, d: wizard.set_file(p, d, name, body.holds, body.id_column, body.key2_column, body.key2_set),
+            lambda p, d: wizard.set_file(
+                p, d, name, body.holds, body.id_column, body.key2_column, body.key2_set, body.match, body.universe
+            ),
         )
 
     @app.put("/api/projects/{project_id}/wizard/sale-id")

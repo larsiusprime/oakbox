@@ -2001,3 +2001,57 @@ a.row-title:hover {
   width: 1.4rem;
   height: 1.4rem;
 }
+
+.wiz-welcome {
+  max-width: 44rem;
+}
+
+.wiz-welcome p {
+  margin: 0 0 0.6rem;
+}
+
+.wiz-pick {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.wiz-file {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+
+.wiz-file .wiz-link {
+  margin-left: 0.8rem;
+}
+
+.wiz-pair {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.wiz-pair .choice {
+  min-width: 0;
+  flex: 1;
+}
+
+.wiz-rule {
+  margin: 0.8rem 0;
+  border: 0;
+  border-top: 1px solid #e1e1e1;
+}
+
+.wiz-elsewhere {
+  font-style: italic;
+  border-top: 1px solid #eeeeee;
+}
+
+.wiz-modal {
+  width: min(100%, 40rem);
+}
+
+.wiz-grid-dialog {
+  grid-template-columns: 9rem 16rem minmax(0, 1fr);
+}

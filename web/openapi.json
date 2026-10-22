@@ -853,7 +853,7 @@
   "/api/projects/{project_id}/wizard/files/{name}": {
    "put": {
     "summary": "Wizard File",
-    "description": "What a file holds and its parcel ID (F3d step 1).",
+    "description": "A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d).",
     "operationId": "wizard_file_api_projects__project_id__wizard_files__name__put",
     "parameters": [
      {
@@ -1289,6 +1289,16 @@
       "title": "Calc",
       "description": "data.load.<name>.calc: fields OpenAVMKit works out after loading (F3d)."
      },
+     "match": {
+      "type": "string",
+      "enum": [
+       "key",
+       "key2"
+      ],
+      "title": "Match",
+      "description": "The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d).",
+      "default": "key"
+     },
      "holds": {
       "anyOf": [
        {
@@ -1314,6 +1324,7 @@
      "layer",
      "load",
      "calc",
+     "match",
      "holds"
     ],
     "title": "DataFile",
@@ -2274,7 +2285,16 @@
        "type": "string"
       },
       "type": "array",
-      "title": "Problems"
+      "title": "Problems",
+      "description": "What stops OpenAVMKit from running."
+     },
+     "warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Warnings",
+      "description": "Recommended fields that are missing."
      },
      "not_loaded": {
       "items": {
@@ -2292,6 +2312,7 @@
      "fields",
      "used",
      "problems",
+     "warnings",
      "not_loaded"
     ],
     "title": "Wizard"
@@ -2457,6 +2478,15 @@
       ],
       "title": "Holds"
      },
+     "match": {
+      "type": "string",
+      "enum": [
+       "key",
+       "key2"
+      ],
+      "title": "Match",
+      "description": "Which ID it joins to the parcel universe on: key, or the second ID (key2)."
+     },
      "id_column": {
       "anyOf": [
        {
@@ -2467,7 +2497,7 @@
        }
       ],
       "title": "Id Column",
-      "description": "Loaded as key in this file."
+      "description": "Loaded as the ID it joins on (match)."
      },
      "id_check": {
       "anyOf": [
@@ -2511,6 +2541,7 @@
      "rows",
      "geometry",
      "holds",
+     "match",
      "id_column",
      "id_check",
      "key2_column",
@@ -2537,6 +2568,28 @@
       ],
       "title": "Holds"
      },
+     "universe": {
+      "type": "boolean",
+      "title": "Universe",
+      "description": "Make this the parcel universe file (it needs shapes).",
+      "default": false
+     },
+     "match": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "key",
+         "key2"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Match",
+      "description": "Join on the parcel ID (key) or second ID (key2)."
+     },
      "id_column": {
       "anyOf": [
        {
@@ -2546,7 +2599,8 @@
         "type": "null"
        }
       ],
-      "title": "Id Column"
+      "title": "Id Column",
+      "description": "The column loaded as the ID it joins on."
      },
      "key2_column": {
       "anyOf": [
@@ -2562,7 +2616,7 @@
      "key2_set": {
       "type": "boolean",
       "title": "Key2 Set",
-      "description": "Set key2 to key2_column (null: none).",
+      "description": "Set the universe's key2 to key2_column (null: none).",
       "default": false
      }
     },

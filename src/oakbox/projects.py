@@ -208,16 +208,23 @@ def base_settings(project: Project) -> dict:
 
 
 def _data(project: Project) -> dict:
-    """data.load, plus the merge lists once any file says what it holds (F3d): the base first."""
+    """data.load, plus the merge lists once any file says what it holds (F3d): the base first.
+
+    A parcel file joined on the second ID merges on key2. Sales joined on the second ID get the
+    parcel ID (key) from the base by a reference-table lookup on key2.
+    """
     out: dict = {"load": data_load(project.files)}
-    parcels = [f.name for f in project.files if f.holds == "parcels"]
-    sales = [f.name for f in project.files if f.holds == "sales"]
+    base = project.wizard.base
+    parcels: list = [f for f in project.files if f.holds == "parcels"]
+    sales = [f for f in project.files if f.holds == "sales"]
     if parcels or sales:
-        base = project.wizard.base
-        if base in parcels:
-            parcels.remove(base)
-            parcels.insert(0, base)
-        out["process"] = {"merge": {"universe": parcels, "sales": sales}}
+        parcels.sort(key=lambda f: f.name != base)
+        universe = [f.name if f.name == base or f.match == "key" else {"id": f.name, "on": "key2"} for f in parcels]
+        process: dict = {"merge": {"universe": universe, "sales": [f.name for f in sales]}}
+        if base and any(f.match == "key2" for f in sales):
+            lookup = {"id": base, "key_ref_table": "key2", "key_target": "key2", "add_fields": ["key"]}
+            process["enrich"] = {"ref_tables": {"sales": [lookup]}}
+        out["process"] = process
     return out
 
 

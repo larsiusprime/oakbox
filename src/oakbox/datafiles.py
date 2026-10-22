@@ -27,6 +27,7 @@ class BaseModel(_PydanticBase):
 
 
 Holds = Literal["parcels", "sales", "unused"]
+Match = Literal["key", "key2"]
 
 
 class DataFile(BaseModel):
@@ -41,6 +42,9 @@ class DataFile(BaseModel):
     )
     calc: dict[str, list[Any]] = Field(
         default_factory=dict, description="data.load.<name>.calc: fields OpenAVMKit works out after loading (F3d)."
+    )
+    match: Match = Field(
+        default="key", description="The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d)."
     )
     holds: Holds | None = Field(
         default=None,

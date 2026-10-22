@@ -375,7 +375,7 @@ export interface paths {
         get?: never;
         /**
          * Wizard File
-         * @description What a file holds and its parcel ID (F3d step 1).
+         * @description A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d).
          */
         put: operations["wizard_file_api_projects__project_id__wizard_files__name__put"];
         post?: never;
@@ -566,6 +566,13 @@ export interface components {
             calc: {
                 [key: string]: unknown[];
             };
+            /**
+             * Match
+             * @description The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d).
+             * @default key
+             * @enum {string}
+             */
+            match: "key" | "key2";
             /**
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
@@ -1006,8 +1013,16 @@ export interface components {
                     [key: string]: string;
                 };
             };
-            /** Problems */
+            /**
+             * Problems
+             * @description What stops OpenAVMKit from running.
+             */
             problems: string[];
+            /**
+             * Warnings
+             * @description Recommended fields that are missing.
+             */
+            warnings: string[];
             /** Not Loaded */
             not_loaded: components["schemas"]["NotLoaded"][];
         };
@@ -1075,8 +1090,14 @@ export interface components {
             /** Holds */
             holds: ("parcels" | "sales" | "unused") | null;
             /**
+             * Match
+             * @description Which ID it joins to the parcel universe on: key, or the second ID (key2).
+             * @enum {string}
+             */
+            match: "key" | "key2";
+            /**
              * Id Column
-             * @description Loaded as key in this file.
+             * @description Loaded as the ID it joins on (match).
              */
             id_column: string | null;
             id_check: components["schemas"]["Check"] | null;
@@ -1094,13 +1115,27 @@ export interface components {
         WizardFileChoice: {
             /** Holds */
             holds?: ("parcels" | "sales" | "unused") | null;
-            /** Id Column */
+            /**
+             * Universe
+             * @description Make this the parcel universe file (it needs shapes).
+             * @default false
+             */
+            universe: boolean;
+            /**
+             * Match
+             * @description Join on the parcel ID (key) or second ID (key2).
+             */
+            match?: ("key" | "key2") | null;
+            /**
+             * Id Column
+             * @description The column loaded as the ID it joins on.
+             */
             id_column?: string | null;
             /** Key2 Column */
             key2_column?: string | null;
             /**
              * Key2 Set
-             * @description Set key2 to key2_column (null: none).
+             * @description Set the universe's key2 to key2_column (null: none).
              * @default false
              */
             key2_set: boolean;

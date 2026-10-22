@@ -33,7 +33,8 @@ export function NewProjectScreen() {
   const set = (patch: Partial<NewProject>) => setForm((f) => ({ ...f, ...patch }));
   const create = useMutation({
     mutationFn: async () => unwrap(await api.POST("/api/projects", { body: form })),
-    onSuccess: (p) => navigate({ name: "project", id: p.id }),
+    // Straight into the Data wizard, which starts by asking for the files (SPEC F3d).
+    onSuccess: (p) => navigate({ name: "project", id: p.id, tab: "fields", step: "welcome" }),
   });
   const s = t.newProject;
   const states = regions.data?.subdivisions[form.country];
