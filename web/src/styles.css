@@ -2160,3 +2160,8 @@ a.row-title:hover {
   height: 0.95em;
   vertical-align: -0.1em;
 }
+
+/* The add-file panel's Import sits on the right, like the wizard's Next, so it isn't skipped. */
+.add-file .form-actions {
+  justify-content: flex-end;
+}
