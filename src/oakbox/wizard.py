@@ -192,6 +192,9 @@ class Check(BaseModel):
     ok: bool
     text: str = Field(description="Short: '✓ years 1890–2025', 'several rows per parcel'.")
     warn: bool = Field(default=False, description="Usable, but worth a look (repeats handled, blank IDs dropped).")
+    issues: list[str] = Field(
+        default_factory=list, description="What's worth a look, each short: '1 repeated ID, first kept'."
+    )
 
 
 class Repeats(BaseModel):
@@ -423,6 +426,7 @@ def _repeats_of(files: _Files, name: str, column: str) -> Repeats:
 
 
 def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -> tuple[Check | None, Repeats | None]:
+    """The result on one line ("219,381 parcels"), and anything worth a look as separate issues."""
     f = files.entry(name)
     match = "key" if name == base else f.match
     spec = f.load.get(match)
@@ -431,38 +435,34 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     r = _repeats_of(files, name, spec[0])
     present = [v for v in files.values(name, spec[0]) if v]
     flagged = r if (r.extra or r.blank) else None
-    blanks = f" · {r.blank:,} with no ID" if r.blank else ""
+    issues = []
+    if r.extra and holds == "parcels" and (r.few or r.policy):
+        how = "all dropped" if r.policy == "all" else "first kept"
+        issues.append(f"{_n(r.repeated, 'repeated ID')}, {how}")
+    if r.blank:
+        issues.append(f"{_n(r.blank, 'blank ID')}, dropped")
     if holds == "sales":
+        flagged = r if r.blank else None
         if base is None or base == name:
-            return Check(ok=True, text=f"{r.rows:,} sales{blanks}", warn=bool(r.blank)), r if r.blank else None
+            return Check(ok=True, text=f"{r.rows:,} sales", warn=bool(issues), issues=issues), flagged
         base_ids = _base_ids(files, base, match)
         found = sum(1 for v in present if v in base_ids)
-        text = f"{_pct(found, r.rows)} of sales match a parcel{blanks}"
-        return Check(ok=found > 0, text=text, warn=bool(r.blank)), r if r.blank else None
+        text = f"{_pct(found, r.rows)} of sales match a parcel"
+        return Check(ok=found > 0, text=text, warn=bool(issues), issues=issues), flagged
     if holds != "parcels":
-        text = "several rows per parcel" if r.extra and not r.few else f"one row per parcel{blanks}"
-        return Check(ok=True, text=text, warn=bool(r.extra or r.blank)), flagged
+        text = "several rows per parcel" if r.extra and not r.few else "one row per parcel"
+        return Check(ok=True, text=text, warn=bool(issues), issues=issues), flagged
     if r.extra and not r.few and r.policy is None:
-        verb = "repeats" if r.repeated == 1 else "repeat"
-        text = f"{_n(r.repeated, 'ID')} {verb} ({_n(r.extra, 'extra row')}): choose what to do"
-        return Check(ok=False, text=text), flagged
+        text = f"{_n(r.repeated, 'repeated ID')} ({_n(r.extra, 'extra row')}): choose what to do"
+        return Check(ok=False, text=text, issues=issues), flagged
     kept = r.singles if r.policy == "all" else r.distinct
-    notes = []
-    if r.extra:
-        how = "dropping them" if r.policy == "all" else "keeping the first"
-        notes.append(f"{_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}: {how}")
-    if r.blank:
-        notes.append(f"{_n(r.blank, 'row')} {'has' if r.blank == 1 else 'have'} no ID: dropped")
-    note = f" · {' · '.join(notes)}" if notes else ""
     if name == base:
-        shapes = " · has shapes" if files.geometry(name) else ""
-        lead = f"{kept:,} parcels" if notes else f"✓ {kept:,} parcels, all different"
-        return Check(ok=True, text=f"{lead}{shapes}{note}", warn=bool(notes)), flagged
+        text = f"{kept:,} parcels" if issues else f"✓ {kept:,} parcels, all different"
+        return Check(ok=True, text=text, warn=bool(issues), issues=issues), flagged
     base_ids = _base_ids(files, base, match)
     found = len(set(present) & base_ids)
-    tick = "" if notes else "✓ "
-    text = f"{tick}one row per parcel · {_pct(found, len(set(present)))} match parcels{note}"
-    return Check(ok=found > 0, text=text, warn=bool(notes)), flagged
+    text = f"{'' if issues else '✓ '}one row per parcel · {_pct(found, len(set(present)))} match parcels"
+    return Check(ok=found > 0, text=text, warn=bool(issues), issues=issues), flagged
 
 
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:

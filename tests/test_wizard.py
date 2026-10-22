@@ -103,7 +103,7 @@ def test_universe_then_sales(client, pid):
     w = _start(client, pid)
     base = _file(w, "geo_parcels")  # the universe is named as OpenAVMKit requires
     assert base["filename"] == "shapes.parquet" and base["base"] and base["id_column"] == "PARCEL_ID"
-    assert base["id_check"] == {"ok": True, "text": "✓ 6 parcels, all different · has shapes", "warn": False}
+    assert base["id_check"] == {"ok": True, "text": "✓ 6 parcels, all different", "warn": False, "issues": []}
     sales = _file(w, "sales")
     assert (sales["holds"], sales["match"], sales["id_column"]) == ("sales", "key", "PROP_ID")
     assert sales["id_check"]["text"] == "100% of sales match a parcel"
@@ -111,9 +111,15 @@ def test_universe_then_sales(client, pid):
         "ok": True,
         "text": "from parcel ID + sale date",
         "warn": False,
+        "issues": [],
     }
     assert _field(w, "sale_price")["sources"] == [{"file": "sales", "column": "SALE_PRICE"}]
-    assert _field(w, "sale_date")["check"] == {"ok": True, "text": "✓ reads as month/day/year", "warn": False}
+    assert _field(w, "sale_date")["check"] == {
+        "ok": True,
+        "text": "✓ reads as month/day/year",
+        "warn": False,
+        "issues": [],
+    }
     assert "No valid sale." in w["problems"] and "No vacant sale." in w["problems"]
     assert "No building area (finished) in square feet: a model needs it." in w["problems"]
     merge = _settings(pid)["data"]["process"]["merge"]
@@ -139,8 +145,8 @@ def test_a_field_from_another_file_with_its_key(client, pid):
     # Many repeats (several rows per parcel): it joins only once you say what to do with them.
     w = _put_file(client, pid, "permits", holds="parcels", id_column="PROP_ID").json()
     check = _file(w, "permits")["id_check"]
-    assert not check["ok"] and check["text"] == "1 ID repeats (1 extra row): choose what to do"
-    assert "permits: 1 ID repeats (1 extra row): choose what to do." in w["problems"]
+    assert not check["ok"] and check["text"] == "1 repeated ID (1 extra row): choose what to do"
+    assert "permits: 1 repeated ID (1 extra row): choose what to do." in w["problems"]
     w = _put_file(client, pid, "permits", dupes="all").json()
     assert _file(w, "permits")["id_check"]["ok"]
     assert _settings(pid)["data"]["load"]["permits"]["dupes"] == {
@@ -157,7 +163,12 @@ def test_guesses_once_and_type_checks(client, pid):
     _put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID")
     w = client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit").json()
     assert _field(w, "bldg_year_built")["sources"] == [{"file": "cama", "column": "YR_BLT"}]
-    assert _field(w, "bldg_year_built")["check"] == {"ok": True, "text": "✓ years 1954–2011", "warn": False}
+    assert _field(w, "bldg_year_built")["check"] == {
+        "ok": True,
+        "text": "✓ years 1954–2011",
+        "warn": False,
+        "issues": [],
+    }
     assert _field(w, "bldg_age_years")["hidden"]
     assert _field(w, "bldg_quality_txt")["sources"] == [{"file": "cama", "column": "QUALITY"}]
     client.put(f"/api/projects/{pid}/wizard/fields/bldg_year_built", json={})
@@ -272,8 +283,9 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     base = _file(w, "geo_parcels")
     assert base["id_check"] == {
         "ok": True,
-        "text": "1,496 parcels · has shapes · 1 ID repeats: keeping the first · 3 rows have no ID: dropped",
+        "text": "1,496 parcels",
         "warn": True,
+        "issues": ["1 repeated ID, first kept", "3 blank IDs, dropped"],
     }
     r = base["repeats"]
     assert (r["rows"], r["blank"], r["distinct"], r["repeated"], r["extra"], r["few"]) == (1500, 3, 1496, 1, 1, True)

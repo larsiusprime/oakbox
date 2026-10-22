@@ -268,10 +268,22 @@ type MutateAsync = (c: Change) => Promise<Wizard>;
 function CheckText({ check }: { check: WizardCheck | null | undefined }) {
   if (!check) return null;
   if (check.ok && !check.warn) return <span className="wiz-ok">{check.text}</span>;
+  return <span className={check.ok ? "wiz-result" : "wiz-warn"}>{check.text}</span>;
+}
+
+/** The second line of a check: each issue with a warning sign, then the action if there is one. */
+function Issues({ issues, action }: { issues: string[]; action?: ReactNode }) {
+  if (issues.length === 0 && !action) return null;
   return (
-    <span className={check.ok ? "wiz-caution" : "wiz-warn"}>
-      {check.warn && <img src={warningIcon} alt="" className="wiz-inline-icon" />}
-      {check.text}
+    <span className="wiz-issues">
+      {issues.map((issue, i) => (
+        <span key={issue} className="wiz-caution">
+          {i > 0 && <span className="wiz-sep"> · </span>}
+          <img src={warningIcon} alt="" className="wiz-inline-icon" />
+          {issue}
+        </span>
+      ))}
+      {action}
     </span>
   );
 }
@@ -291,13 +303,18 @@ function IdCheck({
   const [open, setOpen] = useState(false);
   const resolvable = file.holds === "parcels" && (file.repeats?.extra ?? 0) > 0;
   return (
-    <div className="wiz-samples wiz-wrap">
+    <div className="wiz-samples wiz-check-lines">
       <CheckText check={file.id_check} />
-      {resolvable && (
-        <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
-          {w.dupes.resolve}
-        </Button>
-      )}
+      <Issues
+        issues={file.id_check?.issues ?? []}
+        action={
+          resolvable && (
+            <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
+              {w.dupes.resolve}
+            </Button>
+          )
+        }
+      />
       {open && (
         <DupesDialog
           projectId={projectId}

@@ -2102,3 +2102,22 @@ a.row-title:hover {
 .wiz-review-ids {
   margin-bottom: 0.4rem;
 }
+
+.wiz-check-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  white-space: normal;
+}
+
+.wiz-result {
+  color: var(--text);
+}
+
+.wiz-issues {
+  font-size: 0.86rem;
+}
+
+.wiz-sep {
+  color: var(--muted);
+}

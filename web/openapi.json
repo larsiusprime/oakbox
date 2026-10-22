@@ -1243,13 +1243,22 @@
       "title": "Warn",
       "description": "Usable, but worth a look (repeats handled, blank IDs dropped).",
       "default": false
+     },
+     "issues": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Issues",
+      "description": "What's worth a look, each short: '1 repeated ID, first kept'."
      }
     },
     "type": "object",
     "required": [
      "ok",
      "text",
-     "warn"
+     "warn",
+     "issues"
     ],
     "title": "Check"
    },

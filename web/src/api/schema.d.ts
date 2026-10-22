@@ -536,6 +536,11 @@ export interface components {
              * @default false
              */
             warn: boolean;
+            /**
+             * Issues
+             * @description What's worth a look, each short: '1 repeated ID, first kept'.
+             */
+            issues: string[];
         };
         /** Column */
         Column: {
