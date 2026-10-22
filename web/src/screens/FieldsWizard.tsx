@@ -24,6 +24,7 @@ import {
   type CleanStep,
   type Project,
   type ProjectDetail,
+  type Rule,
   unwrap,
   type Wizard,
   type WizardCheck,
@@ -39,6 +40,7 @@ import { Choice, Tick } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
+import { DateDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 
@@ -283,7 +285,15 @@ type Change =
     }
   | { kind: "saleId"; column: string | null; make: boolean }
   | { kind: "reconcile"; name: string; file_steps: CleanStep[]; base_steps: CleanStep[] }
-  | { kind: "field"; key: string; file?: string | null; column?: string | null; assume?: boolean };
+  | {
+      kind: "field";
+      key: string;
+      file?: string | null;
+      column?: string | null;
+      assume?: boolean;
+      date_format?: string;
+    }
+  | { kind: "rule"; key: string; rule: Rule };
 
 function useChange(projectId: string) {
   const queryClient = useQueryClient();
@@ -331,10 +341,23 @@ function useChange(projectId: string) {
           }),
         );
       }
+      if (c.kind === "rule") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/fields/{key}/rule", {
+            params: { path: { project_id, key: c.key } },
+            body: c.rule,
+          }),
+        );
+      }
       return unwrap(
         await api.PUT("/api/projects/{project_id}/wizard/fields/{key}", {
           params: { path: { project_id, key: c.key } },
-          body: { file: c.file ?? null, column: c.column ?? null, assume: c.assume ?? false },
+          body: {
+            file: c.file ?? null,
+            column: c.column ?? null,
+            assume: c.assume ?? false,
+            date_format: c.date_format ?? null,
+          },
         }),
       );
     },
@@ -1016,6 +1039,8 @@ function FieldRow({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [elsewhere, setElsewhere] = useState(false);
+  const [ruling, setRuling] = useState(false);
+  const [dating, setDating] = useState(false);
   // Under a numbered title, the field's own name only when it says more ("4. Quality" needs no "Quality").
   const name = shortName(field);
   const same = label?.replace(/^\d+\.\s*/, "").toLowerCase() === name.toLowerCase();
@@ -1023,15 +1048,21 @@ function FieldRow({
   const files = data.files.filter((f) => f.holds === (sales ? "sales" : "parcels"));
   const source = field.sources[0];
   const value = field.assumed ? ASSUME : source ? `${source.file}\u0000${source.column}` : NONE;
-  const column =
-    source && files.find((f) => f.name === source.file)?.columns.find((c) => c.name === source.column);
+  const sourceFile = source ? files.find((f) => f.name === source.file) : undefined;
+  const column = source && sourceFile?.columns.find((c) => c.name === source.column);
   const pick = (v: string) => {
     if (v === ASSUME) setConfirming(true);
     else if (v === ELSEWHERE) setElsewhere(true);
     else if (v === NONE) void change({ kind: "field", key: field.key }).catch(() => {});
     else {
       const [file, col] = v.split("\u0000");
-      void change({ kind: "field", key: field.key, file: file ?? null, column: col ?? null }).catch(() => {});
+      void change({ kind: "field", key: field.key, file: file ?? null, column: col ?? null })
+        .then((next) => {
+          // Not yes/no (Q/U, a deed code): straight on to choosing which values mean yes (SPEC F3d).
+          const rule = next.fields.find((f) => f.key === field.key)?.rule;
+          if (rule && !ruleComplete(rule)) setRuling(true);
+        })
+        .catch(() => {});
     }
   };
   return (
@@ -1060,7 +1091,17 @@ function FieldRow({
         ) : (
           <>
             <CheckText check={field.check} />
-            {column && column.samples.length > 0 && (
+            {sourceFile && column && field.type === "boolean" && sales && (
+              <Button className="wiz-link wiz-resolve" onPress={() => setRuling(true)}>
+                {!field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose}
+              </Button>
+            )}
+            {sourceFile && column && field.type === "date" && column.type !== "date" && (
+              <Button className="wiz-link wiz-resolve" onPress={() => setDating(true)}>
+                {field.check?.warn || !field.check?.ok ? w.dates.check : w.dates.change}
+              </Button>
+            )}
+            {column && column.samples.length > 0 && !field.rule && (
               <span className="wiz-sample-values">
                 {field.check ? " · " : ""}
                 {column.samples.join(", ")}
@@ -1069,6 +1110,39 @@ function FieldRow({
           </>
         )}
       </div>
+      {ruling && sourceFile && (
+        <RuleDialog
+          projectId={project.id}
+          field={field}
+          file={sourceFile}
+          close={() => setRuling(false)}
+          save={(rule) =>
+            void change({ kind: "rule", key: field.key, rule })
+              .then(() => setRuling(false))
+              .catch(() => {})
+          }
+        />
+      )}
+      {dating && sourceFile && source && (
+        <DateDialog
+          projectId={project.id}
+          field={field}
+          file={sourceFile}
+          column={source.column}
+          close={() => setDating(false)}
+          save={(date_format) =>
+            void change({
+              kind: "field",
+              key: field.key,
+              file: source.file,
+              column: source.column,
+              date_format,
+            })
+              .then(() => setDating(false))
+              .catch(() => {})
+          }
+        />
+      )}
       {confirming && (
         <AssumeDialog
           field={field.key}

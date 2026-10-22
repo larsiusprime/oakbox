@@ -46,6 +46,93 @@ class CleanStep(BaseModel):
     n: int = Field(default=0, ge=0)
 
 
+RuleOp = Literal["isin", "notin", "==", "!=", "contains", "isempty", "notempty", ">", "<", ">=", "<="]
+NUMERIC_OPS = (">", "<", ">=", "<=")
+BLANK = ""  # in an isin condition's values: the rows where the column is blank
+
+
+class Condition(BaseModel):
+    """One test on a column of the sales file, as an OpenAVMKit filter."""
+
+    column: str
+    op: RuleOp = "isin"
+    values: list[str] = Field(
+        default_factory=list,
+        description='isin/notin: the values ("" for blank); ==, !=, contains, >, <, >=, <=: the first one.',
+    )
+
+
+class Rule(BaseModel):
+    """A yes/no field worked out from other columns (valid sale, vacant sale): OpenAVMKit's ["?", filter] calc."""
+
+    join: Literal["all", "any"] = "all"
+    conditions: list[Condition] = Field(default_factory=list)
+
+
+def rule_fields(load: dict[str, list[str]], rule: Rule) -> dict[str, tuple[str, str]]:
+    """column -> (the field a rule reads it as, its type). A column already loaded is read as its field;
+    any other is loaded under its own name, lowercased (OpenAVMKit only tests loaded columns). Names
+    OpenAVMKit gives a meaning to get "_src" added."""
+    from oakbox.fields import dictionary
+
+    reserved = {d.key for d in dictionary()} | set(load)
+    by_column = {spec[0]: field for field, spec in load.items()}
+    out: dict[str, tuple[str, str]] = {}
+    for c in rule.conditions:
+        if c.column in out:
+            continue
+        numeric = any(x.column == c.column and x.op in NUMERIC_OPS for x in rule.conditions)
+        kind = "float" if numeric else "string"
+        if c.column in by_column:
+            out[c.column] = (by_column[c.column], kind)
+            continue
+        name = re.sub(r"[^a-z0-9]+", "_", c.column.lower()).strip("_") or "column"
+        if not name[0].isalpha():
+            name = f"col_{name}"
+        while name in reserved:
+            name = f"{name}_src"
+        reserved.add(name)
+        out[c.column] = (name, kind)
+    return out
+
+
+def _literal(v: str, numeric: bool) -> Any:
+    if numeric:
+        try:
+            return float(v)
+        except ValueError:
+            return v
+    return f"str:{v}"
+
+
+def rule_filter(rule: Rule, names: dict[str, tuple[str, str]]) -> list:
+    """The rule as one OpenAVMKit filter."""
+    parts = []
+    for c in rule.conditions:
+        field, kind = names[c.column]
+        numeric = kind == "float"
+        first = c.values[0] if c.values else ""
+        if c.op in ("isin", "notin"):
+            listed = [_literal(v, numeric) for v in c.values if v != BLANK]
+            f: list = [c.op, field, listed]
+            if BLANK in c.values:
+                blank = ["isempty", field]
+                f = ["or", f, blank] if c.op == "isin" else ["and", f, ["not", blank]]
+        elif c.op == "isempty":
+            f = ["isempty", field]
+        elif c.op == "notempty":
+            f = ["not", ["isempty", field]]
+        elif c.op == "contains":
+            # Blank rows contain nothing (str.contains gives NA for them).
+            f = ["and", ["not", ["isempty", field]], ["contains_case_insensitive", field, f"str:{first}"]]
+        else:
+            f = [c.op, field, _literal(first, numeric or c.op in NUMERIC_OPS)]
+        parts.append(f)
+    if not parts:
+        return []
+    return parts[0] if len(parts) == 1 else ["and" if rule.join == "all" else "or", *parts]
+
+
 def clean_value(v: str, steps: list[CleanStep]) -> str:
     """What OpenAVMKit's calc makes of one ID (as clean_calc writes it); blanks stay blank."""
     if not v.strip():
@@ -127,6 +214,9 @@ class DataFile(BaseModel):
     )
     clean: dict[str, list[CleanStep]] = Field(
         default_factory=dict, description="ID field -> clean-up steps, so it matches the other files (F3d reconcile)."
+    )
+    rules: dict[str, Rule] = Field(
+        default_factory=dict, description="Yes/no field -> the rule it's worked out by (valid/vacant sale, F3d)."
     )
 
 
@@ -273,10 +363,20 @@ def data_load(files: list[DataFile]) -> dict:
         entry: dict = {"filename": f.filename}
         if f.layer:
             entry["layer"] = f.layer
-        if f.load:
-            entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in f.load.items()}
-        # Cleaned IDs first: the other calcs (a made sale ID) use them.
-        calc = {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps} | f.calc
+        load = dict(f.load)
+        rules = {}
+        for key, rule in f.rules.items():
+            names = rule_fields(load, rule)
+            for column, (field, kind) in names.items():
+                if field not in load:
+                    load[field] = [column, kind]
+                elif kind == "float" and load[field][1:2] == ["string"]:
+                    load[field] = [column, "float"]
+            rules[key] = ["?", rule_filter(rule, names)]
+        if load:
+            entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in load.items()}
+        # Cleaned IDs first: the other calcs (a made sale ID, valid/vacant rules) use them.
+        calc = {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps} | rules | f.calc
         if calc:
             entry["calc"] = calc
         if f.holds == "parcels":

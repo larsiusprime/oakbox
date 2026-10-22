@@ -112,10 +112,16 @@ class WizardSaleId(BaseModel):
     make: bool = Field(default=False, description="Make one from parcel ID + sale date.")
 
 
+class WizardDates(BaseModel):
+    column: str
+    format: str
+
+
 class WizardFieldChoice(BaseModel):
     file: str | None = None
     column: str | None = None
     assume: bool = Field(default=False, description="Valid/vacant sale only: all valid, none vacant.")
+    date_format: str | None = Field(default=None, description="Dates: the format to read it with.")
 
 
 class DateFormatCheck(BaseModel):
@@ -526,7 +532,36 @@ def create_app() -> FastAPI:
     @app.put("/api/projects/{project_id}/wizard/fields/{key}")
     def wizard_field(project_id: str, key: str, body: WizardFieldChoice) -> wizard.Wizard:
         """Load a field from a file's column, from nowhere, or as an assumption (F3d)."""
-        return _change(project_id, lambda p, d: wizard.set_field(p, d, key, body.file, body.column, body.assume))
+        return _change(
+            project_id,
+            lambda p, d: wizard.set_field(p, d, key, body.file, body.column, body.assume, body.date_format),
+        )
+
+    @app.post("/api/projects/{project_id}/wizard/fields/{key}/rule")
+    def wizard_rule_preview(project_id: str, key: str, body: datafiles.Rule) -> wizard.RulePreview:
+        """What a yes/no rule makes of the sales file, without saving it (F3d)."""
+        project = _load(project_id)
+        try:
+            return wizard.rule_preview(project, projects.project_dir(project_id) / "in", key, body)
+        except LookupError as e:
+            raise HTTPException(404, f"No such field: {e}") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+
+    @app.put("/api/projects/{project_id}/wizard/fields/{key}/rule")
+    def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizard:
+        """Work a yes/no field (valid sale, vacant sale) out from the sales file's columns (F3d)."""
+        return _change(project_id, lambda p, d: wizard.set_rule(p, d, key, body))
+
+    @app.post("/api/projects/{project_id}/wizard/files/{name}/dates")
+    def wizard_dates(project_id: str, name: str, body: WizardDates) -> wizard.DatePreview:
+        """A column read with a date format, as OpenAVMKit reads it (F3d)."""
+        project = _load(project_id)
+        _entry(project, name)
+        try:
+            return wizard.date_preview(project, projects.project_dir(project_id) / "in", name, body.column, body.format)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:

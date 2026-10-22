@@ -1232,6 +1232,181 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/fields/{key}/rule": {
+   "post": {
+    "summary": "Wizard Rule Preview",
+    "description": "What a yes/no rule makes of the sales file, without saving it (F3d).",
+    "operationId": "wizard_rule_preview_api_projects__project_id__wizard_fields__key__rule_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Rule-Input"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RulePreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Wizard Rule",
+    "description": "Work a yes/no field (valid sale, vacant sale) out from the sales file's columns (F3d).",
+    "operationId": "wizard_rule_api_projects__project_id__wizard_fields__key__rule_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Rule-Input"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/files/{name}/dates": {
+   "post": {
+    "summary": "Wizard Dates",
+    "description": "A column read with a date format, as OpenAVMKit reads it (F3d).",
+    "operationId": "wizard_dates_api_projects__project_id__wizard_files__name__dates_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardDates"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DatePreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -1573,6 +1748,88 @@
     ],
     "title": "Column"
    },
+   "Condition-Input": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "op": {
+      "type": "string",
+      "enum": [
+       "isin",
+       "notin",
+       "==",
+       "!=",
+       "contains",
+       "isempty",
+       "notempty",
+       ">",
+       "<",
+       ">=",
+       "<="
+      ],
+      "title": "Op",
+      "default": "isin"
+     },
+     "values": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "isin/notin: the values (\"\" for blank); ==, !=, contains, >, <, >=, <=: the first one."
+     }
+    },
+    "type": "object",
+    "required": [
+     "column"
+    ],
+    "title": "Condition",
+    "description": "One test on a column of the sales file, as an OpenAVMKit filter."
+   },
+   "Condition-Output": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "op": {
+      "type": "string",
+      "enum": [
+       "isin",
+       "notin",
+       "==",
+       "!=",
+       "contains",
+       "isempty",
+       "notempty",
+       ">",
+       "<",
+       ">=",
+       "<="
+      ],
+      "title": "Op",
+      "default": "isin"
+     },
+     "values": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "isin/notin: the values (\"\" for blank); ==, !=, contains, >, <, >=, <=: the first one."
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "op",
+     "values"
+    ],
+    "title": "Condition",
+    "description": "One test on a column of the sales file, as an OpenAVMKit filter."
+   },
    "DataFile": {
     "properties": {
      "name": {
@@ -1695,6 +1952,14 @@
       "type": "object",
       "title": "Clean",
       "description": "ID field -> clean-up steps, so it matches the other files (F3d reconcile)."
+     },
+     "rules": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Rule-Output"
+      },
+      "type": "object",
+      "title": "Rules",
+      "description": "Yes/no field -> the rule it's worked out by (valid/vacant sale, F3d)."
      }
     },
     "type": "object",
@@ -1710,7 +1975,8 @@
      "dupes_desc",
      "blank_ok",
      "holds",
-     "clean"
+     "clean",
+     "rules"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -1739,6 +2005,24 @@
     ],
     "title": "DateCheck"
    },
+   "DateFormat": {
+    "properties": {
+     "format": {
+      "type": "string",
+      "title": "Format"
+     },
+     "words": {
+      "type": "string",
+      "title": "Words"
+     }
+    },
+    "type": "object",
+    "required": [
+     "format",
+     "words"
+    ],
+    "title": "DateFormat"
+   },
    "DateFormatCheck": {
     "properties": {
      "samples": {
@@ -1759,6 +2043,120 @@
      "format"
     ],
     "title": "DateFormatCheck"
+   },
+   "DatePreview": {
+    "properties": {
+     "format": {
+      "type": "string",
+      "title": "Format"
+     },
+     "words": {
+      "type": "string",
+      "title": "Words"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "blank": {
+      "type": "integer",
+      "title": "Blank"
+     },
+     "read": {
+      "type": "integer",
+      "title": "Read"
+     },
+     "failed": {
+      "type": "integer",
+      "title": "Failed"
+     },
+     "first": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First"
+     },
+     "last": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last"
+     },
+     "samples": {
+      "items": {
+       "$ref": "#/components/schemas/DateSample"
+      },
+      "type": "array",
+      "title": "Samples",
+      "description": "Ones that don't read first, then a spread of ones that do."
+     },
+     "also": {
+      "items": {
+       "$ref": "#/components/schemas/DateFormat"
+      },
+      "type": "array",
+      "title": "Also",
+      "description": "Other formats that read every date too, but differently."
+     },
+     "formats": {
+      "items": {
+       "$ref": "#/components/schemas/DateFormat"
+      },
+      "type": "array",
+      "title": "Formats"
+     }
+    },
+    "type": "object",
+    "required": [
+     "format",
+     "words",
+     "total",
+     "blank",
+     "read",
+     "failed",
+     "first",
+     "last",
+     "samples",
+     "also",
+     "formats"
+    ],
+    "title": "DatePreview"
+   },
+   "DateSample": {
+    "properties": {
+     "raw": {
+      "type": "string",
+      "title": "Raw"
+     },
+     "read": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Read",
+      "description": "As OpenAVMKit reads it (year-month-day), or None if it doesn't."
+     }
+    },
+    "type": "object",
+    "required": [
+     "raw",
+     "read"
+    ],
+    "title": "DateSample"
    },
    "DictionaryField": {
     "properties": {
@@ -2091,7 +2489,13 @@
        "%d/%m/%Y",
        "%Y%m%d",
        "%Y-%m-%d %H:%M:%S",
-       "%m/%d/%Y %H:%M"
+       "%m/%d/%Y %H:%M",
+       "%m/%d/%Y %H:%M:%S",
+       "%d/%m/%Y %H:%M",
+       "%Y/%m/%d",
+       "%m-%d-%Y",
+       "%d-%b-%Y",
+       "%b %d %Y"
       ]
      }
     },
@@ -2720,6 +3124,163 @@
     "title": "Repeats",
     "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
    },
+   "Rule-Input": {
+    "properties": {
+     "join": {
+      "type": "string",
+      "enum": [
+       "all",
+       "any"
+      ],
+      "title": "Join",
+      "default": "all"
+     },
+     "conditions": {
+      "items": {
+       "$ref": "#/components/schemas/Condition-Input"
+      },
+      "type": "array",
+      "title": "Conditions"
+     }
+    },
+    "type": "object",
+    "title": "Rule",
+    "description": "A yes/no field worked out from other columns (valid sale, vacant sale): OpenAVMKit's [\"?\", filter] calc."
+   },
+   "Rule-Output": {
+    "properties": {
+     "join": {
+      "type": "string",
+      "enum": [
+       "all",
+       "any"
+      ],
+      "title": "Join",
+      "default": "all"
+     },
+     "conditions": {
+      "items": {
+       "$ref": "#/components/schemas/Condition-Output"
+      },
+      "type": "array",
+      "title": "Conditions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "join",
+     "conditions"
+    ],
+    "title": "Rule",
+    "description": "A yes/no field worked out from other columns (valid sale, vacant sale): OpenAVMKit's [\"?\", filter] calc."
+   },
+   "RulePreview": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "yes": {
+      "type": "integer",
+      "title": "Yes"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "columns": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Columns",
+      "description": "The columns the rule tests, for the rows."
+     },
+     "values": {
+      "additionalProperties": {
+       "items": {
+        "$ref": "#/components/schemas/ValueCount"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Values",
+      "description": "Per column tested, its values, most common first."
+     },
+     "more": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "More",
+      "description": "Per column, how many other values there are."
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/RuleRow"
+      },
+      "type": "array",
+      "title": "Rows",
+      "description": "A few rows of each outcome."
+     },
+     "calc": {
+      "items": {},
+      "type": "array",
+      "title": "Calc",
+      "description": "The OpenAVMKit calc it writes."
+     },
+     "load": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Load",
+      "description": "Columns it loads so the calc can test them."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "file",
+     "yes",
+     "total",
+     "columns",
+     "values",
+     "more",
+     "rows",
+     "calc",
+     "load"
+    ],
+    "title": "RulePreview"
+   },
+   "RuleRow": {
+    "properties": {
+     "cells": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Cells"
+     },
+     "yes": {
+      "type": "boolean",
+      "title": "Yes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "cells",
+     "yes"
+    ],
+    "title": "RuleRow"
+   },
    "SaleId": {
     "properties": {
      "file": {
@@ -2975,6 +3536,25 @@
     ],
     "title": "ValidationError"
    },
+   "ValueCount": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value",
+      "description": "\"\" for blank."
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "count"
+    ],
+    "title": "ValueCount"
+   },
    "Versions": {
     "properties": {
      "version": {
@@ -3067,6 +3647,24 @@
     ],
     "title": "Wizard"
    },
+   "WizardDates": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "format": {
+      "type": "string",
+      "title": "Format"
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "format"
+    ],
+    "title": "WizardDates"
+   },
    "WizardField": {
     "properties": {
      "key": {
@@ -3120,6 +3718,29 @@
       "type": "boolean",
       "title": "Hidden",
       "description": "Computed from a field that's loaded, so not asked (e.g. age from year built)."
+     },
+     "rule": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Rule-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Yes/no worked out from columns (valid/vacant sale)."
+     },
+     "date_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Format",
+      "description": "Dates: the format it's read with."
      }
     },
     "type": "object",
@@ -3133,7 +3754,9 @@
      "sources",
      "assumed",
      "check",
-     "hidden"
+     "hidden",
+     "rule",
+     "date_format"
     ],
     "title": "WizardField"
    },
@@ -3166,6 +3789,18 @@
       "title": "Assume",
       "description": "Valid/vacant sale only: all valid, none vacant.",
       "default": false
+     },
+     "date_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Format",
+      "description": "Dates: the format to read it with."
      }
     },
     "type": "object",

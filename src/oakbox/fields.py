@@ -23,7 +23,21 @@ SAMPLES = 5
 # Types OpenAVMKit casts to in data.load, and the third item each needs (SPEC F3c).
 TYPES = ("string", "float", "int", "bool", "datetime")
 BLANKS = ("na_false", "na_true")
-DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%Y%m%d", "%Y-%m-%d %H:%M:%S", "%m/%d/%Y %H:%M")
+DATE_FORMATS = (
+    "%Y-%m-%d",
+    "%m/%d/%Y",
+    "%m/%d/%y",
+    "%d/%m/%Y",
+    "%Y%m%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%m/%d/%Y %H:%M",
+    "%m/%d/%Y %H:%M:%S",
+    "%d/%m/%Y %H:%M",
+    "%Y/%m/%d",
+    "%m-%d-%Y",
+    "%d-%b-%Y",
+    "%b %d %Y",
+)
 
 ColumnType = Literal["text", "number", "yes/no", "date", "geometry"]
 

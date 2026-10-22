@@ -489,6 +489,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/fields/{key}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Rule
+         * @description Work a yes/no field (valid sale, vacant sale) out from the sales file's columns (F3d).
+         */
+        put: operations["wizard_rule_api_projects__project_id__wizard_fields__key__rule_put"];
+        /**
+         * Wizard Rule Preview
+         * @description What a yes/no rule makes of the sales file, without saving it (F3d).
+         */
+        post: operations["wizard_rule_preview_api_projects__project_id__wizard_fields__key__rule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/files/{name}/dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Dates
+         * @description A column read with a date format, as OpenAVMKit reads it (F3d).
+         */
+        post: operations["wizard_dates_api_projects__project_id__wizard_files__name__dates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -667,6 +711,44 @@ export interface components {
             date_format: string | null;
         };
         /**
+         * Condition
+         * @description One test on a column of the sales file, as an OpenAVMKit filter.
+         */
+        "Condition-Input": {
+            /** Column */
+            column: string;
+            /**
+             * Op
+             * @default isin
+             * @enum {string}
+             */
+            op: "isin" | "notin" | "==" | "!=" | "contains" | "isempty" | "notempty" | ">" | "<" | ">=" | "<=";
+            /**
+             * Values
+             * @description isin/notin: the values ("" for blank); ==, !=, contains, >, <, >=, <=: the first one.
+             */
+            values?: string[];
+        };
+        /**
+         * Condition
+         * @description One test on a column of the sales file, as an OpenAVMKit filter.
+         */
+        "Condition-Output": {
+            /** Column */
+            column: string;
+            /**
+             * Op
+             * @default isin
+             * @enum {string}
+             */
+            op: "isin" | "notin" | "==" | "!=" | "contains" | "isempty" | "notempty" | ">" | "<" | ">=" | "<=";
+            /**
+             * Values
+             * @description isin/notin: the values ("" for blank); ==, !=, contains, >, <, >=, <=: the first one.
+             */
+            values: string[];
+        };
+        /**
          * DataFile
          * @description One data.load entry, as OAK box wrote it.
          */
@@ -741,6 +823,13 @@ export interface components {
             clean: {
                 [key: string]: components["schemas"]["CleanStep-Output"][];
             };
+            /**
+             * Rules
+             * @description Yes/no field -> the rule it's worked out by (valid/vacant sale, F3d).
+             */
+            rules: {
+                [key: string]: components["schemas"]["Rule-Output"];
+            };
         };
         /** DateCheck */
         DateCheck: {
@@ -750,12 +839,60 @@ export interface components {
              */
             parsed: (string | null)[];
         };
+        /** DateFormat */
+        DateFormat: {
+            /** Format */
+            format: string;
+            /** Words */
+            words: string;
+        };
         /** DateFormatCheck */
         DateFormatCheck: {
             /** Samples */
             samples: string[];
             /** Format */
             format: string;
+        };
+        /** DatePreview */
+        DatePreview: {
+            /** Format */
+            format: string;
+            /** Words */
+            words: string;
+            /** Total */
+            total: number;
+            /** Blank */
+            blank: number;
+            /** Read */
+            read: number;
+            /** Failed */
+            failed: number;
+            /** First */
+            first: string | null;
+            /** Last */
+            last: string | null;
+            /**
+             * Samples
+             * @description Ones that don't read first, then a spread of ones that do.
+             */
+            samples: components["schemas"]["DateSample"][];
+            /**
+             * Also
+             * @description Other formats that read every date too, but differently.
+             */
+            also: components["schemas"]["DateFormat"][];
+            /** Formats */
+            formats: components["schemas"]["DateFormat"][];
+        };
+        /** DateSample */
+        DateSample: {
+            /** Raw */
+            raw: string;
+            /**
+             * Read
+             * @description As OpenAVMKit reads it (year-month-day), or None if it doesn't.
+             */
+            read: string | null;
         };
         /** DictionaryField */
         DictionaryField: {
@@ -930,7 +1067,13 @@ export interface components {
              *       "%d/%m/%Y",
              *       "%Y%m%d",
              *       "%Y-%m-%d %H:%M:%S",
-             *       "%m/%d/%Y %H:%M"
+             *       "%m/%d/%Y %H:%M",
+             *       "%m/%d/%Y %H:%M:%S",
+             *       "%d/%m/%Y %H:%M",
+             *       "%Y/%m/%d",
+             *       "%m-%d-%Y",
+             *       "%d-%b-%Y",
+             *       "%b %d %Y"
              *     ]
              */
             date_formats: string[];
@@ -1242,6 +1385,88 @@ export interface components {
              */
             blank_ok: boolean;
         };
+        /**
+         * Rule
+         * @description A yes/no field worked out from other columns (valid sale, vacant sale): OpenAVMKit's ["?", filter] calc.
+         */
+        "Rule-Input": {
+            /**
+             * Join
+             * @default all
+             * @enum {string}
+             */
+            join: "all" | "any";
+            /** Conditions */
+            conditions?: components["schemas"]["Condition-Input"][];
+        };
+        /**
+         * Rule
+         * @description A yes/no field worked out from other columns (valid sale, vacant sale): OpenAVMKit's ["?", filter] calc.
+         */
+        "Rule-Output": {
+            /**
+             * Join
+             * @default all
+             * @enum {string}
+             */
+            join: "all" | "any";
+            /** Conditions */
+            conditions: components["schemas"]["Condition-Output"][];
+        };
+        /** RulePreview */
+        RulePreview: {
+            /** Key */
+            key: string;
+            /** File */
+            file: string;
+            /** Yes */
+            yes: number;
+            /** Total */
+            total: number;
+            /**
+             * Columns
+             * @description The columns the rule tests, for the rows.
+             */
+            columns: string[];
+            /**
+             * Values
+             * @description Per column tested, its values, most common first.
+             */
+            values: {
+                [key: string]: components["schemas"]["ValueCount"][];
+            };
+            /**
+             * More
+             * @description Per column, how many other values there are.
+             */
+            more: {
+                [key: string]: number;
+            };
+            /**
+             * Rows
+             * @description A few rows of each outcome.
+             */
+            rows: components["schemas"]["RuleRow"][];
+            /**
+             * Calc
+             * @description The OpenAVMKit calc it writes.
+             */
+            calc: unknown[];
+            /**
+             * Load
+             * @description Columns it loads so the calc can test them.
+             */
+            load: {
+                [key: string]: string[];
+            };
+        };
+        /** RuleRow */
+        RuleRow: {
+            /** Cells */
+            cells: string[];
+            /** Yes */
+            yes: boolean;
+        };
         /** SaleId */
         SaleId: {
             /**
@@ -1345,6 +1570,16 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** ValueCount */
+        ValueCount: {
+            /**
+             * Value
+             * @description "" for blank.
+             */
+            value: string;
+            /** Count */
+            count: number;
+        };
         /** Versions */
         Versions: {
             /** Version */
@@ -1383,6 +1618,13 @@ export interface components {
             /** Not Loaded */
             not_loaded: components["schemas"]["NotLoaded"][];
         };
+        /** WizardDates */
+        WizardDates: {
+            /** Column */
+            column: string;
+            /** Format */
+            format: string;
+        };
         /** WizardField */
         WizardField: {
             /** Key */
@@ -1413,6 +1655,13 @@ export interface components {
              * @description Computed from a field that's loaded, so not asked (e.g. age from year built).
              */
             hidden: boolean;
+            /** @description Yes/no worked out from columns (valid/vacant sale). */
+            rule: components["schemas"]["Rule-Output"] | null;
+            /**
+             * Date Format
+             * @description Dates: the format it's read with.
+             */
+            date_format: string | null;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -1426,6 +1675,11 @@ export interface components {
              * @default false
              */
             assume: boolean;
+            /**
+             * Date Format
+             * @description Dates: the format to read it with.
+             */
+            date_format?: string | null;
         };
         /** WizardFile */
         WizardFile: {
@@ -2491,6 +2745,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_rule_api_projects__project_id__wizard_fields__key__rule_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Rule-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_rule_preview_api_projects__project_id__wizard_fields__key__rule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Rule-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_dates_api_projects__project_id__wizard_files__name__dates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardDates"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatePreview"];
                 };
             };
             /** @description Validation Error */

@@ -22,7 +22,21 @@ from typing import Literal, cast
 from pydantic import Field
 
 from oakbox import fields
-from oakbox.datafiles import EXTRA_IDS, BaseModel, CleanStep, DataFile, Dupes, Holds, Match, clean_calc, clean_value
+from oakbox.datafiles import (
+    EXTRA_IDS,
+    BaseModel,
+    CleanStep,
+    Condition,
+    DataFile,
+    Dupes,
+    Holds,
+    Match,
+    Rule,
+    clean_calc,
+    clean_value,
+    rule_fields,
+    rule_filter,
+)
 from oakbox.fields import Column, DictionaryField
 from oakbox.projects import Project
 
@@ -177,6 +191,12 @@ DATE_WORDS = {
     "%Y%m%d": "yearmonthday",
     "%Y-%m-%d %H:%M:%S": "year-month-day and time",
     "%m/%d/%Y %H:%M": "month/day/year and time",
+    "%m/%d/%Y %H:%M:%S": "month/day/year and time",
+    "%d/%m/%Y %H:%M": "day/month/year and time",
+    "%Y/%m/%d": "year/month/day",
+    "%m-%d-%Y": "month-day-year",
+    "%d-%b-%Y": "day-Mon-year (09-Jan-2024)",
+    "%b %d %Y": "Mon day year (Jan 09 2024)",
 }
 
 
@@ -276,6 +296,8 @@ class WizardField(BaseModel):
     assumed: bool = Field(description="Valid/vacant sale with no column: all valid, none vacant (F3d).")
     check: Check | None
     hidden: bool = Field(description="Computed from a field that's loaded, so not asked (e.g. age from year built).")
+    rule: Rule | None = Field(default=None, description="Yes/no worked out from columns (valid/vacant sale).")
+    date_format: str | None = Field(default=None, description="Dates: the format it's read with.")
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -624,7 +646,12 @@ def _field_files(project: Project, sales: bool) -> list[DataFile]:
 
 
 def _used(project: Project) -> dict[str, dict[str, str]]:
-    return {f.name: {spec[0]: field for field, spec in f.load.items()} for f in project.files}
+    out = {f.name: {spec[0]: field for field, spec in f.load.items()} for f in project.files}
+    for f in project.files:
+        for key, rule in f.rules.items():
+            for c in rule.conditions:
+                out[f.name].setdefault(c.column, key)
+    return out
 
 
 # OpenAVMKit's name for the parcel file with shapes: it requires an entry of this name (load_dataframes).
@@ -721,10 +748,22 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     for f in _field_files(project, step.sales)
                     if key in f.load
                 ]
+                ruled = next((f for f in _field_files(project, step.sales) if key in f.rules), None)
+                rule = ruled.rules[key] if ruled else None
+                if ruled and rule and rule.conditions:
+                    sources.append(Source(file=ruled.name, column=rule.conditions[0].column))
                 check = None
-                if len(sources) == 1:
+                date_format = None
+                if ruled and rule is not None and len(sources) == 1:
+                    check = _rule_check(files, ruled, key, rule)
+                elif len(sources) == 1:
                     col = files.column(sources[0].file, sources[0].column)
-                    check = field_check(d, col)[0] if col else Check(ok=False, text="not in the file")
+                    spec = files.entry(sources[0].file).load.get(key, [])
+                    if col and d.type == "date" and len(spec) == 3:
+                        date_format = spec[2]
+                        check = _date_check(files, sources[0].file, col.name, spec[2])
+                    else:
+                        check = field_check(d, col)[0] if col else Check(ok=False, text="not in the file")
                 elif len(sources) > 1:
                     check = Check(ok=False, text="loaded from more than one file")
                 assumed = bool(sales and key in ASSUMABLE and key in sales.calc)
@@ -740,6 +779,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         assumed=assumed,
                         check=check,
                         hidden=key in ONLY_WITHOUT and ONLY_WITHOUT[key] in loaded,
+                        rule=rule,
+                        date_format=date_format,
                     )
                 )
 
@@ -1150,8 +1191,18 @@ def set_sale_id(project: Project, column: str | None, make: bool) -> None:
         _put(sales, "key_sale", [column, "string"])
 
 
-def set_field(project: Project, in_dir: Path, key: str, file: str | None, column: str | None, assume: bool) -> None:
-    """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption."""
+def set_field(
+    project: Project,
+    in_dir: Path,
+    key: str,
+    file: str | None,
+    column: str | None,
+    assume: bool,
+    date_format: str | None = None,
+) -> None:
+    """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
+
+    A yes/no field from a column that isn't yes/no gets a rule to fill in: which values mean yes."""
     by_key = _by_key()
     step = next((s for s in STEPS if key in s.fields or key in s.more), None)
     if step is None or key not in by_key:
@@ -1167,8 +1218,13 @@ def set_field(project: Project, in_dir: Path, key: str, file: str | None, column
         col = _Files(project, in_dir).column(file, column)
         if col is None:
             raise ValueError(f"{file} has no column {column}.")
-        check, spec = field_check(by_key[key], col)
-        if spec is None:
+        d = by_key[key]
+        check, spec = field_check(d, col)
+        if d.type == "date" and date_format:
+            spec = [column, "datetime", date_format]
+        elif spec is None and d.type == "boolean" and step.sales:
+            spec = None  # becomes a rule, below
+        elif spec is None:
             raise ValueError(f"{column}: {check.text}.")
         for other, s in target.load.items():
             if s[0] == column and other != key:
@@ -1177,8 +1233,11 @@ def set_field(project: Project, in_dir: Path, key: str, file: str | None, column
         raise ValueError(f"{key} can't be assumed.")
     for f in allowed:
         f.load.pop(key, None)
+        f.rules.pop(key, None)
     if sales is not None and key in ASSUMABLE:
         sales.calc.pop(key, None)
+    if target is not None and spec is None:
+        target.rules[key] = Rule(conditions=[Condition(column=cast(str, column))])
     if target is not None and spec is not None:
         target.load[key] = spec
     elif assume and sales is not None:
@@ -1374,3 +1433,254 @@ def set_reconcile(
             f.clean[field] = steps
         else:
             f.clean.pop(field, None)
+
+
+# ---------- Yes/no rules (valid and vacant sale) and dates: previews (F3d) ----------
+
+
+class ValueCount(BaseModel):
+    value: str = Field(description='"" for blank.')
+    count: int
+
+
+class RuleRow(BaseModel):
+    cells: list[str]
+    yes: bool
+
+
+class RulePreview(BaseModel):
+    key: str
+    file: str
+    yes: int
+    total: int
+    columns: list[str] = Field(description="The columns the rule tests, for the rows.")
+    values: dict[str, list[ValueCount]] = Field(description="Per column tested, its values, most common first.")
+    more: dict[str, int] = Field(description="Per column, how many other values there are.")
+    rows: list[RuleRow] = Field(description="A few rows of each outcome.")
+    calc: list = Field(description="The OpenAVMKit calc it writes.")
+    load: dict[str, list[str]] = Field(description="Columns it loads so the calc can test them.")
+
+
+VALUES_SHOWN = 60
+
+
+@lru_cache(maxsize=64)
+def _counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
+    counts = Counter(_values(stamp, layer, column, raw=True))
+    return tuple(sorted(counts.items(), key=lambda vc: (-vc[1], vc[0])))
+
+
+def _rule_result(files: _Files, entry: DataFile, rule: Rule):
+    """The rule run by OpenAVMKit's own filter code on the file's rows, typed as OpenAVMKit loads them."""
+    import pandas as pd
+    from openavmkit.filters import resolve_filter
+
+    names = rule_fields(entry.load, rule)
+    stamp = _stamp(files.in_dir / entry.filename)
+    frame = {}
+    for column, (field, kind) in names.items():
+        values = pd.Series(_values(stamp, entry.layer, column, raw=True))
+        if kind == "float":
+            frame[field] = pd.to_numeric(values.str.strip(), errors="coerce")
+        else:
+            frame[field] = values.mask(values.str.strip() == "").astype("string")
+    df = pd.DataFrame(frame)
+    filt = rule_filter(rule, names)
+    if not filt or df.empty:
+        return names, filt, pd.Series(False, index=df.index)
+    # OpenAVMKit reads a missing result as no (na_false).
+    return names, filt, resolve_filter(df, filt).fillna(False).astype(bool)
+
+
+def _complete(rule: Rule) -> bool:
+    return bool(rule.conditions) and all(c.values or c.op in ("isempty", "notempty") for c in rule.conditions)
+
+
+def _rule_check(files: _Files, entry: DataFile, key: str, rule: Rule) -> Check:
+    if any(files.column(entry.name, c.column) is None for c in rule.conditions):
+        return Check(ok=False, text="a column it tests isn't in the file")
+    if not _complete(rule):
+        return Check(ok=False, text="choose which values mean yes")
+    try:
+        _, _, result = _rule_result(files, entry, rule)
+    except Exception as e:  # noqa: BLE001 - a rule OpenAVMKit can't run shows on its row
+        return Check(ok=False, text=f"OpenAVMKit can't run this: {e}")
+    yes, total = int(result.sum()), len(result)
+    word = {"valid_sale": "valid", "vacant_sale": "vacant"}.get(key, "yes")
+    text = f"{yes:,} of {total:,} {word} ({_pct(yes, total)})"
+    # All or nothing is legal, but usually means the wrong values were picked.
+    return Check(ok=True, text=("✓ " if 0 < yes < total else "") + text, warn=yes in (0, total))
+
+
+def _rule_entry(project: Project, key: str) -> DataFile:
+    sales = _sales_file(project)
+    d = _by_key().get(key)
+    if sales is None:
+        raise ValueError("Add the sales file first.")
+    if d is None or d.type != "boolean":
+        raise LookupError(key)
+    return sales
+
+
+def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePreview:
+    """What a rule makes of the sales file: how many yes, the values of the columns it tests, a few rows."""
+    entry = _rule_entry(project, key)
+    files = _Files(project, in_dir)
+    for c in rule.conditions:
+        if files.column(entry.name, c.column) is None:
+            raise ValueError(f"{entry.name} has no column {c.column}.")
+    stamp = _stamp(in_dir / entry.filename)
+    columns = list(dict.fromkeys(c.column for c in rule.conditions))
+    values, more = {}, {}
+    for column in columns:
+        counts = _counts(stamp, entry.layer, column)
+        values[column] = [ValueCount(value="" if not v.strip() else v, count=n) for v, n in counts[:VALUES_SHOWN]]
+        more[column] = max(0, len(counts) - VALUES_SHOWN)
+    names, filt, result = _rule_result(files, entry, rule) if _complete(rule) else ({}, [], None)
+    rows: list[RuleRow] = []
+    if result is not None and columns:
+        cells = {c: _values(stamp, entry.layer, c, raw=True) for c in columns}
+        rng = random.Random(0)
+        for want in (True, False):
+            idx = [i for i, x in enumerate(result.tolist()) if x == want]
+            for i in sorted(rng.sample(idx, min(4, len(idx)))):
+                rows.append(RuleRow(cells=[cells[c][i] for c in columns], yes=want))
+    total = len(_values(stamp, entry.layer, columns[0], raw=True)) if columns else 0
+    load = {field: [column, kind] for column, (field, kind) in names.items() if field not in entry.load}
+    return RulePreview(
+        key=key,
+        file=entry.name,
+        yes=int(result.sum()) if result is not None else 0,
+        total=total,
+        columns=columns,
+        values=values,
+        more=more,
+        rows=rows,
+        calc=["?", filt] if filt else [],
+        load=load,
+    )
+
+
+def set_rule(project: Project, in_dir: Path, key: str, rule: Rule) -> None:
+    """Work a yes/no field out from the sales file's columns (OpenAVMKit's ["?", filter] calc)."""
+    entry = _rule_entry(project, key)
+    files = _Files(project, in_dir)
+    for c in rule.conditions:
+        if files.column(entry.name, c.column) is None:
+            raise ValueError(f"{entry.name} has no column {c.column}.")
+    if not rule.conditions:
+        raise ValueError("A rule needs at least one test.")
+    entry.load.pop(key, None)
+    entry.calc.pop(key, None)
+    entry.rules[key] = rule
+    if key not in project.wizard.decided:
+        project.wizard.decided.append(key)
+
+
+class DateSample(BaseModel):
+    raw: str
+    read: str | None = Field(description="As OpenAVMKit reads it (year-month-day), or None if it doesn't.")
+
+
+class DateFormat(BaseModel):
+    format: str
+    words: str
+
+
+class DatePreview(BaseModel):
+    format: str
+    words: str
+    total: int
+    blank: int
+    read: int
+    failed: int
+    first: str | None
+    last: str | None
+    samples: list[DateSample] = Field(description="Ones that don't read first, then a spread of ones that do.")
+    also: list[DateFormat] = Field(description="Other formats that read every date too, but differently.")
+    formats: list[DateFormat]
+
+
+@lru_cache(maxsize=128)
+def _parse(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str):
+    """The column read with a date format the way OpenAVMKit does (pd.to_datetime with format=)."""
+    import pandas as pd
+
+    values = pd.Series(_values(stamp, layer, column, raw=True))
+    try:
+        return pd.to_datetime(values.mask(values.str.strip() == ""), format=fmt)
+    except (ValueError, TypeError):
+        return pd.to_datetime(values.mask(values.str.strip() == ""), format=fmt, errors="coerce", exact=True)
+
+
+def _date_stats(files: _Files, name: str, column: str, fmt: str) -> tuple[int, int, int]:
+    """(rows, blank, read)."""
+    entry = files.entry(name)
+    stamp = _stamp(files.in_dir / entry.filename)
+    values = _values(stamp, entry.layer, column, raw=True)
+    blank = sum(1 for v in values if not v.strip())
+    read = int(_parse(stamp, entry.layer, column, fmt).notna().sum())
+    return len(values), blank, read
+
+
+def _also(files: _Files, name: str, column: str, fmt: str) -> list[str]:
+    """Formats that also read every date but give different dates (day/month or month/day): worth a look."""
+    entry = files.entry(name)
+    stamp = _stamp(files.in_dir / entry.filename)
+    col = files.column(name, column)
+    samples = col.samples if col else []
+    mine = _parse(stamp, entry.layer, column, fmt)
+    out = []
+    for other in fields.DATE_FORMATS:
+        if other == fmt or not samples or not all(p for p in fields.check_dates(samples, other).parsed):
+            continue
+        theirs = _parse(stamp, entry.layer, column, other)
+        if theirs.notna().sum() == mine.notna().sum() and not theirs.equals(mine):
+            out.append(other)
+    return out
+
+
+def _date_check(files: _Files, name: str, column: str, fmt: str) -> Check:
+    total, blank, read = _date_stats(files, name, column, fmt)
+    words = DATE_WORDS.get(fmt, fmt)
+    failed = total - blank - read
+    if read == 0:
+        return Check(ok=False, text=f"doesn't read as {words}")
+    if failed:
+        return Check(ok=True, warn=True, text=f"reads as {words} · {failed:,} don't read")
+    also = _also(files, name, column, fmt)
+    if also:
+        return Check(ok=True, warn=True, text=f"reads as {words}, or as {DATE_WORDS.get(also[0], also[0])}?")
+    return Check(ok=True, text=f"✓ reads as {words}")
+
+
+def date_preview(project: Project, in_dir: Path, name: str, column: str, fmt: str) -> DatePreview:
+    """A column read with a date format: how many read, the range, samples, and look-alike formats."""
+    files = _Files(project, in_dir)
+    if files.column(name, column) is None:
+        raise ValueError(f"{name} has no column {column}.")
+    entry = files.entry(name)
+    stamp = _stamp(in_dir / entry.filename)
+    total, blank, read = _date_stats(files, name, column, fmt)
+    parsed = _parse(stamp, entry.layer, column, fmt)
+    values = _values(stamp, entry.layer, column, raw=True)
+    as_text = [None if p is None or p != p else p.strftime("%Y-%m-%d") for p in parsed.tolist()]
+    bad = list(dict.fromkeys(v for v, p in zip(values, as_text, strict=True) if v.strip() and p is None))[:4]
+    good_idx = [i for i, p in enumerate(as_text) if p is not None]
+    step = max(1, len(good_idx) // 6)
+    good = [good_idx[i] for i in range(0, len(good_idx), step)][: 8 - len(bad)]
+    samples = [DateSample(raw=v, read=None) for v in bad] + [DateSample(raw=values[i], read=as_text[i]) for i in good]
+    ok = parsed.dropna()
+    return DatePreview(
+        format=fmt,
+        words=DATE_WORDS.get(fmt, fmt),
+        total=total,
+        blank=blank,
+        read=read,
+        failed=total - blank - read,
+        first=ok.min().strftime("%Y-%m-%d") if len(ok) else None,
+        last=ok.max().strftime("%Y-%m-%d") if len(ok) else None,
+        samples=samples,
+        also=[DateFormat(format=f, words=DATE_WORDS.get(f, f)) for f in _also(files, name, column, fmt)],
+        formats=[DateFormat(format=f, words=DATE_WORDS.get(f, f)) for f in fields.DATE_FORMATS],
+    )

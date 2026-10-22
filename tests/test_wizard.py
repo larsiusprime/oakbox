@@ -466,3 +466,89 @@ def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monk
     assert len(univ) == 20 and univ["key"].iloc[0] == "118000"  # the blank one dropped, not kept as "<NA>"
     assert set(sales["key"]) >= {"118001", "118002", "118005", "118007", "118009"}
     assert "118002-2024-01-02" in set(sales["key_sale"])
+
+
+def test_valid_and_vacant_sale_rules_and_date_formats(client, tmp_path, monkeypatch):
+    """Codes, not yes/no (Q/U, Y/blank): a rule picks which values mean yes; OpenAVMKit works it out the same."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": [str(n) for n in range(6)]}, geometry=[box(n, 0, n + 1, 1) for n in range(6)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {
+            "PID": ["0", "1", "2", "3", "4", "5"],
+            "PRICE": [250_000, 10, 180_000, 90_000, 300_000, 120_000],
+            "DATE": ["03/04/2024", "05/06/2024", "07/08/2024", "09/10/2024", "11/12/2024", "01/02/2025"],
+            "QUALIFIED": ["Q", "Q", "U", "Q", "Q", "U"],
+            "VACANT_LOT": ["", "Y", "", "", "Y", ""],
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
+
+    # A date that reads both ways: flagged, and another format can be previewed and chosen.
+    w = client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"}).json()
+    assert _field(w, "sale_date")["check"]["warn"]
+    assert _field(w, "sale_date")["check"]["text"] == "reads as month/day/year, or as day/month/year?"
+    dates = f"/api/projects/{pid}/wizard/files/sale/dates"
+    view = client.post(dates, json={"column": "DATE", "format": "%d/%m/%Y"}).json()
+    assert (view["read"], view["failed"], view["first"], view["last"]) == (6, 0, "2024-04-03", "2025-02-01")
+    assert view["also"] == [{"format": "%m/%d/%Y", "words": "month/day/year"}]
+    assert client.post(dates, json={"column": "DATE", "format": "%Y-%m-%d"}).json()["failed"] == 6
+    w = client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE", "date_format": "%d/%m/%Y"}).json()
+    assert _field(w, "sale_date")["date_format"] == "%d/%m/%Y"
+    assert _settings(pid)["data"]["load"]["sale"]["load"]["sale_date"] == ["DATE", "datetime", "%d/%m/%Y"]
+
+    # Q/U isn't yes/no: picking it starts a rule with nothing chosen yet.
+    w = client.put(f"{field}/valid_sale", json={"file": "sale", "column": "QUALIFIED"}).json()
+    valid = _field(w, "valid_sale")
+    assert valid["rule"] == {"join": "all", "conditions": [{"column": "QUALIFIED", "op": "isin", "values": []}]}
+    assert (valid["check"]["ok"], valid["check"]["text"]) == (False, "choose which values mean yes")
+    assert valid["sources"] == [{"file": "sale", "column": "QUALIFIED"}]
+
+    rule = {"join": "all", "conditions": [{"column": "QUALIFIED", "op": "isin", "values": ["Q"]}]}
+    view = client.post(f"{field}/valid_sale/rule", json=rule).json()
+    assert (view["yes"], view["total"]) == (4, 6)
+    assert view["values"]["QUALIFIED"] == [{"value": "Q", "count": 4}, {"value": "U", "count": 2}]
+    assert view["calc"] == ["?", ["isin", "qualified", ["str:Q"]]]
+    assert view["load"] == {"qualified": ["QUALIFIED", "string"]}
+    # ...and not the $10 deed: a second test on a column already loaded (as sale_price) reuses it.
+    rule["conditions"].append({"column": "PRICE", "op": ">", "values": ["1000"]})
+    view = client.post(f"{field}/valid_sale/rule", json=rule).json()
+    assert view["yes"] == 3 and view["calc"] == [
+        "?",
+        ["and", ["isin", "qualified", ["str:Q"]], [">", "sale_price", 1000.0]],
+    ]
+    w = client.put(f"{field}/valid_sale/rule", json=rule).json()
+    assert _field(w, "valid_sale")["check"] == {
+        "ok": True,
+        "text": "✓ 3 of 6 valid (50%)",
+        "warn": False,
+        "issues": [],
+        "share": None,
+    }
+    vacant = {"join": "all", "conditions": [{"column": "VACANT_LOT", "op": "isin", "values": ["Y"]}]}
+    w = client.put(f"{field}/vacant_sale/rule", json=vacant).json()
+    assert _field(w, "vacant_sale")["check"]["text"] == "✓ 2 of 6 vacant (33%)"
+    entry = _settings(pid)["data"]["load"]["sale"]
+    assert entry["load"]["qualified"] == ["QUALIFIED", "string"]
+    assert entry["load"]["sale_price"] == ["PRICE", "float"]
+    assert entry["calc"]["vacant_sale"] == ["?", ["isin", "vacant_lot", ["str:Y"]]]
+    assert "valid_sale" not in entry["load"] and "vacant_sale" not in entry["load"]
+
+    _, sales = _engine(pid, monkeypatch)
+    sales = sales.sort_values("key")
+    assert sales["valid_sale"].tolist() == [True, False, False, True, True, False]
+    assert sales["vacant_sale"].tolist() == [False, True, False, False, True, False]
+    assert str(sales["sale_date"].iloc[0].date()) == "2024-04-03"
+
+    # Back to a plain column (or an assumption): the rule goes.
+    w = client.put(f"{field}/valid_sale", json={"assume": True}).json()
+    assert _field(w, "valid_sale")["rule"] is None and _field(w, "valid_sale")["assumed"]

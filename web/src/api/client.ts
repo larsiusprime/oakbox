@@ -31,3 +31,7 @@ export type WizardIssue = components["schemas"]["Issue"];
 export type Reconcile = components["schemas"]["Reconcile"];
 export type CleanStep = components["schemas"]["CleanStep-Output"];
 export type ReconcileSample = components["schemas"]["Sample"];
+export type RulePreview = components["schemas"]["RulePreview"];
+export type DatePreview = components["schemas"]["DatePreview"];
+export type Rule = components["schemas"]["Rule-Output"];
+export type Condition = components["schemas"]["Condition-Output"];

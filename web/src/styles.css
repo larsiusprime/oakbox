@@ -2432,3 +2432,65 @@ a.row-title:hover {
 .rc-actions {
   justify-content: flex-end;
 }
+
+/* ---------- Yes/no rules and date formats (F3d) ---------- */
+
+.rl {
+  width: min(100%, 46rem);
+}
+
+.rl-join {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rl-tests {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rl-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rl-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  max-height: 11rem;
+  overflow: auto;
+}
+
+.rl-value {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.rl-count {
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.rl-other {
+  display: flex;
+  flex-basis: 100%;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rl-other small {
+  color: var(--muted);
+}
+
+.rl-input {
+  width: 12rem;
+  font-family: var(--mono);
+}
