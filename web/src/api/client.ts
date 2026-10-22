@@ -28,3 +28,6 @@ export type WizardFile = components["schemas"]["WizardFile"];
 export type WizardStep = components["schemas"]["StepView"];
 export type WizardCheck = components["schemas"]["Check"];
 export type WizardIssue = components["schemas"]["Issue"];
+export type Reconcile = components["schemas"]["Reconcile"];
+export type CleanStep = components["schemas"]["CleanStep-Output"];
+export type ReconcileSample = components["schemas"]["Sample"];

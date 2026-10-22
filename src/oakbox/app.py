@@ -21,6 +21,7 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
 from oakbox import __version__, appsettings, datafiles, fields, projects, wizard
+from oakbox.datafiles import CleanStep
 
 WEB_DIST = Path(__file__).parent / "web"
 
@@ -93,6 +94,17 @@ class WizardFileChoice(BaseModel):
     dupes_sort: str | None = Field(default=None, description="With first: the field to sort by before keeping.")
     dupes_desc: bool = False
     blank_ok: bool | None = Field(default=None, description="Acknowledge the rows with no ID (they're dropped).")
+
+
+class WizardReconcile(BaseModel):
+    file_steps: list[CleanStep] = Field(default_factory=list, description="Clean-up steps for the sales file's ID.")
+    base_steps: list[CleanStep] = Field(default_factory=list, description="And for the parcel universe's.")
+
+
+class WizardReconcilePreview(WizardReconcile):
+    view: wizard.SampleView = "unmatched"
+    seed: int = Field(default=0, description="Change it for new samples.")
+    suggest: bool = Field(default=False, description="Also try a few common clean-ups (slower).")
 
 
 class WizardSaleId(BaseModel):
@@ -481,6 +493,30 @@ def create_app() -> FastAPI:
             return wizard.repeat_rows(project, projects.project_dir(project_id) / "in", name)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
+
+    @app.post("/api/projects/{project_id}/wizard/files/{name}/reconcile")
+    def wizard_reconcile_preview(project_id: str, name: str, body: WizardReconcilePreview) -> wizard.Reconcile:
+        """How the sales would match the parcels with these clean-up steps, with samples; nothing is saved (F3d)."""
+        project = _load(project_id)
+        _entry(project, name)
+        try:
+            return wizard.reconcile(
+                project,
+                projects.project_dir(project_id) / "in",
+                name,
+                body.file_steps,
+                body.base_steps,
+                body.view,
+                body.seed,
+                body.suggest,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+
+    @app.put("/api/projects/{project_id}/wizard/files/{name}/reconcile")
+    def wizard_reconcile(project_id: str, name: str, body: WizardReconcile) -> wizard.Wizard:
+        """Save the clean-up steps for the sales file's ID and the parcel universe's (F3d)."""
+        return _change(project_id, lambda p, d: wizard.set_reconcile(p, d, name, body.file_steps, body.base_steps))
 
     @app.put("/api/projects/{project_id}/wizard/sale-id")
     def wizard_sale_id(project_id: str, body: WizardSaleId) -> wizard.Wizard:

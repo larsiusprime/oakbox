@@ -21,6 +21,7 @@ import {
 import { navigate } from "../App";
 import {
   api,
+  type CleanStep,
   type Project,
   type ProjectDetail,
   unwrap,
@@ -39,6 +40,7 @@ import { Tip, TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { AddFile } from "./InputFiles";
+import { describeSteps, ReconcileDialog } from "./Reconcile";
 
 const w = t.wizard;
 type Holds = "parcels" | "sales" | "unused";
@@ -280,6 +282,7 @@ type Change =
       extra_column?: string | null;
     }
   | { kind: "saleId"; column: string | null; make: boolean }
+  | { kind: "reconcile"; name: string; file_steps: CleanStep[]; base_steps: CleanStep[] }
   | { kind: "field"; key: string; file?: string | null; column?: string | null; assume?: boolean };
 
 function useChange(projectId: string) {
@@ -309,6 +312,14 @@ function useChange(projectId: string) {
               blank_ok: null,
               ...body,
             },
+          }),
+        );
+      }
+      if (c.kind === "reconcile") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/reconcile", {
+            params: { path: { project_id, name: c.name } },
+            body: { file_steps: c.file_steps, base_steps: c.base_steps },
           }),
         );
       }
@@ -385,23 +396,62 @@ function IdCheck({
   change: Mutate;
 }) {
   const [open, setOpen] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const r = file.repeats;
   const resolvable =
     ((file.holds === "parcels" && (r?.extra ?? 0) > 0) || (r?.blank ?? 0) > 0) &&
     (file.holds === "parcels" || file.holds === "sales");
+  // The ID it joins on: the universe's own is its parcel ID.
+  const field = file.base ? "key" : file.match;
+  const steps = file.clean[field] ?? [];
+  const base = data.files.find((f) => f.base);
+  const share = file.id_check?.share;
+  // Reconcile: whenever some sales don't find a parcel, or to change the clean-up already set (SPEC F3d).
+  const reconcilable =
+    file.holds === "sales" &&
+    base !== undefined &&
+    share !== null &&
+    share !== undefined &&
+    (share < 1 || steps.length > 0 || (base.clean[field] ?? []).length > 0);
+  const reconcile = reconcilable && (
+    <Button className="wiz-link wiz-resolve" onPress={() => setReconciling(true)}>
+      {w.reconcile.open}
+    </Button>
+  );
   return (
     <div className="wiz-samples wiz-check-lines">
-      <CheckText check={file.id_check} />
+      <span>
+        <CheckText check={file.id_check} />
+        {(file.id_check?.issues ?? []).length === 0 && reconcile}
+      </span>
       <Issues
         issues={file.id_check?.issues ?? []}
         action={
-          resolvable && (
-            <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
-              {w.dupes.resolve}
-            </Button>
-          )
+          <>
+            {resolvable && (
+              <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
+                {w.dupes.resolve}
+              </Button>
+            )}
+            {(file.id_check?.issues ?? []).length > 0 && reconcile}
+          </>
         }
       />
+      {steps.length > 0 && <span className="wiz-cleaned">{w.reconcile.cleaned(describeSteps(steps))}</span>}
+      {reconciling && base && (
+        <ReconcileDialog
+          projectId={projectId}
+          file={file}
+          base={base}
+          close={() => setReconciling(false)}
+          save={(file_steps, base_steps) =>
+            change(
+              { kind: "reconcile", name: file.name, file_steps, base_steps },
+              { onSuccess: () => setReconciling(false) },
+            )
+          }
+        />
+      )}
       {open && (
         <DupesDialog
           projectId={projectId}

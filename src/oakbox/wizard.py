@@ -11,7 +11,10 @@ once per field, when its step is first shown, and never replaces a choice.
 
 from __future__ import annotations
 
+import json
+import random
 import re
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, cast
@@ -19,7 +22,7 @@ from typing import Literal, cast
 from pydantic import Field
 
 from oakbox import fields
-from oakbox.datafiles import EXTRA_IDS, BaseModel, DataFile, Dupes, Holds, Match
+from oakbox.datafiles import EXTRA_IDS, BaseModel, CleanStep, DataFile, Dupes, Holds, Match, clean_calc, clean_value
 from oakbox.fields import Column, DictionaryField
 from oakbox.projects import Project
 
@@ -196,6 +199,7 @@ class Check(BaseModel):
     text: str = Field(description="Short: '✓ years 1890–2025', 'several rows per parcel'.")
     warn: bool = Field(default=False, description="Usable, but worth a look (repeats handled, blank IDs dropped).")
     issues: list[Issue] = Field(default_factory=list, description="What's worth a look, each short.")
+    share: float | None = Field(default=None, description="Sales: the share that find a parcel (0-1), for Reconcile.")
 
 
 class Repeats(BaseModel):
@@ -236,6 +240,7 @@ class WizardFile(BaseModel):
     extra_ids: list[ExtraId] = Field(description="The universe's extra IDs (key2, key3).")
     columns: list[Column]
     base: bool
+    clean: dict[str, list[CleanStep]] = Field(description="ID field -> its clean-up steps (Reconcile).")
 
 
 class ExtraId(BaseModel):
@@ -327,8 +332,8 @@ def _preview(stamp: tuple[str, float, int], layer: str | None) -> fields.FileCol
 
 
 @lru_cache(maxsize=128)
-def _values(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[str, ...]:
-    """Every value of one column, as text, blanks as ''."""
+def _values(stamp: tuple[str, float, int], layer: str | None, column: str, raw: bool = False) -> tuple[str, ...]:
+    """Every value of one column, as text, blanks as ''. Trimmed, unless raw (IDs: OpenAVMKit doesn't trim them)."""
     import pandas as pd
 
     path = Path(stamp[0])
@@ -341,7 +346,20 @@ def _values(stamp: tuple[str, float, int], layer: str | None, column: str) -> tu
         import pyogrio
 
         s = pyogrio.read_dataframe(path, layer=layer, columns=[column], read_geometry=False)[column]
-    return tuple("" if v is None or (isinstance(v, float) and v != v) else str(v).strip() for v in s.tolist())
+    text = ("" if v is None or (isinstance(v, float) and v != v) else str(v) for v in s.tolist())
+    return tuple(v if raw and v.strip() else v.strip() for v in text)
+
+
+@lru_cache(maxsize=64)
+def _cleaned(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> tuple[str, ...]:
+    """An ID column as OpenAVMKit will join on it: as written, after its clean-up steps (JSON)."""
+    values = _values(stamp, layer, column, raw=True)
+    parsed = [CleanStep.model_validate(x) for x in json.loads(steps)]
+    return tuple(clean_value(v, parsed) for v in values) if parsed else values
+
+
+def _steps_key(steps: list[CleanStep]) -> str:
+    return json.dumps([x.model_dump() for x in steps])
 
 
 class _Files:
@@ -375,6 +393,15 @@ class _Files:
     def values(self, name: str, column: str) -> tuple[str, ...]:
         f = self.entry(name)
         return _values(_stamp(self.in_dir / f.filename), f.layer, column)
+
+    def ids(self, name: str, field: str, steps: list[CleanStep] | None = None) -> tuple[str, ...]:
+        """A file's ID field as it joins: cleaned by its steps (or the given ones, for a preview)."""
+        f = self.entry(name)
+        spec = f.load.get(field)
+        if spec is None or name not in self.preview:
+            return ()
+        use = f.clean.get(field, []) if steps is None else steps
+        return _cleaned(_stamp(self.in_dir / f.filename), f.layer, spec[0], _steps_key(use))
 
     def geometry(self, name: str) -> bool:
         p = self.preview.get(name)
@@ -428,11 +455,13 @@ def field_check(d: DictionaryField, col: Column) -> tuple[Check, list[str] | Non
 
 # Stray repeats: fewer than both of these. More means several rows per parcel (SPEC F3d).
 FEW_SHARE, FEW_ROWS = 0.01, 10
+# Sales finding a parcel: below MATCH_MIN blocks a run, below MATCH_OK is worth reconciling (F3d).
+MATCH_MIN, MATCH_OK = 0.5, 0.95
 
 
-def _repeats_of(files: _Files, name: str, column: str) -> Repeats:
+def _repeats_of(files: _Files, name: str, field: str) -> Repeats:
     entry = files.entry(name)
-    values = files.values(name, column)
+    values = files.ids(name, field)
     present = [v for v in values if v]
     counts: dict[str, int] = {}
     for v in present:
@@ -460,8 +489,8 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     spec = f.load.get(match)
     if not spec or name not in files.preview:
         return None, None
-    r = _repeats_of(files, name, spec[0])
-    present = [v for v in files.values(name, spec[0]) if v]
+    r = _repeats_of(files, name, match)
+    present = [v for v in files.ids(name, match) if v]
     flagged = r if (r.extra or r.blank) else None
     issues: list[Issue] = []
     if r.extra and holds == "parcels" and (r.few or r.policy):
@@ -486,8 +515,11 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
             return Check(ok=True, text=f"{r.rows:,} sales", warn=open_issues, issues=issues), flagged
         base_ids = _base_ids(files, base, match)
         found = sum(1 for v in present if v in base_ids)
+        share = found / r.rows if r.rows else 0.0
         text = f"{_pct(found, r.rows)} of sales match a parcel"
-        return Check(ok=found > 0, text=text, warn=open_issues, issues=issues), flagged
+        # Under half matching is a blocker; under 95% worth reconciling (SPEC F3d).
+        warn = open_issues or share < MATCH_OK
+        return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds != "parcels":
         text = "several rows per parcel" if r.extra and not r.few else "one row per parcel"
         return Check(ok=True, text=text, warn=open_issues, issues=issues), flagged
@@ -508,8 +540,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
     if base is None or base not in files.preview:
         return set()
-    spec = files.entry(base).load.get(field)
-    return {v for v in files.values(base, spec[0]) if v} if spec else set()
+    return {v for v in files.ids(base, field) if v}
 
 
 def _n(n: int, word: str) -> str:
@@ -659,6 +690,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 extra_ids=extra_ids,
                 columns=files.columns(f.name),
                 base=f.name == base,
+                clean=f.clean,
             )
         )
 
@@ -782,7 +814,10 @@ def _status(
         else:
             todo = [i for i in f.id_check.issues if not i.resolved]
             left.extend(Left(text=i.todo or i.text, blocking=i.blocking) for i in todo)
-            if not f.id_check.ok and not any(i.blocking for i in todo):
+            share = f.id_check.share
+            if share is not None and share < MATCH_OK:
+                left.append(Left(text=f"Reconcile the IDs: {f.id_check.text}", blocking=not f.id_check.ok))
+            elif not f.id_check.ok and not any(i.blocking for i in todo):
                 left.append(Left(text=f"Parcel ID: {f.id_check.text}"))
 
     if step.key == "universe":
@@ -978,7 +1013,7 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     spec = entry.load.get(field)
     if spec is None or name not in files.preview:
         raise ValueError(f"{name} has no ID column yet.")
-    values = files.values(name, spec[0])
+    values = files.ids(name, field)
     counts: dict[str, int] = {}
     for v in values:
         if v:
@@ -990,7 +1025,7 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     shown = (shown + rest)[:8]
     picked = [i for i, v in enumerate(values) if v in set(ids)]
     columns = {c: files.values(name, c) for c in shown}
-    rows = sorted(([columns[c][i] for c in shown] for i in picked), key=lambda r: ids.index(r[0]))
+    rows = [[columns[c][i] for c in shown] for i in sorted(picked, key=lambda i: ids.index(values[i]))]
     return RepeatRows(columns=shown, rows=rows[:40])
 
 
@@ -1172,3 +1207,170 @@ def skip(project: Project, step: str) -> None:
         project.wizard.skipped.append(step)
     if step not in project.wizard.visited:
         project.wizard.visited.append(step)
+
+
+# ---------- Reconcile: clean up IDs so the sales find their parcels (F3d) ----------
+
+
+class Sample(BaseModel):
+    raw: str = Field(description="As written in the file.")
+    clean: str = Field(description="After the clean-up steps.")
+    hit: bool = Field(description="Sales: finds a parcel. Parcels: has a sale.")
+
+
+class Suggestion(BaseModel):
+    text: str = Field(description="'Remove leading zeros from the parcel IDs; trim spaces from the sales IDs'.")
+    base_steps: list[CleanStep]
+    file_steps: list[CleanStep]
+    share: float
+
+
+class Reconcile(BaseModel):
+    file: str = Field(description="The sales file.")
+    base: str
+    field: Match = Field(description="The ID they join on.")
+    file_column: str
+    base_column: str
+    matched: int
+    total: int
+    share: float
+    saved_share: float = Field(description="The share with the steps as saved, before these changes.")
+    file_samples: list[Sample]
+    base_samples: list[Sample]
+    suggestion: Suggestion | None
+    writes: dict[str, list] = Field(description="entry -> the calc it writes for the ID (only files with steps).")
+
+
+SampleView = Literal["unmatched", "random"]
+SAMPLES = 6
+
+
+def _sides(project: Project, in_dir: Path, name: str) -> tuple[_Files, DataFile, DataFile, Match]:
+    files = _Files(project, in_dir)
+    entry = files.entry(name)
+    base = project.wizard.base
+    if base is None or base == name or base not in files.preview:
+        raise ValueError("Add the parcel universe first.")
+    if entry.match not in entry.load or entry.match not in files.entry(base).load:
+        raise ValueError(f"Pick the ID column of {name} first.")
+    return files, entry, files.entry(base), entry.match
+
+
+def _matched(file_ids: tuple[str, ...], base_set: set[str]) -> int:
+    return sum(1 for v in file_ids if v and v in base_set)
+
+
+# What the suggestion tries on each side, simplest first.
+_TRIES: list[list[CleanStep]] = [
+    [],
+    [CleanStep(kind="trim")],
+    [CleanStep(kind="zeros")],
+    [CleanStep(kind="trim"), CleanStep(kind="zeros")],
+    [CleanStep(kind="remove", text="-")],
+    [CleanStep(kind="remove", text="- ")],
+    [CleanStep(kind="remove", text="- "), CleanStep(kind="zeros")],
+    [CleanStep(kind="remove", text="-. /"), CleanStep(kind="zeros")],
+]
+
+
+def _describe(steps: list[CleanStep]) -> str:
+    names = {"zeros": "remove leading zeros", "trim": "trim spaces"}
+    out = []
+    for st in steps:
+        if st.kind == "remove":
+            out.append("remove hyphens" if st.text == "-" else f"remove {' '.join(repr(c) for c in st.text)}")
+        else:
+            out.append(names.get(st.kind, st.kind))
+    return " and ".join(out)
+
+
+def _suggest(files: _Files, entry: DataFile, base: DataFile, field: Match, now: float) -> Suggestion | None:
+    """The simplest clean-up pair from a few common ones that matches clearly more sales. Only a suggestion."""
+    total = len(files.ids(entry.name, field))
+    if not total:
+        return None
+    base_sets = [{v for v in files.ids(base.name, field, t) if v} for t in _TRIES]
+    file_counts = [Counter(v for v in files.ids(entry.name, field, t) if v) for t in _TRIES]
+    best: tuple[float, int, int, int] | None = None
+    for b, bset in enumerate(base_sets):
+        for f, counts in enumerate(file_counts):
+            share = sum(n for v, n in counts.items() if v in bset) / total
+            score = (share, -(len(_TRIES[b]) + len(_TRIES[f])), b, f)
+            if best is None or score[:2] > best[:2]:
+                best = score
+    if best is None or best[0] < now + 0.01:
+        return None
+    share, _, b, f = best
+    parts = []
+    if _TRIES[b]:
+        parts.append(f"{_describe(_TRIES[b])} from the parcel IDs")
+    if _TRIES[f]:
+        parts.append(f"{_describe(_TRIES[f])} from the sales IDs")
+    text = "; ".join(parts)
+    return Suggestion(text=text[:1].upper() + text[1:], base_steps=_TRIES[b], file_steps=_TRIES[f], share=share)
+
+
+def reconcile(
+    project: Project,
+    in_dir: Path,
+    name: str,
+    file_steps: list[CleanStep],
+    base_steps: list[CleanStep],
+    view: SampleView = "unmatched",
+    seed: int = 0,
+    suggest: bool = False,
+) -> Reconcile:
+    """How the sales match with these steps, and samples of each side: the live view of the dialog."""
+    files, entry, base, field = _sides(project, in_dir, name)
+    file_ids = files.ids(name, field, file_steps)
+    base_ids = files.ids(base.name, field, base_steps)
+    base_set = {v for v in base_ids if v}
+    file_set = {v for v in file_ids if v}
+    saved = _matched(files.ids(name, field), _base_ids(files, base.name, field))
+    matched = _matched(file_ids, base_set)
+    total = len(file_ids)
+    rng = random.Random(seed)
+    file_raw = _values(_stamp(in_dir / entry.filename), entry.layer, entry.load[field][0], raw=True)
+    base_raw = _values(_stamp(in_dir / base.filename), base.layer, base.load[field][0], raw=True)
+
+    def pick(raw: tuple[str, ...], ids: tuple[str, ...], keep) -> list[tuple[str, str]]:
+        seen: dict[str, str] = {}
+        for r, c in zip(raw, ids, strict=True):
+            if r not in seen and keep(c):
+                seen[r] = c
+        chosen = rng.sample(list(seen.items()), min(SAMPLES, len(seen)))
+        return sorted(chosen, key=lambda rc: rc[0])
+
+    hit_file = (lambda c: not (c and c in base_set)) if view == "unmatched" else (lambda c: True)
+    file_samples = [
+        Sample(raw=r, clean=c, hit=bool(c) and c in base_set) for r, c in pick(file_raw, file_ids, hit_file)
+    ]
+    base_samples = [Sample(raw=r, clean=c, hit=c in file_set) for r, c in pick(base_raw, base_ids, bool)]
+    writes = {n: clean_calc(field, st) for n, st in ((base.name, base_steps), (name, file_steps)) if st}
+    return Reconcile(
+        file=name,
+        base=base.name,
+        field=field,
+        file_column=entry.load[field][0],
+        base_column=base.load[field][0],
+        matched=matched,
+        total=total,
+        share=matched / total if total else 0.0,
+        saved_share=saved / total if total else 0.0,
+        file_samples=file_samples,
+        base_samples=base_samples,
+        suggestion=_suggest(files, entry, base, field, matched / total if total else 0.0) if suggest else None,
+        writes=writes,
+    )
+
+
+def set_reconcile(
+    project: Project, in_dir: Path, name: str, file_steps: list[CleanStep], base_steps: list[CleanStep]
+) -> None:
+    """Save the clean-up steps on both sides of the join; OpenAVMKit runs them as calcs when it loads."""
+    files, entry, base, field = _sides(project, in_dir, name)
+    for f, steps in ((entry, file_steps), (base, base_steps)):
+        if steps:
+            f.clean[field] = steps
+        else:
+            f.clean.pop(field, None)

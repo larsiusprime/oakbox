@@ -2193,3 +2193,242 @@ a.row-title:hover {
   justify-self: stretch;
   justify-content: flex-end;
 }
+
+/* ---------- Reconcile (F3d): clean up IDs so the sales find their parcels ---------- */
+
+.wiz-cleaned {
+  color: var(--muted);
+}
+
+.rc {
+  width: min(100%, 62rem);
+}
+
+.rc-body {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.rc-sub,
+.rc-suggest,
+.rc-same {
+  margin: 0;
+}
+
+.rc-sub,
+.rc-same {
+  color: var(--muted);
+}
+
+.rc-meter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-meter b {
+  font-size: 1.15rem;
+}
+
+.rc-meter.bad b {
+  color: var(--bad);
+}
+
+.rc-meter.ok b {
+  color: var(--ok);
+}
+
+.rc-was {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.rc-samplebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.rc-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-seg-btn {
+  padding: 0.1rem 0.55rem;
+  font: inherit;
+  font-size: 0.82rem;
+  background: var(--panel);
+  border: 0;
+  cursor: pointer;
+}
+
+.rc-seg-btn[aria-pressed="true"] {
+  color: #ffffff;
+  background: var(--active);
+}
+
+.rc-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 0.8rem;
+}
+
+.rc-card {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.rc-card h3 code {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.rc-steps {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-steps li {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.9rem;
+  background: #eef3fb;
+  border: 1px solid #c9d8ee;
+  border-radius: var(--radius);
+}
+
+.rc-steps li.rc-none {
+  color: var(--muted);
+  background: none;
+  border-style: dashed;
+  border-color: var(--rule);
+}
+
+.rc-n {
+  width: 1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.rc-grow {
+  flex: 1;
+}
+
+.rc-mini {
+  display: inline-block;
+}
+
+.rc-input {
+  padding: 0 0.25rem;
+  font-family: var(--mono);
+}
+
+.rc-x {
+  display: inline-flex;
+  padding: 0.1rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.rc-add {
+  justify-self: start;
+}
+
+.rc-menu {
+  min-width: 17rem;
+}
+
+.rc-menu-item small {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.rc-tbl {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  border-collapse: collapse;
+}
+
+.rc-th {
+  padding: 0.15rem 0.3rem;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+}
+
+.rc-td {
+  padding: 0.12rem 0.3rem;
+  white-space: nowrap;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.rc-arrow,
+.rc-m {
+  font-family: var(--font);
+}
+
+.rc-arrow,
+.rc-dim {
+  color: var(--muted);
+}
+
+.rc-hit {
+  color: var(--ok);
+}
+
+.rc-miss {
+  color: var(--bad);
+}
+
+.rc-writes {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.rc-writes pre {
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  color: var(--text);
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-actions {
+  justify-content: flex-end;
+}

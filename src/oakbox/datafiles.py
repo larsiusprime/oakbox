@@ -30,6 +30,70 @@ Holds = Literal["parcels", "sales", "unused"]
 Match = Literal["key", "key2", "key3"]
 # The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.
 EXTRA_IDS = ("key2", "key3")
+CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
+
+
+class CleanStep(BaseModel):
+    """One clean-up step on an ID, so IDs written differently in two files match (F3d reconcile)."""
+
+    kind: CleanKind = Field(
+        description="zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; "
+        "replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after "
+        "the first text."
+    )
+    text: str = ""
+    to: str = ""
+    n: int = Field(default=0, ge=0)
+
+
+def clean_value(v: str, steps: list[CleanStep]) -> str:
+    """What OpenAVMKit's calc makes of one ID (as clean_calc writes it); blanks stay blank."""
+    if not v.strip():
+        return ""
+    for st in steps:
+        if st.kind == "zeros":
+            v = v.lstrip("0")
+        elif st.kind == "remove":
+            for c in st.text:
+                v = v.replace(c, "")
+        elif st.kind == "trim":
+            v = v.strip()
+        elif st.kind == "replace" and st.text:
+            v = v.replace(st.text, st.to)
+        elif st.kind == "first":
+            v = v[: st.n]
+        elif st.kind == "last":
+            v = v[-st.n :] if st.n else ""
+        elif st.kind == "before" and st.text:
+            v = v.split(st.text)[0]
+        elif st.kind == "after" and st.text:
+            head, sep, tail = v.partition(st.text)
+            v = tail if sep else head
+    return v
+
+
+def clean_calc(field: str, steps: list[CleanStep]) -> list:
+    """The steps as an OpenAVMKit calc on the field, innermost first. Blank IDs are kept blank (the string
+    operations would turn them into the text '<NA>'), so they're still dropped."""
+    e: Any = field
+    for st in steps:
+        if st.kind == "zeros":
+            e = ["striplzero", e]
+        elif st.kind == "remove" and st.text:
+            e = ["replace", e, {c: "" for c in dict.fromkeys(st.text)}]
+        elif st.kind == "trim":
+            e = ["strip", e]
+        elif st.kind == "replace" and st.text:
+            e = ["replace", e, {st.text: st.to}]
+        elif st.kind == "first":
+            e = ["substr", e, {"right": st.n}]
+        elif st.kind == "last":
+            e = ["substr", e, {"left": -st.n}]
+        elif st.kind in ("before", "after") and st.text:
+            e = [f"split_{st.kind}", e, f"str:{st.text}"]
+    return ["where", ["isempty", field], None, e]
+
+
 Dupes = Literal["first", "all"]
 
 
@@ -60,6 +124,9 @@ class DataFile(BaseModel):
     holds: Holds | None = Field(
         default=None,
         description="What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.",
+    )
+    clean: dict[str, list[CleanStep]] = Field(
+        default_factory=dict, description="ID field -> clean-up steps, so it matches the other files (F3d reconcile)."
     )
 
 
@@ -208,8 +275,10 @@ def data_load(files: list[DataFile]) -> dict:
             entry["layer"] = f.layer
         if f.load:
             entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in f.load.items()}
-        if f.calc:
-            entry["calc"] = dict(f.calc)
+        # Cleaned IDs first: the other calcs (a made sale ID) use them.
+        calc = {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps} | f.calc
+        if calc:
+            entry["calc"] = calc
         if f.holds == "parcels":
             # One row per parcel, as OpenAVMKit's own default for a keyed file, but written out (F3d).
             order = "desc" if f.dupes_desc else "asc"

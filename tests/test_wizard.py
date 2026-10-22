@@ -107,7 +107,13 @@ def test_universe_then_sales(client, pid):
     w = _start(client, pid)
     base = _file(w, "geo_parcels")  # the universe is named as OpenAVMKit requires
     assert base["filename"] == "shapes.parquet" and base["base"] and base["id_column"] == "PARCEL_ID"
-    assert base["id_check"] == {"ok": True, "text": "✓ 6 parcels, all different", "warn": False, "issues": []}
+    assert base["id_check"] == {
+        "ok": True,
+        "text": "✓ 6 parcels, all different",
+        "warn": False,
+        "issues": [],
+        "share": None,
+    }
     sales = _file(w, "sales")
     assert (sales["holds"], sales["match"], sales["id_column"]) == ("sales", "key", "PROP_ID")
     assert sales["id_check"]["text"] == "100% of sales match a parcel"
@@ -116,6 +122,7 @@ def test_universe_then_sales(client, pid):
         "text": "from parcel ID + sale date",
         "warn": False,
         "issues": [],
+        "share": None,
     }
     assert _field(w, "sale_price")["sources"] == [{"file": "sales", "column": "SALE_PRICE"}]
     assert _field(w, "sale_date")["check"] == {
@@ -123,6 +130,7 @@ def test_universe_then_sales(client, pid):
         "text": "✓ reads as month/day/year",
         "warn": False,
         "issues": [],
+        "share": None,
     }
     assert "No valid sale." in w["problems"] and "No vacant sale." in w["problems"]
     assert "No building area (finished) in square feet: a model needs it." in w["problems"]
@@ -169,6 +177,7 @@ def test_guesses_once_and_type_checks(client, pid):
         "text": "✓ years 1954–2011",
         "warn": False,
         "issues": [],
+        "share": None,
     }
     assert _field(w, "bldg_age_years")["hidden"]
     assert _field(w, "bldg_quality_txt")["sources"] == [{"file": "cama", "column": "QUALITY"}]
@@ -290,6 +299,7 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
             {"text": "1 repeated ID", "resolved": False, "blocking": False, "todo": "1 repeated ID to decide"},
             {"text": "3 blank IDs, dropped", "resolved": False, "blocking": True, "todo": "3 blank IDs to confirm"},
         ],
+        "share": None,
     }
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     universe = _step(client.get(f"/api/projects/{pid}/wizard").json(), "universe")
@@ -398,3 +408,61 @@ def test_step_marks_come_from_what_is_on_each_step(client, pid):
     client.post(f"/api/projects/{pid}/wizard/steps/land/skip")
     m = marks()
     assert (m["location"], m["land"], m["details"]) == ("done", "done", "attention")  # worst of its parts
+
+
+def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monkeypatch):
+    """Parcel IDs zero-padded, sales IDs not (one with a stray space): clean both sides, OpenAVMKit joins them."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    reids: list[str | None] = [f"{118000 + n:010d}" for n in range(20)] + [None]  # and one sliver with no ID
+    gpd.GeoDataFrame(
+        {"GDV_REID": reids}, geometry=[box(n, 0, n + 1, 1) for n in range(21)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "parcels.parquet")
+    sale_ids = [str(118000 + n) for n in (1, 2, 2, 5, 7)] + ["118009 ", "999999"]
+    pd.DataFrame(
+        {"REID": sale_ids, "PRICE": [100_000 + n for n in range(7)], "DATE": [f"2024-01-{n + 1:02d}" for n in range(7)]}
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="GDV_REID", blank_ok=True)
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    _put_file(client, pid, "sale", holds="sales", id_column="REID")
+    w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    check = _file(w, "sale")["id_check"]
+    assert (check["share"], check["ok"]) == (0, False)  # nothing matches as is: a blocker
+    assert _step(w, "sales")["left"][0] == {"text": "Reconcile the IDs: 0% of sales match a parcel", "blocking": True}
+
+    url = f"/api/projects/{pid}/wizard/files/sale/reconcile"
+    view = client.post(url, json={"suggest": True}).json()
+    assert (view["matched"], view["total"], view["field"]) == (0, 7, "key")
+    assert {s["raw"] for s in view["file_samples"]} == {"118001", "118002", "118005", "118007", "118009 ", "999999"}
+    assert view["suggestion"]["base_steps"] == [{"kind": "zeros", "text": "", "to": "", "n": 0}]
+    assert view["suggestion"]["file_steps"] == [{"kind": "trim", "text": "", "to": "", "n": 0}]
+    assert view["suggestion"]["text"] == "Remove leading zeros from the parcel IDs; trim spaces from the sales IDs"
+    zeros, trim = [{"kind": "zeros"}], [{"kind": "trim"}]
+    view = client.post(url, json={"base_steps": zeros, "view": "random"}).json()
+    assert view["matched"] == 5  # the spaced one still misses, and 999999 has no parcel
+    sold = {"118001", "118002", "118005", "118007"}
+    for sample in view["base_samples"]:  # parcels: cleaned, and whether a sale finds them
+        assert sample["clean"] == sample["raw"].lstrip("0") and sample["hit"] == (sample["clean"] in sold)
+    view = client.post(url, json={"base_steps": zeros, "file_steps": trim}).json()
+    assert (view["matched"], view["saved_share"]) == (6, 0)
+    assert [s["raw"] for s in view["file_samples"]] == ["999999"]  # unmatched only
+    assert view["writes"] == {
+        "geo_parcels": ["where", ["isempty", "key"], None, ["striplzero", "key"]],
+        "sale": ["where", ["isempty", "key"], None, ["strip", "key"]],
+    }
+
+    w = client.put(url, json={"base_steps": zeros, "file_steps": trim}).json()
+    check = _file(w, "sale")["id_check"]
+    assert check["text"] == "86% of sales match a parcel" and check["ok"] and check["warn"]
+    assert _file(w, "geo_parcels")["clean"] == {"key": [{"kind": "zeros", "text": "", "to": "", "n": 0}]}
+    load = _settings(pid)["data"]["load"]
+    assert load["geo_parcels"]["calc"]["key"] == ["where", ["isempty", "key"], None, ["striplzero", "key"]]
+    assert list(load["sale"]["calc"])[0] == "key"  # cleaned before the sale ID is made from it
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"file": "sale", "column": col})
+    univ, sales = _engine(pid, monkeypatch)
+    assert len(univ) == 20 and univ["key"].iloc[0] == "118000"  # the blank one dropped, not kept as "<NA>"
+    assert set(sales["key"]) >= {"118001", "118002", "118005", "118007", "118009"}
+    assert "118002-2024-01-02" in set(sales["key_sale"])

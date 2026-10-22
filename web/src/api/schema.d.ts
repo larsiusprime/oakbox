@@ -425,6 +425,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Reconcile
+         * @description Save the clean-up steps for the sales file's ID and the parcel universe's (F3d).
+         */
+        put: operations["wizard_reconcile_api_projects__project_id__wizard_files__name__reconcile_put"];
+        /**
+         * Wizard Reconcile Preview
+         * @description How the sales would match the parcels with these clean-up steps, with samples; nothing is saved (F3d).
+         */
+        post: operations["wizard_reconcile_preview_api_projects__project_id__wizard_files__name__reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/sale-id": {
         parameters: {
             query?: never;
@@ -561,6 +585,65 @@ export interface components {
              * @description What's worth a look, each short.
              */
             issues: components["schemas"]["Issue"][];
+            /**
+             * Share
+             * @description Sales: the share that find a parcel (0-1), for Reconcile.
+             */
+            share: number | null;
+        };
+        /**
+         * CleanStep
+         * @description One clean-up step on an ID, so IDs written differently in two files match (F3d reconcile).
+         */
+        "CleanStep-Input": {
+            /**
+             * Kind
+             * @description zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text.
+             * @enum {string}
+             */
+            kind: "zeros" | "remove" | "trim" | "replace" | "first" | "last" | "before" | "after";
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * To
+             * @default
+             */
+            to: string;
+            /**
+             * N
+             * @default 0
+             */
+            n: number;
+        };
+        /**
+         * CleanStep
+         * @description One clean-up step on an ID, so IDs written differently in two files match (F3d reconcile).
+         */
+        "CleanStep-Output": {
+            /**
+             * Kind
+             * @description zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text.
+             * @enum {string}
+             */
+            kind: "zeros" | "remove" | "trim" | "replace" | "first" | "last" | "before" | "after";
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * To
+             * @default
+             */
+            to: string;
+            /**
+             * N
+             * @default 0
+             */
+            n: number;
         };
         /** Column */
         Column: {
@@ -651,6 +734,13 @@ export interface components {
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
              */
             holds: ("parcels" | "sales" | "unused") | null;
+            /**
+             * Clean
+             * @description ID field -> clean-up steps, so it matches the other files (F3d reconcile).
+             */
+            clean: {
+                [key: string]: components["schemas"]["CleanStep-Output"][];
+            };
         };
         /** DateCheck */
         DateCheck: {
@@ -1031,6 +1121,49 @@ export interface components {
             /** Files */
             files: components["schemas"]["InputFile"][];
         };
+        /** Reconcile */
+        Reconcile: {
+            /**
+             * File
+             * @description The sales file.
+             */
+            file: string;
+            /** Base */
+            base: string;
+            /**
+             * Field
+             * @description The ID they join on.
+             * @enum {string}
+             */
+            field: "key" | "key2" | "key3";
+            /** File Column */
+            file_column: string;
+            /** Base Column */
+            base_column: string;
+            /** Matched */
+            matched: number;
+            /** Total */
+            total: number;
+            /** Share */
+            share: number;
+            /**
+             * Saved Share
+             * @description The share with the steps as saved, before these changes.
+             */
+            saved_share: number;
+            /** File Samples */
+            file_samples: components["schemas"]["Sample"][];
+            /** Base Samples */
+            base_samples: components["schemas"]["Sample"][];
+            suggestion: components["schemas"]["Suggestion"] | null;
+            /**
+             * Writes
+             * @description entry -> the calc it writes for the ID (only files with steps).
+             */
+            writes: {
+                [key: string]: unknown[];
+            };
+        };
         /** Region */
         Region: {
             /** Code */
@@ -1128,6 +1261,24 @@ export interface components {
             made: boolean;
             check: components["schemas"]["Check"] | null;
         };
+        /** Sample */
+        Sample: {
+            /**
+             * Raw
+             * @description As written in the file.
+             */
+            raw: string;
+            /**
+             * Clean
+             * @description After the clean-up steps.
+             */
+            clean: string;
+            /**
+             * Hit
+             * @description Sales: finds a parcel. Parcels: has a sale.
+             */
+            hit: boolean;
+        };
         /** Source */
         Source: {
             /** File */
@@ -1166,6 +1317,20 @@ export interface components {
              * @description None resets to the default.
              */
             storage_location?: string | null;
+        };
+        /** Suggestion */
+        Suggestion: {
+            /**
+             * Text
+             * @description 'Remove leading zeros from the parcel IDs; trim spaces from the sales IDs'.
+             */
+            text: string;
+            /** Base Steps */
+            base_steps: components["schemas"]["CleanStep-Output"][];
+            /** File Steps */
+            file_steps: components["schemas"]["CleanStep-Output"][];
+            /** Share */
+            share: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -1304,6 +1469,13 @@ export interface components {
             columns: components["schemas"]["Column"][];
             /** Base */
             base: boolean;
+            /**
+             * Clean
+             * @description ID field -> its clean-up steps (Reconcile).
+             */
+            clean: {
+                [key: string]: components["schemas"]["CleanStep-Output"][];
+            };
         };
         /**
          * WizardFileChoice
@@ -1355,6 +1527,50 @@ export interface components {
              * @description Acknowledge the rows with no ID (they're dropped).
              */
             blank_ok?: boolean | null;
+        };
+        /** WizardReconcile */
+        WizardReconcile: {
+            /**
+             * File Steps
+             * @description Clean-up steps for the sales file's ID.
+             */
+            file_steps?: components["schemas"]["CleanStep-Input"][];
+            /**
+             * Base Steps
+             * @description And for the parcel universe's.
+             */
+            base_steps?: components["schemas"]["CleanStep-Input"][];
+        };
+        /** WizardReconcilePreview */
+        WizardReconcilePreview: {
+            /**
+             * File Steps
+             * @description Clean-up steps for the sales file's ID.
+             */
+            file_steps?: components["schemas"]["CleanStep-Input"][];
+            /**
+             * Base Steps
+             * @description And for the parcel universe's.
+             */
+            base_steps?: components["schemas"]["CleanStep-Input"][];
+            /**
+             * View
+             * @default unmatched
+             * @enum {string}
+             */
+            view: "unmatched" | "random";
+            /**
+             * Seed
+             * @description Change it for new samples.
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Suggest
+             * @description Also try a few common clean-ups (slower).
+             * @default false
+             */
+            suggest: boolean;
         };
         /** WizardSaleId */
         WizardSaleId: {
@@ -2132,6 +2348,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepeatRows"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_reconcile_api_projects__project_id__wizard_files__name__reconcile_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardReconcile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_reconcile_preview_api_projects__project_id__wizard_files__name__reconcile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardReconcilePreview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reconcile"];
                 };
             };
             /** @description Validation Error */

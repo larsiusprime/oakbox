@@ -116,7 +116,7 @@ p["pin"] = [
 # 1. Parcel IDs from the old system are zero-padded to 10 characters; IDs given since aren't. Sales and CAMA
 #    files use the plain number, so only the unpadded parcels match until leading zeros are removed.
 padded = rng.random(n) < 0.86
-p["GDV_REID"] = [f"{r:010d}" if pad else str(r) for r, pad in zip(p.reid, padded)]
+p["GDV_REID"] = [f"{r:010d}" if pad else str(r) for r, pad in zip(p.reid, padded, strict=True)]
 # 2. A parcel split on the map but not in the records: two shapes with the same ID.
 split = p.index[50]
 twin = p.loc[[split]].copy()
