@@ -385,6 +385,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/repeats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Repeats
+         * @description Every row of a few repeated IDs, for the duplicates dialog (F3d).
+         */
+        get: operations["wizard_repeats_api_projects__project_id__wizard_files__name__repeats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/sale-id": {
         parameters: {
             query?: never;
@@ -510,6 +530,12 @@ export interface components {
              * @description Short: '✓ years 1890–2025', 'several rows per parcel'.
              */
             text: string;
+            /**
+             * Warn
+             * @description Usable, but worth a look (repeats handled, blank IDs dropped).
+             * @default false
+             */
+            warn: boolean;
         };
         /** Column */
         Column: {
@@ -573,6 +599,22 @@ export interface components {
              * @enum {string}
              */
             match: "key" | "key2";
+            /**
+             * Dupes
+             * @description Repeated IDs in a parcel file (F3d): keep the first row of each, or drop them all. None: keep the first, the default, if there are only a few.
+             */
+            dupes: ("first" | "all") | null;
+            /**
+             * Dupes Sort
+             * @description The field rows are sorted by before keeping the first.
+             */
+            dupes_sort: string | null;
+            /**
+             * Dupes Desc
+             * @description Sort descending before keeping the first.
+             * @default false
+             */
+            dupes_desc: boolean;
             /**
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
@@ -923,6 +965,60 @@ export interface components {
                 [key: string]: components["schemas"]["Region"][];
             };
         };
+        /**
+         * RepeatRows
+         * @description Examples of repeated IDs, every row of each, for the duplicates dialog.
+         */
+        RepeatRows: {
+            /** Columns */
+            columns: string[];
+            /** Rows */
+            rows: string[][];
+        };
+        /**
+         * Repeats
+         * @description What a file's ID column holds, for the duplicates notice and dialog (F3d).
+         */
+        Repeats: {
+            /** Rows */
+            rows: number;
+            /**
+             * Blank
+             * @description Rows with no ID. OpenAVMKit drops them when it joins the parcel files.
+             */
+            blank: number;
+            /**
+             * Distinct
+             * @description Different IDs: the rows kept when keeping the first of each.
+             */
+            distinct: number;
+            /**
+             * Repeated
+             * @description IDs on more than one row.
+             */
+            repeated: number;
+            /**
+             * Extra
+             * @description Rows beyond the first for a repeated ID.
+             */
+            extra: number;
+            /**
+             * Singles
+             * @description IDs on exactly one row: the rows kept when dropping every repeat.
+             */
+            singles: number;
+            /**
+             * Few
+             * @description Under 1% of the rows and under 10 rows: stray repeats, kept-first by default.
+             */
+            few: boolean;
+            /** Policy */
+            policy: ("first" | "all") | null;
+            /** Sort */
+            sort: string | null;
+            /** Descending */
+            descending: boolean;
+        };
         /** SaleId */
         SaleId: {
             /**
@@ -1101,6 +1197,8 @@ export interface components {
              */
             id_column: string | null;
             id_check: components["schemas"]["Check"] | null;
+            /** @description Set when the ID repeats or is blank on some rows. */
+            repeats: components["schemas"]["Repeats"] | null;
             /** Key2 Column */
             key2_column: string | null;
             /** Columns */
@@ -1139,6 +1237,21 @@ export interface components {
              * @default false
              */
             key2_set: boolean;
+            /**
+             * Dupes
+             * @description Repeated IDs: keep the first of each, or drop all.
+             */
+            dupes?: ("first" | "all") | null;
+            /**
+             * Dupes Sort
+             * @description With first: the field to sort by before keeping.
+             */
+            dupes_sort?: string | null;
+            /**
+             * Dupes Desc
+             * @default false
+             */
+            dupes_desc: boolean;
         };
         /** WizardSaleId */
         WizardSaleId: {
@@ -1847,6 +1960,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_repeats_api_projects__project_id__wizard_files__name__repeats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepeatRows"];
                 };
             };
             /** @description Validation Error */

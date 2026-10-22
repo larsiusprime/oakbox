@@ -319,6 +319,10 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
   5. **Review:** what blocks a run, then what's recommended, then every source.
 - **"In another file…"** on every parcel field: pick or add the file, its ID column (matching the parcel ID, or the second ID), and the field's column. The file joins the universe (`merge.universe`, on `key2` when matched that way), and the steps already seen guess from it too.
 - One universe file and one sales file for now; more complex merges come later.
+- **Repeated and blank IDs** (one standard notice and dialog, wherever an ID is checked):
+  - **Stray repeats** (fewer than 10 extra rows *and* under 1% of the rows) aren't an error: the first row of each is kept, as OpenAVMKit does by default, and the check says so ("1 ID repeats: keeping the first"). More than that blocks until you choose, since it usually means several rows per parcel or the wrong ID.
+  - **Resolve…** opens the duplicates dialog: every row of a few repeated IDs side by side, then keep the first (sorted by a loaded field, ascending or descending) or drop every repeated row, with the result ("2,000 rows → 1,995 parcels"). Combining rows (`agg`) comes later. Written as the file's `dupes`.
+  - **Blank IDs** are dropped: OpenAVMKit drops rows with no `key` when it joins the parcel files. The check and Review flag it ("441 rows have no ID and will be dropped. That can mean GDV_REID isn't the right ID.").
 
 
 Choosing fields file by file (F3c) shows every column of every file, most of them blank. The **Fields** tab instead asks one small question at a time, across the whole project, and writes the same OpenAVMKit settings: each file's `load`, plus the merge lists that stitch the files together (`data.process.merge`). F3c stays as the **Advanced view**. Both edit the same settings, so you can switch at any point.

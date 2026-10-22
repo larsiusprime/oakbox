@@ -6,12 +6,15 @@ import {
   Dialog,
   Header,
   Heading,
+  Label,
   ListBox,
   ListBoxItem,
   ListBoxSection,
   Modal,
   ModalOverlay,
   Popover,
+  Radio,
+  RadioGroup,
   Select,
   SelectValue,
 } from "react-aria-components";
@@ -108,7 +111,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             <UniverseStep project={project} data={data} change={change.mutate} />
           )}
           {current.key === "sales" && <SalesStep project={project} data={data} change={change.mutate} />}
-          {current.key === "review" && <ReviewStep data={data} go={go} />}
+          {current.key === "review" && (
+            <ReviewStep projectId={projectId} data={data} go={go} change={change.mutate} />
+          )}
           {current.fields.length > 0 && (current.key !== "sales" || data.sale_id.file) && (
             <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
           )}
@@ -192,6 +197,9 @@ type Change =
       universe?: boolean;
       match?: "key" | "key2";
       id_column?: string;
+      dupes?: "first" | "all";
+      dupes_sort?: string;
+      dupes_desc?: boolean;
       key2_column?: string | null;
       key2_set?: boolean;
     }
@@ -219,6 +227,9 @@ function useChange(projectId: string) {
               id_column: null,
               key2_column: null,
               key2_set: false,
+              dupes: null,
+              dupes_sort: null,
+              dupes_desc: false,
               ...body,
             },
           }),
@@ -256,7 +267,180 @@ type MutateAsync = (c: Change) => Promise<Wizard>;
 
 function CheckText({ check }: { check: WizardCheck | null | undefined }) {
   if (!check) return null;
-  return <span className={check.ok ? "wiz-ok" : "wiz-warn"}>{check.text}</span>;
+  if (check.ok && !check.warn) return <span className="wiz-ok">{check.text}</span>;
+  return (
+    <span className={check.ok ? "wiz-caution" : "wiz-warn"}>
+      {check.warn && <img src={warningIcon} alt="" className="wiz-inline-icon" />}
+      {check.text}
+    </span>
+  );
+}
+
+/** A file's ID check, and "Resolve…" when its IDs repeat: the duplicates dialog (SPEC F3d). */
+function IdCheck({
+  projectId,
+  data,
+  file,
+  change,
+}: {
+  projectId: string;
+  data: Wizard;
+  file: WizardFile;
+  change: Mutate;
+}) {
+  const [open, setOpen] = useState(false);
+  const resolvable = file.holds === "parcels" && (file.repeats?.extra ?? 0) > 0;
+  return (
+    <div className="wiz-samples wiz-wrap">
+      <CheckText check={file.id_check} />
+      {resolvable && (
+        <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
+          {w.dupes.resolve}
+        </Button>
+      )}
+      {open && (
+        <DupesDialog
+          projectId={projectId}
+          data={data}
+          file={file}
+          change={change}
+          close={() => setOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function DupesDialog({
+  projectId,
+  data,
+  file,
+  change,
+  close,
+}: {
+  projectId: string;
+  data: Wizard;
+  file: WizardFile;
+  change: Mutate;
+  close: () => void;
+}) {
+  const d = w.dupes;
+  const r = file.repeats;
+  const examples = useQuery({
+    queryKey: ["repeats", projectId, file.name, file.id_column],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/wizard/files/{name}/repeats", {
+          params: { path: { project_id: projectId, name: file.name } },
+        }),
+      ),
+  });
+  const id = file.base ? "key" : file.match;
+  const [policy, setPolicy] = useState<"first" | "all">(r?.policy ?? "first");
+  const [sort, setSort] = useState<string>(r?.sort ?? id);
+  const [desc, setDesc] = useState<boolean>(r?.descending ?? false);
+  if (!r) return null;
+  const fieldsHere = Object.values(data.used[file.name] ?? {});
+  const kept = policy === "all" ? r.singles : r.distinct;
+  const nameOf = (key: string) => w.idNames[key] ?? data.fields.find((f) => f.key === key)?.name ?? key;
+  return (
+    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(o) => !o && close()}>
+      <Modal className="modal wiz-modal wiz-modal-wide">
+        <Dialog className="modal-body">
+          <Heading slot="title" className="modal-title">
+            {d.title(file.name, file.id_column ?? "")}
+          </Heading>
+          <p>{d.summary(r.repeated, r.extra, r.rows, r.few)}</p>
+          {examples.data && (
+            <div className="wiz-dupes-table">
+              <table className="wiz-table">
+                <thead>
+                  <tr>
+                    {examples.data.columns.map((c) => (
+                      <th key={c}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {examples.data.rows.map((row, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
+                    <tr key={i}>
+                      {row.map((v, j) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
+                        <td key={j} className="mono">
+                          {v}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <RadioGroup
+            className="field radios"
+            value={policy}
+            onChange={(v) => setPolicy(v as "first" | "all")}
+          >
+            <Label className="field-label">{d.what}</Label>
+            <Radio value="first" className="radio">
+              <span className="radio-dot" aria-hidden="true" />
+              {d.first}
+            </Radio>
+            {policy === "first" && (
+              <div className="wiz-pair wiz-indent">
+                <Choice
+                  label={d.sortBy}
+                  value={sort}
+                  options={fieldsHere.map((k) => [k, nameOf(k)] as const)}
+                  onChange={setSort}
+                />
+                <Choice
+                  label={d.order}
+                  value={desc ? "desc" : "asc"}
+                  options={[
+                    ["asc", d.asc],
+                    ["desc", d.desc],
+                  ]}
+                  onChange={(v) => setDesc(v === "desc")}
+                />
+              </div>
+            )}
+            <Radio value="all" className="radio">
+              <span className="radio-dot" aria-hidden="true" />
+              {d.all}
+            </Radio>
+          </RadioGroup>
+          <p className="wiz-note">{d.combineLater}</p>
+          <p>
+            <strong>{d.result(r.rows, kept)}</strong>
+            {r.blank > 0 && <span className="wiz-caution"> {d.blank(r.blank)}</span>}
+          </p>
+          <div className="form-actions">
+            <Button
+              className="button button-primary"
+              onPress={() =>
+                change(
+                  {
+                    kind: "file",
+                    name: file.name,
+                    dupes: policy,
+                    ...(policy === "first" ? { dupes_sort: sort, dupes_desc: desc } : {}),
+                  },
+                  { onSuccess: close },
+                )
+              }
+            >
+              {w.save}
+            </Button>
+            <Button className="button" onPress={close}>
+              {w.cancel}
+            </Button>
+          </div>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  );
 }
 
 function WelcomeStep() {
@@ -376,9 +560,7 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
           options={columns}
           onChange={(id_column) => change({ kind: "file", name: base.name, id_column })}
         />
-        <div className="wiz-samples">
-          <CheckText check={base.id_check} />
-        </div>
+        <IdCheck projectId={project.id} data={data} file={base} change={change} />
         <div className="wiz-label">
           <TipOn text={w.secondIdTip}>
             <span>{w.secondId}</span>
@@ -418,7 +600,7 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
   return (
     <>
       <FileHeader file={sales} onReplace={() => setReplacing(true)} />
-      <IdRow file={sales} base={base} change={change} />
+      <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
       <div className="wiz-grid">
         <div className="wiz-label">
           <TipOn text={w.saleIdTip}>
@@ -443,7 +625,19 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
 }
 
 /** A file's ID column, and whether it matches the universe's parcel ID or its second ID. */
-function IdRow({ file, base, change }: { file: WizardFile; base: WizardFile | undefined; change: Mutate }) {
+function IdRow({
+  projectId,
+  data,
+  file,
+  base,
+  change,
+}: {
+  projectId: string;
+  data: Wizard;
+  file: WizardFile;
+  base: WizardFile | undefined;
+  change: Mutate;
+}) {
   const canKey2 = Boolean(base?.key2_column);
   return (
     <div className="wiz-grid">
@@ -470,9 +664,7 @@ function IdRow({ file, base, change }: { file: WizardFile; base: WizardFile | un
           onChange={(id_column) => change({ kind: "file", name: file.name, id_column })}
         />
       </div>
-      <div className="wiz-samples">
-        <CheckText check={file.id_check} />
-      </div>
+      <IdCheck projectId={projectId} data={data} file={file} change={change} />
     </div>
   );
 }
@@ -885,7 +1077,17 @@ function AssumeDialog({ field, close, confirm }: { field: string; close: () => v
 
 // ---------- Step 9: Review ----------
 
-function ReviewStep({ data, go }: { data: Wizard; go: (k: string) => void }) {
+function ReviewStep({
+  projectId,
+  data,
+  go,
+  change,
+}: {
+  projectId: string;
+  data: Wizard;
+  go: (k: string) => void;
+  change: Mutate;
+}) {
   const loaded = data.fields.filter((f) => f.sources.length > 0 || f.assumed);
   const columns = loaded.reduce((n, f) => n + f.sources.length, 0);
   const required = new Set(["sale_price", "sale_date", ...ASSUMABLE]);
@@ -896,6 +1098,15 @@ function ReviewStep({ data, go }: { data: Wizard; go: (k: string) => void }) {
         {w.summary(loaded.length, columns)}{" "}
         {data.not_loaded.map((n) => w.notLoaded(n.file, n.columns)).join(" ")}
       </p>
+      {data.files
+        .filter((f) => f.holds === "parcels" && (f.repeats?.extra ?? 0) > 0)
+        .map((f) => (
+          <div key={f.name} className="wiz-grid wiz-review-ids">
+            <div className="wiz-label mono">{f.name}</div>
+            <div className="mono">{f.id_column}</div>
+            <IdCheck projectId={projectId} data={data} file={f} change={change} />
+          </div>
+        ))}
       <h3 className="wiz-sub">{w.problems}</h3>
       {data.problems.length ? (
         <ul className="wiz-problems">

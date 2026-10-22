@@ -28,6 +28,7 @@ class BaseModel(_PydanticBase):
 
 Holds = Literal["parcels", "sales", "unused"]
 Match = Literal["key", "key2"]
+Dupes = Literal["first", "all"]
 
 
 class DataFile(BaseModel):
@@ -46,6 +47,13 @@ class DataFile(BaseModel):
     match: Match = Field(
         default="key", description="The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d)."
     )
+    dupes: Dupes | None = Field(
+        default=None,
+        description="Repeated IDs in a parcel file (F3d): keep the first row of each, or drop them all. "
+        "None: keep the first, the default, if there are only a few.",
+    )
+    dupes_sort: str | None = Field(default=None, description="The field rows are sorted by before keeping the first.")
+    dupes_desc: bool = Field(default=False, description="Sort descending before keeping the first.")
     holds: Holds | None = Field(
         default=None,
         description="What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.",
@@ -199,6 +207,11 @@ def data_load(files: list[DataFile]) -> dict:
             entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in f.load.items()}
         if f.calc:
             entry["calc"] = dict(f.calc)
+        if f.holds == "parcels":
+            # One row per parcel, as OpenAVMKit's own default for a keyed file, but written out (F3d).
+            order = "desc" if f.dupes_desc else "asc"
+            drop: bool | str = "all" if f.dupes == "all" else True
+            entry["dupes"] = {"subset": [f.match], "sort_by": [f.dupes_sort or f.match, order], "drop": drop}
         if f.holds == "sales":
             # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.
             entry["dupes"] = {"subset": ["key_sale"], "sort_by": ["key_sale", "asc"], "drop": True}

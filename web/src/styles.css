@@ -2066,3 +2066,39 @@ a.row-title:hover {
   padding-left: 1.1rem;
   font-weight: 400;
 }
+
+.wiz-caution {
+  color: var(--warn);
+}
+
+.wiz-inline-icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.12em;
+}
+
+.wiz-wrap {
+  white-space: normal;
+}
+
+.wiz-resolve {
+  margin-left: 0.6rem;
+}
+
+.wiz-modal-wide {
+  width: min(100%, 52rem);
+}
+
+.wiz-dupes-table {
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.wiz-indent {
+  margin: 0 0 0.3rem 1.6rem;
+}
+
+.wiz-review-ids {
+  margin-bottom: 0.4rem;
+}

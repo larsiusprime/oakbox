@@ -909,6 +909,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/repeats": {
+   "get": {
+    "summary": "Wizard Repeats",
+    "description": "Every row of a few repeated IDs, for the duplicates dialog (F3d).",
+    "operationId": "wizard_repeats_api_projects__project_id__wizard_files__name__repeats_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RepeatRows"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/sale-id": {
    "put": {
     "summary": "Wizard Sale Id",
@@ -1188,12 +1237,19 @@
       "type": "string",
       "title": "Text",
       "description": "Short: '\u2713 years 1890\u20132025', 'several rows per parcel'."
+     },
+     "warn": {
+      "type": "boolean",
+      "title": "Warn",
+      "description": "Usable, but worth a look (repeats handled, blank IDs dropped).",
+      "default": false
      }
     },
     "type": "object",
     "required": [
      "ok",
-     "text"
+     "text",
+     "warn"
     ],
     "title": "Check"
    },
@@ -1299,6 +1355,40 @@
       "description": "The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d).",
       "default": "key"
      },
+     "dupes": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "first",
+         "all"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dupes",
+      "description": "Repeated IDs in a parcel file (F3d): keep the first row of each, or drop them all. None: keep the first, the default, if there are only a few."
+     },
+     "dupes_sort": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dupes Sort",
+      "description": "The field rows are sorted by before keeping the first."
+     },
+     "dupes_desc": {
+      "type": "boolean",
+      "title": "Dupes Desc",
+      "description": "Sort descending before keeping the first.",
+      "default": false
+     },
      "holds": {
       "anyOf": [
        {
@@ -1325,6 +1415,9 @@
      "load",
      "calc",
      "match",
+     "dupes",
+     "dupes_sort",
+     "dupes_desc",
      "holds"
     ],
     "title": "DataFile",
@@ -2042,6 +2135,117 @@
     "title": "Regions",
     "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."
    },
+   "RepeatRows": {
+    "properties": {
+     "columns": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Columns"
+     },
+     "rows": {
+      "items": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "title": "Rows"
+     }
+    },
+    "type": "object",
+    "required": [
+     "columns",
+     "rows"
+    ],
+    "title": "RepeatRows",
+    "description": "Examples of repeated IDs, every row of each, for the duplicates dialog."
+   },
+   "Repeats": {
+    "properties": {
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "blank": {
+      "type": "integer",
+      "title": "Blank",
+      "description": "Rows with no ID. OpenAVMKit drops them when it joins the parcel files."
+     },
+     "distinct": {
+      "type": "integer",
+      "title": "Distinct",
+      "description": "Different IDs: the rows kept when keeping the first of each."
+     },
+     "repeated": {
+      "type": "integer",
+      "title": "Repeated",
+      "description": "IDs on more than one row."
+     },
+     "extra": {
+      "type": "integer",
+      "title": "Extra",
+      "description": "Rows beyond the first for a repeated ID."
+     },
+     "singles": {
+      "type": "integer",
+      "title": "Singles",
+      "description": "IDs on exactly one row: the rows kept when dropping every repeat."
+     },
+     "few": {
+      "type": "boolean",
+      "title": "Few",
+      "description": "Under 1% of the rows and under 10 rows: stray repeats, kept-first by default."
+     },
+     "policy": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "first",
+         "all"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Policy"
+     },
+     "sort": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sort"
+     },
+     "descending": {
+      "type": "boolean",
+      "title": "Descending"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rows",
+     "blank",
+     "distinct",
+     "repeated",
+     "extra",
+     "singles",
+     "few",
+     "policy",
+     "sort",
+     "descending"
+    ],
+    "title": "Repeats",
+    "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
+   },
    "SaleId": {
     "properties": {
      "file": {
@@ -2509,6 +2713,17 @@
        }
       ]
      },
+     "repeats": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Repeats"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Set when the ID repeats or is blank on some rows."
+     },
      "key2_column": {
       "anyOf": [
        {
@@ -2544,6 +2759,7 @@
      "match",
      "id_column",
      "id_check",
+     "repeats",
      "key2_column",
      "columns",
      "base"
@@ -2617,6 +2833,39 @@
       "type": "boolean",
       "title": "Key2 Set",
       "description": "Set the universe's key2 to key2_column (null: none).",
+      "default": false
+     },
+     "dupes": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "first",
+         "all"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dupes",
+      "description": "Repeated IDs: keep the first of each, or drop all."
+     },
+     "dupes_sort": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Dupes Sort",
+      "description": "With first: the field to sort by before keeping."
+     },
+     "dupes_desc": {
+      "type": "boolean",
+      "title": "Dupes Desc",
       "default": false
      }
     },

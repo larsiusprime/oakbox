@@ -19,7 +19,7 @@ from typing import Literal
 from pydantic import Field
 
 from oakbox import fields
-from oakbox.datafiles import BaseModel, DataFile, Holds, Match
+from oakbox.datafiles import BaseModel, DataFile, Dupes, Holds, Match
 from oakbox.fields import Column, DictionaryField
 from oakbox.projects import Project
 
@@ -191,6 +191,29 @@ def _norm(text: str) -> str:
 class Check(BaseModel):
     ok: bool
     text: str = Field(description="Short: '✓ years 1890–2025', 'several rows per parcel'.")
+    warn: bool = Field(default=False, description="Usable, but worth a look (repeats handled, blank IDs dropped).")
+
+
+class Repeats(BaseModel):
+    """What a file's ID column holds, for the duplicates notice and dialog (F3d)."""
+
+    rows: int
+    blank: int = Field(description="Rows with no ID. OpenAVMKit drops them when it joins the parcel files.")
+    distinct: int = Field(description="Different IDs: the rows kept when keeping the first of each.")
+    repeated: int = Field(description="IDs on more than one row.")
+    extra: int = Field(description="Rows beyond the first for a repeated ID.")
+    singles: int = Field(description="IDs on exactly one row: the rows kept when dropping every repeat.")
+    few: bool = Field(description="Under 1% of the rows and under 10 rows: stray repeats, kept-first by default.")
+    policy: Dupes | None
+    sort: str | None
+    descending: bool
+
+
+class RepeatRows(BaseModel):
+    """Examples of repeated IDs, every row of each, for the duplicates dialog."""
+
+    columns: list[str]
+    rows: list[list[str]]
 
 
 class WizardFile(BaseModel):
@@ -204,6 +227,7 @@ class WizardFile(BaseModel):
     match: Match = Field(description="Which ID it joins to the parcel universe on: key, or the second ID (key2).")
     id_column: str | None = Field(description="Loaded as the ID it joins on (match).")
     id_check: Check | None
+    repeats: Repeats | None = Field(description="Set when the ID repeats or is blank on some rows.")
     key2_column: str | None
     columns: list[Column]
     base: bool
@@ -372,33 +396,73 @@ def field_check(d: DictionaryField, col: Column) -> tuple[Check, list[str] | Non
     return Check(ok=True, text="✓ text"), [col.name, "string"]
 
 
-def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -> Check | None:
+# Stray repeats: fewer than both of these. More means several rows per parcel (SPEC F3d).
+FEW_SHARE, FEW_ROWS = 0.01, 10
+
+
+def _repeats_of(files: _Files, name: str, column: str) -> Repeats:
+    entry = files.entry(name)
+    values = files.values(name, column)
+    present = [v for v in values if v]
+    counts: dict[str, int] = {}
+    for v in present:
+        counts[v] = counts.get(v, 0) + 1
+    extra = len(present) - len(counts)
+    return Repeats(
+        rows=len(values),
+        blank=len(values) - len(present),
+        distinct=len(counts),
+        repeated=sum(1 for n in counts.values() if n > 1),
+        extra=extra,
+        singles=sum(1 for n in counts.values() if n == 1),
+        few=extra < FEW_ROWS and extra < FEW_SHARE * max(len(present), 1),
+        policy=entry.dupes,
+        sort=entry.dupes_sort,
+        descending=entry.dupes_desc,
+    )
+
+
+def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -> tuple[Check | None, Repeats | None]:
     f = files.entry(name)
     match = "key" if name == base else f.match
     spec = f.load.get(match)
     if not spec or name not in files.preview:
-        return None
-    values = files.values(name, spec[0])
-    present = [v for v in values if v]
-    blank = len(values) - len(present)
-    distinct = set(present)
-    blanks = f" · {blank:,} blank" if blank else ""
+        return None, None
+    r = _repeats_of(files, name, spec[0])
+    present = [v for v in files.values(name, spec[0]) if v]
+    flagged = r if (r.extra or r.blank) else None
+    blanks = f" · {r.blank:,} with no ID" if r.blank else ""
     if holds == "sales":
         if base is None or base == name:
-            return Check(ok=True, text=f"{len(values):,} sales{blanks}")
+            return Check(ok=True, text=f"{r.rows:,} sales{blanks}", warn=bool(r.blank)), r if r.blank else None
         base_ids = _base_ids(files, base, match)
         found = sum(1 for v in present if v in base_ids)
-        return Check(ok=found > 0, text=f"{_pct(found, len(values))} of sales match a parcel{blanks}")
-    if len(distinct) < len(present):
-        return Check(ok=False, text="several rows per parcel")
+        text = f"{_pct(found, r.rows)} of sales match a parcel{blanks}"
+        return Check(ok=found > 0, text=text, warn=bool(r.blank)), r if r.blank else None
     if holds != "parcels":
-        return Check(ok=True, text=f"one row per parcel{blanks}")
+        text = "several rows per parcel" if r.extra and not r.few else f"one row per parcel{blanks}"
+        return Check(ok=True, text=text, warn=bool(r.extra or r.blank)), flagged
+    if r.extra and not r.few and r.policy is None:
+        verb = "repeats" if r.repeated == 1 else "repeat"
+        text = f"{_n(r.repeated, 'ID')} {verb} ({_n(r.extra, 'extra row')}): choose what to do"
+        return Check(ok=False, text=text), flagged
+    kept = r.singles if r.policy == "all" else r.distinct
+    notes = []
+    if r.extra:
+        how = "dropping them" if r.policy == "all" else "keeping the first"
+        notes.append(f"{_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}: {how}")
+    if r.blank:
+        notes.append(f"{_n(r.blank, 'row')} {'has' if r.blank == 1 else 'have'} no ID: dropped")
+    note = f" · {' · '.join(notes)}" if notes else ""
     if name == base:
         shapes = " · has shapes" if files.geometry(name) else ""
-        return Check(ok=not blank, text=f"✓ {len(present):,} parcels, all different{shapes}{blanks}")
+        lead = f"{kept:,} parcels" if notes else f"✓ {kept:,} parcels, all different"
+        return Check(ok=True, text=f"{lead}{shapes}{note}", warn=bool(notes)), flagged
     base_ids = _base_ids(files, base, match)
-    found = len(distinct & base_ids)
-    return Check(ok=found > 0, text=f"✓ one row per parcel · {_pct(found, len(present))} match parcels{blanks}")
+    found = len(set(present) & base_ids)
+    tick = "" if notes else "✓ "
+    text = f"{tick}one row per parcel · {_pct(found, len(set(present)))} match parcels{note}"
+    return Check(ok=found > 0, text=text, warn=bool(notes)), flagged
 
 
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
@@ -408,16 +472,16 @@ def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
     return {v for v in files.values(base, spec[0]) if v} if spec else set()
 
 
+def _n(n: int, word: str) -> str:
+    """'1 ID', '3 IDs', '1,204 extra rows'."""
+    return f"{n:,} {word}" if n == 1 else f"{n:,} {word}s"
+
+
 def _pct(n: int, total: int) -> str:
     if not total:
         return "0%"
     p = 100 * n / total
     return f"{p:.1f}%" if 99 < p < 100 or 0 < p < 1 else f"{p:.0f}%"
-
-
-def _repeats(files: _Files, name: str, column: str) -> bool:
-    present = [v for v in files.values(name, column) if v]
-    return len(set(present)) < len(present)
 
 
 # ---------- Guesses ----------
@@ -533,6 +597,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         match: Match = "key" if f.name == base else f.match
         key = f.load.get(match)
         key2 = f.load.get("key2") if f.name == base else None
+        id_check, repeats = _id_check(files, f.name, f.holds, base)
         out_files.append(
             WizardFile(
                 name=f.name,
@@ -544,7 +609,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 holds=f.holds,
                 match=match,
                 id_column=key[0] if key else None,
-                id_check=_id_check(files, f.name, f.holds, base),
+                id_check=id_check,
+                repeats=repeats,
                 key2_column=key2[0] if key2 else None,
                 columns=files.columns(f.name),
                 base=f.name == base,
@@ -630,7 +696,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         fields=out_fields,
         used=used,
         problems=_problems(out_files, sale_id, out_fields),
-        warnings=_warnings(out_fields),
+        warnings=_warnings(out_files, out_fields),
         not_loaded=not_loaded,
     )
 
@@ -677,9 +743,22 @@ def _problems(files: list[WizardFile], sale_id: SaleId, flds: list[WizardField])
     return out
 
 
-def _warnings(flds: list[WizardField]) -> list[str]:
+def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
     by_key = {f.key: f for f in flds}
     out = []
+    for f in files:
+        r = f.repeats
+        if r is None or f.holds not in ("parcels", "sales"):
+            continue
+        if r.blank:
+            what = _n(r.blank, "sale" if f.holds == "sales" else "row")
+            out.append(
+                f"{f.name}: {what} {'has' if r.blank == 1 else 'have'} no ID and will be dropped. "
+                f"That can mean {f.id_column} isn't the right ID."
+            )
+        if f.holds == "parcels" and r.extra and (r.few or r.policy):
+            how = "only rows with a unique ID are kept" if r.policy == "all" else "the first row of each is kept"
+            out.append(f"{f.name}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}; {how}.")
     for group in RECOMMENDED:
         if not any(by_key[k].sources for k in group if k in by_key):
             first = by_key.get(group[0])
@@ -763,6 +842,30 @@ def _guess_sales(project: Project, files: _Files) -> None:
             sales.calc["key_sale"] = made_sale_id(sales.match)
 
 
+def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> RepeatRows:
+    """Every row of a few repeated IDs, for the duplicates dialog: are they copies, or different records?"""
+    files = _Files(project, in_dir)
+    entry = files.entry(name)
+    field = "key" if name == project.wizard.base else entry.match
+    spec = entry.load.get(field)
+    if spec is None or name not in files.preview:
+        raise ValueError(f"{name} has no ID column yet.")
+    values = files.values(name, spec[0])
+    counts: dict[str, int] = {}
+    for v in values:
+        if v:
+            counts[v] = counts.get(v, 0) + 1
+    ids = [v for v, n in sorted(counts.items(), key=lambda kv: -kv[1]) if n > 1][:limit]
+    loaded = [s[0] for s in entry.load.values()]
+    shown = [spec[0], *[c for c in loaded if c != spec[0]]][:8]
+    rest = [c.name for c in files.columns(name) if c.name not in shown]
+    shown = (shown + rest)[:8]
+    picked = [i for i, v in enumerate(values) if v in set(ids)]
+    columns = {c: files.values(name, c) for c in shown}
+    rows = sorted(([columns[c][i] for c in shown] for i in picked), key=lambda r: ids.index(r[0]))
+    return RepeatRows(columns=shown, rows=rows[:40])
+
+
 def made_sale_id(match: Match) -> list:
     """The sale ID made from the parcel ID + sale date, e.g. "0012-001-2023-01-09" (an OpenAVMKit calc)."""
     return ["join", ["values", match, "sale_date"], "str:-"]
@@ -778,6 +881,9 @@ def set_file(
     key2_set: bool,
     match: Match | None = None,
     universe: bool = False,
+    dupes: Dupes | None = None,
+    dupes_sort: str | None = None,
+    dupes_desc: bool = False,
 ) -> None:
     """A file's part (the parcel universe, sales, or more parcel details) and the ID it joins on."""
     files = _Files(project, in_dir)
@@ -821,12 +927,12 @@ def set_file(
         entry.holds = holds
     if entry.holds == "sales" and "key_sale" in entry.calc:
         entry.calc["key_sale"] = made_sale_id(entry.match)
-    id_spec = entry.load.get("key" if is_base else entry.match)
-    if entry.holds == "parcels" and id_spec and _repeats(files, name, id_spec[0]):
-        if is_base:
-            raise ValueError(f"{id_spec[0]} repeats, so it can't be the parcel ID of the universe.")
-        entry.holds = "unused"
-        raise ValueError(f"{name} has several rows per parcel, so it can't be joined as parcel details yet.")
+    if dupes is not None:  # the duplicates dialog: what to do with repeated IDs
+        if dupes_sort is not None and dupes_sort not in entry.load:
+            raise ValueError(f"Sort by a field {name} loads; {dupes_sort} isn't one.")
+        entry.dupes, entry.dupes_sort, entry.dupes_desc = dupes, dupes_sort, dupes_desc
+    if id_column is not None and dupes is None:  # a new ID: its repeats are looked at afresh
+        entry.dupes, entry.dupes_sort, entry.dupes_desc = None, None, False
     update_base(project, in_dir, rename=True)
     # A file just given its part: guess its IDs and fields now, as showing the step would have.
     if universe:

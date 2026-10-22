@@ -85,6 +85,11 @@ class WizardFileChoice(BaseModel):
     id_column: str | None = Field(default=None, description="The column loaded as the ID it joins on.")
     key2_column: str | None = None
     key2_set: bool = Field(default=False, description="Set the universe's key2 to key2_column (null: none).")
+    dupes: datafiles.Dupes | None = Field(
+        default=None, description="Repeated IDs: keep the first of each, or drop all."
+    )
+    dupes_sort: str | None = Field(default=None, description="With first: the field to sort by before keeping.")
+    dupes_desc: bool = False
 
 
 class WizardSaleId(BaseModel):
@@ -443,9 +448,30 @@ def create_app() -> FastAPI:
         return _change(
             project_id,
             lambda p, d: wizard.set_file(
-                p, d, name, body.holds, body.id_column, body.key2_column, body.key2_set, body.match, body.universe
+                p,
+                d,
+                name,
+                body.holds,
+                body.id_column,
+                body.key2_column,
+                body.key2_set,
+                body.match,
+                body.universe,
+                body.dupes,
+                body.dupes_sort,
+                body.dupes_desc,
             ),
         )
+
+    @app.get("/api/projects/{project_id}/wizard/files/{name}/repeats")
+    def wizard_repeats(project_id: str, name: str) -> wizard.RepeatRows:
+        """Every row of a few repeated IDs, for the duplicates dialog (F3d)."""
+        project = _load(project_id)
+        _entry(project, name)
+        try:
+            return wizard.repeat_rows(project, projects.project_dir(project_id) / "in", name)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
 
     @app.put("/api/projects/{project_id}/wizard/sale-id")
     def wizard_sale_id(project_id: str, body: WizardSaleId) -> wizard.Wizard:

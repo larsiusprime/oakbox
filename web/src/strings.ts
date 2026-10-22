@@ -255,6 +255,27 @@ export const t = {
     otherColumn: (field: string) => `Column for ${field}`,
     save: "Save",
     warnings: "Recommended",
+    dupes: {
+      resolve: "Resolve…",
+      title: (file: string, column: string) => `Repeated IDs in ${file} (${column})`,
+      summary: (repeated: number, extra: number, rows: number, few: boolean) =>
+        `${repeated.toLocaleString()} ${repeated === 1 ? "ID is" : "IDs are"} on more than one row: ${extra.toLocaleString()} extra ${extra === 1 ? "row" : "rows"} out of ${rows.toLocaleString()}. ` +
+        (few
+          ? "That's a few stray repeats, so the first row of each is kept unless you choose otherwise."
+          : "That's more than a few: it may be a file with several rows per parcel, or not the right ID."),
+      what: "What to do with them",
+      first: "Keep the first row of each",
+      sortBy: "Sorted by",
+      order: "Order",
+      asc: "Ascending",
+      desc: "Descending",
+      all: "Drop every row with a repeated ID",
+      combineLater: "Combining the rows (adding up building areas, say) comes later.",
+      result: (rows: number, kept: number) =>
+        `${rows.toLocaleString()} rows → ${kept.toLocaleString()} parcels`,
+      blank: (n: number) =>
+        `· ${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no ID and ${n === 1 ? "is" : "are"} dropped.`,
+    },
     bigFive: [
       ["Building size", ["bldg_area_finished_sqft"]],
       ["Land size", ["land_area_sqft"]],
