@@ -6,3 +6,5 @@
 __pycache__/
 /src/oakbox/web/
 /web/node_modules/
+
+work/

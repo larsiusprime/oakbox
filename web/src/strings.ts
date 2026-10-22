@@ -224,8 +224,10 @@ export const t = {
       review: { title: "Review", question: "Here's what will load", lede: "" },
     } as Record<string, { title: string; question: string; lede: string }>,
     welcome: [
-      "To build a model, OAK box puts together two datasets: your SALES and your PARCEL UNIVERSE.",
-      "The SALES record lists sold parcels, what they sold for and when. Ideally it also has what each parcel was like when it sold.",
+      "OAK box helps you build models. It needs two datasets for that: a SALES RECORD and a PARCEL UNIVERSE",
+      "",
+      "The SALES RECORD is what every parcel sold for and when (and ideally, what each parcel was like when it sold)",
+      "",
       "The PARCEL UNIVERSE is every parcel, sold and unsold, as it is now.",
       "Both are needed to build a model. We'll start with the parcel universe.",
     ],
