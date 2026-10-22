@@ -1398,6 +1398,12 @@
       "description": "Sort descending before keeping the first.",
       "default": false
      },
+     "blank_ok": {
+      "type": "boolean",
+      "title": "Blank Ok",
+      "description": "The rows with no ID have been acknowledged as dropped (F3d).",
+      "default": false
+     },
      "holds": {
       "anyOf": [
        {
@@ -1427,6 +1433,7 @@
      "dupes",
      "dupes_sort",
      "dupes_desc",
+     "blank_ok",
      "holds"
     ],
     "title": "DataFile",
@@ -1915,12 +1922,19 @@
       "type": "boolean",
       "title": "Resolved",
       "description": "A choice was made for it (the duplicates dialog)."
+     },
+     "blocking": {
+      "type": "boolean",
+      "title": "Blocking",
+      "description": "OpenAVMKit can't run well until it's dealt with (blank IDs).",
+      "default": false
      }
     },
     "type": "object",
     "required": [
      "text",
-     "resolved"
+     "resolved",
+     "blocking"
     ],
     "title": "Issue"
    },
@@ -2257,6 +2271,11 @@
      "descending": {
       "type": "boolean",
       "title": "Descending"
+     },
+     "blank_ok": {
+      "type": "boolean",
+      "title": "Blank Ok",
+      "description": "The rows with no ID have been acknowledged."
      }
     },
     "type": "object",
@@ -2270,7 +2289,8 @@
      "few",
      "policy",
      "sort",
-     "descending"
+     "descending",
+     "blank_ok"
     ],
     "title": "Repeats",
     "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
@@ -2896,6 +2916,18 @@
       "type": "boolean",
       "title": "Dupes Desc",
       "default": false
+     },
+     "blank_ok": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Blank Ok",
+      "description": "Acknowledge the rows with no ID (they're dropped)."
      }
     },
     "type": "object",

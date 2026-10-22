@@ -621,6 +621,12 @@ export interface components {
              */
             dupes_desc: boolean;
             /**
+             * Blank Ok
+             * @description The rows with no ID have been acknowledged as dropped (F3d).
+             * @default false
+             */
+            blank_ok: boolean;
+            /**
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
              */
@@ -865,6 +871,12 @@ export interface components {
              * @description A choice was made for it (the duplicates dialog).
              */
             resolved: boolean;
+            /**
+             * Blocking
+             * @description OpenAVMKit can't run well until it's dealt with (blank IDs).
+             * @default false
+             */
+            blocking: boolean;
         };
         /**
          * NewProject
@@ -1036,6 +1048,11 @@ export interface components {
             sort: string | null;
             /** Descending */
             descending: boolean;
+            /**
+             * Blank Ok
+             * @description The rows with no ID have been acknowledged.
+             */
+            blank_ok: boolean;
         };
         /** SaleId */
         SaleId: {
@@ -1270,6 +1287,11 @@ export interface components {
              * @default false
              */
             dupes_desc: boolean;
+            /**
+             * Blank Ok
+             * @description Acknowledge the rows with no ID (they're dropped).
+             */
+            blank_ok?: boolean | null;
         };
         /** WizardSaleId */
         WizardSaleId: {

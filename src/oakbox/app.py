@@ -90,6 +90,7 @@ class WizardFileChoice(BaseModel):
     )
     dupes_sort: str | None = Field(default=None, description="With first: the field to sort by before keeping.")
     dupes_desc: bool = False
+    blank_ok: bool | None = Field(default=None, description="Acknowledge the rows with no ID (they're dropped).")
 
 
 class WizardSaleId(BaseModel):
@@ -460,6 +461,7 @@ def create_app() -> FastAPI:
                 body.dupes,
                 body.dupes_sort,
                 body.dupes_desc,
+                body.blank_ok,
             ),
         )
 

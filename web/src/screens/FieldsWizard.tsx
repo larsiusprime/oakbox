@@ -32,8 +32,9 @@ import {
   type WizardStep,
 } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
+import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
-import { Choice } from "../components/Form";
+import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
@@ -202,6 +203,7 @@ type Change =
       dupes?: "first" | "all";
       dupes_sort?: string;
       dupes_desc?: boolean;
+      blank_ok?: boolean;
       key2_column?: string | null;
       key2_set?: boolean;
     }
@@ -232,6 +234,7 @@ function useChange(projectId: string) {
               dupes: null,
               dupes_sort: null,
               dupes_desc: false,
+              blank_ok: null,
               ...body,
             },
           }),
@@ -273,15 +276,22 @@ function CheckText({ check }: { check: WizardCheck | null | undefined }) {
   return <span className={check.ok ? "wiz-result" : "wiz-warn"}>{check.text}</span>;
 }
 
-/** The second line of a check: each issue, ⚠ until a choice resolves it, then the action. */
+/** The second line of a check: each issue (✅ decided, ⚠ to decide, ❌ blocks a run), then the action. */
 function Issues({ issues, action }: { issues: WizardIssue[]; action?: ReactNode }) {
   if (issues.length === 0 && !action) return null;
   return (
     <span className="wiz-issues">
       {issues.map((issue, i) => (
-        <span key={issue.text} className={issue.resolved ? "wiz-resolved" : "wiz-caution"}>
+        <span
+          key={issue.text}
+          className={issue.resolved ? "wiz-resolved" : issue.blocking ? "wiz-blocking" : "wiz-caution"}
+        >
           {i > 0 && <span className="wiz-sep"> · </span>}
-          <img src={issue.resolved ? resolvedIcon : warningIcon} alt="" className="wiz-inline-icon" />
+          <img
+            src={issue.resolved ? resolvedIcon : issue.blocking ? blockingIcon : warningIcon}
+            alt=""
+            className="wiz-inline-icon"
+          />
           {issue.text}
         </span>
       ))}
@@ -303,7 +313,10 @@ function IdCheck({
   change: Mutate;
 }) {
   const [open, setOpen] = useState(false);
-  const resolvable = file.holds === "parcels" && (file.repeats?.extra ?? 0) > 0;
+  const r = file.repeats;
+  const resolvable =
+    ((file.holds === "parcels" && (r?.extra ?? 0) > 0) || (r?.blank ?? 0) > 0) &&
+    (file.holds === "parcels" || file.holds === "sales");
   return (
     <div className="wiz-samples wiz-check-lines">
       <CheckText check={file.id_check} />
@@ -358,7 +371,10 @@ function DupesDialog({
   const [policy, setPolicy] = useState<"first" | "all" | null>(r?.policy ?? null);
   const [sort, setSort] = useState<string>(r?.sort ?? id);
   const [desc, setDesc] = useState<boolean>(r?.descending ?? false);
+  const [blankOk, setBlankOk] = useState<boolean>(r?.blank_ok ?? false);
   if (!r) return null;
+  const hasRepeats = r.extra > 0;
+  const hasBlanks = r.blank > 0;
   const fieldsHere = Object.values(data.used[file.name] ?? {});
   const kept = policy === "all" ? r.singles : policy === "first" ? r.distinct : null;
   const nameOf = (key: string) => w.idNames[key] ?? data.fields.find((f) => f.key === key)?.name ?? key;
@@ -369,8 +385,9 @@ function DupesDialog({
           <Heading slot="title" className="modal-title">
             {d.title(file.name, file.id_column ?? "")}
           </Heading>
-          <p>{d.summary(r.repeated, r.extra, r.rows, r.few)}</p>
-          {examples.data && (
+          {hasRepeats && <h3 className="wiz-sub">{d.repeatsTitle}</h3>}
+          {hasRepeats && <p>{d.summary(r.repeated, r.extra, r.rows, r.few)}</p>}
+          {hasRepeats && examples.data && (
             <div className="wiz-dupes-table">
               <table className="wiz-table">
                 <thead>
@@ -396,62 +413,69 @@ function DupesDialog({
               </table>
             </div>
           )}
-          <RadioGroup
-            className="field radios"
-            value={policy}
-            onChange={(v) => setPolicy(v as "first" | "all")}
-          >
-            <Label className="field-label">{d.what}</Label>
-            <Radio value="first" className="radio">
-              <span className="radio-dot" aria-hidden="true" />
-              {d.first}
-            </Radio>
-            {policy === "first" && (
-              <div className="wiz-pair wiz-indent">
-                <Choice
-                  label={d.sortBy}
-                  value={sort}
-                  options={fieldsHere.map((k) => [k, nameOf(k)] as const)}
-                  onChange={setSort}
-                />
-                <Choice
-                  label={d.order}
-                  value={desc ? "desc" : "asc"}
-                  options={[
-                    ["asc", d.asc],
-                    ["desc", d.desc],
-                  ]}
-                  onChange={(v) => setDesc(v === "desc")}
-                />
-              </div>
-            )}
-            <Radio value="all" className="radio">
-              <span className="radio-dot" aria-hidden="true" />
-              {d.all}
-            </Radio>
-          </RadioGroup>
-          <p className="wiz-note">{d.combineLater}</p>
-          <p>
-            {kept !== null && <strong>{d.result(r.rows, kept)}</strong>}
-            {r.blank > 0 && (
-              <span className="wiz-caution">
-                {kept !== null ? " · " : ""}
-                {d.blank(r.blank)}
-              </span>
-            )}
-          </p>
+          {hasRepeats && (
+            <RadioGroup
+              className="field radios"
+              value={policy}
+              onChange={(v) => setPolicy(v as "first" | "all")}
+            >
+              <Label className="field-label">{d.what}</Label>
+              <Radio value="first" className="radio">
+                <span className="radio-dot" aria-hidden="true" />
+                {d.first}
+              </Radio>
+              {policy === "first" && (
+                <div className="wiz-pair wiz-indent">
+                  <Choice
+                    label={d.sortBy}
+                    value={sort}
+                    options={fieldsHere.map((k) => [k, nameOf(k)] as const)}
+                    onChange={setSort}
+                  />
+                  <Choice
+                    label={d.order}
+                    value={desc ? "desc" : "asc"}
+                    options={[
+                      ["asc", d.asc],
+                      ["desc", d.desc],
+                    ]}
+                    onChange={(v) => setDesc(v === "desc")}
+                  />
+                </div>
+              )}
+              <Radio value="all" className="radio">
+                <span className="radio-dot" aria-hidden="true" />
+                {d.all}
+              </Radio>
+            </RadioGroup>
+          )}
+          {hasRepeats && <p className="wiz-note">{d.combineLater}</p>}
+          {hasBlanks && (
+            <>
+              <h3 className="wiz-sub">{d.blanksTitle}</h3>
+              <p>{d.blankWhy(r.blank, file.holds === "sales")}</p>
+              <Tick isSelected={blankOk} onChange={setBlankOk}>
+                {d.blankOk(r.blank, file.holds === "sales")}
+              </Tick>
+            </>
+          )}
+          {kept !== null && (
+            <p>
+              <strong>{d.result(r.rows, kept)}</strong>
+            </p>
+          )}
           <div className="form-actions">
             <Button
               className="button button-primary"
-              isDisabled={policy === null}
+              isDisabled={!((hasRepeats && policy !== null) || (hasBlanks && blankOk !== r.blank_ok))}
               onPress={() =>
-                policy &&
                 change(
                   {
                     kind: "file",
                     name: file.name,
-                    dupes: policy,
-                    ...(policy === "first" ? { dupes_sort: sort, dupes_desc: desc } : {}),
+                    ...(hasRepeats && policy ? { dupes: policy } : {}),
+                    ...(hasRepeats && policy === "first" ? { dupes_sort: sort, dupes_desc: desc } : {}),
+                    ...(hasBlanks ? { blank_ok: blankOk } : {}),
                   },
                   { onSuccess: close },
                 )

@@ -257,7 +257,17 @@ export const t = {
     warnings: "Recommended",
     dupes: {
       resolve: "Resolve…",
-      title: (file: string, column: string) => `Repeated IDs in ${file} (${column})`,
+      title: (file: string, column: string) => `${column} in ${file}`,
+      repeatsTitle: "Repeated IDs",
+      blanksTitle: "Blank IDs",
+      blankWhy: (n: number, sales: boolean) =>
+        sales
+          ? `${n.toLocaleString()} ${n === 1 ? "sale has" : "sales have"} no parcel ID, so ${n === 1 ? "it" : "they"} can't be matched to a parcel.`
+          : `${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no ID. A row without an ID can't be joined to anything, so it has to be dropped. Many blanks can mean this isn't the right ID column.`,
+      blankOk: (n: number, sales: boolean) =>
+        sales
+          ? `I understand: ${n.toLocaleString()} ${n === 1 ? "sale" : "sales"} without a parcel ID won't be matched`
+          : `Drop the ${n.toLocaleString()} ${n === 1 ? "row" : "rows"} with no ID`,
       summary: (repeated: number, extra: number, rows: number, few: boolean) =>
         `${repeated.toLocaleString()} ${repeated === 1 ? "ID is" : "IDs are"} on more than one row: ${extra.toLocaleString()} extra ${extra === 1 ? "row" : "rows"} out of ${rows.toLocaleString()}. ` +
         (few

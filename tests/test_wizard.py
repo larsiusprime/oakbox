@@ -281,16 +281,18 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
     w = _put_file(client, pid, "big", universe=True, id_column="REID").json()
     base = _file(w, "geo_parcels")
-    assert base["id_check"] == {  # nothing chosen yet: both are warnings
-        "ok": True,
+    assert base["id_check"] == {  # nothing chosen yet: repeats a warning, blank IDs a blocker
+        "ok": False,
         "text": "1,496 parcels",
         "warn": True,
-        "issues": [{"text": "1 repeated ID", "resolved": False}, {"text": "3 blank IDs, dropped", "resolved": False}],
+        "issues": [
+            {"text": "1 repeated ID", "resolved": False, "blocking": False},
+            {"text": "3 blank IDs, dropped", "resolved": False, "blocking": True},
+        ],
     }
     r = base["repeats"]
     assert (r["rows"], r["blank"], r["distinct"], r["repeated"], r["extra"], r["few"]) == (1500, 3, 1496, 1, 1, True)
-    assert not any("geo_parcels" in p for p in w["problems"])
-    assert "geo_parcels: 3 rows have no ID and will be dropped. That can mean REID isn't the right ID." in w["warnings"]
+    assert "geo_parcels: 3 blank IDs. Resolve them on its step to drop those rows." in w["problems"]
     assert (
         "geo_parcels: 1 ID repeats. Resolve it on its step; until then OpenAVMKit keeps the first row of each."
         in w["warnings"]
@@ -308,5 +310,12 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     w = _put_file(client, pid, "geo_parcels", dupes="first", dupes_sort="key2", dupes_desc=True).json()
     assert _settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == ["key2", "desc"]
     issues = _file(w, "geo_parcels")["id_check"]["issues"]
-    assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True}  # chosen: resolved
+    assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True, "blocking": False}  # chosen
     assert not any("repeat" in x for x in w["warnings"])
+    assert _file(w, "geo_parcels")["id_check"]["warn"]  # the blank IDs are still to acknowledge
+    w = _put_file(client, pid, "geo_parcels", blank_ok=True).json()
+    check = _file(w, "geo_parcels")["id_check"]
+    assert check["issues"][1] == {"text": "3 blank IDs, dropped", "resolved": True, "blocking": False}
+    assert check["ok"] and not any("geo_parcels" in p for p in w["problems"])
+    assert not check["warn"] and check["text"] == "✓ 1,496 parcels"  # everything decided: all green
+    assert not any("geo_parcels" in x for x in w["warnings"])

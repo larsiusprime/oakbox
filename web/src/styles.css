@@ -2125,3 +2125,7 @@ a.row-title:hover {
 .wiz-resolved {
   color: var(--ok);
 }
+
+.wiz-blocking {
+  color: var(--bad);
+}

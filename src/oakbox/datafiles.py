@@ -54,6 +54,7 @@ class DataFile(BaseModel):
     )
     dupes_sort: str | None = Field(default=None, description="The field rows are sorted by before keeping the first.")
     dupes_desc: bool = Field(default=False, description="Sort descending before keeping the first.")
+    blank_ok: bool = Field(default=False, description="The rows with no ID have been acknowledged as dropped (F3d).")
     holds: Holds | None = Field(
         default=None,
         description="What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.",

@@ -191,6 +191,7 @@ def _norm(text: str) -> str:
 class Issue(BaseModel):
     text: str = Field(description="'1 repeated ID'; once resolved, with the choice: '1 repeated ID, first kept'.")
     resolved: bool = Field(description="A choice was made for it (the duplicates dialog).")
+    blocking: bool = Field(default=False, description="OpenAVMKit can't run well until it's dealt with (blank IDs).")
 
 
 class Check(BaseModel):
@@ -213,6 +214,7 @@ class Repeats(BaseModel):
     policy: Dupes | None
     sort: str | None
     descending: bool
+    blank_ok: bool = Field(description="The rows with no ID have been acknowledged.")
 
 
 class RepeatRows(BaseModel):
@@ -425,6 +427,7 @@ def _repeats_of(files: _Files, name: str, column: str) -> Repeats:
         policy=entry.dupes,
         sort=entry.dupes_sort,
         descending=entry.dupes_desc,
+        blank_ok=entry.blank_ok,
     )
 
 
@@ -447,8 +450,12 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
             how = "all dropped" if r.policy == "all" else "first kept"
             issues.append(Issue(text=f"{repeated}, {how}", resolved=True))
     if r.blank:
-        issues.append(Issue(text=f"{_n(r.blank, 'blank ID')}, dropped", resolved=False))
+        outcome = "won't match a parcel" if holds == "sales" else "dropped"
+        # Blank IDs wreck joins: on a parcel file they block until confirmed as dropped.
+        blocking = holds == "parcels" and not r.blank_ok
+        issues.append(Issue(text=f"{_n(r.blank, 'blank ID')}, {outcome}", resolved=r.blank_ok, blocking=blocking))
     open_issues = any(not i.resolved for i in issues)
+    blocked = any(i.blocking for i in issues)
     if holds == "sales":
         flagged = r if r.blank else None
         if base is None or base == name:
@@ -467,11 +474,11 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     tick = "" if open_issues else "✓ "
     if name == base:
         text = f"{tick}{kept:,} parcels" + ("" if issues else ", all different")
-        return Check(ok=True, text=text, warn=open_issues, issues=issues), flagged
+        return Check(ok=not blocked, text=text, warn=open_issues, issues=issues), flagged
     base_ids = _base_ids(files, base, match)
     found = len(set(present) & base_ids)
     text = f"{tick}one row per parcel · {_pct(found, len(set(present)))} match parcels"
-    return Check(ok=found > 0, text=text, warn=open_issues, issues=issues), flagged
+    return Check(ok=found > 0 and not blocked, text=text, warn=open_issues, issues=issues), flagged
 
 
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
@@ -730,7 +737,10 @@ def _problems(files: list[WizardFile], sale_id: SaleId, flds: list[WizardField])
     for f in files:
         if f.holds in ("parcels", "sales") and f.id_column is None:
             out.append(f"{f.name} has no ID column to join on.")
-        if f.id_check is not None and not f.id_check.ok and f.holds in ("parcels", "sales"):
+        blocking = [i for i in f.id_check.issues if i.blocking] if f.id_check else []
+        for issue in blocking:
+            out.append(f"{f.name}: {issue.text.split(',')[0]}. Resolve them on its step to drop those rows.")
+        if f.id_check is not None and not f.id_check.ok and not blocking and f.holds in ("parcels", "sales"):
             out.append(f"{f.name}: {f.id_check.text}.")
     if not any(f.holds == "sales" for f in files):
         out.append("No sales file yet.")
@@ -759,8 +769,8 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
         r = f.repeats
         if r is None or f.holds not in ("parcels", "sales"):
             continue
-        if r.blank:
-            what = _n(r.blank, "sale" if f.holds == "sales" else "row")
+        if r.blank and not r.blank_ok and f.holds == "sales":
+            what = _n(r.blank, "sale")
             out.append(
                 f"{f.name}: {what} {'has' if r.blank == 1 else 'have'} no ID and will be dropped. "
                 f"That can mean {f.id_column} isn't the right ID."
@@ -895,6 +905,7 @@ def set_file(
     dupes: Dupes | None = None,
     dupes_sort: str | None = None,
     dupes_desc: bool = False,
+    blank_ok: bool | None = None,
 ) -> None:
     """A file's part (the parcel universe, sales, or more parcel details) and the ID it joins on."""
     files = _Files(project, in_dir)
@@ -942,8 +953,10 @@ def set_file(
         if dupes_sort is not None and dupes_sort not in entry.load:
             raise ValueError(f"Sort by a field {name} loads; {dupes_sort} isn't one.")
         entry.dupes, entry.dupes_sort, entry.dupes_desc = dupes, dupes_sort, dupes_desc
-    if id_column is not None and dupes is None:  # a new ID: its repeats are looked at afresh
-        entry.dupes, entry.dupes_sort, entry.dupes_desc = None, None, False
+    if blank_ok is not None:
+        entry.blank_ok = blank_ok
+    if id_column is not None and dupes is None:  # a new ID: its repeats and blanks are looked at afresh
+        entry.dupes, entry.dupes_sort, entry.dupes_desc, entry.blank_ok = None, None, False, False
     update_base(project, in_dir, rename=True)
     # A file just given its part: guess its IDs and fields now, as showing the step would have.
     if universe:
