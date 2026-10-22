@@ -348,7 +348,7 @@
   "/api/projects/{project_id}/files/check": {
    "post": {
     "summary": "Check File",
-    "description": "What OAK box can tell about a file before adding it (SPEC \u00a73.0 F2).",
+    "description": "What OAK box can tell about a file before adding it (SPEC §3.0 F2).",
     "operationId": "check_file_api_projects__project_id__files_check_post",
     "parameters": [
      {
@@ -398,7 +398,7 @@
   "/api/projects/{project_id}/files": {
    "post": {
     "summary": "Add File",
-    "description": "Move or copy a file into in/ and add its data.load entry (SPEC \u00a73.0 F2).",
+    "description": "Move or copy a file into in/ and add its data.load entry (SPEC §3.0 F2).",
     "operationId": "add_file_api_projects__project_id__files_post",
     "parameters": [
      {
@@ -448,7 +448,7 @@
   "/api/projects/{project_id}/files/{name}/name": {
    "put": {
     "summary": "Rename File",
-    "description": "Rename a data.load entry; the file keeps its name (SPEC \u00a73.0 F3b).",
+    "description": "Rename a data.load entry; the file keeps its name (SPEC §3.0 F3b).",
     "operationId": "rename_file_api_projects__project_id__files__name__name_put",
     "parameters": [
      {
@@ -505,7 +505,7 @@
   "/api/projects/{project_id}/files/{name}": {
    "delete": {
     "summary": "Remove File",
-    "description": "Drop a data.load entry; with trash, its file goes to the Recycle Bin (SPEC \u00a73.0 F3b).",
+    "description": "Drop a data.load entry; with trash, its file goes to the Recycle Bin (SPEC §3.0 F3b).",
     "operationId": "remove_file_api_projects__project_id__files__name__delete",
     "parameters": [
      {
@@ -562,7 +562,7 @@
   "/api/projects/{project_id}/files/{name}/show": {
    "post": {
     "summary": "Show File",
-    "description": "Show an input file in the file manager (SPEC \u00a73.0 F3b).",
+    "description": "Show an input file in the file manager (SPEC §3.0 F3b).",
     "operationId": "show_file_api_projects__project_id__files__name__show_post",
     "parameters": [
      {
@@ -609,7 +609,7 @@
   "/api/projects/{project_id}/files/{name}/columns": {
    "get": {
     "summary": "File Columns",
-    "description": "The file's columns, their types and sample values, read without changing it (SPEC \u00a73.0 F3c).",
+    "description": "The file's columns, their types and sample values, read without changing it (SPEC §3.0 F3c).",
     "operationId": "file_columns_api_projects__project_id__files__name__columns_get",
     "parameters": [
      {
@@ -658,7 +658,7 @@
   "/api/projects/{project_id}/files/{name}/load": {
    "put": {
     "summary": "Set Load",
-    "description": "Replace the entry's load: field -> [column, type, extra] (SPEC \u00a73.0 F3c).",
+    "description": "Replace the entry's load: field -> [column, type, extra] (SPEC §3.0 F3c).",
     "operationId": "set_load_api_projects__project_id__files__name__load_put",
     "parameters": [
      {
@@ -715,7 +715,7 @@
   "/api/projects/{project_id}/wizard": {
    "get": {
     "summary": "Get Wizard",
-    "description": "Every step, file and field of the Fields wizard as it stands (SPEC \u00a73.0 F3d).",
+    "description": "Every step, file and field of the Fields wizard as it stands (SPEC §3.0 F3d).",
     "operationId": "get_wizard_api_projects__project_id__wizard_get",
     "parameters": [
      {
@@ -1119,7 +1119,7 @@
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
-    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC \u00a73.0 F3c).\n\nWith the project's jurisdiction, names say it where OpenAVMKit writes \"{jurisdiction}\".",
+    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).\n\nWith the project's jurisdiction, names say it where OpenAVMKit writes \"{jurisdiction}\".",
     "operationId": "dictionary_api_dictionary_get",
     "parameters": [
      {
@@ -1164,7 +1164,7 @@
   "/api/date-format": {
    "post": {
     "summary": "Date Format",
-    "description": "Read sample values with a date format, as OpenAVMKit would (SPEC \u00a73.0 F3c).",
+    "description": "Read sample values with a date format, as OpenAVMKit would (SPEC §3.0 F3c).",
     "operationId": "date_format_api_date_format_post",
     "requestBody": {
      "content": {
@@ -1285,7 +1285,7 @@
      "text": {
       "type": "string",
       "title": "Text",
-      "description": "Short: '\u2713 years 1890\u20132025', 'several rows per parcel'."
+      "description": "Short: '✓ years 1890–2025', 'several rows per parcel'."
      },
      "warn": {
       "type": "boolean",
@@ -1568,7 +1568,7 @@
        "reserved"
       ],
       "title": "Source",
-      "description": "input: only from your data; derived: always computed by OpenAVMKit; either: computed when missing; reserved: a name kept for a field OpenAVMKit means to compute (\u00a77 B11)."
+      "description": "input: only from your data; derived: always computed by OpenAVMKit; either: computed when missing; reserved: a name kept for a field OpenAVMKit means to compute (§7 B11)."
      },
      "offered": {
       "type": "boolean",
@@ -1982,7 +1982,7 @@
      "columns"
     ],
     "title": "InputFile",
-    "description": "An input file as the Input files tab shows it (SPEC \u00a73.0 F3)."
+    "description": "An input file as the Input files tab shows it (SPEC §3.0 F3)."
    },
    "Issue": {
     "properties": {
@@ -2001,15 +2001,43 @@
       "title": "Blocking",
       "description": "OpenAVMKit can't run well until it's dealt with (blank IDs).",
       "default": false
+     },
+     "todo": {
+      "type": "string",
+      "title": "Todo",
+      "description": "While unresolved, as a to-do: '442 blank IDs to confirm'.",
+      "default": ""
      }
     },
     "type": "object",
     "required": [
      "text",
      "resolved",
-     "blocking"
+     "blocking",
+     "todo"
     ],
     "title": "Issue"
+   },
+   "Left": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text",
+      "description": "Short, as a to-do: '442 blank IDs to confirm'."
+     },
+     "blocking": {
+      "type": "boolean",
+      "title": "Blocking",
+      "description": "❌ stops a run; otherwise ⚠ worth deciding.",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "text",
+     "blocking"
+    ],
+    "title": "Left"
    },
    "NewProject": {
     "properties": {
@@ -2062,7 +2090,7 @@
      "units"
     ],
     "title": "NewProject",
-    "description": "What the user enters to create a project (SPEC \u00a73.0 F1)."
+    "description": "What the user enters to create a project (SPEC §3.0 F1)."
    },
    "NotLoaded": {
     "properties": {
@@ -2157,7 +2185,7 @@
       },
       "type": "array",
       "title": "Files",
-      "description": "data.load entries (SPEC \u00a73.0 F2)."
+      "description": "data.load entries (SPEC §3.0 F2)."
      },
      "wizard": {
       "$ref": "#/components/schemas/WizardState"
@@ -2465,6 +2493,14 @@
       "title": "Status",
       "description": "blank: not visited (or an optional step not confirmed yet); blocked: something here stops a run; attention: something to decide, or recommended and missing; done: complete."
      },
+     "left": {
+      "items": {
+       "$ref": "#/components/schemas/Left"
+      },
+      "type": "array",
+      "title": "Left",
+      "description": "What's still to do here, worst first; Next is greyed while any remain."
+     },
      "fields": {
       "items": {
        "type": "string"
@@ -2489,6 +2525,7 @@
      "key",
      "parent",
      "status",
+     "left",
      "fields",
      "more",
      "sales"
@@ -3097,7 +3134,7 @@
      "decided"
     ],
     "title": "WizardState",
-    "description": "The Fields wizard's own state (SPEC \u00a73.0 F3d). Everything it chooses is in the files' entries."
+    "description": "The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."
    }
   }
  }

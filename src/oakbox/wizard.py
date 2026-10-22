@@ -188,6 +188,7 @@ class Issue(BaseModel):
     text: str = Field(description="'1 repeated ID'; once resolved, with the choice: '1 repeated ID, first kept'.")
     resolved: bool = Field(description="A choice was made for it (the duplicates dialog).")
     blocking: bool = Field(default=False, description="OpenAVMKit can't run well until it's dealt with (blank IDs).")
+    todo: str = Field(default="", description="While unresolved, as a to-do: '442 blank IDs to confirm'.")
 
 
 class Check(BaseModel):
@@ -278,6 +279,11 @@ ORDER: dict[str, int] = {"blocked": 0, "attention": 1, "blank": 2, "done": 3}
 AGE = ("bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "bldg_effective_age_years")
 
 
+class Left(BaseModel):
+    text: str = Field(description="Short, as a to-do: '442 blank IDs to confirm'.")
+    blocking: bool = Field(default=True, description="❌ stops a run; otherwise ⚠ worth deciding.")
+
+
 class StepView(BaseModel):
     key: str
     parent: str | None
@@ -285,6 +291,7 @@ class StepView(BaseModel):
         description="blank: not visited (or an optional step not confirmed yet); blocked: something here stops a "
         "run; attention: something to decide, or recommended and missing; done: complete."
     )
+    left: list[Left] = Field(description="What's still to do here, worst first; Next is greyed while any remain.")
     fields: list[str]
     more: list[str]
     sales: bool
@@ -460,7 +467,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     if r.extra and holds == "parcels" and (r.few or r.policy):
         repeated = _n(r.repeated, "repeated ID")
         if r.policy is None:  # nothing chosen yet (OpenAVMKit would keep the first)
-            issues.append(Issue(text=repeated, resolved=False))
+            issues.append(Issue(text=repeated, resolved=False, todo=f"{repeated} to decide"))
         else:
             how = "all dropped" if r.policy == "all" else "first kept"
             issues.append(Issue(text=f"{repeated}, {how}", resolved=True))
@@ -468,7 +475,9 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         outcome = "won't match a parcel" if holds == "sales" else "dropped"
         # Blank IDs wreck joins: on a parcel file they block until confirmed as dropped.
         blocking = holds == "parcels" and not r.blank_ok
-        issues.append(Issue(text=f"{_n(r.blank, 'blank ID')}, {outcome}", resolved=r.blank_ok, blocking=blocking))
+        blank = _n(r.blank, "blank ID")
+        todo = f"{blank} to confirm"
+        issues.append(Issue(text=f"{blank}, {outcome}", resolved=r.blank_ok, blocking=blocking, todo=todo))
     open_issues = any(not i.resolved for i in issues)
     blocked = any(i.blocking for i in issues)
     if holds == "sales":
@@ -706,10 +715,16 @@ def view(project: Project, in_dir: Path) -> Wizard:
     warnings = _warnings(out_files, out_fields)
     steps = []
     for step in STEPS:
-        status = _status(project, step, out_files, sale_id, out_fields, problems, warnings)
+        status, left = _status(project, step, out_files, sale_id, out_fields, problems, warnings)
         steps.append(
             StepView(
-                key=step.key, parent=step.parent, status=status, fields=step.fields, more=step.more, sales=step.sales
+                key=step.key,
+                parent=step.parent,
+                status=status,
+                left=left,
+                fields=step.fields,
+                more=step.more,
+                sales=step.sales,
             )
         )
     details = next(s for s in steps if s.key == "details")
@@ -747,40 +762,61 @@ def _status(
     flds: list[WizardField],
     problems: list[str],
     warnings: list[str],
-) -> Status:
-    """A step's mark, worked out from what's on it (SPEC F3d). Blank until it's been visited."""
+) -> tuple[Status, list[Left]]:
+    """A step's mark, worked out from what's on it, and what's left to do there (SPEC F3d). Blank until visited."""
     w = project.wizard
     if step.key == "details" or step.key not in w.visited:
-        return "blank"  # More details is the worst of its parts, filled in by the caller
+        return "blank", []  # More details is the worst of its parts, filled in by the caller
     if step.key == "welcome":
-        return "done" if "welcome" in w.confirmed else "blank"
+        return ("done" if "welcome" in w.confirmed else "blank"), []
     if step.key == "review":
-        return "blocked" if problems else "attention" if warnings else "done"
+        return ("blocked" if problems else "attention" if warnings else "done"), []
     mine = [f for f in flds if f.step == step.key and not f.hidden]
-    failing = any(f.check is not None and not f.check.ok for f in mine)
+    left = [Left(text=f"{f.name}: {f.check.text}") for f in mine if f.check is not None and not f.check.ok]
+
+    def ids(f: WizardFile | None, what: str) -> None:
+        if f is None:
+            left.append(Left(text=f"Add the {what} file"))
+        elif f.id_check is None:
+            left.append(Left(text="Pick the parcel ID"))
+        else:
+            todo = [i for i in f.id_check.issues if not i.resolved]
+            left.extend(Left(text=i.todo or i.text, blocking=i.blocking) for i in todo)
+            if not f.id_check.ok and not any(i.blocking for i in todo):
+                left.append(Left(text=f"Parcel ID: {f.id_check.text}"))
+
     if step.key == "universe":
         base = next((f for f in files if f.base), None)
-        if base is None or base.name != BASE_NAME or base.id_check is None or not base.id_check.ok:
-            return "blocked"
-        return "attention" if base.id_check.warn else "done"
-    if step.key == "sales":
+        if base is not None and base.name != BASE_NAME:
+            left.append(Left(text="Use this file as the parcel universe"))
+        ids(base, "parcel")
+    elif step.key == "sales":
         sales = next((f for f in files if f.holds == "sales"), None)
-        if sales is None or sales.id_check is None or not sales.id_check.ok or failing:
-            return "blocked"
-        if (sale_id.column is None and not sale_id.made) or (sale_id.check is not None and not sale_id.check.ok):
-            return "blocked"
-        if any(not f.sources and not f.assumed for f in mine if f.key in ("sale_price", "sale_date", *ASSUMABLE)):
-            return "blocked"
-        return "attention" if sales.id_check.warn else "done"
-    if step.key == "big_five":
+        ids(sales, "sales")
+        if sales is not None:
+            if sale_id.column is None and not sale_id.made:
+                left.append(Left(text="Pick a sale ID, or make one"))
+            elif sale_id.check is not None and not sale_id.check.ok:
+                left.append(Left(text=f"Sale ID: {sale_id.check.text}"))
+            for f in mine:
+                if f.key in ("sale_price", "sale_date", *ASSUMABLE) and not f.sources and not f.assumed:
+                    left.append(Left(text=f"Pick the {f.name.lower()}"))
+    elif step.key == "big_five":
         by_key = {f.key: f for f in flds}
-        if failing or any(not by_key[k].sources for k in REQUIRED if k in by_key):
-            return "blocked"
+        left.extend(
+            Left(text=f"Pick the {by_key[k].name.lower()}") for k in REQUIRED if k in by_key and not by_key[k].sources
+        )
         # Age is the one to flag; quality and condition are nice to have, and many places lack them.
-        return "done" if any(by_key[k].sources for k in AGE if k in by_key) else "attention"
-    if failing:
-        return "blocked"
-    return "done" if step.key in w.confirmed or step.key in w.skipped else "blank"
+        if not any(by_key[k].sources for k in AGE if k in by_key):
+            left.append(Left(text="Pick the year built (or an age)", blocking=False))
+    left.sort(key=lambda i: not i.blocking)
+    if any(i.blocking for i in left):
+        return "blocked", left
+    if left:
+        return "attention", left
+    if step.key in ("universe", "sales", "big_five"):
+        return "done", left
+    return ("done" if step.key in w.confirmed or step.key in w.skipped else "blank"), left
 
 
 def confirm(project: Project, step: str) -> None:

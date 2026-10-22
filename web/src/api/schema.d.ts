@@ -912,6 +912,26 @@ export interface components {
              * @default false
              */
             blocking: boolean;
+            /**
+             * Todo
+             * @description While unresolved, as a to-do: '442 blank IDs to confirm'.
+             * @default
+             */
+            todo: string;
+        };
+        /** Left */
+        Left: {
+            /**
+             * Text
+             * @description Short, as a to-do: '442 blank IDs to confirm'.
+             */
+            text: string;
+            /**
+             * Blocking
+             * @description ❌ stops a run; otherwise ⚠ worth deciding.
+             * @default true
+             */
+            blocking: boolean;
         };
         /**
          * NewProject
@@ -1127,6 +1147,11 @@ export interface components {
              * @enum {string}
              */
             status: "blank" | "blocked" | "attention" | "done";
+            /**
+             * Left
+             * @description What's still to do here, worst first; Next is greyed while any remain.
+             */
+            left: components["schemas"]["Left"][];
             /** Fields */
             fields: string[];
             /** More */

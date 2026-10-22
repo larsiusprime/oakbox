@@ -77,6 +77,10 @@ def _settings(pid):
     return json.loads((projects.project_dir(pid) / "in" / "settings.json").read_text())
 
 
+def _step(w, key):
+    return next(s for s in w["steps"] if s["key"] == key)
+
+
 def _file(w, name):
     return next(f for f in w["files"] if f["name"] == name)
 
@@ -283,10 +287,17 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
         "text": "1,496 parcels",
         "warn": True,
         "issues": [
-            {"text": "1 repeated ID", "resolved": False, "blocking": False},
-            {"text": "3 blank IDs, dropped", "resolved": False, "blocking": True},
+            {"text": "1 repeated ID", "resolved": False, "blocking": False, "todo": "1 repeated ID to decide"},
+            {"text": "3 blank IDs, dropped", "resolved": False, "blocking": True, "todo": "3 blank IDs to confirm"},
         ],
     }
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    universe = _step(client.get(f"/api/projects/{pid}/wizard").json(), "universe")
+    assert universe["status"] == "blocked"  # Next is greyed, and the skip dialog lists these, worst first
+    assert universe["left"] == [
+        {"text": "3 blank IDs to confirm", "blocking": True},
+        {"text": "1 repeated ID to decide", "blocking": False},
+    ]
     r = base["repeats"]
     assert (r["rows"], r["blank"], r["distinct"], r["repeated"], r["extra"], r["few"]) == (1500, 3, 1496, 1, 1, True)
     assert "geo_parcels: 3 blank IDs. Resolve them on its step to drop those rows." in w["problems"]
@@ -307,15 +318,21 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     w = _put_file(client, pid, "geo_parcels", dupes="first", dupes_sort="key2", dupes_desc=True).json()
     assert _settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == ["key2", "desc"]
     issues = _file(w, "geo_parcels")["id_check"]["issues"]
-    assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True, "blocking": False}  # chosen
+    assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True, "blocking": False, "todo": ""}
     assert not any("repeat" in x for x in w["warnings"])
     assert _file(w, "geo_parcels")["id_check"]["warn"]  # the blank IDs are still to acknowledge
     w = _put_file(client, pid, "geo_parcels", blank_ok=True).json()
     check = _file(w, "geo_parcels")["id_check"]
-    assert check["issues"][1] == {"text": "3 blank IDs, dropped", "resolved": True, "blocking": False}
+    assert check["issues"][1] == {
+        "text": "3 blank IDs, dropped",
+        "resolved": True,
+        "blocking": False,
+        "todo": "3 blank IDs to confirm",
+    }
     assert check["ok"] and not any("geo_parcels" in p for p in w["problems"])
     assert not check["warn"] and check["text"] == "✓ 1,496 parcels"  # everything decided: all green
     assert not any("geo_parcels" in x for x in w["warnings"])
+    assert _step(w, "universe")["status"] == "done" and _step(w, "universe")["left"] == []
 
 
 def test_extra_ids_are_added_removed_and_joined_on(client, tmp_path, monkeypatch):

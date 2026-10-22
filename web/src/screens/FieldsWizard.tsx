@@ -77,6 +77,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const wanted = step === "details" ? "big_five" : step;
   const current = flat.find((s) => s.key === wanted) ?? flat.find((s) => s.key === opening) ?? flat[0];
   const change = useChange(projectId);
+  const [unfinished, setUnfinished] = useState(false);
   const go = (key: string) => navigate({ name: "project", id: projectId, tab: "fields", step: key });
 
   // Showing a step fills in its guesses, once (the server keeps track).
@@ -100,6 +101,11 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
     .filter(Boolean)
     .join(" · ");
   const skippable = current.fields.length > 0 && !current.sales;
+  // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
+  const gated = current.status === "blocked" || current.status === "attention";
+  const onward = () =>
+    // Moving on confirms the step: an optional step is then complete (SPEC F3d).
+    next && change.mutate({ kind: "confirm", step: current.key }, { onSuccess: () => go(next.key) });
 
   return (
     <div className="wiz">
@@ -126,6 +132,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             </p>
           )}
         </div>
+        {next && gated && current.left.length > 0 && (
+          <p className="wiz-left">{w.left(current.left.length)}</p>
+        )}
         <div className="wiz-foot">
           <TipOn text={w.advancedTip}>
             <a className="wiz-link" href={`#/projects/${projectId}/files`}>
@@ -150,18 +159,66 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
           {next && (
             <Button
-              className="button button-primary"
-              onPress={() =>
-                // Moving on confirms the step: an optional step is then complete (SPEC F3d).
-                change.mutate({ kind: "confirm", step: current.key }, { onSuccess: () => go(next.key) })
-              }
+              className={gated ? "button button-primary is-gated" : "button button-primary"}
+              aria-disabled={gated}
+              onPress={() => (gated ? setUnfinished(true) : onward())}
             >
               {current.key === "welcome" ? w.start : w.next}
             </Button>
           )}
         </div>
       </div>
+      {unfinished && next && (
+        <UnfinishedDialog
+          left={current.left}
+          close={() => setUnfinished(false)}
+          skip={() => {
+            setUnfinished(false);
+            go(next.key);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/** Clicking the greyed Next: what's left on the step, and the choice to move on anyway. */
+function UnfinishedDialog({
+  left,
+  close,
+  skip,
+}: {
+  left: WizardStep["left"];
+  close: () => void;
+  skip: () => void;
+}) {
+  return (
+    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(open) => !open && close()}>
+      <Modal className="modal wiz-unfinished">
+        <Dialog className="modal-body" role="alertdialog">
+          <Heading slot="title" className="modal-title">
+            {w.unfinished.title}
+          </Heading>
+          <ul className="wiz-left-list">
+            {left.map((item) => (
+              <li key={item.text} className={item.blocking ? "wiz-blocking" : "wiz-caution"}>
+                <img src={item.blocking ? blockingIcon : warningIcon} alt="" className="wiz-inline-icon" />
+                {item.text}
+              </li>
+            ))}
+          </ul>
+          <p className="wiz-from">{w.unfinished.body}</p>
+          <div className="form-actions wiz-unfinished-actions">
+            <Button className="button" onPress={skip}>
+              {w.unfinished.skip}
+            </Button>
+            <Button className="button button-primary" onPress={close} autoFocus>
+              {w.unfinished.finish}
+            </Button>
+          </div>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
   );
 }
 

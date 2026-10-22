@@ -321,6 +321,7 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
   - Parcel universe, Sales and Big five are complete when their required parts are there: a universe file with shapes and a resolved parcel ID; a sales file, its IDs, price, date, valid and vacant sale; building size. Big five shows ⚠ only for missing age; quality and condition are nice to have.
   - The optional steps (Location, Land, Building…) are complete once confirmed by **Next** or **I don't have these**. Welcome by **Start**.
   - More details shows the worst of its parts; Review shows ❌ while anything blocks a run, ⚠ while something is recommended.
+- **Next is greyed while the step shows ⚠ or ❌,** with "N things left on this step" just above the button bar (so the buttons never move). It still answers a click: a dialog lists what's left (❌ first, as to-dos: "442 blank IDs to confirm") with **Skip ahead anyway** and **Finish this step** (the default). Optional steps and Welcome keep Next enabled, since Next is what confirms them. The add-file panel's confirm button is **Import**, on the right, in line with Next.
 - **"In another file…"** on every parcel field: pick or add the file, its ID column (matching the parcel ID, or the second ID), and the field's column. The file joins the universe (`merge.universe`, on `key2` when matched that way), and the steps already seen guess from it too.
 - One universe file and one sales file for now; more complex merges come later.
 - **Repeated and blank IDs** (one standard notice and dialog, wherever an ID is checked):
