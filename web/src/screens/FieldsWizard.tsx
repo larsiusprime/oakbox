@@ -385,8 +385,12 @@ function DupesDialog({
           <Heading slot="title" className="modal-title">
             {d.title(file.name, file.id_column ?? "")}
           </Heading>
-          {hasRepeats && <h3 className="wiz-sub">{d.repeatsTitle}</h3>}
-          {hasRepeats && <p>{d.summary(r.repeated, r.extra, r.rows, r.few)}</p>}
+          {hasRepeats && (
+            <div className="wiz-section-head-row">
+              <h3 className="wiz-sub">{d.repeatsTitle(r.repeated)}</h3>
+              <span className="wiz-from">{r.few ? d.fewMeans : d.manyMeans}</span>
+            </div>
+          )}
           {hasRepeats && examples.data && (
             <div className="wiz-dupes-table">
               <table className="wiz-table">
@@ -415,11 +419,11 @@ function DupesDialog({
           )}
           {hasRepeats && (
             <RadioGroup
-              className="field radios"
+              className="field radios wiz-act"
               value={policy}
               onChange={(v) => setPolicy(v as "first" | "all")}
             >
-              <Label className="field-label">{d.what}</Label>
+              <Label className="wiz-act-label">{d.what}</Label>
               <Radio value="first" className="radio">
                 <span className="radio-dot" aria-hidden="true" />
                 {d.first}
@@ -449,16 +453,22 @@ function DupesDialog({
               </Radio>
             </RadioGroup>
           )}
-          {hasRepeats && <p className="wiz-note">{d.combineLater}</p>}
+          {hasRepeats && hasBlanks && <hr className="wiz-rule" />}
           {hasBlanks && (
             <>
-              <h3 className="wiz-sub">{d.blanksTitle}</h3>
-              <p>{d.blankWhy(r.blank, file.holds === "sales")}</p>
-              <Tick isSelected={blankOk} onChange={setBlankOk}>
-                {d.blankOk(r.blank, file.holds === "sales")}
-              </Tick>
+              <div className="wiz-section-head-row">
+                <h3 className="wiz-sub">{d.blanksTitle(r.blank)}</h3>
+                <span className="wiz-from">{d.blankMeans(file.holds === "sales")}</span>
+              </div>
+              <div className="wiz-act">
+                <span className="wiz-act-label">{d.confirm}</span>
+                <Tick isSelected={blankOk} onChange={setBlankOk}>
+                  {d.blankOk(r.blank, file.holds === "sales")}
+                </Tick>
+              </div>
             </>
           )}
+          <hr className="wiz-rule" />
           {kept !== null && (
             <p>
               <strong>{d.result(r.rows, kept)}</strong>

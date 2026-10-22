@@ -258,33 +258,28 @@ export const t = {
     dupes: {
       resolve: "Resolve…",
       title: (file: string, column: string) => `${column} in ${file}`,
-      repeatsTitle: "Repeated IDs",
-      blanksTitle: "Blank IDs",
-      blankWhy: (n: number, sales: boolean) =>
+      repeatsTitle: (n: number) => `Repeated IDs: ${n.toLocaleString()}`,
+      fewMeans: "A few strays. Usually safe to keep the first.",
+      manyMeans: "Many. Likely several rows per parcel, or the wrong ID column.",
+      blanksTitle: (n: number) => `Blank IDs: ${n.toLocaleString()}`,
+      blankMeans: (sales: boolean) =>
         sales
-          ? `${n.toLocaleString()} ${n === 1 ? "sale has" : "sales have"} no parcel ID, so ${n === 1 ? "it" : "they"} can't be matched to a parcel.`
-          : `${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no ID. A row without an ID can't be joined to anything, so it has to be dropped. Many blanks can mean this isn't the right ID column.`,
+          ? "These sales can't be matched to a parcel."
+          : "Can't be joined. Many may mean the wrong ID column.",
+      confirm: "Confirm",
       blankOk: (n: number, sales: boolean) =>
         sales
-          ? `I understand: ${n.toLocaleString()} ${n === 1 ? "sale" : "sales"} without a parcel ID won't be matched`
+          ? `I understand: ${n.toLocaleString()} ${n === 1 ? "sale" : "sales"} won't be matched`
           : `Drop the ${n.toLocaleString()} ${n === 1 ? "row" : "rows"} with no ID`,
-      summary: (repeated: number, extra: number, rows: number, few: boolean) =>
-        `${repeated.toLocaleString()} ${repeated === 1 ? "ID is" : "IDs are"} on more than one row: ${extra.toLocaleString()} extra ${extra === 1 ? "row" : "rows"} out of ${rows.toLocaleString()}. ` +
-        (few
-          ? "That's a few stray repeats. Choose what to do with them."
-          : "That's more than a few: it may be a file with several rows per parcel, or not the right ID."),
-      what: "What to do with them",
+      what: "Choose",
       first: "Keep the first row of each",
       sortBy: "Sorted by",
       order: "Order",
       asc: "Ascending",
       desc: "Descending",
       all: "Drop every row with a repeated ID",
-      combineLater: "Combining the rows (adding up building areas, say) comes later.",
       result: (rows: number, kept: number) =>
         `${rows.toLocaleString()} rows → ${kept.toLocaleString()} parcels`,
-      blank: (n: number) =>
-        `${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no ID and ${n === 1 ? "is" : "are"} dropped.`,
     },
     bigFive: [
       ["Building size", ["bldg_area_finished_sqft"]],

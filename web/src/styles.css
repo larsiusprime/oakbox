@@ -2129,3 +2129,28 @@ a.row-title:hover {
 .wiz-blocking {
   color: var(--bad);
 }
+
+.wiz-section-head-row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.wiz-section-head-row .wiz-sub {
+  margin: 0.2rem 0;
+}
+
+/* The call to action in a dialog: set apart so it isn't missed. */
+.wiz-act {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  background: #eef4fc;
+  border: 1px solid #b9cde9;
+  border-left: 4px solid var(--link);
+}
+
+.wiz-act-label {
+  font-weight: 700;
+}
