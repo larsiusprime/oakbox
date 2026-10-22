@@ -226,7 +226,7 @@ def test_openavmkit_loads_and_joins_what_the_wizard_wrote(client, pid, monkeypat
 
 
 def test_sales_matched_by_the_second_id(client, pid, monkeypatch):
-    assert _put_file(client, pid, "shapes", universe=True, key2_column="MAP_NO", key2_set=True).status_code == 200
+    assert _put_file(client, pid, "shapes", universe=True, extra_field="key2", extra_column="MAP_NO").status_code == 200
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     _put_file(client, pid, "sales_by_map", holds="sales")
     w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
@@ -306,7 +306,7 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     assert rows["columns"][:2] == ["REID", "PIN"]
     assert [r[:2] for r in rows["rows"]] == [["100011", "P10"], ["100011", "P11"]]
     # Keep the first by another field, descending.
-    _put_file(client, pid, "geo_parcels", key2_column="PIN", key2_set=True)
+    _put_file(client, pid, "geo_parcels", extra_field="key2", extra_column="PIN")
     w = _put_file(client, pid, "geo_parcels", dupes="first", dupes_sort="key2", dupes_desc=True).json()
     assert _settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == ["key2", "desc"]
     issues = _file(w, "geo_parcels")["id_check"]["issues"]
@@ -319,3 +319,42 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     assert check["ok"] and not any("geo_parcels" in p for p in w["problems"])
     assert not check["warn"] and check["text"] == "✓ 1,496 parcels"  # everything decided: all green
     assert not any("geo_parcels" in x for x in w["warnings"])
+
+
+def test_extra_ids_are_checked_noted_and_joined_on(client, tmp_path, monkeypatch):
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": ["a", "b", "c", "d"], "MAP": ["m1", "m1", None, "m4"], "OLD": ["o1", "o2", "o3", "o4"]},
+        geometry=[box(n, 0, n + 1, 1) for n in range(4)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "u.parquet")
+    pd.DataFrame({"OLD_ID": ["o1", "o3"], "STORIES": [1, 2]}).to_csv(tmp_path / "x.csv", index=False)
+    for name, fn in (("u", "u.parquet"), ("x", "x.csv")):
+        client.post(f"/api/projects/{pid}/files", json={"path": str(tmp_path / fn), "mode": "copy", "name": name})
+    _put_file(client, pid, "u", universe=True, id_column="ID")
+    r = _put_file(client, pid, "geo_parcels", extra_field="key3", extra_column="OLD")
+    assert r.status_code == 422 and "2nd ID first" in r.json()["detail"]
+    w = _put_file(client, pid, "geo_parcels", extra_field="key2", extra_column="MAP").json()
+    (extra,) = _file(w, "geo_parcels")["extra_ids"]
+    assert extra["check"] == {
+        "ok": True,
+        "text": "2 different",
+        "warn": True,
+        "issues": [
+            {"text": "1 repeated ID", "resolved": False, "blocking": False},
+            {"text": "1 blank ID", "resolved": False, "blocking": False},
+        ],
+    }
+    w = _put_file(client, pid, "geo_parcels", extra_field="key2", noted=True).json()
+    (extra,) = _file(w, "geo_parcels")["extra_ids"]
+    assert extra["noted"] and extra["check"]["text"] == "✓ 2 different" and not extra["check"]["warn"]
+    w = _put_file(client, pid, "geo_parcels", extra_field="key3", extra_column="OLD").json()
+    assert [e["field"] for e in _file(w, "geo_parcels")["extra_ids"]] == ["key2", "key3"]
+    # Another file joins on the 3rd ID.
+    w = _put_file(client, pid, "x", holds="parcels", match="key3", id_column="OLD_ID").json()
+    assert _file(w, "x")["id_check"]["text"] == "✓ one row per parcel · 100% match parcels"
+    assert _settings(pid)["data"]["process"]["merge"]["universe"] == ["geo_parcels", {"id": "x", "on": "key3"}]
+    # Removing the 2nd ID moves the 3rd up.
+    w = _put_file(client, pid, "geo_parcels", extra_field="key2").json()
+    assert [(e["field"], e["column"]) for e in _file(w, "geo_parcels")["extra_ids"]] == [("key2", "OLD")]
+    assert (_file(w, "x")["match"], _file(w, "x")["id_column"]) == ("key2", "OLD_ID")

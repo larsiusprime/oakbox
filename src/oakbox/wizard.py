@@ -14,12 +14,12 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import Field
 
 from oakbox import fields
-from oakbox.datafiles import BaseModel, DataFile, Dupes, Holds, Match
+from oakbox.datafiles import EXTRA_IDS, BaseModel, DataFile, Dupes, Holds, Match
 from oakbox.fields import Column, DictionaryField
 from oakbox.projects import Project
 
@@ -232,13 +232,22 @@ class WizardFile(BaseModel):
     rows: int | None
     geometry: bool
     holds: Holds | None
-    match: Match = Field(description="Which ID it joins to the parcel universe on: key, or the second ID (key2).")
+    match: Match = Field(description="Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).")
     id_column: str | None = Field(description="Loaded as the ID it joins on (match).")
     id_check: Check | None
     repeats: Repeats | None = Field(description="Set when the ID repeats or is blank on some rows.")
-    key2_column: str | None
+    extra_ids: list[ExtraId] = Field(description="The universe's extra IDs (key2, key3), each checked.")
     columns: list[Column]
     base: bool
+
+
+class ExtraId(BaseModel):
+    """An extra ID of the parcel universe, for files that join on a different key (F3d)."""
+
+    field: Literal["key2", "key3"]
+    column: str
+    check: Check
+    noted: bool = Field(description="Its repeats and blanks have been noted.")
 
 
 class SaleId(BaseModel):
@@ -481,6 +490,32 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     return Check(ok=found > 0 and not blocked, text=text, warn=open_issues, issues=issues), flagged
 
 
+def _extra_check(files: _Files, name: str, column: str, noted: bool) -> Check:
+    """An extra ID: rows are kept whatever it holds, but repeats and blanks can't be joined on."""
+    values = files.values(name, column)
+    present = [v for v in values if v]
+    distinct = len(set(present))
+    repeated = sum(1 for n in _counts(present).values() if n > 1)
+    blank = len(values) - len(present)
+    issues = []
+    tail = ", noted" if noted else ""
+    if repeated:
+        issues.append(Issue(text=f"{_n(repeated, 'repeated ID')}{tail}", resolved=noted))
+    if blank:
+        issues.append(Issue(text=f"{_n(blank, 'blank ID')}{tail}", resolved=noted))
+    if not issues:
+        return Check(ok=True, text=f"✓ {distinct:,} different")
+    tick = "✓ " if noted else ""
+    return Check(ok=True, text=f"{tick}{distinct:,} different", warn=not noted, issues=issues)
+
+
+def _counts(values: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for v in values:
+        counts[v] = counts.get(v, 0) + 1
+    return counts
+
+
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
     if base is None or base not in files.preview:
         return set()
@@ -612,8 +647,15 @@ def view(project: Project, in_dir: Path) -> Wizard:
     for f in project.files:
         match: Match = "key" if f.name == base else f.match
         key = f.load.get(match)
-        key2 = f.load.get("key2") if f.name == base else None
         id_check, repeats = _id_check(files, f.name, f.holds, base)
+        extra_ids = []
+        if f.name == base and f.name in files.preview:
+            for field in EXTRA_IDS:
+                spec = f.load.get(field)
+                if spec:
+                    noted = field in f.id_acks
+                    check = _extra_check(files, f.name, spec[0], noted)
+                    extra_ids.append(ExtraId(field=field, column=spec[0], check=check, noted=noted))
         out_files.append(
             WizardFile(
                 name=f.name,
@@ -627,7 +669,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 id_column=key[0] if key else None,
                 id_check=id_check,
                 repeats=repeats,
-                key2_column=key2[0] if key2 else None,
+                extra_ids=extra_ids,
                 columns=files.columns(f.name),
                 base=f.name == base,
             )
@@ -842,15 +884,12 @@ def _guess_sales(project: Project, files: _Files) -> None:
         return
     base = _base(project)
     names = {c.name for c in files.columns(sales.name)}
-    if "key" not in sales.load and "key2" not in sales.load:
-        key = base.load.get("key") if base else None
-        key2 = base.load.get("key2") if base else None
-        # The universe's ID column name in the sales file decides; its second ID only if that's all there is.
-        if key and key[0] in names:
-            sales.load["key"] = [key[0], "string"]
-        elif key2 and key2[0] in names:
-            sales.load["key2"] = [key2[0], "string"]
-            sales.match = "key2"
+    if not any(k in sales.load for k in ("key", *EXTRA_IDS)):
+        # The universe's ID column names in the sales file decide: its parcel ID first, then its extra IDs.
+        found = next((k for k in ("key", *EXTRA_IDS) if base and base.load.get(k) and base.load[k][0] in names), None)
+        if found and base:
+            sales.load[found] = [base.load[found][0], "string"]
+            sales.match = cast(Match, found)
         else:
             column = _guess_id(files, sales.name, "sales", None)
             if column:
@@ -898,20 +937,25 @@ def set_file(
     name: str,
     holds: Holds | None,
     id_column: str | None,
-    key2: str | None,
-    key2_set: bool,
+    extra_field: str | None = None,
+    extra_column: str | None = None,
     match: Match | None = None,
     universe: bool = False,
     dupes: Dupes | None = None,
     dupes_sort: str | None = None,
     dupes_desc: bool = False,
     blank_ok: bool | None = None,
+    noted: bool | None = None,
 ) -> None:
-    """A file's part (the parcel universe, sales, or more parcel details) and the ID it joins on."""
+    """A file's part (the parcel universe, sales, or more parcel details) and the ID it joins on.
+
+    ``extra_field`` (key2, key3) with ``extra_column`` sets one of the universe's extra IDs; with
+    no column it removes it (key3 then becomes key2). ``noted`` notes that extra ID's repeats and blanks.
+    """
     files = _Files(project, in_dir)
     entry = files.entry(name)
     columns = {c.name for c in files.columns(name)}
-    for column in (id_column, key2):
+    for column in (id_column, extra_column):
         if column is not None and column not in columns:
             raise ValueError(f"{name} has no column {column}.")
     if universe:
@@ -931,12 +975,35 @@ def set_file(
     if id_column is not None:
         field = "key" if is_base else entry.match
         if not is_base:
-            entry.load.pop("key" if field == "key2" else "key2", None)
+            for other in ("key", *EXTRA_IDS):
+                if other != field:
+                    entry.load.pop(other, None)
         _put(entry, field, [id_column, "string"])
-    if key2_set and is_base:
-        entry.load.pop("key2", None)
-        if key2:
-            _put(entry, "key2", [key2, "string"])
+    if extra_field is not None:
+        if extra_field not in EXTRA_IDS or not is_base:
+            raise ValueError("Extra IDs belong to the parcel universe: key2, then key3.")
+        if extra_column is not None:
+            if extra_field == "key3" and "key2" not in entry.load:
+                raise ValueError("Add the 2nd ID first.")
+            entry.load.pop(extra_field, None)
+            _put(entry, extra_field, [extra_column, "string"])
+            if extra_field in entry.id_acks:
+                entry.id_acks.remove(extra_field)
+        elif noted is not None:
+            others = [a for a in entry.id_acks if a != extra_field]
+            entry.id_acks = sorted([*others, extra_field]) if noted else others
+        else:  # removed: the 3rd ID moves up to 2nd
+            entry.load.pop(extra_field, None)
+            if extra_field in entry.id_acks:
+                entry.id_acks.remove(extra_field)
+            if extra_field == "key2" and "key3" in entry.load:
+                entry.load["key2"] = entry.load.pop("key3")
+                entry.id_acks = ["key2" if a == "key3" else a for a in entry.id_acks]
+                for f in project.files:  # files joined on the 3rd ID follow it
+                    if f is not entry and f.match == "key3":
+                        f.match = "key2"
+                        if "key3" in f.load:
+                            f.load["key2"] = f.load.pop("key3")
     if holds is not None and holds != entry.holds:
         if holds == "sales":  # one sales file: a new one replaces it
             for f in project.files:

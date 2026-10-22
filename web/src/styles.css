@@ -2154,3 +2154,7 @@ a.row-title:hover {
 .wiz-act-label {
   font-weight: 700;
 }
+
+.wiz-add-id {
+  margin-top: 0.5rem;
+}

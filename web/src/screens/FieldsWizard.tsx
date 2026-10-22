@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   Button,
@@ -35,7 +35,7 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Choice, Tick } from "../components/Form";
-import { TipOn } from "../components/Tip";
+import { Tip, TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { AddFile } from "./InputFiles";
@@ -198,14 +198,15 @@ type Change =
       name: string;
       holds?: Holds;
       universe?: boolean;
-      match?: "key" | "key2";
+      match?: "key" | "key2" | "key3";
       id_column?: string;
       dupes?: "first" | "all";
       dupes_sort?: string;
       dupes_desc?: boolean;
       blank_ok?: boolean;
-      key2_column?: string | null;
-      key2_set?: boolean;
+      extra_field?: "key2" | "key3";
+      extra_column?: string | null;
+      noted?: boolean;
     }
   | { kind: "saleId"; column: string | null; make: boolean }
   | { kind: "field"; key: string; file?: string | null; column?: string | null; assume?: boolean };
@@ -229,8 +230,9 @@ function useChange(projectId: string) {
               universe: false,
               match: null,
               id_column: null,
-              key2_column: null,
-              key2_set: false,
+              extra_field: null,
+              extra_column: null,
+              noted: null,
               dupes: null,
               dupes_sort: null,
               dupes_desc: false,
@@ -589,6 +591,7 @@ function FileHeader({ file, onReplace }: { file: WizardFile; onReplace: () => vo
 function UniverseStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
   const base = data.files.find((f) => f.base);
   const [replacing, setReplacing] = useState(false);
+  const [adding, setAdding] = useState(false);
   if (!base || replacing) {
     return (
       <FilePicker
@@ -621,23 +624,179 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
           onChange={(id_column) => change({ kind: "file", name: base.name, id_column })}
         />
         <IdCheck projectId={project.id} data={data} file={base} change={change} />
-        <div className="wiz-label">
-          <TipOn text={w.secondIdTip}>
-            <span>{w.secondId}</span>
-          </TipOn>
-        </div>
-        <Choice
-          label={w.secondId}
-          hideLabel
-          value={base.key2_column ?? NONE}
-          options={[[NONE, w.none] as const, ...columns]}
-          onChange={(v) =>
-            change({ kind: "file", name: base.name, key2_column: v === NONE ? null : v, key2_set: true })
+        {base.extra_ids.map((e) => (
+          <ExtraIdRow key={e.field} projectId={project.id} file={base} extra={e} change={change} />
+        ))}
+        {adding && <NewExtraIdRow file={base} change={change} done={() => setAdding(false)} />}
+      </div>
+      {!adding && base.extra_ids.length < EXTRA_IDS.length && (
+        <Tip text={w.extraIdTip}>
+          <Button className="button wiz-add-id" onPress={() => setAdding(true)}>
+            <Plus aria-hidden="true" size="1em" />
+            {w.addId(w.idOrdinal[EXTRA_IDS[base.extra_ids.length] ?? "key2"] ?? "")}
+          </Button>
+        </Tip>
+      )}
+    </>
+  );
+}
+
+const EXTRA_IDS = ["key2", "key3"] as const;
+
+/** The IDs a file can match the universe on: its parcel ID, then its extra IDs. */
+function matchOptions(base: WizardFile | undefined): (readonly ["key" | "key2" | "key3", string])[] {
+  return [
+    ["key", w.parcelId] as const,
+    ...(base?.extra_ids ?? []).map((e) => [e.field, `${w.idOrdinal[e.field]} (${e.column})`] as const),
+  ];
+}
+
+function ExtraIdRow({
+  projectId,
+  file,
+  extra,
+  change,
+}: {
+  projectId: string;
+  file: WizardFile;
+  extra: WizardFile["extra_ids"][number];
+  change: Mutate;
+}) {
+  const [open, setOpen] = useState(false);
+  const ordinal = w.idOrdinal[extra.field] ?? extra.field;
+  return (
+    <>
+      <div className="wiz-label">
+        <TipOn text={w.extraIdTip}>
+          <span>{ordinal}</span>
+        </TipOn>
+        <small>{w.optional}</small>
+      </div>
+      <Choice
+        label={ordinal}
+        hideLabel
+        value={extra.column}
+        options={[[NONE, w.removeId] as const, ...file.columns.map((c) => [c.name, c.name] as const)]}
+        onChange={(v) =>
+          change({
+            kind: "file",
+            name: file.name,
+            extra_field: extra.field,
+            extra_column: v === NONE ? null : v,
+          })
+        }
+      />
+      <div className="wiz-samples wiz-check-lines">
+        <CheckText check={extra.check} />
+        <Issues
+          issues={extra.check.issues}
+          action={
+            extra.check.issues.length > 0 && (
+              <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
+                {w.dupes.resolve}
+              </Button>
+            )
           }
         />
-        <div />
+      </div>
+      {open && (
+        <NoteDialog
+          projectId={projectId}
+          file={file}
+          extra={extra}
+          change={change}
+          close={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutate; done: () => void }) {
+  const field = EXTRA_IDS[file.extra_ids.length] ?? "key2";
+  const ordinal = w.idOrdinal[field] ?? field;
+  return (
+    <>
+      <div className="wiz-label">
+        <TipOn text={w.extraIdTip}>
+          <span>{ordinal}</span>
+        </TipOn>
+        <small>{w.optional}</small>
+      </div>
+      <Choice
+        label={ordinal}
+        hideLabel
+        value={null}
+        placeholder={w.choose}
+        options={file.columns.map((c) => [c.name, c.name] as const)}
+        onChange={(v) =>
+          change({ kind: "file", name: file.name, extra_field: field, extra_column: v }, { onSuccess: done })
+        }
+      />
+      <div className="wiz-samples">
+        <Button className="wiz-link" onPress={done}>
+          {w.cancel}
+        </Button>
       </div>
     </>
+  );
+}
+
+/** An extra ID's repeats and blanks: rows are kept, but can't be joined on by this ID. Noting it is the action. */
+function NoteDialog({
+  file,
+  extra,
+  change,
+  close,
+}: {
+  projectId: string;
+  file: WizardFile;
+  extra: WizardFile["extra_ids"][number];
+  change: Mutate;
+  close: () => void;
+}) {
+  const d = w.dupes;
+  const [noted, setNoted] = useState(extra.noted);
+  return (
+    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(o) => !o && close()}>
+      <Modal className="modal wiz-modal">
+        <Dialog className="modal-body">
+          <Heading slot="title" className="modal-title">
+            {d.title(file.name, `${extra.column}, ${w.idOrdinal[extra.field]}`)}
+          </Heading>
+          <div className="wiz-section-head-row">
+            <h3 className="wiz-sub">
+              {extra.check.issues.map((i) => i.text.replace(", noted", "")).join(" · ")}
+            </h3>
+            <span className="wiz-from">{w.noteMeans}</span>
+          </div>
+          <div className="wiz-act">
+            <span className="wiz-act-label">{d.confirm}</span>
+            <Tick isSelected={noted} onChange={setNoted}>
+              {w.noteOk}
+            </Tick>
+          </div>
+          <hr className="wiz-rule" />
+          <div className="form-actions">
+            <Button
+              className="button button-primary"
+              isDisabled={noted === extra.noted}
+              onPress={() =>
+                change(
+                  { kind: "file", name: file.name, extra_field: extra.field, noted },
+                  { onSuccess: close },
+                )
+              }
+            >
+              {w.save}
+            </Button>
+            <Button className="button" onPress={close}>
+              {w.cancel}
+            </Button>
+          </div>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
   );
 }
 
@@ -698,20 +857,18 @@ function IdRow({
   base: WizardFile | undefined;
   change: Mutate;
 }) {
-  const canKey2 = Boolean(base?.key2_column);
+  const options = matchOptions(base);
+  const several = options.length > 1;
   return (
     <div className="wiz-grid">
-      <div className="wiz-label">{canKey2 ? w.matchBy : w.parcelId}</div>
+      <div className="wiz-label">{several ? w.matchBy : w.parcelId}</div>
       <div className="wiz-pair">
-        {canKey2 && (
+        {several && (
           <Choice
             label={w.matchBy}
             hideLabel
             value={file.match}
-            options={[
-              ["key", w.matchKey],
-              ["key2", w.matchKey2],
-            ]}
+            options={options}
             onChange={(match) => change({ kind: "file", name: file.name, match })}
           />
         )}
@@ -1020,7 +1177,7 @@ function OtherFileDialog({
   const base = data.files.find((f) => f.base);
   const taken = data.files.filter((f) => f.base || f.holds === "sales").map((f) => f.name);
   const [file, setFile] = useState<string | null>(null);
-  const [match, setMatch] = useState<"key" | "key2">("key");
+  const [match, setMatch] = useState<"key" | "key2" | "key3">("key");
   const [idColumn, setIdColumn] = useState<string | null>(null);
   const [column, setColumn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1048,17 +1205,14 @@ function OtherFileDialog({
               <div className="wiz-label">{w.otherFile}</div>
               <div className="mono">{w.fileLabel(chosen.name, chosen.filename)}</div>
               <div />
-              {base?.key2_column && (
+              {matchOptions(base).length > 1 && (
                 <>
                   <div className="wiz-label">{w.matchBy}</div>
                   <Choice
                     label={w.matchBy}
                     hideLabel
                     value={match}
-                    options={[
-                      ["key", w.matchKey],
-                      ["key2", w.matchKey2],
-                    ]}
+                    options={matchOptions(base)}
                     onChange={setMatch}
                   />
                   <div />

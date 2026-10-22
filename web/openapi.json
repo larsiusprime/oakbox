@@ -1358,10 +1358,11 @@
       "type": "string",
       "enum": [
        "key",
-       "key2"
+       "key2",
+       "key3"
       ],
       "title": "Match",
-      "description": "The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d).",
+      "description": "The ID it joins to the parcel universe on: key, or an extra ID (key2, key3; F3d).",
       "default": "key"
      },
      "dupes": {
@@ -1404,6 +1405,14 @@
       "description": "The rows with no ID have been acknowledged as dropped (F3d).",
       "default": false
      },
+     "id_acks": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Id Acks",
+      "description": "Extra IDs (key2, key3) whose repeats and blanks have been noted (F3d)."
+     },
      "holds": {
       "anyOf": [
        {
@@ -1434,6 +1443,7 @@
      "dupes_sort",
      "dupes_desc",
      "blank_ok",
+     "id_acks",
      "holds"
     ],
     "title": "DataFile",
@@ -1663,6 +1673,39 @@
      "name"
     ],
     "title": "EntryName"
+   },
+   "ExtraId": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "enum": [
+       "key2",
+       "key3"
+      ],
+      "title": "Field"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "check": {
+      "$ref": "#/components/schemas/Check"
+     },
+     "noted": {
+      "type": "boolean",
+      "title": "Noted",
+      "description": "Its repeats and blanks have been noted."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "column",
+     "check",
+     "noted"
+    ],
+    "title": "ExtraId",
+    "description": "An extra ID of the parcel universe, for files that join on a different key (F3d)."
    },
    "FileCheck": {
     "properties": {
@@ -2735,10 +2778,11 @@
       "type": "string",
       "enum": [
        "key",
-       "key2"
+       "key2",
+       "key3"
       ],
       "title": "Match",
-      "description": "Which ID it joins to the parcel universe on: key, or the second ID (key2)."
+      "description": "Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3)."
      },
      "id_column": {
       "anyOf": [
@@ -2773,16 +2817,13 @@
       ],
       "description": "Set when the ID repeats or is blank on some rows."
      },
-     "key2_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Key2 Column"
+     "extra_ids": {
+      "items": {
+       "$ref": "#/components/schemas/ExtraId"
+      },
+      "type": "array",
+      "title": "Extra Ids",
+      "description": "The universe's extra IDs (key2, key3), each checked."
      },
      "columns": {
       "items": {
@@ -2809,7 +2850,7 @@
      "id_column",
      "id_check",
      "repeats",
-     "key2_column",
+     "extra_ids",
      "columns",
      "base"
     ],
@@ -2845,7 +2886,8 @@
         "type": "string",
         "enum": [
          "key",
-         "key2"
+         "key2",
+         "key3"
         ]
        },
        {
@@ -2867,7 +2909,23 @@
       "title": "Id Column",
       "description": "The column loaded as the ID it joins on."
      },
-     "key2_column": {
+     "extra_field": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "key2",
+         "key3"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Extra Field",
+      "description": "One of the universe's extra IDs: set to extra_column, or removed if it's null."
+     },
+     "extra_column": {
       "anyOf": [
        {
         "type": "string"
@@ -2876,13 +2934,19 @@
         "type": "null"
        }
       ],
-      "title": "Key2 Column"
+      "title": "Extra Column"
      },
-     "key2_set": {
-      "type": "boolean",
-      "title": "Key2 Set",
-      "description": "Set the universe's key2 to key2_column (null: none).",
-      "default": false
+     "noted": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Noted",
+      "description": "With extra_field: its repeats and blanks are noted."
      },
      "dupes": {
       "anyOf": [

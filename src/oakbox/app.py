@@ -83,8 +83,11 @@ class WizardFileChoice(BaseModel):
     universe: bool = Field(default=False, description="Make this the parcel universe file (it needs shapes).")
     match: datafiles.Match | None = Field(default=None, description="Join on the parcel ID (key) or second ID (key2).")
     id_column: str | None = Field(default=None, description="The column loaded as the ID it joins on.")
-    key2_column: str | None = None
-    key2_set: bool = Field(default=False, description="Set the universe's key2 to key2_column (null: none).")
+    extra_field: Literal["key2", "key3"] | None = Field(
+        default=None, description="One of the universe's extra IDs: set to extra_column, or removed if it's null."
+    )
+    extra_column: str | None = None
+    noted: bool | None = Field(default=None, description="With extra_field: its repeats and blanks are noted.")
     dupes: datafiles.Dupes | None = Field(
         default=None, description="Repeated IDs: keep the first of each, or drop all."
     )
@@ -454,14 +457,15 @@ def create_app() -> FastAPI:
                 name,
                 body.holds,
                 body.id_column,
-                body.key2_column,
-                body.key2_set,
+                body.extra_field,
+                body.extra_column,
                 body.match,
                 body.universe,
                 body.dupes,
                 body.dupes_sort,
                 body.dupes_desc,
                 body.blank_ok,
+                body.noted,
             ),
         )
 

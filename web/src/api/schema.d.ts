@@ -599,11 +599,11 @@ export interface components {
             };
             /**
              * Match
-             * @description The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d).
+             * @description The ID it joins to the parcel universe on: key, or an extra ID (key2, key3; F3d).
              * @default key
              * @enum {string}
              */
-            match: "key" | "key2";
+            match: "key" | "key2" | "key3";
             /**
              * Dupes
              * @description Repeated IDs in a parcel file (F3d): keep the first row of each, or drop them all. None: keep the first, the default, if there are only a few.
@@ -626,6 +626,11 @@ export interface components {
              * @default false
              */
             blank_ok: boolean;
+            /**
+             * Id Acks
+             * @description Extra IDs (key2, key3) whose repeats and blanks have been noted (F3d).
+             */
+            id_acks: string[];
             /**
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
@@ -733,6 +738,25 @@ export interface components {
         EntryName: {
             /** Name */
             name: string;
+        };
+        /**
+         * ExtraId
+         * @description An extra ID of the parcel universe, for files that join on a different key (F3d).
+         */
+        ExtraId: {
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "key2" | "key3";
+            /** Column */
+            column: string;
+            check: components["schemas"]["Check"];
+            /**
+             * Noted
+             * @description Its repeats and blanks have been noted.
+             */
+            noted: boolean;
         };
         /**
          * FileCheck
@@ -1222,10 +1246,10 @@ export interface components {
             holds: ("parcels" | "sales" | "unused") | null;
             /**
              * Match
-             * @description Which ID it joins to the parcel universe on: key, or the second ID (key2).
+             * @description Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).
              * @enum {string}
              */
-            match: "key" | "key2";
+            match: "key" | "key2" | "key3";
             /**
              * Id Column
              * @description Loaded as the ID it joins on (match).
@@ -1234,8 +1258,11 @@ export interface components {
             id_check: components["schemas"]["Check"] | null;
             /** @description Set when the ID repeats or is blank on some rows. */
             repeats: components["schemas"]["Repeats"] | null;
-            /** Key2 Column */
-            key2_column: string | null;
+            /**
+             * Extra Ids
+             * @description The universe's extra IDs (key2, key3), each checked.
+             */
+            extra_ids: components["schemas"]["ExtraId"][];
             /** Columns */
             columns: components["schemas"]["Column"][];
             /** Base */
@@ -1258,20 +1285,24 @@ export interface components {
              * Match
              * @description Join on the parcel ID (key) or second ID (key2).
              */
-            match?: ("key" | "key2") | null;
+            match?: ("key" | "key2" | "key3") | null;
             /**
              * Id Column
              * @description The column loaded as the ID it joins on.
              */
             id_column?: string | null;
-            /** Key2 Column */
-            key2_column?: string | null;
             /**
-             * Key2 Set
-             * @description Set the universe's key2 to key2_column (null: none).
-             * @default false
+             * Extra Field
+             * @description One of the universe's extra IDs: set to extra_column, or removed if it's null.
              */
-            key2_set: boolean;
+            extra_field?: ("key2" | "key3") | null;
+            /** Extra Column */
+            extra_column?: string | null;
+            /**
+             * Noted
+             * @description With extra_field: its repeats and blanks are noted.
+             */
+            noted?: boolean | null;
             /**
              * Dupes
              * @description Repeated IDs: keep the first of each, or drop all.

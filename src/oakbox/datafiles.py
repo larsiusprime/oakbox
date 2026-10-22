@@ -27,7 +27,9 @@ class BaseModel(_PydanticBase):
 
 
 Holds = Literal["parcels", "sales", "unused"]
-Match = Literal["key", "key2"]
+Match = Literal["key", "key2", "key3"]
+# The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.
+EXTRA_IDS = ("key2", "key3")
 Dupes = Literal["first", "all"]
 
 
@@ -45,7 +47,7 @@ class DataFile(BaseModel):
         default_factory=dict, description="data.load.<name>.calc: fields OpenAVMKit works out after loading (F3d)."
     )
     match: Match = Field(
-        default="key", description="The ID it joins to the parcel universe on: key, or the second ID, key2 (F3d)."
+        default="key", description="The ID it joins to the parcel universe on: key, or an extra ID (key2, key3; F3d)."
     )
     dupes: Dupes | None = Field(
         default=None,
@@ -55,6 +57,9 @@ class DataFile(BaseModel):
     dupes_sort: str | None = Field(default=None, description="The field rows are sorted by before keeping the first.")
     dupes_desc: bool = Field(default=False, description="Sort descending before keeping the first.")
     blank_ok: bool = Field(default=False, description="The rows with no ID have been acknowledged as dropped (F3d).")
+    id_acks: list[str] = Field(
+        default_factory=list, description="Extra IDs (key2, key3) whose repeats and blanks have been noted (F3d)."
+    )
     holds: Holds | None = Field(
         default=None,
         description="What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.",
