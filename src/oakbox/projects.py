@@ -60,6 +60,7 @@ class WizardState(BaseModel):
     base: str | None = Field(default=None, description="The parcel file the others join to.")
     visited: list[str] = Field(default_factory=list, description="Steps shown at least once.")
     skipped: list[str] = Field(default_factory=list, description='Steps answered with "I don\'t have these".')
+    confirmed: list[str] = Field(default_factory=list, description="Steps moved on from with Next (or Start).")
     decided: list[str] = Field(
         default_factory=list, description="Fields chosen or guessed once, so a guess never replaces them."
     )

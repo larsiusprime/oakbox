@@ -801,6 +801,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/steps/{step}/confirm": {
+   "post": {
+    "summary": "Confirm Step",
+    "description": "Next (or Start) on a step: an optional step is complete once moved on from (F3d).",
+    "operationId": "confirm_step_api_projects__project_id__wizard_steps__step__confirm_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "step",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Step"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/steps/{step}/skip": {
    "post": {
     "summary": "Skip Step",
@@ -2408,11 +2457,13 @@
      "status": {
       "type": "string",
       "enum": [
-       "todo",
-       "done",
-       "skipped"
+       "blank",
+       "blocked",
+       "attention",
+       "done"
       ],
-      "title": "Status"
+      "title": "Status",
+      "description": "blank: not visited (or an optional step not confirmed yet); blocked: something here stops a run; attention: something to decide, or recommended and missing; done: complete."
      },
      "fields": {
       "items": {
@@ -3020,6 +3071,14 @@
       "title": "Skipped",
       "description": "Steps answered with \"I don't have these\"."
      },
+     "confirmed": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Confirmed",
+      "description": "Steps moved on from with Next (or Start)."
+     },
      "decided": {
       "items": {
        "type": "string"
@@ -3034,6 +3093,7 @@
      "base",
      "visited",
      "skipped",
+     "confirmed",
      "decided"
     ],
     "title": "WizardState",

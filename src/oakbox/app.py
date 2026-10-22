@@ -438,6 +438,11 @@ def create_app() -> FastAPI:
         """A step is shown: fill in guesses for what on it hasn't been decided yet (F3d)."""
         return _change(project_id, lambda p, d: wizard.visit(p, d, step))
 
+    @app.post("/api/projects/{project_id}/wizard/steps/{step}/confirm")
+    def confirm_step(project_id: str, step: str) -> wizard.Wizard:
+        """Next (or Start) on a step: an optional step is complete once moved on from (F3d)."""
+        return _change(project_id, lambda p, _d: wizard.confirm(p, step))
+
     @app.post("/api/projects/{project_id}/wizard/steps/{step}/skip")
     def skip_step(project_id: str, step: str) -> wizard.Wizard:
         """'I don't have these': nothing loaded for the step's fields (F3d)."""

@@ -73,7 +73,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const projectId = project.id;
   const flat = order(data.steps);
   // Opens at the first step not done yet, or at Review (SPEC F3d).
-  const [opening] = useState(() => flat.find((s) => s.status === "todo")?.key ?? "review");
+  const [opening] = useState(() => flat.find((s) => s.status !== "done")?.key ?? "review");
   const wanted = step === "details" ? "big_five" : step;
   const current = flat.find((s) => s.key === wanted) ?? flat.find((s) => s.key === opening) ?? flat[0];
   const change = useChange(projectId);
@@ -149,7 +149,13 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             </Button>
           )}
           {next && (
-            <Button className="button button-primary" onPress={() => go(next.key)}>
+            <Button
+              className="button button-primary"
+              onPress={() =>
+                // Moving on confirms the step: an optional step is then complete (SPEC F3d).
+                change.mutate({ kind: "confirm", step: current.key }, { onSuccess: () => go(next.key) })
+              }
+            >
               {current.key === "welcome" ? w.start : w.next}
             </Button>
           )}
@@ -159,13 +165,21 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   );
 }
 
+// A step's mark (SPEC F3d): ✅ complete, ⚠ to decide, ❌ blocks a run; blank shows its number.
+const STATUS_ICONS: Record<string, string | null> = {
+  done: resolvedIcon,
+  attention: warningIcon,
+  blocked: blockingIcon,
+  blank: null,
+};
+
 function StepList({ steps, current, go }: { steps: WizardStep[]; current: string; go: (k: string) => void }) {
   const tops = steps.filter((s) => !s.parent);
   return (
     <ol className="wiz-steps">
       {steps.map((s) => {
         const n = tops.indexOf(s) + 1;
-        const mark = s.status === "done" ? "✓" : s.status === "skipped" ? "–" : s.parent ? "" : String(n);
+        const icon = STATUS_ICONS[s.status];
         const classes = ["wiz-step", s.parent ? "sub" : "", s.key === current ? "now" : "", s.status].join(
           " ",
         );
@@ -177,7 +191,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               aria-current={s.key === current ? "step" : undefined}
             >
               <span className="n" aria-hidden="true">
-                {mark}
+                {icon ? <img src={icon} alt="" className="wiz-step-icon" /> : s.parent ? "" : String(n)}
               </span>
               {w.steps[s.key]?.title ?? s.key}
             </button>
@@ -192,6 +206,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
 
 type Change =
   | { kind: "visit"; step: string }
+  | { kind: "confirm"; step: string }
   | { kind: "skip"; step: string }
   | {
       kind: "file";
@@ -215,7 +230,7 @@ function useChange(projectId: string) {
   return useMutation({
     mutationFn: async (c: Change): Promise<Wizard> => {
       const project_id = projectId;
-      if (c.kind === "visit" || c.kind === "skip") {
+      if (c.kind === "visit" || c.kind === "skip" || c.kind === "confirm") {
         const path = `/api/projects/{project_id}/wizard/steps/{step}/${c.kind}` as const;
         return unwrap(await api.POST(path, { params: { path: { project_id, step: c.step } } }));
       }

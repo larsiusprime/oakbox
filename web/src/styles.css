@@ -1749,10 +1749,6 @@ a.row-title:hover {
   color: var(--ok);
 }
 
-.wiz-step.skipped button {
-  color: #8a8f94;
-}
-
 .wiz-step.sub button {
   padding-left: 2.25rem;
   font-size: 0.88rem;
@@ -2157,4 +2153,10 @@ a.row-title:hover {
 
 .wiz-add-id {
   margin-top: 0.5rem;
+}
+
+.wiz-step-icon {
+  width: 0.95em;
+  height: 0.95em;
+  vertical-align: -0.1em;
 }

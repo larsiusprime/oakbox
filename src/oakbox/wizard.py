@@ -102,13 +102,9 @@ STEPS: list[Step] = [
 STEP_KEYS = [s.key for s in STEPS]
 SALES_FIELDS = {f for s in STEPS if s.sales for f in s.fields}
 # The "big five" a model needs: building size is required; land size comes from the shapes when
-# missing; age, quality and condition are recommended.
+# missing; age is flagged when missing; quality and condition are nice to have.
 REQUIRED = ["bldg_area_finished_sqft"]
-RECOMMENDED = [
-    ("bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "bldg_effective_age_years"),
-    ("bldg_quality_txt", "bldg_quality_num"),
-    ("bldg_condition_txt", "bldg_condition_num"),
-]
+RECOMMENDED = [("bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "bldg_effective_age_years")]
 # Required by OpenAVMKit's sales merge; without a column, an assumption confirmed in a warning (F3d).
 ASSUMABLE = {"valid_sale": True, "vacant_sale": False}
 # Computed fields asked only when what they're computed from isn't loaded.
@@ -276,10 +272,19 @@ class WizardField(BaseModel):
     hidden: bool = Field(description="Computed from a field that's loaded, so not asked (e.g. age from year built).")
 
 
+Status = Literal["blank", "blocked", "attention", "done"]
+# Worst first: More details shows the worst of its parts.
+ORDER: dict[str, int] = {"blocked": 0, "attention": 1, "blank": 2, "done": 3}
+AGE = ("bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "bldg_effective_age_years")
+
+
 class StepView(BaseModel):
     key: str
     parent: str | None
-    status: Literal["todo", "done", "skipped"]
+    status: Status = Field(
+        description="blank: not visited (or an optional step not confirmed yet); blocked: something here stops a "
+        "run; attention: something to decide, or recommended and missing; done: complete."
+    )
     fields: list[str]
     more: list[str]
     sales: bool
@@ -697,21 +702,23 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     )
                 )
 
+    problems = _problems(out_files, sale_id, out_fields)
+    warnings = _warnings(out_files, out_fields)
     steps = []
     for step in STEPS:
-        status: Literal["todo", "done", "skipped"] = "todo"
-        if step.key in project.wizard.skipped:
-            status = "skipped"
-        elif step.key in project.wizard.visited:
-            status = "done"
+        status = _status(project, step, out_files, sale_id, out_fields, problems, warnings)
         steps.append(
             StepView(
                 key=step.key, parent=step.parent, status=status, fields=step.fields, more=step.more, sales=step.sales
             )
         )
     details = next(s for s in steps if s.key == "details")
-    subs = [s for s in steps if s.parent == "details"]
-    details.status = "done" if subs and all(s.status != "todo" for s in subs) else "todo"
+    subs = [s.status for s in steps if s.parent == "details"]
+    worst = min(subs, key=lambda x: ORDER[x])
+    if worst in ("blocked", "attention"):
+        details.status = worst
+    else:
+        details.status = "done" if all(x == "done" for x in subs) else "blank"
 
     not_loaded = []
     for f in project.files:
@@ -726,10 +733,62 @@ def view(project: Project, in_dir: Path) -> Wizard:
         sale_id=sale_id,
         fields=out_fields,
         used=used,
-        problems=_problems(out_files, sale_id, out_fields),
-        warnings=_warnings(out_files, out_fields),
+        problems=problems,
+        warnings=warnings,
         not_loaded=not_loaded,
     )
+
+
+def _status(
+    project: Project,
+    step: Step,
+    files: list[WizardFile],
+    sale_id: SaleId,
+    flds: list[WizardField],
+    problems: list[str],
+    warnings: list[str],
+) -> Status:
+    """A step's mark, worked out from what's on it (SPEC F3d). Blank until it's been visited."""
+    w = project.wizard
+    if step.key == "details" or step.key not in w.visited:
+        return "blank"  # More details is the worst of its parts, filled in by the caller
+    if step.key == "welcome":
+        return "done" if "welcome" in w.confirmed else "blank"
+    if step.key == "review":
+        return "blocked" if problems else "attention" if warnings else "done"
+    mine = [f for f in flds if f.step == step.key and not f.hidden]
+    failing = any(f.check is not None and not f.check.ok for f in mine)
+    if step.key == "universe":
+        base = next((f for f in files if f.base), None)
+        if base is None or base.name != BASE_NAME or base.id_check is None or not base.id_check.ok:
+            return "blocked"
+        return "attention" if base.id_check.warn else "done"
+    if step.key == "sales":
+        sales = next((f for f in files if f.holds == "sales"), None)
+        if sales is None or sales.id_check is None or not sales.id_check.ok or failing:
+            return "blocked"
+        if (sale_id.column is None and not sale_id.made) or (sale_id.check is not None and not sale_id.check.ok):
+            return "blocked"
+        if any(not f.sources and not f.assumed for f in mine if f.key in ("sale_price", "sale_date", *ASSUMABLE)):
+            return "blocked"
+        return "attention" if sales.id_check.warn else "done"
+    if step.key == "big_five":
+        by_key = {f.key: f for f in flds}
+        if failing or any(not by_key[k].sources for k in REQUIRED if k in by_key):
+            return "blocked"
+        # Age is the one to flag; quality and condition are nice to have, and many places lack them.
+        return "done" if any(by_key[k].sources for k in AGE if k in by_key) else "attention"
+    if failing:
+        return "blocked"
+    return "done" if step.key in w.confirmed or step.key in w.skipped else "blank"
+
+
+def confirm(project: Project, step: str) -> None:
+    """Next (or Start) on a step: an optional step counts as complete once it's been moved on from."""
+    if step not in STEP_KEYS:
+        raise LookupError(step)
+    if step not in project.wizard.confirmed:
+        project.wizard.confirmed.append(step)
 
 
 def _rows(files: _Files, name: str) -> int | None:

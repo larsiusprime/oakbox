@@ -317,6 +317,10 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
   3. **Sales:** add one file. It matches the universe by parcel ID, or by one of its extra IDs (OpenAVMKit then looks up `key` from `geo_parcels` by `key2`: `data.process.enrich.ref_tables.sales`). Sale ID (a column, or made from the ID + sale date), sale price, sale date, valid and vacant sale (or assumed, after a warning).
   4. **More details:** Big five (building size, required; land size, filled from the shapes if missing; year built / effective year built, quality, condition, recommended), Location, Land, Building, Rooms & features, Assessed values, Other details.
   5. **Review:** what blocks a run, then what's recommended, then every source.
+- **Step marks come from what's on each step,** recomputed on every change, in the same colours as the issues: ✅ complete, ⚠ something to decide (or age missing on Big five), ❌ blocks a run. A step not visited yet shows only its number, never a ❌ ahead of time.
+  - Parcel universe, Sales and Big five are complete when their required parts are there: a universe file with shapes and a resolved parcel ID; a sales file, its IDs, price, date, valid and vacant sale; building size. Big five shows ⚠ only for missing age; quality and condition are nice to have.
+  - The optional steps (Location, Land, Building…) are complete once confirmed by **Next** or **I don't have these**. Welcome by **Start**.
+  - More details shows the worst of its parts; Review shows ❌ while anything blocks a run, ⚠ while something is recommended.
 - **"In another file…"** on every parcel field: pick or add the file, its ID column (matching the parcel ID, or the second ID), and the field's column. The file joins the universe (`merge.universe`, on `key2` when matched that way), and the steps already seen guess from it too.
 - One universe file and one sales file for now; more complex merges come later.
 - **Repeated and blank IDs** (one standard notice and dialog, wherever an ID is checked):

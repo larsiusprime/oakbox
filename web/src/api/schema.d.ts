@@ -345,6 +345,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/steps/{step}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Step
+         * @description Next (or Start) on a step: an optional step is complete once moved on from (F3d).
+         */
+        post: operations["confirm_step_api_projects__project_id__wizard_steps__step__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/steps/{step}/skip": {
         parameters: {
             query?: never;
@@ -1103,9 +1123,10 @@ export interface components {
             parent: string | null;
             /**
              * Status
+             * @description blank: not visited (or an optional step not confirmed yet); blocked: something here stops a run; attention: something to decide, or recommended and missing; done: complete.
              * @enum {string}
              */
-            status: "todo" | "done" | "skipped";
+            status: "blank" | "blocked" | "attention" | "done";
             /** Fields */
             fields: string[];
             /** More */
@@ -1341,6 +1362,11 @@ export interface components {
              * @description Steps answered with "I don't have these".
              */
             skipped: string[];
+            /**
+             * Confirmed
+             * @description Steps moved on from with Next (or Start).
+             */
+            confirmed: string[];
             /**
              * Decided
              * @description Fields chosen or guessed once, so a guess never replaces them.
@@ -1931,6 +1957,38 @@ export interface operations {
         };
     };
     visit_step_api_projects__project_id__wizard_steps__step__visit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                step: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_step_api_projects__project_id__wizard_steps__step__confirm_post: {
         parameters: {
             query?: never;
             header?: never;

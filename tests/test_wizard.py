@@ -137,11 +137,8 @@ def test_a_field_from_another_file_with_its_key(client, pid):
     w = r.json()
     assert _field(w, "bldg_area_finished_sqft")["sources"] == [{"file": "cama", "column": "LIVING_AREA"}]
     assert not any("a model needs it" in p for p in w["problems"])
-    assert w["warnings"] == [  # Big five not visited yet, so nothing guessed for these
-        "No building year built: recommended for a good model.",
-        "No building quality: recommended for a good model.",
-        "No building condition: recommended for a good model.",
-    ]
+    # Big five not visited yet, so nothing guessed; only age is flagged (quality and condition are nice to have)
+    assert w["warnings"] == ["No building year built: recommended for a good model."]
     # Many repeats (several rows per parcel): it joins only once you say what to do with them.
     w = _put_file(client, pid, "permits", holds="parcels", id_column="PROP_ID").json()
     check = _file(w, "permits")["id_check"]
@@ -346,3 +343,41 @@ def test_extra_ids_are_added_removed_and_joined_on(client, tmp_path, monkeypatch
     w = _put_file(client, pid, "geo_parcels", extra_field="key2").json()
     assert [(e["field"], e["column"]) for e in _file(w, "geo_parcels")["extra_ids"]] == [("key2", "OLD")]
     assert (_file(w, "x")["match"], _file(w, "x")["id_column"]) == ("key2", "OLD_ID")
+
+
+def test_step_marks_come_from_what_is_on_each_step(client, pid):
+    def marks():
+        w = client.get(f"/api/projects/{pid}/wizard").json()
+        return {s["key"]: s["status"] for s in w["steps"]}
+
+    assert set(marks().values()) == {"blank"}  # nothing visited: nothing shown, not even what's missing
+    client.post(f"/api/projects/{pid}/wizard/steps/welcome/visit")
+    assert marks()["welcome"] == "blank"
+    client.post(f"/api/projects/{pid}/wizard/steps/welcome/confirm")  # Start
+    assert marks()["welcome"] == "done"
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    assert marks()["universe"] == "blocked"  # visited, no file yet
+    _put_file(client, pid, "shapes", universe=True)
+    assert marks()["universe"] == "done"
+    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    assert marks()["sales"] == "blocked"  # no sales file
+    _put_file(client, pid, "sales", holds="sales")
+    for key in ("valid_sale", "vacant_sale"):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"assume": True})
+    assert marks()["sales"] == "done"
+    client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit")
+    assert marks()["big_five"] == "blocked"  # no building size
+    _put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID")  # guesses year built, area too
+    client.put(
+        f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"}
+    )
+    assert marks()["big_five"] == "done"
+    client.put(f"/api/projects/{pid}/wizard/fields/bldg_year_built", json={})
+    assert marks()["big_five"] == "attention"  # no age
+    # Optional steps: blank when only seen, done once moved on from (Next) or skipped.
+    client.post(f"/api/projects/{pid}/wizard/steps/location/visit")
+    assert marks()["location"] == "blank"
+    client.post(f"/api/projects/{pid}/wizard/steps/location/confirm")
+    client.post(f"/api/projects/{pid}/wizard/steps/land/skip")
+    m = marks()
+    assert (m["location"], m["land"], m["details"]) == ("done", "done", "attention")  # worst of its parts
