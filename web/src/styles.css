@@ -2190,5 +2190,6 @@ a.row-title:hover {
 
 /* The add-file panel's Import sits on the right, like the wizard's Next, so it isn't skipped. */
 .add-file .form-actions {
+  justify-self: stretch;
   justify-content: flex-end;
 }
