@@ -2058,12 +2058,11 @@ a.row-title:hover {
 
 .wiz-group {
   grid-column: 1 / -1;
-  margin: 0.5rem 0 -0.1rem;
-  padding-bottom: 0.1rem;
-  font-size: 0.92rem;
-  border-bottom: 1px solid #e1e1e1;
+  margin: 0.2rem 0 -0.2rem;
+  font-size: 1rem;
 }
 
-.wiz-group:first-child {
-  margin-top: 0;
+.wiz-in-group {
+  padding-left: 1.1rem;
+  font-weight: 400;
 }

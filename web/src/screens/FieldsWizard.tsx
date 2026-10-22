@@ -497,23 +497,39 @@ function FieldsStep({
   return (
     <>
       <div className="wiz-grid">
-        {groupsFor(step.key, shown).map(([title, fields]) => [
-          title && (
-            <h3 key={`group-${title}`} className="wiz-group">
-              {title}
-            </h3>
-          ),
-          ...fields.map((f) => (
-            <FieldRow
-              key={f.key}
-              project={project}
-              data={data}
-              field={f}
-              sales={step.sales}
-              change={change}
-            />
-          )),
-        ])}
+        {groupsFor(step.key, shown).map(([title, fields]) =>
+          // A section of one field is that row, numbered; a section of several gets a heading.
+          title && fields.length === 1 && fields[0]
+            ? [
+                <FieldRow
+                  key={fields[0].key}
+                  project={project}
+                  data={data}
+                  field={fields[0]}
+                  sales={step.sales}
+                  change={change}
+                  label={title}
+                />,
+              ]
+            : [
+                title && (
+                  <h3 key={`group-${title}`} className="wiz-group">
+                    {title}
+                  </h3>
+                ),
+                ...fields.map((f) => (
+                  <FieldRow
+                    key={f.key}
+                    project={project}
+                    data={data}
+                    field={f}
+                    sales={step.sales}
+                    change={change}
+                    inGroup={Boolean(title)}
+                  />
+                )),
+              ],
+        )}
       </div>
       {hasMore && (
         <Button className="wiz-more" onPress={() => setMore(!more)}>
@@ -539,15 +555,24 @@ function FieldRow({
   field,
   sales,
   change,
+  label,
+  inGroup,
 }: {
   project: Project;
   data: Wizard;
   field: WizardField;
   sales: boolean;
   change: MutateAsync;
+  /** A numbered section's title, shown instead of the field's name (which moves underneath). */
+  label?: string;
+  inGroup?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [elsewhere, setElsewhere] = useState(false);
+  // Under a numbered title, the field's own name only when it says more ("4. Quality" needs no "Quality").
+  const name = shortName(field);
+  const same = label?.replace(/^\d+\.\s*/, "").toLowerCase() === name.toLowerCase();
+  const sub = [label && !same ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
   const files = data.files.filter((f) => f.holds === (sales ? "sales" : "parcels"));
   const source = field.sources[0];
   const value = field.assumed ? ASSUME : source ? `${source.file}\u0000${source.column}` : NONE;
@@ -564,11 +589,11 @@ function FieldRow({
   };
   return (
     <>
-      <div className="wiz-label">
+      <div className={inGroup ? "wiz-label wiz-in-group" : "wiz-label"}>
         <TipOn text={field.description || field.name}>
-          <span>{shortName(field)}</span>
+          <span>{label ?? shortName(field)}</span>
         </TipOn>
-        {w.hints[field.key] && <small>{w.hints[field.key]}</small>}
+        {sub && <small>{sub}</small>}
       </div>
       <ColumnChoice
         field={field}
