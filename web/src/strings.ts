@@ -274,7 +274,7 @@ export const t = {
       result: (rows: number, kept: number) =>
         `${rows.toLocaleString()} rows → ${kept.toLocaleString()} parcels`,
       blank: (n: number) =>
-        `· ${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no ID and ${n === 1 ? "is" : "are"} dropped.`,
+        `${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no ID and ${n === 1 ? "is" : "are"} dropped.`,
     },
     bigFive: [
       ["Building size", ["bldg_area_finished_sqft"]],

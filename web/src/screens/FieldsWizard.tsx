@@ -433,7 +433,12 @@ function DupesDialog({
           <p className="wiz-note">{d.combineLater}</p>
           <p>
             {kept !== null && <strong>{d.result(r.rows, kept)}</strong>}
-            {r.blank > 0 && <span className="wiz-caution"> {d.blank(r.blank)}</span>}
+            {r.blank > 0 && (
+              <span className="wiz-caution">
+                {kept !== null ? " · " : ""}
+                {d.blank(r.blank)}
+              </span>
+            )}
           </p>
           <div className="form-actions">
             <Button
