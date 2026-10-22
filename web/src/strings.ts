@@ -247,8 +247,6 @@ export const t = {
       "Optional. Only needed when another data file identifies parcels by a different ID, and has to join on that.",
     optional: "Optional",
     removeId: "(remove)",
-    noteMeans: "Rows are kept, but a file joined on this ID can't match these.",
-    noteOk: "Noted",
     matchBy: "Matches the universe by",
     idColumnIn: (file: string) => `ID column in ${file}`,
     saleIdTip: "The same parcel can sell more than once, so each sale needs its own ID.",

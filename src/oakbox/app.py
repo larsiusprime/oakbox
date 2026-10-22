@@ -87,7 +87,6 @@ class WizardFileChoice(BaseModel):
         default=None, description="One of the universe's extra IDs: set to extra_column, or removed if it's null."
     )
     extra_column: str | None = None
-    noted: bool | None = Field(default=None, description="With extra_field: its repeats and blanks are noted.")
     dupes: datafiles.Dupes | None = Field(
         default=None, description="Repeated IDs: keep the first of each, or drop all."
     )
@@ -465,7 +464,6 @@ def create_app() -> FastAPI:
                 body.dupes_sort,
                 body.dupes_desc,
                 body.blank_ok,
-                body.noted,
             ),
         )
 

@@ -321,7 +321,7 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     assert not any("geo_parcels" in x for x in w["warnings"])
 
 
-def test_extra_ids_are_checked_noted_and_joined_on(client, tmp_path, monkeypatch):
+def test_extra_ids_are_added_removed_and_joined_on(client, tmp_path, monkeypatch):
     pid = client.post("/api/projects", json=NEW).json()["id"]
     gpd.GeoDataFrame(
         {"ID": ["a", "b", "c", "d"], "MAP": ["m1", "m1", None, "m4"], "OLD": ["o1", "o2", "o3", "o4"]},
@@ -335,19 +335,7 @@ def test_extra_ids_are_checked_noted_and_joined_on(client, tmp_path, monkeypatch
     r = _put_file(client, pid, "geo_parcels", extra_field="key3", extra_column="OLD")
     assert r.status_code == 422 and "2nd ID first" in r.json()["detail"]
     w = _put_file(client, pid, "geo_parcels", extra_field="key2", extra_column="MAP").json()
-    (extra,) = _file(w, "geo_parcels")["extra_ids"]
-    assert extra["check"] == {
-        "ok": True,
-        "text": "2 different",
-        "warn": True,
-        "issues": [
-            {"text": "1 repeated ID", "resolved": False, "blocking": False},
-            {"text": "1 blank ID", "resolved": False, "blocking": False},
-        ],
-    }
-    w = _put_file(client, pid, "geo_parcels", extra_field="key2", noted=True).json()
-    (extra,) = _file(w, "geo_parcels")["extra_ids"]
-    assert extra["noted"] and extra["check"]["text"] == "✓ 2 different" and not extra["check"]["warn"]
+    assert _file(w, "geo_parcels")["extra_ids"] == [{"field": "key2", "column": "MAP"}]  # not checked
     w = _put_file(client, pid, "geo_parcels", extra_field="key3", extra_column="OLD").json()
     assert [e["field"] for e in _file(w, "geo_parcels")["extra_ids"]] == ["key2", "key3"]
     # Another file joins on the 3rd ID.

@@ -236,18 +236,19 @@ class WizardFile(BaseModel):
     id_column: str | None = Field(description="Loaded as the ID it joins on (match).")
     id_check: Check | None
     repeats: Repeats | None = Field(description="Set when the ID repeats or is blank on some rows.")
-    extra_ids: list[ExtraId] = Field(description="The universe's extra IDs (key2, key3), each checked.")
+    extra_ids: list[ExtraId] = Field(description="The universe's extra IDs (key2, key3).")
     columns: list[Column]
     base: bool
 
 
 class ExtraId(BaseModel):
-    """An extra ID of the parcel universe, for files that join on a different key (F3d)."""
+    """An extra ID of the parcel universe, for files that join on a different key (F3d).
+
+    Not checked: rows are kept or dropped by the parcel ID alone.
+    """
 
     field: Literal["key2", "key3"]
     column: str
-    check: Check
-    noted: bool = Field(description="Its repeats and blanks have been noted.")
 
 
 class SaleId(BaseModel):
@@ -490,32 +491,6 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     return Check(ok=found > 0 and not blocked, text=text, warn=open_issues, issues=issues), flagged
 
 
-def _extra_check(files: _Files, name: str, column: str, noted: bool) -> Check:
-    """An extra ID: rows are kept whatever it holds, but repeats and blanks can't be joined on."""
-    values = files.values(name, column)
-    present = [v for v in values if v]
-    distinct = len(set(present))
-    repeated = sum(1 for n in _counts(present).values() if n > 1)
-    blank = len(values) - len(present)
-    issues = []
-    tail = ", noted" if noted else ""
-    if repeated:
-        issues.append(Issue(text=f"{_n(repeated, 'repeated ID')}{tail}", resolved=noted))
-    if blank:
-        issues.append(Issue(text=f"{_n(blank, 'blank ID')}{tail}", resolved=noted))
-    if not issues:
-        return Check(ok=True, text=f"✓ {distinct:,} different")
-    tick = "✓ " if noted else ""
-    return Check(ok=True, text=f"{tick}{distinct:,} different", warn=not noted, issues=issues)
-
-
-def _counts(values: list[str]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for v in values:
-        counts[v] = counts.get(v, 0) + 1
-    return counts
-
-
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
     if base is None or base not in files.preview:
         return set()
@@ -653,9 +628,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
             for field in EXTRA_IDS:
                 spec = f.load.get(field)
                 if spec:
-                    noted = field in f.id_acks
-                    check = _extra_check(files, f.name, spec[0], noted)
-                    extra_ids.append(ExtraId(field=field, column=spec[0], check=check, noted=noted))
+                    extra_ids.append(ExtraId(field=field, column=spec[0]))
         out_files.append(
             WizardFile(
                 name=f.name,
@@ -945,12 +918,11 @@ def set_file(
     dupes_sort: str | None = None,
     dupes_desc: bool = False,
     blank_ok: bool | None = None,
-    noted: bool | None = None,
 ) -> None:
     """A file's part (the parcel universe, sales, or more parcel details) and the ID it joins on.
 
     ``extra_field`` (key2, key3) with ``extra_column`` sets one of the universe's extra IDs; with
-    no column it removes it (key3 then becomes key2). ``noted`` notes that extra ID's repeats and blanks.
+    no column it removes it (key3 then becomes key2).
     """
     files = _Files(project, in_dir)
     entry = files.entry(name)
@@ -987,18 +959,10 @@ def set_file(
                 raise ValueError("Add the 2nd ID first.")
             entry.load.pop(extra_field, None)
             _put(entry, extra_field, [extra_column, "string"])
-            if extra_field in entry.id_acks:
-                entry.id_acks.remove(extra_field)
-        elif noted is not None:
-            others = [a for a in entry.id_acks if a != extra_field]
-            entry.id_acks = sorted([*others, extra_field]) if noted else others
         else:  # removed: the 3rd ID moves up to 2nd
             entry.load.pop(extra_field, None)
-            if extra_field in entry.id_acks:
-                entry.id_acks.remove(extra_field)
             if extra_field == "key2" and "key3" in entry.load:
                 entry.load["key2"] = entry.load.pop("key3")
-                entry.id_acks = ["key2" if a == "key3" else a for a in entry.id_acks]
                 for f in project.files:  # files joined on the 3rd ID follow it
                     if f is not entry and f.match == "key3":
                         f.match = "key2"

@@ -627,11 +627,6 @@ export interface components {
              */
             blank_ok: boolean;
             /**
-             * Id Acks
-             * @description Extra IDs (key2, key3) whose repeats and blanks have been noted (F3d).
-             */
-            id_acks: string[];
-            /**
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
              */
@@ -742,6 +737,8 @@ export interface components {
         /**
          * ExtraId
          * @description An extra ID of the parcel universe, for files that join on a different key (F3d).
+         *
+         *     Not checked: rows are kept or dropped by the parcel ID alone.
          */
         ExtraId: {
             /**
@@ -751,12 +748,6 @@ export interface components {
             field: "key2" | "key3";
             /** Column */
             column: string;
-            check: components["schemas"]["Check"];
-            /**
-             * Noted
-             * @description Its repeats and blanks have been noted.
-             */
-            noted: boolean;
         };
         /**
          * FileCheck
@@ -1260,7 +1251,7 @@ export interface components {
             repeats: components["schemas"]["Repeats"] | null;
             /**
              * Extra Ids
-             * @description The universe's extra IDs (key2, key3), each checked.
+             * @description The universe's extra IDs (key2, key3).
              */
             extra_ids: components["schemas"]["ExtraId"][];
             /** Columns */
@@ -1298,11 +1289,6 @@ export interface components {
             extra_field?: ("key2" | "key3") | null;
             /** Extra Column */
             extra_column?: string | null;
-            /**
-             * Noted
-             * @description With extra_field: its repeats and blanks are noted.
-             */
-            noted?: boolean | null;
             /**
              * Dupes
              * @description Repeated IDs: keep the first of each, or drop all.

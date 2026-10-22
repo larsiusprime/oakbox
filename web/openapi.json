@@ -1405,14 +1405,6 @@
       "description": "The rows with no ID have been acknowledged as dropped (F3d).",
       "default": false
      },
-     "id_acks": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Id Acks",
-      "description": "Extra IDs (key2, key3) whose repeats and blanks have been noted (F3d)."
-     },
      "holds": {
       "anyOf": [
        {
@@ -1443,7 +1435,6 @@
      "dupes_sort",
      "dupes_desc",
      "blank_ok",
-     "id_acks",
      "holds"
     ],
     "title": "DataFile",
@@ -1687,25 +1678,15 @@
      "column": {
       "type": "string",
       "title": "Column"
-     },
-     "check": {
-      "$ref": "#/components/schemas/Check"
-     },
-     "noted": {
-      "type": "boolean",
-      "title": "Noted",
-      "description": "Its repeats and blanks have been noted."
      }
     },
     "type": "object",
     "required": [
      "field",
-     "column",
-     "check",
-     "noted"
+     "column"
     ],
     "title": "ExtraId",
-    "description": "An extra ID of the parcel universe, for files that join on a different key (F3d)."
+    "description": "An extra ID of the parcel universe, for files that join on a different key (F3d).\n\nNot checked: rows are kept or dropped by the parcel ID alone."
    },
    "FileCheck": {
     "properties": {
@@ -2823,7 +2804,7 @@
       },
       "type": "array",
       "title": "Extra Ids",
-      "description": "The universe's extra IDs (key2, key3), each checked."
+      "description": "The universe's extra IDs (key2, key3)."
      },
      "columns": {
       "items": {
@@ -2935,18 +2916,6 @@
        }
       ],
       "title": "Extra Column"
-     },
-     "noted": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Noted",
-      "description": "With extra_field: its repeats and blanks are noted."
      },
      "dupes": {
       "anyOf": [

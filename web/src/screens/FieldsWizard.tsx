@@ -206,7 +206,6 @@ type Change =
       blank_ok?: boolean;
       extra_field?: "key2" | "key3";
       extra_column?: string | null;
-      noted?: boolean;
     }
   | { kind: "saleId"; column: string | null; make: boolean }
   | { kind: "field"; key: string; file?: string | null; column?: string | null; assume?: boolean };
@@ -232,7 +231,6 @@ function useChange(projectId: string) {
               id_column: null,
               extra_field: null,
               extra_column: null,
-              noted: null,
               dupes: null,
               dupes_sort: null,
               dupes_desc: false,
@@ -625,7 +623,7 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
         />
         <IdCheck projectId={project.id} data={data} file={base} change={change} />
         {base.extra_ids.map((e) => (
-          <ExtraIdRow key={e.field} projectId={project.id} file={base} extra={e} change={change} />
+          <ExtraIdRow key={e.field} file={base} extra={e} change={change} />
         ))}
         {adding && <NewExtraIdRow file={base} change={change} done={() => setAdding(false)} />}
       </div>
@@ -652,17 +650,14 @@ function matchOptions(base: WizardFile | undefined): (readonly ["key" | "key2" |
 }
 
 function ExtraIdRow({
-  projectId,
   file,
   extra,
   change,
 }: {
-  projectId: string;
   file: WizardFile;
   extra: WizardFile["extra_ids"][number];
   change: Mutate;
 }) {
-  const [open, setOpen] = useState(false);
   const ordinal = w.idOrdinal[extra.field] ?? extra.field;
   return (
     <>
@@ -686,28 +681,7 @@ function ExtraIdRow({
           })
         }
       />
-      <div className="wiz-samples wiz-check-lines">
-        <CheckText check={extra.check} />
-        <Issues
-          issues={extra.check.issues}
-          action={
-            extra.check.issues.length > 0 && (
-              <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
-                {w.dupes.resolve}
-              </Button>
-            )
-          }
-        />
-      </div>
-      {open && (
-        <NoteDialog
-          projectId={projectId}
-          file={file}
-          extra={extra}
-          change={change}
-          close={() => setOpen(false)}
-        />
-      )}
+      <div />
     </>
   );
 }
@@ -739,64 +713,6 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
         </Button>
       </div>
     </>
-  );
-}
-
-/** An extra ID's repeats and blanks: rows are kept, but can't be joined on by this ID. Noting it is the action. */
-function NoteDialog({
-  file,
-  extra,
-  change,
-  close,
-}: {
-  projectId: string;
-  file: WizardFile;
-  extra: WizardFile["extra_ids"][number];
-  change: Mutate;
-  close: () => void;
-}) {
-  const d = w.dupes;
-  const [noted, setNoted] = useState(extra.noted);
-  return (
-    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(o) => !o && close()}>
-      <Modal className="modal wiz-modal">
-        <Dialog className="modal-body">
-          <Heading slot="title" className="modal-title">
-            {d.title(file.name, `${extra.column}, ${w.idOrdinal[extra.field]}`)}
-          </Heading>
-          <div className="wiz-section-head-row">
-            <h3 className="wiz-sub">
-              {extra.check.issues.map((i) => i.text.replace(", noted", "")).join(" · ")}
-            </h3>
-            <span className="wiz-from">{w.noteMeans}</span>
-          </div>
-          <div className="wiz-act">
-            <span className="wiz-act-label">{d.confirm}</span>
-            <Tick isSelected={noted} onChange={setNoted}>
-              {w.noteOk}
-            </Tick>
-          </div>
-          <hr className="wiz-rule" />
-          <div className="form-actions">
-            <Button
-              className="button button-primary"
-              isDisabled={noted === extra.noted}
-              onPress={() =>
-                change(
-                  { kind: "file", name: file.name, extra_field: extra.field, noted },
-                  { onSuccess: close },
-                )
-              }
-            >
-              {w.save}
-            </Button>
-            <Button className="button" onPress={close}>
-              {w.cancel}
-            </Button>
-          </div>
-        </Dialog>
-      </Modal>
-    </ModalOverlay>
   );
 }
 
