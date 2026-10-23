@@ -342,6 +342,20 @@ export const t = {
       cancel: "Cancel",
       save: "Save",
     },
+    areaUnitFor: (name: string) => `Unit of ${name.toLowerCase()} in the file`,
+    // The unit a size column is in; OAK box converts to the project's square feet or square metres.
+    areaUnits: {
+      sqft: "sq ft",
+      sqm: "m²",
+      acres: "acres",
+      hectares: "hectares",
+      sqyd: "sq yd",
+      tsubo: "tsubo (坪)",
+      pyeong: "pyeong (평)",
+      mu: "mu (亩)",
+    } as Record<string, string>,
+    anotherFileHint:
+      "Building details in a separate file, like a CAMA export? Choose \u201cIn another file\u2026\u201d in any list below: add it once, and its columns are offered for every field.",
     reconcile: {
       open: "Reconcile…",
       cleaned: (what: string) => `IDs cleaned: ${what}`,

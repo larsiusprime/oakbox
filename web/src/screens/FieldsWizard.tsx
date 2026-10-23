@@ -45,6 +45,7 @@ import { AddFile } from "./InputFiles";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 
 const w = t.wizard;
+type AreaUnit = NonNullable<WizardField["area_unit"]>;
 type Holds = "parcels" | "sales" | "unused";
 // Fields with no column that can instead be assumed, after a warning (SPEC F3d).
 const ASSUMABLE = ["valid_sale", "vacant_sale"];
@@ -292,6 +293,7 @@ type Change =
       column?: string | null;
       assume?: boolean;
       date_format?: string;
+      area_unit?: AreaUnit;
     }
   | { kind: "rule"; key: string; rule: Rule };
 
@@ -357,6 +359,7 @@ function useChange(projectId: string) {
             column: c.column ?? null,
             assume: c.assume ?? false,
             date_format: c.date_format ?? null,
+            area_unit: c.area_unit ?? null,
           },
         }),
       );
@@ -379,7 +382,10 @@ type MutateAsync = (c: Change) => Promise<Wizard>;
 function CheckText({ check }: { check: WizardCheck | null | undefined }) {
   if (!check) return null;
   if (check.ok && !check.warn) return <span className="wiz-ok">{check.text}</span>;
-  return <span className={check.ok ? "wiz-result" : "wiz-warn"}>{check.text}</span>;
+  // A warning of its own (a unit that looks wrong, a date that reads two ways) shows as one; a result
+  // whose warnings are listed as issues beside it stays plain.
+  const own = check.warn && check.issues.length === 0;
+  return <span className={check.ok && !own ? "wiz-result" : "wiz-warn"}>{check.text}</span>;
 }
 
 /** The second line of a check: each issue (✅ decided, ⚠ to decide, ❌ blocks a run), then the action. */
@@ -962,10 +968,13 @@ function FieldsStep({
 }) {
   const [more, setMore] = useState(false);
   const mine = data.fields.filter((f) => f.step === step.key && !f.hidden);
+  // Only the universe so far: building details are often in a separate file (a CAMA export).
+  const onlyBase = !step.sales && data.files.filter((f) => f.holds === "parcels").length <= 1;
   const shown = mine.filter((f) => !f.more || more);
   const hasMore = mine.some((f) => f.more);
   return (
     <>
+      {onlyBase && <p className="wiz-note wiz-another">{w.anotherFileHint}</p>}
       <div className="wiz-grid">
         {groupsFor(step.key, shown).map(([title, fields]) =>
           // A section of one field is that row, numbered; a section of several gets a heading.
@@ -1073,16 +1082,38 @@ function FieldRow({
         </TipOn>
         {sub && <small>{sub}</small>}
       </div>
-      <ColumnChoice
-        field={field}
-        files={files}
-        used={data.used}
-        names={Object.fromEntries(data.fields.map((f) => [f.key, shortName(f)]))}
-        value={value}
-        many={files.length > 1}
-        elsewhere={!sales}
-        onChange={pick}
-      />
+      <div className={field.area_unit ? "wiz-pair" : undefined}>
+        <ColumnChoice
+          field={field}
+          files={files}
+          used={data.used}
+          names={Object.fromEntries(data.fields.map((f) => [f.key, shortName(f)]))}
+          value={value}
+          many={files.length > 1}
+          elsewhere={!sales}
+          onChange={pick}
+        />
+        {field.area_unit && source && (
+          // The unit the column is in: OAK box converts it to the project's (SPEC F3d).
+          <div className="wiz-unit">
+            <Choice
+              label={w.areaUnitFor(shortName(field))}
+              hideLabel
+              value={field.area_unit}
+              options={Object.entries(w.areaUnits) as [AreaUnit, string][]}
+              onChange={(area_unit) =>
+                void change({
+                  kind: "field",
+                  key: field.key,
+                  file: source.file,
+                  column: source.column,
+                  area_unit,
+                }).catch(() => {})
+              }
+            />
+          </div>
+        )}
+      </div>
       <div className="wiz-samples">
         {field.assumed ? (
           <span className="wiz-warn">

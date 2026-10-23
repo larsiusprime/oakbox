@@ -552,3 +552,56 @@ def test_valid_and_vacant_sale_rules_and_date_formats(client, tmp_path, monkeypa
     # Back to a plain column (or an assumption): the rule goes.
     w = client.put(f"{field}/valid_sale", json={"assume": True}).json()
     assert _field(w, "valid_sale")["rule"] is None and _field(w, "valid_sale")["assumed"]
+
+
+@pytest.mark.parametrize("units", ["imperial", "metric"])
+def test_area_columns_are_converted_to_the_projects_small_unit(client, tmp_path, monkeypatch, units):
+    """Land in acres, building in square feet: labelled, converted as OpenAVMKit loads them."""
+    pid = client.post("/api/projects", json={**NEW, "units": units}).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": ["1", "2", "3"], "ACRES": [0.25, 1.0, 0.1], "HEATED_SF": [1500, 2400, 980]},
+        geometry=[box(n, 0, n + 1, 1) for n in range(3)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame({"PID": ["1", "3"], "PRICE": [200_000, 150_000], "DATE": ["2024-01-02", "2024-05-06"]}).to_csv(
+        tmp_path / "sale.csv", index=False
+    )
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
+    client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
+    w = client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES"}).json()
+    land = _field(w, "land_area_sqft")
+    small = "sq ft" if units == "imperial" else "m²"
+    assert land["area_unit"] == "acres"  # from the column's name
+    assert land["check"]["text"] == f"✓ 0.25 acres → {'10,890' if units == 'imperial' else '1,012'} {small}"
+    assert land["name"] == ("Land area in square feet" if units == "imperial" else "Land area in square metres")
+    # Square feet in a metric project: said so, and converted.
+    w = client.put(
+        f"{field}/bldg_area_finished_sqft", json={"file": "geo_parcels", "column": "HEATED_SF", "area_unit": "sqft"}
+    ).json()
+    assert _field(w, "bldg_area_finished_sqft")["area_unit"] == "sqft"
+    # The wrong unit for its size: flagged.
+    w = client.put(
+        f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "sqft"}
+    ).json()
+    assert _field(w, "land_area_sqft")["check"]["warn"]
+    client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "acres"})
+
+    load = _settings(pid)["data"]["load"]["geo_parcels"]
+    unit = "sqft" if units == "imperial" else "sqm"
+    assert load["load"][f"land_area_{unit}_in_acres"] == ["ACRES", "float"]
+    assert load["calc"][f"land_area_{unit}"][:2] == ["*", f"land_area_{unit}_in_acres"]
+    univ, _ = _engine(pid, monkeypatch)
+    univ = univ.sort_values("key")
+    land = univ[f"land_area_{unit}"].tolist()
+    bldg = univ[f"bldg_area_finished_{unit}"].tolist()
+    if units == "imperial":
+        assert land == pytest.approx([10_890, 43_560, 4_356]) and bldg == [1500, 2400, 980]
+    else:
+        assert land == pytest.approx([1011.71, 4046.86, 404.686], rel=1e-4)
+        assert bldg == pytest.approx([139.355, 222.967, 91.0451], rel=1e-4)

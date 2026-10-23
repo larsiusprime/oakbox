@@ -30,6 +30,50 @@ Holds = Literal["parcels", "sales", "unused"]
 Match = Literal["key", "key2", "key3"]
 # The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.
 EXTRA_IDS = ("key2", "key3")
+# Area: the wizard's fields are named in square feet (the dictionary's); a metric project writes them as
+# square metres, OpenAVMKit's other "small" unit. A column in any of these is converted when it loads.
+AreaUnit = Literal["sqft", "sqm", "acres", "hectares", "sqyd", "tsubo", "pyeong", "mu"]
+SQFT_PER: dict[str, float] = {
+    "sqft": 1.0,
+    "sqm": 10.763910416709722,
+    "acres": 43_560.0,
+    "hectares": 107_639.10416709722,
+    "sqyd": 9.0,
+    "tsubo": 35.58317,  # Japan: 400/121 m²
+    "pyeong": 35.58317,  # Korea: the same 400/121 m²
+    "mu": 7_175.94,  # China: 2,000/3 m²
+}
+AREA_FIELDS = ("land_area_sqft", "bldg_area_finished_sqft", "bldg_area_footprint_sqft")
+
+
+def area_key(field: str, units: str) -> str:
+    """The name OpenAVMKit gives an area field in this project's units: land_area_sqft or land_area_sqm."""
+    return field[: -len("_sqft")] + "_sqm" if units == "metric" and field in AREA_FIELDS else field
+
+
+def small_unit(units: str) -> AreaUnit:
+    return "sqm" if units == "metric" else "sqft"
+
+
+def guess_area_unit(column: str) -> AreaUnit | None:
+    """The unit a column's name gives away (ACRES, LAND_HA, LOT_SQM); None if it doesn't."""
+    words = set(re.split(r"[^a-z0-9]+", column.lower()))
+    flat = re.sub(r"[^a-z0-9]", "", column.lower())
+    if words & {"acres", "acre", "ac", "acreage"} or "acre" in flat:
+        return "acres"
+    if words & {"ha", "hectares", "hectare"} or "hectare" in flat:
+        return "hectares"
+    if words & {"sqm", "m2", "sqmt"} or flat.endswith(("sqm", "m2")):
+        return "sqm"
+    if words & {"sqft", "sf", "ft2"} or flat.endswith(("sqft", "sf")):
+        return "sqft"
+    if "tsubo" in flat:
+        return "tsubo"
+    if "pyeong" in flat:
+        return "pyeong"
+    return None
+
+
 CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
 
 
@@ -218,6 +262,9 @@ class DataFile(BaseModel):
     rules: dict[str, Rule] = Field(
         default_factory=dict, description="Yes/no field -> the rule it's worked out by (valid/vacant sale, F3d)."
     )
+    area_units: dict[str, AreaUnit] = Field(
+        default_factory=dict, description="Area field -> the unit its column is in; converted as it loads (F3d)."
+    )
 
 
 class FileCheck(BaseModel):
@@ -356,14 +403,28 @@ def add(
     return DataFile(name=name, filename=moves[0][1].name, layer=layer)
 
 
-def data_load(files: list[DataFile]) -> dict:
-    """The data.load block: per entry, the file (and layer) and the columns it loads."""
+def data_load(files: list[DataFile], units: str = "imperial") -> dict:
+    """The data.load block: per entry, the file (and layer) and the columns it loads.
+
+    Area fields are written in the project's small unit (sqft or sqm). A column in another unit is
+    loaded under a name of its own and converted by a calc (land_area_sqft = land_area_sqft_in_acres × 43,560).
+    """
     out = {}
     for f in files:
         entry: dict = {"filename": f.filename}
         if f.layer:
             entry["layer"] = f.layer
-        load = dict(f.load)
+        load: dict[str, list[str]] = {}
+        areas: dict[str, list] = {}
+        for field, spec in f.load.items():
+            written = area_key(field, units)
+            native = f.area_units.get(field, small_unit(units))
+            if field in AREA_FIELDS and native != small_unit(units):
+                helper = f"{written}_in_{native}"
+                load[helper] = [spec[0], "float"]
+                areas[written] = ["*", helper, SQFT_PER[native] / SQFT_PER[small_unit(units)]]
+            else:
+                load[written] = spec
         rules = {}
         for key, rule in f.rules.items():
             names = rule_fields(load, rule)
@@ -376,7 +437,7 @@ def data_load(files: list[DataFile]) -> dict:
         if load:
             entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in load.items()}
         # Cleaned IDs first: the other calcs (a made sale ID, valid/vacant rules) use them.
-        calc = {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps} | rules | f.calc
+        calc = {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps} | areas | rules | f.calc
         if calc:
             entry["calc"] = calc
         if f.holds == "parcels":

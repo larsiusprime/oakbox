@@ -122,6 +122,7 @@ class WizardFieldChoice(BaseModel):
     column: str | None = None
     assume: bool = Field(default=False, description="Valid/vacant sale only: all valid, none vacant.")
     date_format: str | None = Field(default=None, description="Dates: the format to read it with.")
+    area_unit: datafiles.AreaUnit | None = Field(default=None, description="Areas: the unit the column is in.")
 
 
 class DateFormatCheck(BaseModel):
@@ -567,7 +568,9 @@ def create_app() -> FastAPI:
         """Load a field from a file's column, from nowhere, or as an assumption (F3d)."""
         return _change(
             project_id,
-            lambda p, d: wizard.set_field(p, d, key, body.file, body.column, body.assume, body.date_format),
+            lambda p, d: wizard.set_field(
+                p, d, key, body.file, body.column, body.assume, body.date_format, body.area_unit
+            ),
         )
 
     @app.post("/api/projects/{project_id}/wizard/fields/{key}/rule")

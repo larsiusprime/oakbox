@@ -2067,6 +2067,24 @@
       "type": "object",
       "title": "Rules",
       "description": "Yes/no field -> the rule it's worked out by (valid/vacant sale, F3d)."
+     },
+     "area_units": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "sqft",
+        "sqm",
+        "acres",
+        "hectares",
+        "sqyd",
+        "tsubo",
+        "pyeong",
+        "mu"
+       ]
+      },
+      "type": "object",
+      "title": "Area Units",
+      "description": "Area field -> the unit its column is in; converted as it loads (F3d)."
      }
     },
     "type": "object",
@@ -2083,7 +2101,8 @@
      "blank_ok",
      "holds",
      "clean",
-     "rules"
+     "rules",
+     "area_units"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -3980,6 +3999,28 @@
       ],
       "title": "Date Format",
       "description": "Dates: the format it's read with."
+     },
+     "area_unit": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "sqft",
+         "sqm",
+         "acres",
+         "hectares",
+         "sqyd",
+         "tsubo",
+         "pyeong",
+         "mu"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area Unit",
+      "description": "Areas: the unit its column is in."
      }
     },
     "type": "object",
@@ -3995,7 +4036,8 @@
      "check",
      "hidden",
      "rule",
-     "date_format"
+     "date_format",
+     "area_unit"
     ],
     "title": "WizardField"
    },
@@ -4040,6 +4082,28 @@
       ],
       "title": "Date Format",
       "description": "Dates: the format to read it with."
+     },
+     "area_unit": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "sqft",
+         "sqm",
+         "acres",
+         "hectares",
+         "sqyd",
+         "tsubo",
+         "pyeong",
+         "mu"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area Unit",
+      "description": "Areas: the unit the column is in."
      }
     },
     "type": "object",

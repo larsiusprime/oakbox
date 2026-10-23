@@ -23,7 +23,10 @@ from pydantic import Field
 
 from oakbox import fields
 from oakbox.datafiles import (
+    AREA_FIELDS,
     EXTRA_IDS,
+    SQFT_PER,
+    AreaUnit,
     BaseModel,
     CleanStep,
     Condition,
@@ -34,8 +37,10 @@ from oakbox.datafiles import (
     Rule,
     clean_calc,
     clean_value,
+    guess_area_unit,
     rule_fields,
     rule_filter,
+    small_unit,
 )
 from oakbox.fields import Column, DictionaryField
 from oakbox.projects import Project
@@ -136,7 +141,11 @@ ALIASES: dict[str, list[str]] = {
     "census_tract": ["tract", "censustract"],
     "zoning": ["zone", "zonecode", "zoningcode"],
     "zoning_desc": ["zonedesc", "zoningdescription"],
-    "land_area_sqft": ["landsqft", "lotsqft", "landsf", "lotsf", "lotsize", "landarea", "lotarea"],
+    "land_area_sqft": [
+        *("landsqft", "lotsqft", "landsf", "lotsf", "lotsize", "landarea", "lotarea"),
+        *("acres", "acreage", "calcacres", "deededacres", "gisacres", "landacres", "hectares", "landha"),
+        *("landsqm", "lotsqm", "landm2"),
+    ],
     "bldg_type": ["imprvtype", "imprtype", "buildingtype", "improvementtype", "bldgtype"],
     "bldg_class": ["buildingclass", "bldgclass", "imprvclass"],
     "bldg_stories": ["stories", "numstories", "story"],
@@ -298,6 +307,7 @@ class WizardField(BaseModel):
     hidden: bool = Field(description="Computed from a field that's loaded, so not asked (e.g. age from year built).")
     rule: Rule | None = Field(default=None, description="Yes/no worked out from columns (valid/vacant sale).")
     date_format: str | None = Field(default=None, description="Dates: the format it's read with.")
+    area_unit: AreaUnit | None = Field(default=None, description="Areas: the unit its column is in.")
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -754,6 +764,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     sources.append(Source(file=ruled.name, column=rule.conditions[0].column))
                 check = None
                 date_format = None
+                area_unit = None
                 if ruled and rule is not None and len(sources) == 1:
                     check = _rule_check(files, ruled, key, rule)
                 elif len(sources) == 1:
@@ -762,16 +773,25 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     if col and d.type == "date" and len(spec) == 3:
                         date_format = spec[2]
                         check = _date_check(files, sources[0].file, col.name, spec[2])
+                    elif col and key in AREA_FIELDS:
+                        entry = files.entry(sources[0].file)
+                        area_unit = entry.area_units.get(key, small_unit(project.units))
+                        check = field_check(d, col)[0]
+                        if check.ok:
+                            check = _area_check(files, entry, key, col.name, area_unit, project.units)
                     else:
                         check = field_check(d, col)[0] if col else Check(ok=False, text="not in the file")
                 elif len(sources) > 1:
                     check = Check(ok=False, text="loaded from more than one file")
                 assumed = bool(sales and key in ASSUMABLE and key in sales.calc)
+                name, description = d.name, d.description
+                if project.units == "metric":  # written as land_area_sqm etc. (datafiles.area_key)
+                    name, description = (x.replace("square feet", "square metres") for x in (name, description))
                 out_fields.append(
                     WizardField(
                         key=key,
-                        name=d.name,
-                        description=d.description,
+                        name=name,
+                        description=description,
                         type=d.type,
                         step=step.key,
                         more=more,
@@ -781,6 +801,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         hidden=key in ONLY_WITHOUT and ONLY_WITHOUT[key] in loaded,
                         rule=rule,
                         date_format=date_format,
+                        area_unit=area_unit,
                     )
                 )
 
@@ -1006,6 +1027,9 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
         found = _guess_field(files, by_key[key], candidates, _used(project))
         if found:
             files.entry(found[0]).load[key] = found[1]
+            if key in AREA_FIELDS:
+                unit = guess_area_unit(found[1][0]) or small_unit(project.units)
+                files.entry(found[0]).area_units[key] = unit
             loaded.add(key)
             project.wizard.decided.append(key)
 
@@ -1199,6 +1223,7 @@ def set_field(
     column: str | None,
     assume: bool,
     date_format: str | None = None,
+    area_unit: AreaUnit | None = None,
 ) -> None:
     """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
 
@@ -1234,12 +1259,15 @@ def set_field(
     for f in allowed:
         f.load.pop(key, None)
         f.rules.pop(key, None)
+        f.area_units.pop(key, None)
     if sales is not None and key in ASSUMABLE:
         sales.calc.pop(key, None)
     if target is not None and spec is None:
         target.rules[key] = Rule(conditions=[Condition(column=cast(str, column))])
     if target is not None and spec is not None:
         target.load[key] = spec
+        if key in AREA_FIELDS:
+            target.area_units[key] = area_unit or guess_area_unit(cast(str, column)) or small_unit(project.units)
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if key not in project.wizard.decided:
@@ -1686,3 +1714,49 @@ def date_preview(project: Project, in_dir: Path, name: str, column: str, fmt: st
         also=[DateFormat(format=f, words=DATE_WORDS.get(f, f)) for f in _also(files, name, column, fmt)],
         formats=[DateFormat(format=f, words=DATE_WORDS.get(f, f)) for f in fields.DATE_FORMATS],
     )
+
+
+# ---------- Areas: the unit a column is in (F3d) ----------
+
+UNIT_WORDS = {
+    "sqft": "sq ft",
+    "sqm": "m²",
+    "acres": "acres",
+    "hectares": "ha",
+    "sqyd": "sq yd",
+    "tsubo": "tsubo",
+    "pyeong": "pyeong",
+    "mu": "mu",
+}
+# A typical parcel or building, in square feet, outside these is likely in the wrong unit.
+PLAUSIBLE_SQFT = {"land_area_sqft": (500, 5_000_000), "bldg_area_finished_sqft": (200, 50_000)}
+PLAUSIBLE_SQFT["bldg_area_footprint_sqft"] = PLAUSIBLE_SQFT["bldg_area_finished_sqft"]
+
+
+def _area_check(files: _Files, entry: DataFile, key: str, column: str, unit: str, units: str) -> Check:
+    """'✓ 0.114 acres → 4,966 sq ft', and a warning when the typical size says the unit is wrong."""
+    import statistics
+
+    target = small_unit(units)
+    factor = SQFT_PER[unit] / SQFT_PER[target]
+    nums = []
+    for v in _values(_stamp(files.in_dir / entry.filename), entry.layer, column):
+        try:
+            nums.append(float(v))
+        except ValueError:
+            continue
+    nums = [n for n in nums if n > 0]
+    if not nums:
+        return Check(ok=True, text="✓ numbers")
+    sample = next(n for n in nums)
+    shown = f"{sample:,.3f}".rstrip("0").rstrip(".")
+    text = f"{shown} {UNIT_WORDS[unit]} → {sample * factor:,.0f} {UNIT_WORDS[target]}"
+    if unit == target:
+        text = f"in {UNIT_WORDS[unit]}"
+    median_sqft = statistics.median(nums) * SQFT_PER[unit]
+    low, high = PLAUSIBLE_SQFT.get(key, (0, float("inf")))
+    if median_sqft < low:
+        return Check(ok=True, warn=True, text=f"{text} · very small: is it in a bigger unit?")
+    if median_sqft > high:
+        return Check(ok=True, warn=True, text=f"{text} · very large: is it in a smaller unit?")
+    return Check(ok=True, text=f"✓ {text}")

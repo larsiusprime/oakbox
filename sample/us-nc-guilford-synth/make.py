@@ -215,6 +215,18 @@ cama = pd.DataFrame(
     }
 )
 
+# Quality and condition the other ways exports write them, from the same grade and condition: with
+# +/- (B+, C-), a 1-10 number, words. A separate random stream, so the columns above don't change.
+q_rng = np.random.default_rng(2048)
+grade_letter = cama["GRADE"].to_numpy()
+cama["GRADE_PLUS"] = [g + q_rng.choice(["+", "", "-"], p=[0.3, 0.4, 0.3]) for g in grade_letter]
+cama["QUALITY_NUM"] = [
+    int(np.clip({"A": 9, "B": 7, "C": 5, "D": 3, "E": 2}[g] + q_rng.integers(-1, 2), 1, 10)) for g in grade_letter
+]
+words = {"EX": "Excellent", "VG": "Very Good", "GD": "Good", "AV": "Average", "FR": "Fair", "PR": "Poor"}
+cama["COND_DESC"] = [words[c] for c in cama["COND"]]
+cama["COND_NUM"] = [{"EX": 6, "VG": 5, "GD": 4, "AV": 3, "FR": 2, "PR": 1}[c] for c in cama["COND"]]
+
 # ---------- Sales, 2019-2025: about a third of parcels, some twice. No sale ID column. ----------
 sold = p.sample(frac=0.34, random_state=3)
 again = sold.sample(frac=0.15, random_state=4)

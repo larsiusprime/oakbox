@@ -10,8 +10,8 @@ something real to find.
 
 | File | Rows | Key columns |
 | --- | --- | --- |
-| `in/geo/parcels.parquet` | 5,135 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `ACRES`, address, `NBHD`, 2022 assessed `LAND_VALUE` / `BLDG_VALUE` / `TOTAL_VALUE` |
-| `in/cama.csv` | 4,959 building cards | `REID`, `CARD_NUM`, `HEATED_AREA`, `YEAR_BUILT`, `EFF_YEAR`, `GRADE` (A–E), `COND` (EX–PR), `STORIES`, `BEDROOMS`, `FULL_BATHS`, `HALF_BATHS` |
+| `in/geo/parcels.parquet` | 5,135 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `ACRES` (land, in acres), address, `NBHD`, 2022 assessed `LAND_VALUE` / `BLDG_VALUE` / `TOTAL_VALUE` |
+| `in/cama.csv` | 4,959 building cards | `REID`, `CARD_NUM`, `HEATED_AREA` (sq ft), `YEAR_BUILT`, `EFF_YEAR`, `GRADE` (A–E), `COND` (EX–PR), `STORIES`, `BEDROOMS`, `FULL_BATHS`, `HALF_BATHS`; quality and condition again as `GRADE_PLUS` (B+, C-), `QUALITY_NUM` (1–10), `COND_DESC` (Average, Good…), `COND_NUM` (1–6) |
 | `in/sales.csv` | 2,002 sales | `REID`, `PIN`, `DEED_DATE`, `SALE_PRICE`, `QUALIFIED` (Q/U), `VACANT_LOT` (Y/blank), and `PRICE_*`: the same prices in other formats (below) |
 
 ## Problems planted on purpose

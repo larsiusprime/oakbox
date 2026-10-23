@@ -874,6 +874,13 @@ export interface components {
             rules: {
                 [key: string]: components["schemas"]["Rule-Output"];
             };
+            /**
+             * Area Units
+             * @description Area field -> the unit its column is in; converted as it loads (F3d).
+             */
+            area_units: {
+                [key: string]: "sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu";
+            };
         };
         /** DateCheck */
         DateCheck: {
@@ -1753,6 +1760,11 @@ export interface components {
              * @description Dates: the format it's read with.
              */
             date_format: string | null;
+            /**
+             * Area Unit
+             * @description Areas: the unit its column is in.
+             */
+            area_unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -1771,6 +1783,11 @@ export interface components {
              * @description Dates: the format to read it with.
              */
             date_format?: string | null;
+            /**
+             * Area Unit
+             * @description Areas: the unit the column is in.
+             */
+            area_unit?: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
         };
         /** WizardFile */
         WizardFile: {
