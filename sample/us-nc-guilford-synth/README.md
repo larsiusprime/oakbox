@@ -12,7 +12,7 @@ something real to find.
 | --- | --- | --- |
 | `in/geo/parcels.parquet` | 5,135 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `ACRES`, address, `NBHD`, 2022 assessed `LAND_VALUE` / `BLDG_VALUE` / `TOTAL_VALUE` |
 | `in/cama.csv` | 4,959 building cards | `REID`, `CARD_NUM`, `HEATED_AREA`, `YEAR_BUILT`, `EFF_YEAR`, `GRADE` (A–E), `COND` (EX–PR), `STORIES`, `BEDROOMS`, `FULL_BATHS`, `HALF_BATHS` |
-| `in/sales.csv` | 2,002 sales | `REID`, `PIN`, `DEED_DATE`, `SALE_PRICE`, `QUALIFIED` (Q/U), `VACANT_LOT` (Y/blank) |
+| `in/sales.csv` | 2,002 sales | `REID`, `PIN`, `DEED_DATE`, `SALE_PRICE`, `QUALIFIED` (Q/U), `VACANT_LOT` (Y/blank), and `PRICE_*`: the same prices in other formats (below) |
 
 ## Problems planted on purpose
 
@@ -29,3 +29,18 @@ something real to find.
 8. **Dates with a time**, as `DEED_DATE` exports do: `10/15/2019 0:00`.
 9. **Nominal and unqualified deeds.** About 12% of sales are `U`; some are $10 deeds. A `PIN` column is on
    the sales too, hyphenated (`7802-07-0848`) unlike the parcel file's `PIN_PLUS_EXT` (`7802070848 000`).
+10. **Prices written every which way.** The `PRICE_*` columns are `SALE_PRICE` again, as exports write it:
+
+    | Column | Looks like | |
+    | --- | --- | --- |
+    | `PRICE_DOLLARS` | `$250,000.00` | |
+    | `PRICE_COMMAS` | `250,000` | |
+    | `PRICE_DECIMAL` | `250000.00` | |
+    | `PRICE_PADDED` | `$   250,000.00 ` | fixed-width report |
+    | `PRICE_EURO` | `250.000,00` | decimal comma |
+    | `PRICE_THOUSANDS` | `250` | in $1,000s |
+    | `PRICE_CENTS` | `25000000` | whole cents |
+    | `PRICE_EXCEL` | `1.11E+06` over $1M | Excel rounded them: the exact price is lost |
+    | `PRICE_SHORT` | `$250K`, `$1.11M` | |
+    | `PRICE_MIXED` | all of the above, some blank, a few `N/A`, `-`, `TBD`, `0` | hand-kept |
+    | `PRICE_NEGATIVE` | `(10)` for the $10 deeds | accounting negatives |

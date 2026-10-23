@@ -250,6 +250,28 @@ sales = pd.DataFrame(
     }
 ).sort_values("DEED_BOOK", kind="stable")
 
+# 10. The same prices written the ways exports write them, one column each, to try the price checks on.
+#     A separate random stream, so the columns above don't change.
+fmt_rng = np.random.default_rng(1024)
+p = sales["SALE_PRICE"].to_numpy()
+price_blank = fmt_rng.random(len(p)) < 0.02  # some exports leave the price out
+sales["PRICE_DOLLARS"] = [f"${v:,.2f}" for v in p]  # $250,000.00
+sales["PRICE_COMMAS"] = [f"{v:,}" for v in p]  # 250,000
+sales["PRICE_DECIMAL"] = [f"{v:.2f}" for v in p]  # 250000.00
+sales["PRICE_PADDED"] = [f"$ {v:>12,.2f} " for v in p]  # fixed-width report: "$   250,000.00 "
+sales["PRICE_EURO"] = [f"{v:,.2f}".replace(",", " ").replace(".", ",").replace(" ", ".") for v in p]  # 250.000,00
+sales["PRICE_THOUSANDS"] = [f"{v / 1000:g}" for v in p]  # 250 (in $1,000s, as some summaries give it)
+sales["PRICE_CENTS"] = [str(v * 100) for v in p]  # 25000000 (whole cents)
+sales["PRICE_EXCEL"] = [f"{v:.2E}" if v >= 1_000_000 else str(v) for v in p]  # 1.25E+06: Excel's big numbers
+sales["PRICE_SHORT"] = [f"${v / 1e6:.2f}M" if v >= 1e6 else f"${v / 1000:.0f}K" for v in p]  # $250K, $1.25M
+sales["PRICE_MIXED"] = [  # hand-kept: a bit of everything, with blanks and placeholders
+    "" if b else fmt_rng.choice([f"${v:,}", f"{v:,}", str(v), f"${v:,.2f}", f"{v}.00"])
+    for v, b in zip(p, price_blank, strict=True)
+]
+for i in np.flatnonzero(fmt_rng.random(len(p)) < 0.01):
+    sales.iloc[i, sales.columns.get_loc("PRICE_MIXED")] = fmt_rng.choice(["N/A", "-", "0", "$0.00", "TBD"])
+sales["PRICE_NEGATIVE"] = [f"({v:,})" if v < 100 else f"{v:,}" for v in p]  # accounting: (10) for a $10 deed refund
+
 (IN / "geo").mkdir(parents=True, exist_ok=True)
 parcels.to_parquet(IN / "geo" / "parcels.parquet")
 cama.to_csv(IN / "cama.csv", index=False)
