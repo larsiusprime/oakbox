@@ -2081,7 +2081,7 @@ def layers(project: Project, in_dir: Path) -> list[LayerView]:
         elif o.use == "distance":
             if not o.feature:
                 left.append(Left(text="name the distance"))
-            check = Check(ok=True, text=f"✓ {len(gdf) if gdf is not None else 0:,} features")
+            check = Check(ok=True, text=f"✓ {_n(len(gdf) if gdf is not None else 0, 'feature')}")
         out.append(
             LayerView(
                 name=f.name,

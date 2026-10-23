@@ -15,6 +15,9 @@ something real to find.
 | `in/geo/school_zones.shp` | 8 polygons | School attendance zones: `ZONE_ID`, `ZONE_NAME`, `GRADES`. Every parcel is in one. |
 | `in/geo/flood_zones.shp` | 8 polygons | Flood zones along creeks: `FLD_ZONE` (AE: 1% annual chance, X: 0.2%), `ZONE_SUBTY`. 400 parcels are in one. |
 | `in/geo/zoning.geojson` | 16 polygons | Zoning districts: `ZONE_CODE`, `ZONE_DESC`. In degrees (EPSG:4326), unlike the rest. |
+| `in/geo/lakes.shp` | 3 polygons | Lakes: `NAME`, `TYPE`. For distances (and the largest by area, by name). |
+| `in/geo/rivers.shp` | 2 lines | Rivers and creeks: `NAME`, `TYPE`. Lines, so for distances only. |
+| `in/geo/cbd.gpkg` | 1 polygon | Downtown Greensboro, the central business district, in a GeoPackage (layer `cbd`). |
 | `in/geo/schools.shp` | 16 points | Schools: `SCHOOL`, `LEVEL`. Points, so for distances only. |
 | `in/sales.csv` | 2,002 sales | `REID`, `PIN`, `DEED_DATE`, `SALE_PRICE`, `QUALIFIED` (Q/U), `VACANT_LOT` (Y/blank), and `PRICE_*`: the same prices in other formats (below) |
 
@@ -48,6 +51,7 @@ something real to find.
     | `PRICE_SHORT` | `$250K`, `$1.11M` | |
     | `PRICE_MIXED` | all of the above, some blank, a few `N/A`, `-`, `TBD`, `0` | hand-kept |
     | `PRICE_NEGATIVE` | `(10)` for the $10 deeds | accounting negatives |
-11. **Map layers for the Shapefiles section.** The four `geo/` layers above: two polygon shapefiles to stamp onto
+11. **Map layers for the Shapefiles section.** The `geo/` layers above: two polygon shapefiles to stamp onto
     parcels (school zones cover all of them; flood zones only some, so most parcels are "in none"), zoning as
-    GeoJSON in a different coordinate system from the parcels, and school points to measure distances to.
+    GeoJSON in a different coordinate system from the parcels, and lakes, rivers, the CBD and school points to
+    measure distances to. Sale prices don't depend on these distances: they were drawn before the layers existed.

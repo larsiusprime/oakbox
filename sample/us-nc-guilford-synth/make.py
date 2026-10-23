@@ -8,7 +8,7 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from shapely.geometry import Point, box
+from shapely.geometry import LineString, Point, box
 
 HERE = Path(__file__).parent
 IN = HERE / "in"
@@ -346,11 +346,50 @@ for b in (0, 2, 5, 7):
         dict(FLD_ZONE="X", ZONE_SUBTY="0.2% ANNUAL CHANCE", geometry=box(bx - 500, y + 350, bx + 6_000, y + 650))
     )
 flood_zones = gpd.GeoDataFrame(pd.DataFrame(flood_rows), crs="EPSG:2264")
+
+# For distances: lakes (polygons), rivers (lines) and the central business district (one polygon). The
+# neighborhood blocks sit on a 4 x 2 grid, 9,000 ft apart, from (E0, N0); these lie between and beside them.
+lakes = gpd.GeoDataFrame(
+    {
+        "NAME": ["Lake Brandt", "Lake Higgins", "Oak Hollow Lake"],
+        "TYPE": ["Reservoir", "Reservoir", "Reservoir"],
+    },
+    geometry=[
+        Point(E0 + 7_400, N0 + 13_800).buffer(1_400),
+        Point(E0 + 16_200, N0 + 15_600).buffer(900),
+        Point(E0 + 26_300, N0 + 4_200).buffer(1_200),
+    ],
+    crs="EPSG:2264",
+)
+rivers = gpd.GeoDataFrame(
+    {"NAME": ["Reedy Fork", "Deep River"], "TYPE": ["Creek", "River"]},
+    geometry=[
+        LineString(
+            [(E0 - 2_000, N0 + 7_600), (E0 + 8_000, N0 + 8_200), (E0 + 18_000, N0 + 7_400), (E0 + 34_000, N0 + 8_300)]
+        ),
+        LineString(
+            [
+                (E0 + 20_500, N0 - 2_000),
+                (E0 + 21_500, N0 + 5_000),
+                (E0 + 19_800, N0 + 12_000),
+                (E0 + 20_600, N0 + 18_000),
+            ]
+        ),
+    ],
+    crs="EPSG:2264",
+)
+# Downtown: the northeast corner of the oldest Greensboro neighborhood (1001) and the gap beside it.
+cbd = gpd.GeoDataFrame(
+    {"NAME": ["Downtown Greensboro"]}, geometry=[box(E0 + 1_200, N0 + 2_400, E0 + 3_800, N0 + 5_200)], crs="EPSG:2264"
+)
 parcels.to_parquet(IN / "geo" / "parcels.parquet")
 zoning.to_file(IN / "geo" / "zoning.geojson", driver="GeoJSON")  # in degrees, unlike the parcels
 schools_gdf.to_file(IN / "geo" / "schools.shp")
 school_zones.to_file(IN / "geo" / "school_zones.shp")
 flood_zones.to_file(IN / "geo" / "flood_zones.shp")
+lakes.to_file(IN / "geo" / "lakes.shp")
+rivers.to_file(IN / "geo" / "rivers.shp")
+cbd.to_file(IN / "geo" / "cbd.gpkg", layer="cbd", driver="GPKG")
 cama.to_csv(IN / "cama.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
 print(f"{len(parcels):,} parcel shapes, {len(cama):,} building cards, {len(sales):,} sales")
