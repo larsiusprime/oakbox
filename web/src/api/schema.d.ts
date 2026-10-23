@@ -1366,6 +1366,11 @@ export interface components {
             matched: number;
             /** Total */
             total: number;
+            /**
+             * Parcels
+             * @description Distinct parcel IDs on the universe side, after its steps.
+             */
+            parcels: number;
             /** Share */
             share: number;
             /**

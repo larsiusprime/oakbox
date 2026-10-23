@@ -95,7 +95,7 @@ export function ReconcileDialog({
   const [same, setSame] = useState(
     baseSteps.length > 0 && JSON.stringify(baseSteps) === JSON.stringify(fileSteps),
   );
-  const [view, setView] = useState<View>("unmatched");
+  const [view, setView] = useState<View>("random");
   const [seed, setSeed] = useState(0);
   const salesSteps = same ? baseSteps : fileSteps;
   const asked = useSettled({ base_steps: baseSteps, file_steps: salesSteps, view, seed });
@@ -167,7 +167,7 @@ export function ReconcileDialog({
           <div className="rc-samplebar">
             <span>{r.samples}</span>
             <span className="rc-seg">
-              {(["unmatched", "random"] as const).map((x) => (
+              {(["random", "unmatched"] as const).map((x) => (
                 <Button key={x} className="rc-seg-btn" aria-pressed={view === x} onPress={() => setView(x)}>
                   {x === "unmatched" ? r.unmatched : r.random}
                 </Button>
@@ -189,20 +189,24 @@ export function ReconcileDialog({
           </div>
           <div className="rc-cols">
             <section className="rc-card">
-              <h3>
-                {r.parcels} <code>{`${base.name} · ${v?.base_column ?? base.id_column ?? ""}`}</code>
-              </h3>
+              <h3>{r.parcels}</h3>
               <CleanSteps steps={baseSteps} onChange={setBaseSteps} />
+              {v && <p className="rc-caption">{r.showingParcels(v.base_samples.length, v.parcels)}</p>}
               <Samples rows={v?.base_samples ?? []} parcels />
             </section>
             <section className="rc-card">
-              <h3>
-                {r.sales} <code>{`${file.name} · ${v?.file_column ?? file.id_column ?? ""}`}</code>
-              </h3>
+              <h3>{r.sales}</h3>
               {same ? (
                 <p className="rc-same">{r.sameAsParcels}</p>
               ) : (
                 <CleanSteps steps={fileSteps} onChange={setFileSteps} />
+              )}
+              {v && v.file_samples.length > 0 && (
+                <p className="rc-caption">
+                  {view === "unmatched"
+                    ? r.showingUnmatched(v.file_samples.length, v.total - v.matched)
+                    : r.showingSales(v.file_samples.length, v.total)}
+                </p>
               )}
               <Samples rows={v?.file_samples ?? []} parcels={false} empty={view === "unmatched"} />
             </section>

@@ -374,6 +374,14 @@ export const t = {
       matches: "matches",
       noMatch: "no match",
       noUnmatched: "Every sale finds a parcel.",
+      // Above each panel's samples: what they are, so a list that stays "no match" reads as what's left.
+      showingUnmatched: (shown: number, left: number) =>
+        left === shown
+          ? `The ${left.toLocaleString()} ${left === 1 ? "sale" : "sales"} that still don't find a parcel`
+          : `${shown} of the ${left.toLocaleString()} sales that still don't find a parcel`,
+      showingSales: (shown: number, total: number) => `${shown} random sales of ${total.toLocaleString()}`,
+      showingParcels: (shown: number, total: number) =>
+        `${shown} random parcels of ${total.toLocaleString()}`,
       writes: "What this writes to the settings",
       nothing: "Nothing yet: no clean-up steps.",
       cancel: "Cancel",

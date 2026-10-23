@@ -1292,6 +1292,7 @@ class Reconcile(BaseModel):
     base_column: str
     matched: int
     total: int
+    parcels: int = Field(description="Distinct parcel IDs on the universe side, after its steps.")
     share: float
     saved_share: float = Field(description="The share with the steps as saved, before these changes.")
     file_samples: list[Sample]
@@ -1414,6 +1415,7 @@ def reconcile(
         base_column=base.load[field][0],
         matched=matched,
         total=total,
+        parcels=len(base_set),
         share=matched / total if total else 0.0,
         saved_share=saved / total if total else 0.0,
         file_samples=file_samples,

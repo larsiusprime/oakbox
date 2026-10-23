@@ -2297,10 +2297,9 @@ a.row-title:hover {
   font-size: 0.95rem;
 }
 
-.rc-card h3 code {
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  font-weight: 400;
+.rc-caption {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
   color: var(--muted);
 }
 

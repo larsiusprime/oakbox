@@ -3117,6 +3117,11 @@
       "type": "integer",
       "title": "Total"
      },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels",
+      "description": "Distinct parcel IDs on the universe side, after its steps."
+     },
      "share": {
       "type": "number",
       "title": "Share"
@@ -3169,6 +3174,7 @@
      "base_column",
      "matched",
      "total",
+     "parcels",
      "share",
      "saved_share",
      "file_samples",
