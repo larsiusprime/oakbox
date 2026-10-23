@@ -222,7 +222,7 @@ export const t = {
       location: {
         title: "Location",
         question: "Where is each parcel?",
-        lede: "Addresses and the areas parcels belong to.",
+        lede: "The site address, where each parcel is, and the areas it belongs to.",
       },
       land: { title: "Land", question: "What about the land?", lede: "Zoning and land class." },
       building: {
@@ -362,6 +362,31 @@ export const t = {
     anotherFileHint:
       "Building details in a separate file, like a CAMA export? Add it on the More files step (or choose \u201cIn another file\u2026\u201d below), and its columns are offered for every field.",
     saleIdLabel: "Sale ID",
+    location: {
+      coordinates: "Coordinates",
+      latlon: "Latitude and longitude",
+      latlonHow: "worked out by OpenAVMKit from each parcel's shape (its centre point). Nothing to load.",
+      polar: "Polar coordinates",
+      polarHow:
+        "each parcel's distance and direction from the centre point (the pin), also worked out by OpenAVMKit.",
+      noShapes: "Add the parcel universe (with shapes) to see the map.",
+      noMap: "The parcel shapes have no coordinate system, so they can't be placed on a map.",
+      loading: "Loading the map…",
+      mapLabel: "Map of the parcels, with the centre point",
+      pinTitle: "The centre: drag to move it",
+      centerMiddle: "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
+      centerSet: (lat: number, lon: number) => `The centre is at ${lat.toFixed(5)}, ${lon.toFixed(5)}.`,
+      useMiddle: "Use the middle of the parcels",
+      fields: "Location fields",
+      fieldsLede:
+        "Areas each parcel belongs to: neighborhood, market area, school district, zoning district… Pick the column and give it a name; models use them as categories. Add as many as you like, one at a time.",
+      column: "Column",
+      pickColumn: "Choose a column…",
+      name: "Name",
+      namePlaceholder: "e.g. market_area",
+      add: "Add",
+      remove: (name: string) => `Remove ${name}`,
+    },
     extraFiles: {
       first: "Add a file",
       another: "Add another file",

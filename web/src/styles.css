@@ -2528,3 +2528,47 @@ a.row-title:hover {
 .wiz-holds {
   margin: 0;
 }
+
+/* Location step (F3d): coordinates, the map, the user's location fields. */
+.wiz-section {
+  margin: 1rem 0 0;
+}
+
+.wiz-auto {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.wiz-map {
+  height: 18rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.wiz-pin span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: var(--bad);
+  border: 2px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transform: rotate(-45deg);
+}
+
+.wiz-loc {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.6rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.wiz-loc-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}

@@ -112,6 +112,11 @@ class WizardSaleId(BaseModel):
     make: bool = Field(default=False, description="Make one from parcel ID + sale date.")
 
 
+class WizardLocation(BaseModel):
+    file: str | None = None
+    column: str | None = Field(default=None, description="None removes the location field.")
+
+
 class WizardDates(BaseModel):
     column: str
     format: str
@@ -588,6 +593,30 @@ def create_app() -> FastAPI:
     def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizard:
         """Work a yes/no field (valid sale, vacant sale) out from the sales file's columns (F3d)."""
         return _change(project_id, lambda p, d: wizard.set_rule(p, d, key, body))
+
+    @app.get("/api/projects/{project_id}/wizard/locations")
+    def wizard_locations(project_id: str) -> list[wizard.LocationField]:
+        """The location fields the user named (F3d)."""
+        return wizard.locations(_load(project_id), projects.project_dir(project_id) / "in")
+
+    @app.put("/api/projects/{project_id}/wizard/locations/{name}")
+    def wizard_location(project_id: str, name: str, body: WizardLocation) -> wizard.Wizard:
+        """Load a parcel file's column as a location field the user names; no column removes it (F3d)."""
+        return _change(project_id, lambda p, d: wizard.set_location(p, d, name, body.file, body.column))
+
+    @app.get("/api/projects/{project_id}/wizard/map")
+    def wizard_map(project_id: str) -> wizard.MapView:
+        """Where the parcels are, and the centre polar coordinates are measured from (F3d)."""
+        return wizard.map_view(_load(project_id), projects.project_dir(project_id) / "in")
+
+    @app.put("/api/projects/{project_id}/center")
+    def set_center(project_id: str, body: projects.Center | None = None) -> wizard.MapView:
+        """Set the centre polar coordinates are measured from; none: the middle of the parcels (F3d)."""
+        project = _load(project_id)
+        project.center = body
+        projects.save(project)
+        projects.write_settings(project)
+        return wizard.map_view(project, projects.project_dir(project_id) / "in")
 
     @app.post("/api/projects/{project_id}/wizard/files/{name}/dates")
     def wizard_dates(project_id: str, name: str, body: WizardDates) -> wizard.DatePreview:

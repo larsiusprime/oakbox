@@ -533,6 +533,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Locations
+         * @description The location fields the user named (F3d).
+         */
+        get: operations["wizard_locations_api_projects__project_id__wizard_locations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/locations/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Location
+         * @description Load a parcel file's column as a location field the user names; no column removes it (F3d).
+         */
+        put: operations["wizard_location_api_projects__project_id__wizard_locations__name__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Map
+         * @description Where the parcels are, and the centre polar coordinates are measured from (F3d).
+         */
+        get: operations["wizard_map_api_projects__project_id__wizard_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/center": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Center
+         * @description Set the centre polar coordinates are measured from; none: the middle of the parcels (F3d).
+         */
+        put: operations["set_center_api_projects__project_id__center_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/files/{name}/dates": {
         parameters: {
             query?: never;
@@ -628,6 +708,16 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+        };
+        /**
+         * Center
+         * @description The point polar coordinates are measured from (OpenAVMKit's locality.center), in degrees.
+         */
+        Center: {
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
         };
         /** Check */
         Check: {
@@ -1229,6 +1319,50 @@ export interface components {
             /** Numbers */
             numbers?: ("1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56") | null;
         };
+        /** LocationField */
+        LocationField: {
+            /** Name */
+            name: string;
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            check: components["schemas"]["Check"];
+            /** Samples */
+            samples: string[];
+        };
+        /**
+         * MapView
+         * @description Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre.
+         */
+        MapView: {
+            /**
+             * Points
+             * @description [latitude, longitude] of up to 3,000 parcel centres.
+             */
+            points: [
+                number,
+                number
+            ][];
+            /**
+             * Middle
+             * @description The middle of all the parcels: the default centre.
+             */
+            middle: [
+                number,
+                number
+            ] | null;
+            /**
+             * Center
+             * @description The centre the user set; None: the middle.
+             */
+            center: [
+                number,
+                number
+            ] | null;
+            /** Parcels */
+            parcels: number;
+        };
         /**
          * NewProject
          * @description What the user enters to create a project (SPEC §3.0 F1).
@@ -1333,6 +1467,8 @@ export interface components {
              * @enum {string}
              */
             numbers: "1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56";
+            /** @description None: the middle of the parcels (OpenAVMKit's default). */
+            center: components["schemas"]["Center"] | null;
             /** Sample */
             sample: string | null;
             /**
@@ -1724,6 +1860,11 @@ export interface components {
             warnings: string[];
             /** Not Loaded */
             not_loaded: components["schemas"]["NotLoaded"][];
+            /**
+             * Locations
+             * @description The location fields the user named.
+             */
+            locations: components["schemas"]["LocationField"][];
         };
         /** WizardDates */
         WizardDates: {
@@ -1899,6 +2040,16 @@ export interface components {
              */
             blank_ok?: boolean | null;
         };
+        /** WizardLocation */
+        WizardLocation: {
+            /** File */
+            file?: string | null;
+            /**
+             * Column
+             * @description None removes the location field.
+             */
+            column?: string | null;
+        };
         /** WizardReconcile */
         WizardReconcile: {
             /**
@@ -1984,6 +2135,11 @@ export interface components {
              * @description Fields chosen or guessed once, so a guess never replaces them.
              */
             decided: string[];
+            /**
+             * Locations
+             * @description Fields the user named as locations (areas parcels belong to), in order.
+             */
+            locations: string[];
         };
     };
     responses: never;
@@ -2969,6 +3125,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RulePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_locations_api_projects__project_id__wizard_locations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationField"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_location_api_projects__project_id__wizard_locations__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardLocation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_map_api_projects__project_id__wizard_map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_center_api_projects__project_id__center_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Center"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapView"];
                 };
             };
             /** @description Validation Error */

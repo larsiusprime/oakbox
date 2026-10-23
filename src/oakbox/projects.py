@@ -89,6 +89,16 @@ class WizardState(BaseModel):
     decided: list[str] = Field(
         default_factory=list, description="Fields chosen or guessed once, so a guess never replaces them."
     )
+    locations: list[str] = Field(
+        default_factory=list, description="Fields the user named as locations (areas parcels belong to), in order."
+    )
+
+
+class Center(BaseModel):
+    """The point polar coordinates are measured from (OpenAVMKit's locality.center), in degrees."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
 
 
 class Project(BaseModel):
@@ -103,6 +113,7 @@ class Project(BaseModel):
     units: Units = "imperial"
     currency: str = Field(default="USD", description="ISO 4217 code: what prices and values are in.")
     numbers: NumberStyle = Field(default="1,234.56", description="How the files write numbers.")
+    center: Center | None = Field(default=None, description="None: the middle of the parcels (OpenAVMKit's default).")
     sample: str | None = None
     files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
     wizard: WizardState = Field(default_factory=WizardState)
@@ -242,7 +253,20 @@ def base_settings(project: Project) -> dict:
             "state": project.region,
             "units": project.units,
             "slug": slug(project.country, project.region, project.jurisdiction),
+            **({"center": project.center.model_dump()} if project.center else {}),
         },
+        # Locations the user named: OpenAVMKit's location fields, read as categories. Lists here add to
+        # OpenAVMKit's defaults rather than replacing them.
+        **(
+            {
+                "field_classification": {
+                    "important": {"locations": list(project.wizard.locations)},
+                    "other": {"categorical": list(project.wizard.locations)},
+                }
+            }
+            if project.wizard.locations
+            else {}
+        ),
         "modeling": {
             "metadata": {"valuation_date": project.valuation_date.isoformat() if project.valuation_date else None}
         },

@@ -42,6 +42,7 @@ import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { DateDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
+import { LocationExtras } from "./Location";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 
 const w = t.wizard;
@@ -133,6 +134,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
           {current.fields.length > 0 && (current.key !== "sales" || data.sale_id.file) && (
             <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
+          )}
+          {current.key === "location" && (
+            <LocationExtras project={project} data={data} change={change.mutate} />
           )}
           {change.error && (
             <p className="error" role="alert">
@@ -298,7 +302,8 @@ type Change =
       date_format?: string;
       area_unit?: AreaUnit;
     }
-  | { kind: "rule"; key: string; rule: Rule };
+  | { kind: "rule"; key: string; rule: Rule }
+  | { kind: "location"; name: string; file: string | null; column: string | null };
 
 function useChange(projectId: string) {
   const queryClient = useQueryClient();
@@ -343,6 +348,14 @@ function useChange(projectId: string) {
           await api.PUT("/api/projects/{project_id}/wizard/sale-id", {
             params: { path: { project_id } },
             body: { column: c.column, make: c.make },
+          }),
+        );
+      }
+      if (c.kind === "location") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/locations/{name}", {
+            params: { path: { project_id, name: c.name } },
+            body: { file: c.file, column: c.column },
           }),
         );
       }
@@ -1102,7 +1115,7 @@ function FieldsStep({
   const [more, setMore] = useState(false);
   const mine = data.fields.filter((f) => f.step === step.key && !f.hidden);
   // Only the universe so far: building details are often in a separate file (a CAMA export).
-  const onlyBase = !step.sales && data.files.filter((f) => f.holds === "parcels").length <= 1;
+  const onlyBase = step.key === "big_five" && data.files.filter((f) => f.holds === "parcels").length <= 1;
   const shown = mine.filter((f) => !f.more || more);
   const hasMore = mine.some((f) => f.more);
   return (

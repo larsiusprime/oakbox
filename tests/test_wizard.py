@@ -694,3 +694,67 @@ def test_more_files_join_the_parcels_or_the_sales(client, tmp_path, monkeypatch)
     assert univ["key"].tolist() == ["1", "2", "3", "4", "5"]
     assert univ["bldg_area_finished_sqft"].tolist() == [1500, 2000, 900, 1200, 1800]  # card 1 of parcel 2
     assert sorted(sales["key_sale"]) == ["S1", "S2", "S3"] and set(sales["key"]) == {"1", "3"}
+
+
+def test_location_fields_the_user_names_and_the_polar_centre(client, tmp_path, monkeypatch):
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {
+            "ID": [str(n) for n in range(6)],
+            "PHYADDR": [f"{n} MAIN ST" for n in range(6)],
+            "MAIL_ADDR": [f"PO BOX {n}" for n in range(6)],
+            "NBHD": ["A", "A", "B", "B", "C", "C"],
+        },
+        geometry=[box(-79.8 + n * 0.01, 36.1, -79.79 + n * 0.01, 36.11) for n in range(6)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame({"PID": ["1", "3"], "PRICE": [200_000, 150_000], "DATE": ["2024-01-02", "2024-05-06"]}).to_csv(
+        tmp_path / "sale.csv", index=False
+    )
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"file": "sale", "column": col})
+    for key in ("valid_sale", "vacant_sale"):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"assume": True})
+
+    # Only the situs address is asked, and its guess is the physical address, not the mailing one.
+    w = client.post(f"/api/projects/{pid}/wizard/steps/location/visit").json()
+    assert [f["key"] for f in w["fields"] if f["step"] == "location"] == ["address"]
+    address = _field(w, "address")
+    assert address["name"] == "Situs address" and "not where the owner gets mail" in address["description"]
+    assert address["sources"] == [{"file": "geo_parcels", "column": "PHYADDR"}]
+
+    url = f"/api/projects/{pid}/wizard/locations"
+    w = client.put(f"{url}/market_area", json={"file": "geo_parcels", "column": "NBHD"}).json()
+    assert [(x["name"], x["column"], x["check"]["text"]) for x in w["locations"]] == [
+        ("market_area", "NBHD", "✓ 3 areas")
+    ]
+    assert client.put(f"{url}/Bad Name", json={"file": "geo_parcels", "column": "NBHD"}).status_code == 422
+    assert client.put(f"{url}/latitude", json={"file": "geo_parcels", "column": "NBHD"}).status_code == 422
+    assert client.put(f"{url}/sale_price", json={"file": "geo_parcels", "column": "MAIL_ADDR"}).status_code == 422
+    settings = _settings(pid)
+    assert settings["data"]["load"]["geo_parcels"]["load"]["market_area"] == ["NBHD", "string"]
+    assert settings["field_classification"] == {
+        "important": {"locations": ["market_area"]},
+        "other": {"categorical": ["market_area"]},
+    }
+
+    view = client.get(f"/api/projects/{pid}/wizard/map").json()
+    assert view["parcels"] == 6 and len(view["points"]) == 6 and view["center"] is None
+    lat, lon = view["middle"]
+    assert 36.1 < lat < 36.11 and -79.8 < lon < -79.7
+    view = client.put(f"/api/projects/{pid}/center", json={"latitude": 36.0, "longitude": -79.9}).json()
+    assert view["center"] == [36.0, -79.9]
+    assert _settings(pid)["locality"]["center"] == {"latitude": 36.0, "longitude": -79.9}
+    client.put(f"/api/projects/{pid}/center")
+    assert "center" not in _settings(pid)["locality"]
+
+    univ, _ = _engine(pid, monkeypatch)
+    assert sorted(set(univ["market_area"])) == ["A", "B", "C"]
+
+    w = client.put(f"{url}/market_area", json={}).json()
+    assert w["locations"] == [] and "field_classification" not in _settings(pid)

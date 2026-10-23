@@ -79,8 +79,8 @@ STEPS: list[Step] = [
     Step(
         key="location",
         parent="details",
-        fields=["address", "neighborhood", "city", "school_district", "census_tract", "census_block_group"],
-        more=["census_block", "block", "risk_flood", "risk_disaster", "is_opportunity_zone", "noise_mean", "noise_max"],
+        # The situs address; the areas parcels belong to are the user's own location fields (add_location).
+        fields=["address"],
     ),
     Step(
         key="land",
@@ -134,9 +134,20 @@ ASSUMABLE = {"valid_sale": True, "vacant_sale": False}
 # Computed fields asked only when what they're computed from isn't loaded.
 ONLY_WITHOUT = {"bldg_age_years": "bldg_year_built", "bldg_effective_age_years": "bldg_effective_year_built"}
 
+# Fields the wizard words its own way.
+RENAMED = {
+    "address": (
+        "Situs address",
+        "The physical address of the property itself: where it is, not where the owner gets mail.",
+    ),
+}
+
 # Common column names, beside the field's own key and name (normalised: lowercase letters and digits).
 ALIASES: dict[str, list[str]] = {
-    "address": ["situs", "situsaddr", "situsaddress", "siteaddr", "siteaddress", "propaddr", "addr", "locaddr"],
+    "address": [
+        *("situs", "situsaddr", "situsaddress", "siteaddr", "siteaddress", "propaddr", "addr", "locaddr"),
+        *("phyaddr", "physaddr", "physicaladdress", "propertyaddress", "locationaddress"),
+    ],
     "neighborhood": ["nbhd", "nbhdcd", "nbhdcode", "neighborhoodcode", "neighcode", "hood"],
     "city": ["situscity", "sitecity"],
     "school_district": ["school", "schooldist", "isd", "schooldistrict"],
@@ -350,6 +361,7 @@ class Wizard(BaseModel):
     problems: list[str] = Field(description="What stops OpenAVMKit from running.")
     warnings: list[str] = Field(description="Recommended fields that are missing.")
     not_loaded: list[NotLoaded]
+    locations: list[LocationField] = Field(default_factory=list, description="The location fields the user named.")
 
 
 # ---------- Reading the files (cached on the file's size and time) ----------
@@ -657,6 +669,8 @@ def _guess_field(files: _Files, d: DictionaryField, candidates: list[str], used:
         for col in files.columns(name):
             if col.name in used.get(name, {}) or _norm(col.name) not in names:
                 continue
+            if d.key == "address" and re.search(r"mail|owner", col.name, re.IGNORECASE):
+                continue  # the situs address, never the owner's mailing address
             check, spec = field_check(d, col)
             if check.ok and spec:
                 return name, spec
@@ -814,7 +828,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 elif len(sources) > 1:
                     check = Check(ok=False, text="loaded from more than one file")
                 assumed = bool(sales and key in ASSUMABLE and key in sales.calc)
-                name, description = d.name, d.description
+                name, description = RENAMED.get(key, (d.name, d.description))
                 if project.units == "metric":  # written as land_area_sqm etc. (datafiles.area_key)
                     name, description = (x.replace("square feet", "square metres") for x in (name, description))
                 out_fields.append(
@@ -875,6 +889,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         problems=problems,
         warnings=warnings,
         not_loaded=not_loaded,
+        locations=locations(project, in_dir),
     )
 
 
@@ -1881,3 +1896,115 @@ def _area_check(files: _Files, entry: DataFile, key: str, column: str, unit: str
     if median_sqft > high:
         return Check(ok=True, warn=True, text=f"{text} · very large: is it in a smaller unit?")
     return Check(ok=True, text=f"✓ {text}")
+
+
+# ---------- Location fields the user names, and where the parcels are (F3d) ----------
+
+
+class LocationField(BaseModel):
+    name: str
+    file: str
+    column: str
+    check: Check
+    samples: list[str]
+
+
+# Names OpenAVMKit gives a meaning of its own, besides its dictionary's derived fields.
+TAKEN = {"key", "key2", "key3", "key_sale", "geometry", "latitude", "longitude", "polar_radius", "polar_angle"}
+
+
+def locations(project: Project, in_dir: Path) -> list[LocationField]:
+    files = _Files(project, in_dir)
+    out = []
+    for name in project.wizard.locations:
+        entry = next((f for f in _field_files(project, False) if name in f.load), None)
+        if entry is None:
+            continue
+        column = entry.load[name][0]
+        values = [v for v in files.values(entry.name, column) if v] if entry.name in files.preview else []
+        distinct = len(set(values))
+        if not values:
+            check = Check(ok=False, text="empty")
+        elif distinct == 1:
+            check = Check(ok=True, warn=True, text="one value for every parcel")
+        elif distinct > 0.5 * len(values):
+            check = Check(ok=True, warn=True, text=f"{distinct:,} values: nearly one per parcel. An ID, not an area?")
+        else:
+            check = Check(ok=True, text=f"✓ {distinct:,} areas")
+        col = files.column(entry.name, column)
+        out.append(
+            LocationField(name=name, file=entry.name, column=column, check=check, samples=col.samples if col else [])
+        )
+    return out
+
+
+def set_location(project: Project, in_dir: Path, name: str, file: str | None, column: str | None) -> None:
+    """Load a column of a parcel file as a location field the user names (or, with no column, remove it)."""
+    by_key = _by_key()
+    if column is None:
+        for f in _field_files(project, False):
+            if name in project.wizard.locations:
+                f.load.pop(name, None)
+        if name in project.wizard.locations:
+            project.wizard.locations.remove(name)
+        return
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+        raise ValueError("Names use lowercase letters, digits and underscores, and start with a letter.")
+    d = by_key.get(name)
+    if name in TAKEN or name.startswith("polar_") or (d is not None and d.source in ("derived", "reserved")):
+        raise ValueError(f"OpenAVMKit works out {name} itself: choose another name.")
+    entry = next((f for f in _field_files(project, False) if f.name == file), None)
+    if entry is None:
+        raise ValueError("Locations come from a parcel file: the universe, or one joined to it.")
+    if _Files(project, in_dir).column(entry.name, column) is None:
+        raise ValueError(f"{entry.name} has no column {column}.")
+    loaded_as = {spec[0]: field for field, spec in entry.load.items()}
+    if column in loaded_as and loaded_as[column] != name:
+        raise ValueError(f"{column} is already loaded as {loaded_as[column]}.")
+    for f in project.files:
+        if name in f.load and name not in project.wizard.locations:
+            raise ValueError(f"{name} is already used for another field.")
+        if name in f.load and f is not entry:
+            f.load.pop(name)
+    entry.load[name] = [column, "string"]
+    if name not in project.wizard.locations:
+        project.wizard.locations.append(name)
+
+
+class MapView(BaseModel):
+    """Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre."""
+
+    points: list[tuple[float, float]] = Field(description="[latitude, longitude] of up to 3,000 parcel centres.")
+    middle: tuple[float, float] | None = Field(description="The middle of all the parcels: the default centre.")
+    center: tuple[float, float] | None = Field(description="The centre the user set; None: the middle.")
+    parcels: int
+
+
+@lru_cache(maxsize=8)
+def _map_points(stamp: tuple[str, float, int], layer: str | None):
+    import geopandas as gpd
+
+    path = Path(stamp[0])
+    gdf = (
+        gpd.read_parquet(path)
+        if path.suffix.lower() in (".parquet", ".geoparquet")
+        else gpd.read_file(path, layer=layer)
+    )
+    gdf = gdf[gdf.geometry.notna()]
+    if gdf.crs is None:
+        return [], None, len(gdf)
+    # The middle as OpenAVMKit works it out (in the file's own coordinates), then in degrees.
+    middle = gpd.GeoSeries([gdf.geometry.union_all().centroid], crs=gdf.crs).to_crs(4326).iloc[0]
+    sample = gdf.sample(min(3000, len(gdf)), random_state=0) if len(gdf) else gdf
+    centres = sample.geometry.centroid.to_crs(4326)
+    points = [(round(p.y, 6), round(p.x, 6)) for p in centres]
+    return points, (round(middle.y, 6), round(middle.x, 6)), len(gdf)
+
+
+def map_view(project: Project, in_dir: Path) -> MapView:
+    base = _base(project)
+    center = (project.center.latitude, project.center.longitude) if project.center else None
+    if base is None or not (in_dir / base.filename).is_file():
+        return MapView(points=[], middle=None, center=center, parcels=0)
+    points, middle, n = _map_points(_stamp(in_dir / base.filename), base.layer)
+    return MapView(points=points, middle=middle, center=center, parcels=n)

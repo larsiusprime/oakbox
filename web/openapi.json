@@ -1398,6 +1398,206 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/locations": {
+   "get": {
+    "summary": "Wizard Locations",
+    "description": "The location fields the user named (F3d).",
+    "operationId": "wizard_locations_api_projects__project_id__wizard_locations_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/LocationField"
+         },
+         "title": "Response Wizard Locations Api Projects  Project Id  Wizard Locations Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/locations/{name}": {
+   "put": {
+    "summary": "Wizard Location",
+    "description": "Load a parcel file's column as a location field the user names; no column removes it (F3d).",
+    "operationId": "wizard_location_api_projects__project_id__wizard_locations__name__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardLocation"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/map": {
+   "get": {
+    "summary": "Wizard Map",
+    "description": "Where the parcels are, and the centre polar coordinates are measured from (F3d).",
+    "operationId": "wizard_map_api_projects__project_id__wizard_map_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MapView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/center": {
+   "put": {
+    "summary": "Set Center",
+    "description": "Set the centre polar coordinates are measured from; none: the middle of the parcels (F3d).",
+    "operationId": "set_center_api_projects__project_id__center_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/Center"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MapView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/files/{name}/dates": {
    "post": {
     "summary": "Wizard Dates",
@@ -1616,6 +1816,29 @@
      "display"
     ],
     "title": "AppSettingsView"
+   },
+   "Center": {
+    "properties": {
+     "latitude": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": -90.0,
+      "title": "Latitude"
+     },
+     "longitude": {
+      "type": "number",
+      "maximum": 180.0,
+      "minimum": -180.0,
+      "title": "Longitude"
+     }
+    },
+    "type": "object",
+    "required": [
+     "latitude",
+     "longitude"
+    ],
+    "title": "Center",
+    "description": "The point polar coordinates are measured from (OpenAVMKit's locality.center), in degrees."
    },
    "Check": {
     "properties": {
@@ -2847,6 +3070,120 @@
     "title": "Locale",
     "description": "The project's units, currency and number style: set from the country, changeable (SPEC F1)."
    },
+   "LocationField": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "check": {
+      "$ref": "#/components/schemas/Check"
+     },
+     "samples": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Samples"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "file",
+     "column",
+     "check",
+     "samples"
+    ],
+    "title": "LocationField"
+   },
+   "MapView": {
+    "properties": {
+     "points": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "[latitude, longitude] of up to 3,000 parcel centres."
+     },
+     "middle": {
+      "anyOf": [
+       {
+        "prefixItems": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "number"
+         }
+        ],
+        "type": "array",
+        "maxItems": 2,
+        "minItems": 2
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Middle",
+      "description": "The middle of all the parcels: the default centre."
+     },
+     "center": {
+      "anyOf": [
+       {
+        "prefixItems": [
+         {
+          "type": "number"
+         },
+         {
+          "type": "number"
+         }
+        ],
+        "type": "array",
+        "maxItems": 2,
+        "minItems": 2
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Center",
+      "description": "The centre the user set; None: the middle."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     }
+    },
+    "type": "object",
+    "required": [
+     "points",
+     "middle",
+     "center",
+     "parcels"
+    ],
+    "title": "MapView",
+    "description": "Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre."
+   },
    "NewProject": {
     "properties": {
      "name": {
@@ -3033,6 +3370,17 @@
       "description": "How the files write numbers.",
       "default": "1,234.56"
      },
+     "center": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Center"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "None: the middle of the parcels (OpenAVMKit's default)."
+     },
      "sample": {
       "anyOf": [
        {
@@ -3069,6 +3417,7 @@
      "units",
      "currency",
      "numbers",
+     "center",
      "sample",
      "files",
      "wizard"
@@ -3904,6 +4253,14 @@
       },
       "type": "array",
       "title": "Not Loaded"
+     },
+     "locations": {
+      "items": {
+       "$ref": "#/components/schemas/LocationField"
+      },
+      "type": "array",
+      "title": "Locations",
+      "description": "The location fields the user named."
      }
     },
     "type": "object",
@@ -3915,7 +4272,8 @@
      "used",
      "problems",
      "warnings",
-     "not_loaded"
+     "not_loaded",
+     "locations"
     ],
     "title": "Wizard"
    },
@@ -4406,6 +4764,35 @@
     "title": "WizardFileChoice",
     "description": "Step 1 of the Fields wizard, for one file (F3d). Leave a value out to keep it."
    },
+   "WizardLocation": {
+    "properties": {
+     "file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "None removes the location field."
+     }
+    },
+    "type": "object",
+    "title": "WizardLocation"
+   },
    "WizardReconcile": {
     "properties": {
      "file_steps": {
@@ -4539,6 +4926,14 @@
       "type": "array",
       "title": "Decided",
       "description": "Fields chosen or guessed once, so a guess never replaces them."
+     },
+     "locations": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Locations",
+      "description": "Fields the user named as locations (areas parcels belong to), in order."
      }
     },
     "type": "object",
@@ -4547,7 +4942,8 @@
      "visited",
      "skipped",
      "confirmed",
-     "decided"
+     "decided",
+     "locations"
     ],
     "title": "WizardState",
     "description": "The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."
