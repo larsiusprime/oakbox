@@ -8,7 +8,7 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from shapely.geometry import box
+from shapely.geometry import Point, box
 
 HERE = Path(__file__).parent
 IN = HERE / "in"
@@ -285,7 +285,41 @@ for i in np.flatnonzero(fmt_rng.random(len(p)) < 0.01):
 sales["PRICE_NEGATIVE"] = [f"({v:,})" if v < 100 else f"{v:,}" for v in p]  # accounting: (10) for a $10 deed refund
 
 (IN / "geo").mkdir(parents=True, exist_ok=True)
+
+# ---------- Map layers (the Shapefiles section): zoning polygons and school points ----------
+# A separate random stream, so the files above don't change.
+geo_rng = np.random.default_rng(4096)
+zones = []
+for b, (nbhd, (_, _, _, w, d, _, q)) in enumerate(NBHDS.items()):
+    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
+    width, height = 4 * (10 * w + 60), 8 * (2 * d + 60)
+    # Two zoning districts per neighborhood, split east-west; commercial along the eastern edge.
+    code = "R-3" if q < 0.95 else "R-5" if q < 1.1 else "RS-12"
+    zones.append(
+        dict(
+            ZONE_CODE=code,
+            ZONE_DESC={"R-3": "Residential 3", "R-5": "Residential 5", "RS-12": "Residential single-family 12"}[code],
+            geometry=box(bx - 50, by - 50, bx + width * 0.7, by + height + 50),
+        )
+    )
+    zones.append(
+        dict(
+            ZONE_CODE="C-M",
+            ZONE_DESC="Commercial medium",
+            geometry=box(bx + width * 0.7, by - 50, bx + width + 50, by + height + 50),
+        )
+    )
+zoning = gpd.GeoDataFrame(pd.DataFrame(zones), crs="EPSG:2264").to_crs(4326)
+schools = []
+for b in range(len(NBHDS)):
+    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
+    for k in range(2):
+        x, y = bx + geo_rng.uniform(-1500, 5500), by + geo_rng.uniform(-1500, 8000)
+        schools.append(dict(SCHOOL=f"School {b * 2 + k + 1}", LEVEL=["Elementary", "Middle"][k], geometry=Point(x, y)))
+schools_gdf = gpd.GeoDataFrame(pd.DataFrame(schools), crs="EPSG:2264")
 parcels.to_parquet(IN / "geo" / "parcels.parquet")
+zoning.to_file(IN / "geo" / "zoning.geojson", driver="GeoJSON")  # in degrees, unlike the parcels
+schools_gdf.to_file(IN / "geo" / "schools.shp")
 cama.to_csv(IN / "cama.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
 print(f"{len(parcels):,} parcel shapes, {len(cama):,} building cards, {len(sales):,} sales")

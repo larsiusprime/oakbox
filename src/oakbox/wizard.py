@@ -34,6 +34,7 @@ from oakbox.datafiles import (
     Dupes,
     Holds,
     Match,
+    Overlay,
     Rule,
     clean_calc,
     clean_value,
@@ -89,12 +90,8 @@ STEPS: list[Step] = [
         fields=["assr_land_value", "assr_impr_value", "assr_market_value"],
         more=["true_land_value", "true_impr_value", "true_market_value"],
     ),
-    Step(
-        key="other",
-        parent="details",
-        fields=["deed_book", "deed_page", "deed_grantor", "deed_grantee"],
-        more=["mail_address", "mail_city", "mail_state", "mail_zip", "is_usps_vacant"],
-    ),
+    # Map layers joined onto the parcels by where they are, or measured to (F3d Shapefiles).
+    Step(key="shapefiles", parent="details"),
     Step(key="review"),
 ]
 STEP_KEYS = [s.key for s in STEPS]
@@ -336,6 +333,7 @@ class Wizard(BaseModel):
     warnings: list[str] = Field(description="Recommended fields that are missing.")
     not_loaded: list[NotLoaded]
     locations: list[LocationField] = Field(default_factory=list, description="The location fields the user named.")
+    layers: list[LayerView] = Field(default_factory=list, description="Map layers (Shapefiles).")
 
 
 # ---------- Reading the files (cached on the file's size and time) ----------
@@ -825,9 +823,10 @@ def view(project: Project, in_dir: Path) -> Wizard:
 
     problems = _problems(out_files, sale_id, out_fields)
     warnings = _warnings(out_files, out_fields)
+    layer_list = layers(project, in_dir)
     steps = []
     for step in STEPS:
-        status, left = _status(project, step, out_files, sale_id, out_fields, problems, warnings)
+        status, left = _status(project, step, out_files, sale_id, out_fields, problems, warnings, layer_list)
         steps.append(
             StepView(
                 key=step.key,
@@ -864,6 +863,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         warnings=warnings,
         not_loaded=not_loaded,
         locations=locations(project, in_dir),
+        layers=layer_list,
     )
 
 
@@ -875,9 +875,11 @@ def _status(
     flds: list[WizardField],
     problems: list[str],
     warnings: list[str],
+    layer_views: list[LayerView] | None = None,
 ) -> tuple[Status, list[Left]]:
     """A step's mark, worked out from what's on it, and what's left to do there (SPEC F3d). Blank until visited."""
     w = project.wizard
+    layer_views = layer_views or []
     if step.key == "details" or step.key not in w.visited:
         return "blank", []  # More details is the worst of its parts, filled in by the caller
     if step.key == "welcome":
@@ -922,6 +924,9 @@ def _status(
                 ids(f, f.name)
                 for i in left[before:]:
                     i.text = f"{f.name}: {i.text}"
+    elif step.key == "shapefiles":
+        for lv in layer_views:
+            left.extend(Left(text=f"{lv.name}: {p.text}", blocking=p.blocking) for p in lv.left)
     elif step.key == "sales":
         sales = next((f for f in files if f.holds == "sales" and not _more_sales(f)), None)
         ids(sales, "sales")
@@ -1982,3 +1987,188 @@ def map_view(project: Project, in_dir: Path) -> MapView:
         return MapView(points=[], middle=None, center=center, parcels=0)
     points, middle, n = _map_points(_stamp(in_dir / base.filename), base.layer)
     return MapView(points=points, middle=middle, center=center, parcels=n)
+
+
+# ---------- Map layers: Shapefiles (F3d) ----------
+
+
+class LayerView(BaseModel):
+    name: str
+    filename: str
+    columns: list[Column]
+    overlay: Overlay
+    features: int
+    polygons: int
+    points: int
+    lines: int
+    projected: bool = Field(description="It has a coordinate system, so it can be placed against the parcels.")
+    check: Check | None = Field(description="Stamp: how many parcels fall in a shape. Distance: the features.")
+    left: list[Left] = Field(default_factory=list, description="What's still to do or wrong with it.")
+
+
+@lru_cache(maxsize=16)
+def _read_geo(stamp: tuple[str, float, int], layer: str | None):
+    import geopandas as gpd
+
+    path = Path(stamp[0])
+    if path.suffix.lower() in (".parquet", ".geoparquet"):
+        gdf = gpd.read_parquet(path)
+    else:
+        gdf = gpd.read_file(path, layer=layer)
+    return gdf[gdf.geometry.notna() & ~gdf.geometry.is_empty]
+
+
+def _geo(in_dir: Path, f: DataFile):
+    return _read_geo(_stamp(in_dir / f.filename), f.layer)
+
+
+@lru_cache(maxsize=16)
+def _coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple[str, float, int], layer: str | None):
+    """(parcels in exactly one shape, in several, in none): their centres, as OpenAVMKit joins them."""
+    import geopandas as gpd
+
+    parcels = _read_geo(base, base_layer)
+    shapes = _read_geo(other, layer)
+    shapes = shapes[shapes.geometry.geom_type.isin(["Polygon", "MultiPolygon"])].to_crs(parcels.crs)
+    centres = gpd.GeoDataFrame(geometry=parcels.geometry.centroid, crs=parcels.crs)
+    hits = gpd.sjoin(centres, shapes[["geometry"]], how="inner", predicate="within").groupby(level=0).size()
+    one = int((hits == 1).sum())
+    several = int((hits > 1).sum())
+    return one, several, len(parcels) - one - several
+
+
+def layers(project: Project, in_dir: Path) -> list[LayerView]:
+    files = _Files(project, in_dir)
+    base = _base(project)
+    out = []
+    for f in project.files:
+        if f.holds != "overlay" or not (in_dir / f.filename).is_file():
+            continue
+        o = f.overlay or Overlay()
+        left: list[Left] = []
+        try:
+            gdf = _geo(in_dir, f)
+        except Exception as e:  # noqa: BLE001 - an unreadable file shows on its card
+            gdf = None
+            left.append(Left(text=f"can't be read: {e}"))
+        kinds = gdf.geometry.geom_type.value_counts().to_dict() if gdf is not None else {}
+        polygons = int(kinds.get("Polygon", 0) + kinds.get("MultiPolygon", 0))
+        points = int(kinds.get("Point", 0) + kinds.get("MultiPoint", 0))
+        lines = int(kinds.get("LineString", 0) + kinds.get("MultiLineString", 0))
+        projected = gdf is not None and gdf.crs is not None
+        check = None
+        if gdf is not None and not projected:
+            left.append(Left(text="has no coordinate system (a .prj file), so it can't be placed"))
+        if o.use is None:
+            left.append(Left(text="say how to use it", blocking=False))
+        elif o.use == "stamp":
+            if not polygons:
+                left.append(Left(text="has no shapes to fall in: use it for distances"))
+            elif not o.fields:
+                left.append(Left(text="pick at least one column to copy"))
+            elif projected and base is not None and (in_dir / base.filename).is_file():
+                one, several, none = _coverage(
+                    _stamp(in_dir / base.filename), base.layer, _stamp(in_dir / f.filename), f.layer
+                )
+                text = f"{one + several:,} parcels in a shape · {several:,} in more than one · {none:,} in none"
+                if one + several == 0:
+                    left.append(Left(text="no parcel falls in any shape: is it the right place, or projection?"))
+                    check = Check(ok=False, text=text)
+                else:
+                    check = Check(ok=True, warn=several > 0, text=("" if several else "✓ ") + text)
+        elif o.use == "distance":
+            if not o.feature:
+                left.append(Left(text="name the distance"))
+            check = Check(ok=True, text=f"✓ {len(gdf) if gdf is not None else 0:,} features")
+        out.append(
+            LayerView(
+                name=f.name,
+                filename=f.filename,
+                columns=files.columns(f.name),
+                overlay=o,
+                features=len(gdf) if gdf is not None else 0,
+                polygons=polygons,
+                points=points,
+                lines=lines,
+                projected=projected,
+                check=check,
+                left=left,
+            )
+        )
+    return out
+
+
+def _taken_names(project: Project, skip: str) -> set[str]:
+    """Field names already used, other than by the layer being changed."""
+    names = {k for f in project.files if f.holds in ("parcels", "sales") for k in f.load}
+    for f in project.files:
+        if f.holds == "overlay" and f.overlay and f.name != skip:
+            names |= {x.name for x in f.overlay.fields}
+            if f.overlay.feature:
+                names.add(f"dist_to_{f.overlay.feature}")
+    return names
+
+
+def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | None) -> None:
+    """Make a file a map layer used as said (stamp or distance); None sets it aside."""
+    entry = next((f for f in project.files if f.name == name), None)
+    if entry is None:
+        raise LookupError(name)
+    if overlay is None:
+        entry.holds, entry.overlay = "unused", None
+        return
+    if entry.name == project.wizard.base:
+        raise ValueError("That's the parcel universe.")
+    files = _Files(project, in_dir)
+    if not files.geometry(name):
+        raise ValueError(f"{name} has no shapes: a map layer needs geometry.")
+    columns = {c.name for c in files.columns(name)}
+    by_key = _by_key()
+    taken = _taken_names(project, name)
+
+    def check_name(n: str, what: str) -> None:
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", n):
+            raise ValueError(f"{what}: names use lowercase letters, digits and underscores, and start with a letter.")
+        d = by_key.get(n)
+        if n in TAKEN or n.startswith("polar_") or (d is not None and d.source in ("derived", "reserved")):
+            raise ValueError(f"OpenAVMKit works out {n} itself: choose another name.")
+        if n in taken:
+            raise ValueError(f"{n} is already used for another field.")
+
+    if overlay.use == "stamp":
+        seen = set()
+        for x in overlay.fields:
+            if x.column not in columns:
+                raise ValueError(f"{name} has no column {x.column}.")
+            check_name(x.name, x.column)
+            if x.name in seen:
+                raise ValueError(f"{x.name} is used twice.")
+            seen.add(x.name)
+    elif overlay.use == "distance":
+        if overlay.feature:
+            check_name(overlay.feature, "The distance")
+            check_name(f"dist_to_{overlay.feature}", "The distance")
+        if overlay.name_column is not None and overlay.name_column not in columns:
+            raise ValueError(f"{name} has no column {overlay.name_column}.")
+        if overlay.store_top and overlay.top_n < 1:
+            raise ValueError("Say how many of the largest features get their own distance.")
+    entry.holds, entry.overlay, entry.load = "overlay", overlay, {}
+
+
+class LayerMap(BaseModel):
+    shapes: dict = Field(description="The layer's features as GeoJSON in degrees, simplified, at most 2,000.")
+    points: list[tuple[float, float]] = Field(description="Parcel centres, as on the Location map.")
+
+
+def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
+    import json as _json
+
+    entry = next((f for f in project.files if f.name == name and f.holds == "overlay"), None)
+    if entry is None:
+        raise LookupError(name)
+    gdf = _geo(in_dir, entry)
+    if gdf.crs is None:
+        raise ValueError(f"{name} has no coordinate system, so it can't be placed on a map.")
+    shapes = gdf[["geometry"]].head(2000).to_crs(4326)
+    shapes["geometry"] = shapes.geometry.simplify(0.00005, preserve_topology=True)
+    return LayerMap(shapes=_json.loads(shapes.to_json()), points=map_view(project, in_dir).points)

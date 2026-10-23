@@ -759,3 +759,110 @@ def test_location_fields_the_user_names_and_the_polar_centre(client, tmp_path, m
 
     w = client.put(f"{url}/market_area", json={}).json()
     assert w["locations"] == [] and "field_classification" not in _settings(pid)
+
+
+def test_map_layers_stamped_onto_parcels_or_measured_to(client, tmp_path, monkeypatch):
+    """Zoning polygons (GeoJSON, in degrees) stamped onto parcels (State Plane feet); schools (points, a
+    shapefile) measured to. OpenAVMKit's own spatial join and distances produce the fields."""
+    from shapely.geometry import Point
+
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    lots = gpd.GeoDataFrame(
+        {"ID": [str(n) for n in range(6)]},
+        geometry=[box(1_760_000 + n * 200, 850_000, 1_760_150 + n * 200, 850_150) for n in range(6)],
+        crs="EPSG:2264",
+    )
+    lots.to_parquet(tmp_path / "parcels.parquet")
+    zoning = gpd.GeoDataFrame(
+        {"ZONE_CODE": ["R-3", "C-M"], "OBJECTID": [1, 2]},
+        geometry=[box(1_759_900, 849_900, 1_760_500, 850_300), box(1_760_500, 849_900, 1_761_300, 850_300)],
+        crs="EPSG:2264",
+    ).to_crs(4326)
+    zoning.to_file(tmp_path / "zoning.geojson", driver="GeoJSON")
+    gpd.GeoDataFrame({"SCHOOL": ["A"]}, geometry=[Point(1_759_000, 850_075)], crs="EPSG:2264").to_file(
+        tmp_path / "schools.shp"
+    )
+    pd.DataFrame({"PID": ["1", "3"], "PRICE": [200_000, 150_000], "DATE": ["2024-01-02", "2024-05-06"]}).to_csv(
+        tmp_path / "sale.csv", index=False
+    )
+    for name, fn in (
+        ("parcels", "parcels.parquet"),
+        ("sale", "sale.csv"),
+        ("zoning", "zoning.geojson"),
+        ("schools", "schools.shp"),
+    ):
+        body = {"path": str(tmp_path / fn), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200, fn
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"file": "sale", "column": col})
+    for key in ("valid_sale", "vacant_sale"):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"assume": True})
+    client.post(f"/api/projects/{pid}/wizard/steps/shapefiles/visit")
+    layer = f"/api/projects/{pid}/wizard/layers"
+
+    # Added but not said how to use: listed, nothing written yet.
+    w = client.put(f"{layer}/zoning", json={}).json()
+    z = next(x for x in w["layers"] if x["name"] == "zoning")
+    assert (z["polygons"], z["points"], z["projected"]) == (2, 0, True)
+    assert {"text": "zoning: say how to use it", "blocking": False} in _step(w, "shapefiles")["left"]
+
+    stamp = {"use": "stamp", "fields": [{"column": "ZONE_CODE", "name": "zoning_district", "kind": "location"}]}
+    w = client.put(f"{layer}/zoning", json=stamp).json()
+    z = next(x for x in w["layers"] if x["name"] == "zoning")
+    assert z["check"]["text"] == "✓ 6 parcels in a shape · 0 in more than one · 0 in none"
+    # Points can only be measured to; names OpenAVMKit computes are refused.
+    bad = {"use": "stamp", "fields": [{"column": "SCHOOL", "name": "school", "kind": "location"}]}
+    w = client.put(f"{layer}/schools", json=bad).json()
+    s = next(x for x in w["layers"] if x["name"] == "schools")
+    assert {"text": "schools: has no shapes to fall in: use it for distances", "blocking": True} in _step(
+        w, "shapefiles"
+    )["left"]
+    assert (s["points"], s["polygons"]) == (1, 0)
+    assert (
+        client.put(f"{layer}/schools", json={**bad, "fields": [{**bad["fields"][0], "name": "latitude"}]}).status_code
+        == 422
+    )
+    dist = {"use": "distance", "feature": "schools", "max_distance": 2, "unit": "mile", "name_column": "SCHOOL"}
+    w = client.put(f"{layer}/schools", json=dist).json()
+    assert _step(w, "shapefiles")["left"] == []
+
+    settings = _settings(pid)
+    enrich = settings["data"]["process"]["enrich"]
+    assert enrich["geometry"] == [{"id": "zoning", "predicate": "contains_centroid", "fields": ["zoning_district"]}]
+    assert enrich["distances"] == {
+        "enabled": True,
+        "schools": {"enabled": True, "source": "schools", "unit": "mile", "max_distance": 2.0},
+    }
+    load = settings["data"]["load"]
+    assert load["zoning"] == {
+        "filename": "zoning.geojson",
+        "load": {"zoning_district": ["ZONE_CODE", "string"]},
+        "dupes": "allow",
+    }
+    assert load["schools"]["load"] == {"name": ["SCHOOL", "string"]}
+    assert settings["field_classification"]["important"]["locations"] == ["zoning_district"]
+    assert "zoning" not in settings["data"]["process"]["merge"]["universe"]
+
+    view = client.get(f"{layer}/zoning/map").json()
+    assert len(view["shapes"]["features"]) == 2 and len(view["points"]) == 6
+
+    from openavmkit.data import _basic_geo_enrichment, _enrich_df_distances, _enrich_df_spatial_joins
+    from openavmkit.pipeline import load_dataframes, load_settings
+
+    monkeypatch.chdir(projects.project_dir(pid))
+    s = load_settings("in/settings.json")
+    dfs = load_dataframes(s)
+    univ = dfs["geo_parcels"]
+    e = s["data"]["process"]["enrich"]
+    univ = _enrich_df_spatial_joins(univ, e, dfs, s)
+    univ = _basic_geo_enrichment(univ, e, s)
+    univ = _enrich_df_distances(univ, e["distances"], dfs).sort_values("key")
+    assert univ["zoning_district"].tolist() == ["R-3", "R-3", "R-3", "C-M", "C-M", "C-M"]
+    d = univ["dist_to_schools"].tolist()
+    assert d == sorted(d) and 0.1 < d[0] < 0.3  # miles, growing east from the school
+
+    w = client.put(f"{layer}/schools").json()
+    assert all(x["name"] != "schools" for x in w["layers"])
+    assert "distances" not in _settings(pid)["data"]["process"]["enrich"]

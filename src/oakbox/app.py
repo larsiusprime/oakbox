@@ -604,6 +604,22 @@ def create_app() -> FastAPI:
         """Load a parcel file's column as a location field the user names; no column removes it (F3d)."""
         return _change(project_id, lambda p, d: wizard.set_location(p, d, name, body.file, body.column))
 
+    @app.put("/api/projects/{project_id}/wizard/layers/{name}")
+    def wizard_layer(project_id: str, name: str, body: datafiles.Overlay | None = None) -> wizard.Wizard:
+        """Use a file as a map layer (stamped onto parcels, or measured to); no body sets it aside (F3d)."""
+        return _change(project_id, lambda p, d: wizard.set_overlay(p, d, name, body))
+
+    @app.get("/api/projects/{project_id}/wizard/layers/{name}/map")
+    def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:
+        """A map layer's shapes in degrees, and the parcel centres, for its map (F3d)."""
+        project = _load(project_id)
+        try:
+            return wizard.layer_map(project, projects.project_dir(project_id) / "in", name)
+        except LookupError as e:
+            raise HTTPException(404, f"No such layer: {e}") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+
     @app.get("/api/projects/{project_id}/wizard/map")
     def wizard_map(project_id: str) -> wizard.MapView:
         """Where the parcels are, and the centre polar coordinates are measured from (F3d)."""

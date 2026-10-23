@@ -573,6 +573,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/layers/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Layer
+         * @description Use a file as a map layer (stamped onto parcels, or measured to); no body sets it aside (F3d).
+         */
+        put: operations["wizard_layer_api_projects__project_id__wizard_layers__name__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/layers/{name}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Layer Map
+         * @description A map layer's shapes in degrees, and the parcel centres, for its map (F3d).
+         */
+        get: operations["wizard_layer_map_api_projects__project_id__wizard_layers__name__map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/map": {
         parameters: {
             query?: never;
@@ -949,7 +989,7 @@ export interface components {
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
              */
-            holds: ("parcels" | "sales" | "unused") | null;
+            holds: ("parcels" | "sales" | "unused" | "overlay") | null;
             /**
              * Clean
              * @description ID field -> clean-up steps, so it matches the other files (F3d reconcile).
@@ -971,6 +1011,8 @@ export interface components {
             area_units: {
                 [key: string]: "sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu";
             };
+            /** @description A map layer's use (holds overlay, F3d). */
+            overlay: components["schemas"]["Overlay-Output"] | null;
         };
         /** DateCheck */
         DateCheck: {
@@ -1293,6 +1335,54 @@ export interface components {
              */
             todo: string;
         };
+        /** LayerMap */
+        LayerMap: {
+            /**
+             * Shapes
+             * @description The layer's features as GeoJSON in degrees, simplified, at most 2,000.
+             */
+            shapes: {
+                [key: string]: unknown;
+            };
+            /**
+             * Points
+             * @description Parcel centres, as on the Location map.
+             */
+            points: [
+                number,
+                number
+            ][];
+        };
+        /** LayerView */
+        LayerView: {
+            /** Name */
+            name: string;
+            /** Filename */
+            filename: string;
+            /** Columns */
+            columns: components["schemas"]["Column"][];
+            overlay: components["schemas"]["Overlay-Output"];
+            /** Features */
+            features: number;
+            /** Polygons */
+            polygons: number;
+            /** Points */
+            points: number;
+            /** Lines */
+            lines: number;
+            /**
+             * Projected
+             * @description It has a coordinate system, so it can be placed against the parcels.
+             */
+            projected: boolean;
+            /** @description Stamp: how many parcels fall in a shape. Distance: the features. */
+            check: components["schemas"]["Check"] | null;
+            /**
+             * Left
+             * @description What's still to do or wrong with it.
+             */
+            left: components["schemas"]["Left"][];
+        };
         /** Left */
         Left: {
             /**
@@ -1417,6 +1507,114 @@ export interface components {
             file: string;
             /** Columns */
             columns: string[];
+        };
+        /**
+         * Overlay
+         * @description A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.
+         *
+         *     stamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying
+         *     the chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature.
+         */
+        "Overlay-Input": {
+            /** Use */
+            use?: ("stamp" | "distance") | null;
+            /**
+             * Fields
+             * @description stamp: the columns to copy.
+             */
+            fields?: components["schemas"]["StampField-Input"][];
+            /**
+             * Feature
+             * @description distance: names the columns, dist_to_<feature>.
+             * @default
+             */
+            feature: string;
+            /**
+             * Max Distance
+             * @description distance: past it, no distance.
+             */
+            max_distance?: number | null;
+            /**
+             * Unit
+             * @default km
+             * @enum {string}
+             */
+            unit: "m" | "km" | "ft" | "mile";
+            /**
+             * Store Top
+             * @description distance: also to each of the top N features.
+             * @default false
+             */
+            store_top: boolean;
+            /**
+             * Top N
+             * @default 0
+             */
+            top_n: number;
+            /**
+             * Sort Field
+             * @description Ranks the top N.
+             */
+            sort_field?: ("area" | "length") | null;
+            /**
+             * Name Column
+             * @description Names each feature (for the top N).
+             */
+            name_column?: string | null;
+        };
+        /**
+         * Overlay
+         * @description A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.
+         *
+         *     stamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying
+         *     the chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature.
+         */
+        "Overlay-Output": {
+            /** Use */
+            use: ("stamp" | "distance") | null;
+            /**
+             * Fields
+             * @description stamp: the columns to copy.
+             */
+            fields: components["schemas"]["StampField-Output"][];
+            /**
+             * Feature
+             * @description distance: names the columns, dist_to_<feature>.
+             * @default
+             */
+            feature: string;
+            /**
+             * Max Distance
+             * @description distance: past it, no distance.
+             */
+            max_distance: number | null;
+            /**
+             * Unit
+             * @default km
+             * @enum {string}
+             */
+            unit: "m" | "km" | "ft" | "mile";
+            /**
+             * Store Top
+             * @description distance: also to each of the top N features.
+             * @default false
+             */
+            store_top: boolean;
+            /**
+             * Top N
+             * @default 0
+             */
+            top_n: number;
+            /**
+             * Sort Field
+             * @description Ranks the top N.
+             */
+            sort_field: ("area" | "length") | null;
+            /**
+             * Name Column
+             * @description Names each feature (for the top N).
+             */
+            name_column: string | null;
         };
         /** Project */
         Project: {
@@ -1754,6 +1952,46 @@ export interface components {
             /** Column */
             column: string;
         };
+        /**
+         * StampField
+         * @description A column of a map layer copied onto each parcel whose centre falls in one of its shapes.
+         */
+        "StampField-Input": {
+            /** Column */
+            column: string;
+            /**
+             * Name
+             * @description What the parcels call it.
+             */
+            name: string;
+            /**
+             * Kind
+             * @description location: an area (a category models group by).
+             * @default location
+             * @enum {string}
+             */
+            kind: "location" | "category" | "number";
+        };
+        /**
+         * StampField
+         * @description A column of a map layer copied onto each parcel whose centre falls in one of its shapes.
+         */
+        "StampField-Output": {
+            /** Column */
+            column: string;
+            /**
+             * Name
+             * @description What the parcels call it.
+             */
+            name: string;
+            /**
+             * Kind
+             * @description location: an area (a category models group by).
+             * @default location
+             * @enum {string}
+             */
+            kind: "location" | "category" | "number";
+        };
         /** StepView */
         StepView: {
             /** Key */
@@ -1865,6 +2103,11 @@ export interface components {
              * @description The location fields the user named.
              */
             locations: components["schemas"]["LocationField"][];
+            /**
+             * Layers
+             * @description Map layers (Shapefiles).
+             */
+            layers: components["schemas"]["LayerView"][];
         };
         /** WizardDates */
         WizardDates: {
@@ -1957,7 +2200,7 @@ export interface components {
             /** Geometry */
             geometry: boolean;
             /** Holds */
-            holds: ("parcels" | "sales" | "unused") | null;
+            holds: ("parcels" | "sales" | "unused" | "overlay") | null;
             /**
              * Match
              * @description Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).
@@ -1995,7 +2238,7 @@ export interface components {
          */
         WizardFileChoice: {
             /** Holds */
-            holds?: ("parcels" | "sales" | "unused") | null;
+            holds?: ("parcels" | "sales" | "unused" | "overlay") | null;
             /**
              * Universe
              * @description Make this the parcel universe file (it needs shapes).
@@ -3192,6 +3435,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_layer_api_projects__project_id__wizard_layers__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Overlay-Input"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_layer_map_api_projects__project_id__wizard_layers__name__map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayerMap"];
                 };
             };
             /** @description Validation Error */

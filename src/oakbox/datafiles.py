@@ -16,7 +16,14 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
 # Exactly what OpenAVMKit's data.load reads (by extension, case-insensitively).
-FORMATS = {"csv": "CSV", "parquet": "Parquet", "geoparquet": "Parquet", "gpkg": "GeoPackage", "shp": "Shapefile"}
+FORMATS = {
+    "csv": "CSV",
+    "parquet": "Parquet",
+    "geoparquet": "Parquet",
+    "gpkg": "GeoPackage",
+    "shp": "Shapefile",
+    "geojson": "GeoJSON",
+}
 # A shapefile can't be read without these next to the .shp.
 SHAPEFILE_REQUIRED = ("shx", "dbf")
 NAME = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -26,7 +33,8 @@ class BaseModel(_PydanticBase):
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 
-Holds = Literal["parcels", "sales", "unused"]
+# overlay: a map layer (zoning, school zones, parks) joined onto the parcels by where they are (F3d Shapefiles).
+Holds = Literal["parcels", "sales", "unused", "overlay"]
 # The ID a file joins on: the universe's parcel ID or an extra ID; or, for more sales details, the sale ID.
 Match = Literal["key", "key2", "key3", "key_sale"]
 # The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.
@@ -73,6 +81,57 @@ def guess_area_unit(column: str) -> AreaUnit | None:
     if "pyeong" in flat:
         return "pyeong"
     return None
+
+
+StampKind = Literal["location", "category", "number"]
+DistanceUnit = Literal["m", "km", "ft", "mile"]
+
+
+class StampField(BaseModel):
+    """A column of a map layer copied onto each parcel whose centre falls in one of its shapes."""
+
+    column: str
+    name: str = Field(description="What the parcels call it.")
+    kind: StampKind = Field(default="location", description="location: an area (a category models group by).")
+
+
+class Overlay(BaseModel):
+    """A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.
+
+    stamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying
+    the chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature.
+    """
+
+    use: Literal["stamp", "distance"] | None = None
+    fields: list[StampField] = Field(default_factory=list, description="stamp: the columns to copy.")
+    feature: str = Field(default="", description="distance: names the columns, dist_to_<feature>.")
+    max_distance: float | None = Field(default=None, gt=0, description="distance: past it, no distance.")
+    unit: DistanceUnit = "km"
+    store_top: bool = Field(default=False, description="distance: also to each of the top N features.")
+    top_n: int = Field(default=0, ge=0)
+    sort_field: Literal["area", "length"] | None = Field(default=None, description="Ranks the top N.")
+    name_column: str | None = Field(default=None, description="Names each feature (for the top N).")
+
+
+def overlay_load(o: Overlay) -> dict[str, list[str]]:
+    """What a layer loads: the copied columns under their names, or the name column as "name"."""
+    if o.use == "stamp":
+        return {f.name: [f.column, "float" if f.kind == "number" else "string"] for f in o.fields}
+    if o.use == "distance" and o.name_column:
+        return {"name": [o.name_column, "string"]}
+    return {}
+
+
+def overlay_distance(name: str, o: Overlay) -> dict:
+    """The layer's entry in enrich.distances."""
+    out: dict = {"enabled": True, "source": name, "unit": o.unit}
+    if o.max_distance is not None:
+        out["max_distance"] = o.max_distance
+    if o.store_top and o.top_n:
+        out |= {"store_top": True, "top_n": o.top_n}
+        if o.sort_field:
+            out["sort_field"] = o.sort_field
+    return out
 
 
 CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
@@ -266,6 +325,7 @@ class DataFile(BaseModel):
     area_units: dict[str, AreaUnit] = Field(
         default_factory=dict, description="Area field -> the unit its column is in; converted as it loads (F3d)."
     )
+    overlay: Overlay | None = Field(default=None, description="A map layer's use (holds overlay, F3d).")
 
 
 class FileCheck(BaseModel):
@@ -415,7 +475,7 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
         entry: dict = {"filename": f.filename}
         if f.layer:
             entry["layer"] = f.layer
-        load: dict[str, list[str]] = {}
+        load: dict[str, list[str]] = overlay_load(f.overlay) if f.holds == "overlay" and f.overlay else {}
         areas: dict[str, list] = {}
         for field, spec in f.load.items():
             written = area_key(field, units)
@@ -446,6 +506,9 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
             order = "desc" if f.dupes_desc else "asc"
             drop: bool | str = "all" if f.dupes == "all" else True
             entry["dupes"] = {"subset": [f.match], "sort_by": [f.dupes_sort or f.match, order], "drop": drop}
+        if f.holds == "overlay":
+            # Every shape counts: without this OpenAVMKit keeps one per value of its first column.
+            entry["dupes"] = "allow"
         if f.holds == "sales":
             # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.
             order = "desc" if f.dupes_desc else "asc"

@@ -32,7 +32,7 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
-from oakbox.datafiles import DataFile, data_load
+from oakbox.datafiles import DataFile, data_load, overlay_distance
 
 
 class BaseModel(_PydanticBase):
@@ -244,6 +244,24 @@ def create(new: NewProject) -> Project:
     return _start(project, _new_folder(new.name))
 
 
+def _classification(project: Project) -> dict:
+    locations, categorical, numeric = list(project.wizard.locations), list(project.wizard.locations), []
+    for f in project.files:
+        if f.holds == "overlay" and f.overlay and f.overlay.use == "stamp":
+            for x in f.overlay.fields:
+                if x.kind == "location":
+                    locations.append(x.name)
+                (numeric if x.kind == "number" else categorical).append(x.name)
+    fc: dict = {}
+    if locations:
+        fc.setdefault("important", {})["locations"] = locations
+    if categorical:
+        fc.setdefault("other", {})["categorical"] = categorical
+    if numeric:
+        fc.setdefault("other", {})["numeric"] = numeric
+    return {"field_classification": fc} if fc else {}
+
+
 def base_settings(project: Project) -> dict:
     """What a project writes so far: the locality, the valuation date, and each data file's data.load entry."""
     return {
@@ -255,18 +273,9 @@ def base_settings(project: Project) -> dict:
             "slug": slug(project.country, project.region, project.jurisdiction),
             **({"center": project.center.model_dump()} if project.center else {}),
         },
-        # Locations the user named: OpenAVMKit's location fields, read as categories. Lists here add to
-        # OpenAVMKit's defaults rather than replacing them.
-        **(
-            {
-                "field_classification": {
-                    "important": {"locations": list(project.wizard.locations)},
-                    "other": {"categorical": list(project.wizard.locations)},
-                }
-            }
-            if project.wizard.locations
-            else {}
-        ),
+        # Locations the user named, and fields copied from map layers: OpenAVMKit's location fields,
+        # categories and numbers. Lists here add to OpenAVMKit's defaults rather than replacing them.
+        **_classification(project),
         "modeling": {
             "metadata": {"valuation_date": project.valuation_date.isoformat() if project.valuation_date else None}
         },
@@ -297,6 +306,22 @@ def _data(project: Project) -> dict:
         if lookups:
             process["enrich"] = {"ref_tables": {"sales": lookups}}
         out["process"] = process
+    # Map layers (F3d Shapefiles): joined by where each parcel is, or measured to.
+    layers = [f for f in project.files if f.holds == "overlay" and f.overlay and f.overlay.use]
+    stamps = [f for f in layers if f.overlay and f.overlay.use == "stamp" and f.overlay.fields]
+    dists = [f for f in layers if f.overlay and f.overlay.use == "distance" and f.overlay.feature]
+    if stamps or dists:
+        enrich = out.setdefault("process", {}).setdefault("enrich", {})
+        if stamps:
+            enrich["geometry"] = [
+                {"id": f.name, "predicate": "contains_centroid", "fields": [x.name for x in f.overlay.fields]}
+                for f in stamps
+                if f.overlay
+            ]
+        if dists:
+            enrich["distances"] = {"enabled": True} | {
+                f.overlay.feature: overlay_distance(f.name, f.overlay) for f in dists if f.overlay
+            }
     return out
 
 

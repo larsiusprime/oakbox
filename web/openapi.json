@@ -1501,6 +1501,121 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/layers/{name}": {
+   "put": {
+    "summary": "Wizard Layer",
+    "description": "Use a file as a map layer (stamped onto parcels, or measured to); no body sets it aside (F3d).",
+    "operationId": "wizard_layer_api_projects__project_id__wizard_layers__name__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "anyOf": [
+         {
+          "$ref": "#/components/schemas/Overlay-Input"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Body"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/layers/{name}/map": {
+   "get": {
+    "summary": "Wizard Layer Map",
+    "description": "A map layer's shapes in degrees, and the parcel centres, for its map (F3d).",
+    "operationId": "wizard_layer_map_api_projects__project_id__wizard_layers__name__map_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LayerMap"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/map": {
    "get": {
     "summary": "Wizard Map",
@@ -2263,7 +2378,8 @@
         "enum": [
          "parcels",
          "sales",
-         "unused"
+         "unused",
+         "overlay"
         ]
        },
        {
@@ -2309,6 +2425,17 @@
       "type": "object",
       "title": "Area Units",
       "description": "Area field -> the unit its column is in; converted as it loads (F3d)."
+     },
+     "overlay": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Overlay-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "A map layer's use (holds overlay, F3d)."
      }
     },
     "type": "object",
@@ -2326,7 +2453,8 @@
      "holds",
      "clean",
      "rules",
-     "area_units"
+     "area_units",
+     "overlay"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -2998,6 +3126,117 @@
     ],
     "title": "Issue"
    },
+   "LayerMap": {
+    "properties": {
+     "shapes": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Shapes",
+      "description": "The layer's features as GeoJSON in degrees, simplified, at most 2,000."
+     },
+     "points": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "Parcel centres, as on the Location map."
+     }
+    },
+    "type": "object",
+    "required": [
+     "shapes",
+     "points"
+    ],
+    "title": "LayerMap"
+   },
+   "LayerView": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename"
+     },
+     "columns": {
+      "items": {
+       "$ref": "#/components/schemas/Column"
+      },
+      "type": "array",
+      "title": "Columns"
+     },
+     "overlay": {
+      "$ref": "#/components/schemas/Overlay-Output"
+     },
+     "features": {
+      "type": "integer",
+      "title": "Features"
+     },
+     "polygons": {
+      "type": "integer",
+      "title": "Polygons"
+     },
+     "points": {
+      "type": "integer",
+      "title": "Points"
+     },
+     "lines": {
+      "type": "integer",
+      "title": "Lines"
+     },
+     "projected": {
+      "type": "boolean",
+      "title": "Projected",
+      "description": "It has a coordinate system, so it can be placed against the parcels."
+     },
+     "check": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Check"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Stamp: how many parcels fall in a shape. Distance: the features."
+     },
+     "left": {
+      "items": {
+       "$ref": "#/components/schemas/Left"
+      },
+      "type": "array",
+      "title": "Left",
+      "description": "What's still to do or wrong with it."
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "filename",
+     "columns",
+     "overlay",
+     "features",
+     "polygons",
+     "points",
+     "lines",
+     "projected",
+     "check",
+     "left"
+    ],
+    "title": "LayerView"
+   },
    "Left": {
     "properties": {
      "text": {
@@ -3295,6 +3534,217 @@
      "columns"
     ],
     "title": "NotLoaded"
+   },
+   "Overlay-Input": {
+    "properties": {
+     "use": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "stamp",
+         "distance"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/StampField-Input"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "stamp: the columns to copy."
+     },
+     "feature": {
+      "type": "string",
+      "title": "Feature",
+      "description": "distance: names the columns, dist_to_<feature>.",
+      "default": ""
+     },
+     "max_distance": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Distance",
+      "description": "distance: past it, no distance."
+     },
+     "unit": {
+      "type": "string",
+      "enum": [
+       "m",
+       "km",
+       "ft",
+       "mile"
+      ],
+      "title": "Unit",
+      "default": "km"
+     },
+     "store_top": {
+      "type": "boolean",
+      "title": "Store Top",
+      "description": "distance: also to each of the top N features.",
+      "default": false
+     },
+     "top_n": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Top N",
+      "default": 0
+     },
+     "sort_field": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "area",
+         "length"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sort Field",
+      "description": "Ranks the top N."
+     },
+     "name_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name Column",
+      "description": "Names each feature (for the top N)."
+     }
+    },
+    "type": "object",
+    "title": "Overlay",
+    "description": "A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.\n\nstamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying\nthe chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature."
+   },
+   "Overlay-Output": {
+    "properties": {
+     "use": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "stamp",
+         "distance"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/StampField-Output"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "stamp: the columns to copy."
+     },
+     "feature": {
+      "type": "string",
+      "title": "Feature",
+      "description": "distance: names the columns, dist_to_<feature>.",
+      "default": ""
+     },
+     "max_distance": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Distance",
+      "description": "distance: past it, no distance."
+     },
+     "unit": {
+      "type": "string",
+      "enum": [
+       "m",
+       "km",
+       "ft",
+       "mile"
+      ],
+      "title": "Unit",
+      "default": "km"
+     },
+     "store_top": {
+      "type": "boolean",
+      "title": "Store Top",
+      "description": "distance: also to each of the top N features.",
+      "default": false
+     },
+     "top_n": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Top N",
+      "default": 0
+     },
+     "sort_field": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "area",
+         "length"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sort Field",
+      "description": "Ranks the top N."
+     },
+     "name_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name Column",
+      "description": "Names each feature (for the top N)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "use",
+     "fields",
+     "feature",
+     "max_distance",
+     "unit",
+     "store_top",
+     "top_n",
+     "sort_field",
+     "name_column"
+    ],
+    "title": "Overlay",
+    "description": "A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.\n\nstamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying\nthe chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature."
    },
    "Project": {
     "properties": {
@@ -3997,6 +4447,69 @@
     ],
     "title": "Source"
    },
+   "StampField-Input": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "What the parcels call it."
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "location",
+       "category",
+       "number"
+      ],
+      "title": "Kind",
+      "description": "location: an area (a category models group by).",
+      "default": "location"
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "name"
+    ],
+    "title": "StampField",
+    "description": "A column of a map layer copied onto each parcel whose centre falls in one of its shapes."
+   },
+   "StampField-Output": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "What the parcels call it."
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "location",
+       "category",
+       "number"
+      ],
+      "title": "Kind",
+      "description": "location: an area (a category models group by).",
+      "default": "location"
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "name",
+     "kind"
+    ],
+    "title": "StampField",
+    "description": "A column of a map layer copied onto each parcel whose centre falls in one of its shapes."
+   },
    "StepView": {
     "properties": {
      "key": {
@@ -4261,6 +4774,14 @@
       "type": "array",
       "title": "Locations",
       "description": "The location fields the user named."
+     },
+     "layers": {
+      "items": {
+       "$ref": "#/components/schemas/LayerView"
+      },
+      "type": "array",
+      "title": "Layers",
+      "description": "Map layers (Shapefiles)."
      }
     },
     "type": "object",
@@ -4273,7 +4794,8 @@
      "problems",
      "warnings",
      "not_loaded",
-     "locations"
+     "locations",
+     "layers"
     ],
     "title": "Wizard"
    },
@@ -4529,7 +5051,8 @@
         "enum": [
          "parcels",
          "sales",
-         "unused"
+         "unused",
+         "overlay"
         ]
        },
        {
@@ -4642,7 +5165,8 @@
         "enum": [
          "parcels",
          "sales",
-         "unused"
+         "unused",
+         "overlay"
         ]
        },
        {
