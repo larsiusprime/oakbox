@@ -35,3 +35,5 @@ export type RulePreview = components["schemas"]["RulePreview"];
 export type DatePreview = components["schemas"]["DatePreview"];
 export type Rule = components["schemas"]["Rule-Output"];
 export type Condition = components["schemas"]["Condition-Output"];
+export type Overlay = components["schemas"]["Overlay-Output"];
+export type LayerView = components["schemas"]["LayerView"];

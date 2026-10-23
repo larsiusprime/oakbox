@@ -290,7 +290,7 @@ sales["PRICE_NEGATIVE"] = [f"({v:,})" if v < 100 else f"{v:,}" for v in p]  # ac
 # A separate random stream, so the files above don't change.
 geo_rng = np.random.default_rng(4096)
 zones = []
-for b, (nbhd, (_, _, _, w, d, _, q)) in enumerate(NBHDS.items()):
+for b, (_nbhd, (_, _, _, w, d, _, q)) in enumerate(NBHDS.items()):
     bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
     width, height = 4 * (10 * w + 60), 8 * (2 * d + 60)
     # Two zoning districts per neighborhood, split east-west; commercial along the eastern edge.

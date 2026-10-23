@@ -44,6 +44,7 @@ import { DateDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { LocationExtras } from "./Location";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
+import { type LayerChange, ShapefilesStep } from "./Shapefiles";
 
 const w = t.wizard;
 type AreaUnit = NonNullable<WizardField["area_unit"]>;
@@ -137,6 +138,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
           {current.key === "location" && (
             <LocationExtras project={project} data={data} change={change.mutate} />
+          )}
+          {current.key === "shapefiles" && (
+            <ShapefilesStep project={project} data={data} change={change.mutate} />
           )}
           {change.error && (
             <p className="error" role="alert">
@@ -303,7 +307,8 @@ type Change =
       area_unit?: AreaUnit;
     }
   | { kind: "rule"; key: string; rule: Rule }
-  | { kind: "location"; name: string; file: string | null; column: string | null };
+  | { kind: "location"; name: string; file: string | null; column: string | null }
+  | LayerChange;
 
 function useChange(projectId: string) {
   const queryClient = useQueryClient();
@@ -348,6 +353,14 @@ function useChange(projectId: string) {
           await api.PUT("/api/projects/{project_id}/wizard/sale-id", {
             params: { path: { project_id } },
             body: { column: c.column, make: c.make },
+          }),
+        );
+      }
+      if (c.kind === "layer") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/layers/{name}", {
+            params: { path: { project_id, name: c.name } },
+            ...(c.overlay ? { body: c.overlay } : {}),
           }),
         );
       }
@@ -684,7 +697,7 @@ function WelcomeStep() {
 }
 
 /** Add a file with the picker (SPEC F2), or take one already in the project. */
-function FilePicker({
+export function FilePicker({
   project,
   data,
   exclude,

@@ -2574,5 +2574,17 @@ a.row-title:hover {
 }
 
 .wiz-map-toggle {
+  justify-self: start;
   margin: 0 0 0.5rem;
+}
+
+/* Shapefiles (F3d): a card per map layer. */
+.wiz-stamp,
+.wiz-dist {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.wiz-num {
+  width: 6rem;
 }
