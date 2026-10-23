@@ -373,7 +373,11 @@ export const t = {
       lines: (n: number) => `${n.toLocaleString()} ${n === 1 ? "line" : "lines"}`,
       how: "Use it to…",
       stamp: "Stamp its areas onto parcels: the shape each parcel's centre falls in",
-      stampNeedsPolygons: "(needs shapes, not points or lines)",
+      // Why stamping is greyed out: a parcel can only fall inside a shape.
+      onlyPoints:
+        "(not for this layer: it's points, and a parcel can only fall inside a shape; use distances)",
+      onlyLines: "(not for this layer: it's lines, and a parcel can only fall inside a shape; use distances)",
+      noShapes: "(not for this layer: it has no shapes)",
       distance: "Measure distances: how far each parcel is from the nearest feature",
       column: "Column",
       pickColumn: "Choose a column…",

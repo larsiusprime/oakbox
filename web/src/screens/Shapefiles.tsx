@@ -139,7 +139,12 @@ function LayerCard({
         <Radio value="stamp" className="radio" isDisabled={!layer.polygons && o.use !== "stamp"}>
           <span className="radio-dot" aria-hidden="true" />
           {s.stamp}
-          {!layer.polygons && <small className="wiz-from"> {s.stampNeedsPolygons}</small>}
+          {!layer.polygons && (
+            <small className="wiz-from">
+              {" "}
+              {layer.points ? s.onlyPoints : layer.lines ? s.onlyLines : s.noShapes}
+            </small>
+          )}
         </Radio>
         <Radio value="distance" className="radio">
           <span className="radio-dot" aria-hidden="true" />

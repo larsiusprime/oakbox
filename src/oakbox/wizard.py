@@ -2052,9 +2052,10 @@ def layers(project: Project, in_dir: Path) -> list[LayerView]:
             gdf = None
             left.append(Left(text=f"can't be read: {e}"))
         kinds = gdf.geometry.geom_type.value_counts().to_dict() if gdf is not None else {}
-        polygons = int(kinds.get("Polygon", 0) + kinds.get("MultiPolygon", 0))
-        points = int(kinds.get("Point", 0) + kinds.get("MultiPoint", 0))
-        lines = int(kinds.get("LineString", 0) + kinds.get("MultiLineString", 0))
+        # Curved shapes (CurvePolygon, MultiSurface, from some GeoPackage and ArcGIS exports) count as shapes.
+        polygons = int(sum(n for k, n in kinds.items() if "Polygon" in k or "Surface" in k))
+        points = int(sum(n for k, n in kinds.items() if "Point" in k))
+        lines = int(sum(n for k, n in kinds.items() if "Line" in k or "Curve" in k and "Polygon" not in k))
         projected = gdf is not None and gdf.crs is not None
         check = None
         if gdf is not None and not projected:
