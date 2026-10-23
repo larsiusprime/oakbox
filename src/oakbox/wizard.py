@@ -913,7 +913,8 @@ def _status(
         ids(base, "parcel")
     elif step.key == "more_files":
         for f in files:
-            if f.base or f.holds == "unused" or (f.holds == "sales" and not _more_sales(f)):
+            # Map layers are the Shapefiles step's; they join by where parcels are, not on an ID.
+            if f.base or f.holds in ("unused", "overlay") or (f.holds == "sales" and not _more_sales(f)):
                 continue
             if f.holds is None:
                 left.append(Left(text=f"{f.name}: say what it joins to", blocking=False))

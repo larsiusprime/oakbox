@@ -827,6 +827,9 @@ def test_map_layers_stamped_onto_parcels_or_measured_to(client, tmp_path, monkey
     dist = {"use": "distance", "feature": "schools", "max_distance": 2, "unit": "mile", "name_column": "SCHOOL"}
     w = client.put(f"{layer}/schools", json=dist).json()
     assert _step(w, "shapefiles")["left"] == []
+    # Map layers aren't More files: they don't join on an ID, so they're nothing to do there.
+    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit").json()
+    assert _step(w, "more_files")["left"] == []
 
     settings = _settings(pid)
     enrich = settings["data"]["process"]["enrich"]
