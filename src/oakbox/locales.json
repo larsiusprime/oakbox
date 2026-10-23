@@ -1,0 +1,2001 @@
+{
+ "countries": {
+  "AF": {
+   "currency": "AFN",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AL": {
+   "currency": "ALL",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "DZ": {
+   "currency": "DZD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "AS": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AD": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "AO": {
+   "currency": "AOA",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "AI": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AQ": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AG": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AR": {
+   "currency": "ARS",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "AM": {
+   "currency": "AMD",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "AW": {
+   "currency": "AWG",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "AU": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AT": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "AZ": {
+   "currency": "AZN",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "BS": {
+   "currency": "BSD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BH": {
+   "currency": "BHD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BD": {
+   "currency": "BDT",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BB": {
+   "currency": "BBD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BY": {
+   "currency": "BYN",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "BE": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "BZ": {
+   "currency": "BZD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BJ": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "BM": {
+   "currency": "BMD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BT": {
+   "currency": "INR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BO": {
+   "currency": "BOB",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "BQ": {
+   "currency": "USD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "BA": {
+   "currency": "BAM",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "BW": {
+   "currency": "BWP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BV": {
+   "currency": "NOK",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BR": {
+   "currency": "BRL",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "IO": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "BN": {
+   "currency": "BND",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "BG": {
+   "currency": "BGN",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "BF": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "BI": {
+   "currency": "BIF",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "CV": {
+   "currency": "CVE",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "KH": {
+   "currency": "KHR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CM": {
+   "currency": "XAF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "CA": {
+   "currency": "CAD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KY": {
+   "currency": "KYD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CF": {
+   "currency": "XAF",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "TD": {
+   "currency": "XAF",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CL": {
+   "currency": "CLP",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "CN": {
+   "currency": "CNY",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CX": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CC": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CO": {
+   "currency": "COP",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "KM": {
+   "currency": "KMF",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CG": {
+   "currency": "XAF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "CD": {
+   "currency": "CDF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "CK": {
+   "currency": "NZD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CR": {
+   "currency": "CRC",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "HR": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "CU": {
+   "currency": "CUP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CW": {
+   "currency": "XCG",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "CY": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "CZ": {
+   "currency": "CZK",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "CI": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "DK": {
+   "currency": "DKK",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "DJ": {
+   "currency": "DJF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "DM": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "DO": {
+   "currency": "DOP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "EC": {
+   "currency": "USD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "EG": {
+   "currency": "EGP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SV": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GQ": {
+   "currency": "XAF",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "ER": {
+   "currency": "ERN",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "EE": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "SZ": {
+   "currency": "SZL",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ET": {
+   "currency": "ETB",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "FK": {
+   "currency": "FKP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "FO": {
+   "currency": "DKK",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "FJ": {
+   "currency": "FJD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "FI": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "FR": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "GF": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "PF": {
+   "currency": "XPF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "TF": {
+   "currency": "EUR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GA": {
+   "currency": "XAF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "GM": {
+   "currency": "GMD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GE": {
+   "currency": "GEL",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "DE": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "GH": {
+   "currency": "GHS",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GI": {
+   "currency": "GIP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GR": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "GL": {
+   "currency": "DKK",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "GD": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GP": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "GU": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GT": {
+   "currency": "GTQ",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GG": {
+   "currency": "GBP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GN": {
+   "currency": "GNF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "GW": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "GY": {
+   "currency": "GYD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "HT": {
+   "currency": "HTG",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "HM": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "VA": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "HN": {
+   "currency": "HNL",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "HK": {
+   "currency": "HKD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "HU": {
+   "currency": "HUF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "IS": {
+   "currency": "ISK",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "IN": {
+   "currency": "INR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ID": {
+   "currency": "IDR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "IR": {
+   "currency": "IRR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "IQ": {
+   "currency": "IQD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "IE": {
+   "currency": "EUR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "IM": {
+   "currency": "GBP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "IL": {
+   "currency": "ILS",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "IT": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "JM": {
+   "currency": "JMD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "JP": {
+   "currency": "JPY",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "JE": {
+   "currency": "GBP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "JO": {
+   "currency": "JOD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KZ": {
+   "currency": "KZT",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "KE": {
+   "currency": "KES",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KI": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KW": {
+   "currency": "KWD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KG": {
+   "currency": "KGS",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "LA": {
+   "currency": "LAK",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "LV": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "LB": {
+   "currency": "LBP",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "LS": {
+   "currency": "ZAR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "LR": {
+   "currency": "LRD",
+   "numbers": "1,234.56",
+   "units": "imperial"
+  },
+  "LY": {
+   "currency": "LYD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "LI": {
+   "currency": "CHF",
+   "numbers": "1'234.56",
+   "units": "metric"
+  },
+  "LT": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "LU": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "MO": {
+   "currency": "MOP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MG": {
+   "currency": "MGA",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MW": {
+   "currency": "MWK",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MY": {
+   "currency": "MYR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MV": {
+   "currency": "MVR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ML": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "MT": {
+   "currency": "EUR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MH": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MQ": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "MR": {
+   "currency": "MRU",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "MU": {
+   "currency": "MUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "YT": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "MX": {
+   "currency": "MXN",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "FM": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MD": {
+   "currency": "MDL",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "MC": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "MN": {
+   "currency": "MNT",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ME": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "MS": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MA": {
+   "currency": "MAD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "MZ": {
+   "currency": "MZN",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "MM": {
+   "currency": "MMK",
+   "numbers": "1,234.56",
+   "units": "imperial"
+  },
+  "NA": {
+   "currency": "ZAR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NR": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NP": {
+   "currency": "NPR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NL": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "NC": {
+   "currency": "XPF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "NZ": {
+   "currency": "NZD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NI": {
+   "currency": "NIO",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NE": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "NG": {
+   "currency": "NGN",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NU": {
+   "currency": "NZD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NF": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KP": {
+   "currency": "KPW",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MK": {
+   "currency": "MKD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "MP": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "NO": {
+   "currency": "NOK",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "OM": {
+   "currency": "OMR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PK": {
+   "currency": "PKR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PW": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PS": {
+   "currency": "ILS",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PA": {
+   "currency": "PAB",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PG": {
+   "currency": "PGK",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PY": {
+   "currency": "PYG",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PE": {
+   "currency": "PEN",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PH": {
+   "currency": "PHP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PN": {
+   "currency": "NZD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "PL": {
+   "currency": "PLN",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "PT": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "PR": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "QA": {
+   "currency": "QAR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "RO": {
+   "currency": "RON",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "RU": {
+   "currency": "RUB",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "RW": {
+   "currency": "RWF",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "RE": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "BL": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "SH": {
+   "currency": "SHP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KN": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "LC": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "MF": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "PM": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "VC": {
+   "currency": "XCD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "WS": {
+   "currency": "WST",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SM": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "ST": {
+   "currency": "STN",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "SA": {
+   "currency": "SAR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SN": {
+   "currency": "XOF",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "RS": {
+   "currency": "RSD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "SC": {
+   "currency": "SCR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "SL": {
+   "currency": "SLE",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SG": {
+   "currency": "SGD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SX": {
+   "currency": "XCG",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SK": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "SI": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "SB": {
+   "currency": "SBD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SO": {
+   "currency": "SOS",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ZA": {
+   "currency": "ZAR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "GS": {
+   "currency": "GBP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "KR": {
+   "currency": "KRW",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SS": {
+   "currency": "SSP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ES": {
+   "currency": "EUR",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "LK": {
+   "currency": "LKR",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SD": {
+   "currency": "SDG",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "SR": {
+   "currency": "SRD",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "SJ": {
+   "currency": "NOK",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "SE": {
+   "currency": "SEK",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "CH": {
+   "currency": "CHF",
+   "numbers": "1'234.56",
+   "units": "metric"
+  },
+  "SY": {
+   "currency": "SYP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TW": {
+   "currency": "TWD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TJ": {
+   "currency": "TJS",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "TZ": {
+   "currency": "TZS",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TH": {
+   "currency": "THB",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TL": {
+   "currency": "USD",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "TG": {
+   "currency": "XOF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "TK": {
+   "currency": "NZD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TO": {
+   "currency": "TOP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TT": {
+   "currency": "TTD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TN": {
+   "currency": "TND",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "TM": {
+   "currency": "TMT",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "TC": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TV": {
+   "currency": "AUD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "TR": {
+   "currency": "TRY",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "UG": {
+   "currency": "UGX",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "UA": {
+   "currency": "UAH",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "AE": {
+   "currency": "AED",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "GB": {
+   "currency": "GBP",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "US": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "imperial"
+  },
+  "UM": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "UY": {
+   "currency": "UYU",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "UZ": {
+   "currency": "UZS",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "VU": {
+   "currency": "VUV",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "VE": {
+   "currency": "VES",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "VN": {
+   "currency": "VND",
+   "numbers": "1.234,56",
+   "units": "metric"
+  },
+  "VG": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "VI": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "WF": {
+   "currency": "XPF",
+   "numbers": "1 234,56",
+   "units": "metric"
+  },
+  "EH": {
+   "currency": "MAD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "YE": {
+   "currency": "YER",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ZM": {
+   "currency": "ZMW",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "ZW": {
+   "currency": "USD",
+   "numbers": "1,234.56",
+   "units": "metric"
+  },
+  "AX": {
+   "currency": "EUR",
+   "numbers": "1 234,56",
+   "units": "metric"
+  }
+ },
+ "currencies": [
+  {
+   "code": "AED",
+   "name": "United Arab Emirates Dirham",
+   "symbol": "AED"
+  },
+  {
+   "code": "AFN",
+   "name": "Afghan Afghani",
+   "symbol": "AFN"
+  },
+  {
+   "code": "ALL",
+   "name": "Albanian Lek",
+   "symbol": "ALL"
+  },
+  {
+   "code": "AMD",
+   "name": "Armenian Dram",
+   "symbol": "AMD"
+  },
+  {
+   "code": "AOA",
+   "name": "Angolan Kwanza",
+   "symbol": "AOA"
+  },
+  {
+   "code": "ARS",
+   "name": "Argentine Peso",
+   "symbol": "ARS"
+  },
+  {
+   "code": "AUD",
+   "name": "Australian Dollar",
+   "symbol": "A$"
+  },
+  {
+   "code": "AWG",
+   "name": "Aruban Florin",
+   "symbol": "AWG"
+  },
+  {
+   "code": "AZN",
+   "name": "Azerbaijani Manat",
+   "symbol": "AZN"
+  },
+  {
+   "code": "BAM",
+   "name": "Bosnia-Herzegovina Convertible Mark",
+   "symbol": "BAM"
+  },
+  {
+   "code": "BBD",
+   "name": "Barbadian Dollar",
+   "symbol": "BBD"
+  },
+  {
+   "code": "BDT",
+   "name": "Bangladeshi Taka",
+   "symbol": "BDT"
+  },
+  {
+   "code": "BGN",
+   "name": "Bulgarian Lev",
+   "symbol": "BGN"
+  },
+  {
+   "code": "BHD",
+   "name": "Bahraini Dinar",
+   "symbol": "BHD"
+  },
+  {
+   "code": "BIF",
+   "name": "Burundian Franc",
+   "symbol": "BIF"
+  },
+  {
+   "code": "BMD",
+   "name": "Bermudan Dollar",
+   "symbol": "BMD"
+  },
+  {
+   "code": "BND",
+   "name": "Brunei Dollar",
+   "symbol": "BND"
+  },
+  {
+   "code": "BOB",
+   "name": "Bolivian Boliviano",
+   "symbol": "BOB"
+  },
+  {
+   "code": "BRL",
+   "name": "Brazilian Real",
+   "symbol": "R$"
+  },
+  {
+   "code": "BSD",
+   "name": "Bahamian Dollar",
+   "symbol": "BSD"
+  },
+  {
+   "code": "BWP",
+   "name": "Botswanan Pula",
+   "symbol": "BWP"
+  },
+  {
+   "code": "BYN",
+   "name": "Belarusian Ruble",
+   "symbol": "BYN"
+  },
+  {
+   "code": "BZD",
+   "name": "Belize Dollar",
+   "symbol": "BZD"
+  },
+  {
+   "code": "CAD",
+   "name": "Canadian Dollar",
+   "symbol": "CA$"
+  },
+  {
+   "code": "CDF",
+   "name": "Congolese Franc",
+   "symbol": "CDF"
+  },
+  {
+   "code": "CHF",
+   "name": "Swiss Franc",
+   "symbol": "CHF"
+  },
+  {
+   "code": "CLP",
+   "name": "Chilean Peso",
+   "symbol": "CLP"
+  },
+  {
+   "code": "CNY",
+   "name": "Chinese Yuan",
+   "symbol": "CN¥"
+  },
+  {
+   "code": "COP",
+   "name": "Colombian Peso",
+   "symbol": "COP"
+  },
+  {
+   "code": "CRC",
+   "name": "Costa Rican Colón",
+   "symbol": "CRC"
+  },
+  {
+   "code": "CUP",
+   "name": "Cuban Peso",
+   "symbol": "CUP"
+  },
+  {
+   "code": "CVE",
+   "name": "Cape Verdean Escudo",
+   "symbol": "CVE"
+  },
+  {
+   "code": "CZK",
+   "name": "Czech Koruna",
+   "symbol": "CZK"
+  },
+  {
+   "code": "DJF",
+   "name": "Djiboutian Franc",
+   "symbol": "DJF"
+  },
+  {
+   "code": "DKK",
+   "name": "Danish Krone",
+   "symbol": "DKK"
+  },
+  {
+   "code": "DOP",
+   "name": "Dominican Peso",
+   "symbol": "DOP"
+  },
+  {
+   "code": "DZD",
+   "name": "Algerian Dinar",
+   "symbol": "DZD"
+  },
+  {
+   "code": "EGP",
+   "name": "Egyptian Pound",
+   "symbol": "EGP"
+  },
+  {
+   "code": "ERN",
+   "name": "Eritrean Nakfa",
+   "symbol": "ERN"
+  },
+  {
+   "code": "ETB",
+   "name": "Ethiopian Birr",
+   "symbol": "ETB"
+  },
+  {
+   "code": "EUR",
+   "name": "Euro",
+   "symbol": "€"
+  },
+  {
+   "code": "FJD",
+   "name": "Fijian Dollar",
+   "symbol": "FJD"
+  },
+  {
+   "code": "FKP",
+   "name": "Falkland Islands Pound",
+   "symbol": "FKP"
+  },
+  {
+   "code": "GBP",
+   "name": "British Pound",
+   "symbol": "£"
+  },
+  {
+   "code": "GEL",
+   "name": "Georgian Lari",
+   "symbol": "GEL"
+  },
+  {
+   "code": "GHS",
+   "name": "Ghanaian Cedi",
+   "symbol": "GHS"
+  },
+  {
+   "code": "GIP",
+   "name": "Gibraltar Pound",
+   "symbol": "GIP"
+  },
+  {
+   "code": "GMD",
+   "name": "Gambian Dalasi",
+   "symbol": "GMD"
+  },
+  {
+   "code": "GNF",
+   "name": "Guinean Franc",
+   "symbol": "GNF"
+  },
+  {
+   "code": "GTQ",
+   "name": "Guatemalan Quetzal",
+   "symbol": "GTQ"
+  },
+  {
+   "code": "GYD",
+   "name": "Guyanaese Dollar",
+   "symbol": "GYD"
+  },
+  {
+   "code": "HKD",
+   "name": "Hong Kong Dollar",
+   "symbol": "HK$"
+  },
+  {
+   "code": "HNL",
+   "name": "Honduran Lempira",
+   "symbol": "HNL"
+  },
+  {
+   "code": "HTG",
+   "name": "Haitian Gourde",
+   "symbol": "HTG"
+  },
+  {
+   "code": "HUF",
+   "name": "Hungarian Forint",
+   "symbol": "HUF"
+  },
+  {
+   "code": "IDR",
+   "name": "Indonesian Rupiah",
+   "symbol": "IDR"
+  },
+  {
+   "code": "ILS",
+   "name": "Israeli New Shekel",
+   "symbol": "₪"
+  },
+  {
+   "code": "INR",
+   "name": "Indian Rupee",
+   "symbol": "₹"
+  },
+  {
+   "code": "IQD",
+   "name": "Iraqi Dinar",
+   "symbol": "IQD"
+  },
+  {
+   "code": "IRR",
+   "name": "Iranian Rial",
+   "symbol": "IRR"
+  },
+  {
+   "code": "ISK",
+   "name": "Icelandic Króna",
+   "symbol": "ISK"
+  },
+  {
+   "code": "JMD",
+   "name": "Jamaican Dollar",
+   "symbol": "JMD"
+  },
+  {
+   "code": "JOD",
+   "name": "Jordanian Dinar",
+   "symbol": "JOD"
+  },
+  {
+   "code": "JPY",
+   "name": "Japanese Yen",
+   "symbol": "¥"
+  },
+  {
+   "code": "KES",
+   "name": "Kenyan Shilling",
+   "symbol": "KES"
+  },
+  {
+   "code": "KGS",
+   "name": "Kyrgystani Som",
+   "symbol": "KGS"
+  },
+  {
+   "code": "KHR",
+   "name": "Cambodian Riel",
+   "symbol": "KHR"
+  },
+  {
+   "code": "KMF",
+   "name": "Comorian Franc",
+   "symbol": "KMF"
+  },
+  {
+   "code": "KPW",
+   "name": "North Korean Won",
+   "symbol": "KPW"
+  },
+  {
+   "code": "KRW",
+   "name": "South Korean Won",
+   "symbol": "₩"
+  },
+  {
+   "code": "KWD",
+   "name": "Kuwaiti Dinar",
+   "symbol": "KWD"
+  },
+  {
+   "code": "KYD",
+   "name": "Cayman Islands Dollar",
+   "symbol": "KYD"
+  },
+  {
+   "code": "KZT",
+   "name": "Kazakhstani Tenge",
+   "symbol": "KZT"
+  },
+  {
+   "code": "LAK",
+   "name": "Laotian Kip",
+   "symbol": "LAK"
+  },
+  {
+   "code": "LBP",
+   "name": "Lebanese Pound",
+   "symbol": "LBP"
+  },
+  {
+   "code": "LKR",
+   "name": "Sri Lankan Rupee",
+   "symbol": "LKR"
+  },
+  {
+   "code": "LRD",
+   "name": "Liberian Dollar",
+   "symbol": "LRD"
+  },
+  {
+   "code": "LYD",
+   "name": "Libyan Dinar",
+   "symbol": "LYD"
+  },
+  {
+   "code": "MAD",
+   "name": "Moroccan Dirham",
+   "symbol": "MAD"
+  },
+  {
+   "code": "MDL",
+   "name": "Moldovan Leu",
+   "symbol": "MDL"
+  },
+  {
+   "code": "MGA",
+   "name": "Malagasy Ariary",
+   "symbol": "MGA"
+  },
+  {
+   "code": "MKD",
+   "name": "Macedonian Denar",
+   "symbol": "MKD"
+  },
+  {
+   "code": "MMK",
+   "name": "Myanmar Kyat",
+   "symbol": "MMK"
+  },
+  {
+   "code": "MNT",
+   "name": "Mongolian Tugrik",
+   "symbol": "MNT"
+  },
+  {
+   "code": "MOP",
+   "name": "Macanese Pataca",
+   "symbol": "MOP"
+  },
+  {
+   "code": "MRU",
+   "name": "Mauritanian Ouguiya",
+   "symbol": "MRU"
+  },
+  {
+   "code": "MUR",
+   "name": "Mauritian Rupee",
+   "symbol": "MUR"
+  },
+  {
+   "code": "MVR",
+   "name": "Maldivian Rufiyaa",
+   "symbol": "MVR"
+  },
+  {
+   "code": "MWK",
+   "name": "Malawian Kwacha",
+   "symbol": "MWK"
+  },
+  {
+   "code": "MXN",
+   "name": "Mexican Peso",
+   "symbol": "MX$"
+  },
+  {
+   "code": "MYR",
+   "name": "Malaysian Ringgit",
+   "symbol": "MYR"
+  },
+  {
+   "code": "MZN",
+   "name": "Mozambican Metical",
+   "symbol": "MZN"
+  },
+  {
+   "code": "NGN",
+   "name": "Nigerian Naira",
+   "symbol": "NGN"
+  },
+  {
+   "code": "NIO",
+   "name": "Nicaraguan Córdoba",
+   "symbol": "NIO"
+  },
+  {
+   "code": "NOK",
+   "name": "Norwegian Krone",
+   "symbol": "NOK"
+  },
+  {
+   "code": "NPR",
+   "name": "Nepalese Rupee",
+   "symbol": "NPR"
+  },
+  {
+   "code": "NZD",
+   "name": "New Zealand Dollar",
+   "symbol": "NZ$"
+  },
+  {
+   "code": "OMR",
+   "name": "Omani Rial",
+   "symbol": "OMR"
+  },
+  {
+   "code": "PAB",
+   "name": "Panamanian Balboa",
+   "symbol": "PAB"
+  },
+  {
+   "code": "PEN",
+   "name": "Peruvian Sol",
+   "symbol": "PEN"
+  },
+  {
+   "code": "PGK",
+   "name": "Papua New Guinean Kina",
+   "symbol": "PGK"
+  },
+  {
+   "code": "PHP",
+   "name": "Philippine Peso",
+   "symbol": "₱"
+  },
+  {
+   "code": "PKR",
+   "name": "Pakistani Rupee",
+   "symbol": "PKR"
+  },
+  {
+   "code": "PLN",
+   "name": "Polish Zloty",
+   "symbol": "PLN"
+  },
+  {
+   "code": "PYG",
+   "name": "Paraguayan Guarani",
+   "symbol": "PYG"
+  },
+  {
+   "code": "QAR",
+   "name": "Qatari Riyal",
+   "symbol": "QAR"
+  },
+  {
+   "code": "RON",
+   "name": "Romanian Leu",
+   "symbol": "RON"
+  },
+  {
+   "code": "RSD",
+   "name": "Serbian Dinar",
+   "symbol": "RSD"
+  },
+  {
+   "code": "RUB",
+   "name": "Russian Ruble",
+   "symbol": "RUB"
+  },
+  {
+   "code": "RWF",
+   "name": "Rwandan Franc",
+   "symbol": "RWF"
+  },
+  {
+   "code": "SAR",
+   "name": "Saudi Riyal",
+   "symbol": "SAR"
+  },
+  {
+   "code": "SBD",
+   "name": "Solomon Islands Dollar",
+   "symbol": "SBD"
+  },
+  {
+   "code": "SCR",
+   "name": "Seychellois Rupee",
+   "symbol": "SCR"
+  },
+  {
+   "code": "SDG",
+   "name": "Sudanese Pound",
+   "symbol": "SDG"
+  },
+  {
+   "code": "SEK",
+   "name": "Swedish Krona",
+   "symbol": "SEK"
+  },
+  {
+   "code": "SGD",
+   "name": "Singapore Dollar",
+   "symbol": "SGD"
+  },
+  {
+   "code": "SHP",
+   "name": "St. Helena Pound",
+   "symbol": "SHP"
+  },
+  {
+   "code": "SLE",
+   "name": "Sierra Leonean Leone",
+   "symbol": "SLE"
+  },
+  {
+   "code": "SOS",
+   "name": "Somali Shilling",
+   "symbol": "SOS"
+  },
+  {
+   "code": "SRD",
+   "name": "Surinamese Dollar",
+   "symbol": "SRD"
+  },
+  {
+   "code": "SSP",
+   "name": "South Sudanese Pound",
+   "symbol": "SSP"
+  },
+  {
+   "code": "STN",
+   "name": "São Tomé & Príncipe Dobra",
+   "symbol": "STN"
+  },
+  {
+   "code": "SYP",
+   "name": "Syrian Pound",
+   "symbol": "SYP"
+  },
+  {
+   "code": "SZL",
+   "name": "Swazi Lilangeni",
+   "symbol": "SZL"
+  },
+  {
+   "code": "THB",
+   "name": "Thai Baht",
+   "symbol": "THB"
+  },
+  {
+   "code": "TJS",
+   "name": "Tajikistani Somoni",
+   "symbol": "TJS"
+  },
+  {
+   "code": "TMT",
+   "name": "Turkmenistani Manat",
+   "symbol": "TMT"
+  },
+  {
+   "code": "TND",
+   "name": "Tunisian Dinar",
+   "symbol": "TND"
+  },
+  {
+   "code": "TOP",
+   "name": "Tongan Paʻanga",
+   "symbol": "TOP"
+  },
+  {
+   "code": "TRY",
+   "name": "Turkish Lira",
+   "symbol": "TRY"
+  },
+  {
+   "code": "TTD",
+   "name": "Trinidad & Tobago Dollar",
+   "symbol": "TTD"
+  },
+  {
+   "code": "TWD",
+   "name": "New Taiwan Dollar",
+   "symbol": "NT$"
+  },
+  {
+   "code": "TZS",
+   "name": "Tanzanian Shilling",
+   "symbol": "TZS"
+  },
+  {
+   "code": "UAH",
+   "name": "Ukrainian Hryvnia",
+   "symbol": "UAH"
+  },
+  {
+   "code": "UGX",
+   "name": "Ugandan Shilling",
+   "symbol": "UGX"
+  },
+  {
+   "code": "USD",
+   "name": "US Dollar",
+   "symbol": "$"
+  },
+  {
+   "code": "UYU",
+   "name": "Uruguayan Peso",
+   "symbol": "UYU"
+  },
+  {
+   "code": "UZS",
+   "name": "Uzbekistani Som",
+   "symbol": "UZS"
+  },
+  {
+   "code": "VES",
+   "name": "Venezuelan Bolívar",
+   "symbol": "VES"
+  },
+  {
+   "code": "VND",
+   "name": "Vietnamese Dong",
+   "symbol": "₫"
+  },
+  {
+   "code": "VUV",
+   "name": "Vanuatu Vatu",
+   "symbol": "VUV"
+  },
+  {
+   "code": "WST",
+   "name": "Samoan Tala",
+   "symbol": "WST"
+  },
+  {
+   "code": "XAF",
+   "name": "Central African CFA Franc",
+   "symbol": "FCFA"
+  },
+  {
+   "code": "XCD",
+   "name": "East Caribbean Dollar",
+   "symbol": "EC$"
+  },
+  {
+   "code": "XCG",
+   "name": "Caribbean guilder",
+   "symbol": "Cg."
+  },
+  {
+   "code": "XOF",
+   "name": "West African CFA Franc",
+   "symbol": "F CFA"
+  },
+  {
+   "code": "XPF",
+   "name": "CFP Franc",
+   "symbol": "CFPF"
+  },
+  {
+   "code": "YER",
+   "name": "Yemeni Rial",
+   "symbol": "YER"
+  },
+  {
+   "code": "ZAR",
+   "name": "South African Rand",
+   "symbol": "ZAR"
+  },
+  {
+   "code": "ZMW",
+   "name": "Zambian Kwacha",
+   "symbol": "ZMW"
+  }
+ ]
+}

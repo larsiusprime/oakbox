@@ -113,6 +113,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/locale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set Locale
+         * @description Change the project's units, currency or number style (SPEC F1).
+         */
+        patch: operations["set_locale_api_projects__project_id__locale_patch"];
+        trace?: never;
+    };
     "/api/projects/{project_id}/disk": {
         parameters: {
             query?: never;
@@ -748,6 +768,30 @@ export interface components {
              */
             values: string[];
         };
+        /** CountryDefaults */
+        CountryDefaults: {
+            /** Currency */
+            currency: string;
+            /**
+             * Numbers
+             * @enum {string}
+             */
+            numbers: "1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56";
+            /**
+             * Units
+             * @enum {string}
+             */
+            units: "imperial" | "metric";
+        };
+        /** Currency */
+        Currency: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Symbol */
+            symbol: string;
+        };
         /**
          * DataFile
          * @description One data.load entry, as OAK box wrote it.
@@ -1167,6 +1211,18 @@ export interface components {
             blocking: boolean;
         };
         /**
+         * Locale
+         * @description The project's units, currency and number style: set from the country, changeable (SPEC F1).
+         */
+        Locale: {
+            /** Units */
+            units?: ("imperial" | "metric") | null;
+            /** Currency */
+            currency?: string | null;
+            /** Numbers */
+            numbers?: ("1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56") | null;
+        };
+        /**
          * NewProject
          * @description What the user enters to create a project (SPEC §3.0 F1).
          */
@@ -1200,9 +1256,19 @@ export interface components {
             valuation_date: string;
             /**
              * Units
-             * @enum {string}
+             * @description None: the country's (country_defaults).
              */
-            units: "imperial" | "metric";
+            units?: ("imperial" | "metric") | null;
+            /**
+             * Currency
+             * @description ISO 4217 code. None: the country's.
+             */
+            currency?: string | null;
+            /**
+             * Numbers
+             * @description How numbers are written. None: the country's.
+             */
+            numbers?: ("1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56") | null;
         };
         /** NotLoaded */
         NotLoaded: {
@@ -1247,6 +1313,19 @@ export interface components {
              * @enum {string}
              */
             units: "imperial" | "metric";
+            /**
+             * Currency
+             * @description ISO 4217 code: what prices and values are in.
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Numbers
+             * @description How the files write numbers.
+             * @default 1,234.56
+             * @enum {string}
+             */
+            numbers: "1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56";
             /** Sample */
             sample: string | null;
             /**
@@ -1316,7 +1395,8 @@ export interface components {
         };
         /**
          * Regions
-         * @description ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions.
+         * @description ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions; each country's
+         *     currency, number style and units, and the currencies to choose from (SPEC F1).
          */
         Regions: {
             /** Countries */
@@ -1325,6 +1405,12 @@ export interface components {
             subdivisions: {
                 [key: string]: components["schemas"]["Region"][];
             };
+            /** Defaults */
+            defaults: {
+                [key: string]: components["schemas"]["CountryDefaults"];
+            };
+            /** Currencies */
+            currencies: components["schemas"]["Currency"][];
         };
         /**
          * RepeatRows
@@ -2033,6 +2119,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["NewProject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_locale_api_projects__project_id__locale_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Locale"];
             };
         };
         responses: {

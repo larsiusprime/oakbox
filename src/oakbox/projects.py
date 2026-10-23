@@ -23,11 +23,13 @@ import shutil
 import subprocess
 import sys
 import uuid
+from functools import cache
+from importlib import resources
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel as _PydanticBase
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
 from oakbox.datafiles import DataFile, data_load
@@ -40,6 +42,19 @@ class BaseModel(_PydanticBase):
 
 
 Units = Literal["imperial", "metric"]
+# How numbers are written: the thousands separator and the decimal mark (SPEC F1).
+NumberStyle = Literal["1,234.56", "1.234,56", "1 234,56", "1'234.56", "1 234.56"]
+
+
+@cache
+def locales() -> dict:
+    """Per country, its currency, number style and units (from Unicode CLDR: packaging/make_locales.py)."""
+    return json.loads(resources.files("oakbox").joinpath("locales.json").read_text())
+
+
+def country_defaults(country: str) -> dict:
+    """What a project in this country starts with; the user can change each (SPEC F1)."""
+    return locales()["countries"].get(country, {"currency": "USD", "numbers": "1,234.56", "units": "metric"})
 
 
 class NewProject(BaseModel):
@@ -51,7 +66,17 @@ class NewProject(BaseModel):
     jurisdiction: str = Field(description="What the office calls itself; OpenAVMKit's locality.name.")
     tax_year: int
     valuation_date: dt.date
-    units: Units
+    units: Units | None = Field(default=None, description="None: the country's (country_defaults).")
+    currency: str | None = Field(default=None, description="ISO 4217 code. None: the country's.")
+    numbers: NumberStyle | None = Field(default=None, description="How numbers are written. None: the country's.")
+
+
+class Locale(BaseModel):
+    """The project's units, currency and number style: set from the country, changeable (SPEC F1)."""
+
+    units: Units | None = None
+    currency: str | None = None
+    numbers: NumberStyle | None = None
 
 
 class WizardState(BaseModel):
@@ -76,9 +101,22 @@ class Project(BaseModel):
     tax_year: int
     valuation_date: dt.date | None = None
     units: Units = "imperial"
+    currency: str = Field(default="USD", description="ISO 4217 code: what prices and values are in.")
+    numbers: NumberStyle = Field(default="1,234.56", description="How the files write numbers.")
     sample: str | None = None
     files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
     wizard: WizardState = Field(default_factory=WizardState)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _country_defaults(cls, data: object) -> object:
+        """Projects from before currency and number style were asked: the country's."""
+        if isinstance(data, dict):
+            d = country_defaults(str(data.get("country") or "US"))
+            for key in ("currency", "numbers"):
+                if data.get(key) is None:
+                    data = {**data, key: d[key]}
+        return data
 
 
 # ---------- Finding projects ----------
@@ -183,10 +221,14 @@ def _start(project: Project, folder: Path) -> Project:
 
 def create(new: NewProject) -> Project:
     """A new, empty project (SPEC §3.0 F1): its folder, in/, out/ and a settings.json with only the locality."""
+    d = country_defaults(new.country)
     project = Project(
         id=uuid.uuid4().hex[:12],
         created_at=dt.datetime.now(dt.UTC),
-        **new.model_dump(),
+        **new.model_dump(exclude={"units", "currency", "numbers"}),
+        units=new.units or d["units"],
+        currency=new.currency or d["currency"],
+        numbers=new.numbers or d["numbers"],
     )
     return _start(project, _new_folder(new.name))
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, FolderOpen } from "lucide-react";
 import { useEffect } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
@@ -7,6 +7,7 @@ import { api, type ProjectDetail, unwrap } from "../api/client";
 import clipboard from "../assets/noto/emoji_u1f4cb.svg";
 import cardFileBox from "../assets/noto/emoji_u1f5c3.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
+import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { desktop } from "../desktop";
 import { t } from "../strings";
 import { FieldsTab } from "./FieldsWizard";
@@ -109,6 +110,21 @@ function ProjectView({
 function MetadataTab({ detail }: { detail: ProjectDetail }) {
   const { project } = detail;
   const m = t.metadata;
+  const queryClient = useQueryClient();
+  const regions = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => unwrap(await api.GET("/api/regions")),
+  });
+  const locale = useMutation({
+    mutationFn: async (patch: Partial<LocaleValue>) =>
+      unwrap(
+        await api.PATCH("/api/projects/{project_id}/locale", {
+          params: { path: { project_id: project.id } },
+          body: patch,
+        }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["project", project.id] }),
+  });
   const show = useMutation({
     mutationFn: async () =>
       unwrap(
@@ -122,7 +138,6 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
     [m.region, `${project.region}, ${project.country}`],
     [m.taxYear, String(project.tax_year)],
     [m.valuationDate, project.valuation_date ?? ""],
-    [m.units, project.units === "imperial" ? t.newProject.imperial : t.newProject.metric],
   ] as const;
   return (
     <dl className="facts">
@@ -132,6 +147,21 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
           <dd>{v}</dd>
         </div>
       ))}
+      <div className="fact">
+        <dt>{m.locale}</dt>
+        <dd className="facts-locale">
+          <LocaleFields
+            regions={regions.data}
+            value={{ units: project.units, currency: project.currency, numbers: project.numbers }}
+            onChange={(patch) => locale.mutate(patch)}
+          />
+          {locale.error && (
+            <span className="error" role="alert">
+              {locale.error.message}
+            </span>
+          )}
+        </dd>
+      </div>
       <div className="fact">
         <dt>{m.folder}</dt>
         <dd>

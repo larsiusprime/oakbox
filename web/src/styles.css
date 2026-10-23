@@ -2494,3 +2494,9 @@ a.row-title:hover {
   width: 12rem;
   font-family: var(--mono);
 }
+
+/* Units, currency and number style under Metadata: editable in place (SPEC F1). */
+.facts-locale {
+  display: grid;
+  gap: 0.5rem;
+}

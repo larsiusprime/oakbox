@@ -140,11 +140,26 @@ class Region(BaseModel):
     name: str
 
 
+class Currency(BaseModel):
+    code: str
+    name: str
+    symbol: str
+
+
+class CountryDefaults(BaseModel):
+    currency: str
+    numbers: projects.NumberStyle
+    units: projects.Units
+
+
 class Regions(BaseModel):
-    """ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."""
+    """ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions; each country's
+    currency, number style and units, and the currencies to choose from (SPEC F1)."""
 
     countries: list[Region]
     subdivisions: dict[str, list[Region]]
+    defaults: dict[str, CountryDefaults] = Field(default_factory=dict)
+    currencies: list[Currency] = Field(default_factory=list)
 
 
 class Versions(BaseModel):
@@ -203,7 +218,11 @@ class DiskUsage(BaseModel):
 def _regions() -> Regions:
     from importlib import resources
 
-    return Regions.model_validate_json(resources.files("oakbox").joinpath("iso3166.json").read_text())
+    regions = Regions.model_validate_json(resources.files("oakbox").joinpath("iso3166.json").read_text())
+    loc = projects.locales()
+    regions.defaults = {k: CountryDefaults(**v) for k, v in loc["countries"].items()}
+    regions.currencies = [Currency(**c) for c in loc["currencies"]]
+    return regions
 
 
 def _settings_view() -> AppSettingsView:
@@ -299,11 +318,25 @@ def create_app() -> FastAPI:
             raise HTTPException(422, "Choose a state from the list.")
         if not body.region.strip():
             raise HTTPException(422, "Say which state, province or region this is.")
+        if body.currency is not None and body.currency not in {c.code for c in regions.currencies}:
+            raise HTTPException(422, "Choose a currency from the list.")
         if not 1900 <= body.tax_year <= 2200:
             raise HTTPException(422, "The tax year doesn't look right.")
         return projects.create(
             body.model_copy(update={"name": body.name.strip(), "jurisdiction": body.jurisdiction.strip()})
         )
+
+    @app.patch("/api/projects/{project_id}/locale")
+    def set_locale(project_id: str, body: projects.Locale) -> projects.Project:
+        """Change the project's units, currency or number style (SPEC F1)."""
+        project = _load(project_id)
+        if body.currency is not None and body.currency not in {c["code"] for c in projects.locales()["currencies"]}:
+            raise HTTPException(422, "Choose a currency from the list.")
+        for key, value in body.model_dump(exclude_none=True).items():
+            setattr(project, key, value)
+        projects.save(project)
+        projects.write_settings(project)
+        return project
 
     def _load(project_id: str) -> projects.Project:
         try:

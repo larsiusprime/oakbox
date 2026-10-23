@@ -1,13 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Button, Label, Radio, RadioGroup } from "react-aria-components";
+import { Button } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type NewProject, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
+import { countryLocale, LocaleFields } from "../components/Locale";
 import { t } from "../strings";
-
-/** Countries that measure land in feet and acres (SPEC §3.0 F1: units default from the country). */
-const IMPERIAL = new Set(["US", "LR", "MM"]);
 
 export function NewProjectScreen() {
   const regions = useQuery({
@@ -27,6 +25,8 @@ export function NewProjectScreen() {
     tax_year: year,
     valuation_date: `${year}-01-01`,
     units: "imperial",
+    currency: "USD",
+    numbers: "1,234.56",
   });
   // The valuation date follows the tax year until the user sets it themselves.
   const [dateTouched, setDateTouched] = useState(false);
@@ -69,9 +69,8 @@ export function NewProjectScreen() {
             label={s.country}
             value={form.country}
             options={(regions.data?.countries ?? []).map((c) => [c.code, c.name] as const)}
-            onChange={(country) =>
-              set({ country, region: "", units: IMPERIAL.has(country) ? "imperial" : "metric" })
-            }
+            // Units, currency and number style follow the country; each can then be changed (SPEC F1).
+            onChange={(country) => set({ country, region: "", ...countryLocale(regions.data, country) })}
           />
           {states ? (
             <Choice
@@ -114,21 +113,15 @@ export function NewProjectScreen() {
             }}
           />
         </div>
-        <RadioGroup
-          className="field radios"
-          value={form.units}
-          onChange={(v) => set({ units: v as NewProject["units"] })}
-        >
-          <Label className="field-label">{s.units}</Label>
-          <Radio value="imperial" className="radio">
-            <span className="radio-dot" aria-hidden="true" />
-            {s.imperial}
-          </Radio>
-          <Radio value="metric" className="radio">
-            <span className="radio-dot" aria-hidden="true" />
-            {s.metric}
-          </Radio>
-        </RadioGroup>
+        <LocaleFields
+          regions={regions.data}
+          value={{
+            units: form.units ?? "imperial",
+            currency: form.currency ?? "USD",
+            numbers: form.numbers ?? "1,234.56",
+          }}
+          onChange={set}
+        />
         {settings.data && <p className="row-meta">{s.where(settings.data.storage_location)}</p>}
         <div className="form-actions">
           <Button type="submit" className="button button-primary" isDisabled={!ready || create.isPending}>

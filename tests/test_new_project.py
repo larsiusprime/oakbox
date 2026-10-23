@@ -109,3 +109,34 @@ def test_show_in_folder_opens_the_file_manager(client, monkeypatch):
     monkeypatch.setattr(projects.shutil, "which", lambda _: "/usr/bin/xdg-open")
     assert client.post(f"/api/projects/{p['id']}/show-in-folder").status_code == 200
     assert opened == [["xdg-open", str(projects.project_dir(p["id"]))]]
+
+
+def test_currency_number_style_and_units_come_from_the_country_and_can_be_changed(client, oakbox_home):
+    regions = client.get("/api/regions").json()
+    assert regions["defaults"]["US"] == {"currency": "USD", "numbers": "1,234.56", "units": "imperial"}
+    assert regions["defaults"]["DE"] == {"currency": "EUR", "numbers": "1.234,56", "units": "metric"}
+    assert regions["defaults"]["CH"]["numbers"] == "1'234.56"
+    assert {"code": "EUR", "name": "Euro", "symbol": "€"} in regions["currencies"]
+
+    berlin = {**TRAVIS, "name": "Berlin", "country": "DE", "region": "Berlin", "jurisdiction": "Berlin"}
+    del berlin["units"]
+    p = client.post("/api/projects", json=berlin).json()
+    assert (p["currency"], p["numbers"], p["units"]) == ("EUR", "1.234,56", "metric")
+    # Chosen at creation: kept, whatever the country says.
+    p2 = client.post("/api/projects", json={**berlin, "name": "Berlin 2", "currency": "USD", "units": "imperial"}).json()
+    assert (p2["currency"], p2["numbers"], p2["units"]) == ("USD", "1.234,56", "imperial")
+    assert client.post("/api/projects", json={**berlin, "name": "B3", "currency": "XYZ"}).status_code == 422
+
+    # Changed later, under Metadata: units reach OpenAVMKit's settings.
+    r = client.patch(f"/api/projects/{p['id']}/locale", json={"numbers": "1 234,56", "units": "imperial"})
+    assert (r.json()["currency"], r.json()["numbers"], r.json()["units"]) == ("EUR", "1 234,56", "imperial")
+    settings = json.loads((oakbox_home / "Berlin" / "in" / "settings.json").read_text())
+    assert settings["locality"]["units"] == "imperial"
+    assert client.patch(f"/api/projects/{p['id']}/locale", json={"currency": "nope"}).status_code == 422
+
+    # A project saved before these existed takes its country's.
+    path = oakbox_home / "Berlin" / "oakbox.json"
+    old = json.loads(path.read_text())
+    del old["currency"], old["numbers"]
+    path.write_text(json.dumps(old))
+    assert projects.load(p["id"]).currency == "EUR"

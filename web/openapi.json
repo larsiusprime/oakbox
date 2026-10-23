@@ -195,6 +195,56 @@
     }
    }
   },
+  "/api/projects/{project_id}/locale": {
+   "patch": {
+    "summary": "Set Locale",
+    "description": "Change the project's units, currency or number style (SPEC F1).",
+    "operationId": "set_locale_api_projects__project_id__locale_patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Locale"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/disk": {
    "get": {
     "summary": "Project Disk",
@@ -1830,6 +1880,63 @@
     "title": "Condition",
     "description": "One test on a column of the sales file, as an OpenAVMKit filter."
    },
+   "CountryDefaults": {
+    "properties": {
+     "currency": {
+      "type": "string",
+      "title": "Currency"
+     },
+     "numbers": {
+      "type": "string",
+      "enum": [
+       "1,234.56",
+       "1.234,56",
+       "1 234,56",
+       "1'234.56",
+       "1 234.56"
+      ],
+      "title": "Numbers"
+     },
+     "units": {
+      "type": "string",
+      "enum": [
+       "imperial",
+       "metric"
+      ],
+      "title": "Units"
+     }
+    },
+    "type": "object",
+    "required": [
+     "currency",
+     "numbers",
+     "units"
+    ],
+    "title": "CountryDefaults"
+   },
+   "Currency": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "title": "Code"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "symbol": {
+      "type": "string",
+      "title": "Symbol"
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "name",
+     "symbol"
+    ],
+    "title": "Currency"
+   },
    "DataFile": {
     "properties": {
      "name": {
@@ -2669,6 +2776,57 @@
     ],
     "title": "Left"
    },
+   "Locale": {
+    "properties": {
+     "units": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "imperial",
+         "metric"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Units"
+     },
+     "currency": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Currency"
+     },
+     "numbers": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "1,234.56",
+         "1.234,56",
+         "1 234,56",
+         "1'234.56",
+         "1 234.56"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Numbers"
+     }
+    },
+    "type": "object",
+    "title": "Locale",
+    "description": "The project's units, currency and number style: set from the country, changeable (SPEC F1)."
+   },
    "NewProject": {
     "properties": {
      "name": {
@@ -2701,12 +2859,51 @@
       "title": "Valuation Date"
      },
      "units": {
-      "type": "string",
-      "enum": [
-       "imperial",
-       "metric"
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "imperial",
+         "metric"
+        ]
+       },
+       {
+        "type": "null"
+       }
       ],
-      "title": "Units"
+      "title": "Units",
+      "description": "None: the country's (country_defaults)."
+     },
+     "currency": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Currency",
+      "description": "ISO 4217 code. None: the country's."
+     },
+     "numbers": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "1,234.56",
+         "1.234,56",
+         "1 234,56",
+         "1'234.56",
+         "1 234.56"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Numbers",
+      "description": "How numbers are written. None: the country's."
      }
     },
     "type": "object",
@@ -2716,8 +2913,7 @@
      "region",
      "jurisdiction",
      "tax_year",
-     "valuation_date",
-     "units"
+     "valuation_date"
     ],
     "title": "NewProject",
     "description": "What the user enters to create a project (SPEC §3.0 F1)."
@@ -2798,6 +2994,25 @@
       "title": "Units",
       "default": "imperial"
      },
+     "currency": {
+      "type": "string",
+      "title": "Currency",
+      "description": "ISO 4217 code: what prices and values are in.",
+      "default": "USD"
+     },
+     "numbers": {
+      "type": "string",
+      "enum": [
+       "1,234.56",
+       "1.234,56",
+       "1 234,56",
+       "1'234.56",
+       "1 234.56"
+      ],
+      "title": "Numbers",
+      "description": "How the files write numbers.",
+      "default": "1,234.56"
+     },
      "sample": {
       "anyOf": [
        {
@@ -2832,6 +3047,8 @@
      "tax_year",
      "valuation_date",
      "units",
+     "currency",
+     "numbers",
      "sample",
      "files",
      "wizard"
@@ -2997,15 +3214,31 @@
       },
       "type": "object",
       "title": "Subdivisions"
+     },
+     "defaults": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/CountryDefaults"
+      },
+      "type": "object",
+      "title": "Defaults"
+     },
+     "currencies": {
+      "items": {
+       "$ref": "#/components/schemas/Currency"
+      },
+      "type": "array",
+      "title": "Currencies"
      }
     },
     "type": "object",
     "required": [
      "countries",
-     "subdivisions"
+     "subdivisions",
+     "defaults",
+     "currencies"
     ],
     "title": "Regions",
-    "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions."
+    "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions; each country's\ncurrency, number style and units, and the currencies to choose from (SPEC F1)."
    },
    "RepeatRows": {
     "properties": {
