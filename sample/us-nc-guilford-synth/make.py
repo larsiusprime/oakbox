@@ -317,9 +317,40 @@ for b in range(len(NBHDS)):
         x, y = bx + geo_rng.uniform(-1500, 5500), by + geo_rng.uniform(-1500, 8000)
         schools.append(dict(SCHOOL=f"School {b * 2 + k + 1}", LEVEL=["Elementary", "Middle"][k], geometry=Point(x, y)))
 schools_gdf = gpd.GeoDataFrame(pd.DataFrame(schools), crs="EPSG:2264")
+
+# School attendance zones (polygons covering every parcel): one per pair of neighborhoods, split north-south.
+zone_rows = []
+for i in range(4):
+    x0 = E0 + i * 9_000 - 3_000
+    for j, (name, lo, hi) in enumerate([("South", N0 - 3_000, N0 + 6_000), ("North", N0 + 6_000, N0 + 15_000)]):
+        zone_rows.append(
+            dict(
+                ZONE_ID=f"ES-{i * 2 + j + 1:02d}",
+                ZONE_NAME=f"{name} Elementary {i + 1}",
+                GRADES="K-5",
+                geometry=box(x0, lo, x0 + 9_000, hi),
+            )
+        )
+school_zones = gpd.GeoDataFrame(pd.DataFrame(zone_rows), crs="EPSG:2264")
+
+# Flood zones (polygons covering some parcels): bands along creeks through a few neighborhoods. AE is the
+# 1% annual chance floodplain; X (shaded) the 0.2%.
+flood_rows = []
+for b in (0, 2, 5, 7):
+    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
+    y = by + float(geo_rng.uniform(800, 3_000))
+    flood_rows.append(
+        dict(FLD_ZONE="AE", ZONE_SUBTY="1% ANNUAL CHANCE", geometry=box(bx - 500, y, bx + 6_000, y + 350))
+    )
+    flood_rows.append(
+        dict(FLD_ZONE="X", ZONE_SUBTY="0.2% ANNUAL CHANCE", geometry=box(bx - 500, y + 350, bx + 6_000, y + 650))
+    )
+flood_zones = gpd.GeoDataFrame(pd.DataFrame(flood_rows), crs="EPSG:2264")
 parcels.to_parquet(IN / "geo" / "parcels.parquet")
 zoning.to_file(IN / "geo" / "zoning.geojson", driver="GeoJSON")  # in degrees, unlike the parcels
 schools_gdf.to_file(IN / "geo" / "schools.shp")
+school_zones.to_file(IN / "geo" / "school_zones.shp")
+flood_zones.to_file(IN / "geo" / "flood_zones.shp")
 cama.to_csv(IN / "cama.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
 print(f"{len(parcels):,} parcel shapes, {len(cama):,} building cards, {len(sales):,} sales")

@@ -12,6 +12,10 @@ something real to find.
 | --- | --- | --- |
 | `in/geo/parcels.parquet` | 5,135 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `ACRES` (land, in acres), address, `NBHD`, 2022 assessed `LAND_VALUE` / `BLDG_VALUE` / `TOTAL_VALUE` |
 | `in/cama.csv` | 4,959 building cards | `REID`, `CARD_NUM`, `HEATED_AREA` (sq ft), `YEAR_BUILT`, `EFF_YEAR`, `GRADE` (A–E), `COND` (EX–PR), `STORIES`, `BEDROOMS`, `FULL_BATHS`, `HALF_BATHS`; quality and condition again as `GRADE_PLUS` (B+, C-), `QUALITY_NUM` (1–10), `COND_DESC` (Average, Good…), `COND_NUM` (1–6) |
+| `in/geo/school_zones.shp` | 8 polygons | School attendance zones: `ZONE_ID`, `ZONE_NAME`, `GRADES`. Every parcel is in one. |
+| `in/geo/flood_zones.shp` | 8 polygons | Flood zones along creeks: `FLD_ZONE` (AE: 1% annual chance, X: 0.2%), `ZONE_SUBTY`. 400 parcels are in one. |
+| `in/geo/zoning.geojson` | 16 polygons | Zoning districts: `ZONE_CODE`, `ZONE_DESC`. In degrees (EPSG:4326), unlike the rest. |
+| `in/geo/schools.shp` | 16 points | Schools: `SCHOOL`, `LEVEL`. Points, so for distances only. |
 | `in/sales.csv` | 2,002 sales | `REID`, `PIN`, `DEED_DATE`, `SALE_PRICE`, `QUALIFIED` (Q/U), `VACANT_LOT` (Y/blank), and `PRICE_*`: the same prices in other formats (below) |
 
 ## Problems planted on purpose
@@ -44,3 +48,6 @@ something real to find.
     | `PRICE_SHORT` | `$250K`, `$1.11M` | |
     | `PRICE_MIXED` | all of the above, some blank, a few `N/A`, `-`, `TBD`, `0` | hand-kept |
     | `PRICE_NEGATIVE` | `(10)` for the $10 deeds | accounting negatives |
+11. **Map layers for the Shapefiles section.** The four `geo/` layers above: two polygon shapefiles to stamp onto
+    parcels (school zones cover all of them; flood zones only some, so most parcels are "in none"), zoning as
+    GeoJSON in a different coordinate system from the parcels, and school points to measure distances to.
