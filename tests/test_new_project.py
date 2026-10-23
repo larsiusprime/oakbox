@@ -123,7 +123,9 @@ def test_currency_number_style_and_units_come_from_the_country_and_can_be_change
     p = client.post("/api/projects", json=berlin).json()
     assert (p["currency"], p["numbers"], p["units"]) == ("EUR", "1.234,56", "metric")
     # Chosen at creation: kept, whatever the country says.
-    p2 = client.post("/api/projects", json={**berlin, "name": "Berlin 2", "currency": "USD", "units": "imperial"}).json()
+    p2 = client.post(
+        "/api/projects", json={**berlin, "name": "Berlin 2", "currency": "USD", "units": "imperial"}
+    ).json()
     assert (p2["currency"], p2["numbers"], p2["units"]) == ("USD", "1.234,56", "imperial")
     assert client.post("/api/projects", json={**berlin, "name": "B3", "currency": "XYZ"}).status_code == 422
 

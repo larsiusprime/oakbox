@@ -14,7 +14,13 @@ from babel.languages import get_official_languages
 ROOT = Path(__file__).resolve().parent.parent
 countries = [c["code"] for c in json.loads((ROOT / "src/oakbox/iso3166.json").read_text())["countries"]]
 # OAK box's number styles: how the decimal mark and thousands separator are written.
-STYLES = {(".", ","): "1,234.56", (",", "."): "1.234,56", (",", " "): "1 234,56", (".", "'"): "1'234.56", (".", " "): "1 234.56"}
+STYLES = {
+    (".", ","): "1,234.56",
+    (",", "."): "1.234,56",
+    (",", " "): "1 234,56",
+    (".", "'"): "1'234.56",
+    (".", " "): "1 234.56",
+}
 SPACES = {" ", " ", " "}
 IMPERIAL = {"US", "LR", "MM"}  # countries that measure land in feet and acres
 
@@ -45,7 +51,9 @@ for code in countries:
 
 en = Locale("en")
 used = sorted({v["currency"] for v in out.values()} | {"USD", "EUR", "GBP", "JPY", "CNY", "INR", "CAD", "AUD"})
-currencies = [{"code": c, "name": en.currencies.get(c, c), "symbol": numbers.get_currency_symbol(c, "en")} for c in used]
+currencies = [
+    {"code": c, "name": en.currencies.get(c, c), "symbol": numbers.get_currency_symbol(c, "en")} for c in used
+]
 (ROOT / "src/oakbox/locales.json").write_text(
     json.dumps({"countries": out, "currencies": currencies}, indent=1, ensure_ascii=False) + "\n"
 )
