@@ -1986,7 +1986,8 @@
       "enum": [
        "key",
        "key2",
-       "key3"
+       "key3",
+       "key_sale"
       ],
       "title": "Match",
       "description": "The ID it joins to the parcel universe on: key, or an extra ID (key2, key3; F3d).",
@@ -3104,18 +3105,30 @@
      "file": {
       "type": "string",
       "title": "File",
-      "description": "The sales file."
+      "description": "The file being joined."
      },
      "base": {
       "type": "string",
-      "title": "Base"
+      "title": "Base",
+      "description": "What it joins to: the parcel universe, or the main sales file."
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "sales",
+       "parcels",
+       "more_sales"
+      ],
+      "title": "Kind",
+      "description": "sales: the main sales file to the parcels; parcels: more parcel details to the parcels; more_sales: more sales details to the main sales file."
      },
      "field": {
       "type": "string",
       "enum": [
        "key",
        "key2",
-       "key3"
+       "key3",
+       "key_sale"
       ],
       "title": "Field",
       "description": "The ID they join on."
@@ -3188,6 +3201,7 @@
     "required": [
      "file",
      "base",
+     "kind",
      "field",
      "file_column",
      "base_column",
@@ -4171,7 +4185,8 @@
       "enum": [
        "key",
        "key2",
-       "key3"
+       "key3",
+       "key_sale"
       ],
       "title": "Match",
       "description": "Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3)."
@@ -4291,7 +4306,8 @@
         "enum": [
          "key",
          "key2",
-         "key3"
+         "key3",
+         "key_sale"
         ]
        },
        {

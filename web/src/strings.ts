@@ -201,12 +201,17 @@ export const t = {
       universe: {
         title: "Parcel universe",
         question: "Let's start with your parcel universe",
-        lede: "Two things first: the parcel shapes, and the main parcel ID. Add the file that has both.",
+        lede: "Two things first: the parcel shapes, and the main parcel ID. Add the file that has both. Have more files to join to it? Those come later: just pick the main file for now.",
       },
       sales: {
         title: "Sales",
         question: "Now your sales",
-        lede: "Add the file with your sale records. Each sale must find its parcel in the universe.",
+        lede: "Add the file with your sale records. Each sale must find its parcel in the universe. More sales files (deeds, say) come next: just pick the main one for now.",
+      },
+      more_files: {
+        title: "More files",
+        question: "Any more files to join?",
+        lede: "Building details, permits, deeds… Add each file, say whether it's about parcels or sales, and pick the ID it joins on. None? Just go on.",
       },
       details: { title: "More details", question: "", lede: "" },
       big_five: {
@@ -355,13 +360,74 @@ export const t = {
       mu: "mu (亩)",
     } as Record<string, string>,
     anotherFileHint:
-      "Building details in a separate file, like a CAMA export? Choose \u201cIn another file\u2026\u201d in any list below: add it once, and its columns are offered for every field.",
+      "Building details in a separate file, like a CAMA export? Add it on the More files step (or choose \u201cIn another file\u2026\u201d below), and its columns are offered for every field.",
+    saleIdLabel: "Sale ID",
+    extraFiles: {
+      first: "Add a file",
+      another: "Add another file",
+      drop: "Don't use this file",
+      what: "What's in it?",
+      parcels: "More about each parcel: joins the parcel universe",
+      sales: "More about each sale: joins the sales, on the sale ID",
+      salesNeedsId: "(the sales file needs a sale ID column for this)",
+    },
     reconcile: {
       open: "Reconcile…",
       cleaned: (what: string) => `IDs cleaned: ${what}`,
-      title: "Reconcile parcel IDs",
-      lede: "Clean up the IDs so the sales find their parcels. The steps run when the data loads; your files aren't changed.",
-      meter: (pct: string) => `${pct} of sales match a parcel`,
+      // Per kind of join: the main sales to the parcels, more parcel details, more sales details (F3d).
+      kinds: {
+        sales: () => ({
+          title: "Reconcile parcel IDs",
+          lede: "Clean up the IDs so the sales find their parcels. The steps run when the data loads; your files aren't changed.",
+          meter: (pct: string) => `${pct} of sales match a parcel`,
+          target: "Parcels",
+          mine: "Sales",
+          targetCol: "Sold?",
+          targetHit: "has a sale",
+          targetMiss: "no sale",
+          mineCol: "Finds a parcel?",
+          targetShown: (n: number, total: number) => `${n} random parcels of ${total.toLocaleString()}`,
+          mineShown: (n: number, total: number) => `${n} random sales of ${total.toLocaleString()}`,
+          unmatched: (n: number, left: number) =>
+            n === left
+              ? `The ${left.toLocaleString()} ${left === 1 ? "sale" : "sales"} that still don't find a parcel`
+              : `${n} of the ${left.toLocaleString()} sales that still don't find a parcel`,
+        }),
+        parcels: (file: string) => ({
+          title: "Reconcile parcel IDs",
+          lede: `Clean up the IDs so the rows of ${file} find their parcels. The steps run when the data loads; your files aren't changed.`,
+          meter: (pct: string) => `${pct} of ${file} rows match a parcel`,
+          target: "Parcels",
+          mine: file,
+          targetCol: `In ${file}?`,
+          targetHit: "yes",
+          targetMiss: "no",
+          mineCol: "Finds a parcel?",
+          targetShown: (n: number, total: number) => `${n} random parcels of ${total.toLocaleString()}`,
+          mineShown: (n: number, total: number) => `${n} random rows of ${total.toLocaleString()}`,
+          unmatched: (n: number, left: number) =>
+            n === left
+              ? `The ${left.toLocaleString()} ${left === 1 ? "row" : "rows"} that still don't find a parcel`
+              : `${n} of the ${left.toLocaleString()} rows that still don't find a parcel`,
+        }),
+        more_sales: (file: string) => ({
+          title: "Reconcile sale IDs",
+          lede: `Clean up the sale IDs so the rows of ${file} find their sales. The steps run when the data loads; your files aren't changed.`,
+          meter: (pct: string) => `${pct} of ${file} rows match a sale`,
+          target: "Sales",
+          mine: file,
+          targetCol: `In ${file}?`,
+          targetHit: "yes",
+          targetMiss: "no",
+          mineCol: "Finds a sale?",
+          targetShown: (n: number, total: number) => `${n} random sales of ${total.toLocaleString()}`,
+          mineShown: (n: number, total: number) => `${n} random rows of ${total.toLocaleString()}`,
+          unmatched: (n: number, left: number) =>
+            n === left
+              ? `The ${left.toLocaleString()} ${left === 1 ? "row" : "rows"} that still don't find a sale`
+              : `${n} of the ${left.toLocaleString()} rows that still don't find a sale`,
+        }),
+      },
       counts: (matched: number, total: number) => `${matched.toLocaleString()} of ${total.toLocaleString()}`,
       was: (pct: string) => `was ${pct}`,
       suggest: "Suggestion:",
@@ -371,31 +437,17 @@ export const t = {
       random: "Random",
       newSamples: "↻ New samples",
       same: "Same steps for both files",
-      parcels: "Parcels",
-      sales: "Sales",
       none: "No clean-up: used as is",
       sameAsParcels: "Same steps as the parcels",
       add: "+ Add a step",
       remove: "Remove this step",
       asIs: "As is",
       cleanedCol: "Cleaned",
-      sold: "Sold?",
-      finds: "Finds a parcel?",
       same_: "same",
       blank: "(blank)",
-      hasSale: "has a sale",
-      noSale: "no sale",
       matches: "matches",
       noMatch: "no match",
-      noUnmatched: "Every sale finds a parcel.",
-      // Above each panel's samples: what they are, so a list that stays "no match" reads as what's left.
-      showingUnmatched: (shown: number, left: number) =>
-        left === shown
-          ? `The ${left.toLocaleString()} ${left === 1 ? "sale" : "sales"} that still don't find a parcel`
-          : `${shown} of the ${left.toLocaleString()} sales that still don't find a parcel`,
-      showingSales: (shown: number, total: number) => `${shown} random sales of ${total.toLocaleString()}`,
-      showingParcels: (shown: number, total: number) =>
-        `${shown} random parcels of ${total.toLocaleString()}`,
+      noUnmatched: "Nothing left unmatched.",
       writes: "What this writes to the settings",
       nothing: "Nothing yet: no clean-up steps.",
       cancel: "Cancel",

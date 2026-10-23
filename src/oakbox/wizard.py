@@ -60,6 +60,8 @@ STEPS: list[Step] = [
     Step(key="welcome"),
     Step(key="universe"),
     Step(key="sales", fields=["sale_price", "sale_date", "valid_sale", "vacant_sale"], sales=True),
+    # More files, one by one, each joined to the universe (a parcel ID) or to the sales (the sale ID).
+    Step(key="more_files"),
     Step(key="details"),
     Step(
         key="big_five",
@@ -186,8 +188,8 @@ ALIASES: dict[str, list[str]] = {
 }
 # A parcel ID's name: most specific first.
 ID_NAMES = re.compile(
-    r"^(pin|apn|parcel(id|no|num|number)?|prop(erty)?(id|no|num)|account(no|num)?|acct(no|num)?|key|"
-    r"geoid|folio|id)$"
+    r"^(pin|pinnum|pinno|apn|parcel(id|no|num|number|pin)?|parid|pid|prop(erty)?(id|no|num)|account(no|num)?|"
+    r"acct(no|num)?|key|geoid|folio|id|(gdv)?reid|realestateid)$"
 )
 SALE_ID_NAMES = re.compile(r"^(sale(id|key|no|num|number)|instrument(no|num)?|doc(ument)?(no|num|number)|deedid)$")
 YES = {"true", "t", "1", "y", "yes", "1.0"}  # OpenAVMKit's reading (_boolify_column_in_df), plus 1.0 from a CSV
@@ -525,7 +527,10 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     present = [v for v in files.ids(name, match) if v]
     flagged = r if (r.extra or r.blank) else None
     issues: list[Issue] = []
-    if r.extra and holds == "parcels" and (r.few or r.policy):
+    more_sales = _more_sales(f)
+    # One row each is expected of a parcel file (per parcel) and of more sales details (per sale).
+    one_each = holds == "parcels" or more_sales
+    if r.extra and one_each and (r.few or r.policy):
         repeated = _n(r.repeated, "repeated ID")
         if r.policy is None:  # nothing chosen yet (OpenAVMKit would keep the first)
             issues.append(Issue(text=repeated, resolved=False, todo=f"{repeated} to decide"))
@@ -533,7 +538,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
             how = "all dropped" if r.policy == "all" else "first kept"
             issues.append(Issue(text=f"{repeated}, {how}", resolved=True))
     if r.blank:
-        outcome = "won't match a parcel" if holds == "sales" else "dropped"
+        outcome = "won't match a sale" if more_sales else "won't match a parcel" if holds == "sales" else "dropped"
         # Blank IDs wreck joins: on a parcel file they block until confirmed as dropped.
         blocking = holds == "parcels" and not r.blank_ok
         blank = _n(r.blank, "blank ID")
@@ -541,6 +546,20 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         issues.append(Issue(text=f"{blank}, {outcome}", resolved=r.blank_ok, blocking=blocking, todo=todo))
     open_issues = any(not i.resolved for i in issues)
     blocked = any(i.blocking for i in issues)
+    if more_sales:
+        main = _sales_file(files.project)
+        if r.extra and not r.few and r.policy is None:
+            text = f"{_n(r.repeated, 'repeated sale ID')} ({_n(r.extra, 'extra row')}): choose what to do"
+            return Check(ok=False, text=text, issues=issues), flagged
+        if main is None or "key_sale" not in main.load:
+            text = "the main sales file has no sale ID column to join on"
+            return Check(ok=False, text=text, issues=issues), flagged
+        sale_ids = {v for v in files.ids(main.name, "key_sale") if v}
+        found = len(set(present) & sale_ids)
+        share = found / len(set(present)) if present else 0.0
+        text = f"{_pct(found, len(set(present)))} match a sale"
+        warn = open_issues or share < MATCH_OK
+        return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds == "sales":
         flagged = r if r.blank else None
         if base is None or base == name:
@@ -555,18 +574,23 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     if holds != "parcels":
         text = "several rows per parcel" if r.extra and not r.few else "one row per parcel"
         return Check(ok=True, text=text, warn=open_issues, issues=issues), flagged
+    share = None
+    if name != base:
+        found = len(set(present) & _base_ids(files, base, match))
+        share = found / len(set(present)) if present else 0.0
     if r.extra and not r.few and r.policy is None:
         text = f"{_n(r.repeated, 'repeated ID')} ({_n(r.extra, 'extra row')}): choose what to do"
-        return Check(ok=False, text=text, issues=issues), flagged
+        return Check(ok=False, text=text, issues=issues, share=share), flagged
     kept = r.singles if r.policy == "all" else r.distinct
     tick = "" if open_issues else "✓ "
     if name == base:
         text = f"{tick}{kept:,} parcels" + ("" if issues else ", all different")
         return Check(ok=not blocked, text=text, warn=open_issues, issues=issues), flagged
-    base_ids = _base_ids(files, base, match)
-    found = len(set(present) & base_ids)
-    text = f"{tick}one row per parcel · {_pct(found, len(set(present)))} match parcels"
-    return Check(ok=found > 0 and not blocked, text=text, warn=open_issues, issues=issues), flagged
+    share = share or 0.0
+    text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match parcels"
+    warn = open_issues or share < MATCH_OK
+    ok = share >= MATCH_MIN and not blocked
+    return Check(ok=ok, text=text, warn=warn, issues=issues, share=share), flagged
 
 
 def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
@@ -647,7 +671,13 @@ def _by_key() -> dict[str, DictionaryField]:
 
 
 def _sales_file(project: Project) -> DataFile | None:
-    return next((f for f in project.files if f.holds == "sales"), None)
+    """The main sales file: the one joined to the parcels. More sales details join it on the sale ID."""
+    return next((f for f in project.files if f.holds == "sales" and f.match != "key_sale"), None)
+
+
+def _more_sales(f: DataFile | WizardFile) -> bool:
+    """More sales details: a sales file joined to the main one on the sale ID."""
+    return f.holds == "sales" and f.match == "key_sale"
 
 
 def _field_files(project: Project, sales: bool) -> list[DataFile]:
@@ -877,9 +907,12 @@ def _status(
             todo = [i for i in f.id_check.issues if not i.resolved]
             left.extend(Left(text=i.todo or i.text, blocking=i.blocking) for i in todo)
             share = f.id_check.share
-            if share is not None and share < MATCH_OK:
-                left.append(Left(text=f"Reconcile the IDs: {f.id_check.text}", blocking=not f.id_check.ok))
-            elif not f.id_check.ok and not any(i.blocking for i in todo):
+            low = share is not None and share < MATCH_OK
+            if low:
+                text = f.id_check.text
+                matched = text if "match" in text else f"only {_pct(round((share or 0) * 1000), 1000)} match"
+                left.append(Left(text=f"Reconcile the IDs: {matched}", blocking=(share or 0) < MATCH_MIN))
+            if not f.id_check.ok and not any(i.blocking for i in todo) and not (low and (share or 0) < MATCH_MIN):
                 left.append(Left(text=f"Parcel ID: {f.id_check.text}"))
 
     if step.key == "universe":
@@ -887,8 +920,21 @@ def _status(
         if base is not None and base.name != BASE_NAME:
             left.append(Left(text="Use this file as the parcel universe"))
         ids(base, "parcel")
+    elif step.key == "more_files":
+        for f in files:
+            if f.base or f.holds == "unused" or (f.holds == "sales" and not _more_sales(f)):
+                continue
+            if f.holds is None:
+                left.append(Left(text=f"{f.name}: say what it joins to", blocking=False))
+            elif f.id_column is None:
+                left.append(Left(text=f"{f.name}: pick the ID it joins on"))
+            else:
+                before = len(left)
+                ids(f, f.name)
+                for i in left[before:]:
+                    i.text = f"{f.name}: {i.text}"
     elif step.key == "sales":
-        sales = next((f for f in files if f.holds == "sales"), None)
+        sales = next((f for f in files if f.holds == "sales" and not _more_sales(f)), None)
         ids(sales, "sales")
         if sales is not None:
             if sale_id.column is None and not sale_id.made:
@@ -1059,7 +1105,9 @@ def _guess_sales(project: Project, files: _Files) -> None:
             sales.load[found] = [base.load[found][0], "string"]
             sales.match = cast(Match, found)
         else:
-            column = _guess_id(files, sales.name, "sales", None)
+            # The column whose values are the universe's parcel IDs, even written differently; else by name.
+            column = _best_match(files, sales.name, base, "key") if base and "key" in base.load else None
+            column = column or _guess_id(files, sales.name, "sales", None)
             if column:
                 sales.load["key"] = [column, "string"]
     if "key_sale" not in sales.load and "key_sale" not in sales.calc:
@@ -1068,6 +1116,52 @@ def _guess_sales(project: Project, files: _Files) -> None:
             sales.load["key_sale"] = [column, "string"]
         else:
             sales.calc["key_sale"] = made_sale_id(sales.match)
+
+
+def _loose(v: str) -> str:
+    """An ID compared loosely, for guessing only: letters and digits, no leading zeros, one case."""
+    return re.sub(r"[^0-9A-Za-z]", "", v).lstrip("0").upper()
+
+
+def _best_match(files: _Files, name: str, target: DataFile, field: str) -> str | None:
+    """The column of a file whose values best match a target's IDs, compared loosely; None under 30%."""
+    want = {_loose(v) for v in files.ids(target.name, field) if v}
+    want.discard("")
+    if not want:
+        return None
+    best: tuple[float, str] | None = None
+    for c in files.columns(name)[:60]:
+        if c.type not in ("text", "number"):
+            continue
+        values = {_loose(v) for v in files.values(name, c.name) if v}
+        values.discard("")
+        if not values:
+            continue
+        share = len(values & want) / len(values)
+        if share >= 0.3 and (best is None or share > best[0]):
+            best = (share, c.name)
+    return best[1] if best else None
+
+
+def _guess_join(project: Project, files: _Files, entry: DataFile) -> None:
+    """A file just said to join the parcels or the sales: the ID column with the same name as its target's,
+    or one that looks like an ID."""
+    names = {c.name for c in files.columns(entry.name)}
+    if entry.match == "key_sale":
+        main = _sales_file(project)
+        column = main.load["key_sale"][0] if main and "key_sale" in main.load else None
+        found = column if column in names else None
+        found = found or (_best_match(files, entry.name, main, "key_sale") if main and column else None)
+        found = found or _guess_sale_id(files, entry.name)
+    else:
+        base = _base(project)
+        column = base.load[entry.match][0] if base and entry.match in base.load else None
+        found = column if column in names else None
+        found = found or (_best_match(files, entry.name, base, entry.match) if base and column else None)
+        # Several rows per parcel are fine here (building cards): don't insist on one each.
+        found = found or _guess_id(files, entry.name, "sales", column)
+    if found:
+        entry.load[entry.match] = [found, "string"]
 
 
 def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> RepeatRows:
@@ -1134,6 +1228,10 @@ def set_file(
                 project.wizard.base = None
         entry.holds, entry.match, holds = "parcels", "key", None
     is_base = universe or entry.name == project.wizard.base
+    if holds == "parcels" and entry.match == "key_sale":  # was more sales details: back to a parcel ID
+        match = match if match not in (None, "key_sale") else "key"
+    if match == "key_sale" and (holds or entry.holds) != "sales":
+        raise ValueError("Only a sales file joins on the sale ID.")
     if match is not None and not is_base and match != entry.match:
         old = entry.load.pop(entry.match, None)
         entry.match = match
@@ -1164,17 +1262,21 @@ def set_file(
                         if "key3" in f.load:
                             f.load["key2"] = f.load.pop("key3")
     if holds is not None and holds != entry.holds:
-        if holds == "sales":  # one sales file: a new one replaces it
+        if holds == "sales" and entry.match != "key_sale":  # one main sales file: a new one replaces it
             for f in project.files:
-                if f is not entry and f.holds == "sales":
+                if f is not entry and f.holds == "sales" and f.match != "key_sale":
                     f.holds = "unused"
                     f.calc = {}
         if entry.holds == "sales":  # what only a sales file has
             for key in ("key_sale", *ASSUMABLE):
                 entry.calc.pop(key, None)
         entry.holds = holds
-    if entry.holds == "sales" and "key_sale" in entry.calc:
+    if entry.holds == "sales" and entry.match == "key_sale":
+        entry.calc.pop("key_sale", None)  # more sales details carry the sale ID itself
+    elif entry.holds == "sales" and "key_sale" in entry.calc:
         entry.calc["key_sale"] = made_sale_id(entry.match)
+    if holds is not None and id_column is None and entry.match not in entry.load and not is_base:
+        _guess_join(project, files, entry)
     if dupes is not None:  # the duplicates dialog: what to do with repeated IDs
         if dupes_sort is not None and dupes_sort not in entry.load:
             raise ValueError(f"Sort by a field {name} loads; {dupes_sort} isn't one.")
@@ -1313,8 +1415,12 @@ class Suggestion(BaseModel):
 
 
 class Reconcile(BaseModel):
-    file: str = Field(description="The sales file.")
-    base: str
+    file: str = Field(description="The file being joined.")
+    base: str = Field(description="What it joins to: the parcel universe, or the main sales file.")
+    kind: Literal["sales", "parcels", "more_sales"] = Field(
+        description="sales: the main sales file to the parcels; parcels: more parcel details to the parcels; "
+        "more_sales: more sales details to the main sales file."
+    )
     field: Match = Field(description="The ID they join on.")
     file_column: str
     base_column: str
@@ -1334,14 +1440,22 @@ SAMPLES = 6
 
 
 def _sides(project: Project, in_dir: Path, name: str) -> tuple[_Files, DataFile, DataFile, Match]:
+    """A file and what it joins to: the parcel universe, or (more sales details) the main sales file."""
     files = _Files(project, in_dir)
     entry = files.entry(name)
-    base = project.wizard.base
-    if base is None or base == name or base not in files.preview:
-        raise ValueError("Add the parcel universe first.")
-    if entry.match not in entry.load or entry.match not in files.entry(base).load:
+    if _more_sales(entry):
+        main = _sales_file(project)
+        if main is None or "key_sale" not in main.load:
+            raise ValueError("The main sales file has no sale ID column to join on.")
+        target = main
+    else:
+        base = project.wizard.base
+        if base is None or base == name or base not in files.preview:
+            raise ValueError("Add the parcel universe first.")
+        target = files.entry(base)
+    if entry.match not in entry.load or entry.match not in target.load:
         raise ValueError(f"Pick the ID column of {name} first.")
-    return files, entry, files.entry(base), entry.match
+    return files, entry, target, entry.match
 
 
 def _matched(file_ids: tuple[str, ...], base_set: set[str]) -> int:
@@ -1372,7 +1486,9 @@ def _describe(steps: list[CleanStep]) -> str:
     return " and ".join(out)
 
 
-def _suggest(files: _Files, entry: DataFile, base: DataFile, field: Match, now: float) -> Suggestion | None:
+def _suggest(
+    files: _Files, entry: DataFile, base: DataFile, field: Match, now: float, kind: str = "sales"
+) -> Suggestion | None:
     """The simplest clean-up pair from a few common ones that matches clearly more sales. Only a suggestion."""
     total = len(files.ids(entry.name, field))
     if not total:
@@ -1390,10 +1506,13 @@ def _suggest(files: _Files, entry: DataFile, base: DataFile, field: Match, now: 
         return None
     share, _, b, f = best
     parts = []
+    target, mine = ("sale IDs", f"{entry.name} IDs") if kind == "more_sales" else ("parcel IDs", f"{entry.name} IDs")
+    if kind == "sales":
+        mine = "sales IDs"
     if _TRIES[b]:
-        parts.append(f"{_describe(_TRIES[b])} from the parcel IDs")
+        parts.append(f"{_describe(_TRIES[b])} from the {target}")
     if _TRIES[f]:
-        parts.append(f"{_describe(_TRIES[f])} from the sales IDs")
+        parts.append(f"{_describe(_TRIES[f])} from the {mine}")
     text = "; ".join(parts)
     return Suggestion(text=text[:1].upper() + text[1:], base_steps=_TRIES[b], file_steps=_TRIES[f], share=share)
 
@@ -1435,9 +1554,11 @@ def reconcile(
     ]
     base_samples = [Sample(raw=r, clean=c, hit=c in file_set) for r, c in pick(base_raw, base_ids, bool)]
     writes = {n: clean_calc(field, st) for n, st in ((base.name, base_steps), (name, file_steps)) if st}
+    kind = "more_sales" if _more_sales(entry) else "sales" if entry.holds == "sales" else "parcels"
     return Reconcile(
         file=name,
         base=base.name,
+        kind=kind,
         field=field,
         file_column=entry.load[field][0],
         base_column=base.load[field][0],
@@ -1448,7 +1569,7 @@ def reconcile(
         saved_share=saved / total if total else 0.0,
         file_samples=file_samples,
         base_samples=base_samples,
-        suggestion=_suggest(files, entry, base, field, matched / total if total else 0.0) if suggest else None,
+        suggestion=_suggest(files, entry, base, field, matched / total if total else 0.0, kind) if suggest else None,
         writes=writes,
     )
 

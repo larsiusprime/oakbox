@@ -259,7 +259,8 @@ def _data(project: Project) -> dict:
     out: dict = {"load": data_load(project.files, project.units)}
     base = project.wizard.base
     parcels: list = [f for f in project.files if f.holds == "parcels"]
-    sales = [f for f in project.files if f.holds == "sales"]
+    # The main sales file first; more sales details (joined on the sale ID) after it.
+    sales = sorted((f for f in project.files if f.holds == "sales"), key=lambda f: f.match == "key_sale")
     if parcels or sales:
         parcels.sort(key=lambda f: f.name != base)
         universe = [f.name if f.name == base or f.match == "key" else {"id": f.name, "on": f.match} for f in parcels]
@@ -267,7 +268,7 @@ def _data(project: Project) -> dict:
         lookups = [
             {"id": base, "key_ref_table": f.match, "key_target": f.match, "add_fields": ["key"]}
             for f in sales
-            if base and f.match != "key"
+            if base and f.match in ("key2", "key3")
         ]
         if lookups:
             process["enrich"] = {"ref_tables": {"sales": lookups}}

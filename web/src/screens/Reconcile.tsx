@@ -90,6 +90,13 @@ export function ReconcileDialog({
   save: (fileSteps: Step[], baseSteps: Step[]) => void;
 }) {
   const field = file.match;
+  // What joins to what: the wording follows it.
+  const k =
+    file.match === "key_sale"
+      ? r.kinds.more_sales(file.name)
+      : file.holds === "sales"
+        ? r.kinds.sales()
+        : r.kinds.parcels(file.name);
   const [baseSteps, setBaseSteps] = useState<Step[]>(base.clean[field] ?? []);
   const [fileSteps, setFileSteps] = useState<Step[]>(file.clean[field] ?? []);
   const [same, setSame] = useState(
@@ -129,15 +136,15 @@ export function ReconcileDialog({
       <Modal className="modal rc">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {r.title}
+            {k.title}
           </Heading>
-          <p className="rc-sub">{r.lede}</p>
+          <p className="rc-sub">{k.lede}</p>
           <div className={`rc-meter ${good ? "ok" : "bad"}`} aria-live="polite">
             {v ? (
               <>
                 <b>
                   {good && "✓ "}
-                  {r.meter(pct(v.share))}
+                  {k.meter(pct(v.share))}
                 </b>
                 <span className="rc-was">
                   {r.counts(v.matched, v.total)}
@@ -189,13 +196,13 @@ export function ReconcileDialog({
           </div>
           <div className="rc-cols">
             <section className="rc-card">
-              <h3>{r.parcels}</h3>
+              <h3>{k.target}</h3>
               <CleanSteps steps={baseSteps} onChange={setBaseSteps} />
-              {v && <p className="rc-caption">{r.showingParcels(v.base_samples.length, v.parcels)}</p>}
-              <Samples rows={v?.base_samples ?? []} parcels />
+              {v && <p className="rc-caption">{k.targetShown(v.base_samples.length, v.parcels)}</p>}
+              <Samples rows={v?.base_samples ?? []} labels={k} target />
             </section>
             <section className="rc-card">
-              <h3>{r.sales}</h3>
+              <h3>{k.mine}</h3>
               {same ? (
                 <p className="rc-same">{r.sameAsParcels}</p>
               ) : (
@@ -204,11 +211,11 @@ export function ReconcileDialog({
               {v && v.file_samples.length > 0 && (
                 <p className="rc-caption">
                   {view === "unmatched"
-                    ? r.showingUnmatched(v.file_samples.length, v.total - v.matched)
-                    : r.showingSales(v.file_samples.length, v.total)}
+                    ? k.unmatched(v.file_samples.length, v.total - v.matched)
+                    : k.mineShown(v.file_samples.length, v.total)}
                 </p>
               )}
-              <Samples rows={v?.file_samples ?? []} parcels={false} empty={view === "unmatched"} />
+              <Samples rows={v?.file_samples ?? []} labels={k} target={false} empty={view === "unmatched"} />
             </section>
           </div>
           <details className="rc-writes">
@@ -346,7 +353,20 @@ function StepText({ step, set }: { step: Step; set: (patch: Partial<Step>) => vo
   }
 }
 
-function Samples({ rows, parcels, empty }: { rows: ReconcileSample[]; parcels: boolean; empty?: boolean }) {
+type Labels = ReturnType<typeof r.kinds.sales>;
+
+function Samples({
+  rows,
+  labels,
+  target,
+  empty,
+}: {
+  rows: ReconcileSample[];
+  labels: Labels;
+  target: boolean;
+  empty?: boolean;
+}) {
+  const parcels = target; // the target side: whether the other file has it, never a failure
   if (rows.length === 0 && empty) return <p className="rc-same">{r.noUnmatched}</p>;
   return (
     <table className="rc-tbl">
@@ -355,7 +375,7 @@ function Samples({ rows, parcels, empty }: { rows: ReconcileSample[]; parcels: b
           <th className="rc-th">{r.asIs}</th>
           <th className="rc-th" />
           <th className="rc-th">{r.cleanedCol}</th>
-          <th className="rc-th">{parcels ? r.sold : r.finds}</th>
+          <th className="rc-th">{target ? labels.targetCol : labels.mineCol}</th>
         </tr>
       </thead>
       <tbody>
@@ -369,9 +389,9 @@ function Samples({ rows, parcels, empty }: { rows: ReconcileSample[]; parcels: b
             <td className="rc-td rc-m">
               {parcels ? (
                 s.hit ? (
-                  <span className="rc-hit">✓ {r.hasSale}</span>
+                  <span className="rc-hit">✓ {labels.targetHit}</span>
                 ) : (
-                  <span className="rc-dim">{r.noSale}</span>
+                  <span className="rc-dim">{labels.targetMiss}</span>
                 )
               ) : s.hit ? (
                 <span className="rc-hit">✓ {r.matches}</span>

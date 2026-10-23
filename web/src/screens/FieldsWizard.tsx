@@ -125,6 +125,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             <UniverseStep project={project} data={data} change={change.mutate} />
           )}
           {current.key === "sales" && <SalesStep project={project} data={data} change={change.mutate} />}
+          {current.key === "more_files" && (
+            <MoreFilesStep project={project} data={data} change={change.mutate} />
+          )}
           {current.key === "review" && (
             <ReviewStep projectId={projectId} data={data} go={go} change={change.mutate} />
           )}
@@ -275,7 +278,7 @@ type Change =
       name: string;
       holds?: Holds;
       universe?: boolean;
-      match?: "key" | "key2" | "key3";
+      match?: "key" | "key2" | "key3" | "key_sale";
       id_column?: string;
       dupes?: "first" | "all";
       dupes_sort?: string;
@@ -428,16 +431,19 @@ function IdCheck({
   const [reconciling, setReconciling] = useState(false);
   const r = file.repeats;
   const resolvable =
-    ((file.holds === "parcels" && (r?.extra ?? 0) > 0) || (r?.blank ?? 0) > 0) &&
+    (((file.holds === "parcels" || file.match === "key_sale") && (r?.extra ?? 0) > 0) ||
+      (r?.blank ?? 0) > 0) &&
     (file.holds === "parcels" || file.holds === "sales");
   // The ID it joins on: the universe's own is its parcel ID.
   const field = file.base ? "key" : file.match;
   const steps = file.clean[field] ?? [];
-  const base = data.files.find((f) => f.base);
+  // What it joins to: the main sales file for more sales details, else the parcel universe.
+  const base =
+    file.match === "key_sale" ? data.files.find((f) => isMainSales(f)) : data.files.find((f) => f.base);
   const share = file.id_check?.share;
-  // Reconcile: whenever some sales don't find a parcel, or to change the clean-up already set (SPEC F3d).
+  // Reconcile: whenever some rows don't find their parcel (or sale), or to change the clean-up (SPEC F3d).
   const reconcilable =
-    file.holds === "sales" &&
+    !file.base &&
     base !== undefined &&
     share !== null &&
     share !== undefined &&
@@ -867,8 +873,13 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
   );
 }
 
+/** The sales file the Sales step is about; more sales details join it on the sale ID. */
+function isMainSales(f: WizardFile): boolean {
+  return f.holds === "sales" && f.match !== "key_sale";
+}
+
 function SalesStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
-  const sales = data.files.find((f) => f.holds === "sales");
+  const sales = data.files.find(isMainSales);
   const base = data.files.find((f) => f.base);
   const [replacing, setReplacing] = useState(false);
   if (!sales || replacing) {
@@ -910,6 +921,125 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
   );
 }
 
+/** F3d: more files, one by one: what each joins to (parcels or sales), the ID it joins on, and its checks. */
+function MoreFilesStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
+  const base = data.files.find((f) => f.base);
+  const main = data.files.find(isMainSales);
+  // Picked here this visit: shown even before it's said what it holds.
+  const [chosen, setChosen] = useState<string[]>([]);
+  const extras = data.files.filter(
+    (f) =>
+      !f.base &&
+      f !== main &&
+      (f.holds === "parcels" || f.holds === "sales" || f.holds === null || chosen.includes(f.name)),
+  );
+  const [adding, setAdding] = useState(extras.length === 0);
+  return (
+    <>
+      {extras.map((f) => (
+        <ExtraFile
+          key={f.name}
+          project={project}
+          data={data}
+          file={f}
+          base={base}
+          main={main}
+          change={change}
+          drop={() => {
+            setChosen((c) => c.filter((n) => n !== f.name));
+            change({ kind: "file", name: f.name, holds: "unused" });
+          }}
+        />
+      ))}
+      {adding ? (
+        <div className="wiz-extra">
+          <FilePicker
+            project={project}
+            data={data}
+            exclude={[
+              ...(base ? [base.name] : []),
+              ...(main ? [main.name] : []),
+              ...extras.map((f) => f.name),
+            ]}
+            onChosen={(name) => {
+              setChosen((c) => [...c, name]);
+              setAdding(false);
+            }}
+          />
+          {extras.length > 0 && (
+            <Button className="wiz-link" onPress={() => setAdding(false)}>
+              {w.cancel}
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Button className="button wiz-add-id" onPress={() => setAdding(true)}>
+          <Plus aria-hidden="true" size="1em" />
+          {extras.length ? w.extraFiles.another : w.extraFiles.first}
+        </Button>
+      )}
+    </>
+  );
+}
+
+function ExtraFile({
+  project,
+  data,
+  file,
+  base,
+  main,
+  change,
+  drop,
+}: {
+  project: Project;
+  data: Wizard;
+  file: WizardFile;
+  base: WizardFile | undefined;
+  main: WizardFile | undefined;
+  change: Mutate;
+  drop: () => void;
+}) {
+  const m = w.extraFiles;
+  const holds = file.holds === "parcels" || file.holds === "sales" ? file.holds : null;
+  // More sales details join on the sale ID, so the main sales file needs one in a column.
+  const salesOk = main !== undefined && main.id_column !== null && !data.sale_id.made;
+  return (
+    <section className="wiz-extra">
+      <div className="wiz-file">
+        <span className="mono">{file.name}</span>
+        <span className="wiz-from">{file.filename}</span>
+        {file.rows !== null && <span className="wiz-from">· {file.rows.toLocaleString()} rows</span>}
+        <Button className="wiz-link" onPress={drop}>
+          {m.drop}
+        </Button>
+      </div>
+      <RadioGroup
+        className="field radios wiz-holds"
+        value={holds}
+        onChange={(v) =>
+          change(
+            v === "sales"
+              ? { kind: "file", name: file.name, holds: "sales", match: "key_sale" }
+              : { kind: "file", name: file.name, holds: "parcels" },
+          )
+        }
+      >
+        <Label className="field-label">{m.what}</Label>
+        <Radio value="parcels" className="radio">
+          <span className="radio-dot" aria-hidden="true" />
+          {m.parcels}
+        </Radio>
+        <Radio value="sales" className="radio" isDisabled={!salesOk && holds !== "sales"}>
+          <span className="radio-dot" aria-hidden="true" />
+          {m.sales}
+          {!salesOk && <small className="wiz-from"> {m.salesNeedsId}</small>}
+        </Radio>
+      </RadioGroup>
+      {holds && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
+    </section>
+  );
+}
+
 /** A file's ID column, and whether it matches the universe's parcel ID or its second ID. */
 function IdRow({
   projectId,
@@ -925,10 +1055,13 @@ function IdRow({
   change: Mutate;
 }) {
   const options = matchOptions(base);
-  const several = options.length > 1;
+  // More sales details join on the sale ID; anything else on the parcel ID or an extra ID.
+  const several = options.length > 1 && file.match !== "key_sale";
   return (
     <div className="wiz-grid">
-      <div className="wiz-label">{several ? w.matchBy : w.parcelId}</div>
+      <div className="wiz-label">
+        {file.match === "key_sale" ? w.saleIdLabel : several ? w.matchBy : w.parcelId}
+      </div>
       <div className="wiz-pair">
         {several && (
           <Choice

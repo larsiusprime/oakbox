@@ -832,7 +832,7 @@ export interface components {
              * @default key
              * @enum {string}
              */
-            match: "key" | "key2" | "key3";
+            match: "key" | "key2" | "key3" | "key_sale";
             /**
              * Dupes
              * @description Repeated IDs in a parcel file (F3d): keep the first row of each, or drop them all. None: keep the first, the default, if there are only a few.
@@ -1354,17 +1354,26 @@ export interface components {
         Reconcile: {
             /**
              * File
-             * @description The sales file.
+             * @description The file being joined.
              */
             file: string;
-            /** Base */
+            /**
+             * Base
+             * @description What it joins to: the parcel universe, or the main sales file.
+             */
             base: string;
+            /**
+             * Kind
+             * @description sales: the main sales file to the parcels; parcels: more parcel details to the parcels; more_sales: more sales details to the main sales file.
+             * @enum {string}
+             */
+            kind: "sales" | "parcels" | "more_sales";
             /**
              * Field
              * @description The ID they join on.
              * @enum {string}
              */
-            field: "key" | "key2" | "key3";
+            field: "key" | "key2" | "key3" | "key_sale";
             /** File Column */
             file_column: string;
             /** Base Column */
@@ -1813,7 +1822,7 @@ export interface components {
              * @description Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).
              * @enum {string}
              */
-            match: "key" | "key2" | "key3";
+            match: "key" | "key2" | "key3" | "key_sale";
             /**
              * Id Column
              * @description Loaded as the ID it joins on (match).
@@ -1856,7 +1865,7 @@ export interface components {
              * Match
              * @description Join on the parcel ID (key) or second ID (key2).
              */
-            match?: ("key" | "key2" | "key3") | null;
+            match?: ("key" | "key2" | "key3" | "key_sale") | null;
             /**
              * Id Column
              * @description The column loaded as the ID it joins on.

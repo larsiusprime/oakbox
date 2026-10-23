@@ -27,7 +27,8 @@ class BaseModel(_PydanticBase):
 
 
 Holds = Literal["parcels", "sales", "unused"]
-Match = Literal["key", "key2", "key3"]
+# The ID a file joins on: the universe's parcel ID or an extra ID; or, for more sales details, the sale ID.
+Match = Literal["key", "key2", "key3", "key_sale"]
 # The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.
 EXTRA_IDS = ("key2", "key3")
 # Area: the wizard's fields are named in square feet (the dictionary's); a metric project writes them as
@@ -447,7 +448,9 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
             entry["dupes"] = {"subset": [f.match], "sort_by": [f.dupes_sort or f.match, order], "drop": drop}
         if f.holds == "sales":
             # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.
-            entry["dupes"] = {"subset": ["key_sale"], "sort_by": ["key_sale", "asc"], "drop": True}
+            order = "desc" if f.dupes_desc else "asc"
+            drop = "all" if f.dupes == "all" else True
+            entry["dupes"] = {"subset": ["key_sale"], "sort_by": [f.dupes_sort or "key_sale", order], "drop": drop}
         out[f.name] = entry
     return out
 

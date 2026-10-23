@@ -605,3 +605,92 @@ def test_area_columns_are_converted_to_the_projects_small_unit(client, tmp_path,
     else:
         assert land == pytest.approx([1011.71, 4046.86, 404.686], rel=1e-4)
         assert bldg == pytest.approx([139.355, 222.967, 91.0451], rel=1e-4)
+
+
+def test_more_files_join_the_parcels_or_the_sales(client, tmp_path, monkeypatch):
+    """CAMA joins the parcels (after Reconcile and picking a card); deed details join the sales on the sale ID."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"GDV_REID": [f"{n:010d}" for n in range(1, 6)]},
+        geometry=[box(n, 0, n + 1, 1) for n in range(5)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {"REID": ["1", "2", "2", "3", "4", "5"], "CARD": [1, 1, 2, 1, 1, 1], "AREA": [1500, 2000, 400, 900, 1200, 1800]}
+    ).to_csv(tmp_path / "cama.csv", index=False)
+    pd.DataFrame(
+        {
+            "SALE_ID": ["S1", "S2", "S3"],
+            "PARCEL": ["0000000001", "0000000003", "0000000003"],
+            "PRICE": [200_000, 150_000, 175_000],
+            "DATE": ["2024-01-02", "2023-05-06", "2025-02-03"],
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    pd.DataFrame({"SALE_ID": ["S1", "S2", "S3"], "DEED_TYPE": ["WD", "QC", "WD"]}).to_csv(
+        tmp_path / "deeds.csv", index=False
+    )
+    for name, ext in (("parcels", "parquet"), ("cama", "csv"), ("sale", "csv"), ("deeds", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="GDV_REID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PARCEL")
+    client.put(f"/api/projects/{pid}/wizard/sale-id", json={"column": "SALE_ID", "make": False})
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"file": "sale", "column": col})
+    client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit")
+
+    # Not said yet what they join to: listed as to-dos, not blockers.
+    w = client.get(f"/api/projects/{pid}/wizard").json()
+    step = _step(w, "more_files")
+    assert {"text": "cama: say what it joins to", "blocking": False} in step["left"]
+
+    # CAMA: one row per parcel, joined on REID; padded IDs on one side only.
+    w = _put_file(client, pid, "cama", holds="parcels", id_column="REID").json()
+    check = _file(w, "cama")["id_check"]
+    assert (check["ok"], check["share"]) == (False, 0)
+    url = f"/api/projects/{pid}/wizard/files/cama/reconcile"
+    view = client.post(url, json={"suggest": True}).json()
+    assert (view["kind"], view["base"]) == ("parcels", "geo_parcels")
+    assert view["suggestion"]["text"] == "Remove leading zeros from the parcel IDs"
+    w = client.put(url, json={"base_steps": [{"kind": "zeros"}], "file_steps": []}).json()
+    check = _file(w, "cama")["id_check"]
+    assert check["text"] == "1 repeated ID (1 extra row): choose what to do"
+    w = _put_file(client, pid, "cama", dupes="first", dupes_sort="key", dupes_desc=False).json()
+    assert _file(w, "cama")["id_check"]["ok"] and _file(w, "cama")["id_check"]["share"] == 1
+    # The sales still find their parcels: the parcel side's clean-up applies to every join on it.
+    assert _file(w, "sale")["id_check"]["share"] == 0
+    client.put(
+        f"/api/projects/{pid}/wizard/files/sale/reconcile",
+        json={"base_steps": [{"kind": "zeros"}], "file_steps": [{"kind": "zeros"}]},
+    )
+
+    # Deed details: more sales, joined on the sale ID, which it guesses from the main file's column.
+    w = _put_file(client, pid, "deeds", holds="sales", match="key_sale").json()
+    deeds = _file(w, "deeds")
+    assert (deeds["match"], deeds["id_column"], deeds["id_check"]["text"]) == (
+        "key_sale",
+        "SALE_ID",
+        "100% match a sale",
+    )
+    assert _file(w, "sale")["holds"] == "sales"  # still the main sales file
+    assert w["sale_id"]["file"] == "sale"
+    client.put(f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft", json={"file": "cama", "column": "AREA"})
+    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/confirm").json()
+    assert _step(w, "more_files")["status"] == "done"
+
+    process = _settings(pid)["data"]["process"]
+    assert process["merge"]["universe"] == ["geo_parcels", "cama"]
+    assert process["merge"]["sales"] == ["sale", "deeds"]
+    assert "enrich" not in process
+    load = _settings(pid)["data"]["load"]
+    assert load["deeds"]["load"] == {"key_sale": ["SALE_ID", "string"]}
+    assert load["deeds"]["dupes"]["subset"] == ["key_sale"]
+    assert load["cama"]["dupes"] == {"subset": ["key"], "sort_by": ["key", "asc"], "drop": True}
+
+    client.put(f"/api/projects/{pid}/wizard/fields/valid_sale", json={"assume": True})
+    client.put(f"/api/projects/{pid}/wizard/fields/vacant_sale", json={"assume": True})
+    univ, sales = _engine(pid, monkeypatch)
+    univ = univ.sort_values("key")
+    assert univ["key"].tolist() == ["1", "2", "3", "4", "5"]
+    assert univ["bldg_area_finished_sqft"].tolist() == [1500, 2000, 900, 1200, 1800]  # card 1 of parcel 2
+    assert sorted(sales["key_sale"]) == ["S1", "S2", "S3"] and set(sales["key"]) == {"1", "3"}
