@@ -1,7 +1,7 @@
 import "leaflet/dist/leaflet.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import L from "leaflet";
-import { X } from "lucide-react";
+import { ChevronUp, Map as MapIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
@@ -9,6 +9,7 @@ import { Choice } from "../components/Form";
 import { t } from "../strings";
 
 const l = t.wizard.location;
+const MAP_KEY = "oakbox.locationMap";
 type MapView = {
   points: [number, number][];
   middle: [number, number] | null;
@@ -56,6 +57,24 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
     onSuccess: (data) => queryClient.setQueryData(["map", projectId], data),
   });
   const v = view.data as MapView | undefined;
+  // Hidden until asked for (it's big), and remembered on this computer.
+  const [shown, setShown] = useState(() => {
+    try {
+      return localStorage.getItem(MAP_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () => {
+    setShown((on) => {
+      try {
+        localStorage.setItem(MAP_KEY, on ? "0" : "1");
+      } catch {
+        // no storage (a private window): the choice lasts until the page closes
+      }
+      return !on;
+    });
+  };
   return (
     <section className="wiz-section">
       <h3 className="wiz-group">{l.coordinates}</h3>
@@ -71,9 +90,15 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
         <p className="wiz-note">{l.noShapes}</p>
       ) : v && v.points.length > 0 ? (
         <>
-          <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
+          <Button className="button wiz-map-toggle" aria-expanded={shown} onPress={toggle}>
+            {shown ? <ChevronUp aria-hidden="true" size="1em" /> : <MapIcon aria-hidden="true" size="1em" />}
+            {shown ? l.hideMap : l.showMap}
+          </Button>
+          {shown && (
+            <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
+          )}
           <p className="wiz-note">
-            {v.center ? l.centerSet(v.center[0], v.center[1]) : l.centerMiddle}{" "}
+            {v.center ? l.centerSet(v.center[0], v.center[1]) : shown ? l.centerMiddle : l.centerMiddleHidden}{" "}
             {v.center && (
               <Button className="wiz-link" onPress={() => move.mutate(null)}>
                 {l.useMiddle}

@@ -79,35 +79,9 @@ STEPS: list[Step] = [
     Step(
         key="location",
         parent="details",
-        # The situs address; the areas parcels belong to are the user's own location fields (add_location).
+        # The situs address; the areas parcels belong to are the user's own location fields (set_location).
+        # Land, Building and Rooms & features steps are left out for now: their fields are in the advanced view.
         fields=["address"],
-    ),
-    Step(
-        key="land",
-        parent="details",
-        fields=["zoning", "zoning_desc", "land_class", "min_buildable_size"],
-        more=["condo_group", "floor_area_ratio", "is_below_buildable_size"],
-    ),
-    Step(
-        key="building",
-        parent="details",
-        fields=["bldg_type", "bldg_class", "bldg_desc", "bldg_stories", "bldg_units", "bldg_count"],
-        more=["bldg_area_footprint_sqft"],
-    ),
-    Step(
-        key="rooms_features",
-        parent="details",
-        fields=["bldg_rooms_bed", "bldg_rooms_bath", "bldg_style", "bldg_exterior", "bldg_heating", "bldg_ac"],
-        more=[
-            "bldg_rooms_bath_full",
-            "bldg_rooms_bath_half",
-            "bldg_foundation",
-            "bldg_value_replacement",
-            "bldg_value_depreciated",
-            "bldg_depreciation_total",
-            "bldg_depreciation_percent",
-            "bldg_outbuilding_value",
-        ],
     ),
     Step(
         key="assessed",

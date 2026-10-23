@@ -220,7 +220,7 @@ def _engine(pid, monkeypatch):
 def test_openavmkit_loads_and_joins_what_the_wizard_wrote(client, pid, monkeypatch):
     _start(client, pid)
     _put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID")
-    for step in ("big_five", "land"):
+    for step in ("big_five", "assessed"):
         client.post(f"/api/projects/{pid}/wizard/steps/{step}/visit")
     client.put(
         f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"}
@@ -405,9 +405,10 @@ def test_step_marks_come_from_what_is_on_each_step(client, pid):
     client.post(f"/api/projects/{pid}/wizard/steps/location/visit")
     assert marks()["location"] == "blank"
     client.post(f"/api/projects/{pid}/wizard/steps/location/confirm")
-    client.post(f"/api/projects/{pid}/wizard/steps/land/skip")
+    client.post(f"/api/projects/{pid}/wizard/steps/assessed/skip")
     m = marks()
-    assert (m["location"], m["land"], m["details"]) == ("done", "done", "attention")  # worst of its parts
+    assert (m["location"], m["assessed"], m["details"]) == ("done", "done", "attention")  # worst of its parts
+    assert "land" not in m and "building" not in m and "rooms_features" not in m
 
 
 def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monkeypatch):

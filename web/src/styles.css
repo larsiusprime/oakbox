@@ -2572,3 +2572,7 @@ a.row-title:hover {
   align-items: center;
   margin-top: 0.4rem;
 }
+
+.wiz-map-toggle {
+  margin: 0 0 0.5rem;
+}
