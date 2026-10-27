@@ -9,8 +9,7 @@ export const MENU_COMMANDS = [
   "show-folder",
   "close-project",
   "tab-metadata",
-  "tab-files",
-  "add-file",
+  "tab-data",
   "about",
   "display",
 ] as const;

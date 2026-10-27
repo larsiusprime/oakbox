@@ -135,14 +135,12 @@ class WizardFieldChoice(BaseModel):
         default=None, description="Quality/condition number: how the column becomes higher-is-better."
     )
     absent: bool = Field(default=False, description="Condition: there isn't one (effective age carries it).")
-    part: datafiles.PartKind | None = Field(default=None, description="Quality/condition: the part of each value.")
 
 
 class WizardColumnRef(BaseModel):
     file: str
     column: str
     scale: datafiles.Scale | None = Field(default=None, description="None: the saved one, or a first one.")
-    part: datafiles.PartKind | None = Field(default=None, description="The part of each value it takes.")
 
 
 class WizardNumbers(BaseModel):
@@ -606,7 +604,6 @@ def create_app() -> FastAPI:
                 body.number_format,
                 body.scale,
                 body.absent,
-                body.part,
             ),
         )
 
@@ -709,7 +706,6 @@ def create_app() -> FastAPI:
                 body.file,
                 body.column,
                 body.scale,
-                body.part,
             )
         except LookupError as e:
             raise HTTPException(404, f"{key} isn't quality or condition.") from e
@@ -721,7 +717,7 @@ def create_app() -> FastAPI:
         """A category's tiers, worst to best, each with a number and what it sells for (F3d)."""
         try:
             return wizard.tiers_preview(
-                _load(project_id), projects.project_dir(project_id) / "in", key, body.file, body.column, body.part
+                _load(project_id), projects.project_dir(project_id) / "in", key, body.file, body.column
             )
         except LookupError as e:
             raise HTTPException(404, f"{key} isn't quality or condition.") from e

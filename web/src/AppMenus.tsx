@@ -4,7 +4,7 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-compone
 import { navigate, type Route } from "./App";
 import { api, unwrap } from "./api/client";
 import { desktop } from "./desktop";
-import { type MenuCommand, requestAddFile, useMenu } from "./menu";
+import { type MenuCommand, useMenu } from "./menu";
 import { t } from "./strings";
 
 /** What the native menus and their shortcuts do on the page (SPEC §3.14), and the display settings (D43). */
@@ -56,12 +56,8 @@ export function AppMenus({ route }: { route: Route }) {
       // The menu greys these out outside a project; the shortcuts still arrive here.
       case "tab-metadata":
         return projectId && navigate({ name: "project", id: projectId, tab: "metadata" });
-      case "tab-files":
-        return projectId && navigate({ name: "project", id: projectId, tab: "files" });
-      case "add-file":
-        if (!projectId) return;
-        navigate({ name: "project", id: projectId, tab: "files" });
-        return requestAddFile();
+      case "tab-data":
+        return projectId && navigate({ name: "project", id: projectId, tab: "fields" });
       case "about":
         return setAbout(true);
     }

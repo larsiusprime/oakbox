@@ -56,18 +56,18 @@ def test_the_menus_and_their_shortcut_labels():
     assert list(dict.fromkeys(p[0] for p in items)) == ["File", "View", "Project", "Help"]
     assert items[("File", "New project…")].shortcut == "Ctrl+N"
     assert items[("Project", "Metadata")].shortcut == "Ctrl+1"
-    assert items[("Project", "Input files")].shortcut == "Ctrl+2"
+    assert items[("Project", "Data")].shortcut == "Ctrl+2"
 
 
 def test_project_items_are_greyed_out_until_a_project_is_open(client):
     r = Recorder()
     c = r.controller()
     items = _items()
-    assert not items[("Project", "Add a file…")].enabled(c.context())
+    assert not items[("Project", "Data")].enabled(c.context())
     assert items[("File", "New project…")].enabled is None  # always available
     pid = client.post("/api/projects", json=NEW).json()["id"]
     c.set_context("Travis County 2026 – OAK box", pid)
-    assert items[("Project", "Add a file…")].enabled(c.context())
+    assert items[("Project", "Data")].enabled(c.context())
     assert r.titles == ["Travis County 2026 – OAK box"]
 
 
@@ -147,8 +147,8 @@ def test_page_sender_runs_the_command_in_the_page():
             self.script = script
 
     window = Window()
-    menus.page_sender(window)("add-file")
-    assert window.script == 'window.oakboxMenu && window.oakboxMenu("add-file")'
+    menus.page_sender(window)("tab-data")
+    assert window.script == 'window.oakboxMenu && window.oakboxMenu("tab-data")'
 
 
 def test_display_settings_are_kept(client):

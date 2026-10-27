@@ -26,8 +26,6 @@ from oakbox import fields
 from oakbox.datafiles import (
     AREA_FIELDS,
     EXTRA_IDS,
-    NOT_A_NUMBER,
-    PART_PATTERNS,
     QC_FIELDS,
     SQFT_PER,
     AreaUnit,
@@ -40,7 +38,6 @@ from oakbox.datafiles import (
     Match,
     NumberFormat,
     Overlay,
-    PartKind,
     Rule,
     Scale,
     clean_calc,
@@ -48,9 +45,6 @@ from oakbox.datafiles import (
     guess_area_unit,
     number_calc,
     number_helper,
-    part_calc,
-    part_value,
-    raw_name,
     rule_fields,
     rule_filter,
     scale_calc,
@@ -312,13 +306,6 @@ class Source(BaseModel):
     column: str
 
 
-class PartOption(BaseModel):
-    kind: PartKind
-    words: str
-    share: float = Field(description="Share of the filled values that have this part.")
-    examples: list[list[str]] = Field(description="[as written, the part], a few.")
-
-
 class WizardField(BaseModel):
     key: str
     name: str
@@ -338,8 +325,6 @@ class WizardField(BaseModel):
     )
     scale: Scale | None = Field(default=None, description="Quality/condition number: how it becomes higher-is-better.")
     absent: bool = Field(default=False, description="Said not to exist (no condition: effective age carries it).")
-    part: PartKind | None = Field(default=None, description="Quality/condition: the part of each value it takes.")
-    parts: list[PartOption] = Field(default_factory=list, description="The parts its column's values are made of.")
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -831,12 +816,6 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 area_unit = None
                 number_format = None
                 scale = None
-                part = None
-                part_options: list[PartOption] = []
-                if key in QC_FIELDS and len(sources) == 1 and files.column(sources[0].file, sources[0].column):
-                    src = files.entry(sources[0].file)
-                    part = src.parts.get(key)
-                    part_options = list(_part_options(_stamp(in_dir / src.filename), src.layer, sources[0].column))
                 if ruled and rule is not None and len(sources) == 1:
                     check = _rule_check(files, ruled, key, rule)
                 elif len(sources) == 1:
@@ -854,7 +833,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     elif col and key in SCALED:
                         entry = files.entry(sources[0].file)
                         scale = entry.scales.get(key) or Scale()
-                        check = _scale_check(files, entry, key, col.name, scale, entry.parts.get(key))
+                        check = _scale_check(files, entry, key, col.name, scale)
                     elif col and is_money(key):
                         entry = files.entry(sources[0].file)
                         number_format = entry.numbers.get(key)
@@ -884,8 +863,6 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         area_unit=area_unit,
                         number_format=number_format,
                         scale=scale,
-                        part=part,
-                        parts=part_options,
                         absent=key in project.wizard.absent and not sources,
                     )
                 )
@@ -1405,7 +1382,6 @@ def set_field(
     number_format: NumberFormat | None = None,
     scale: Scale | None = None,
     absent: bool = False,
-    part: PartKind | None = None,
 ) -> None:
     """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
 
@@ -1431,7 +1407,7 @@ def set_field(
         if key in SCALED:
             # Numbers, or a category to rank into tiers: either way it becomes a number (F3d).
             entry = next(f for f in allowed if f.name == file)
-            plain = _plain(_part_values(_stamp(in_dir / entry.filename), entry.layer, column, part))
+            plain = _plain(_values(_stamp(in_dir / entry.filename), entry.layer, column))
             spec = [column, "float"] if plain else [column, "string"]
             if not plain and scale is not None and scale.kind not in (None, "tiers"):
                 raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
@@ -1462,9 +1438,6 @@ def set_field(
         f.area_units.pop(key, None)
         f.numbers.pop(key, None)
         f.scales.pop(key, None)
-        f.parts.pop(key, None)
-    if part is not None and (target is None or key not in QC_FIELDS):
-        raise ValueError("Only quality and condition take part of a column.")
     if key in project.wizard.absent:
         project.wizard.absent.remove(key)
     if absent:
@@ -1479,10 +1452,8 @@ def set_field(
             target.area_units[key] = area_unit or guess_area_unit(cast(str, column)) or small_unit(project.units)
         if reading is not None:
             target.numbers[key] = reading
-        if part is not None:
-            target.parts[key] = part
         if key in SCALED:
-            target.scales[key] = _new_scale(_Files(project, in_dir), target, key, spec[0], scale, part)
+            target.scales[key] = _new_scale(_Files(project, in_dir), target, key, spec[0], scale)
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if key not in project.wizard.decided:
@@ -2346,57 +2317,14 @@ def tier_order(values: list[str]) -> tuple[list[tuple[str, float]], str | None, 
     return out, name, unknown
 
 
-PART_WORDS = {
-    "percent": "the percent",
-    "before_percent": "the code before the percent",
-    "letter": "the letter",
-    "q": "the Q (quality) rating",
-    "c": "the C (condition) rating",
-    "lead_number": "the number in front",
-    "words": "the words after the number",
-}
+def _qc_values(files: _Files, entry: DataFile, column: str) -> tuple[str, ...]:
+    return _values(_stamp(files.in_dir / entry.filename), entry.layer, column)
 
 
-@lru_cache(maxsize=64)
-def _part_values(stamp: tuple[str, float, int], layer: str | None, column: str, part: str | None) -> tuple[str, ...]:
-    """A column's values (trimmed, blanks as ''), or one part of each, as part_calc makes it."""
-    values = _values(stamp, layer, column)
-    return tuple(part_value(v, part) if v else "" for v in values) if part else values
-
-
-def _qc_values(files: _Files, entry: DataFile, column: str, part: str | None) -> tuple[str, ...]:
-    return _part_values(_stamp(files.in_dir / entry.filename), entry.layer, column, part)
-
-
-@lru_cache(maxsize=64)
-def _part_options(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[PartOption, ...]:
-    """The parts a column's values are made of (B+5  130%: the percent, the code before it, the letter), when most
-    values have them and the part isn't the whole value."""
-    filled = [v for v in _values(stamp, layer, column) if v]
-    distinct = list(dict.fromkeys(filled))[:2000]
-    if not distinct:
-        return ()
-    out = []
-    for kind, (body, _) in PART_PATTERNS.items():
-        hits = [v for v in distinct if re.fullmatch(body, v, re.IGNORECASE)]
-        parts = [(v, part_value(v, kind)) for v in hits]
-        if len(hits) / len(distinct) < 0.5 or all(p == v.strip() for v, p in parts):
-            continue
-        if sum(1 for _, p in parts if p) < 0.8 * len(parts):
-            continue  # mostly empty (the code before a percent written first): not a part worth offering
-        share = sum(1 for v in filled if re.fullmatch(body, v, re.IGNORECASE)) / len(filled)
-        out.append(PartOption(kind=kind, words=PART_WORDS[kind], share=share, examples=[[v, p] for v, p in parts[:4]]))
-    if {"q", "c"} <= {o.kind for o in out}:
-        out = [o for o in out if o.kind != "letter"]  # C3Q4's first letter is the C rating, not a grade
-    return tuple(out)
-
-
-def _new_scale(
-    files: _Files, entry: DataFile, key: str, column: str, given: Scale | None = None, part: str | None = None
-) -> Scale:
+def _new_scale(files: _Files, entry: DataFile, key: str, column: str, given: Scale | None = None) -> Scale:
     """A scale for a column: the user's, with the column's range filled in; or a first one that says nothing yet
     (a category: tiers to rank; numbers: which way they run, and for condition whether they're 0-1 fractions)."""
-    values = _qc_values(files, entry, column, part)
+    values = _qc_values(files, entry, column)
     if not _plain(values):
         return Scale(kind="tiers", tiers=dict(given.tiers) if given and given.kind == "tiers" else {})
     nums = [float(v) for v in values if v]
@@ -2422,11 +2350,11 @@ def _g(v: float) -> str:
     return f"{v:,.2f}".rstrip("0").rstrip(".") if v != round(v) else f"{v:,.0f}"
 
 
-def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale, part: str | None = None) -> Check:
+def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
     """'✓ 0.15–4.5 · 47 values', '✓ as % good: 0.12 → 88 · median 84', or what's still to say."""
     import statistics
 
-    raw = _qc_values(files, entry, column, part)
+    raw = _qc_values(files, entry, column)
     if s.kind == "tiers":
         distinct = {v for v in raw if v}
         if not s.tiers:
@@ -2582,9 +2510,9 @@ def _price_by(
     return out, basis, notes
 
 
-def _by_parcel(files: _Files, entry: DataFile, column: str, part: str | None = None) -> dict[str, str]:
+def _by_parcel(files: _Files, entry: DataFile, column: str) -> dict[str, str]:
     """A column's value for each parcel (its first row: the main building card)."""
-    values = _qc_values(files, entry, column, part)
+    values = _qc_values(files, entry, column)
     out: dict[str, str] = {}
     for i, v in zip(files.ids(entry.name, entry.match), values, strict=True):
         if i and v and i not in out:
@@ -2592,16 +2520,14 @@ def _by_parcel(files: _Files, entry: DataFile, column: str, part: str | None = N
     return out
 
 
-def _trend(
-    project: Project, files: _Files, entry: DataFile, column: str, part: str | None = None
-) -> tuple[float | None, str | None]:
+def _trend(project: Project, files: _Files, entry: DataFile, column: str) -> tuple[float | None, str | None]:
     """The rank correlation of a numbers column with age, and which age it's against."""
     import pandas as pd
 
     ages, basis = _ages(project, files, entry.match)
     if not ages:
         return None, None
-    pairs = [(float(v), ages[i]) for i, v in _by_parcel(files, entry, column, part).items() if i in ages]
+    pairs = [(float(v), ages[i]) for i, v in _by_parcel(files, entry, column).items() if i in ages]
     if len(pairs) < 20:
         return None, basis
     df = pd.DataFrame(pairs, columns=["v", "age"]).rank()
@@ -2630,9 +2556,7 @@ class TiersPreview(BaseModel):
     few: int = FEW_SALES
 
 
-def tiers_preview(
-    project: Project, in_dir: Path, key: str, file: str, column: str, part: str | None = None
-) -> TiersPreview:
+def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: str) -> TiersPreview:
     """A category's tiers, worst to best, with a number each and what they sell for."""
     if key not in SCALED:
         raise LookupError(key)
@@ -2640,15 +2564,9 @@ def tiers_preview(
     if files.column(file, column) is None:
         raise ValueError(f"{file} has no column {column}.")
     entry = files.entry(file)
-    counts = Counter(v for v in _qc_values(files, entry, column, part) if v)
+    counts = Counter(v for v in _qc_values(files, entry, column) if v)
     saved = entry.scales.get(key)
-    use_saved = bool(
-        saved
-        and saved.kind == "tiers"
-        and saved.tiers
-        and entry.load.get(key, [None])[0] == column
-        and entry.parts.get(key) == part
-    )
+    use_saved = bool(saved and saved.kind == "tiers" and saved.tiers and entry.load.get(key, [None])[0] == column)
     suggested, recognised, unplaced = tier_order(list(counts))
     if use_saved and saved:
         numbers = {k.strip(): v for k, v in saved.tiers.items()}
@@ -2656,7 +2574,7 @@ def tiers_preview(
         ranked = [(v, numbers.get(v)) for v in order]
     else:
         ranked = [(v, n) for v, n in suggested]
-    prices, basis, notes = _price_by(project, files, entry.match, _by_parcel(files, entry, column, part))
+    prices, basis, notes = _price_by(project, files, entry.match, _by_parcel(files, entry, column))
     return TiersPreview(
         key=key,
         column=column,
@@ -2724,7 +2642,7 @@ GOOD_BANDS = [(-1e9, 50, "under 50"), (50, 70, "50–70"), (70, 85, "70–85"), 
 
 
 def scale_preview(
-    project: Project, in_dir: Path, key: str, file: str, column: str, scale: Scale | None, part: str | None = None
+    project: Project, in_dir: Path, key: str, file: str, column: str, scale: Scale | None
 ) -> ScalePreview:
     """A numbers column read with a meaning: against age (newer should be better) and what it sells for."""
     import statistics
@@ -2735,14 +2653,14 @@ def scale_preview(
     if files.column(file, column) is None:
         raise ValueError(f"{file} has no column {column}.")
     entry = files.entry(file)
-    raw = _qc_values(files, entry, column, part)
+    raw = _qc_values(files, entry, column)
     if not _plain(raw):
         raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
     saved = entry.scales.get(key) if entry.load.get(key, [None])[0] == column else None
-    s = _new_scale(files, entry, key, column, scale or saved, part)
+    s = _new_scale(files, entry, key, column, scale or saved)
     nums = [float(v) for v in raw if v]
     kinds = ["higher", "lower"] if key == "bldg_quality_num" else ["pct_good", "pct_depr", "higher", "lower", "life"]
-    trend, age_basis = _trend(project, files, entry, column, part)
+    trend, age_basis = _trend(project, files, entry, column)
     fits: list[str] = []
     if trend is not None and abs(trend) >= TREND:
         fits = ["pct_depr", "lower"] if trend > 0 else ["pct_good", "higher", "life"]
@@ -2753,7 +2671,7 @@ def scale_preview(
     notes: list[str] = []
     by_age: list[Band] = []
     ages, _ = _ages(project, files, entry.match)
-    values = {i: float(v) for i, v in _by_parcel(files, entry, column, part).items()}
+    values = {i: float(v) for i, v in _by_parcel(files, entry, column).items()}
     if ages:
         for lo, hi, label in AGE_BANDS:
             xs = [v for i, v in values.items() if i in ages and lo <= ages[i] < hi]
@@ -2793,10 +2711,7 @@ def scale_preview(
         if len(seen) == 6:
             break
     out = convert([float(v) for v in seen])
-    if part:  # loaded once as text, the part kept, read as a number (datafiles.data_load)
-        number = ["asfloat", ["replace_regex", part_calc(raw_name(column), part), {NOT_A_NUMBER: "nan"}]]
-        written = ({raw_name(column): [column, "string"]}, scale_calc(number, s) or number)
-    elif scale_calc(scale_helper(key), s) is None:
+    if scale_calc(scale_helper(key), s) is None:
         written = ({key: [column, "float"]}, None)
     else:
         written = ({scale_helper(key): [column, "float"]}, scale_calc(scale_helper(key), s))
@@ -2878,14 +2793,11 @@ def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
                     elif trend is not None and trend <= -TREND:
                         notes.append(f"Falls with {basis}: % good, or higher is better")
             elif filled and len(distinct) > 1:
-                parts = _part_options(_stamp(in_dir / f.filename), f.layer, col.name)
-                if {"q", "c"} <= {o.kind for o in parts}:
-                    notes.append(f"A quality and a condition in one ({filled[0]}): use the Q or the C part")
                 if "cdu" in col.name.lower() or distinct <= {"EX", "VG", "GD", "AV", "FR", "PR", "VP", "UN"}:
                     notes.append("CDU: condition, desirability and utility in one rating, so more than condition")
                 with_pct = next((v for v in filled[:500] if re.search(r"\d\s*%", v)), None)
                 if with_pct:
-                    notes.append(f"A code and a percent in one ({with_pct}): the percent may be a better number")
+                    notes.append(f"A code and a percent in one ({with_pct})")
                 _, recognised, unplaced = tier_order(sorted(distinct))
                 if len(distinct) > 30:
                     notes.append(f"{len(distinct):,} different values: many tiers to rank")

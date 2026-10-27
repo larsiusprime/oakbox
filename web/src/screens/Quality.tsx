@@ -30,9 +30,7 @@ export type QualityChange = {
   column?: string | null;
   scale?: Scale;
   absent?: boolean;
-  part?: Part | null;
 };
-export type Part = NonNullable<WizardField["part"]>;
 
 /** The meaning of a quality/condition number, beside its column: which way it runs, or what it measures. */
 export function ScaleChoice({
@@ -56,13 +54,7 @@ export function ScaleChoice({
         placeholder={field.key === "bldg_quality_num" ? q.whichWay : q.means}
         options={kinds.map((k) => [k, q.kinds[k] ?? k] as const)}
         onChange={(kind) =>
-          change({
-            key: field.key,
-            file: source.file,
-            column: source.column,
-            scale: { ...scale, kind },
-            part: field.part,
-          })
+          change({ key: field.key, file: source.file, column: source.column, scale: { ...scale, kind } })
         }
       />
     </div>
@@ -221,12 +213,12 @@ export function ScaleDialog({
   const [fraction, setFraction] = useState(field.scale?.fraction ?? false);
   const asked: Scale = { kind, fraction, low: null, high: null, tiers: {} };
   const preview = useQuery({
-    queryKey: ["scale", projectId, field.key, source.file, source.column, field.part, kind, fraction],
+    queryKey: ["scale", projectId, field.key, source.file, source.column, kind, fraction],
     queryFn: async () =>
       unwrap(
         await api.POST("/api/projects/{project_id}/wizard/fields/{key}/scale", {
           params: { path: { project_id: projectId, key: field.key } },
-          body: { file: source.file, column: source.column, scale: asked, part: field.part ?? null },
+          body: { file: source.file, column: source.column, scale: asked },
         }),
       ),
     placeholderData: keepPreviousData,
@@ -244,11 +236,7 @@ export function ScaleDialog({
       <Modal className="modal rl qc">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {(condition ? q.meaningTitle : q.directionTitle)(
-              field.part
-                ? `${(q.partWords[field.part] ?? "").toLowerCase()} of ${source.column}`
-                : source.column,
-            )}
+            {condition ? q.meaningTitle(source.column) : q.directionTitle(source.column)}
           </Heading>
           <p className="rc-sub">{condition ? q.meaningLede : q.directionLede}</p>
           <ul className="qc-radio" aria-label={q.meaningOf(field.name)}>
@@ -347,14 +335,11 @@ export function ScaleDialog({
           <details className="rc-writes">
             <summary>{q.writes}</summary>
             <pre>
-              {!kind || !v
+              {!kind
                 ? q.nothingYet
-                : [
-                    ...Object.entries(v.load).map(
-                      ([f, spec]) => `"load": { "${f}": ${JSON.stringify(spec)} }`,
-                    ),
-                    ...(v.calc ? [`"calc": { "${field.key}": ${JSON.stringify(v.calc)} }`] : []),
-                  ].join("\n")}
+                : v?.calc
+                  ? `"load": { "${field.key}_src": ["${source.column}", "float"] }\n"calc": { "${field.key}": ${JSON.stringify(v.calc)} }`
+                  : `"load": { "${field.key}": ["${source.column}", "float"] }`}
             </pre>
           </details>
           {preview.error && (
@@ -393,12 +378,12 @@ export function TiersDialog({
   save: (tiers: Record<string, number>) => void;
 }) {
   const preview = useQuery({
-    queryKey: ["tiers", projectId, field.key, source.file, source.column, field.part],
+    queryKey: ["tiers", projectId, field.key, source.file, source.column],
     queryFn: async () =>
       unwrap(
         await api.POST("/api/projects/{project_id}/wizard/fields/{key}/tiers", {
           params: { path: { project_id: projectId, key: field.key } },
-          body: { file: source.file, column: source.column, part: field.part ?? null },
+          body: { file: source.file, column: source.column },
         }),
       ),
   });
@@ -442,11 +427,7 @@ export function TiersDialog({
       <Modal className="modal rl qc">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {q.tiersTitle(
-              field.part
-                ? `${(q.partWords[field.part] ?? "").toLowerCase()} of ${source.column}`
-                : source.column,
-            )}
+            {q.tiersTitle(source.column)}
           </Heading>
           <p className="rc-sub">{q.tiersLede(source.column)}</p>
           {v && (
@@ -554,66 +535,6 @@ export function TiersDialog({
               isDisabled={!valid}
               onPress={() => rows && save(Object.fromEntries(rows.map((r) => [r.value, Number(r.number)])))}
             >
-              {q.save}
-            </Button>
-          </div>
-        </Dialog>
-      </Modal>
-    </ModalOverlay>
-  );
-}
-
-/** Part of each value, for a column that holds more than one thing (B+5  130%, Q4C3, 3-AVERAGE). */
-export function PartDialog({
-  field,
-  source,
-  close,
-  save,
-}: {
-  field: WizardField;
-  source: Source;
-  close: () => void;
-  save: (part: Part | null) => void;
-}) {
-  const [part, setPart] = useState<Part | null>(field.part ?? null);
-  return (
-    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(open) => !open && close()}>
-      <Modal className="modal rl qc">
-        <Dialog className="modal-body rc-body">
-          <Heading slot="title" className="modal-title">
-            {q.partTitle(source.column)}
-          </Heading>
-          <p className="rc-sub">{q.partLede}</p>
-          <ul className="qc-radio" aria-label={q.partTitle(source.column)}>
-            <li className={part === null ? "on" : undefined}>
-              <Button className="qc-pick" onPress={() => setPart(null)} aria-pressed={part === null}>
-                <span className="dot" />
-                <span>
-                  <b>{q.wholeValue}</b>
-                </span>
-              </Button>
-            </li>
-            {field.parts.map((o) => (
-              <li key={o.kind} className={o.kind === part ? "on" : undefined}>
-                <Button className="qc-pick" onPress={() => setPart(o.kind)} aria-pressed={o.kind === part}>
-                  <span className="dot" />
-                  <span>
-                    <b>{q.partWords[o.kind]}</b>{" "}
-                    <small className="mono">
-                      {o.examples.map(([raw, p]) => `${raw} → ${p}`).join("  ·  ")}
-                    </small>
-                  </span>
-                  <span className="tag">{q.partShare(pct(o.share))}</span>
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <p className="rc-sub">{q.partAfter}</p>
-          <div className="form-actions rc-actions">
-            <Button className="button" onPress={close}>
-              {q.cancel}
-            </Button>
-            <Button className="button button-primary" onPress={() => save(part)}>
               {q.save}
             </Button>
           </div>

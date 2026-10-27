@@ -177,8 +177,6 @@ export const t = {
   wizard: {
     loading: "Reading the files…",
     stepOf: (n: number, of: number) => `Step ${n} of ${of}`,
-    advanced: "Advanced view",
-    advancedTip: "Each file's columns in a table, with types and formats (Input files › Choose fields).",
     back: "‹ Back",
     next: "Next ›",
     // Above the button bar while Next is greyed (it still answers a click).
@@ -699,7 +697,7 @@ export const t = {
       number: "Number",
       category: "Category",
       preferNumber: "Only the number is loaded unless you pick a category too.",
-      meaningTitle: (what: string) => `What do the numbers in ${what} mean?`,
+      meaningTitle: (column: string) => `What do ${column}'s numbers mean?`,
       directionTitle: (column: string) => `Which way does ${column} run?`,
       meaningLede:
         "OpenAVMKit wants condition with higher meaning better. Say how this column writes it and it's converted as it loads. % good and % depreciation are written as % good, 0–100.",
@@ -723,7 +721,7 @@ export const t = {
       medianOf: (basis: string) => `Median ${basis}`,
       writes: "What this writes to the settings",
       nothingYet: "Nothing until you say what the numbers mean.",
-      tiersTitle: (what: string) => `Rank the tiers of ${what}`,
+      tiersTitle: (column: string) => `Rank ${column}'s tiers`,
       tiersLede: (column: string) =>
         `Each tier of ${column} gets a number for modelling. Put them in order from worst to best: moving one renumbers them in equal steps (1, 2, 3…), and you can type any number instead.`,
       savedOrder: "Your saved order",
@@ -744,23 +742,6 @@ export const t = {
         `✓ ${basis[0]?.toUpperCase() ?? ""}${basis.slice(1)} rises with every step up`,
       evidenceOnly: "shown to check the order, not used to set the numbers",
       basedOn: (notes: string) => `Based on ${notes}.`,
-      partTitle: (column: string) => `Which part of ${column}?`,
-      partLede:
-        "Each value holds more than one thing. Take one part of it: everything else in the value is left out, and a value without that part reads as blank.",
-      wholeValue: "The whole value",
-      partWords: {
-        percent: "The percent",
-        before_percent: "The code before the percent",
-        letter: "The letter",
-        q: "The Q (quality) rating",
-        c: "The C (condition) rating",
-        lead_number: "The number in front",
-        words: "The words after the number",
-      } as Record<string, string>,
-      partShare: (share: string) => `${share} have it`,
-      partAfter: "Next you say what the part means: which way its numbers run, or the order of its tiers.",
-      usePart: "Use part of it…",
-      partIs: (words: string) => `Part: ${words.charAt(0).toLowerCase()}${words.slice(1)}…`,
       cancel: "Cancel",
       save: "Save",
     },

@@ -349,15 +349,8 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
   - **Condition number:** % good (as written; ×100 from a 0–1 fraction), % depreciation (100 − x), tiers higher-better, tiers lower-better (flipped), or remaining economic life (years, as written). Whether it's a 0–1 fraction or 0–100 is found from the values and can be changed. **No condition: effective age carries it** is an explicit answer, not a blank.
   - **A category as the number:** **Rank the tiers…** puts each value worst to best, in equal steps (1, 2, 3…; one number for names meaning the same, VG and Very Good), and any number can be typed instead. A starting order comes from tier names it knows: letter grades (AA best, with + and −), Excellent…Poor and their codes (EX, VG, GD, AV, FR, PR), Q1–Q6 and C1–C6 (1 best), and numbered codes. Unknown names go last, labelled to be placed. It's written as a `map` calc; a value not ranked reads as missing. The same column can be both the category and, ranked, the number.
   - **Compare columns…** (on each Category row): every parcel-file column that looks like quality (qual, grade) or condition (cond, depr, good, CDU; not air conditioning), checked over every row. It shows numbers or text, how full, how many values, samples and notes: one value only, mostly blank, fractions, a code with a percent (`A  12%`, `B+5  130%`: the percent may be the better number), whether the tier names are known, and for condition numbers whether they rise or fall with age. The number and the category are picked there.
-  - **Part of a column**, for values holding more than one thing. **Use part of it…** appears, and opens on its own after a pick, when most of a column's values are made of known parts. Each part is offered with the share of values that have it and a few examples as written → part; the whole value stays the default and nothing is applied unasked. The parts:
-    - the percent, and the code before it (`B+5  130%`, `A  12%`);
-    - the letter of a grade;
-    - the Q and the C of a UAD-style pair (`Q4C3`, `Q4/C3`, `Q4 C3`);
-    - the number in front, and the words after it (`3-AVERAGE`).
-
-    A part is kept with OpenAVMKit's `replace_regex`; a value without that part reads as blank. The part then goes through the same number or tier handling as a whole column.
-  - **One column, several fields:** quality and condition can take the same column (`Q4C3`: the Q part for quality, the C part for condition), or a category can be both the text and, ranked, the number. Such a column is loaded once, as text (`<column>_raw`), and each field is worked out from it by a calc.
-  - **CDU** (condition, desirability and utility) columns are noted in Compare columns as measuring more than condition. Their codes (EX … PR) are ranked like other tier names.
+  - **One column, two fields:** a category can be both the text and, ranked, the number. Such a column is loaded once, as text (`<column>_raw`), and each field is worked out from it by a calc.
+  - **Combined codes** (`Q4C3`, `B+5  130%`, CDU) are not split by the wizard: guessing the parts was too much magic. The plan is a custom expression builder the user writes the split in. Until then such a column can still be ranked whole. Compare columns notes a code with a percent in one value, and that CDU measures more than condition.
   - **Evidence**, shown and never applied, worked out each time a dialog opens from what's chosen then. Each part says what it's based on and is left out, with a note, when its inputs aren't there:
     - **Against age:** condition's median, as written and as read, by effective age band (year built if there's no effective year; the project's valuation date). A meaning that makes newer buildings come out better is marked as fitting.
     - **Against price:** the median price per sq ft by tier, or by band of the value as read. The building's main card (its first row) is used. Valid sales only once there's a valid-sale rule or column, all matched sales before. Without a building size it's the median sale price, with a note saying so.
@@ -472,6 +465,8 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 **Templates** for common CAMA exports fit on top later: a template is a set of file roles and a column → field map, recognised by its column names. Not in F3d.
 
 **Not in F3d:** files with several rows per parcel, several sales files, ``calc`/`tweak` beyond the three above, templates, and the joined-result preview (F4).
+
+- **Out of the flow for now:** the Input files tab (§F3b) and each file's own fields (§F3c), which the wizard's "Advanced view" link opened. They no longer match the wizard. Their links open the Data wizard, and **Project › Data** (Ctrl+2) replaces **Input files** and **Add a file…** in the menu; files are added on the wizard's steps. The code stays until we decide whether to bring them back or remove them.
 
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).

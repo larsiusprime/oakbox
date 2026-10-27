@@ -31,8 +31,7 @@ PAGE_COMMANDS = (
     "show-folder",
     "close-project",
     "tab-metadata",
-    "tab-files",
-    "add-file",
+    "tab-data",
     "about",
 )
 
@@ -108,8 +107,8 @@ MENUS: tuple[Submenu, ...] = (
         "&Project",
         (
             Item("tab-metadata", "&Metadata", "Ctrl+1", enabled=_in_project),
-            Item("tab-files", "&Input files", "Ctrl+2", enabled=_in_project),
-            Item("add-file", "&Add a file…", enabled=_in_project),
+            # The Input files tab is out of the flow for now (files are added on the Data wizard's steps).
+            Item("tab-data", "&Data", "Ctrl+2", enabled=_in_project),
         ),
     ),
     Submenu(

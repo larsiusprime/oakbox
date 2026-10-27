@@ -5,14 +5,11 @@ import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
 import clipboard from "../assets/noto/emoji_u1f4cb.svg";
-import cardFileBox from "../assets/noto/emoji_u1f5c3.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { desktop } from "../desktop";
 import { t } from "../strings";
 import { FieldsTab } from "./FieldsWizard";
-import { FieldView } from "./FieldView";
-import { InputFilesTab } from "./InputFiles";
 
 export const TABS = ["metadata", "files", "fields"] as const;
 export type TabId = (typeof TABS)[number];
@@ -22,12 +19,10 @@ const PLACEHOLDERS = ["later-1", "later-2"] as const;
 export function ProjectScreen({
   projectId,
   tab,
-  file,
   step,
 }: {
   projectId: string;
   tab: TabId | null;
-  file: string | null;
   step: string | null;
 }) {
   const detail = useQuery({
@@ -38,25 +33,24 @@ export function ProjectScreen({
 
   if (detail.isPending) return <p className="empty">{t.project.loading}</p>;
   if (detail.error) return <p className="error">{detail.error.message}</p>;
-  return <ProjectView detail={detail.data} tab={tab} file={file} step={step} />;
+  return <ProjectView detail={detail.data} tab={tab} step={step} />;
 }
 
 function ProjectView({
   detail,
   tab,
-  file,
   step,
 }: {
   detail: ProjectDetail;
   tab: TabId | null;
-  file: string | null;
   step: string | null;
 }) {
   const { project } = detail;
   const projectId = project.id;
   // A project opens on the Data wizard, where its files are added and described (SPEC F3d).
   useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
-  const selected = tab ?? "fields";
+  // The Input files tab (and each file's own fields) is out of the flow for now: its links open the Data wizard.
+  const selected = tab === "files" || !tab ? "fields" : tab;
 
   return (
     <div className="project">
@@ -83,10 +77,6 @@ function ProjectView({
             <img src={clipboard} alt="" className="tab-icon" />
             {t.tabs.fields}
           </Tab>
-          <Tab id="files" className="folder-tab">
-            <img src={cardFileBox} alt="" className="tab-icon" />
-            {t.tabs.inputFiles}
-          </Tab>
           {PLACEHOLDERS.map((id) => (
             <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>
               <span aria-hidden="true">· · ·</span>
@@ -95,9 +85,6 @@ function ProjectView({
         </TabList>
         <TabPanel id="metadata" className="folder-panel">
           <MetadataTab detail={detail} />
-        </TabPanel>
-        <TabPanel id="files" className="folder-panel">
-          {file ? <FieldView detail={detail} name={file} /> : <InputFilesTab detail={detail} />}
         </TabPanel>
         <TabPanel id="fields" className="folder-panel">
           <FieldsTab detail={detail} step={step} />

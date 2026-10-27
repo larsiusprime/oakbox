@@ -1089,81 +1089,12 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     assert "bldg_condition_num_src" not in _settings(pid)["data"]["load"]["cama"]["load"]
 
 
-def test_part_of_a_column_one_value_holding_two_things(client, tmp_path, monkeypatch):
-    """Q3C2 holds quality and condition; B+5  130% a grade and its percent: each field takes its part."""
-    pid = client.post("/api/projects", json=NEW).json()["id"]
-    ids = [str(i) for i in range(4)]
-    gpd.GeoDataFrame({"ID": ids}, geometry=[box(i, 0, i + 1, 1) for i in range(4)], crs="EPSG:4326").to_parquet(
-        tmp_path / "parcels.parquet"
-    )
-    pd.DataFrame(
-        {
-            "PID": ids,
-            "QC": ["Q3C2", "Q2/C4", "Q4 C1", ""],
-            "GRADE": ["B+5  130%", "A  160%", "C-10  85%", "B  110%"],
-        }
-    ).to_csv(tmp_path / "cama.csv", index=False)
-    for name, ext in (("parcels", "parquet"), ("cama", "csv")):
-        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
-        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
-    _put_file(client, pid, "parcels", universe=True, id_column="ID")
-    _put_file(client, pid, "cama", holds="parcels", id_column="PID")
-    field = f"/api/projects/{pid}/wizard/fields"
-
-    w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "QC"}).json()
-    q = _field(w, "bldg_quality_num")
-    assert [o["kind"] for o in q["parts"]] == ["q", "c"] and q["part"] is None
-    assert q["parts"][0]["examples"][0] == ["Q3C2", "Q3"] and q["parts"][0]["share"] == 1
-    tiers = client.post(f"{field}/bldg_quality_num/tiers", json={"file": "cama", "column": "QC", "part": "q"}).json()
-    assert [t["value"] for t in tiers["tiers"]] == ["Q4", "Q3", "Q2"] and tiers[
-        "recognised"
-    ] == "Q1–Q6 or C1–C6, 1 best"
-    ranked = {"kind": "tiers", "fraction": False, "low": None, "high": None, "tiers": {"Q4": 1, "Q3": 2, "Q2": 3}}
-    w = client.put(
-        f"{field}/bldg_quality_num", json={"file": "cama", "column": "QC", "part": "q", "scale": ranked}
-    ).json()
-    assert _field(w, "bldg_quality_num")["part"] == "q"
-    # The same column for condition: its C part, kept as text.
-    w = client.put(f"{field}/bldg_condition_txt", json={"file": "cama", "column": "QC", "part": "c"}).json()
-    assert _field(w, "bldg_condition_txt")["sources"] == [{"file": "cama", "column": "QC"}]
-
-    # The grade's percent as the condition number (a number: what it means is still to say)...
-    grade = client.put(f"{field}/bldg_condition_num", json={"file": "cama", "column": "GRADE"}).json()
-    assert [o["kind"] for o in _field(grade, "bldg_condition_num")["parts"]] == ["percent", "before_percent", "letter"]
-    pct = {"kind": "pct_good", "fraction": False, "low": None, "high": None, "tiers": {}}
-    w = client.put(
-        f"{field}/bldg_condition_num", json={"file": "cama", "column": "GRADE", "part": "percent", "scale": pct}
-    ).json()
-    # ...which reads, but not as a % good: a grade's multiplier goes over 100, and the check says so.
-    check = _field(w, "bldg_condition_num")["check"]
-    assert check["warn"] and "3 outside 0–100" in check["text"]
-    view = client.post(
-        f"{field}/bldg_condition_num/scale", json={"file": "cama", "column": "GRADE", "part": "percent", "scale": pct}
-    ).json()
-    assert view["load"] == {"grade_raw": ["GRADE", "string"]} and view["calc"][0] == "asfloat"
-
-    entry = _settings(pid)["data"]["load"]["cama"]
-    assert entry["load"]["qc_raw"] == ["QC", "string"] and entry["load"]["grade_raw"] == ["GRADE", "string"]
-    assert "bldg_condition_txt" not in entry["load"]  # worked out from qc_raw, not loaded again
-    monkeypatch.chdir(projects.project_dir(pid))
-    from openavmkit.pipeline import load_dataframes, load_settings
-
-    df = load_dataframes(load_settings("in/settings.json"))["cama"].sort_values("key")
-    assert df["bldg_quality_num"].tolist()[:3] == [2, 3, 1] and pd.isna(df["bldg_quality_num"].iloc[3])
-    assert df["bldg_condition_txt"].tolist() == ["C2", "C4", "C1", ""]
-    assert df["bldg_condition_num"].tolist() == [130, 160, 85, 110]
-
-
-def test_parts_read_decimal_commas_and_padded_tiers_still_match(monkeypatch, tmp_path):
-    """12,5% is 12.5, as OpenAVMKit reads it; a ranked tier written with spaces around it still finds its number."""
+def test_ranked_tiers_still_match_values_padded_with_spaces():
+    """A ranked tier written with spaces around it (fixed-width exports) still finds its number."""
     from openavmkit.calculations import perform_calculations
 
-    from oakbox.datafiles import Scale, part_calc, part_value, scale_calc
+    from oakbox.datafiles import Scale, scale_calc
 
-    values = ["12,5%", "A  80%", "  7 %"]
-    df = pd.DataFrame({"r": pd.Series(values, dtype="string")})
-    read = perform_calculations(df, {"x": ["asfloat", part_calc("r", "percent")]})["x"].tolist()
-    assert read == [12.5, 80.0, 7.0] == [float(part_value(v, "percent")) for v in values]
     padded = pd.DataFrame({"t": pd.Series([" Good ", "Poor", None], dtype="string")})
     tiers = Scale(kind="tiers", tiers={"Poor": 1, "Good": 2})
     out = perform_calculations(padded, {"n": scale_calc("t", tiers)})["n"].tolist()

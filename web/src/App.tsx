@@ -54,12 +54,7 @@ export function App() {
         {route.name === "home" && <HomeScreen />}
         {route.name === "new" && <NewProjectScreen />}
         {route.name === "project" && (
-          <ProjectScreen
-            projectId={route.id}
-            tab={route.tab ?? null}
-            file={route.file ?? null}
-            step={route.step ?? null}
-          />
+          <ProjectScreen projectId={route.id} tab={route.tab ?? null} step={route.step ?? null} />
         )}
       </main>
       <AppMenus route={route} />

@@ -258,9 +258,9 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
         check("Project > Metadata enabled in a project", items.get(("Project", "Metadata")) == (True, False))
         check("File > Open recent lists it", ("File", "Open recent", "1 Menu test") in items, sorted(items))
 
-        menu.click("Project", "Input files")
-        hash_ = f"#/projects/{pid}/files"
-        check("Project > Input files switches tab", wait("location.hash", hash_) == hash_)
+        menu.click("Project", "Data")
+        hash_ = f"#/projects/{pid}/fields"
+        check("Project > Data switches tab", wait("location.hash", hash_) == hash_)
         menu.click("Help", "About OAK box")
         check("Help > About opens", wait("!!document.querySelector('.modal')", True) is True)
         # Not tested here: Alt (+ a letter) opens a real menu, whose loop would hold the window open.
