@@ -131,6 +131,16 @@ class WizardFieldChoice(BaseModel):
     number_format: datafiles.NumberFormat | None = Field(
         default=None, description="Money written as text: how to read it. None: worked out from the column."
     )
+    scale: datafiles.Scale | None = Field(
+        default=None, description="Quality/condition number: how the column becomes higher-is-better."
+    )
+    absent: bool = Field(default=False, description="Condition: there isn't one (effective age carries it).")
+
+
+class WizardColumnRef(BaseModel):
+    file: str
+    column: str
+    scale: datafiles.Scale | None = Field(default=None, description="None: the saved one, or a first one.")
 
 
 class WizardNumbers(BaseModel):
@@ -583,7 +593,17 @@ def create_app() -> FastAPI:
         return _change(
             project_id,
             lambda p, d: wizard.set_field(
-                p, d, key, body.file, body.column, body.assume, body.date_format, body.area_unit, body.number_format
+                p,
+                d,
+                key,
+                body.file,
+                body.column,
+                body.assume,
+                body.date_format,
+                body.area_unit,
+                body.number_format,
+                body.scale,
+                body.absent,
             ),
         )
 
@@ -664,6 +684,38 @@ def create_app() -> FastAPI:
             )
         except LookupError as e:
             raise HTTPException(404, f"{body.key} isn't an amount of money.") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+
+    @app.get("/api/projects/{project_id}/wizard/fields/{key}/candidates")
+    def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
+        """Columns that look like quality or condition, checked over every row, side by side (F3d)."""
+        try:
+            return wizard.candidates(_load(project_id), projects.project_dir(project_id) / "in", key)
+        except LookupError as e:
+            raise HTTPException(404, f"{key} isn't quality or condition.") from e
+
+    @app.post("/api/projects/{project_id}/wizard/fields/{key}/scale")
+    def wizard_scale(project_id: str, key: str, body: WizardColumnRef) -> wizard.ScalePreview:
+        """A quality/condition numbers column read with a meaning, against age and price (F3d)."""
+        try:
+            return wizard.scale_preview(
+                _load(project_id), projects.project_dir(project_id) / "in", key, body.file, body.column, body.scale
+            )
+        except LookupError as e:
+            raise HTTPException(404, f"{key} isn't quality or condition.") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+
+    @app.post("/api/projects/{project_id}/wizard/fields/{key}/tiers")
+    def wizard_tiers(project_id: str, key: str, body: WizardColumnRef) -> wizard.TiersPreview:
+        """A category's tiers, worst to best, each with a number and what it sells for (F3d)."""
+        try:
+            return wizard.tiers_preview(
+                _load(project_id), projects.project_dir(project_id) / "in", key, body.file, body.column
+            )
+        except LookupError as e:
+            raise HTTPException(404, f"{key} isn't quality or condition.") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
 

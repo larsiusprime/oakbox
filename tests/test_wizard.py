@@ -952,3 +952,131 @@ def test_prices_written_as_text_are_read_and_their_scale_checked(client, tmp_pat
     got = sales["sale_price"].tolist()
     assert got[0] == prices[0] and got[1] == -10 and pd.isna(got[2]) and pd.isna(got[3])
     assert sales["valid_sale"].tolist() == [True, False, False, False] + [True] * (n - 4)
+
+
+def test_tier_names_put_in_order_worst_to_best():
+    from oakbox.wizard import tier_order
+
+    order, name, unknown = tier_order(["B", "AA", "C+", "A", "C", "D-"])
+    assert [v for v, _ in order] == ["D-", "C", "C+", "B", "A", "AA"] and name == "letter grades, AA best"
+    order, name, _ = tier_order(["Good", "Poor", "AVERAGE", "Excellent", "VG", "Very Good"])
+    assert [v for v, _ in order] == ["Poor", "AVERAGE", "Good", "VG", "Very Good", "Excellent"]
+    assert dict(order)["VG"] == dict(order)["Very Good"] == 4  # the same tier written two ways: one number
+    order, name, _ = tier_order(["C1", "C3", "C6"])
+    assert [v for v, _ in order] == ["C6", "C3", "C1"] and name == "Q1–Q6 or C1–C6, 1 best"
+    order, name, unknown = tier_order(["Good", "Poor", "Shiny"])
+    assert [v for v, _ in order] == ["Poor", "Good", "Shiny"] and unknown == ["Shiny"]
+
+
+def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp_path, monkeypatch):
+    """A number is preferred; nothing is written until its meaning is said; a category is ranked into tiers."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    n = 40
+    ids = [str(i) for i in range(n)]
+    gpd.GeoDataFrame({"ID": ids}, geometry=[box(i, 0, i + 1, 1) for i in range(n)], crs="EPSG:4326").to_parquet(
+        tmp_path / "parcels.parquet"
+    )
+    grades = ["C", "B", "A", "AA"]
+    eff = [1960 + i for i in range(n)]
+    pd.DataFrame(
+        {
+            "PID": ids,
+            "AREA": [1000 + 10 * i for i in range(n)],
+            "EFF_YEAR": eff,
+            "GRADE": [grades[i % 4] for i in range(n)],
+            "QUALITY_SCORE": [1 + i % 4 for i in range(n)],
+            # % depreciation as a fraction: more for older buildings
+            "COND_SCORE": [round((2026 - y) / 100, 2) for y in eff],
+            "COND_CODE": ["A"] * n,
+        }
+    ).to_csv(tmp_path / "cama.csv", index=False)
+    pd.DataFrame(
+        {
+            "PID": ids,
+            "PRICE": [100_000 * (1 + i % 4) + 1_000 * i for i in range(n)],
+            "DATE": ["2024-01-02"] * n,
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("cama", "csv"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    _put_file(client, pid, "cama", holds="parcels", id_column="PID")
+    field = f"/api/projects/{pid}/wizard/fields"
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"{field}/{key}", json={"file": "sale", "column": col})
+    for key in ("valid_sale", "vacant_sale"):
+        client.put(f"{field}/{key}", json={"assume": True})
+    w = client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit").json()
+
+    # The numbers are guessed, but which way they run isn't: a to-do, and nothing written yet.
+    quality, condition = _field(w, "bldg_quality_num"), _field(w, "bldg_condition_num")
+    assert quality["sources"] == [{"file": "cama", "column": "QUALITY_SCORE"}]
+    assert quality["check"]["text"] == "say which way is better" and quality["scale"]["kind"] is None
+    assert condition["scale"]["fraction"] and condition["check"]["text"] == "say what the numbers mean"
+    assert _field(w, "bldg_quality_txt")["sources"] == []  # the number's there: the category isn't loaded
+    assert {"text": "Building condition (numeric): say what the numbers mean", "blocking": False} in _step(
+        w, "big_five"
+    )["left"]
+    load = _settings(pid)["data"]["load"]["cama"]["load"]
+    assert "bldg_quality_num" not in load and "bldg_condition_num_src" not in load
+
+    # Side by side: the code that's the same everywhere, and the score that rises with age.
+    found = {c["column"]: c for c in client.get(f"{field}/bldg_condition_num/candidates").json()}
+    assert found["COND_CODE"]["notes"] == ["One value on every row: tells nothing apart"] and found["COND_CODE"]["warn"]
+    assert "Rises with effective age: % depreciation, or lower is better" in found["COND_SCORE"]["notes"]
+    assert found["COND_SCORE"]["loaded_as"] == "number"
+
+    # What it means, checked against age (newer should be better) and price: per sq ft once there's a size.
+    depr = {"kind": "pct_depr", "fraction": True, "low": None, "high": None, "tiers": {}}
+    scale = {"file": "cama", "column": "COND_SCORE", "scale": depr}
+    view = client.post(f"{field}/bldg_condition_num/scale", json=scale).json()
+    assert view["price_basis"] == "sale price"
+    assert "no building size: choose it on this step for a fairer comparison" in view["notes"]
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "AREA", "area_unit": "sqft"})
+    view = client.post(
+        f"{field}/bldg_condition_num/scale", json={"file": "cama", "column": "COND_SCORE", "scale": depr}
+    ).json()
+    assert view["fits"] == ["pct_depr", "lower"] and view["age_basis"] == "effective age"
+    values = [b["value"] for b in view["by_age"]]
+    assert values == sorted(values, reverse=True)  # as read, newer buildings are in better condition
+    assert view["price_basis"] == "price per sq ft" and view["calc"] == ["-", 100, ["*", "bldg_condition_num_src", 100]]
+    w = client.put(f"{field}/bldg_condition_num", json={"file": "cama", "column": "COND_SCORE", "scale": depr}).json()
+    assert _field(w, "bldg_condition_num")["check"]["text"].startswith("✓ as % good: 0.66 → 34")
+    w = client.put(
+        f"{field}/bldg_quality_num",
+        json={"file": "cama", "column": "QUALITY_SCORE", "scale": {**depr, "kind": "lower", "fraction": False}},
+    ).json()
+    assert _field(w, "bldg_quality_num")["check"]["text"] == "✓ 1–4 · 4 values · flipped, so higher is better"
+    assert _settings(pid)["data"]["load"]["cama"]["calc"]["bldg_quality_num"] == ["-", 5.0, "bldg_quality_num_src"]
+
+    # A category instead: its tiers in a known order, with what each sells for; then ranked, and kept as text too.
+    tiers = client.post(f"{field}/bldg_quality_num/tiers", json={"file": "cama", "column": "GRADE"}).json()
+    assert tiers["recognised"] == "letter grades, AA best" and tiers["basis"] == "price per sq ft"
+    assert [(t["value"], t["number"]) for t in tiers["tiers"]] == [("C", 1), ("B", 2), ("A", 3), ("AA", 4)]
+    medians = [t["median"] for t in tiers["tiers"]]
+    assert medians == sorted(medians) and tiers["notes"] == ["all sales: no valid-sale rule yet"]
+    w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "GRADE"}).json()
+    assert _field(w, "bldg_quality_num")["check"]["text"] == "rank its 4 tiers"
+    ranked = {**depr, "kind": "tiers", "fraction": False, "tiers": {"C": 1, "B": 2, "A": 3, "AA": 5}}
+    client.put(f"{field}/bldg_quality_txt", json={"file": "cama", "column": "GRADE"})
+    w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "GRADE", "scale": ranked}).json()
+    assert _field(w, "bldg_quality_num")["check"]["text"] == "✓ 4 tiers ranked, 1–5"
+    entry = _settings(pid)["data"]["load"]["cama"]
+    assert entry["load"]["bldg_quality_txt"] == ["GRADE", "string"] and "bldg_quality_num_src" not in entry["load"]
+    assert entry["calc"]["bldg_quality_num"][1][1] == [
+        "map",
+        "bldg_quality_txt",
+        {"C": "1", "B": "2", "A": "3", "AA": "5"},
+    ]
+
+    univ, _ = _engine(pid, monkeypatch)
+    univ = univ.sort_values("key", key=lambda s: s.astype(int))
+    assert univ["bldg_quality_num"].tolist()[:4] == [1, 2, 3, 5] and univ["bldg_quality_txt"].tolist()[:2] == ["C", "B"]
+    assert univ["bldg_condition_num"].tolist()[:2] == [34, 35]  # 100 - 66, 100 - 65: % good
+
+    # No condition at all: said, not left blank; nothing loaded.
+    w = client.put(f"{field}/bldg_condition_num", json={"absent": True}).json()
+    assert _field(w, "bldg_condition_num")["absent"] and _field(w, "bldg_condition_num")["sources"] == []
+    assert "bldg_condition_num_src" not in _settings(pid)["data"]["load"]["cama"]["load"]

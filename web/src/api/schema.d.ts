@@ -693,6 +693,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/fields/{key}/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Candidates
+         * @description Columns that look like quality or condition, checked over every row, side by side (F3d).
+         */
+        get: operations["wizard_candidates_api_projects__project_id__wizard_fields__key__candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/fields/{key}/scale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Scale
+         * @description A quality/condition numbers column read with a meaning, against age and price (F3d).
+         */
+        post: operations["wizard_scale_api_projects__project_id__wizard_fields__key__scale_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/fields/{key}/tiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Tiers
+         * @description A category's tiers, worst to best, each with a number and what it sells for (F3d).
+         */
+        post: operations["wizard_tiers_api_projects__project_id__wizard_fields__key__tiers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -768,6 +828,54 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+        };
+        /** Band */
+        Band: {
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+            /**
+             * Raw
+             * @description The median as written.
+             */
+            raw: number | null;
+            /**
+             * Value
+             * @description The median as read (higher is better).
+             */
+            value: number | null;
+        };
+        /** Candidate */
+        Candidate: {
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "numbers" | "text";
+            /**
+             * Filled
+             * @description Share of rows not blank.
+             */
+            filled: number;
+            /** Distinct */
+            distinct: number;
+            /** Low */
+            low: number | null;
+            /** High */
+            high: number | null;
+            /** Samples */
+            samples: string[];
+            /** Notes */
+            notes: string[];
+            /** Warn */
+            warn: boolean;
+            /** Loaded As */
+            loaded_as: ("number" | "category") | null;
         };
         /**
          * Center
@@ -1039,6 +1147,13 @@ export interface components {
              */
             numbers: {
                 [key: string]: components["schemas"]["NumberFormat-Output"];
+            };
+            /**
+             * Scales
+             * @description Quality/condition number field -> how its column becomes higher-is-better.
+             */
+            scales: {
+                [key: string]: components["schemas"]["Scale-Output"];
             };
         };
         /** DateCheck */
@@ -2106,6 +2221,82 @@ export interface components {
              */
             hit: boolean;
         };
+        /**
+         * Scale
+         * @description How a quality or condition column becomes a number where higher is better, as OpenAVMKit wants (F3d).
+         *
+         *     higher: as written. lower: flipped within the column's range (low + high - x). pct_good: % good, as written
+         *     (or x 100 from a fraction). pct_depr: % depreciation, written as 100 - x. life: remaining economic life in
+         *     years, as written. tiers: a category, each value given a number.
+         */
+        "Scale-Input": {
+            /**
+             * Kind
+             * @description None: not said yet, so nothing is written.
+             */
+            kind?: ("higher" | "lower" | "pct_good" | "pct_depr" | "life" | "tiers") | null;
+            /**
+             * Fraction
+             * @description % good or % depreciation written as 0-1, not 0-100.
+             * @default false
+             */
+            fraction: boolean;
+            /**
+             * Low
+             * @description lower: the column's smallest value.
+             */
+            low?: number | null;
+            /**
+             * High
+             * @description lower: the column's largest value.
+             */
+            high?: number | null;
+            /**
+             * Tiers
+             * @description tiers: each value (as written) -> its number.
+             */
+            tiers?: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * Scale
+         * @description How a quality or condition column becomes a number where higher is better, as OpenAVMKit wants (F3d).
+         *
+         *     higher: as written. lower: flipped within the column's range (low + high - x). pct_good: % good, as written
+         *     (or x 100 from a fraction). pct_depr: % depreciation, written as 100 - x. life: remaining economic life in
+         *     years, as written. tiers: a category, each value given a number.
+         */
+        "Scale-Output": {
+            /**
+             * Kind
+             * @description None: not said yet, so nothing is written.
+             */
+            kind: ("higher" | "lower" | "pct_good" | "pct_depr" | "life" | "tiers") | null;
+            /**
+             * Fraction
+             * @description % good or % depreciation written as 0-1, not 0-100.
+             * @default false
+             */
+            fraction: boolean;
+            /**
+             * Low
+             * @description lower: the column's smallest value.
+             */
+            low: number | null;
+            /**
+             * High
+             * @description lower: the column's largest value.
+             */
+            high: number | null;
+            /**
+             * Tiers
+             * @description tiers: each value (as written) -> its number.
+             */
+            tiers: {
+                [key: string]: number;
+            };
+        };
         /** ScaleHint */
         ScaleHint: {
             /**
@@ -2117,6 +2308,62 @@ export interface components {
             reason: string;
             /** Short */
             short: string;
+        };
+        /** ScalePreview */
+        ScalePreview: {
+            /** Key */
+            key: string;
+            /** Column */
+            column: string;
+            scale: components["schemas"]["Scale-Output"];
+            /**
+             * Kinds
+             * @description The meanings to choose from, for this field.
+             */
+            kinds: string[];
+            /**
+             * Fraction Found
+             * @description Every value is between 0 and 1.
+             */
+            fraction_found: boolean;
+            /**
+             * Trend
+             * @description Rank correlation with age: positive, it rises as buildings age.
+             */
+            trend: number | null;
+            /**
+             * Fits
+             * @description Meanings that fit the trend with age (higher is better as buildings are newer).
+             */
+            fits: string[];
+            /** Age Basis */
+            age_basis: string | null;
+            /** By Age */
+            by_age: components["schemas"]["Band"][];
+            /** Price Basis */
+            price_basis: string | null;
+            /**
+             * By Value
+             * @description Bands of the value as read, with sales and the median price in each.
+             */
+            by_value: components["schemas"]["Band"][];
+            /** Notes */
+            notes: string[];
+            /** Median */
+            median: number | null;
+            /** Samples */
+            samples: components["schemas"]["ScaleSample"][];
+            /** Calc */
+            calc: unknown[] | null;
+            /** Symbol */
+            symbol: string;
+        };
+        /** ScaleSample */
+        ScaleSample: {
+            /** Raw */
+            raw: string;
+            /** Value */
+            value: number;
         };
         /** Source */
         Source: {
@@ -2211,6 +2458,66 @@ export interface components {
             /** Share */
             share: number;
         };
+        /** Tier */
+        Tier: {
+            /** Value */
+            value: string;
+            /**
+             * Count
+             * @description Rows (building cards) with it.
+             */
+            count: number;
+            /**
+             * Number
+             * @description Its number: the saved one, or the suggested one. None: not ranked.
+             */
+            number: number | null;
+            /** Sales */
+            sales: number;
+            /**
+             * Median
+             * @description Median price per sq ft (or sale price) of its sales.
+             */
+            median: number | null;
+        };
+        /** TiersPreview */
+        TiersPreview: {
+            /** Key */
+            key: string;
+            /** Column */
+            column: string;
+            /**
+             * Tiers
+             * @description Worst to best: as saved, or as suggested.
+             */
+            tiers: components["schemas"]["Tier"][];
+            /** Saved */
+            saved: boolean;
+            /**
+             * Recognised
+             * @description The kind of tier names that set the suggested order.
+             */
+            recognised: string | null;
+            /**
+             * Unplaced
+             * @description Tier names the suggestion didn't know: put last, to be placed.
+             */
+            unplaced: string[];
+            /**
+             * Basis
+             * @description What the medians are: price per sq ft, or sale price.
+             */
+            basis: string | null;
+            /** Notes */
+            notes: string[];
+            /** Symbol */
+            symbol: string;
+            /**
+             * Few
+             * @default 10
+             */
+            few: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -2282,6 +2589,15 @@ export interface components {
              */
             layers: components["schemas"]["LayerView"][];
         };
+        /** WizardColumnRef */
+        WizardColumnRef: {
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            /** @description None: the saved one, or a first one. */
+            scale?: components["schemas"]["Scale-Input"] | null;
+        };
         /** WizardDates */
         WizardDates: {
             /** Column */
@@ -2333,6 +2649,14 @@ export interface components {
             area_unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
             /** @description Money written as text: how it's read. None: read as plain numbers. */
             number_format: components["schemas"]["NumberFormat-Output"] | null;
+            /** @description Quality/condition number: how it becomes higher-is-better. */
+            scale: components["schemas"]["Scale-Output"] | null;
+            /**
+             * Absent
+             * @description Said not to exist (no condition: effective age carries it).
+             * @default false
+             */
+            absent: boolean;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -2358,6 +2682,14 @@ export interface components {
             area_unit?: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
             /** @description Money written as text: how to read it. None: worked out from the column. */
             number_format?: components["schemas"]["NumberFormat-Input"] | null;
+            /** @description Quality/condition number: how the column becomes higher-is-better. */
+            scale?: components["schemas"]["Scale-Input"] | null;
+            /**
+             * Absent
+             * @description Condition: there isn't one (effective age carries it).
+             * @default false
+             */
+            absent: boolean;
         };
         /** WizardFile */
         WizardFile: {
@@ -2569,6 +2901,11 @@ export interface components {
              * @description Fields the user named as locations (areas parcels belong to), in order.
              */
             locations: string[];
+            /**
+             * Absent
+             * @description Fields said not to exist (no condition: effective age carries it).
+             */
+            absent: string[];
         };
     };
     responses: never;
@@ -3827,6 +4164,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NumberPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_candidates_api_projects__project_id__wizard_fields__key__candidates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Candidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_scale_api_projects__project_id__wizard_fields__key__scale_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardColumnRef"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScalePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_tiers_api_projects__project_id__wizard_fields__key__tiers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardColumnRef"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TiersPreview"];
                 };
             };
             /** @description Validation Error */

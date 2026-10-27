@@ -38,6 +38,7 @@ from oakbox.datafiles import (
     NumberFormat,
     Overlay,
     Rule,
+    Scale,
     clean_calc,
     clean_value,
     guess_area_unit,
@@ -45,6 +46,8 @@ from oakbox.datafiles import (
     number_helper,
     rule_fields,
     rule_filter,
+    scale_calc,
+    scale_helper,
     small_unit,
 )
 from oakbox.fields import Column, DictionaryField
@@ -76,10 +79,13 @@ STEPS: list[Step] = [
             "land_area_sqft",
             "bldg_year_built",
             "bldg_effective_year_built",
+            # A number for modelling, and the category as text: both asked, the number preferred (F3d).
+            "bldg_quality_num",
             "bldg_quality_txt",
+            "bldg_condition_num",
             "bldg_condition_txt",
         ],
-        more=["bldg_age_years", "bldg_effective_age_years", "bldg_quality_num", "bldg_condition_num"],
+        more=["bldg_age_years", "bldg_effective_age_years"],
     ),
     Step(
         key="location",
@@ -108,6 +114,17 @@ RECOMMENDED = [("bldg_year_built", "bldg_effective_year_built", "bldg_age_years"
 ASSUMABLE = {"valid_sale": True, "vacant_sale": False}
 # Computed fields asked only when what they're computed from isn't loaded.
 ONLY_WITHOUT = {"bldg_age_years": "bldg_year_built", "bldg_effective_age_years": "bldg_effective_year_built"}
+
+# Quality and condition: the number (used for modelling) and the category (kept as text), each the other's pair.
+PAIRS = {
+    "bldg_quality_num": "bldg_quality_txt",
+    "bldg_condition_num": "bldg_condition_txt",
+    "bldg_quality_txt": "bldg_quality_num",
+    "bldg_condition_txt": "bldg_condition_num",
+}
+SCALED = ("bldg_quality_num", "bldg_condition_num")
+# Said not to exist, rather than left blank (condition: effective age carries it).
+ABSENT_OK = ("bldg_condition_num",)
 
 # Fields the wizard words its own way.
 RENAMED = {
@@ -144,9 +161,15 @@ ALIASES: dict[str, list[str]] = {
     "bldg_year_built": ["yrblt", "yearbuilt", "yrbuilt", "actualyearbuilt", "ayb"],
     "bldg_effective_year_built": ["effyrblt", "effectiveyearbuilt", "eyb", "effyear", "effyearbuilt"],
     "bldg_quality_txt": ["quality", "qual", "grade"],
-    "bldg_quality_num": ["quality", "qual", "grade", "qualitynum"],
+    "bldg_quality_num": [
+        *("quality", "qual", "grade", "qualitynum", "qualnum", "qualityscore", "gradescore", "gradenum"),
+        *("gradefactor", "qualityfactor"),
+    ],
     "bldg_condition_txt": ["condition", "cond"],
-    "bldg_condition_num": ["condition", "cond", "conditionnum"],
+    "bldg_condition_num": [
+        *("condition", "cond", "conditionnum", "condnum", "conditionscore", "condscore", "pctgood", "percentgood"),
+        *("depr", "deprpct", "depreciation", "physdepr", "physicaldepreciation"),
+    ],
     "bldg_rooms_bed": ["beds", "bedrooms", "bed", "bdrms"],
     "bldg_rooms_bath": ["baths", "bathrooms", "bath"],
     "bldg_rooms_bath_full": ["fullbaths", "fullbath"],
@@ -299,6 +322,8 @@ class WizardField(BaseModel):
     number_format: NumberFormat | None = Field(
         default=None, description="Money written as text: how it's read. None: read as plain numbers."
     )
+    scale: Scale | None = Field(default=None, description="Quality/condition number: how it becomes higher-is-better.")
+    absent: bool = Field(default=False, description="Said not to exist (no condition: effective age carries it).")
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -789,6 +814,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 date_format = None
                 area_unit = None
                 number_format = None
+                scale = None
                 if ruled and rule is not None and len(sources) == 1:
                     check = _rule_check(files, ruled, key, rule)
                 elif len(sources) == 1:
@@ -803,6 +829,10 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         check = field_check(d, col)[0]
                         if check.ok:
                             check = _area_check(files, entry, key, col.name, area_unit, project.units)
+                    elif col and key in SCALED:
+                        entry = files.entry(sources[0].file)
+                        scale = entry.scales.get(key) or Scale()
+                        check = _scale_check(files, entry, key, col.name, scale)
                     elif col and is_money(key):
                         entry = files.entry(sources[0].file)
                         number_format = entry.numbers.get(key)
@@ -831,6 +861,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         date_format=date_format,
                         area_unit=area_unit,
                         number_format=number_format,
+                        scale=scale,
+                        absent=key in project.wizard.absent and not sources,
                     )
                 )
 
@@ -901,6 +933,12 @@ def _status(
         return ("blocked" if problems else "attention" if warnings else "done"), []
     mine = [f for f in flds if f.step == step.key and not f.hidden]
     left = [Left(text=f"{f.name}: {f.check.text}") for f in mine if f.check is not None and not f.check.ok]
+    # Quality and condition still to rank or say the meaning of: to do, but optional fields don't block.
+    left += [
+        Left(text=f"{f.name}: {f.check.text}", blocking=False)
+        for f in mine
+        if f.key in SCALED and f.check is not None and f.check.ok and f.check.warn
+    ]
 
     def ids(f: WizardFile | None, what: str) -> None:
         if f is None:
@@ -1078,9 +1116,15 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
             continue
         if key in loaded or (key in ONLY_WITHOUT and ONLY_WITHOUT[key] in loaded):
             continue
+        if key in PAIRS and key not in SCALED and PAIRS[key] in loaded:
+            continue  # the number's there: the category is loaded only if asked for (F3d)
+        if key in SCALED and key in project.wizard.absent:
+            continue
         found = _guess_field(files, by_key[key], candidates, _used(project))
         if found:
             files.entry(found[0]).load[key] = found[1]
+            if key in SCALED:
+                files.entry(found[0]).scales[key] = _new_scale(files, files.entry(found[0]), key, found[1][0])
             if key in AREA_FIELDS:
                 unit = guess_area_unit(found[1][0]) or small_unit(project.units)
                 files.entry(found[0]).area_units[key] = unit
@@ -1335,6 +1379,8 @@ def set_field(
     date_format: str | None = None,
     area_unit: AreaUnit | None = None,
     number_format: NumberFormat | None = None,
+    scale: Scale | None = None,
+    absent: bool = False,
 ) -> None:
     """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
 
@@ -1357,6 +1403,13 @@ def set_field(
             raise ValueError(f"{file} has no column {column}.")
         d = by_key[key]
         check, spec = field_check(d, col)
+        if key in SCALED:
+            # Numbers, or a category to rank into tiers: either way it becomes a number (F3d).
+            entry = next(f for f in allowed if f.name == file)
+            plain = _plain(_values(_stamp(in_dir / entry.filename), entry.layer, column))
+            spec = [column, "float"] if plain else [column, "string"]
+            if not plain and scale is not None and scale.kind not in (None, "tiers"):
+                raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
         if is_money(key):
             # Money written as text ($250,000.00, N/A): read with a format, worked out from the whole column.
             entry = next(f for f in allowed if f.name == file)
@@ -1371,15 +1424,23 @@ def set_field(
         elif spec is None:
             raise ValueError(f"{column}: {check.text}.")
         for other, s in target.load.items():
-            if s[0] == column and other != key:
+            # A category can be both the text and, ranked, the number (F3d).
+            if s[0] == column and other != key and PAIRS.get(key) != other:
                 raise ValueError(f"{column} is already loaded as {other}.")
     elif assume and (key not in ASSUMABLE or sales is None):
         raise ValueError(f"{key} can't be assumed.")
+    elif absent and key not in ABSENT_OK:
+        raise ValueError(f"{key} can't be said not to exist.")
     for f in allowed:
         f.load.pop(key, None)
         f.rules.pop(key, None)
         f.area_units.pop(key, None)
         f.numbers.pop(key, None)
+        f.scales.pop(key, None)
+    if key in project.wizard.absent:
+        project.wizard.absent.remove(key)
+    if absent:
+        project.wizard.absent.append(key)
     if sales is not None and key in ASSUMABLE:
         sales.calc.pop(key, None)
     if target is not None and spec is None:
@@ -1390,6 +1451,8 @@ def set_field(
             target.area_units[key] = area_unit or guess_area_unit(cast(str, column)) or small_unit(project.units)
         if reading is not None:
             target.numbers[key] = reading
+        if key in SCALED:
+            target.scales[key] = _new_scale(_Files(project, in_dir), target, key, spec[0], scale)
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if key not in project.wizard.decided:
@@ -2171,6 +2234,575 @@ def number_preview(
         samples=samples,
         **s,
     )
+
+
+# ---------- Quality and condition: a number where higher is better (F3d) ----------
+
+QUALITY_NAMES = re.compile(r"qual|grade", re.IGNORECASE)
+CONDITION_NAMES = re.compile(r"cond|depr|good|cdu", re.IGNORECASE)
+FEW_SALES = 10  # a tier with fewer sales than this says so, and isn't counted as out of order
+TREND = 0.3  # a rank correlation with age beyond this says which way a condition column runs
+
+# Tier names whose order is known, worst to best: the score only orders them.
+WORD_SCORES = {
+    **dict.fromkeys(("unsound", "un"), 0),
+    **dict.fromkeys(("verypoor", "vp"), 1),
+    **dict.fromkeys(("poor", "pr", "p"), 2),
+    **dict.fromkeys(("fair", "fr", "f"), 3),
+    **dict.fromkeys(("belowaverage", "belowavg", "ba"), 3.5),
+    **dict.fromkeys(("average", "avg", "av", "a", "normal", "typical"), 4),
+    **dict.fromkeys(("aboveaverage", "aboveavg", "aa"), 4.5),
+    **dict.fromkeys(("good", "gd", "g"), 5),
+    **dict.fromkeys(("verygood", "vg"), 6),
+    **dict.fromkeys(("excellent", "ex", "exc", "e"), 7),
+    **dict.fromkeys(("low", "lowcost", "cheap"), 1),
+}
+
+
+def _letter(v: str) -> float | None:
+    m = re.fullmatch(r"(A{1,3}|[A-F])\s*([+-]{0,2})", v.strip().upper())
+    if not m:
+        return None
+    base = 5 + len(m[1]) - 1 if m[1].startswith("A") else {"B": 4, "C": 3, "D": 2, "E": 1, "F": 0}[m[1]]
+    return base + 0.3 * m[2].count("+") - 0.3 * m[2].count("-")
+
+
+def _words(v: str) -> float | None:
+    return WORD_SCORES.get(re.sub(r"[^a-z]", "", re.sub(r"^\s*\d+\W*", "", v.lower())))
+
+
+def _uad(v: str) -> float | None:
+    m = re.fullmatch(r"[QC]\s*-?\s*(\d)", v.strip().upper())
+    return -int(m[1]) if m else None
+
+
+def _numbered(v: str) -> float | None:
+    m = re.match(r"^\s*(-?\d+(\.\d+)?)", v)
+    return float(m[1]) if m else None
+
+
+VOCABULARIES = [
+    ("letter grades, AA best", _letter),
+    ("words, Excellent best", _words),
+    ("Q1–Q6 or C1–C6, 1 best", _uad),
+    ("numbered, higher is better", _numbered),
+]
+
+
+def tier_order(values: list[str]) -> tuple[list[tuple[str, float]], str | None, list[str]]:
+    """Tiers worst to best with equal steps (1, 2, 3…; the same for names meaning the same), the vocabulary that
+    ordered them, and those it didn't know (put last, for the user to place)."""
+    best = max(VOCABULARIES, key=lambda vc: sum(vc[1](v) is not None for v in values))
+    name, score = best
+    known = sorted((v for v in values if score(v) is not None), key=lambda v: (score(v), v))
+    unknown = sorted(v for v in values if score(v) is None)
+    if not known:
+        name = None
+    out: list[tuple[str, float]] = []
+    n, last = 0, None
+    for v in known:
+        s = score(v)
+        if s != last:
+            n, last = n + 1, s
+        out.append((v, float(n)))
+    for v in unknown:
+        n += 1
+        out.append((v, float(n)))
+    return out, name, unknown
+
+
+def _new_scale(files: _Files, entry: DataFile, key: str, column: str, given: Scale | None = None) -> Scale:
+    """A scale for a column: the user's, with the column's range filled in; or a first one that says nothing yet
+    (a category: tiers to rank; numbers: which way they run, and for condition whether they're 0-1 fractions)."""
+    values = _values(_stamp(files.in_dir / entry.filename), entry.layer, column)
+    if not _plain(values):
+        return Scale(kind="tiers", tiers=dict(given.tiers) if given and given.kind == "tiers" else {})
+    nums = [float(v) for v in values if v]
+    s = given.model_copy(update={"tiers": {}}) if given is not None else Scale()
+    if nums:
+        s.low, s.high = min(nums), max(nums)
+        if given is None and key == "bldg_condition_num":
+            s.fraction = 0 <= s.low and s.high <= 1
+    return s
+
+
+def _scaled(nums: list[float], s: Scale) -> list[float]:
+    """Numbers as the scale's calc writes them (scale_calc)."""
+    if s.kind in ("pct_good", "pct_depr"):
+        pct = [v * 100 for v in nums] if s.fraction else nums
+        return [100 - v for v in pct] if s.kind == "pct_depr" else pct
+    if s.kind == "lower" and s.low is not None and s.high is not None:
+        return [s.low + s.high - v for v in nums]
+    return list(nums)
+
+
+def _g(v: float) -> str:
+    return f"{v:,.2f}".rstrip("0").rstrip(".") if v != round(v) else f"{v:,.0f}"
+
+
+def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
+    """'✓ 0.15–4.5 · 47 values', '✓ as % good: 0.12 → 88 · median 84', or what's still to say."""
+    import statistics
+
+    raw = _values(_stamp(files.in_dir / entry.filename), entry.layer, column)
+    if s.kind == "tiers":
+        distinct = {v for v in raw if v}
+        if not s.tiers:
+            return Check(ok=True, warn=True, text=f"rank its {len(distinct):,} tiers")
+        ranked = {k.strip() for k in s.tiers}
+        numbers = sorted(set(s.tiers.values()))
+        text = f"{len(ranked & distinct):,} tiers ranked, {_g(numbers[0])}–{_g(numbers[-1])}"
+        missing = distinct - ranked
+        if missing:
+            return Check(ok=True, warn=True, text=f"{text} · {len(missing):,} not ranked (read as missing)")
+        return Check(ok=True, text=f"✓ {text}")
+    nums = [float(v) for v in raw if v]
+    if s.kind is None:
+        return Check(
+            ok=True,
+            warn=True,
+            text="say which way is better" if key == "bldg_quality_num" else "say what the numbers mean",
+        )
+    if not nums:
+        return Check(ok=True, warn=True, text="no values")
+    out = _scaled(nums, s)
+    if s.kind in ("pct_good", "pct_depr"):
+        text = f"as % good: {_g(nums[0])} → {_g(out[0])} · median {_g(statistics.median(out))}"
+        outside = sum(1 for v in out if v < -0.5 or v > 100.5)
+        if outside:
+            hint = "written as 0–100, not fractions?" if s.fraction else "written as fractions, 0–1?"
+            return Check(ok=True, warn=True, text=f"{text} · {outside:,} outside 0–100: {hint}")
+        return Check(ok=True, text=f"✓ {text}")
+    if s.kind == "life":
+        return Check(ok=True, text=f"✓ years left · median {_g(statistics.median(out))}")
+    text = f"{_g(min(nums))}–{_g(max(nums))} · {len(set(nums)):,} values"
+    return Check(ok=True, text=f"✓ {text}" + (" · flipped, so higher is better" if s.kind == "lower" else ""))
+
+
+# Evidence: what the choices are checked against. Optional: each part says what it's based on, and what's missing.
+
+
+def _row_ids(files: _Files, entry: DataFile, match: str) -> tuple[str, ...]:
+    return files.ids(entry.name, match)
+
+
+def _field_by_id(project: Project, files: _Files, key: str, match: str) -> dict[str, float]:
+    """A loaded parcel field as numbers, by parcel ID (the first row of each): areas in the project's unit."""
+    import pandas as pd
+
+    f = next(
+        (
+            x
+            for x in project.files
+            if key in x.load
+            and match in x.load
+            and x.holds not in ("sales", "overlay", "unused")
+            and x.name in files.preview
+        ),
+        None,
+    )
+    if f is None:
+        return {}
+    stamp = _stamp(files.in_dir / f.filename)
+    column = f.load[key][0]
+    if key in f.numbers:
+        nums = list(_read_numbers(stamp, f.layer, column, f.numbers[key].model_dump_json()))
+    else:
+        nums = pd.to_numeric(pd.Series(_values(stamp, f.layer, column)), errors="coerce").tolist()
+    factor = 1.0
+    if key in AREA_FIELDS:
+        factor = SQFT_PER[f.area_units.get(key, small_unit(project.units))] / SQFT_PER[small_unit(project.units)]
+    out: dict[str, float] = {}
+    for i, v in zip(files.ids(f.name, match), nums, strict=True):
+        if i and v == v and i not in out:
+            out[i] = float(v) * factor
+    return out
+
+
+def _ages(project: Project, files: _Files, match: str) -> tuple[dict[str, float], str | None]:
+    """Each building's age at the valuation date, from the effective year built (or, failing that, year built)."""
+    year = project.valuation_date.year if project.valuation_date else project.tax_year
+    for key, basis in (("bldg_effective_year_built", "effective age"), ("bldg_year_built", "age (year built)")):
+        built = _field_by_id(project, files, key, match)
+        ages = {i: year - v for i, v in built.items() if 1700 <= v <= 2100}
+        if ages:
+            return ages, basis
+    return {}, None
+
+
+def _sales_evidence(project: Project, files: _Files, match: str) -> tuple[list[tuple[str, float]], list[str]]:
+    """(parcel ID, price) for each sale to compare against, and notes on what that's based on."""
+    import pandas as pd
+
+    sales = _sales_file(project)
+    if sales is None or "sale_price" not in sales.load or sales.name not in files.preview:
+        return [], ["No sales yet: add them to compare by price."]
+    if sales.match != match:
+        return [], ["The sales join the parcels on another ID: no price comparison."]
+    stamp = _stamp(files.in_dir / sales.filename)
+    column = sales.load["sale_price"][0]
+    if "sale_price" in sales.numbers:
+        prices = list(_read_numbers(stamp, sales.layer, column, sales.numbers["sale_price"].model_dump_json()))
+    else:
+        prices = pd.to_numeric(pd.Series(_values(stamp, sales.layer, column)), errors="coerce").tolist()
+    notes = []
+    rule = sales.rules.get("valid_sale")
+    if rule is not None and _complete(rule):
+        valid = _rule_result(files, sales, rule)[2].tolist()
+        notes.append("valid sales")
+    elif "valid_sale" in sales.load:
+        valid = [v.lower() in YES for v in _values(stamp, sales.layer, sales.load["valid_sale"][0])]
+        notes.append("valid sales")
+    else:
+        valid = [True] * len(prices)
+        notes.append("all sales: no valid-sale rule yet")
+    rows = [
+        (i, float(p))
+        for i, p, ok in zip(files.ids(sales.name, match), prices, valid, strict=True)
+        if ok and i and p == p and p > 0
+    ]
+    return rows, notes
+
+
+class PriceGroup(BaseModel):
+    sales: int
+    median: float | None
+
+
+def _price_by(
+    project: Project, files: _Files, match: str, group: dict[str, str]
+) -> tuple[dict[str, PriceGroup], str | None, list[str]]:
+    """Median price per sq ft (or sale price, without a building size) for each group of parcels."""
+    import statistics
+
+    rows, notes = _sales_evidence(project, files, match)
+    if not rows:
+        return {}, None, notes
+    size = _field_by_id(project, files, "bldg_area_finished_sqft", match)
+    unit = "sq ft" if small_unit(project.units) == "sqft" else "m²"
+    basis = f"price per {unit}" if size else "sale price"
+    if not size:
+        notes.append("no building size: choose it on this step for a fairer comparison")
+    by: dict[str, list[float]] = {}
+    for i, price in rows:
+        g = group.get(i)
+        if g is None:
+            continue
+        if size:
+            area = size.get(i, 0)
+            if area <= 0:
+                continue
+            price = price / area
+        by.setdefault(g, []).append(price)
+    out = {g: PriceGroup(sales=len(v), median=statistics.median(v)) for g, v in by.items()}
+    if not out:
+        notes.append("no sales found these parcels")
+    return out, basis, notes
+
+
+def _by_parcel(files: _Files, entry: DataFile, column: str) -> dict[str, str]:
+    """A column's value for each parcel (its first row: the main building card)."""
+    values = _values(_stamp(files.in_dir / entry.filename), entry.layer, column)
+    out: dict[str, str] = {}
+    for i, v in zip(files.ids(entry.name, entry.match), values, strict=True):
+        if i and v and i not in out:
+            out[i] = v
+    return out
+
+
+def _trend(project: Project, files: _Files, entry: DataFile, column: str) -> tuple[float | None, str | None]:
+    """The rank correlation of a numbers column with age, and which age it's against."""
+    import pandas as pd
+
+    ages, basis = _ages(project, files, entry.match)
+    if not ages:
+        return None, None
+    pairs = [(float(v), ages[i]) for i, v in _by_parcel(files, entry, column).items() if i in ages]
+    if len(pairs) < 20:
+        return None, basis
+    df = pd.DataFrame(pairs, columns=["v", "age"]).rank()
+    r = df["v"].corr(df["age"])
+    return (None if r != r else float(r)), basis
+
+
+class Tier(BaseModel):
+    value: str
+    count: int = Field(description="Rows (building cards) with it.")
+    number: float | None = Field(description="Its number: the saved one, or the suggested one. None: not ranked.")
+    sales: int
+    median: float | None = Field(description="Median price per sq ft (or sale price) of its sales.")
+
+
+class TiersPreview(BaseModel):
+    key: str
+    column: str
+    tiers: list[Tier] = Field(description="Worst to best: as saved, or as suggested.")
+    saved: bool
+    recognised: str | None = Field(description="The kind of tier names that set the suggested order.")
+    unplaced: list[str] = Field(description="Tier names the suggestion didn't know: put last, to be placed.")
+    basis: str | None = Field(description="What the medians are: price per sq ft, or sale price.")
+    notes: list[str]
+    symbol: str
+    few: int = FEW_SALES
+
+
+def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: str) -> TiersPreview:
+    """A category's tiers, worst to best, with a number each and what they sell for."""
+    if key not in SCALED:
+        raise LookupError(key)
+    files = _Files(project, in_dir)
+    if files.column(file, column) is None:
+        raise ValueError(f"{file} has no column {column}.")
+    entry = files.entry(file)
+    counts = Counter(v for v in _values(_stamp(in_dir / entry.filename), entry.layer, column) if v)
+    saved = entry.scales.get(key)
+    use_saved = bool(saved and saved.kind == "tiers" and saved.tiers and entry.load.get(key, [None])[0] == column)
+    suggested, recognised, unplaced = tier_order(list(counts))
+    if use_saved and saved:
+        numbers = {k.strip(): v for k, v in saved.tiers.items()}
+        order = sorted(counts, key=lambda v: (numbers.get(v, float("inf")), v))
+        ranked = [(v, numbers.get(v)) for v in order]
+    else:
+        ranked = [(v, n) for v, n in suggested]
+    prices, basis, notes = _price_by(project, files, entry.match, _by_parcel(files, entry, column))
+    return TiersPreview(
+        key=key,
+        column=column,
+        tiers=[
+            Tier(
+                value=v,
+                count=counts[v],
+                number=n,
+                sales=prices[v].sales if v in prices else 0,
+                median=prices[v].median if v in prices else None,
+            )
+            for v, n in ranked
+        ],
+        saved=use_saved,
+        recognised=recognised,
+        unplaced=unplaced,
+        basis=basis,
+        notes=notes,
+        symbol=_symbol(project),
+    )
+
+
+class Band(BaseModel):
+    label: str
+    count: int
+    raw: float | None = Field(description="The median as written.")
+    value: float | None = Field(description="The median as read (higher is better).")
+
+
+class ScaleSample(BaseModel):
+    raw: str
+    value: float
+
+
+class ScalePreview(BaseModel):
+    key: str
+    column: str
+    scale: Scale
+    kinds: list[str] = Field(description="The meanings to choose from, for this field.")
+    fraction_found: bool = Field(description="Every value is between 0 and 1.")
+    trend: float | None = Field(description="Rank correlation with age: positive, it rises as buildings age.")
+    fits: list[str] = Field(
+        description="Meanings that fit the trend with age (higher is better as buildings are newer)."
+    )
+    age_basis: str | None
+    by_age: list[Band]
+    price_basis: str | None
+    by_value: list[Band] = Field(description="Bands of the value as read, with sales and the median price in each.")
+    notes: list[str]
+    median: float | None
+    samples: list[ScaleSample]
+    calc: list | None
+    symbol: str
+
+
+AGE_BANDS = [
+    (0, 10, "under 10 years"),
+    (10, 25, "10–25"),
+    (25, 50, "25–50"),
+    (50, 75, "50–75"),
+    (75, 1e9, "75 and over"),
+]
+GOOD_BANDS = [(-1e9, 50, "under 50"), (50, 70, "50–70"), (70, 85, "70–85"), (85, 95, "85–95"), (95, 1e9, "95 and over")]
+
+
+def scale_preview(
+    project: Project, in_dir: Path, key: str, file: str, column: str, scale: Scale | None
+) -> ScalePreview:
+    """A numbers column read with a meaning: against age (newer should be better) and what it sells for."""
+    import statistics
+
+    if key not in SCALED:
+        raise LookupError(key)
+    files = _Files(project, in_dir)
+    if files.column(file, column) is None:
+        raise ValueError(f"{file} has no column {column}.")
+    entry = files.entry(file)
+    raw = _values(_stamp(in_dir / entry.filename), entry.layer, column)
+    if not _plain(raw):
+        raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
+    saved = entry.scales.get(key) if entry.load.get(key, [None])[0] == column else None
+    s = _new_scale(files, entry, key, column, scale or saved)
+    nums = [float(v) for v in raw if v]
+    kinds = ["higher", "lower"] if key == "bldg_quality_num" else ["pct_good", "pct_depr", "higher", "lower", "life"]
+    trend, age_basis = _trend(project, files, entry, column)
+    fits: list[str] = []
+    if trend is not None and abs(trend) >= TREND:
+        fits = ["pct_depr", "lower"] if trend > 0 else ["pct_good", "higher", "life"]
+    fits = [k for k in fits if k in kinds]
+    read = s.kind is not None
+    convert = (lambda xs: _scaled(xs, s)) if read else (lambda xs: xs)
+    notes: list[str] = []
+    by_age: list[Band] = []
+    ages, _ = _ages(project, files, entry.match)
+    values = {i: float(v) for i, v in _by_parcel(files, entry, column).items()}
+    if ages:
+        for lo, hi, label in AGE_BANDS:
+            xs = [v for i, v in values.items() if i in ages and lo <= ages[i] < hi]
+            if xs:
+                by_age.append(
+                    Band(label=label, count=len(xs), raw=statistics.median(xs), value=statistics.median(convert(xs)))
+                )
+    else:
+        notes.append("No year built or effective year built: choose one on this step to compare with age.")
+    by_value: list[Band] = []
+    price_basis = None
+    if read and values:
+        as_read = dict(zip(values, convert(list(values.values())), strict=True))
+        if s.kind in ("pct_good", "pct_depr"):
+            bands = GOOD_BANDS
+        else:
+            ordered = sorted(set(as_read.values()))
+            cuts = [ordered[int(q * (len(ordered) - 1))] for q in (0, 0.2, 0.4, 0.6, 0.8)] + [1e18]
+            bands = [(cuts[k], cuts[k + 1], f"{_g(cuts[k])} and up") for k in range(5) if cuts[k] < cuts[k + 1]]
+        label_of = {}
+        for i, v in as_read.items():
+            for lo, hi, label in bands:
+                if lo <= v < hi:
+                    label_of[i] = label
+                    break
+        prices, price_basis, price_notes = _price_by(project, files, entry.match, label_of)
+        notes += price_notes if not prices else [n for n in price_notes if n != "valid sales"]
+        by_value = [
+            Band(label=label, count=prices[label].sales, raw=None, value=prices[label].median)
+            for _, _, label in bands
+            if label in prices
+        ]
+    seen: list[str] = []
+    for v in raw:
+        if v and v not in seen:
+            seen.append(v)
+        if len(seen) == 6:
+            break
+    out = convert([float(v) for v in seen])
+    return ScalePreview(
+        key=key,
+        column=column,
+        scale=s,
+        kinds=kinds,
+        fraction_found=bool(nums) and min(nums) >= 0 and max(nums) <= 1,
+        trend=trend,
+        fits=fits,
+        age_basis=age_basis,
+        by_age=by_age,
+        price_basis=price_basis,
+        by_value=by_value,
+        notes=notes,
+        median=statistics.median(convert(nums)) if nums and read else None,
+        samples=[ScaleSample(raw=r, value=v) for r, v in zip(seen, out, strict=True)],
+        calc=scale_calc(scale_helper(key), s) if read else None,
+        symbol=_symbol(project),
+    )
+
+
+class Candidate(BaseModel):
+    file: str
+    column: str
+    kind: Literal["numbers", "text"]
+    filled: float = Field(description="Share of rows not blank.")
+    distinct: int
+    low: float | None
+    high: float | None
+    samples: list[str]
+    notes: list[str]
+    warn: bool
+    loaded_as: Literal["number", "category"] | None
+
+
+def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
+    """Columns that look like quality (or condition), each checked over every row, to choose from side by side."""
+    if key not in PAIRS:
+        raise LookupError(key)
+    num = key if key in SCALED else PAIRS[key]
+    txt = PAIRS[num]
+    names = QUALITY_NAMES if num == "bldg_quality_num" else CONDITION_NAMES
+    files = _Files(project, in_dir)
+    out = []
+    for f in project.files:
+        if f.holds in ("sales", "overlay", "unused") or f.name not in files.preview:
+            continue
+        loaded = {spec[0]: k for k, spec in f.load.items() if k in (num, txt)}
+        for col in files.columns(f.name):
+            looks = names.search(col.name) and not re.search(r"air|hvac", col.name, re.IGNORECASE)
+            if not looks and col.name not in loaded:
+                continue
+            values = _values(_stamp(in_dir / f.filename), f.layer, col.name)
+            filled = [v for v in values if v]
+            distinct = set(filled)
+            numbers = bool(filled) and _plain(values)
+            nums = [float(v) for v in filled] if numbers else []
+            notes: list[str] = []
+            warn = False
+            if not filled:
+                notes.append("Empty")
+                warn = True
+            elif len(distinct) == 1:
+                notes.append("One value on every row: tells nothing apart")
+                warn = True
+            if values and len(filled) / len(values) < 0.5 and filled:
+                notes.append(f"{_pct(len(values) - len(filled), len(values))} blank")
+                warn = True
+            if numbers and len(distinct) > 1:
+                if min(nums) >= 0 and max(nums) <= 1:
+                    notes.append("Fractions, 0–1")
+                if num == "bldg_condition_num":
+                    trend, basis = _trend(project, files, f, col.name)
+                    if trend is not None and trend >= TREND:
+                        notes.append(f"Rises with {basis}: % depreciation, or lower is better")
+                    elif trend is not None and trend <= -TREND:
+                        notes.append(f"Falls with {basis}: % good, or higher is better")
+            elif filled and len(distinct) > 1:
+                with_pct = next((v for v in filled[:500] if re.search(r"\d\s*%", v)), None)
+                if with_pct:
+                    notes.append(f"A code and a percent in one ({with_pct}): the percent may be a better number")
+                _, recognised, unplaced = tier_order(sorted(distinct))
+                if len(distinct) > 30:
+                    notes.append(f"{len(distinct):,} different values: many tiers to rank")
+                elif recognised and not unplaced:
+                    notes.append(f"Tiers: {recognised}")
+                else:
+                    notes.append(f"{len(distinct):,} tiers, order not recognised")
+            as_ = loaded.get(col.name)
+            out.append(
+                Candidate(
+                    file=f.name,
+                    column=col.name,
+                    kind="numbers" if numbers else "text",
+                    filled=len(filled) / len(values) if values else 0,
+                    distinct=len(distinct),
+                    low=min(nums) if nums else None,
+                    high=max(nums) if nums else None,
+                    samples=list(dict.fromkeys(filled))[:4],
+                    notes=notes,
+                    warn=warn,
+                    loaded_as="number" if as_ == num else "category" if as_ == txt else None,
+                )
+            )
+    return out
 
 
 # ---------- Location fields the user names, and where the parcels are (F3d) ----------

@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
@@ -171,6 +171,48 @@ def number_calc(field: str, fmt: NumberFormat) -> list:
     if fmt.scale != 1:
         e = ["*", e, fmt.scale]
     return e
+
+
+ScaleKind = Literal["higher", "lower", "pct_good", "pct_depr", "life", "tiers"]
+
+
+class Scale(BaseModel):
+    """How a quality or condition column becomes a number where higher is better, as OpenAVMKit wants (F3d).
+
+    higher: as written. lower: flipped within the column's range (low + high - x). pct_good: % good, as written
+    (or x 100 from a fraction). pct_depr: % depreciation, written as 100 - x. life: remaining economic life in
+    years, as written. tiers: a category, each value given a number."""
+
+    kind: ScaleKind | None = Field(default=None, description="None: not said yet, so nothing is written.")
+    fraction: bool = Field(default=False, description="% good or % depreciation written as 0-1, not 0-100.")
+    low: float | None = Field(default=None, description="lower: the column's smallest value.")
+    high: float | None = Field(default=None, description="lower: the column's largest value.")
+    tiers: dict[str, float] = Field(default_factory=dict, description="tiers: each value (as written) -> its number.")
+
+
+def scale_helper(field: str) -> str:
+    """The name a column is loaded under before it's turned into the field."""
+    return f"{field}_src"
+
+
+def scale_calc(source: str, s: Scale) -> list | None:
+    """The OpenAVMKit calc turning `source` into the field, or None when it's used as written."""
+    if s.kind == "tiers":
+        # A value not ranked (or blank) reads as missing: map leaves it as written, which isn't a number.
+        named = ["map", source, {k: f"{v:g}" for k, v in s.tiers.items()}]
+        return ["asfloat", ["replace_regex", named, {NOT_A_NUMBER: "nan"}]]
+    pct = ["*", source, 100] if s.fraction else source
+    if s.kind == "pct_depr":
+        return ["-", 100, pct]
+    if s.kind == "pct_good" and s.fraction:
+        return pct
+    if s.kind == "lower" and s.low is not None and s.high is not None:
+        return ["-", s.low + s.high, source]
+    return None
+
+
+def scale_ready(s: Scale) -> bool:
+    return s.kind is not None and (s.kind != "tiers" or bool(s.tiers))
 
 
 CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
@@ -368,6 +410,9 @@ class DataFile(BaseModel):
     numbers: dict[str, NumberFormat] = Field(
         default_factory=dict, description="Number field -> how its column's text is read (money written as text)."
     )
+    scales: dict[str, Scale] = Field(
+        default_factory=dict, description="Quality/condition number field -> how its column becomes higher-is-better."
+    )
 
 
 class FileCheck(BaseModel):
@@ -520,7 +565,26 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
         load: dict[str, list[str]] = overlay_load(f.overlay) if f.holds == "overlay" and f.overlay else {}
         areas: dict[str, list] = {}
         numbers: dict[str, list] = {}
+        scaled: dict[str, list] = {}
         for field, spec in f.load.items():
+            if field in f.scales:
+                s = f.scales[field]
+                if not scale_ready(s):
+                    continue  # which way it runs isn't said yet: nothing written rather than a guess
+                if s.kind == "tiers":
+                    # The category, if it's loaded too (the same column as text), or the column under a name of its own.
+                    shared = next((k for k, x in f.load.items() if k != field and x[0] == spec[0]), None)
+                    if shared is None:
+                        load[scale_helper(field)] = [spec[0], "string"]
+                    scaled[field] = cast(list, scale_calc(shared or scale_helper(field), s))
+                    continue
+                c = scale_calc(scale_helper(field), s)
+                if c is None:
+                    load[field] = [spec[0], "float"]
+                else:
+                    load[scale_helper(field)] = [spec[0], "float"]
+                    scaled[field] = c
+                continue
             if field in f.numbers:
                 load[number_helper(field)] = [spec[0], "string"]
                 numbers[field] = number_calc(field, f.numbers[field])
@@ -557,6 +621,7 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
         calc = (
             {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps}
             | numbers
+            | scaled
             | areas
             | rules
             | f.calc

@@ -482,11 +482,11 @@ export function DateDialog({
 const SCALES = [1, 1000, 1_000_000, 0.01];
 
 /** "$246K", "$1.25M", "$10": an amount in the project's currency, short. */
-function amount(symbol: string, v: number): string {
+export function amount(symbol: string, v: number): string {
   const a = Math.abs(v);
   if (a >= 1_000_000) return `${symbol}${(v / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 })}M`;
   if (a >= 10_000) return `${symbol}${Math.round(v / 1000).toLocaleString()}K`;
-  return `${symbol}${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return `${symbol}${v.toLocaleString(undefined, { maximumFractionDigits: a >= 10 ? 0 : 2 })}`;
 }
 
 /** F3d: how to read a money column written as text, previewed as OpenAVMKit reads it, with checks on the amounts. */

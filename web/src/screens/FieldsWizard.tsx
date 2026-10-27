@@ -26,6 +26,7 @@ import {
   type Project,
   type ProjectDetail,
   type Rule,
+  type Scale,
   unwrap,
   type Wizard,
   type WizardCheck,
@@ -44,6 +45,7 @@ import { t } from "../strings";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { LocationExtras } from "./Location";
+import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { type LayerChange, ShapefilesStep } from "./Shapefiles";
 
@@ -307,6 +309,8 @@ type Change =
       date_format?: string;
       area_unit?: AreaUnit;
       number_format?: NumberFormat;
+      scale?: Scale;
+      absent?: boolean;
     }
   | { kind: "rule"; key: string; rule: Rule }
   | { kind: "location"; name: string; file: string | null; column: string | null }
@@ -392,6 +396,8 @@ function useChange(projectId: string) {
             date_format: c.date_format ?? null,
             area_unit: c.area_unit ?? null,
             number_format: c.number_format ?? null,
+            scale: c.scale ?? null,
+            absent: c.absent ?? false,
           },
         }),
       );
@@ -1218,6 +1224,10 @@ function FieldRow({
   const [ruling, setRuling] = useState(false);
   const [dating, setDating] = useState(false);
   const [reading, setReading] = useState(false);
+  // Quality and condition: compare the columns, say what a number means, or rank a category's tiers.
+  const [qc, setQc] = useState<"compare" | "scale" | "tiers" | null>(null);
+  const scaled = SCALED.includes(field.key);
+  const paired = field.key in PAIRS;
   const money = isMoney(field.key);
   // Under a numbered title, the field's own name only when it says more ("4. Quality" needs no "Quality").
   const name = shortName(field);
@@ -1225,11 +1235,18 @@ function FieldRow({
   const sub = [label && !same ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
   const files = data.files.filter((f) => f.holds === (sales ? "sales" : "parcels"));
   const source = field.sources[0];
-  const value = field.assumed ? ASSUME : source ? `${source.file}\u0000${source.column}` : NONE;
+  const value = field.assumed
+    ? ASSUME
+    : field.absent
+      ? ABSENT
+      : source
+        ? `${source.file}\u0000${source.column}`
+        : NONE;
   const sourceFile = source ? files.find((f) => f.name === source.file) : undefined;
   const column = source && sourceFile?.columns.find((c) => c.name === source.column);
   const pick = (v: string) => {
     if (v === ASSUME) setConfirming(true);
+    else if (v === ABSENT) void change({ kind: "field", key: field.key, absent: true }).catch(() => {});
     else if (v === ELSEWHERE) setElsewhere(true);
     else if (v === NONE) void change({ kind: "field", key: field.key }).catch(() => {});
     else {
@@ -1241,6 +1258,9 @@ function FieldRow({
           if (now?.rule && !ruleComplete(now.rule)) setRuling(true);
           // A sale price that needs reading, or whose amounts look wrong: straight to how it's read.
           if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn)) setReading(true);
+          // A category for a number: straight to ranking its tiers; a condition number: to what it means.
+          if (now?.scale?.kind === "tiers" && Object.keys(now.scale.tiers).length === 0) setQc("tiers");
+          else if (field.key === "bldg_condition_num" && now?.scale && !now.scale.kind) setQc("scale");
         })
         .catch(() => {});
     }
@@ -1249,11 +1269,17 @@ function FieldRow({
     <>
       <div className={inGroup ? "wiz-label wiz-in-group" : "wiz-label"}>
         <TipOn text={field.description || field.name}>
-          <span>{label ?? shortName(field)}</span>
+          <span>{label ?? w.rowNames[field.key] ?? shortName(field)}</span>
         </TipOn>
         {sub && <small>{sub}</small>}
       </div>
-      <div className={field.area_unit ? "wiz-pair" : undefined}>
+      <div
+        className={
+          field.area_unit || (scaled && source && field.scale && field.scale.kind !== "tiers")
+            ? "wiz-pair"
+            : undefined
+        }
+      >
         <ColumnChoice
           field={field}
           files={files}
@@ -1264,6 +1290,13 @@ function FieldRow({
           elsewhere={!sales}
           onChange={pick}
         />
+        {scaled && source && (
+          <ScaleChoice
+            field={field}
+            source={source}
+            change={(c) => void change({ kind: "field", ...c }).catch(() => {})}
+          />
+        )}
         {field.area_unit && source && (
           // The unit the column is in: OAK box converts it to the project's (SPEC F3d).
           <div className="wiz-unit">
@@ -1293,6 +1326,33 @@ function FieldRow({
         ) : (
           <>
             <CheckText check={field.check} />
+            {field.absent && <span className="wiz-from">{w.quality.absentNote}</span>}
+            {paired &&
+            !source &&
+            !field.absent &&
+            data.fields.find((f) => f.key === PAIRS[field.key])?.sources.length
+              ? !scaled && <span className="wiz-from">{w.numberUsed}</span>
+              : null}
+            {scaled && source && field.scale && (
+              <Button
+                className="wiz-link wiz-resolve"
+                onPress={() => setQc(field.scale?.kind === "tiers" ? "tiers" : "scale")}
+              >
+                {field.scale.kind === "tiers"
+                  ? Object.keys(field.scale.tiers).length
+                    ? w.quality.reRank
+                    : w.quality.rank
+                  : field.key === "bldg_quality_num"
+                    ? w.quality.checkDirection
+                    : w.quality.checkMeaning}
+              </Button>
+            )}
+            {paired && !scaled && (
+              // One per section, on the category row: its text is short, so the link always shows.
+              <Button className="wiz-link wiz-resolve" onPress={() => setQc("compare")}>
+                {w.quality.compare}
+              </Button>
+            )}
             {sourceFile && column && field.type === "boolean" && sales && (
               <Button className="wiz-link wiz-resolve" onPress={() => setRuling(true)}>
                 {!field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose}
@@ -1371,6 +1431,61 @@ function FieldRow({
           }
         />
       )}
+      {qc === "compare" && (
+        <CompareDialog
+          projectId={project.id}
+          data={data}
+          numKey={scaled ? field.key : (PAIRS[field.key] ?? field.key)}
+          close={() => setQc(null)}
+          save={(num, txt) =>
+            void change({ kind: "field", ...num })
+              .then(() => change({ kind: "field", ...txt }))
+              .then((next) => {
+                const now = next.fields.find((f) => f.key === num.key);
+                setQc(null);
+                if (
+                  num.key === field.key &&
+                  now?.scale?.kind === "tiers" &&
+                  !Object.keys(now.scale.tiers).length
+                )
+                  setQc("tiers");
+              })
+              .catch(() => {})
+          }
+        />
+      )}
+      {qc === "scale" && source && (
+        <ScaleDialog
+          projectId={project.id}
+          field={field}
+          source={source}
+          close={() => setQc(null)}
+          save={(scale) =>
+            void change({ kind: "field", key: field.key, file: source.file, column: source.column, scale })
+              .then(() => setQc(null))
+              .catch(() => {})
+          }
+        />
+      )}
+      {qc === "tiers" && source && (
+        <TiersDialog
+          projectId={project.id}
+          field={field}
+          source={source}
+          close={() => setQc(null)}
+          save={(tiers) =>
+            void change({
+              kind: "field",
+              key: field.key,
+              file: source.file,
+              column: source.column,
+              scale: { kind: "tiers", fraction: false, low: null, high: null, tiers },
+            })
+              .then(() => setQc(null))
+              .catch(() => {})
+          }
+        />
+      )}
       {confirming && (
         <AssumeDialog
           field={field.key}
@@ -1426,7 +1541,8 @@ function ColumnChoice({
   for (const f of files) {
     for (const c of f.columns) {
       const as = used[f.name]?.[c.name];
-      if (as && as !== field.key) disabled.push(`${f.name}\u0000${c.name}`);
+      // A category can be both the text and, ranked, the number.
+      if (as && as !== field.key && PAIRS[field.key] !== as) disabled.push(`${f.name}\u0000${c.name}`);
     }
   }
   return (
@@ -1455,7 +1571,7 @@ function ColumnChoice({
               <Header className="wiz-section-head">{f.name}</Header>
               {f.columns.map((c) => {
                 const as = used[f.name]?.[c.name];
-                const taken = as && as !== field.key;
+                const taken = as && as !== field.key && PAIRS[field.key] !== as;
                 return (
                   <ListBoxItem
                     key={c.name}
@@ -1477,6 +1593,11 @@ function ColumnChoice({
               {w.elsewhere}
             </ListBoxItem>
           )}
+          {field.key === "bldg_condition_num" && (
+            <ListBoxItem id={ABSENT} className="choice-item" textValue={w.quality.absent}>
+              {w.quality.absent}
+            </ListBoxItem>
+          )}
           {ASSUMABLE.includes(field.key) && (
             <ListBoxItem id={ASSUME} className="choice-item" textValue={w.assume[field.key] ?? ""}>
               {w.assume[field.key]}
@@ -1491,6 +1612,7 @@ function ColumnChoice({
 function selectedValue(value: string, text: string, many: boolean): ReactNode {
   if (value === NONE) return <span className="wiz-none">{w.none}</span>;
   if (value === ASSUME) return w.assumed;
+  if (value === ABSENT) return w.quality.absent;
   const [file, column] = value.split("\u0000");
   return (
     <>

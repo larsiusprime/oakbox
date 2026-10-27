@@ -92,6 +92,9 @@ class WizardState(BaseModel):
     locations: list[str] = Field(
         default_factory=list, description="Fields the user named as locations (areas parcels belong to), in order."
     )
+    absent: list[str] = Field(
+        default_factory=list, description="Fields said not to exist (no condition: effective age carries it)."
+    )
 
 
 class Center(BaseModel):

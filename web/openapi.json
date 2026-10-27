@@ -1831,6 +1831,177 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/fields/{key}/candidates": {
+   "get": {
+    "summary": "Wizard Candidates",
+    "description": "Columns that look like quality or condition, checked over every row, side by side (F3d).",
+    "operationId": "wizard_candidates_api_projects__project_id__wizard_fields__key__candidates_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Candidate"
+         },
+         "title": "Response Wizard Candidates Api Projects  Project Id  Wizard Fields  Key  Candidates Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/fields/{key}/scale": {
+   "post": {
+    "summary": "Wizard Scale",
+    "description": "A quality/condition numbers column read with a meaning, against age and price (F3d).",
+    "operationId": "wizard_scale_api_projects__project_id__wizard_fields__key__scale_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardColumnRef"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ScalePreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/fields/{key}/tiers": {
+   "post": {
+    "summary": "Wizard Tiers",
+    "description": "A category's tiers, worst to best, each with a number and what it sells for (F3d).",
+    "operationId": "wizard_tiers_api_projects__project_id__wizard_fields__key__tiers_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardColumnRef"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TiersPreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -1990,6 +2161,149 @@
      "display"
     ],
     "title": "AppSettingsView"
+   },
+   "Band": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "raw": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Raw",
+      "description": "The median as written."
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value",
+      "description": "The median as read (higher is better)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "count",
+     "raw",
+     "value"
+    ],
+    "title": "Band"
+   },
+   "Candidate": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "numbers",
+       "text"
+      ],
+      "title": "Kind"
+     },
+     "filled": {
+      "type": "number",
+      "title": "Filled",
+      "description": "Share of rows not blank."
+     },
+     "distinct": {
+      "type": "integer",
+      "title": "Distinct"
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low"
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High"
+     },
+     "samples": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Samples"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     },
+     "warn": {
+      "type": "boolean",
+      "title": "Warn"
+     },
+     "loaded_as": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "number",
+         "category"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Loaded As"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "column",
+     "kind",
+     "filled",
+     "distinct",
+     "low",
+     "high",
+     "samples",
+     "notes",
+     "warn",
+     "loaded_as"
+    ],
+    "title": "Candidate"
    },
    "Center": {
     "properties": {
@@ -2503,6 +2817,14 @@
       "type": "object",
       "title": "Numbers",
       "description": "Number field -> how its column's text is read (money written as text)."
+     },
+     "scales": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Scale-Output"
+      },
+      "type": "object",
+      "title": "Scales",
+      "description": "Quality/condition number field -> how its column becomes higher-is-better."
      }
     },
     "type": "object",
@@ -2522,7 +2844,8 @@
      "rules",
      "area_units",
      "overlay",
-     "numbers"
+     "numbers",
+     "scales"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -4761,6 +5084,143 @@
     ],
     "title": "Sample"
    },
+   "Scale-Input": {
+    "properties": {
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "higher",
+         "lower",
+         "pct_good",
+         "pct_depr",
+         "life",
+         "tiers"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind",
+      "description": "None: not said yet, so nothing is written."
+     },
+     "fraction": {
+      "type": "boolean",
+      "title": "Fraction",
+      "description": "% good or % depreciation written as 0-1, not 0-100.",
+      "default": false
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low",
+      "description": "lower: the column's smallest value."
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High",
+      "description": "lower: the column's largest value."
+     },
+     "tiers": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Tiers",
+      "description": "tiers: each value (as written) -> its number."
+     }
+    },
+    "type": "object",
+    "title": "Scale",
+    "description": "How a quality or condition column becomes a number where higher is better, as OpenAVMKit wants (F3d).\n\nhigher: as written. lower: flipped within the column's range (low + high - x). pct_good: % good, as written\n(or x 100 from a fraction). pct_depr: % depreciation, written as 100 - x. life: remaining economic life in\nyears, as written. tiers: a category, each value given a number."
+   },
+   "Scale-Output": {
+    "properties": {
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "higher",
+         "lower",
+         "pct_good",
+         "pct_depr",
+         "life",
+         "tiers"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind",
+      "description": "None: not said yet, so nothing is written."
+     },
+     "fraction": {
+      "type": "boolean",
+      "title": "Fraction",
+      "description": "% good or % depreciation written as 0-1, not 0-100.",
+      "default": false
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low",
+      "description": "lower: the column's smallest value."
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High",
+      "description": "lower: the column's largest value."
+     },
+     "tiers": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Tiers",
+      "description": "tiers: each value (as written) -> its number."
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "fraction",
+     "low",
+     "high",
+     "tiers"
+    ],
+    "title": "Scale",
+    "description": "How a quality or condition column becomes a number where higher is better, as OpenAVMKit wants (F3d).\n\nhigher: as written. lower: flipped within the column's range (low + high - x). pct_good: % good, as written\n(or x 100 from a fraction). pct_depr: % depreciation, written as 100 - x. life: remaining economic life in\nyears, as written. tiers: a category, each value given a number."
+   },
    "ScaleHint": {
     "properties": {
      "scale": {
@@ -4784,6 +5244,170 @@
      "short"
     ],
     "title": "ScaleHint"
+   },
+   "ScalePreview": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "scale": {
+      "$ref": "#/components/schemas/Scale-Output"
+     },
+     "kinds": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Kinds",
+      "description": "The meanings to choose from, for this field."
+     },
+     "fraction_found": {
+      "type": "boolean",
+      "title": "Fraction Found",
+      "description": "Every value is between 0 and 1."
+     },
+     "trend": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trend",
+      "description": "Rank correlation with age: positive, it rises as buildings age."
+     },
+     "fits": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fits",
+      "description": "Meanings that fit the trend with age (higher is better as buildings are newer)."
+     },
+     "age_basis": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Age Basis"
+     },
+     "by_age": {
+      "items": {
+       "$ref": "#/components/schemas/Band"
+      },
+      "type": "array",
+      "title": "By Age"
+     },
+     "price_basis": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Basis"
+     },
+     "by_value": {
+      "items": {
+       "$ref": "#/components/schemas/Band"
+      },
+      "type": "array",
+      "title": "By Value",
+      "description": "Bands of the value as read, with sales and the median price in each."
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "samples": {
+      "items": {
+       "$ref": "#/components/schemas/ScaleSample"
+      },
+      "type": "array",
+      "title": "Samples"
+     },
+     "calc": {
+      "anyOf": [
+       {
+        "items": {},
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Calc"
+     },
+     "symbol": {
+      "type": "string",
+      "title": "Symbol"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "column",
+     "scale",
+     "kinds",
+     "fraction_found",
+     "trend",
+     "fits",
+     "age_basis",
+     "by_age",
+     "price_basis",
+     "by_value",
+     "notes",
+     "median",
+     "samples",
+     "calc",
+     "symbol"
+    ],
+    "title": "ScalePreview"
+   },
+   "ScaleSample": {
+    "properties": {
+     "raw": {
+      "type": "string",
+      "title": "Raw"
+     },
+     "value": {
+      "type": "number",
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "raw",
+     "value"
+    ],
+    "title": "ScaleSample"
    },
    "Source": {
     "properties": {
@@ -4986,6 +5610,142 @@
     ],
     "title": "Suggestion"
    },
+   "Tier": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count",
+      "description": "Rows (building cards) with it."
+     },
+     "number": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Number",
+      "description": "Its number: the saved one, or the suggested one. None: not ranked."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median",
+      "description": "Median price per sq ft (or sale price) of its sales."
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "count",
+     "number",
+     "sales",
+     "median"
+    ],
+    "title": "Tier"
+   },
+   "TiersPreview": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "tiers": {
+      "items": {
+       "$ref": "#/components/schemas/Tier"
+      },
+      "type": "array",
+      "title": "Tiers",
+      "description": "Worst to best: as saved, or as suggested."
+     },
+     "saved": {
+      "type": "boolean",
+      "title": "Saved"
+     },
+     "recognised": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Recognised",
+      "description": "The kind of tier names that set the suggested order."
+     },
+     "unplaced": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Unplaced",
+      "description": "Tier names the suggestion didn't know: put last, to be placed."
+     },
+     "basis": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Basis",
+      "description": "What the medians are: price per sq ft, or sale price."
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     },
+     "symbol": {
+      "type": "string",
+      "title": "Symbol"
+     },
+     "few": {
+      "type": "integer",
+      "title": "Few",
+      "default": 10
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "column",
+     "tiers",
+     "saved",
+     "recognised",
+     "unplaced",
+     "basis",
+     "notes",
+     "symbol",
+     "few"
+    ],
+    "title": "TiersPreview"
+   },
    "ValidationError": {
     "properties": {
      "loc": {
@@ -5155,6 +5915,35 @@
     ],
     "title": "Wizard"
    },
+   "WizardColumnRef": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "scale": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Scale-Input"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "None: the saved one, or a first one."
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "column"
+    ],
+    "title": "WizardColumnRef"
+   },
    "WizardDates": {
     "properties": {
      "column": {
@@ -5282,6 +6071,23 @@
        }
       ],
       "description": "Money written as text: how it's read. None: read as plain numbers."
+     },
+     "scale": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Scale-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Quality/condition number: how it becomes higher-is-better."
+     },
+     "absent": {
+      "type": "boolean",
+      "title": "Absent",
+      "description": "Said not to exist (no condition: effective age carries it).",
+      "default": false
      }
     },
     "type": "object",
@@ -5299,7 +6105,9 @@
      "rule",
      "date_format",
      "area_unit",
-     "number_format"
+     "number_format",
+     "scale",
+     "absent"
     ],
     "title": "WizardField"
    },
@@ -5377,6 +6185,23 @@
        }
       ],
       "description": "Money written as text: how to read it. None: worked out from the column."
+     },
+     "scale": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Scale-Input"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Quality/condition number: how the column becomes higher-is-better."
+     },
+     "absent": {
+      "type": "boolean",
+      "title": "Absent",
+      "description": "Condition: there isn't one (effective age carries it).",
+      "default": false
      }
     },
     "type": "object",
@@ -5866,6 +6691,14 @@
       "type": "array",
       "title": "Locations",
       "description": "Fields the user named as locations (areas parcels belong to), in order."
+     },
+     "absent": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Absent",
+      "description": "Fields said not to exist (no condition: effective age carries it)."
      }
     },
     "type": "object",
@@ -5875,7 +6708,8 @@
      "skipped",
      "confirmed",
      "decided",
-     "locations"
+     "locations",
+     "absent"
     ],
     "title": "WizardState",
     "description": "The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."

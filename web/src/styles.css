@@ -2605,3 +2605,136 @@ a.row-title:hover {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+/* F3d: quality and condition */
+.qc {
+  width: min(100%, 62rem);
+}
+.qc-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.qc-tbl th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.2rem 0.35rem;
+}
+.qc-tbl :where(td) {
+  padding: 0.22rem 0.35rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+.qc-tbl :where(.mono) {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+.qc-tbl tr.on :where(td) {
+  background: #eef3fb;
+}
+.qc-tbl tr.qc-bad :where(td) {
+  background: #fff4e5;
+}
+.qc-num {
+  width: 3.6rem;
+  text-align: right;
+}
+.qc-bar {
+  display: inline-block;
+  height: 0.6rem;
+  background: #9db7df;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+.qc-arrows {
+  white-space: nowrap;
+}
+.qc-move {
+  border: 0;
+  background: none;
+  padding: 0 0.15rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qc-move[data-disabled] {
+  opacity: 0.3;
+  cursor: default;
+}
+.qc-flag {
+  color: var(--warn, #8a5300);
+  font-size: 0.8rem;
+}
+.qc-radio {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.qc-pick {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.qc-radio li.on .qc-pick {
+  border-color: #7fa3d9;
+  background: #eef3fb;
+}
+.qc-radio .dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid #777;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  top: 0.1rem;
+  flex: none;
+}
+.qc-radio li.on .dot {
+  background: radial-gradient(#1d5bb8 45%, #fff 50%);
+  border-color: #1d5bb8;
+}
+.qc-radio small {
+  color: var(--muted);
+}
+.qc-radio .tag {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--ok);
+  white-space: nowrap;
+}
+.qc-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.qc-pill {
+  font-size: 0.78rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: #e7f2e7;
+  color: var(--ok);
+  white-space: nowrap;
+}
+.qc-pill.dim {
+  background: #eee;
+  color: var(--muted);
+}
+.qc-pill.warn {
+  background: #fff1dc;
+  color: #8a5300;
+}
