@@ -2,12 +2,21 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
-import { api, type Condition, type Rule, unwrap, type WizardField, type WizardFile } from "../api/client";
+import {
+  api,
+  type Condition,
+  type NumberFormat,
+  type Rule,
+  unwrap,
+  type WizardField,
+  type WizardFile,
+} from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { t } from "../strings";
 
 const r = t.wizard.rule;
 const d = t.wizard.dates;
+const n = t.wizard.numbers;
 type Op = Condition["op"];
 const LISTS: Op[] = ["isin", "notin"];
 const NO_VALUE: Op[] = ["isempty", "notempty"];
@@ -409,6 +418,194 @@ export function DateDialog({
               onPress={() => save(format)}
             >
               {d.save}
+            </Button>
+          </div>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  );
+}
+
+const SCALES = [1, 1000, 1_000_000, 0.01];
+
+/** "$246K", "$1.25M", "$10": an amount in the project's currency, short. */
+function amount(symbol: string, v: number): string {
+  const a = Math.abs(v);
+  if (a >= 1_000_000) return `${symbol}${(v / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 })}M`;
+  if (a >= 10_000) return `${symbol}${Math.round(v / 1000).toLocaleString()}K`;
+  return `${symbol}${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+/** F3d: how to read a money column written as text, previewed as OpenAVMKit reads it, with checks on the amounts. */
+export function NumberDialog({
+  projectId,
+  field,
+  file,
+  column,
+  valid,
+  close,
+  save,
+}: {
+  projectId: string;
+  field: WizardField;
+  file: WizardFile;
+  column: string;
+  /** Valid sale, for leaving nominal prices out of it (sale price only). */
+  valid?: WizardField | undefined;
+  close: () => void;
+  save: (format: NumberFormat, leaveOut: Rule | null) => void;
+}) {
+  const [format, setFormat] = useState<NumberFormat | null>(field.number_format ?? null);
+  const asked = useSettled(format);
+  const preview = useQuery({
+    queryKey: ["numbers", projectId, file.name, field.key, column, asked],
+    queryFn: async () =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/wizard/files/{name}/numbers", {
+          params: { path: { project_id: projectId, name: file.name } },
+          body: { key: field.key, column, format: asked },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+  const v = preview.data;
+  const shown = format ?? v?.format ?? null;
+  const set = (change: Partial<NumberFormat>) => shown && setFormat({ ...shown, ...change });
+  const under = v ? amount(v.symbol, 1000) : "";
+  const odd = v ? v.zero + v.nominal + v.negative : 0;
+  // Valid sale from a column (not a rule, not assumed): a price test can't be added without replacing it.
+  const fromColumn = !!valid && valid.sources.length > 0 && !valid.rule;
+  const [leave, setLeave] = useState(true);
+  // Not while the scale looks off: every price would look nominal until it's read in the right unit.
+  const showOdd = field.key === "sale_price" && !!v && odd > 0 && !v.hint;
+  const offerLeave = showOdd && !v?.rule && !fromColumn;
+  const good = v ? v.read > 0 && v.failed === 0 && !v.hint : false;
+  const scales = shown && !SCALES.includes(shown.scale) ? [...SCALES, shown.scale] : SCALES;
+  return (
+    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(open) => !open && close()}>
+      <Modal className="modal rl">
+        <Dialog className="modal-body rc-body">
+          <Heading slot="title" className="modal-title">
+            {n.title(column)}
+          </Heading>
+          <p className="rc-sub">{n.lede}</p>
+          {shown && (
+            <div className="rl-join nm-opts">
+              <span>{n.decimal}</span>
+              <Choice
+                label={n.decimal}
+                hideLabel
+                value={shown.decimal}
+                options={Object.entries(n.decimals) as [NumberFormat["decimal"], string][]}
+                onChange={(decimal) => set({ decimal })}
+              />
+              <span>{n.scale}</span>
+              <Choice
+                label={n.scale}
+                hideLabel
+                value={String(shown.scale)}
+                options={scales.map((s) => [String(s), n.scales(s)] as const)}
+                onChange={(s) => set({ scale: Number(s) })}
+              />
+              <Tick isSelected={shown.suffixes} onChange={(suffixes) => set({ suffixes })}>
+                {n.suffixes}
+              </Tick>
+            </div>
+          )}
+          {v?.guessed && <p className="rc-sub">{n.guessed}</p>}
+          {v && (
+            <div className={`rc-meter ${good ? "ok" : "bad"}`}>
+              <b>
+                {good && "✓ "}
+                {n.read(v.read, v.total - v.blank)}
+              </b>
+              <span className="rc-was">
+                {[
+                  v.median != null && v.low != null && v.high != null
+                    ? n.spread(amount(v.symbol, v.median), amount(v.symbol, v.low), amount(v.symbol, v.high))
+                    : null,
+                  v.failed ? n.failed(v.failed) : null,
+                  v.blank ? n.blank(v.blank) : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </div>
+          )}
+          {v?.hint && (
+            <p className="rc-suggest">
+              <b>{v.hint.reason}</b>{" "}
+              <Button className="wiz-link" onPress={() => set({ scale: v.hint?.scale ?? 1 })}>
+                {n.readAs(n.scales(v.hint.scale))}
+              </Button>
+            </p>
+          )}
+          {v && !v.hint && v.assessed != null && v.assessed_field && (
+            <p className="rc-sub">{n.assessed(v.assessed, v.assessed_field)}</p>
+          )}
+          {v && v.excel > 0 && <p className="rc-suggest nm-warn">{n.excel(v.excel)}</p>}
+          {v && showOdd && (
+            <div className="nm-odd">
+              <span>
+                <b>{n.odd}</b> {n.oddCounts(v.zero, v.nominal, v.negative, under)}
+              </span>
+              {v.rule ? (
+                <span className="wiz-ok">{n.leftOut(under)}</span>
+              ) : fromColumn ? (
+                <span className="wiz-from">{n.cantLeaveOut}</span>
+              ) : (
+                <Tick isSelected={leave} onChange={setLeave}>
+                  {n.leaveOut(under)}
+                </Tick>
+              )}
+            </div>
+          )}
+          {v && (
+            <table className="rc-tbl">
+              <thead>
+                <tr>
+                  <th className="rc-th">{n.asIs}</th>
+                  <th className="rc-th" />
+                  <th className="rc-th">{n.asRead}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {v.samples.map((s) => (
+                  <tr key={s.raw}>
+                    <td className="rc-td mono nm-raw">{s.raw}</td>
+                    <td className="rc-td rc-arrow">→</td>
+                    <td className="rc-td mono">
+                      {s.read != null ? (
+                        s.read.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      ) : (
+                        <span className="rc-miss">✗ {n.notRead}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {preview.error && (
+            <p className="error" role="alert">
+              {preview.error.message}
+            </p>
+          )}
+          <div className="form-actions rc-actions">
+            <Button className="button" onPress={close}>
+              {n.cancel}
+            </Button>
+            <Button
+              className="button button-primary"
+              isDisabled={!v || v.read === 0 || !shown}
+              onPress={() => {
+                if (!shown) return;
+                const keep: Condition[] = valid?.rule?.conditions ?? [];
+                const test: Condition = { column, op: ">=", values: ["1000"] };
+                save(shown, offerLeave && leave ? { join: "all", conditions: [...keep, test] } : null);
+              }}
+            >
+              {n.save}
             </Button>
           </div>
         </Dialog>

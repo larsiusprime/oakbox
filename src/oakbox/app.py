@@ -128,6 +128,15 @@ class WizardFieldChoice(BaseModel):
     assume: bool = Field(default=False, description="Valid/vacant sale only: all valid, none vacant.")
     date_format: str | None = Field(default=None, description="Dates: the format to read it with.")
     area_unit: datafiles.AreaUnit | None = Field(default=None, description="Areas: the unit the column is in.")
+    number_format: datafiles.NumberFormat | None = Field(
+        default=None, description="Money written as text: how to read it. None: worked out from the column."
+    )
+
+
+class WizardNumbers(BaseModel):
+    key: str
+    column: str
+    format: datafiles.NumberFormat | None = Field(default=None, description="None: the saved one, or as detected.")
 
 
 class DateFormatCheck(BaseModel):
@@ -574,7 +583,7 @@ def create_app() -> FastAPI:
         return _change(
             project_id,
             lambda p, d: wizard.set_field(
-                p, d, key, body.file, body.column, body.assume, body.date_format, body.area_unit
+                p, d, key, body.file, body.column, body.assume, body.date_format, body.area_unit, body.number_format
             ),
         )
 
@@ -641,6 +650,20 @@ def create_app() -> FastAPI:
         _entry(project, name)
         try:
             return wizard.date_preview(project, projects.project_dir(project_id) / "in", name, body.column, body.format)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+
+    @app.post("/api/projects/{project_id}/wizard/files/{name}/numbers")
+    def wizard_numbers(project_id: str, name: str, body: WizardNumbers) -> wizard.NumberPreview:
+        """A money column read with a format, as OpenAVMKit reads it, with checks on the amounts (F3d)."""
+        project = _load(project_id)
+        _entry(project, name)
+        try:
+            return wizard.number_preview(
+                project, projects.project_dir(project_id) / "in", name, body.key, body.column, body.format
+            )
+        except LookupError as e:
+            raise HTTPException(404, f"{body.key} isn't an amount of money.") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
 

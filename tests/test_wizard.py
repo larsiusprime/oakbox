@@ -872,3 +872,82 @@ def test_map_layers_stamped_onto_parcels_or_measured_to(client, tmp_path, monkey
     # Nothing taken from it now, but still listed: OpenAVMKit loads it without tripping on its missing columns.
     assert _settings(pid)["data"]["load"]["schools"] == {"filename": "schools.shp", "dupes": "allow"}
     assert len(load_dataframes(load_settings("in/settings.json"))["schools"]) == 1
+
+
+def test_prices_written_as_text_are_read_and_their_scale_checked(client, tmp_path, monkeypatch):
+    """$250,000.00, (10), N/A: read by a calc OpenAVMKit runs; a price in thousands is caught by the assessed values."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    n = 30
+    assessed = [200_000 + 5_000 * i for i in range(n)]
+    gpd.GeoDataFrame(
+        {"ID": [str(i) for i in range(n)], "VALUE": assessed},
+        geometry=[box(i, 0, i + 1, 1) for i in range(n)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    prices = [int(a * 1.1) for a in assessed]
+    written = [f"${p:,.2f}" for p in prices]
+    written[1], written[2], written[3] = "(10)", "N/A", ""
+    pd.DataFrame(
+        {
+            "PID": [str(i) for i in range(n)],
+            "PRICE": written,
+            "IN_THOUSANDS": [f"{p / 1000:g}" for p in prices],
+            "DATE": ["2024-01-02"] * n,
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/assr_market_value", json={"file": "geo_parcels", "column": "VALUE"})
+    client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
+
+    # Not plain numbers: read as text with a format worked out from the whole column, not refused.
+    w = client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"}).json()
+    price = _field(w, "sale_price")
+    assert price["number_format"] == {"decimal": ".", "suffixes": False, "scale": 1.0}
+    assert price["check"] == {
+        "ok": True,
+        "text": "✓ median $308K",
+        "warn": False,
+        "issues": [],
+        "share": None,
+    }
+    numbers = f"/api/projects/{pid}/wizard/files/sale/numbers"
+    view = client.post(numbers, json={"key": "sale_price", "column": "PRICE"}).json()
+    assert (view["read"], view["blank"], view["failed"], view["negative"]) == (28, 2, 0, 1)
+    assert view["hint"] is None and 1.05 < view["assessed"] < 1.15
+    assert {"raw": "(10)", "read": -10.0} in view["samples"]
+    entry = _settings(pid)["data"]["load"]["sale"]
+    assert entry["load"]["sale_price_text"] == ["PRICE", "string"] and "sale_price" not in entry["load"]
+
+    # Plain numbers, but in thousands: the assessed values give it away, and say what to read them as.
+    w = client.put(f"{field}/sale_price", json={"file": "sale", "column": "IN_THOUSANDS"}).json()
+    assert _field(w, "sale_price")["check"]["text"] == "median $299.75 · in thousands?"
+    assert _field(w, "sale_price")["number_format"] is None  # read as a plain float column until told otherwise
+    view = client.post(numbers, json={"key": "sale_price", "column": "IN_THOUSANDS"}).json()
+    assert view["hint"]["scale"] == 1000 and view["nominal"] == 30
+    fmt = {"decimal": ".", "suffixes": False, "scale": 1000}
+    w = client.put(f"{field}/sale_price", json={"file": "sale", "column": "IN_THOUSANDS", "number_format": fmt}).json()
+    assert _field(w, "sale_price")["check"]["text"] == "✓ median $300K"
+
+    # Back to the formatted column, and the $10 deed left out of valid sales by a price test the rule reads as read.
+    client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
+    rule = {"join": "all", "conditions": [{"column": "PRICE", "op": ">=", "values": ["1000"]}]}
+    w = client.put(f"{field}/valid_sale/rule", json=rule).json()
+    assert _field(w, "valid_sale")["check"]["text"] == "✓ 27 of 30 valid (90%)"
+    assert client.post(numbers, json={"key": "sale_price", "column": "PRICE"}).json()["rule"]
+    client.put(f"{field}/vacant_sale", json={"assume": True})
+    entry = _settings(pid)["data"]["load"]["sale"]
+    # Its own copy of the price: OpenAVMKit drops a calculated field another calc uses.
+    assert entry["calc"]["valid_sale"] == ["?", [">=", "sale_price_num", 1000.0]]
+    assert entry["calc"]["sale_price_num"] == entry["calc"]["sale_price"]
+    assert list(entry["calc"]).index("sale_price_num") < list(entry["calc"]).index("valid_sale")
+
+    _, sales = _engine(pid, monkeypatch)
+    sales = sales.sort_values("key", key=lambda s: s.astype(int))
+    got = sales["sale_price"].tolist()
+    assert got[0] == prices[0] and got[1] == -10 and pd.isna(got[2]) and pd.isna(got[3])
+    assert sales["valid_sale"].tolist() == [True, False, False, False] + [True] * (n - 4)

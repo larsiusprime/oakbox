@@ -37,3 +37,5 @@ export type Rule = components["schemas"]["Rule-Output"];
 export type Condition = components["schemas"]["Condition-Output"];
 export type Overlay = components["schemas"]["Overlay-Output"];
 export type LayerView = components["schemas"]["LayerView"];
+export type NumberPreview = components["schemas"]["NumberPreview"];
+export type NumberFormat = components["schemas"]["NumberFormat-Output"];

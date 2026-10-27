@@ -134,6 +134,45 @@ def overlay_distance(name: str, o: Overlay) -> dict:
     return out
 
 
+class NumberFormat(BaseModel):
+    """How to read a column of money written as text ($250,000.00, 250.000,00, $250K, (10)) as a number (F3d)."""
+
+    decimal: Literal[".", ","] = Field(default=".", description="The decimal mark; the other one groups thousands.")
+    suffixes: bool = Field(default=False, description="K and M stand for thousands and millions ($250K, $1.2M).")
+    scale: float = Field(default=1, gt=0, description="Multiply by this once read: 1000 for $1,000s, 0.01 for cents.")
+
+
+# Anything that isn't a plain number once cleaned up (N/A, TBD, -, blank) reads as missing: asfloat fails on
+# text, so it's turned into "nan" first.
+NOT_A_NUMBER = r"^(?![-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$).*$"
+
+
+def number_helper(field: str) -> str:
+    """The name the column's text is loaded under, before it's read as the field."""
+    return f"{field}_text"
+
+
+def number_calc(field: str, fmt: NumberFormat) -> list:
+    """The OpenAVMKit calc that reads the text loaded as number_helper(field) as a number."""
+    # Keep digits, the marks, parentheses, signs, E (1.11E+06) and K/M; drop $, spaces, currency codes, words.
+    e: Any = [
+        "replace_regex",
+        number_helper(field),
+        {r"[^0-9.,()+\-eEkKmM]": "", r"^\((.*)\)$": r"-\1"},  # (10) is -10, as accounts write it
+    ]
+    e = ["replace", e, {",": ""} if fmt.decimal == "." else {".": "", ",": "."}]
+    text = e
+    if fmt.suffixes:
+        e = ["replace_regex", e, {"[kKmM]$": ""}]
+    e = ["asfloat", ["replace_regex", e, {NOT_A_NUMBER: "nan"}]]
+    if fmt.suffixes:
+        times = ["replace_regex", text, {"^.*[kK]$": "K", "^.*[mM]$": "M", "^(?![KM]$).*$": "1"}]
+        e = ["*", e, ["asfloat", ["replace", times, {"K": "1000", "M": "1000000"}]]]
+    if fmt.scale != 1:
+        e = ["*", e, fmt.scale]
+    return e
+
+
 CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
 
 
@@ -326,6 +365,9 @@ class DataFile(BaseModel):
         default_factory=dict, description="Area field -> the unit its column is in; converted as it loads (F3d)."
     )
     overlay: Overlay | None = Field(default=None, description="A map layer's use (holds overlay, F3d).")
+    numbers: dict[str, NumberFormat] = Field(
+        default_factory=dict, description="Number field -> how its column's text is read (money written as text)."
+    )
 
 
 class FileCheck(BaseModel):
@@ -477,7 +519,12 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
             entry["layer"] = f.layer
         load: dict[str, list[str]] = overlay_load(f.overlay) if f.holds == "overlay" and f.overlay else {}
         areas: dict[str, list] = {}
+        numbers: dict[str, list] = {}
         for field, spec in f.load.items():
+            if field in f.numbers:
+                load[number_helper(field)] = [spec[0], "string"]
+                numbers[field] = number_calc(field, f.numbers[field])
+                continue
             written = area_key(field, units)
             native = f.area_units.get(field, small_unit(units))
             if field in AREA_FIELDS and native != small_unit(units):
@@ -486,10 +533,19 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
                 areas[written] = ["*", helper, SQFT_PER[native] / SQFT_PER[small_unit(units)]]
             else:
                 load[written] = spec
+        # Rules read a number field as the number it's read as, not as its text.
+        read_as = {k: v for k, v in load.items() if k not in {number_helper(n) for n in numbers}}
+        read_as |= {n: [f.load[n][0], "float"] for n in numbers}
         rules = {}
         for key, rule in f.rules.items():
-            names = rule_fields(load, rule)
-            for column, (field, kind) in names.items():
+            names = rule_fields(read_as, rule)
+            for column, (field, kind) in list(names.items()):
+                if field in numbers:
+                    # Its own copy: OpenAVMKit drops a calculated field that another calc uses (as an
+                    # ingredient), which would take the sale price itself away.
+                    names[column] = (f"{field}_num", "float")
+                    numbers[f"{field}_num"] = number_calc(field, f.numbers[field])
+                    continue
                 if field not in load:
                     load[field] = [column, kind]
                 elif kind == "float" and load[field][1:2] == ["string"]:
@@ -498,7 +554,13 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
         if load:
             entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in load.items()}
         # Cleaned IDs first: the other calcs (a made sale ID, valid/vacant rules) use them.
-        calc = {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps} | areas | rules | f.calc
+        calc = (
+            {field: clean_calc(field, steps) for field, steps in f.clean.items() if steps}
+            | numbers
+            | areas
+            | rules
+            | f.calc
+        )
         if calc:
             entry["calc"] = calc
         if f.holds == "parcels":

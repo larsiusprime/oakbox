@@ -673,6 +673,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Numbers
+         * @description A money column read with a format, as OpenAVMKit reads it, with checks on the amounts (F3d).
+         */
+        post: operations["wizard_numbers_api_projects__project_id__wizard_files__name__numbers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -1013,6 +1033,13 @@ export interface components {
             };
             /** @description A map layer's use (holds overlay, F3d). */
             overlay: components["schemas"]["Overlay-Output"] | null;
+            /**
+             * Numbers
+             * @description Number field -> how its column's text is read (money written as text).
+             */
+            numbers: {
+                [key: string]: components["schemas"]["NumberFormat-Output"];
+            };
         };
         /** DateCheck */
         DateCheck: {
@@ -1509,6 +1536,140 @@ export interface components {
             columns: string[];
         };
         /**
+         * NumberFormat
+         * @description How to read a column of money written as text ($250,000.00, 250.000,00, $250K, (10)) as a number (F3d).
+         */
+        "NumberFormat-Input": {
+            /**
+             * Decimal
+             * @description The decimal mark; the other one groups thousands.
+             * @default .
+             * @enum {string}
+             */
+            decimal: "." | ",";
+            /**
+             * Suffixes
+             * @description K and M stand for thousands and millions ($250K, $1.2M).
+             * @default false
+             */
+            suffixes: boolean;
+            /**
+             * Scale
+             * @description Multiply by this once read: 1000 for $1,000s, 0.01 for cents.
+             * @default 1
+             */
+            scale: number;
+        };
+        /**
+         * NumberFormat
+         * @description How to read a column of money written as text ($250,000.00, 250.000,00, $250K, (10)) as a number (F3d).
+         */
+        "NumberFormat-Output": {
+            /**
+             * Decimal
+             * @description The decimal mark; the other one groups thousands.
+             * @default .
+             * @enum {string}
+             */
+            decimal: "." | ",";
+            /**
+             * Suffixes
+             * @description K and M stand for thousands and millions ($250K, $1.2M).
+             * @default false
+             */
+            suffixes: boolean;
+            /**
+             * Scale
+             * @description Multiply by this once read: 1000 for $1,000s, 0.01 for cents.
+             * @default 1
+             */
+            scale: number;
+        };
+        /** NumberPreview */
+        NumberPreview: {
+            /** Key */
+            key: string;
+            /** Column */
+            column: string;
+            format: components["schemas"]["NumberFormat-Output"];
+            detected: components["schemas"]["NumberFormat-Output"];
+            /**
+             * Guessed
+             * @description The decimal mark is the project's, as the values don't settle it.
+             */
+            guessed: boolean;
+            /**
+             * Symbol
+             * @description The project's currency symbol, for showing amounts.
+             */
+            symbol: string;
+            /** Total */
+            total: number;
+            /**
+             * Blank
+             * @description Blank, or a placeholder (N/A, TBD, -).
+             */
+            blank: number;
+            /** Read */
+            read: number;
+            /** Failed */
+            failed: number;
+            /** Zero */
+            zero: number;
+            /**
+             * Nominal
+             * @description Above zero but under 1,000: a nominal deed, not a price.
+             */
+            nominal: number;
+            /** Negative */
+            negative: number;
+            /**
+             * Excel
+             * @description Written as Excel writes big numbers (1.11E+06): the exact amount is lost.
+             */
+            excel: number;
+            /** Median */
+            median: number | null;
+            /**
+             * Low
+             * @description 10th percentile.
+             */
+            low: number | null;
+            /**
+             * High
+             * @description 90th percentile.
+             */
+            high: number | null;
+            /**
+             * Assessed
+             * @description Sale prices: the typical ratio of price to assessed value.
+             */
+            assessed: number | null;
+            /** Assessed Field */
+            assessed_field: string | null;
+            hint: components["schemas"]["ScaleHint"] | null;
+            /**
+             * Samples
+             * @description Ones that don't read first, then a spread of ones that do.
+             */
+            samples: components["schemas"]["NumberSample"][];
+            /**
+             * Rule
+             * @description The valid-sale rule already leaves out prices under the nominal amount.
+             */
+            rule: boolean;
+        };
+        /** NumberSample */
+        NumberSample: {
+            /** Raw */
+            raw: string;
+            /**
+             * Read
+             * @description As OpenAVMKit reads it, or None if it doesn't.
+             */
+            read: number | null;
+        };
+        /**
          * Overlay
          * @description A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.
          *
@@ -1945,6 +2106,18 @@ export interface components {
              */
             hit: boolean;
         };
+        /** ScaleHint */
+        ScaleHint: {
+            /**
+             * Scale
+             * @description The scale to read it with instead.
+             */
+            scale: number;
+            /** Reason */
+            reason: string;
+            /** Short */
+            short: string;
+        };
         /** Source */
         Source: {
             /** File */
@@ -2158,6 +2331,8 @@ export interface components {
              * @description Areas: the unit its column is in.
              */
             area_unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+            /** @description Money written as text: how it's read. None: read as plain numbers. */
+            number_format: components["schemas"]["NumberFormat-Output"] | null;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -2181,6 +2356,8 @@ export interface components {
              * @description Areas: the unit the column is in.
              */
             area_unit?: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+            /** @description Money written as text: how to read it. None: worked out from the column. */
+            number_format?: components["schemas"]["NumberFormat-Input"] | null;
         };
         /** WizardFile */
         WizardFile: {
@@ -2292,6 +2469,15 @@ export interface components {
              * @description None removes the location field.
              */
             column?: string | null;
+        };
+        /** WizardNumbers */
+        WizardNumbers: {
+            /** Key */
+            key: string;
+            /** Column */
+            column: string;
+            /** @description None: the saved one, or as detected. */
+            format?: components["schemas"]["NumberFormat-Input"] | null;
         };
         /** WizardReconcile */
         WizardReconcile: {
@@ -3605,6 +3791,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DatePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_numbers_api_projects__project_id__wizard_files__name__numbers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardNumbers"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NumberPreview"];
                 };
             };
             /** @description Validation Error */

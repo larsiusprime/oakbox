@@ -22,6 +22,7 @@ import { navigate } from "../App";
 import {
   api,
   type CleanStep,
+  type NumberFormat,
   type Project,
   type ProjectDetail,
   type Rule,
@@ -40,7 +41,7 @@ import { Choice, Tick } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
-import { DateDialog, RuleDialog, ruleComplete } from "./FieldRules";
+import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { LocationExtras } from "./Location";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
@@ -305,6 +306,7 @@ type Change =
       assume?: boolean;
       date_format?: string;
       area_unit?: AreaUnit;
+      number_format?: NumberFormat;
     }
   | { kind: "rule"; key: string; rule: Rule }
   | { kind: "location"; name: string; file: string | null; column: string | null }
@@ -389,6 +391,7 @@ function useChange(projectId: string) {
             assume: c.assume ?? false,
             date_format: c.date_format ?? null,
             area_unit: c.area_unit ?? null,
+            number_format: c.number_format ?? null,
           },
         }),
       );
@@ -1187,6 +1190,11 @@ function groupsFor(step: string, fields: WizardField[]): [string | null, WizardF
     .map(([title, group]) => [title, [...group]]);
 }
 
+/** Amounts of money: read with a format when written as text, and checked for scale (SPEC F3d). */
+function isMoney(key: string): boolean {
+  return key === "sale_price" || (key.startsWith("assr_") && key.endsWith("_value"));
+}
+
 function FieldRow({
   project,
   data,
@@ -1209,6 +1217,8 @@ function FieldRow({
   const [elsewhere, setElsewhere] = useState(false);
   const [ruling, setRuling] = useState(false);
   const [dating, setDating] = useState(false);
+  const [reading, setReading] = useState(false);
+  const money = isMoney(field.key);
   // Under a numbered title, the field's own name only when it says more ("4. Quality" needs no "Quality").
   const name = shortName(field);
   const same = label?.replace(/^\d+\.\s*/, "").toLowerCase() === name.toLowerCase();
@@ -1227,8 +1237,10 @@ function FieldRow({
       void change({ kind: "field", key: field.key, file: file ?? null, column: col ?? null })
         .then((next) => {
           // Not yes/no (Q/U, a deed code): straight on to choosing which values mean yes (SPEC F3d).
-          const rule = next.fields.find((f) => f.key === field.key)?.rule;
-          if (rule && !ruleComplete(rule)) setRuling(true);
+          const now = next.fields.find((f) => f.key === field.key);
+          if (now?.rule && !ruleComplete(now.rule)) setRuling(true);
+          // A sale price that needs reading, or whose amounts look wrong: straight to how it's read.
+          if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn)) setReading(true);
         })
         .catch(() => {});
     }
@@ -1291,6 +1303,11 @@ function FieldRow({
                 {field.check?.warn || !field.check?.ok ? w.dates.check : w.dates.change}
               </Button>
             )}
+            {sourceFile && column && money && (
+              <Button className="wiz-link wiz-resolve" onPress={() => setReading(true)}>
+                {field.check?.warn || !field.check?.ok ? w.numbers.check : w.numbers.change}
+              </Button>
+            )}
             {column && column.samples.length > 0 && !field.rule && (
               <span className="wiz-sample-values">
                 {field.check ? " · " : ""}
@@ -1329,6 +1346,30 @@ function FieldRow({
               date_format,
             })
               .then(() => setDating(false))
+              .catch(() => {})
+          }
+        />
+      )}
+      {reading && sourceFile && source && (
+        <NumberDialog
+          projectId={project.id}
+          field={field}
+          file={sourceFile}
+          column={source.column}
+          valid={data.fields.find((f) => f.key === "valid_sale")}
+          close={() => setReading(false)}
+          save={(number_format, leaveOut) =>
+            void change({
+              kind: "field",
+              key: field.key,
+              file: source.file,
+              column: source.column,
+              number_format,
+            })
+              .then(() =>
+                leaveOut ? change({ kind: "rule", key: "valid_sale", rule: leaveOut }) : undefined,
+              )
+              .then(() => setReading(false))
               .catch(() => {})
           }
         />

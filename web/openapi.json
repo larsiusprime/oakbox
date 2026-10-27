@@ -1772,6 +1772,65 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/numbers": {
+   "post": {
+    "summary": "Wizard Numbers",
+    "description": "A money column read with a format, as OpenAVMKit reads it, with checks on the amounts (F3d).",
+    "operationId": "wizard_numbers_api_projects__project_id__wizard_files__name__numbers_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardNumbers"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NumberPreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -2436,6 +2495,14 @@
        }
       ],
       "description": "A map layer's use (holds overlay, F3d)."
+     },
+     "numbers": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/NumberFormat-Output"
+      },
+      "type": "object",
+      "title": "Numbers",
+      "description": "Number field -> how its column's text is read (money written as text)."
      }
     },
     "type": "object",
@@ -2454,7 +2521,8 @@
      "clean",
      "rules",
      "area_units",
-     "overlay"
+     "overlay",
+     "numbers"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -3535,6 +3603,267 @@
     ],
     "title": "NotLoaded"
    },
+   "NumberFormat-Input": {
+    "properties": {
+     "decimal": {
+      "type": "string",
+      "enum": [
+       ".",
+       ","
+      ],
+      "title": "Decimal",
+      "description": "The decimal mark; the other one groups thousands.",
+      "default": "."
+     },
+     "suffixes": {
+      "type": "boolean",
+      "title": "Suffixes",
+      "description": "K and M stand for thousands and millions ($250K, $1.2M).",
+      "default": false
+     },
+     "scale": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Scale",
+      "description": "Multiply by this once read: 1000 for $1,000s, 0.01 for cents.",
+      "default": 1
+     }
+    },
+    "type": "object",
+    "title": "NumberFormat",
+    "description": "How to read a column of money written as text ($250,000.00, 250.000,00, $250K, (10)) as a number (F3d)."
+   },
+   "NumberFormat-Output": {
+    "properties": {
+     "decimal": {
+      "type": "string",
+      "enum": [
+       ".",
+       ","
+      ],
+      "title": "Decimal",
+      "description": "The decimal mark; the other one groups thousands.",
+      "default": "."
+     },
+     "suffixes": {
+      "type": "boolean",
+      "title": "Suffixes",
+      "description": "K and M stand for thousands and millions ($250K, $1.2M).",
+      "default": false
+     },
+     "scale": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Scale",
+      "description": "Multiply by this once read: 1000 for $1,000s, 0.01 for cents.",
+      "default": 1
+     }
+    },
+    "type": "object",
+    "required": [
+     "decimal",
+     "suffixes",
+     "scale"
+    ],
+    "title": "NumberFormat",
+    "description": "How to read a column of money written as text ($250,000.00, 250.000,00, $250K, (10)) as a number (F3d)."
+   },
+   "NumberPreview": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "format": {
+      "$ref": "#/components/schemas/NumberFormat-Output"
+     },
+     "detected": {
+      "$ref": "#/components/schemas/NumberFormat-Output"
+     },
+     "guessed": {
+      "type": "boolean",
+      "title": "Guessed",
+      "description": "The decimal mark is the project's, as the values don't settle it."
+     },
+     "symbol": {
+      "type": "string",
+      "title": "Symbol",
+      "description": "The project's currency symbol, for showing amounts."
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "blank": {
+      "type": "integer",
+      "title": "Blank",
+      "description": "Blank, or a placeholder (N/A, TBD, -)."
+     },
+     "read": {
+      "type": "integer",
+      "title": "Read"
+     },
+     "failed": {
+      "type": "integer",
+      "title": "Failed"
+     },
+     "zero": {
+      "type": "integer",
+      "title": "Zero"
+     },
+     "nominal": {
+      "type": "integer",
+      "title": "Nominal",
+      "description": "Above zero but under 1,000: a nominal deed, not a price."
+     },
+     "negative": {
+      "type": "integer",
+      "title": "Negative"
+     },
+     "excel": {
+      "type": "integer",
+      "title": "Excel",
+      "description": "Written as Excel writes big numbers (1.11E+06): the exact amount is lost."
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low",
+      "description": "10th percentile."
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High",
+      "description": "90th percentile."
+     },
+     "assessed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Assessed",
+      "description": "Sale prices: the typical ratio of price to assessed value."
+     },
+     "assessed_field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Assessed Field"
+     },
+     "hint": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ScaleHint"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "samples": {
+      "items": {
+       "$ref": "#/components/schemas/NumberSample"
+      },
+      "type": "array",
+      "title": "Samples",
+      "description": "Ones that don't read first, then a spread of ones that do."
+     },
+     "rule": {
+      "type": "boolean",
+      "title": "Rule",
+      "description": "The valid-sale rule already leaves out prices under the nominal amount."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "column",
+     "format",
+     "detected",
+     "guessed",
+     "symbol",
+     "total",
+     "blank",
+     "read",
+     "failed",
+     "zero",
+     "nominal",
+     "negative",
+     "excel",
+     "median",
+     "low",
+     "high",
+     "assessed",
+     "assessed_field",
+     "hint",
+     "samples",
+     "rule"
+    ],
+    "title": "NumberPreview"
+   },
+   "NumberSample": {
+    "properties": {
+     "raw": {
+      "type": "string",
+      "title": "Raw"
+     },
+     "read": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Read",
+      "description": "As OpenAVMKit reads it, or None if it doesn't."
+     }
+    },
+    "type": "object",
+    "required": [
+     "raw",
+     "read"
+    ],
+    "title": "NumberSample"
+   },
    "Overlay-Input": {
     "properties": {
      "use": {
@@ -4429,6 +4758,30 @@
     ],
     "title": "Sample"
    },
+   "ScaleHint": {
+    "properties": {
+     "scale": {
+      "type": "number",
+      "title": "Scale",
+      "description": "The scale to read it with instead."
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason"
+     },
+     "short": {
+      "type": "string",
+      "title": "Short"
+     }
+    },
+    "type": "object",
+    "required": [
+     "scale",
+     "reason",
+     "short"
+    ],
+    "title": "ScaleHint"
+   },
    "Source": {
     "properties": {
      "file": {
@@ -4915,6 +5268,17 @@
       ],
       "title": "Area Unit",
       "description": "Areas: the unit its column is in."
+     },
+     "number_format": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/NumberFormat-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Money written as text: how it's read. None: read as plain numbers."
      }
     },
     "type": "object",
@@ -4931,7 +5295,8 @@
      "hidden",
      "rule",
      "date_format",
-     "area_unit"
+     "area_unit",
+     "number_format"
     ],
     "title": "WizardField"
    },
@@ -4998,6 +5363,17 @@
       ],
       "title": "Area Unit",
       "description": "Areas: the unit the column is in."
+     },
+     "number_format": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/NumberFormat-Input"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Money written as text: how to read it. None: worked out from the column."
      }
     },
     "type": "object",
@@ -5316,6 +5692,35 @@
     },
     "type": "object",
     "title": "WizardLocation"
+   },
+   "WizardNumbers": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "format": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/NumberFormat-Input"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "None: the saved one, or as detected."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "column"
+    ],
+    "title": "WizardNumbers"
    },
    "WizardReconcile": {
     "properties": {

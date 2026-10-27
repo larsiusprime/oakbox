@@ -347,6 +347,58 @@ export const t = {
       cancel: "Cancel",
       save: "Save",
     },
+    // Money written as text ($250,000.00, 250.000,00, $250K): how to read it, and whether the amounts look right.
+    numbers: {
+      change: "Change how it's read…",
+      check: "Check amounts…",
+      title: (column: string) => `How to read ${column}`,
+      lede: "Amounts are read exactly as OpenAVMKit will read them. Currency signs, spaces and the thousands separator are dropped, (10) is −10, and N/A, TBD, - and blanks are missing.",
+      decimal: "Decimal mark",
+      decimals: { ".": "point: 1,234.56", ",": "comma: 1.234,56" } as Record<string, string>,
+      guessed:
+        "The amounts don't settle the decimal mark (1.234 could be one or a thousand), so it's the project's number style.",
+      suffixes: "K and M mean thousands and millions ($250K, $1.2M)",
+      scale: "Amounts are",
+      scales: (s: number) =>
+        s === 1
+          ? "as written"
+          : s === 1000
+            ? "in thousands (× 1,000)"
+            : s === 1_000_000
+              ? "in millions (× 1,000,000)"
+              : s === 0.01
+                ? "in cents (÷ 100)"
+                : s > 1
+                  ? `× ${s.toLocaleString()}`
+                  : `÷ ${(1 / s).toLocaleString()}`,
+      read: (read: number, total: number) => `${read.toLocaleString()} of ${total.toLocaleString()} read`,
+      spread: (median: string, low: string, high: string) =>
+        `median ${median} · most between ${low} and ${high}`,
+      blank: (n: number) => `${n.toLocaleString()} blank or N/A`,
+      failed: (n: number) => `${n.toLocaleString()} don't read`,
+      readAs: (s: string) => `Read them ${s}`,
+      assessed: (ratio: number, field: string) =>
+        `A typical sale is ${ratio.toLocaleString(undefined, { maximumSignificantDigits: 3 })} × the ${field === "assr_land_value" ? "assessed land value" : "assessed value"}: the scale looks right.`,
+      excel: (n: number) =>
+        `${n.toLocaleString()} were rounded by Excel (1.11E+06): the exact amount is lost and can't be recovered. Re-export the file with the column formatted as a number.`,
+      odd: "Not market prices:",
+      oddCounts: (zero: number, nominal: number, negative: number, under: string) =>
+        [
+          zero ? `${zero.toLocaleString()} zero` : null,
+          nominal ? `${nominal.toLocaleString()} under ${under} (nominal deeds)` : null,
+          negative ? `${negative.toLocaleString()} negative` : null,
+        ]
+          .filter(Boolean)
+          .join(", "),
+      leaveOut: (under: string) => `Leave prices under ${under} out of valid sales`,
+      leftOut: (under: string) => `✓ The valid-sale rule leaves out prices under ${under}.`,
+      cantLeaveOut: "Valid sales come from a column: add a price test to it with a rule to leave these out.",
+      asIs: "As written",
+      asRead: "Read as",
+      notRead: "doesn't read",
+      cancel: "Cancel",
+      save: "Save",
+    },
     areaUnitFor: (name: string) => `Unit of ${name.toLowerCase()} in the file`,
     // The unit a size column is in; OAK box converts to the project's square feet or square metres.
     areaUnits: {

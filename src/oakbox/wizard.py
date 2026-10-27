@@ -12,6 +12,7 @@ once per field, when its step is first shown, and never replaces a choice.
 from __future__ import annotations
 
 import json
+import math
 import random
 import re
 from collections import Counter
@@ -34,11 +35,14 @@ from oakbox.datafiles import (
     Dupes,
     Holds,
     Match,
+    NumberFormat,
     Overlay,
     Rule,
     clean_calc,
     clean_value,
     guess_area_unit,
+    number_calc,
+    number_helper,
     rule_fields,
     rule_filter,
     small_unit,
@@ -292,6 +296,9 @@ class WizardField(BaseModel):
     rule: Rule | None = Field(default=None, description="Yes/no worked out from columns (valid/vacant sale).")
     date_format: str | None = Field(default=None, description="Dates: the format it's read with.")
     area_unit: AreaUnit | None = Field(default=None, description="Areas: the unit its column is in.")
+    number_format: NumberFormat | None = Field(
+        default=None, description="Money written as text: how it's read. None: read as plain numbers."
+    )
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -781,6 +788,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 check = None
                 date_format = None
                 area_unit = None
+                number_format = None
                 if ruled and rule is not None and len(sources) == 1:
                     check = _rule_check(files, ruled, key, rule)
                 elif len(sources) == 1:
@@ -795,6 +803,10 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         check = field_check(d, col)[0]
                         if check.ok:
                             check = _area_check(files, entry, key, col.name, area_unit, project.units)
+                    elif col and is_money(key):
+                        entry = files.entry(sources[0].file)
+                        number_format = entry.numbers.get(key)
+                        check = _money_check(project, files, entry, key, col.name, number_format)
                     else:
                         check = field_check(d, col)[0] if col else Check(ok=False, text="not in the file")
                 elif len(sources) > 1:
@@ -818,6 +830,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         rule=rule,
                         date_format=date_format,
                         area_unit=area_unit,
+                        number_format=number_format,
                     )
                 )
 
@@ -1321,6 +1334,7 @@ def set_field(
     assume: bool,
     date_format: str | None = None,
     area_unit: AreaUnit | None = None,
+    number_format: NumberFormat | None = None,
 ) -> None:
     """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
 
@@ -1333,6 +1347,7 @@ def set_field(
     sales = _sales_file(project)
     target: DataFile | None = None
     spec: list[str] | None = None
+    reading: NumberFormat | None = None
     if file is not None and column is not None:
         target = next((f for f in allowed if f.name == file), None)
         if target is None:
@@ -1342,6 +1357,13 @@ def set_field(
             raise ValueError(f"{file} has no column {column}.")
         d = by_key[key]
         check, spec = field_check(d, col)
+        if is_money(key):
+            # Money written as text ($250,000.00, N/A): read with a format, worked out from the whole column.
+            entry = next(f for f in allowed if f.name == file)
+            values = _values(_stamp(in_dir / entry.filename), entry.layer, column)
+            reading = number_format or (None if _plain(values) else detect_number_format(values, project.numbers)[0])
+            if reading is not None:
+                spec = [column, "float"]
         if d.type == "date" and date_format:
             spec = [column, "datetime", date_format]
         elif spec is None and d.type == "boolean" and step.sales:
@@ -1357,6 +1379,7 @@ def set_field(
         f.load.pop(key, None)
         f.rules.pop(key, None)
         f.area_units.pop(key, None)
+        f.numbers.pop(key, None)
     if sales is not None and key in ASSUMABLE:
         sales.calc.pop(key, None)
     if target is not None and spec is None:
@@ -1365,6 +1388,8 @@ def set_field(
         target.load[key] = spec
         if key in AREA_FIELDS:
             target.area_units[key] = area_unit or guess_area_unit(cast(str, column)) or small_unit(project.units)
+        if reading is not None:
+            target.numbers[key] = reading
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if key not in project.wizard.decided:
@@ -1626,7 +1651,9 @@ def _rule_result(files: _Files, entry: DataFile, rule: Rule):
     frame = {}
     for column, (field, kind) in names.items():
         values = pd.Series(_values(stamp, entry.layer, column, raw=True))
-        if kind == "float":
+        if field in entry.numbers and entry.load.get(field, [None])[0] == column:
+            frame[field] = pd.Series(_read_numbers(stamp, entry.layer, column, entry.numbers[field].model_dump_json()))
+        elif kind == "float":
             frame[field] = pd.to_numeric(values.str.strip(), errors="coerce")
         else:
             frame[field] = values.mask(values.str.strip() == "").astype("string")
@@ -1876,6 +1903,276 @@ def _area_check(files: _Files, entry: DataFile, key: str, column: str, unit: str
     if median_sqft > high:
         return Check(ok=True, warn=True, text=f"{text} · very large: is it in a smaller unit?")
     return Check(ok=True, text=f"✓ {text}")
+
+
+# ---------- Money: reading it when it's written as text, and whether the amounts look right (F3d) ----------
+
+
+def is_money(key: str) -> bool:
+    return key == "sale_price" or (key.startswith("assr_") and key.endswith("_value"))
+
+
+# Written where there's no amount: read as missing, not as a failure.
+PLACEHOLDERS = {"", "-", "--", "n/a", "na", "none", "null", "nan", "tbd", "?", "unknown"}
+NOMINAL = 1_000  # sale prices under this are nominal (a $10 deed), not a market price
+TOO_BIG = 50_000_000  # a typical amount over this is likely in cents
+COMMA_STYLES = ("1.234,56", "1 234,56")
+EXCEL = re.compile(r"^\s*\$?\s*[-+]?\d(\.\d+)?[eE]\+?\d+\s*$")
+
+
+def _plain(values: tuple[str, ...]) -> bool:
+    """Every value a plain number (or blank), as OpenAVMKit reads a float column."""
+    for v in values:
+        if v:
+            try:
+                float(v)
+            except ValueError:
+                return False
+    return True
+
+
+def detect_number_format(values: tuple[str, ...], style: str) -> tuple[NumberFormat, bool]:
+    """How a column writes its amounts, and whether the decimal mark is a guess ("1.234": one or a thousand?).
+
+    The marks the values settle (250,000.00; 250.000,00; 12,5) decide it; failing that, the project's style."""
+    filled = [v.strip().rstrip(")") for v in values if v.strip()]
+    # 12,5 or 1.234,56 or 1.234.567: a decimal comma. 12.5 or 1,234.56 or 1,234,567: a decimal point.
+    comma = sum(1 for v in filled if re.search(r"\d,\d{1,2}$|\d\.\d{3},|\d\.\d{3}\.\d{3}", v))
+    dot = sum(1 for v in filled if re.search(r"\d\.\d{1,2}$|\d,\d{3}\.|\d,\d{3},\d{3}", v))
+    if comma != dot:
+        decimal = "," if comma > dot else "."
+        guess = False
+    else:
+        decimal = "," if style in COMMA_STYLES else "."
+        guess = any(re.search(r"^\D*\d{1,3}[.,]\d{3}\D*$", v) for v in filled)
+    suffixes = any(re.search(r"\d\s*[kKmM]$", v) for v in filled)
+    return NumberFormat(decimal=decimal, suffixes=suffixes), guess
+
+
+@lru_cache(maxsize=64)
+def _read_numbers(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str) -> tuple[float, ...]:
+    """The column read by OpenAVMKit's own calc, as number_calc writes it for the format (JSON)."""
+    import pandas as pd
+    from openavmkit.calculations import perform_calculations
+
+    values = pd.Series(_values(stamp, layer, column, raw=True), dtype="string")
+    df = pd.DataFrame({number_helper("x"): values.mask(values.str.strip() == "")})
+    out = perform_calculations(df, {"x": number_calc("x", NumberFormat.model_validate_json(fmt))})["x"]
+    return tuple(float(v) for v in out.tolist())
+
+
+class NumberSample(BaseModel):
+    raw: str
+    read: float | None = Field(description="As OpenAVMKit reads it, or None if it doesn't.")
+
+
+class ScaleHint(BaseModel):
+    scale: float = Field(description="The scale to read it with instead.")
+    reason: str
+    short: str
+
+
+class NumberPreview(BaseModel):
+    key: str
+    column: str
+    format: NumberFormat
+    detected: NumberFormat
+    guessed: bool = Field(description="The decimal mark is the project's, as the values don't settle it.")
+    symbol: str = Field(description="The project's currency symbol, for showing amounts.")
+    total: int
+    blank: int = Field(description="Blank, or a placeholder (N/A, TBD, -).")
+    read: int
+    failed: int
+    zero: int
+    nominal: int = Field(description=f"Above zero but under {NOMINAL:,}: a nominal deed, not a price.")
+    negative: int
+    excel: int = Field(description="Written as Excel writes big numbers (1.11E+06): the exact amount is lost.")
+    median: float | None
+    low: float | None = Field(description="10th percentile.")
+    high: float | None = Field(description="90th percentile.")
+    assessed: float | None = Field(description="Sale prices: the typical ratio of price to assessed value.")
+    assessed_field: str | None
+    hint: ScaleHint | None
+    samples: list[NumberSample] = Field(description="Ones that don't read first, then a spread of ones that do.")
+    rule: bool = Field(description="The valid-sale rule already leaves out prices under the nominal amount.")
+
+
+def _symbol(project: Project) -> str:
+    from oakbox.projects import locales
+
+    found = next((c["symbol"] for c in locales()["currencies"] if c["code"] == project.currency), project.currency)
+    return found if len(found) == 1 else f"{found} "
+
+
+def _amount(symbol: str, v: float) -> str:
+    if abs(v) >= 1_000_000:
+        return f"{symbol}{v / 1e6:,.2f}M"
+    if abs(v) >= 10_000:
+        return f"{symbol}{v / 1000:,.0f}K"
+    return f"{symbol}{v:,.0f}" if v == round(v) else f"{symbol}{v:,.2f}"
+
+
+def _assessed_ratio(
+    project: Project, files: _Files, entry: DataFile, prices: list[float]
+) -> tuple[float | None, str | None]:
+    """Sale prices: the median of price ÷ the parcel's assessed value, over sales that find one."""
+    import statistics
+
+    if entry.holds != "sales" or entry.match not in entry.load:
+        return None, None
+    for key in ("assr_market_value", "assr_land_value"):
+        parcel = next(
+            (f for f in project.files if key in f.load and entry.match in f.load and f.holds != "sales"), None
+        )
+        if parcel is None:
+            continue
+        stamp = _stamp(files.in_dir / parcel.filename)
+        fmt = parcel.numbers.get(key, NumberFormat()).model_dump_json()
+        values = _read_numbers(stamp, parcel.layer, parcel.load[key][0], fmt)
+        by_id: dict[str, float] = {}
+        for i, v in zip(files.ids(parcel.name, entry.match), values, strict=True):
+            by_id.setdefault(i, v)
+        ratios = [
+            p / a
+            for i, p in zip(files.ids(entry.name, entry.match), prices, strict=True)
+            if p == p and p >= NOMINAL and (a := by_id.get(i, 0.0)) == a and a > 0
+        ]
+        if len(ratios) >= 20:
+            return statistics.median(ratios), key
+    return None, None
+
+
+def _number_stats(project: Project, files: _Files, entry: DataFile, key: str, column: str, fmt: NumberFormat) -> dict:
+    import statistics
+
+    stamp = _stamp(files.in_dir / entry.filename)
+    raw = _values(stamp, entry.layer, column, raw=True)
+    read = _read_numbers(stamp, entry.layer, column, fmt.model_dump_json())
+    blank = sum(1 for v in raw if v.strip().lower() in PLACEHOLDERS)
+    got = [v for v in read if v == v]
+    positive = sorted(v for v in got if v > 0)
+    median = statistics.median(positive) if positive else None
+    ratio, against = _assessed_ratio(project, files, entry, list(read)) if key == "sale_price" else (None, None)
+    hint = None
+    symbol = _symbol(project)
+    if ratio is not None and (ratio >= 30 or ratio <= 1 / 30):
+        times = 10 ** round(-math.log10(ratio))
+        word = "thousands" if times == 1000 else "cents" if times == 0.01 else f"× {times:g}"
+        hint = ScaleHint(
+            scale=fmt.scale * times,
+            reason=f"Prices are about {ratio:,.3g} times the assessed values: they look like {word}.",
+            short=f"in {word}?",
+        )
+    elif median is not None and median < NOMINAL and (key != "sale_price" or ratio is None):
+        hint = ScaleHint(
+            scale=fmt.scale * 1000,
+            reason=f"A typical amount of {_amount(symbol, median)} is too small: it looks like thousands.",
+            short="in thousands?",
+        )
+    elif median is not None and median > TOO_BIG and ratio is None:
+        hint = ScaleHint(
+            scale=fmt.scale / 100,
+            reason=f"A typical amount of {_amount(symbol, median)} is too big: it looks like cents.",
+            short="in cents?",
+        )
+
+    def pct(q: float) -> float | None:
+        return positive[min(len(positive) - 1, int(q * len(positive)))] if positive else None
+
+    return dict(
+        raw=raw,
+        values=read,
+        total=len(raw),
+        blank=blank,
+        read=len(got),
+        failed=len(raw) - blank - len(got),
+        zero=sum(1 for v in got if v == 0),
+        nominal=sum(1 for v in got if 0 < v < NOMINAL),
+        negative=sum(1 for v in got if v < 0),
+        excel=sum(1 for v in raw if EXCEL.match(v) and abs(float(re.sub(r"[^0-9.eE+-]", "", v))) >= 1e5),
+        median=median,
+        low=pct(0.1),
+        high=pct(0.9),
+        assessed=ratio,
+        assessed_field=against,
+        hint=hint,
+    )
+
+
+def _money_check(
+    project: Project, files: _Files, entry: DataFile, key: str, column: str, fmt: NumberFormat | None
+) -> Check:
+    """'✓ median $254K', or what's wrong: values that don't read, a scale that looks off, Excel's rounding."""
+    s = _number_stats(project, files, entry, key, column, fmt or NumberFormat())
+    if s["read"] == 0:
+        return Check(ok=False, text="doesn't read as numbers: say how to read it")
+    parts = [f"median {_amount(_symbol(project), s['median'])}" if s["median"] is not None else "none above zero"]
+    warn = False
+    if s["failed"]:
+        parts.append(f"{s['failed']:,} don't read")
+        warn = True
+    if s["hint"] is not None:
+        parts.append(s["hint"].short)
+        warn = True
+    if s["excel"]:
+        parts.append(f"{s['excel']:,} rounded by Excel")
+        warn = True
+    return Check(ok=True, warn=warn, text=("" if warn else "✓ ") + " · ".join(parts))
+
+
+def number_preview(
+    project: Project, in_dir: Path, name: str, key: str, column: str, fmt: NumberFormat | None
+) -> NumberPreview:
+    """A money column read with a format, as OpenAVMKit will: counts, the spread, a scale check, samples."""
+    files = _Files(project, in_dir)
+    if not is_money(key):
+        raise LookupError(key)
+    if files.column(name, column) is None:
+        raise ValueError(f"{name} has no column {column}.")
+    entry = files.entry(name)
+    stamp = _stamp(in_dir / entry.filename)
+    detected, guessed = detect_number_format(_values(stamp, entry.layer, column), project.numbers)
+    use = fmt or entry.numbers.get(key) or detected
+    s = _number_stats(project, files, entry, key, column, use)
+    raw, values = s.pop("raw"), s.pop("values")
+    bad = list(
+        dict.fromkeys(v for v, x in zip(raw, values, strict=True) if v.strip().lower() not in PLACEHOLDERS and x != x)
+    )
+    odd = list(
+        dict.fromkeys(
+            i
+            for i, (v, x) in enumerate(zip(raw, values, strict=True))
+            if x == x and (x <= 0 or x < NOMINAL or EXCEL.match(v))
+        )
+    )
+    good = [i for i, x in enumerate(values) if x == x]
+    step = max(1, len(good) // 6)
+    picked = sorted(set(odd[:2] + good[::step][:6]))
+    samples = [NumberSample(raw=v, read=None) for v in bad[:3]]
+    seen = {x.raw for x in samples}
+    for i in picked:
+        if raw[i] not in seen and len(samples) < 9:
+            samples.append(NumberSample(raw=raw[i], read=values[i]))
+            seen.add(raw[i])
+    valid = entry.rules.get("valid_sale")
+    rule = bool(
+        valid
+        and any(
+            c.column == column and c.op in (">", ">=") and c.values and float(c.values[0] or 0) >= NOMINAL - 1
+            for c in valid.conditions
+        )
+    )
+    return NumberPreview(
+        key=key,
+        column=column,
+        format=use,
+        detected=detected,
+        guessed=guessed,
+        symbol=_symbol(project),
+        samples=samples,
+        rule=rule,
+        **s,
+    )
 
 
 # ---------- Location fields the user names, and where the parcels are (F3d) ----------
