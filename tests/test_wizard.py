@@ -310,9 +310,9 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     ]
     r = base["repeats"]
     assert (r["rows"], r["blank"], r["distinct"], r["repeated"], r["extra"], r["few"]) == (1500, 3, 1496, 1, 1, True)
-    assert "geo_parcels: 3 blank IDs. Resolve them on its step to drop those rows." in w["problems"]
+    assert "Parcel universe: 3 blank IDs. Resolve them on its step to drop those rows." in w["problems"]
     assert (
-        "geo_parcels: 1 ID repeats. Resolve it on its step; until then OpenAVMKit keeps the first row of each."
+        "Parcel universe: 1 ID repeats. Resolve it on its step; until then OpenAVMKit keeps the first row of each."
         in w["warnings"]
     )
     assert _settings(pid)["data"]["load"]["geo_parcels"]["dupes"] == {
@@ -1099,3 +1099,81 @@ def test_ranked_tiers_still_match_values_padded_with_spaces():
     tiers = Scale(kind="tiers", tiers={"Poor": 1, "Good": 2})
     out = perform_calculations(padded, {"n": scale_calc("t", tiers)})["n"].tolist()
     assert out[:2] == [2.0, 1.0] and pd.isna(out[2])
+
+
+def test_bring_in_data_runs_openavmkit_and_writes_a_receipt(client, tmp_path):
+    """Load and join in a process of its own; the receipt counts what came out, the rows behind it page."""
+    import time
+
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    ids = [str(i) for i in range(30)] + [None]
+    gpd.GeoDataFrame(
+        {"ID": ids, "AREA": [1000 + i for i in range(31)]},
+        geometry=[box(-79.8 + i * 0.001, 36.0, -79.8 + i * 0.001 + 0.0005, 36.0005) for i in range(31)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {
+            "PID": [str(i % 30) for i in range(40)] + ["999"],
+            "PRICE": [100_000 + i for i in range(41)],
+            "DATE": [f"2024-01-{1 + i % 28:02d}" for i in range(41)],
+            "OK": ["Q"] * 35 + ["U"] * 6,
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    url = f"/api/projects/{pid}/bring-in"
+    blocked = client.get(url).json()["blocked"]
+    assert blocked[0] == "Parcel universe: 1 blank ID. Resolve them on its step to drop those rows."
+    assert client.post(f"{url}/run").status_code == 422  # not while Data has a problem
+    _put_file(client, pid, "geo_parcels", blank_ok=True)
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    field = f"/api/projects/{pid}/wizard/fields"
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"{field}/{key}", json={"file": "sale", "column": col})
+    client.put(
+        f"{field}/valid_sale/rule",
+        json={"join": "all", "conditions": [{"column": "OK", "op": "isin", "values": ["Q"]}]},
+    )
+    client.put(f"{field}/vacant_sale", json={"assume": True})
+    area = {"file": "geo_parcels", "column": "AREA", "area_unit": "sqft"}
+    client.put(f"{field}/bldg_area_finished_sqft", json=area)
+    view = client.get(url).json()
+    assert (view["status"], view["blocked"], view["receipt"]) == ("never", [], None)
+
+    assert client.post(f"{url}/run").json()["status"] == "running"
+    for _ in range(240):
+        view = client.get(url).json()
+        if view["status"] != "running":
+            break
+        time.sleep(0.5)
+    assert view["status"] == "done", view["job"]
+    r = view["receipt"]
+    assert (r["universe"]["rows"], r["sales"]["rows"]) == (30, 35)
+    lines = {line["text"]: line for line in r["universe"]["funnels"][0]["lines"]}
+    assert lines["without a parcel ID: dropped"]["n"] == 1 and lines["parcels in the parcel universe"]["n"] == 30
+    sales = {line["text"]: line for line in r["sales"]["funnels"][0]["lines"]}
+    invalid = sales["not valid by your valid-sale rule: left out as they load"]
+    assert invalid["n"] == 6 and invalid["rows"] == "sales_invalid"
+    assert all(c["ok"] for c in r["checks"])
+    assert {f["field"] for f in r["sales"]["fields"]} >= {"sale_price", "sale_date", "valid_sale", "key_sale"}
+    assert (
+        next(f for f in r["sales"]["fields"] if f["field"] == "valid_sale")["source"] == "sale · your valid-sale rule"
+    )
+
+    # The rows behind a count, a page at a time; and all of them as CSV.
+    page = client.get(f"{url}/rows/sales_invalid", params={"offset": 4, "limit": 10}).json()
+    assert (page["total"], page["offset"], len(page["rows"])) == (6, 4, 2) and page["columns"][:2] == ["PID", "PRICE"]
+    csv = client.get(f"{url}/rows/universe/csv").text.splitlines()
+    assert len(csv) == 31 and csv[0].startswith("key")
+    assert client.get(f"{url}/rows/nope").status_code == 404
+
+    # Looks right, then Data changes: out of date, and no longer accepted.
+    assert client.post(f"{url}/accept").json()["accepted"]
+    client.put(f"{field}/vacant_sale", json={"assume": False})
+    client.put(f"{field}/vacant_sale", json={"file": "sale", "column": "OK"})
+    view = client.get(url).json()
+    assert view["stale"] and not view["accepted"] and "how sale is read" in view["changed"]
+    assert client.post(f"{url}/accept").status_code == 409

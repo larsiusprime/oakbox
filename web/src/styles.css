@@ -2738,3 +2738,234 @@ a.row-title:hover {
   background: #fff1dc;
   color: #8a5300;
 }
+
+/* Step 1, Bring in data */
+.bi {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem 1.1rem;
+}
+.bi-kicker {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.bi-title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.bi-lede {
+  margin: 0;
+  color: var(--muted);
+  max-width: 52rem;
+}
+.bi-soon {
+  padding: 1.2rem;
+}
+.bi-warn {
+  border: 1px solid #f0c78a;
+  background: #fff7ea;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+}
+.bi-card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  display: grid;
+  gap: 0.5rem;
+  background: #fff;
+}
+.bi-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.bi-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.bi-head h3 {
+  flex: 1;
+}
+.bi-plan {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.bi-prog {
+  height: 0.8rem;
+  background: #e8e8e8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bi-prog i {
+  display: block;
+  height: 100%;
+  background: #1d5bb8;
+  transition: width 0.4s;
+}
+.bi-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.bi-steps .done {
+  color: var(--ok);
+}
+.bi-steps .now {
+  font-weight: 600;
+}
+.bi-receipt {
+  display: grid;
+  gap: 0.85rem;
+}
+.bi-stale {
+  opacity: 0.55;
+}
+.bi-funnels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 0.4rem 1.2rem;
+}
+.bi-fn {
+  display: grid;
+  gap: 0.1rem;
+  align-content: start;
+}
+.bi-file {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-family: var(--mono);
+}
+.bi-line {
+  display: grid;
+  grid-template-columns: 1.2rem 5rem 1fr auto;
+  gap: 0.4rem;
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+.bi-op {
+  color: var(--muted);
+  text-align: center;
+}
+.bi-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.bi-tot {
+  font-weight: 600;
+}
+.bi-rule {
+  border-top: 1px solid var(--rule);
+  padding-top: 0.15rem;
+}
+.bi-note {
+  margin: 0.15rem 0 0 6.6rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.bi-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.bi-tbl th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.2rem 0.35rem;
+}
+.bi .bi-tbl tr :where(td) {
+  padding: 0.22rem 0.35rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+.bi .bi-tbl tr.bi-grp :where(td) {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.78rem;
+  background: #f6f6f6;
+}
+.bi-has {
+  white-space: nowrap;
+}
+.bi-src {
+  font-size: 0.8rem;
+}
+.bi-bar {
+  display: inline-block;
+  width: 4rem;
+  height: 0.55rem;
+  background: #e8e8e8;
+  border-radius: 2px;
+  position: relative;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+.bi-bar i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #7fa3d9;
+  border-radius: 2px;
+}
+.bi-details summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+.bi-details ul {
+  margin: 0.3rem 0 0 1.1rem;
+  padding: 0;
+  font-size: 0.86rem;
+}
+.bi-details pre {
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.55rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+.bi-foot {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.7rem;
+}
+.bi-grow {
+  flex: 1;
+}
+.bi-rows {
+  width: min(96vw, 80rem);
+}
+.bi-pager {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.bi-pager a.button {
+  text-decoration: none;
+}
+.bi-scroll {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.bi-data th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+}
+.bi-cell {
+  padding: 0.15rem 0.6rem;
+}

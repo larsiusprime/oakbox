@@ -753,6 +753,123 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/bring-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bring In State
+         * @description Ready, running, or the receipt of the last run, and whether it's out of date.
+         */
+        get: operations["bring_in_state_api_projects__project_id__bring_in_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/bring-in/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bring In Run
+         * @description Load and join the files with OpenAVMKit, in a process of its own.
+         */
+        post: operations["bring_in_run_api_projects__project_id__bring_in_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/bring-in/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring In Stop */
+        post: operations["bring_in_stop_api_projects__project_id__bring_in_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/bring-in/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bring In Accept
+         * @description Looks right: model groups can start from this.
+         */
+        post: operations["bring_in_accept_api_projects__project_id__bring_in_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/bring-in/rows/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bring In Rows
+         * @description A page of the rows behind a count (or of the parcel universe or sales record), read a page at a time.
+         */
+        get: operations["bring_in_rows_api_projects__project_id__bring_in_rows__name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/bring-in/rows/{name}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bring In Csv
+         * @description The whole set as CSV, written a chunk at a time.
+         */
+        get: operations["bring_in_csv_api_projects__project_id__bring_in_rows__name__csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -1156,6 +1273,15 @@ export interface components {
                 [key: string]: components["schemas"]["Scale-Output"];
             };
         };
+        /** Dataset */
+        Dataset: {
+            /** Rows */
+            rows: number;
+            /** Funnels */
+            funnels: components["schemas"]["Funnel"][];
+            /** Fields */
+            fields: components["schemas"]["FieldRow"][];
+        };
         /** DateCheck */
         DateCheck: {
             /**
@@ -1321,6 +1447,26 @@ export interface components {
             /** Column */
             column: string;
         };
+        /** FieldRow */
+        FieldRow: {
+            /** Field */
+            field: string;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "files" | "layers" | "engine";
+            /** Filled */
+            filled: number;
+            /** Share */
+            share: number;
+            /** Summary */
+            summary: string;
+            /** Source */
+            source: string;
+            /** Note */
+            note: string | null;
+        };
         /**
          * FileCheck
          * @description What OAK box can tell about a file before adding it, without reading its data.
@@ -1408,6 +1554,18 @@ export interface components {
             /** Path */
             path: string;
         };
+        /** Funnel */
+        Funnel: {
+            /**
+             * File
+             * @description The file it's about (as added).
+             */
+            file: string;
+            /** Lines */
+            lines: components["schemas"]["Line"][];
+            /** Note */
+            note: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1477,6 +1635,20 @@ export interface components {
              */
             todo: string;
         };
+        /** Job */
+        Job: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "failed" | "stopped" | "done";
+            /** Started */
+            started: number;
+            /** Steps */
+            steps: components["schemas"]["Progress"][];
+            /** Error */
+            error: string | null;
+        };
         /** LayerMap */
         LayerMap: {
             /**
@@ -1538,6 +1710,24 @@ export interface components {
              * @default true
              */
             blocking: boolean;
+        };
+        /** Line */
+        Line: {
+            /**
+             * Op
+             * @default
+             * @enum {string}
+             */
+            op: "" | "−" | "=";
+            /** N */
+            n: number;
+            /** Text */
+            text: string;
+            /**
+             * Rows
+             * @description The row set behind it, for See them.
+             */
+            rows: string | null;
         };
         /**
          * Locale
@@ -1887,6 +2077,32 @@ export interface components {
              */
             name_column: string | null;
         };
+        /** Plan */
+        Plan: {
+            /**
+             * Files
+             * @description What's loaded, in words: the parcel universe, the sales record, the rest.
+             */
+            files: string[];
+            /** Layers */
+            layers: string[];
+            /** Fields */
+            fields: number;
+        };
+        /** Progress */
+        Progress: {
+            /** Step */
+            step: string;
+            /** Message */
+            message: string;
+            /** Fraction */
+            fraction: number | null;
+            /**
+             * At
+             * @description Seconds since the run started.
+             */
+            at: number;
+        };
         /** Project */
         Project: {
             /** Id */
@@ -1946,6 +2162,13 @@ export interface components {
              */
             files: components["schemas"]["DataFile"][];
             wizard: components["schemas"]["WizardState"];
+            /**
+             * Accepted
+             * @description Step -> the settings it was run with when Looks right was pressed.
+             */
+            accepted: {
+                [key: string]: string;
+            };
         };
         /** ProjectDetail */
         ProjectDetail: {
@@ -1954,6 +2177,39 @@ export interface components {
             folder: string;
             /** Files */
             files: components["schemas"]["InputFile"][];
+        };
+        /** Receipt */
+        Receipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /** @description The parcel universe. */
+            universe: components["schemas"]["Dataset"];
+            /** @description The sales record. */
+            sales: components["schemas"]["Dataset"];
+            /**
+             * Checks
+             * @description What the Data wizard said, against what OpenAVMKit got.
+             */
+            checks: components["schemas"]["Said"][];
+            /**
+             * Notes
+             * @description What OpenAVMKit warned about.
+             */
+            notes: string[];
+            /**
+             * Notices
+             * @description Warnings from the libraries it uses, not shown.
+             */
+            notices: number;
+            /**
+             * Timings
+             * @description [step, seconds].
+             */
+            timings: unknown[][];
         };
         /** Reconcile */
         Reconcile: {
@@ -2097,6 +2353,19 @@ export interface components {
              */
             blank_ok: boolean;
         };
+        /** Rows */
+        Rows: {
+            /** Set */
+            set: string;
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Columns */
+            columns: string[];
+            /** Rows */
+            rows: string[][];
+        };
         /**
          * Rule
          * @description A yes/no field worked out from other columns (valid sale, vacant sale): OpenAVMKit's ["?", filter] calc.
@@ -2183,6 +2452,17 @@ export interface components {
             cells: string[];
             /** Yes */
             yes: boolean;
+        };
+        /** Said */
+        Said: {
+            /** What */
+            what: string;
+            /** Said */
+            said: string;
+            /** Got */
+            got: string;
+            /** Ok */
+            ok: boolean;
         };
         /** SaleId */
         SaleId: {
@@ -2557,6 +2837,34 @@ export interface components {
             version: string;
             /** Openavmkit */
             openavmkit: string;
+        };
+        /** View */
+        View: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["Receipt"] | null;
+            /**
+             * Stale
+             * @description The settings changed since it ran.
+             */
+            stale: boolean;
+            /** Changed */
+            changed: string[];
+            /**
+             * Blocked
+             * @description Data wizard problems that stop it running.
+             */
+            blocked: string[];
+            /**
+             * Accepted
+             * @description Looks right was pressed on this receipt, and nothing changed since.
+             */
+            accepted: boolean;
+            plan: components["schemas"]["Plan"];
         };
         /** Wizard */
         Wizard: {
@@ -4278,6 +4586,197 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TiersPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_state_api_projects__project_id__bring_in_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["View"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_run_api_projects__project_id__bring_in_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["View"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_stop_api_projects__project_id__bring_in_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["View"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_accept_api_projects__project_id__bring_in_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["View"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_rows_api_projects__project_id__bring_in_rows__name__get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rows"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_csv_api_projects__project_id__bring_in_rows__name__csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

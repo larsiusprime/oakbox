@@ -204,7 +204,7 @@ export const t = {
       sales: {
         title: "Sales",
         question: "Now your sales",
-        lede: "Add the file with your sale records. Each sale must find its parcel in the universe. More sales files (deeds, say) come next: just pick the main one for now.",
+        lede: "Add the file that holds the sales record. Each sale must find its parcel in the parcel universe. Files with more about each sale (deeds, say) come next: just pick the main one for now.",
       },
       more_files: {
         title: "More files",
@@ -268,7 +268,7 @@ export const t = {
       "Optional. Only needed when another data file identifies parcels by a different ID, and has to join on that.",
     optional: "Optional",
     removeId: "(remove)",
-    matchBy: "Matches the universe by",
+    matchBy: "Matches the parcel universe by",
     idColumnIn: (file: string) => `ID column in ${file}`,
     saleIdTip: "The same parcel can sell more than once, so each sale needs its own ID.",
     elsewhere: "In another file…",
@@ -489,7 +489,7 @@ export const t = {
       what: "What's in it?",
       parcels: "More about each parcel: joins the parcel universe",
       sales: "More about each sale: joins the sales, on the sale ID",
-      salesNeedsId: "(the sales file needs a sale ID column for this)",
+      salesNeedsId: "(the sales record needs a sale ID column for this)",
     },
     reconcile: {
       open: "Reconcile…",
@@ -679,7 +679,7 @@ export const t = {
       compareQuality: "Which quality columns to load?",
       compareCondition: "Which condition columns to load?",
       compareLede:
-        "Columns in your parcel files that look like it, each checked over every row. The number is used for modelling; load the category too if you want it as text, for reports or grouping. A category can be the number too, once its tiers are ranked.",
+        "Columns in the parcel universe and the files joined to it that look like it, each checked over every row. The number is used for modelling; load the category too if you want it as text, for reports or grouping. A category can be the number too, once its tiers are ranked.",
       loading: "Checking the columns…",
       noneQualityLike: "No column's name looks like quality or grade. Pick one on the row instead.",
       noneConditionLike:
@@ -796,7 +796,73 @@ export const t = {
     metadata: "Metadata",
     inputFiles: "Input files",
     fields: "Data",
+    bring: "1 Bring in data",
+    groups: "2 Model groups",
+    groupsLocked: "Press Looks right on Bring in data first",
     later: "Not available yet",
+  },
+
+  // Step 1, Bring in data: OpenAVMKit loads and joins the files into the parcel universe and the sales record.
+  bringIn: {
+    kicker: "Step 1 of 5 · after Data",
+    title: "Bring in data",
+    lede: "OpenAVMKit loads your files as Data set them up, joins them into the parcel universe and the sales record, and adds what it works out itself: coordinates, ages, distances and the map layers. Model groups come next.",
+    blocked: (n: number) => `${n === 1 ? "1 thing" : `${n} things`} to fix on Data first:`,
+    toData: "Go to Data",
+    whatRuns: "What runs",
+    files: "Files",
+    layers: "Map layers",
+    fields: (n: number) =>
+      `${n.toLocaleString()} fields from Data, and what OpenAVMKit works out: coordinates, ages, distances, shape measures`,
+    notRun: "Not run yet",
+    run: "Bring in data",
+    runAgain: "Run again",
+    running: (elapsed: string, left: string | null) =>
+      `Running · ${elapsed} so far${left ? `, about ${left} left` : ""}`,
+    stop: "Stop",
+    stopped: "Stopped before it finished. The last receipt, if there is one, is unchanged.",
+    failed: "It stopped with an error:",
+    failedLog: "The full log is in out/oakbox/bring_in.log in the project folder.",
+    stale: "Out of date: Data changed since this ran:",
+    staleNote: "This receipt is from the last run, greyed until it runs again.",
+    meter: (parcels: number, sales: number) =>
+      `✓ ${parcels.toLocaleString()} parcels in the parcel universe and ${sales.toLocaleString()} valid sales in the sales record`,
+    ran: (when: string, seconds: number, engine: string) =>
+      `ran ${when} · ${seconds.toLocaleString()} seconds · OpenAVMKit ${engine}`,
+    universe: "Parcel universe",
+    sales: "Sales record",
+    seeThem: "see them",
+    viewRows: (n: number) => `View all ${n.toLocaleString()} rows`,
+    fieldsTitle: "Fields",
+    field: "Field",
+    has: "Has it",
+    summary: "Summary",
+    from: "From",
+    notes: "Notes",
+    groups: {
+      files: "From your files",
+      layers: "From map layers",
+      engine: "Worked out by OpenAVMKit",
+    } as Record<string, string>,
+    checks: "Checked against Data",
+    said: "Data said",
+    got: "OpenAVMKit got",
+    engineNotes: (n: number, hidden: number) =>
+      `${n === 1 ? "1 note" : `${n} notes`} from OpenAVMKit · ${hidden.toLocaleString()} notices from the libraries it uses, hidden`,
+    underHood: "Under the hood",
+    hood: "OpenAVMKit's 1-assemble, up to model groups:",
+    looksRight: "Looks right ›",
+    accepted: "✓ Looks right",
+    next: "Next: model groups",
+    rowsTitle: (what: string) => what,
+    rowsOf: (from: number, to: number, total: number) =>
+      `Rows ${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()}`,
+    first: "First",
+    prev: "Previous",
+    nextPage: "Next",
+    exportCsv: "Export CSV",
+    close: "Close",
+    groupsSoon: "Model groups come next: they're the next thing we build.",
   },
 
   metadata: {

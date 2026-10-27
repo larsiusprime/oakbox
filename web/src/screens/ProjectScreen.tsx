@@ -9,11 +9,12 @@ import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { desktop } from "../desktop";
 import { t } from "../strings";
+import { BringInTab, useAccepted } from "./BringIn";
 import { FieldsTab } from "./FieldsWizard";
 
-export const TABS = ["metadata", "files", "fields"] as const;
+export const TABS = ["metadata", "files", "fields", "bring", "groups"] as const;
 export type TabId = (typeof TABS)[number];
-const PLACEHOLDERS = ["later-1", "later-2"] as const;
+const PLACEHOLDERS = ["later-1"] as const;
 
 /** F3: the project view, one tabbed panel (SPEC §3.0). */
 export function ProjectScreen({
@@ -50,7 +51,8 @@ function ProjectView({
   // A project opens on the Data wizard, where its files are added and described (SPEC F3d).
   useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
   // The Input files tab (and each file's own fields) is out of the flow for now: its links open the Data wizard.
-  const selected = tab === "files" || !tab ? "fields" : tab;
+  const accepted = useAccepted(projectId);
+  const selected = tab === "files" || !tab ? "fields" : tab === "groups" && !accepted ? "bring" : tab;
 
   return (
     <div className="project">
@@ -66,7 +68,7 @@ function ProjectView({
         className="folder-tabs"
         selectedKey={selected}
         onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
-        disabledKeys={PLACEHOLDERS}
+        disabledKeys={accepted ? PLACEHOLDERS : [...PLACEHOLDERS, "groups"]}
       >
         <TabList className="folder-tab-list" aria-label={project.name}>
           <Tab id="metadata" className="folder-tab">
@@ -76,6 +78,16 @@ function ProjectView({
           <Tab id="fields" className="folder-tab">
             <img src={clipboard} alt="" className="tab-icon" />
             {t.tabs.fields}
+          </Tab>
+          <Tab id="bring" className="folder-tab">
+            {t.tabs.bring}
+          </Tab>
+          <Tab
+            id="groups"
+            className="folder-tab"
+            aria-description={accepted ? undefined : t.tabs.groupsLocked}
+          >
+            {t.tabs.groups}
           </Tab>
           {PLACEHOLDERS.map((id) => (
             <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>
@@ -88,6 +100,12 @@ function ProjectView({
         </TabPanel>
         <TabPanel id="fields" className="folder-panel">
           <FieldsTab detail={detail} step={step} />
+        </TabPanel>
+        <TabPanel id="bring" className="folder-panel">
+          <BringInTab projectId={projectId} />
+        </TabPanel>
+        <TabPanel id="groups" className="folder-panel">
+          <p className="bi-lede bi-soon">{t.bringIn.groupsSoon}</p>
         </TabPanel>
       </Tabs>
     </div>

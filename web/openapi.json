@@ -2002,6 +2002,281 @@
     }
    }
   },
+  "/api/projects/{project_id}/bring-in": {
+   "get": {
+    "summary": "Bring In State",
+    "description": "Ready, running, or the receipt of the last run, and whether it's out of date.",
+    "operationId": "bring_in_state_api_projects__project_id__bring_in_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/View"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/run": {
+   "post": {
+    "summary": "Bring In Run",
+    "description": "Load and join the files with OpenAVMKit, in a process of its own.",
+    "operationId": "bring_in_run_api_projects__project_id__bring_in_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/View"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/stop": {
+   "post": {
+    "summary": "Bring In Stop",
+    "operationId": "bring_in_stop_api_projects__project_id__bring_in_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/View"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/accept": {
+   "post": {
+    "summary": "Bring In Accept",
+    "description": "Looks right: model groups can start from this.",
+    "operationId": "bring_in_accept_api_projects__project_id__bring_in_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/View"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/rows/{name}": {
+   "get": {
+    "summary": "Bring In Rows",
+    "description": "A page of the rows behind a count (or of the parcel universe or sales record), read a page at a time.",
+    "operationId": "bring_in_rows_api_projects__project_id__bring_in_rows__name__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 0,
+       "title": "Offset"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 50,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Rows"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/rows/{name}/csv": {
+   "get": {
+    "summary": "Bring In Csv",
+    "description": "The whole set as CSV, written a chunk at a time.",
+    "operationId": "bring_in_csv_api_projects__project_id__bring_in_rows__name__csv_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -2850,6 +3125,35 @@
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
    },
+   "Dataset": {
+    "properties": {
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "funnels": {
+      "items": {
+       "$ref": "#/components/schemas/Funnel"
+      },
+      "type": "array",
+      "title": "Funnels"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/FieldRow"
+      },
+      "type": "array",
+      "title": "Fields"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rows",
+     "funnels",
+     "fields"
+    ],
+    "title": "Dataset"
+   },
    "DateCheck": {
     "properties": {
      "parsed": {
@@ -3230,6 +3534,61 @@
     "title": "ExtraId",
     "description": "An extra ID of the parcel universe, for files that join on a different key (F3d).\n\nNot checked: rows are kept or dropped by the parcel ID alone."
    },
+   "FieldRow": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "group": {
+      "type": "string",
+      "enum": [
+       "files",
+       "layers",
+       "engine"
+      ],
+      "title": "Group"
+     },
+     "filled": {
+      "type": "integer",
+      "title": "Filled"
+     },
+     "share": {
+      "type": "number",
+      "title": "Share"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "source": {
+      "type": "string",
+      "title": "Source"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "group",
+     "filled",
+     "share",
+     "summary",
+     "source",
+     "note"
+    ],
+    "title": "FieldRow"
+   },
    "FileCheck": {
     "properties": {
      "path": {
@@ -3390,6 +3749,40 @@
     ],
     "title": "FilePath"
    },
+   "Funnel": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File",
+      "description": "The file it's about (as added)."
+     },
+     "lines": {
+      "items": {
+       "$ref": "#/components/schemas/Line"
+      },
+      "type": "array",
+      "title": "Lines"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "lines",
+     "note"
+    ],
+    "title": "Funnel"
+   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -3516,6 +3909,50 @@
      "todo"
     ],
     "title": "Issue"
+   },
+   "Job": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "started": {
+      "type": "number",
+      "title": "Started"
+     },
+     "steps": {
+      "items": {
+       "$ref": "#/components/schemas/Progress"
+      },
+      "type": "array",
+      "title": "Steps"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "started",
+     "steps",
+     "error"
+    ],
+    "title": "Job"
    },
    "LayerMap": {
     "properties": {
@@ -3648,6 +4085,48 @@
      "blocking"
     ],
     "title": "Left"
+   },
+   "Line": {
+    "properties": {
+     "op": {
+      "type": "string",
+      "enum": [
+       "",
+       "−",
+       "="
+      ],
+      "title": "Op",
+      "default": ""
+     },
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows",
+      "description": "The row set behind it, for See them."
+     }
+    },
+    "type": "object",
+    "required": [
+     "op",
+     "n",
+     "text",
+     "rows"
+    ],
+    "title": "Line"
    },
    "Locale": {
     "properties": {
@@ -4392,6 +4871,72 @@
     "title": "Overlay",
     "description": "A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.\n\nstamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying\nthe chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature."
    },
+   "Plan": {
+    "properties": {
+     "files": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Files",
+      "description": "What's loaded, in words: the parcel universe, the sales record, the rest."
+     },
+     "layers": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Layers"
+     },
+     "fields": {
+      "type": "integer",
+      "title": "Fields"
+     }
+    },
+    "type": "object",
+    "required": [
+     "files",
+     "layers",
+     "fields"
+    ],
+    "title": "Plan"
+   },
+   "Progress": {
+    "properties": {
+     "step": {
+      "type": "string",
+      "title": "Step"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     },
+     "fraction": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fraction"
+     },
+     "at": {
+      "type": "number",
+      "title": "At",
+      "description": "Seconds since the run started."
+     }
+    },
+    "type": "object",
+    "required": [
+     "step",
+     "message",
+     "fraction",
+     "at"
+    ],
+    "title": "Progress"
+   },
    "Project": {
     "properties": {
      "id": {
@@ -4498,6 +5043,14 @@
      },
      "wizard": {
       "$ref": "#/components/schemas/WizardState"
+     },
+     "accepted": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Accepted",
+      "description": "Step -> the settings it was run with when Looks right was pressed."
      }
     },
     "type": "object",
@@ -4516,7 +5069,8 @@
      "center",
      "sample",
      "files",
-     "wizard"
+     "wizard",
+     "accepted"
     ],
     "title": "Project"
    },
@@ -4544,6 +5098,73 @@
      "files"
     ],
     "title": "ProjectDetail"
+   },
+   "Receipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "universe": {
+      "$ref": "#/components/schemas/Dataset",
+      "description": "The parcel universe."
+     },
+     "sales": {
+      "$ref": "#/components/schemas/Dataset",
+      "description": "The sales record."
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/Said"
+      },
+      "type": "array",
+      "title": "Checks",
+      "description": "What the Data wizard said, against what OpenAVMKit got."
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes",
+      "description": "What OpenAVMKit warned about."
+     },
+     "notices": {
+      "type": "integer",
+      "title": "Notices",
+      "description": "Warnings from the libraries it uses, not shown."
+     },
+     "timings": {
+      "items": {
+       "items": {},
+       "type": "array"
+      },
+      "type": "array",
+      "title": "Timings",
+      "description": "[step, seconds]."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "universe",
+     "sales",
+     "checks",
+     "notes",
+     "notices",
+     "timings"
+    ],
+    "title": "Receipt"
    },
    "Reconcile": {
     "properties": {
@@ -4841,6 +5462,48 @@
     "title": "Repeats",
     "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
    },
+   "Rows": {
+    "properties": {
+     "set": {
+      "type": "string",
+      "title": "Set"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     },
+     "columns": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Columns"
+     },
+     "rows": {
+      "items": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "title": "Rows"
+     }
+    },
+    "type": "object",
+    "required": [
+     "set",
+     "total",
+     "offset",
+     "columns",
+     "rows"
+    ],
+    "title": "Rows"
+   },
    "Rule-Input": {
     "properties": {
      "join": {
@@ -5006,6 +5669,34 @@
      "yes"
     ],
     "title": "RuleRow"
+   },
+   "Said": {
+    "properties": {
+     "what": {
+      "type": "string",
+      "title": "What"
+     },
+     "said": {
+      "type": "string",
+      "title": "Said"
+     },
+     "got": {
+      "type": "string",
+      "title": "Got"
+     },
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     }
+    },
+    "type": "object",
+    "required": [
+     "what",
+     "said",
+     "got",
+     "ok"
+    ],
+    "title": "Said"
    },
    "SaleId": {
     "properties": {
@@ -5835,6 +6526,81 @@
      "openavmkit"
     ],
     "title": "Versions"
+   },
+   "View": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Receipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "The settings changed since it ran."
+     },
+     "changed": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Changed"
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "Data wizard problems that stop it running."
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted",
+      "description": "Looks right was pressed on this receipt, and nothing changed since."
+     },
+     "plan": {
+      "$ref": "#/components/schemas/Plan"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "changed",
+     "blocked",
+     "accepted",
+     "plan"
+    ],
+    "title": "View"
    },
    "Wizard": {
     "properties": {

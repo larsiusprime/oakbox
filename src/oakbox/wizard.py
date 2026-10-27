@@ -569,7 +569,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
             text = f"{_n(r.repeated, 'repeated sale ID')} ({_n(r.extra, 'extra row')}): choose what to do"
             return Check(ok=False, text=text, issues=issues), flagged
         if main is None or "key_sale" not in main.load:
-            text = "the main sales file has no sale ID column to join on"
+            text = "the sales record has no sale ID column to join on"
             return Check(ok=False, text=text, issues=issues), flagged
         sale_ids = {v for v in files.ids(main.name, "key_sale") if v}
         found = len(set(present) & sale_ids)
@@ -1027,26 +1027,35 @@ def _rows(files: _Files, name: str) -> int | None:
     return len(files.values(name, cols[0].name)) if cols else None
 
 
+def _label(f: WizardFile) -> str:
+    """What a file is called in messages: the parcel universe and the sales record by those names (our terms)."""
+    if f.base:
+        return "Parcel universe"
+    if f.holds == "sales" and not _more_sales(f):
+        return "Sales record"
+    return f.name
+
+
 def _problems(files: list[WizardFile], sale_id: SaleId, flds: list[WizardField]) -> list[str]:
     out = []
     base = next((f for f in files if f.base), None)
     if base is None:
-        out.append("No parcel universe yet: add a parcel file with shapes.")
+        out.append("No parcel universe yet: add a file of parcels with shapes.")
     elif base.name != BASE_NAME:
         out.append(f"The parcel universe file must be named {BASE_NAME}. Open Parcel universe to fix it.")
     for f in files:
         if f.holds in ("parcels", "sales") and f.id_column is None:
-            out.append(f"{f.name} has no ID column to join on.")
+            out.append(f"{_label(f)}: no ID column to join on.")
         blocking = [i for i in f.id_check.issues if i.blocking] if f.id_check else []
         for issue in blocking:
-            out.append(f"{f.name}: {issue.text.split(',')[0]}. Resolve them on its step to drop those rows.")
+            out.append(f"{_label(f)}: {issue.text.split(',')[0]}. Resolve them on its step to drop those rows.")
         if f.id_check is not None and not f.id_check.ok and not blocking and f.holds in ("parcels", "sales"):
-            out.append(f"{f.name}: {f.id_check.text}.")
+            out.append(f"{_label(f)}: {f.id_check.text}.")
     if not any(f.holds == "sales" for f in files):
-        out.append("No sales file yet.")
+        out.append("No sales record yet.")
     else:
         if sale_id.column is None and not sale_id.made:
-            out.append("The sales have no sale ID.")
+            out.append("The sales record has no sale ID.")
         elif sale_id.check is not None and not sale_id.check.ok:
             out.append(f"Sale ID: {sale_id.check.text}.")
         for f in flds:
@@ -1072,12 +1081,12 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
         if r.blank and not r.blank_ok and f.holds == "sales":
             what = _n(r.blank, "sale")
             out.append(
-                f"{f.name}: {what} {'has' if r.blank == 1 else 'have'} no ID and will be dropped. "
+                f"{_label(f)}: {what} {'has' if r.blank == 1 else 'have'} no ID and will be dropped. "
                 f"That can mean {f.id_column} isn't the right ID."
             )
         if f.holds == "parcels" and r.extra and r.few and r.policy is None:
             out.append(
-                f"{f.name}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}. "
+                f"{_label(f)}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}. "
                 "Resolve it on its step; until then OpenAVMKit keeps the first row of each."
             )
     for group in RECOMMENDED:
@@ -1274,7 +1283,7 @@ def set_file(
             raise ValueError(f"{name} has no column {column}.")
     if universe:
         if not files.geometry(name):
-            raise ValueError(f"{name} has no shapes. The parcel universe file needs parcel geometry.")
+            raise ValueError(f"{name} has no shapes. The parcel universe needs parcel geometry.")
         for f in project.files:
             if f is not entry and f.holds == "parcels" and f.name == project.wizard.base:
                 f.holds = "unused"
@@ -1284,7 +1293,7 @@ def set_file(
     if holds == "parcels" and entry.match == "key_sale":  # was more sales details: back to a parcel ID
         match = match if match not in (None, "key_sale") else "key"
     if match == "key_sale" and (holds or entry.holds) != "sales":
-        raise ValueError("Only a sales file joins on the sale ID.")
+        raise ValueError("Only sales details join the sales record on the sale ID.")
     if match is not None and not is_base and match != entry.match:
         old = entry.load.pop(entry.match, None)
         entry.match = match
@@ -1398,7 +1407,8 @@ def set_field(
     if file is not None and column is not None:
         target = next((f for f in allowed if f.name == file), None)
         if target is None:
-            raise ValueError(f"{key} comes from {'the sales file' if step.sales else 'a parcel file'}.")
+            where = "the sales record" if step.sales else "the parcel universe or a file joined to it"
+            raise ValueError(f"{key} comes from {where}.")
         col = _Files(project, in_dir).column(file, column)
         if col is None:
             raise ValueError(f"{file} has no column {column}.")
@@ -1530,7 +1540,7 @@ def _sides(project: Project, in_dir: Path, name: str) -> tuple[_Files, DataFile,
     if _more_sales(entry):
         main = _sales_file(project)
         if main is None or "key_sale" not in main.load:
-            raise ValueError("The main sales file has no sale ID column to join on.")
+            raise ValueError("The sales record has no sale ID column to join on.")
         target = main
     else:
         base = project.wizard.base
@@ -1754,7 +1764,7 @@ def _rule_entry(project: Project, key: str) -> DataFile:
     sales = _sales_file(project)
     d = _by_key().get(key)
     if sales is None:
-        raise ValueError("Add the sales file first.")
+        raise ValueError("Add the sales record first.")
     if d is None or d.type != "boolean":
         raise LookupError(key)
     return sales

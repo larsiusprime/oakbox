@@ -132,6 +132,10 @@ class Project(BaseModel):
                     data = {**data, key: d[key]}
         return data
 
+    accepted: dict[str, str] = Field(
+        default_factory=dict, description="Step -> the settings it was run with when Looks right was pressed."
+    )
+
 
 # ---------- Finding projects ----------
 

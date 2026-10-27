@@ -15,12 +15,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, datafiles, fields, projects, wizard
+from oakbox import __version__, appsettings, bring_in, datafiles, fields, projects, wizard
 from oakbox.datafiles import CleanStep
 
 WEB_DIST = Path(__file__).parent / "web"
@@ -723,6 +723,74 @@ def create_app() -> FastAPI:
             raise HTTPException(404, f"{key} isn't quality or condition.") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
+
+    # ---------- Step 1, Bring in data (SPEC §3.3) ----------
+
+    def _bring_in_view(project: projects.Project) -> bring_in.View:
+        return bring_in.view(project, projects.project_dir(project.id), _wizard(project).problems)
+
+    @app.get("/api/projects/{project_id}/bring-in")
+    def bring_in_state(project_id: str) -> bring_in.View:
+        """Ready, running, or the receipt of the last run, and whether it's out of date."""
+        return _bring_in_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/bring-in/run")
+    def bring_in_run(project_id: str) -> bring_in.View:
+        """Load and join the files with OpenAVMKit, in a process of its own."""
+        project = _load(project_id)
+        problems = _wizard(project).problems
+        if problems:
+            raise HTTPException(422, f"Fix on Data first: {problems[0]}")
+        projects.write_settings(project)
+        try:
+            bring_in.start(project_id, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        return _bring_in_view(project)
+
+    @app.post("/api/projects/{project_id}/bring-in/stop")
+    def bring_in_stop(project_id: str) -> bring_in.View:
+        bring_in.stop(project_id)
+        return _bring_in_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/bring-in/accept")
+    def bring_in_accept(project_id: str) -> bring_in.View:
+        """Looks right: model groups can start from this."""
+        project = _load(project_id)
+        try:
+            bring_in.accept(project, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        projects.save(project)
+        return _bring_in_view(project)
+
+    @app.get("/api/projects/{project_id}/bring-in/rows/{name}")
+    def bring_in_rows(project_id: str, name: str, offset: int = 0, limit: int = bring_in.PAGE) -> bring_in.Rows:
+        """A page of the rows behind a count (or of the parcel universe or sales record), read a page at a time."""
+        _load(project_id)
+        try:
+            return bring_in.page(projects.project_dir(project_id), name, offset, limit)
+        except LookupError as e:
+            raise HTTPException(404, f"No rows called {name}: bring in data first.") from e
+
+    @app.get("/api/projects/{project_id}/bring-in/rows/{name}/csv")
+    def bring_in_csv(project_id: str, name: str) -> StreamingResponse:
+        """The whole set as CSV, written a chunk at a time."""
+        _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            chunks = bring_in.csv_chunks(pdir, name)
+            first = next(chunks)
+        except (LookupError, StopIteration) as e:
+            raise HTTPException(404, f"No rows called {name}: bring in data first.") from e
+
+        def body():
+            yield first
+            yield from chunks
+
+        return StreamingResponse(
+            body(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}.csv"'}
+        )
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
