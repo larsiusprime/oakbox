@@ -1064,12 +1064,10 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "GRADE", "scale": ranked}).json()
     assert _field(w, "bldg_quality_num")["check"]["text"] == "✓ 4 tiers ranked, 1–5"
     entry = _settings(pid)["data"]["load"]["cama"]
-    assert entry["load"]["bldg_quality_txt"] == ["GRADE", "string"] and "bldg_quality_num_src" not in entry["load"]
-    assert entry["calc"]["bldg_quality_num"][1][1] == [
-        "map",
-        "bldg_quality_txt",
-        {"C": "1", "B": "2", "A": "3", "AA": "5"},
-    ]
+    # One column, two fields: loaded once, as text; the category is it, the number is it ranked.
+    assert entry["load"]["grade_raw"] == ["GRADE", "string"] and "bldg_quality_txt" not in entry["load"]
+    assert entry["calc"]["bldg_quality_txt"] == ["set", "grade_raw"]
+    assert entry["calc"]["bldg_quality_num"][1][1] == ["map", "grade_raw", {"C": "1", "B": "2", "A": "3", "AA": "5"}]
 
     univ, _ = _engine(pid, monkeypatch)
     univ = univ.sort_values("key", key=lambda s: s.astype(int))
@@ -1080,3 +1078,68 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     w = client.put(f"{field}/bldg_condition_num", json={"absent": True}).json()
     assert _field(w, "bldg_condition_num")["absent"] and _field(w, "bldg_condition_num")["sources"] == []
     assert "bldg_condition_num_src" not in _settings(pid)["data"]["load"]["cama"]["load"]
+
+
+def test_part_of_a_column_one_value_holding_two_things(client, tmp_path, monkeypatch):
+    """Q3C2 holds quality and condition; B+5  130% a grade and its percent: each field takes its part."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    ids = [str(i) for i in range(4)]
+    gpd.GeoDataFrame({"ID": ids}, geometry=[box(i, 0, i + 1, 1) for i in range(4)], crs="EPSG:4326").to_parquet(
+        tmp_path / "parcels.parquet"
+    )
+    pd.DataFrame(
+        {
+            "PID": ids,
+            "QC": ["Q3C2", "Q2/C4", "Q4 C1", ""],
+            "GRADE": ["B+5  130%", "A  160%", "C-10  85%", "B  110%"],
+        }
+    ).to_csv(tmp_path / "cama.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("cama", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "cama", holds="parcels", id_column="PID")
+    field = f"/api/projects/{pid}/wizard/fields"
+
+    w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "QC"}).json()
+    q = _field(w, "bldg_quality_num")
+    assert [o["kind"] for o in q["parts"]] == ["q", "c"] and q["part"] is None
+    assert q["parts"][0]["examples"][0] == ["Q3C2", "Q3"] and q["parts"][0]["share"] == 1
+    tiers = client.post(f"{field}/bldg_quality_num/tiers", json={"file": "cama", "column": "QC", "part": "q"}).json()
+    assert [t["value"] for t in tiers["tiers"]] == ["Q4", "Q3", "Q2"] and tiers[
+        "recognised"
+    ] == "Q1–Q6 or C1–C6, 1 best"
+    ranked = {"kind": "tiers", "fraction": False, "low": None, "high": None, "tiers": {"Q4": 1, "Q3": 2, "Q2": 3}}
+    w = client.put(
+        f"{field}/bldg_quality_num", json={"file": "cama", "column": "QC", "part": "q", "scale": ranked}
+    ).json()
+    assert _field(w, "bldg_quality_num")["part"] == "q"
+    # The same column for condition: its C part, kept as text.
+    w = client.put(f"{field}/bldg_condition_txt", json={"file": "cama", "column": "QC", "part": "c"}).json()
+    assert _field(w, "bldg_condition_txt")["sources"] == [{"file": "cama", "column": "QC"}]
+
+    # The grade's percent as the condition number (a number: what it means is still to say)...
+    grade = client.put(f"{field}/bldg_condition_num", json={"file": "cama", "column": "GRADE"}).json()
+    assert [o["kind"] for o in _field(grade, "bldg_condition_num")["parts"]] == ["percent", "before_percent", "letter"]
+    pct = {"kind": "pct_good", "fraction": False, "low": None, "high": None, "tiers": {}}
+    w = client.put(
+        f"{field}/bldg_condition_num", json={"file": "cama", "column": "GRADE", "part": "percent", "scale": pct}
+    ).json()
+    # ...which reads, but not as a % good: a grade's multiplier goes over 100, and the check says so.
+    check = _field(w, "bldg_condition_num")["check"]
+    assert check["warn"] and "3 outside 0–100" in check["text"]
+    view = client.post(
+        f"{field}/bldg_condition_num/scale", json={"file": "cama", "column": "GRADE", "part": "percent", "scale": pct}
+    ).json()
+    assert view["load"] == {"grade_raw": ["GRADE", "string"]} and view["calc"][0] == "asfloat"
+
+    entry = _settings(pid)["data"]["load"]["cama"]
+    assert entry["load"]["qc_raw"] == ["QC", "string"] and entry["load"]["grade_raw"] == ["GRADE", "string"]
+    assert "bldg_condition_txt" not in entry["load"]  # worked out from qc_raw, not loaded again
+    monkeypatch.chdir(projects.project_dir(pid))
+    from openavmkit.pipeline import load_dataframes, load_settings
+
+    df = load_dataframes(load_settings("in/settings.json"))["cama"].sort_values("key")
+    assert df["bldg_quality_num"].tolist()[:3] == [2, 3, 1] and pd.isna(df["bldg_quality_num"].iloc[3])
+    assert df["bldg_condition_txt"].tolist() == ["C2", "C4", "C1", ""]
+    assert df["bldg_condition_num"].tolist() == [130, 160, 85, 110]

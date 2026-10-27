@@ -45,7 +45,17 @@ import { t } from "../strings";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { LocationExtras } from "./Location";
-import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
+import {
+  ABSENT,
+  CompareDialog,
+  PAIRS,
+  type Part,
+  PartDialog,
+  SCALED,
+  ScaleChoice,
+  ScaleDialog,
+  TiersDialog,
+} from "./Quality";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { type LayerChange, ShapefilesStep } from "./Shapefiles";
 
@@ -311,6 +321,7 @@ type Change =
       number_format?: NumberFormat;
       scale?: Scale;
       absent?: boolean;
+      part?: Part | null;
     }
   | { kind: "rule"; key: string; rule: Rule }
   | { kind: "location"; name: string; file: string | null; column: string | null }
@@ -398,6 +409,7 @@ function useChange(projectId: string) {
             number_format: c.number_format ?? null,
             scale: c.scale ?? null,
             absent: c.absent ?? false,
+            part: c.part ?? null,
           },
         }),
       );
@@ -1225,7 +1237,15 @@ function FieldRow({
   const [dating, setDating] = useState(false);
   const [reading, setReading] = useState(false);
   // Quality and condition: compare the columns, say what a number means, or rank a category's tiers.
-  const [qc, setQc] = useState<"compare" | "scale" | "tiers" | null>(null);
+  const [qc, setQc] = useState<"compare" | "scale" | "tiers" | "part" | null>(null);
+  // After a column (or part of one) is chosen: on to what's still to say about it.
+  const onward = (latest: Wizard) => {
+    const now = latest.fields.find((f) => f.key === field.key);
+    if (now && now.parts.length > 0 && !now.part && qc !== "part") setQc("part");
+    else if (now?.scale?.kind === "tiers" && Object.keys(now.scale.tiers).length === 0) setQc("tiers");
+    else if (field.key === "bldg_condition_num" && now?.scale && !now.scale.kind) setQc("scale");
+    else setQc(null);
+  };
   const scaled = SCALED.includes(field.key);
   const paired = field.key in PAIRS;
   const money = isMoney(field.key);
@@ -1258,9 +1278,8 @@ function FieldRow({
           if (now?.rule && !ruleComplete(now.rule)) setRuling(true);
           // A sale price that needs reading, or whose amounts look wrong: straight to how it's read.
           if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn)) setReading(true);
-          // A category for a number: straight to ranking its tiers; a condition number: to what it means.
-          if (now?.scale?.kind === "tiers" && Object.keys(now.scale.tiers).length === 0) setQc("tiers");
-          else if (field.key === "bldg_condition_num" && now?.scale && !now.scale.kind) setQc("scale");
+          // Quality and condition: which part, then the tiers' order or what the numbers mean.
+          if (field.key in PAIRS) onward(next);
         })
         .catch(() => {});
     }
@@ -1333,6 +1352,13 @@ function FieldRow({
             data.fields.find((f) => f.key === PAIRS[field.key])?.sources.length
               ? !scaled && <span className="wiz-from">{w.numberUsed}</span>
               : null}
+            {paired && source && (field.parts.length > 0 || field.part) && (
+              <Button className="wiz-link wiz-resolve" onPress={() => setQc("part")}>
+                {field.part
+                  ? w.quality.partIs(w.quality.partWords[field.part] ?? field.part)
+                  : w.quality.usePart}
+              </Button>
+            )}
             {scaled && source && field.scale && (
               <Button
                 className="wiz-link wiz-resolve"
@@ -1461,8 +1487,32 @@ function FieldRow({
           source={source}
           close={() => setQc(null)}
           save={(scale) =>
-            void change({ kind: "field", key: field.key, file: source.file, column: source.column, scale })
+            void change({
+              kind: "field",
+              key: field.key,
+              file: source.file,
+              column: source.column,
+              scale,
+              part: field.part ?? null,
+            })
               .then(() => setQc(null))
+              .catch(() => {})
+          }
+        />
+      )}
+      {qc === "part" && source && (
+        <PartDialog
+          field={field}
+          source={source}
+          close={() => setQc(null)}
+          save={(part) =>
+            void change({ kind: "field", key: field.key, file: source.file, column: source.column, part })
+              .then((latest) => {
+                setQc(null);
+                const now = latest.fields.find((f) => f.key === field.key);
+                if (now?.scale?.kind === "tiers" && Object.keys(now.scale.tiers).length === 0) setQc("tiers");
+                else if (now?.scale && !now.scale.kind) setQc("scale");
+              })
               .catch(() => {})
           }
         />
@@ -1480,6 +1530,7 @@ function FieldRow({
               file: source.file,
               column: source.column,
               scale: { kind: "tiers", fraction: false, low: null, high: null, tiers },
+              part: field.part ?? null,
             })
               .then(() => setQc(null))
               .catch(() => {})
@@ -1516,6 +1567,11 @@ function shortName(field: WizardField): string {
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 }
 
+/** Quality and condition fields can take the same column (or different parts of it). */
+function shares(a: string, b: string): boolean {
+  return a in PAIRS && b in PAIRS;
+}
+
 /** A column dropdown grouped by file, with used columns shown but not pickable. */
 function ColumnChoice({
   field,
@@ -1541,8 +1597,8 @@ function ColumnChoice({
   for (const f of files) {
     for (const c of f.columns) {
       const as = used[f.name]?.[c.name];
-      // A category can be both the text and, ranked, the number.
-      if (as && as !== field.key && PAIRS[field.key] !== as) disabled.push(`${f.name}\u0000${c.name}`);
+      // Quality and condition can share a column: a category is the text and, ranked, the number; Q4C3 is both.
+      if (as && as !== field.key && !shares(field.key, as)) disabled.push(`${f.name}\u0000${c.name}`);
     }
   }
   return (
@@ -1571,7 +1627,7 @@ function ColumnChoice({
               <Header className="wiz-section-head">{f.name}</Header>
               {f.columns.map((c) => {
                 const as = used[f.name]?.[c.name];
-                const taken = as && as !== field.key && PAIRS[field.key] !== as;
+                const taken = as && as !== field.key && !shares(field.key, as);
                 return (
                   <ListBoxItem
                     key={c.name}

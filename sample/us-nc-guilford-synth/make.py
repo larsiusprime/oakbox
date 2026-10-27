@@ -176,7 +176,19 @@ eff = pd.to_numeric(b.EFF_YEAR, errors="coerce")
 b["YEAR_BUILT"] = np.minimum(yb + shift, 2024).astype("Int64")
 b["EFF_YEAR"] = np.maximum(np.minimum(eff + shift, 2024), b.YEAR_BUILT).astype("Int64")
 b = b.sort_values(["REID", "BLDG_CARD"], key=lambda s: pd.to_numeric(s, errors="coerce"))
-buildings = b[BUILDING]
+buildings = b[BUILDING].copy()
+
+# 9. Quality and condition written the ways other systems combine them, from the same grade and condition:
+#    QC_RATING is a UAD-style pair (Q1 best … Q6; C1 best … C6) in one value, and CDU a condition, desirability
+#    and utility rating (EX … VP). A separate random stream, so the columns above don't change.
+qc_rng = np.random.default_rng(2048)
+grade_q = buildings.GRADE_LETTER.map({"AA": 1, "A": 2, "B": 3, "C": 4, "D": 5, "E": 6}).fillna(4).astype(int)
+good = 1 - pd.to_numeric(buildings.CONDITION_SCORE, errors="coerce").fillna(0.2)
+cond_c = pd.cut(good, [-1, 0.35, 0.55, 0.7, 0.82, 0.93, 2], labels=[6, 5, 4, 3, 2, 1]).astype(int)
+sep = qc_rng.choice(["", "", " ", "/", "-"], len(buildings))
+buildings["QC_RATING"] = ["Q" + str(q) + s + "C" + str(c) for q, s, c in zip(grade_q, sep, cond_c, strict=True)]
+cdu_words = {1: "EX", 2: "VG", 3: "GD", 4: "AV", 5: "FR", 6: "PR"}
+buildings["CDU"] = [cdu_words[int(min(6, max(1, c + qc_rng.integers(-1, 2))))] for c in cond_c]
 
 # ---------- Sales since 2015: the real deeds, dates moved up to a month and prices nudged. No sale ID. ----------
 s = pd.read_csv(

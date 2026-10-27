@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -195,7 +196,7 @@ def scale_helper(field: str) -> str:
     return f"{field}_src"
 
 
-def scale_calc(source: str, s: Scale) -> list | None:
+def scale_calc(source: Any, s: Scale) -> list | None:
     """The OpenAVMKit calc turning `source` into the field, or None when it's used as written."""
     if s.kind == "tiers":
         # A value not ranked (or blank) reads as missing: map leaves it as written, which isn't a number.
@@ -213,6 +214,48 @@ def scale_calc(source: str, s: Scale) -> list | None:
 
 def scale_ready(s: Scale) -> bool:
     return s.kind is not None and (s.kind != "tiers" or bool(s.tiers))
+
+
+# Quality and condition: the number and the category of each.
+QC_FIELDS = ("bldg_quality_num", "bldg_quality_txt", "bldg_condition_num", "bldg_condition_txt")
+
+PartKind = Literal["percent", "before_percent", "letter", "q", "c", "lead_number", "words"]
+# Part of a value that holds more than one thing (B+5  130%, Q4C3, 3-AVERAGE): the whole value, as a regex
+# without anchors (matched ignoring case), and what's kept of it.
+PART_PATTERNS: dict[str, tuple[str, str]] = {
+    "percent": (r".*?(-?\d+(?:\.\d+)?)\s*%.*", r"\1"),
+    "before_percent": (r"\s*(.*?)\s*-?\d+(?:\.\d+)?\s*%.*", r"\1"),
+    "letter": (r"\s*(A{1,3}|[A-F])(?![A-Z]).*", r"\1"),
+    "q": (r"(?:.*?[^A-Z])?Q\s*([1-6])(?![0-9]).*", r"Q\1"),
+    "c": (r"(?:.*?[^A-Z])?C\s*([1-6])(?![0-9]).*", r"C\1"),
+    "lead_number": (r"\s*(-?\d+(?:\.\d+)?)\s*[^\d\s.].*", r"\1"),
+    "words": (r"\s*-?\d+(?:\.\d+)?\W*([A-Z].*?)\s*", r"\1"),
+}
+NUMERIC_PARTS = ("percent", "lead_number")
+
+
+def _part_subs(kind: str) -> dict[str, str]:
+    body, keep = PART_PATTERNS[kind]
+    # A value without that part becomes blank, rather than staying whole.
+    return {f"(?i)^(?!{body}$).*$": "", f"(?i)^{body}$": keep}
+
+
+def part_calc(source: Any, kind: str) -> list:
+    """The OpenAVMKit calc keeping one part of each value (blank where there's no such part)."""
+    return ["replace_regex", source, _part_subs(kind)]
+
+
+def part_value(value: str, kind: str) -> str:
+    """What part_calc makes of one value."""
+    for pattern, keep in _part_subs(kind).items():
+        value = re.sub(pattern, keep, value)
+    return value.strip()
+
+
+def raw_name(column: str) -> str:
+    """The name a column is loaded under when several fields, or a part of it, are worked out from it."""
+    slug = re.sub(r"[^a-z0-9]+", "_", column.lower()).strip("_") or "column"
+    return f"{slug if slug[0].isalpha() else 'col_' + slug}_raw"
 
 
 CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
@@ -413,6 +456,9 @@ class DataFile(BaseModel):
     scales: dict[str, Scale] = Field(
         default_factory=dict, description="Quality/condition number field -> how its column becomes higher-is-better."
     )
+    parts: dict[str, PartKind] = Field(
+        default_factory=dict, description="Quality/condition field -> the part of its column's values it takes."
+    )
 
 
 class FileCheck(BaseModel):
@@ -566,17 +612,31 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
         areas: dict[str, list] = {}
         numbers: dict[str, list] = {}
         scaled: dict[str, list] = {}
+        qc_columns = Counter(spec[0] for k, spec in f.load.items() if k in QC_FIELDS)
         for field, spec in f.load.items():
-            if field in f.scales:
-                s = f.scales[field]
-                if not scale_ready(s):
+            if field in QC_FIELDS and (field in f.scales or field in f.parts or qc_columns[spec[0]] > 1):
+                s = f.scales.get(field)
+                if s is not None and not scale_ready(s):
                     continue  # which way it runs isn't said yet: nothing written rather than a guess
+                # One column feeding several fields (Q4C3: quality and condition), or a part of it: loaded once,
+                # as text, and each field worked out from it.
+                shared = field in f.parts or qc_columns[spec[0]] > 1
+                text: Any = None
+                if shared:
+                    load[raw_name(spec[0])] = [spec[0], "string"]
+                    text = part_calc(raw_name(spec[0]), f.parts[field]) if field in f.parts else raw_name(spec[0])
+                if s is None:  # the category, as text
+                    scaled[field] = text if field in f.parts else ["set", text]
+                    continue
                 if s.kind == "tiers":
-                    # The category, if it's loaded too (the same column as text), or the column under a name of its own.
-                    shared = next((k for k, x in f.load.items() if k != field and x[0] == spec[0]), None)
-                    if shared is None:
+                    if not shared:
                         load[scale_helper(field)] = [spec[0], "string"]
-                    scaled[field] = cast(list, scale_calc(shared or scale_helper(field), s))
+                        text = scale_helper(field)
+                    scaled[field] = cast(list, scale_calc(text, s))
+                    continue
+                if shared:
+                    number = ["asfloat", ["replace_regex", text, {NOT_A_NUMBER: "nan"}]]
+                    scaled[field] = scale_calc(number, s) or number
                     continue
                 c = scale_calc(scale_helper(field), s)
                 if c is None:

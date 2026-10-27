@@ -2825,6 +2825,23 @@
       "type": "object",
       "title": "Scales",
       "description": "Quality/condition number field -> how its column becomes higher-is-better."
+     },
+     "parts": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "percent",
+        "before_percent",
+        "letter",
+        "q",
+        "c",
+        "lead_number",
+        "words"
+       ]
+      },
+      "type": "object",
+      "title": "Parts",
+      "description": "Quality/condition field -> the part of its column's values it takes."
      }
     },
     "type": "object",
@@ -2845,7 +2862,8 @@
      "area_units",
      "overlay",
      "numbers",
-     "scales"
+     "scales",
+     "parts"
     ],
     "title": "DataFile",
     "description": "One data.load entry, as OAK box wrote it."
@@ -4392,6 +4410,51 @@
     "title": "Overlay",
     "description": "A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.\n\nstamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying\nthe chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature."
    },
+   "PartOption": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "enum": [
+       "percent",
+       "before_percent",
+       "letter",
+       "q",
+       "c",
+       "lead_number",
+       "words"
+      ],
+      "title": "Kind"
+     },
+     "words": {
+      "type": "string",
+      "title": "Words"
+     },
+     "share": {
+      "type": "number",
+      "title": "Share",
+      "description": "Share of the filled values that have this part."
+     },
+     "examples": {
+      "items": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "title": "Examples",
+      "description": "[as written, the part], a few."
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "words",
+     "share",
+     "examples"
+    ],
+    "title": "PartOption"
+   },
    "Project": {
     "properties": {
      "id": {
@@ -5363,7 +5426,19 @@
         "type": "null"
        }
       ],
-      "title": "Calc"
+      "title": "Calc",
+      "description": "The calc it writes; None when the column is loaded as it is."
+     },
+     "load": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Load",
+      "description": "What it loads."
      },
      "symbol": {
       "type": "string",
@@ -5387,6 +5462,7 @@
      "median",
      "samples",
      "calc",
+     "load",
      "symbol"
     ],
     "title": "ScalePreview"
@@ -5935,6 +6011,27 @@
        }
       ],
       "description": "None: the saved one, or a first one."
+     },
+     "part": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "percent",
+         "before_percent",
+         "letter",
+         "q",
+         "c",
+         "lead_number",
+         "words"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Part",
+      "description": "The part of each value it takes."
      }
     },
     "type": "object",
@@ -6088,6 +6185,35 @@
       "title": "Absent",
       "description": "Said not to exist (no condition: effective age carries it).",
       "default": false
+     },
+     "part": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "percent",
+         "before_percent",
+         "letter",
+         "q",
+         "c",
+         "lead_number",
+         "words"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Part",
+      "description": "Quality/condition: the part of each value it takes."
+     },
+     "parts": {
+      "items": {
+       "$ref": "#/components/schemas/PartOption"
+      },
+      "type": "array",
+      "title": "Parts",
+      "description": "The parts its column's values are made of."
      }
     },
     "type": "object",
@@ -6107,7 +6233,9 @@
      "area_unit",
      "number_format",
      "scale",
-     "absent"
+     "absent",
+     "part",
+     "parts"
     ],
     "title": "WizardField"
    },
@@ -6202,6 +6330,27 @@
       "title": "Absent",
       "description": "Condition: there isn't one (effective age carries it).",
       "default": false
+     },
+     "part": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "percent",
+         "before_percent",
+         "letter",
+         "q",
+         "c",
+         "lead_number",
+         "words"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Part",
+      "description": "Quality/condition: the part of each value."
      }
     },
     "type": "object",

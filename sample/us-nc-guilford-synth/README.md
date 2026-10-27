@@ -40,7 +40,7 @@ it against.
 | File | Rows | Key columns |
 | --- | --- | --- |
 | `in/geo/parcels.parquet` | 9,359 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `TOTAL_ACRES` (land, in acres), `LOCATION_ADDR`, `PHYADDR_CITY`, `PHYADDR_ZIP`, `NEIGHBORHOOD`, `LAND_CLASS`, `ZONING`, 2022 assessed `TOTAL_LAND_VALUE_ASSESSED` / `TOTAL_BLDG_VALUE_ASSESSED` / `TOTAL_PROP_VALUE` |
-| `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE` |
+| `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE`; and as other systems combine them: `QC_RATING` (`Q3C2`, `Q3/C2`: UAD-style quality and condition in one value, 1 best) and `CDU` (EX … PR) |
 | `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), and `PRICE_*`: the same prices in other formats (below) |
 | `in/geo/zoning.geojson` | 588 polygons | Zoning districts: `ZONING` (R-5, C-M…), `CLASSIFICATION` (RESIDENTIAL, COMMERCIAL…). In degrees (EPSG:4326), unlike the parcels. |
 | `in/geo/school_districts.shp` | 4 polygons | School board districts: `DISTRICT`. Every parcel is in one. |
@@ -83,7 +83,13 @@ it against.
     | `PRICE_SHORT` | `$250K`, `$1.11M` | |
     | `PRICE_MIXED` | all of the above, some blank, a few `N/A`, `-`, `TBD`, `0` | hand-kept |
     | `PRICE_NEGATIVE` | `(10)` for the $10 deeds | accounting negatives |
-12. **Map layers that differ from the parcels.**
+12. **Quality and condition written every which way.**
+    - `GRADE` and `CONDITION` are a code and a percent in one value.
+    - `CONDITION_SCORE` is % depreciation as a fraction (it rises with age), not % good.
+    - `CONDITION_CODE` is "A" on every card.
+    - `QC_RATING` holds quality and condition in one value, separated differently from row to row.
+    - `CDU` mixes condition with desirability and utility.
+13. **Map layers that differ from the parcels.**
     - Zoning is GeoJSON in degrees, and the CBD a GeoPackage in degrees; the parcels are in State Plane feet.
     - Flood zones cover only some parcels, so most are "in none".
     - Streams are lines and universities points, so they're for distances only.

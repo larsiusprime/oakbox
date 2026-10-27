@@ -1155,6 +1155,13 @@ export interface components {
             scales: {
                 [key: string]: components["schemas"]["Scale-Output"];
             };
+            /**
+             * Parts
+             * @description Quality/condition field -> the part of its column's values it takes.
+             */
+            parts: {
+                [key: string]: "percent" | "before_percent" | "letter" | "q" | "c" | "lead_number" | "words";
+            };
         };
         /** DateCheck */
         DateCheck: {
@@ -1887,6 +1894,26 @@ export interface components {
              */
             name_column: string | null;
         };
+        /** PartOption */
+        PartOption: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent" | "before_percent" | "letter" | "q" | "c" | "lead_number" | "words";
+            /** Words */
+            words: string;
+            /**
+             * Share
+             * @description Share of the filled values that have this part.
+             */
+            share: number;
+            /**
+             * Examples
+             * @description [as written, the part], a few.
+             */
+            examples: string[][];
+        };
         /** Project */
         Project: {
             /** Id */
@@ -2353,8 +2380,18 @@ export interface components {
             median: number | null;
             /** Samples */
             samples: components["schemas"]["ScaleSample"][];
-            /** Calc */
+            /**
+             * Calc
+             * @description The calc it writes; None when the column is loaded as it is.
+             */
             calc: unknown[] | null;
+            /**
+             * Load
+             * @description What it loads.
+             */
+            load: {
+                [key: string]: string[];
+            };
             /** Symbol */
             symbol: string;
         };
@@ -2597,6 +2634,11 @@ export interface components {
             column: string;
             /** @description None: the saved one, or a first one. */
             scale?: components["schemas"]["Scale-Input"] | null;
+            /**
+             * Part
+             * @description The part of each value it takes.
+             */
+            part?: ("percent" | "before_percent" | "letter" | "q" | "c" | "lead_number" | "words") | null;
         };
         /** WizardDates */
         WizardDates: {
@@ -2657,6 +2699,16 @@ export interface components {
              * @default false
              */
             absent: boolean;
+            /**
+             * Part
+             * @description Quality/condition: the part of each value it takes.
+             */
+            part: ("percent" | "before_percent" | "letter" | "q" | "c" | "lead_number" | "words") | null;
+            /**
+             * Parts
+             * @description The parts its column's values are made of.
+             */
+            parts: components["schemas"]["PartOption"][];
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -2690,6 +2742,11 @@ export interface components {
              * @default false
              */
             absent: boolean;
+            /**
+             * Part
+             * @description Quality/condition: the part of each value.
+             */
+            part?: ("percent" | "before_percent" | "letter" | "q" | "c" | "lead_number" | "words") | null;
         };
         /** WizardFile */
         WizardFile: {
