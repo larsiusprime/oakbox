@@ -2290,11 +2290,15 @@ WORD_SCORES = {
 
 
 def _letter(v: str) -> float | None:
-    m = re.fullmatch(r"(A{1,3}|[A-F])\s*([+-]{0,2})", v.strip().upper())
+    # A, B+, C-, and with a number (B+5, A-10: Guilford's grade adjustments, in percent)
+    # (a number only after a sign: C1 is a condition rating, not a grade)
+    m = re.fullmatch(r"(A{1,3}|[A-F])\s*(?:([+-])\s*(\d{1,2})|([+-]{0,2}))", v.strip().upper())
     if not m:
         return None
     base = 5 + len(m[1]) - 1 if m[1].startswith("A") else {"B": 4, "C": 3, "D": 2, "E": 1, "F": 0}[m[1]]
-    return base + 0.3 * m[2].count("+") - 0.3 * m[2].count("-")
+    if m[3]:
+        return base + (1 if m[2] == "+" else -1) * int(m[3]) / 100
+    return base + 0.3 * (m[4].count("+") - m[4].count("-"))
 
 
 def _words(v: str) -> float | None:
@@ -2324,10 +2328,11 @@ def tier_order(values: list[str]) -> tuple[list[tuple[str, float]], str | None, 
     ordered them, and those it didn't know (put last, for the user to place)."""
     best = max(VOCABULARIES, key=lambda vc: sum(vc[1](v) is not None for v in values))
     name, score = best
+    # Only a vocabulary that knows most of the names orders them: one stray match (C-5 as a condition) isn't one.
+    if sum(score(v) is not None for v in values) < max(1, len(values) / 2):
+        return [(v, float(i + 1)) for i, v in enumerate(sorted(values))], None, sorted(values)
     known = sorted((v for v in values if score(v) is not None), key=lambda v: (score(v), v))
     unknown = sorted(v for v in values if score(v) is None)
-    if not known:
-        name = None
     out: list[tuple[str, float]] = []
     n, last = 0, None
     for v in known:
@@ -2377,8 +2382,12 @@ def _part_options(stamp: tuple[str, float, int], layer: str | None, column: str)
         parts = [(v, part_value(v, kind)) for v in hits]
         if len(hits) / len(distinct) < 0.5 or all(p == v.strip() for v, p in parts):
             continue
+        if sum(1 for _, p in parts if p) < 0.8 * len(parts):
+            continue  # mostly empty (the code before a percent written first): not a part worth offering
         share = sum(1 for v in filled if re.fullmatch(body, v, re.IGNORECASE)) / len(filled)
         out.append(PartOption(kind=kind, words=PART_WORDS[kind], share=share, examples=[[v, p] for v, p in parts[:4]]))
+    if {"q", "c"} <= {o.kind for o in out}:
+        out = [o for o in out if o.kind != "letter"]  # C3Q4's first letter is the C rating, not a grade
     return tuple(out)
 
 

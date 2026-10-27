@@ -200,7 +200,8 @@ def scale_calc(source: Any, s: Scale) -> list | None:
     """The OpenAVMKit calc turning `source` into the field, or None when it's used as written."""
     if s.kind == "tiers":
         # A value not ranked (or blank) reads as missing: map leaves it as written, which isn't a number.
-        named = ["map", source, {k: f"{v:g}" for k, v in s.tiers.items()}]
+        # Tiers are named as read, trimmed; the file's values may be padded (fixed-width exports).
+        named = ["map", ["strip", source], {k.strip(): f"{v:g}" for k, v in s.tiers.items()}]
         return ["asfloat", ["replace_regex", named, {NOT_A_NUMBER: "nan"}]]
     pct = ["*", source, 100] if s.fraction else source
     if s.kind == "pct_depr":
@@ -223,12 +224,12 @@ PartKind = Literal["percent", "before_percent", "letter", "q", "c", "lead_number
 # Part of a value that holds more than one thing (B+5  130%, Q4C3, 3-AVERAGE): the whole value, as a regex
 # without anchors (matched ignoring case), and what's kept of it.
 PART_PATTERNS: dict[str, tuple[str, str]] = {
-    "percent": (r".*?(-?\d+(?:\.\d+)?)\s*%.*", r"\1"),
-    "before_percent": (r"\s*(.*?)\s*-?\d+(?:\.\d+)?\s*%.*", r"\1"),
+    "percent": (r".*?(-?\d+(?:[.,]\d+)?)\s*%.*", r"\1"),
+    "before_percent": (r"\s*(.*?)\s*-?\d+(?:[.,]\d+)?\s*%.*", r"\1"),
     "letter": (r"\s*(A{1,3}|[A-F])(?![A-Z]).*", r"\1"),
     "q": (r"(?:.*?[^A-Z])?Q\s*([1-6])(?![0-9]).*", r"Q\1"),
     "c": (r"(?:.*?[^A-Z])?C\s*([1-6])(?![0-9]).*", r"C\1"),
-    "lead_number": (r"\s*(-?\d+(?:\.\d+)?)\s*[^\d\s.].*", r"\1"),
+    "lead_number": (r"\s*(-?\d+(?:[.,]\d+)?)\s*[^\d\s.,].*", r"\1"),
     "words": (r"\s*-?\d+(?:\.\d+)?\W*([A-Z].*?)\s*", r"\1"),
 }
 NUMERIC_PARTS = ("percent", "lead_number")
@@ -241,15 +242,17 @@ def _part_subs(kind: str) -> dict[str, str]:
 
 
 def part_calc(source: Any, kind: str) -> list:
-    """The OpenAVMKit calc keeping one part of each value (blank where there's no such part)."""
-    return ["replace_regex", source, _part_subs(kind)]
+    """The OpenAVMKit calc keeping one part of each value (blank where there's no such part). A number keeps
+    a decimal comma as a point (12,5% is 12.5)."""
+    e = ["replace_regex", source, _part_subs(kind)]
+    return ["replace", e, {",": "."}] if kind in NUMERIC_PARTS else e
 
 
 def part_value(value: str, kind: str) -> str:
     """What part_calc makes of one value."""
     for pattern, keep in _part_subs(kind).items():
         value = re.sub(pattern, keep, value)
-    return value.strip()
+    return (value.replace(",", ".") if kind in NUMERIC_PARTS else value).strip()
 
 
 def raw_name(column: str) -> str:

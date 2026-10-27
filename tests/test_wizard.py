@@ -966,6 +966,11 @@ def test_tier_names_put_in_order_worst_to_best():
     assert [v for v, _ in order] == ["C6", "C3", "C1"] and name == "Q1–Q6 or C1–C6, 1 best"
     order, name, unknown = tier_order(["Good", "Poor", "Shiny"])
     assert [v for v, _ in order] == ["Poor", "Good", "Shiny"] and unknown == ["Shiny"]
+    # Grade adjustments (B+5, A-10) order within their letter; a stray match doesn't make a column known.
+    order, name, _ = tier_order(["B+5", "A-10", "C", "B"])
+    assert [v for v, _ in order] == ["C", "B", "B+5", "A-10"] and name == "letter grades, AA best"
+    order, name, unknown = tier_order(["D-4", "Q1", "S-3", "X-2"])
+    assert name is None and unknown == ["D-4", "Q1", "S-3", "X-2"]
 
 
 def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp_path, monkeypatch):
@@ -1067,7 +1072,11 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     # One column, two fields: loaded once, as text; the category is it, the number is it ranked.
     assert entry["load"]["grade_raw"] == ["GRADE", "string"] and "bldg_quality_txt" not in entry["load"]
     assert entry["calc"]["bldg_quality_txt"] == ["set", "grade_raw"]
-    assert entry["calc"]["bldg_quality_num"][1][1] == ["map", "grade_raw", {"C": "1", "B": "2", "A": "3", "AA": "5"}]
+    assert entry["calc"]["bldg_quality_num"][1][1] == [
+        "map",
+        ["strip", "grade_raw"],
+        {"C": "1", "B": "2", "A": "3", "AA": "5"},
+    ]
 
     univ, _ = _engine(pid, monkeypatch)
     univ = univ.sort_values("key", key=lambda s: s.astype(int))
@@ -1143,3 +1152,19 @@ def test_part_of_a_column_one_value_holding_two_things(client, tmp_path, monkeyp
     assert df["bldg_quality_num"].tolist()[:3] == [2, 3, 1] and pd.isna(df["bldg_quality_num"].iloc[3])
     assert df["bldg_condition_txt"].tolist() == ["C2", "C4", "C1", ""]
     assert df["bldg_condition_num"].tolist() == [130, 160, 85, 110]
+
+
+def test_parts_read_decimal_commas_and_padded_tiers_still_match(monkeypatch, tmp_path):
+    """12,5% is 12.5, as OpenAVMKit reads it; a ranked tier written with spaces around it still finds its number."""
+    from openavmkit.calculations import perform_calculations
+
+    from oakbox.datafiles import Scale, part_calc, part_value, scale_calc
+
+    values = ["12,5%", "A  80%", "  7 %"]
+    df = pd.DataFrame({"r": pd.Series(values, dtype="string")})
+    read = perform_calculations(df, {"x": ["asfloat", part_calc("r", "percent")]})["x"].tolist()
+    assert read == [12.5, 80.0, 7.0] == [float(part_value(v, "percent")) for v in values]
+    padded = pd.DataFrame({"t": pd.Series([" Good ", "Poor", None], dtype="string")})
+    tiers = Scale(kind="tiers", tiers={"Poor": 1, "Good": 2})
+    out = perform_calculations(padded, {"n": scale_calc("t", tiers)})["n"].tolist()
+    assert out[:2] == [2.0, 1.0] and pd.isna(out[2])
