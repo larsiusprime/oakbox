@@ -291,6 +291,14 @@ export const t = {
       >,
       titleFor: (name: string) => `When is it ${name.toLowerCase()}?`,
       lede: "Pick the values that mean yes. Add more tests for other columns if one isn't enough.",
+      // Valid sale: a price test is one click away, as an ordinary test the user changes or removes.
+      addPrice: (amount: string) => `+ Sale price is at least ${amount}`,
+      noPrice: "Choose the sale price column first to test prices here.",
+      priceCounts: (column: string, counts: string) => `${column}, as read: ${counts}.`,
+      zero: (n: number) => `${n.toLocaleString()} zero`,
+      nominal: (n: number, amount: string) => `${n.toLocaleString()} under ${amount}`,
+      negative: (n: number) => `${n.toLocaleString()} negative`,
+      asRead: (column: string) => `${column}, as read`,
       word: { valid_sale: "valid", vacant_sale: "vacant" } as Record<string, string>,
       meter: (yes: number, total: number, word: string, pct: string) =>
         `${yes.toLocaleString()} of ${total.toLocaleString()} ${word} (${pct})`,
@@ -381,18 +389,6 @@ export const t = {
         `A typical sale is ${ratio.toLocaleString(undefined, { maximumSignificantDigits: 3 })} × the ${field === "assr_land_value" ? "assessed land value" : "assessed value"}: the scale looks right.`,
       excel: (n: number) =>
         `${n.toLocaleString()} were rounded by Excel (1.11E+06): the exact amount is lost and can't be recovered. Re-export the file with the column formatted as a number.`,
-      odd: "Not market prices:",
-      oddCounts: (zero: number, nominal: number, negative: number, under: string) =>
-        [
-          zero ? `${zero.toLocaleString()} zero` : null,
-          nominal ? `${nominal.toLocaleString()} under ${under} (nominal deeds)` : null,
-          negative ? `${negative.toLocaleString()} negative` : null,
-        ]
-          .filter(Boolean)
-          .join(", "),
-      leaveOut: (under: string) => `Leave prices under ${under} out of valid sales`,
-      leftOut: (under: string) => `✓ The valid-sale rule leaves out prices under ${under}.`,
-      cantLeaveOut: "Valid sales come from a column: add a price test to it with a rule to leave these out.",
       asIs: "As written",
       asRead: "Read as",
       notRead: "doesn't read",

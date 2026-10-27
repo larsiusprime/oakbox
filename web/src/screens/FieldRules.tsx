@@ -57,12 +57,15 @@ export function RuleDialog({
   projectId,
   field,
   file,
+  price,
   close,
   save,
 }: {
   projectId: string;
   field: WizardField;
   file: WizardFile;
+  /** Valid sale: the sale price, for the price test shortcut. */
+  price?: WizardField | undefined;
   close: () => void;
   save: (rule: Rule) => void;
 }) {
@@ -88,6 +91,21 @@ export function RuleDialog({
   const set = (i: number, patch: Partial<Condition>) =>
     setRule({ ...rule, conditions: rule.conditions.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
   const columns = file.columns.map((c) => [c.name, c.name] as const);
+  // Valid sale: a price test, always offered; it adds an ordinary test to change or remove like any other.
+  const priceColumn =
+    field.key === "valid_sale" ? price?.sources.find((s) => s.file === file.name)?.column : undefined;
+  const prices = useQuery({
+    queryKey: ["numbers", projectId, file.name, "sale_price", priceColumn, price?.number_format ?? null],
+    queryFn: async () =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/wizard/files/{name}/numbers", {
+          params: { path: { project_id: projectId, name: file.name } },
+          body: { key: "sale_price", column: priceColumn ?? "" },
+        }),
+      ),
+    enabled: !!priceColumn,
+  });
+  const p = prices.data;
   const ops = Object.entries(r.ops) as [Op, string][];
 
   return (
@@ -166,24 +184,59 @@ export function RuleDialog({
               </li>
             ))}
           </ol>
-          <Button
-            className="button rc-add"
-            onPress={() =>
-              setRule({
-                ...rule,
-                conditions: [...rule.conditions, { column: start, op: "isin", values: [] }],
-              })
-            }
-          >
-            {r.addTest}
-          </Button>
+          <div className="rl-adds">
+            <Button
+              className="button rc-add"
+              onPress={() =>
+                setRule({
+                  ...rule,
+                  conditions: [...rule.conditions, { column: start, op: "isin", values: [] }],
+                })
+              }
+            >
+              {r.addTest}
+            </Button>
+            {field.key === "valid_sale" && (
+              <Button
+                className="button rc-add"
+                isDisabled={!priceColumn}
+                onPress={() =>
+                  priceColumn &&
+                  setRule({
+                    ...rule,
+                    conditions: [...rule.conditions, { column: priceColumn, op: ">=", values: ["1000"] }],
+                  })
+                }
+              >
+                {r.addPrice(p ? amount(p.symbol, 1000) : "1,000")}
+              </Button>
+            )}
+          </div>
+          {field.key === "valid_sale" && (
+            <p className="rc-sub">
+              {!priceColumn
+                ? r.noPrice
+                : p && p.zero + p.nominal + p.negative > 0
+                  ? r.priceCounts(
+                      priceColumn,
+                      [
+                        p.zero ? r.zero(p.zero) : null,
+                        p.nominal ? r.nominal(p.nominal, amount(p.symbol, 1000)) : null,
+                        p.negative ? r.negative(p.negative) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(", "),
+                    )
+                  : null}
+            </p>
+          )}
           {complete && v && v.rows.length > 0 && (
             <table className="rc-tbl rl-rows">
               <thead>
                 <tr>
                   {v.columns.map((c) => (
                     <th key={c} className="rc-th">
-                      {c}
+                      {v.as_read.includes(c) ? r.asRead(c) : c}
                     </th>
                   ))}
                   <th className="rc-th">{r.result}</th>
@@ -442,7 +495,6 @@ export function NumberDialog({
   field,
   file,
   column,
-  valid,
   close,
   save,
 }: {
@@ -450,10 +502,8 @@ export function NumberDialog({
   field: WizardField;
   file: WizardFile;
   column: string;
-  /** Valid sale, for leaving nominal prices out of it (sale price only). */
-  valid?: WizardField | undefined;
   close: () => void;
-  save: (format: NumberFormat, leaveOut: Rule | null) => void;
+  save: (format: NumberFormat) => void;
 }) {
   const [format, setFormat] = useState<NumberFormat | null>(field.number_format ?? null);
   const asked = useSettled(format);
@@ -471,14 +521,6 @@ export function NumberDialog({
   const v = preview.data;
   const shown = format ?? v?.format ?? null;
   const set = (change: Partial<NumberFormat>) => shown && setFormat({ ...shown, ...change });
-  const under = v ? amount(v.symbol, 1000) : "";
-  const odd = v ? v.zero + v.nominal + v.negative : 0;
-  // Valid sale from a column (not a rule, not assumed): a price test can't be added without replacing it.
-  const fromColumn = !!valid && valid.sources.length > 0 && !valid.rule;
-  const [leave, setLeave] = useState(true);
-  // Not while the scale looks off: every price would look nominal until it's read in the right unit.
-  const showOdd = field.key === "sale_price" && !!v && odd > 0 && !v.hint;
-  const offerLeave = showOdd && !v?.rule && !fromColumn;
   const good = v ? v.read > 0 && v.failed === 0 && !v.hint : false;
   const scales = shown && !SCALES.includes(shown.scale) ? [...SCALES, shown.scale] : SCALES;
   return (
@@ -544,22 +586,6 @@ export function NumberDialog({
             <p className="rc-sub">{n.assessed(v.assessed, v.assessed_field)}</p>
           )}
           {v && v.excel > 0 && <p className="rc-suggest nm-warn">{n.excel(v.excel)}</p>}
-          {v && showOdd && (
-            <div className="nm-odd">
-              <span>
-                <b>{n.odd}</b> {n.oddCounts(v.zero, v.nominal, v.negative, under)}
-              </span>
-              {v.rule ? (
-                <span className="wiz-ok">{n.leftOut(under)}</span>
-              ) : fromColumn ? (
-                <span className="wiz-from">{n.cantLeaveOut}</span>
-              ) : (
-                <Tick isSelected={leave} onChange={setLeave}>
-                  {n.leaveOut(under)}
-                </Tick>
-              )}
-            </div>
-          )}
           {v && (
             <table className="rc-tbl">
               <thead>
@@ -598,12 +624,7 @@ export function NumberDialog({
             <Button
               className="button button-primary"
               isDisabled={!v || v.read === 0 || !shown}
-              onPress={() => {
-                if (!shown) return;
-                const keep: Condition[] = valid?.rule?.conditions ?? [];
-                const test: Condition = { column, op: ">=", values: ["1000"] };
-                save(shown, offerLeave && leave ? { join: "all", conditions: [...keep, test] } : null);
-              }}
+              onPress={() => shown && save(shown)}
             >
               {n.save}
             </Button>

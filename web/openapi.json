@@ -3804,11 +3804,6 @@
       "type": "array",
       "title": "Samples",
       "description": "Ones that don't read first, then a spread of ones that do."
-     },
-     "rule": {
-      "type": "boolean",
-      "title": "Rule",
-      "description": "The valid-sale rule already leaves out prices under the nominal amount."
      }
     },
     "type": "object",
@@ -3833,8 +3828,7 @@
      "assessed",
      "assessed_field",
      "hint",
-     "samples",
-     "rule"
+     "samples"
     ],
     "title": "NumberPreview"
    },
@@ -4600,6 +4594,14 @@
       "title": "Columns",
       "description": "The columns the rule tests, for the rows."
      },
+     "as_read": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "As Read",
+      "description": "Columns shown in the rows as read (money written as text), not as written."
+     },
      "values": {
       "additionalProperties": {
        "items": {
@@ -4652,6 +4654,7 @@
      "yes",
      "total",
      "columns",
+     "as_read",
      "values",
      "more",
      "rows",

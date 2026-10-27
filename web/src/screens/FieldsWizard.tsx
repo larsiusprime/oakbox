@@ -1322,6 +1322,7 @@ function FieldRow({
           projectId={project.id}
           field={field}
           file={sourceFile}
+          price={data.fields.find((f) => f.key === "sale_price")}
           close={() => setRuling(false)}
           save={(rule) =>
             void change({ kind: "rule", key: field.key, rule })
@@ -1356,9 +1357,8 @@ function FieldRow({
           field={field}
           file={sourceFile}
           column={source.column}
-          valid={data.fields.find((f) => f.key === "valid_sale")}
           close={() => setReading(false)}
-          save={(number_format, leaveOut) =>
+          save={(number_format) =>
             void change({
               kind: "field",
               key: field.key,
@@ -1366,9 +1366,6 @@ function FieldRow({
               column: source.column,
               number_format,
             })
-              .then(() =>
-                leaveOut ? change({ kind: "rule", key: "valid_sale", rule: leaveOut }) : undefined,
-              )
               .then(() => setReading(false))
               .catch(() => {})
           }

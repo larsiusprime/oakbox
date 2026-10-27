@@ -1625,6 +1625,7 @@ class RulePreview(BaseModel):
     yes: int
     total: int
     columns: list[str] = Field(description="The columns the rule tests, for the rows.")
+    as_read: list[str] = Field(description="Columns shown in the rows as read (money written as text), not as written.")
     values: dict[str, list[ValueCount]] = Field(description="Per column tested, its values, most common first.")
     more: dict[str, int] = Field(description="Per column, how many other values there are.")
     rows: list[RuleRow] = Field(description="A few rows of each outcome.")
@@ -1711,8 +1712,14 @@ def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePr
         more[column] = max(0, len(counts) - VALUES_SHOWN)
     names, filt, result = _rule_result(files, entry, rule) if _complete(rule) else ({}, [], None)
     rows: list[RuleRow] = []
+    # A price is tested as read ($1,000 against 1.2 in thousands is 1,200), so the rows show it that way.
+    as_read = [c for c in columns if any(entry.load.get(f, [None])[0] == c for f in entry.numbers)]
     if result is not None and columns:
         cells = {c: _values(stamp, entry.layer, c, raw=True) for c in columns}
+        for c in as_read:
+            field = next(f for f in entry.numbers if entry.load.get(f, [None])[0] == c)
+            read = _read_numbers(stamp, entry.layer, c, entry.numbers[field].model_dump_json())
+            cells[c] = tuple("" if v != v else f"{v:,.2f}".removesuffix(".00") for v in read)
         rng = random.Random(0)
         for want in (True, False):
             idx = [i for i, x in enumerate(result.tolist()) if x == want]
@@ -1726,6 +1733,7 @@ def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePr
         yes=int(result.sum()) if result is not None else 0,
         total=total,
         columns=columns,
+        as_read=as_read,
         values=values,
         more=more,
         rows=rows,
@@ -1994,7 +2002,6 @@ class NumberPreview(BaseModel):
     assessed_field: str | None
     hint: ScaleHint | None
     samples: list[NumberSample] = Field(description="Ones that don't read first, then a spread of ones that do.")
-    rule: bool = Field(description="The valid-sale rule already leaves out prices under the nominal amount.")
 
 
 def _symbol(project: Project) -> str:
@@ -2154,14 +2161,6 @@ def number_preview(
         if raw[i] not in seen and len(samples) < 9:
             samples.append(NumberSample(raw=raw[i], read=values[i]))
             seen.add(raw[i])
-    valid = entry.rules.get("valid_sale")
-    rule = bool(
-        valid
-        and any(
-            c.column == column and c.op in (">", ">=") and c.values and float(c.values[0] or 0) >= NOMINAL - 1
-            for c in valid.conditions
-        )
-    )
     return NumberPreview(
         key=key,
         column=column,
@@ -2170,7 +2169,6 @@ def number_preview(
         guessed=guessed,
         symbol=_symbol(project),
         samples=samples,
-        rule=rule,
         **s,
     )
 

@@ -2597,12 +2597,11 @@ a.row-title:hover {
 .nm-warn {
   color: var(--warn, #8a5300);
 }
-.nm-odd {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin: 0.5rem 0;
-}
 .nm-raw {
   white-space: pre;
+}
+.rl-adds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }

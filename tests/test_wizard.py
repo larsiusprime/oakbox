@@ -936,9 +936,10 @@ def test_prices_written_as_text_are_read_and_their_scale_checked(client, tmp_pat
     # Back to the formatted column, and the $10 deed left out of valid sales by a price test the rule reads as read.
     client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
     rule = {"join": "all", "conditions": [{"column": "PRICE", "op": ">=", "values": ["1000"]}]}
+    view = client.post(f"{field}/valid_sale/rule", json=rule).json()
+    assert view["as_read"] == ["PRICE"] and {"cells": ["-10"], "yes": False} in view["rows"]
     w = client.put(f"{field}/valid_sale/rule", json=rule).json()
     assert _field(w, "valid_sale")["check"]["text"] == "✓ 27 of 30 valid (90%)"
-    assert client.post(numbers, json={"key": "sale_price", "column": "PRICE"}).json()["rule"]
     client.put(f"{field}/vacant_sale", json={"assume": True})
     entry = _settings(pid)["data"]["load"]["sale"]
     # Its own copy of the price: OpenAVMKit drops a calculated field another calc uses.

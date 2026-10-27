@@ -1653,11 +1653,6 @@ export interface components {
              * @description Ones that don't read first, then a spread of ones that do.
              */
             samples: components["schemas"]["NumberSample"][];
-            /**
-             * Rule
-             * @description The valid-sale rule already leaves out prices under the nominal amount.
-             */
-            rule: boolean;
         };
         /** NumberSample */
         NumberSample: {
@@ -2030,6 +2025,11 @@ export interface components {
              * @description The columns the rule tests, for the rows.
              */
             columns: string[];
+            /**
+             * As Read
+             * @description Columns shown in the rows as read (money written as text), not as written.
+             */
+            as_read: string[];
             /**
              * Values
              * @description Per column tested, its values, most common first.
