@@ -869,3 +869,6 @@ def test_map_layers_stamped_onto_parcels_or_measured_to(client, tmp_path, monkey
     w = client.put(f"{layer}/schools").json()
     assert all(x["name"] != "schools" for x in w["layers"])
     assert "distances" not in _settings(pid)["data"]["process"]["enrich"]
+    # Nothing taken from it now, but still listed: OpenAVMKit loads it without tripping on its missing columns.
+    assert _settings(pid)["data"]["load"]["schools"] == {"filename": "schools.shp", "dupes": "allow"}
+    assert len(load_dataframes(load_settings("in/settings.json"))["schools"]) == 1

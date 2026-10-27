@@ -506,8 +506,11 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
             order = "desc" if f.dupes_desc else "asc"
             drop: bool | str = "all" if f.dupes == "all" else True
             entry["dupes"] = {"subset": [f.match], "sort_by": [f.dupes_sort or f.match, order], "drop": drop}
-        if f.holds == "overlay":
-            # Every shape counts: without this OpenAVMKit keeps one per value of its first column.
+        if f.holds == "overlay" or (
+            not load and f.holds not in ("parcels", "sales") and Path(f.filename).suffix.lower() != ".csv"
+        ):
+            # Every shape counts: without this OpenAVMKit keeps one per value of its first column, and fails on a
+            # map file nothing is taken from yet (a layer not used yet), which has no column at all.
             entry["dupes"] = "allow"
         if f.holds == "sales":
             # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.

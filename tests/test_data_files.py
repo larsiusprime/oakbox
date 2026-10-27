@@ -75,7 +75,7 @@ def test_move_a_shapefile_with_its_sidecars(client, pid, tmp_path):
     assert list(src_dir.iterdir()) == []  # moved, sidecars and all
     in_dir = projects.project_dir(pid) / "in"
     assert sorted(p.name for p in in_dir.iterdir() if p.name != "settings.json") == sidecars
-    assert _settings(pid)["data"]["load"]["parcels"] == {"filename": "parcels.2026.shp"}
+    assert _settings(pid)["data"]["load"]["parcels"] == {"filename": "parcels.2026.shp", "dupes": "allow"}
 
 
 def test_a_shapefile_without_its_dbf_is_refused(client, pid, tmp_path):
@@ -94,7 +94,7 @@ def test_geopackage_layer_is_chosen_and_written(client, pid, tmp_path):
     body = {"path": str(gpkg), "mode": "copy", "name": "county"}
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 422  # which layer?
     assert client.post(f"/api/projects/{pid}/files", json=body | {"layer": "zoning"}).status_code == 200
-    assert _settings(pid)["data"]["load"]["county"] == {"filename": "county.gpkg", "layer": "zoning"}
+    assert _settings(pid)["data"]["load"]["county"] == {"filename": "county.gpkg", "layer": "zoning", "dupes": "allow"}
 
 
 def test_a_taken_file_name_needs_a_new_name(client, pid, tmp_path):

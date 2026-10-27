@@ -64,6 +64,7 @@ uv pip install -q \
 
 # Sample counties to try it on (sample/README.md).
 cp -r sample "$OUT/sample"
+rm -rf "$OUT"/sample/*/.cache  # the downloads make.py keeps; what it made is in in/
 
 # Linux: keep only the parts of Qt the window loads (about 270 MB less).
 [ "$PLATFORM" = linux ] && python3 packaging/prune_qt.py "$OUT/$SITE"

@@ -1,395 +1,280 @@
-"""Builds the synthetic Guilford-style sample county (see README.md). Deterministic: same seed, same files.
+"""Builds the Guilford sample county (see README.md) from a slice of Guilford County, NC's real data, altered and
+with problems planted. Deterministic: same seed, same files.
 
 uv run python sample/us-nc-guilford-synth/make.py
+
+The first run downloads Guilford's files (about 300 MB) from OpenAVMKit's public sample-locality container into
+.cache/ beside this file; later runs reuse them.
 """
 
+import shutil
+import urllib.request
 from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from shapely.geometry import LineString, Point, box
+from shapely.geometry import box
 
 HERE = Path(__file__).parent
 IN = HERE / "in"
+CACHE = HERE / ".cache"
+SOURCE = "https://landeconomics.blob.core.windows.net/localities-public/us/nc/guilford"
 rng = np.random.default_rng(336)
 
-# ---------- Parcels: blocks of lots on a street grid, near Greensboro (NC State Plane, US feet) ----------
+# Downtown Greensboro north to Buffalo Lake, in NC State Plane (EPSG:2264, US feet): about 9,400 parcels, mostly
+# single-family houses and condos, with 1,400 qualified house sales since 2018. Parcels are kept when their
+# centre falls inside; map layers are cut to the window plus a margin.
+X0, Y0, X1, Y1 = 1_760_000, 843_000, 1_772_000, 862_000
+MARGIN = 3_000
+SINCE = 2015
 
-E0, N0 = 1_760_000, 850_000
-NBHDS = {  # code: (city, zip, land $/sqft, lot width ft, lot depth ft, typical year built, quality)
-    "1001": ("GREENSBORO", "27401", 4.0, 50, 120, 1925, 0.85),
-    "1002": ("GREENSBORO", "27403", 6.5, 60, 140, 1950, 1.00),
-    "1003": ("GREENSBORO", "27408", 11.0, 90, 160, 1965, 1.25),
-    "2001": ("HIGH POINT", "27260", 3.5, 55, 120, 1940, 0.85),
-    "2002": ("HIGH POINT", "27265", 5.5, 75, 150, 1995, 1.05),
-    "3001": ("JAMESTOWN", "27282", 7.0, 100, 180, 2005, 1.15),
-    "3002": ("SUMMERFIELD", "27358", 4.5, 160, 260, 2012, 1.20),
-    "1004": ("GREENSBORO", "27406", 3.0, 55, 115, 1975, 0.80),
-}
-STREETS = [
-    "ELM",
-    "SPRING GARDEN",
-    "LEE",
-    "FRIENDLY",
-    "WENDOVER",
-    "BATTLEGROUND",
-    "LAWNDALE",
-    "MARTIN LUTHER KING JR",
-    "ASPEN",
-    "HOLDEN",
-    "COLLEGE",
-    "MAIN",
-    "LEXINGTON",
-    "BRIDFORD",
-    "GUILFORD COLLEGE",
-    "PLEASANT GARDEN",
-]
-SUFFIX = ["ST", "RD", "AVE", "DR", "LN", "CT", "PKWY"]
 
-rows = []
-reid = 118_000
-for b, (nbhd, (city, zipc, land_rate, w, d, yb, q)) in enumerate(NBHDS.items()):
-    # each neighborhood is a patch of blocks; each block is 2 rows of lots back to back
-    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
-    lots_per_row, blocks_x, blocks_y = 10, 4, 8
-    for i in range(blocks_x):
-        for j in range(blocks_y):
-            x0, y0 = bx + i * (lots_per_row * w + 60), by + j * (2 * d + 60)
-            street = f"{STREETS[(b * 3 + j) % len(STREETS)]} {SUFFIX[(i + j) % len(SUFFIX)]}"
-            for side in range(2):
-                for k in range(lots_per_row):
-                    ww = w * rng.uniform(0.85, 1.2)
-                    geom = box(x0 + k * w, y0 + side * d, x0 + k * w + ww * 0.98, y0 + (side + 1) * d - 1)
-                    reid += int(rng.integers(1, 4))
-                    rows.append(
-                        dict(
-                            reid=reid,
-                            nbhd=nbhd,
-                            city=city,
-                            zip=zipc,
-                            land_rate=land_rate,
-                            yb=yb,
-                            q=q,
-                            street=street,
-                            house=100 + 2 * k + side + 40 * i,
-                            geometry=geom,
-                        )
-                    )
-p = pd.DataFrame(rows)
+def fetch(name: str) -> Path:
+    path = CACHE / name
+    if not path.is_file():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"downloading {name}")
+        with urllib.request.urlopen(f"{SOURCE}/{name}") as r, open(path.with_suffix(".part"), "wb") as f:
+            shutil.copyfileobj(r, f)
+        path.with_suffix(".part").rename(path)
+    return path
+
+
+def layer(name: str) -> gpd.GeoDataFrame:
+    gdf = gpd.read_parquet(fetch(f"geo/{name}.parquet"))
+    area = gpd.GeoSeries([box(X0 - MARGIN, Y0 - MARGIN, X1 + MARGIN, Y1 + MARGIN)], crs=2264).to_crs(gdf.crs)
+    return gdf[gdf.intersects(area.iloc[0])].reset_index(drop=True)
+
+
+# ---------- Parcels: the real shapes, with new IDs, shuffled house numbers and nudged values ----------
+
+real = gpd.read_parquet(
+    fetch("geo/parcels.parquet"),
+    columns=[
+        "REID",
+        "GDV_REID",
+        "PIN_PLUS_EXT",
+        "TOTAL_ACRES",
+        "PHYADDR_STR_NUM",
+        "PHYADDR_DIR_PFX",
+        "PHYADDR_STR",
+        "PHYADDR_STR_TYPE",
+        "PHYADDR_CITY",
+        "PHYADDR_ZIP",
+        "NEIGHBORHOOD",
+        "LAND_CLASS",
+        "ZONING",
+        "TOTAL_LAND_VALUE_ASSESSED",
+        "TOTAL_BLDG_VALUE_ASSESSED",
+        "geometry",
+    ],
+)
+real = real.set_crs(2264, allow_override=True)  # the file's CRS is State Plane, but unnamed
+centre = real.geometry.centroid
+p = real[(centre.x.between(X0, X1) & centre.y.between(Y0, Y1)).to_numpy()].reset_index(drop=True)
 n = len(p)
-p["sqft_land"] = [g.area for g in p.geometry]
-p["vacant"] = rng.random(n) < 0.06
-p["area"] = np.where(p.vacant, 0, np.clip(rng.lognormal(np.log(1700 * p.q), 0.28), 640, 6500)).round(-1)
-p["year"] = np.where(p.vacant, 0, np.clip(p.yb + rng.normal(0, 12, n), 1900, 2024)).astype(int)
-p["eff_year"] = np.where(p.vacant, 0, np.maximum(p.year, p.year + (rng.random(n) < 0.3) * rng.integers(5, 40, n)))
-p["eff_year"] = np.minimum(p.eff_year, 2024)
-grade_idx = np.clip(np.round(2 - (p.q - 1) * 4 + rng.normal(0, 0.6, n)), 0, 4).astype(int)
-p["grade"] = np.array(["A", "B", "C", "D", "E"])[grade_idx]
-cond_idx = np.clip(np.round(2 + (2024 - p.eff_year) / 40 + rng.normal(0, 0.7, n)), 0, 5).astype(int)
-p["cond"] = np.array(["EX", "VG", "GD", "AV", "FR", "PR"])[cond_idx]
-p["beds"] = np.where(p.vacant, 0, np.clip(np.round(p.area / 600 + rng.normal(0, 0.6, n)), 1, 7)).astype(int)
-p["full"] = np.where(p.vacant, 0, np.clip(np.round(p.area / 1000 + rng.normal(0, 0.4, n)), 1, 5)).astype(int)
-p["half"] = np.where(p.vacant, 0, (rng.random(n) < 0.45).astype(int))
-p["stories"] = np.where(p.vacant, 0, np.where(p.area > 2400, 2.0, np.where(rng.random(n) < 0.15, 1.5, 1.0)))
 
-# The "true" market value in Jan 2025, from which sales and assessments are drawn.
-grade_f = np.array([1.35, 1.15, 1.0, 0.85, 0.7])[grade_idx]
-cond_f = np.array([1.1, 1.05, 1.0, 0.92, 0.8, 0.65])[cond_idx]
-age = np.where(p.vacant, 0, 2025 - p.eff_year)
-land = p.land_rate * p.sqft_land**0.85 * 5.5
-bldg = np.where(p.vacant, 0, p.area * 215 * grade_f * cond_f * np.maximum(0.35, 1 - age * 0.009))
-p["market"] = (land + bldg) * rng.lognormal(0, 0.06, n)
+# New parcel IDs: plain numbers, as Guilford's are, but not theirs.
+new_id = dict(zip(p.REID, rng.permutation(np.arange(118_000, 118_000 + 3 * n, 3))[:n].astype(str), strict=True))
+p["reid"] = p.REID.map(new_id)
+p.loc[p.GDV_REID.isna(), "reid"] = None  # the few shapes Guilford has no ID for (right-of-way) keep none
 
-# Assessed values from the 2022 revaluation: below today's market, and noisy.
-p["land_val"] = (land * 0.78 * rng.lognormal(0, 0.1, n)).round(-2)
-p["bldg_val"] = (bldg * 0.78 * rng.lognormal(0, 0.12, n)).round(-2)
-p["total_val"] = p.land_val + p.bldg_val
 
-# PIN: 10 digits from the map grid, like Guilford's PIN_PLUS_EXT without the extension.
-p["pin"] = [
-    f"{7800 + int((g.centroid.x - E0) // 4000):04d}{int((g.centroid.y - N0) // 100) % 100:02d}{i % 10000:04d}"
-    for i, g in enumerate(p.geometry)
-]
+def text(s: pd.Series) -> pd.Series:
+    return s.fillna("").astype(str).str.strip()
 
-# ---------- Planted problems ----------
-# 1. Parcel IDs from the old system are zero-padded to 10 characters; IDs given since aren't. Sales and CAMA
-#    files use the plain number, so only the unpadded parcels match until leading zeros are removed.
+
+# Real streets, house numbers shuffled among the parcels on each street.
+street = (
+    (text(p.PHYADDR_DIR_PFX) + " " + text(p.PHYADDR_STR) + " " + text(p.PHYADDR_STR_TYPE)).str.split().str.join(" ")
+)
+house = text(p.PHYADDR_STR_NUM).to_numpy().copy()
+for _, idx in street.groupby(street).groups.items():
+    idx = np.asarray(idx)
+    house[idx] = rng.permutation(house[idx])
+p["addr"] = np.where((street != "") & (house != ""), house + " " + street, "")
+
+# Assessed values (2022 revaluation): the real ones, each nudged a little.
+land = pd.to_numeric(p.TOTAL_LAND_VALUE_ASSESSED, errors="coerce").fillna(0)
+bldg = pd.to_numeric(p.TOTAL_BLDG_VALUE_ASSESSED, errors="coerce").fillna(0)
+p["land_val"] = (land * rng.lognormal(0, 0.04, n)).round(-2)
+p["bldg_val"] = (bldg * rng.lognormal(0, 0.04, n)).round(-2)
+
+# ---------- Planted problems in the parcel file ----------
+# 1. Parcel IDs from the old system are zero-padded to 10 characters; IDs given since aren't. The sales and
+#    building files use the plain number, so only the unpadded parcels match until leading zeros are removed.
 padded = rng.random(n) < 0.86
-p["GDV_REID"] = [f"{r:010d}" if pad else str(r) for r, pad in zip(p.reid, padded, strict=True)]
+p["GDV_REID"] = [r if r is None or not pad else f"{int(r):010d}" for r, pad in zip(p.reid, padded, strict=True)]
 # 2. A parcel split on the map but not in the records: two shapes with the same ID.
-split = p.index[50]
-twin = p.loc[[split]].copy()
-g = p.at[split, "geometry"]
+split = int(np.flatnonzero((p.LAND_CLASS == "RESIDENTIAL").to_numpy())[50])
+g = p.geometry.iloc[split]
 minx, miny, maxx, maxy = g.bounds
-p.at[split, "geometry"] = box(minx, miny, (minx + maxx) / 2, maxy)
-twin["geometry"] = [box((minx + maxx) / 2, miny, maxx, maxy)]
-# 3. Right-of-way and common-area slivers with no ID at all.
-slivers = []
-for k in range(14):
-    x, y = E0 - 500 + k * 300, N0 - 400
-    slivers.append(
-        dict(
-            GDV_REID=None,
-            pin="",
-            nbhd="",
-            city="",
-            zip="",
-            street="",
-            house=0,
-            sqft_land=0,
-            land_val=0,
-            bldg_val=0,
-            total_val=0,
-            geometry=box(x, y, x + 40, y + 900),
-        )
-    )
+twin = p.iloc[[split]].copy()
+p.loc[split, "geometry"] = g.intersection(box(minx, miny, (minx + maxx) / 2, maxy))
+twin["geometry"] = [g.intersection(box((minx + maxx) / 2, miny, maxx, maxy))]
+p = pd.concat([p, twin], ignore_index=True)
 
 parcels = gpd.GeoDataFrame(
-    pd.concat([p, twin], ignore_index=True).assign(
-        PIN_PLUS_EXT=lambda d: d.pin + " 000",
-        ACRES=lambda d: (d.sqft_land / 43_560).round(3),
-        PHYADDR=lambda d: d.house.astype(str) + " " + d.street,
-        PHYCITY=lambda d: d.city,
-        PHYZIP=lambda d: d.zip,
-        NBHD=lambda d: d.nbhd,
-        LAND_VALUE=lambda d: d.land_val,
-        BLDG_VALUE=lambda d: d.bldg_val,
-        TOTAL_VALUE=lambda d: d.total_val,
-    )[
-        [
-            "GDV_REID",
-            "PIN_PLUS_EXT",
-            "ACRES",
-            "PHYADDR",
-            "PHYCITY",
-            "PHYZIP",
-            "NBHD",
-            "LAND_VALUE",
-            "BLDG_VALUE",
-            "TOTAL_VALUE",
-            "geometry",
-        ]
-    ],
-    crs="EPSG:2264",
+    {
+        "GDV_REID": p.GDV_REID,
+        "PIN_PLUS_EXT": p.PIN_PLUS_EXT,
+        "TOTAL_ACRES": pd.to_numeric(p.TOTAL_ACRES, errors="coerce"),  # land size, in acres
+        "LOCATION_ADDR": p.addr,
+        "PHYADDR_CITY": text(p.PHYADDR_CITY),
+        "PHYADDR_ZIP": text(p.PHYADDR_ZIP),
+        "NEIGHBORHOOD": text(p.NEIGHBORHOOD),
+        "LAND_CLASS": text(p.LAND_CLASS),
+        "ZONING": text(p.ZONING),
+        "TOTAL_LAND_VALUE_ASSESSED": p.land_val.astype(int),
+        "TOTAL_BLDG_VALUE_ASSESSED": p.bldg_val.astype(int),
+        "TOTAL_PROP_VALUE": (p.land_val + p.bldg_val).astype(int),
+    },
+    geometry=p.geometry.to_numpy(),
+    crs=2264,
 )
-sl = gpd.GeoDataFrame(pd.DataFrame(slivers), crs="EPSG:2264").assign(
-    PIN_PLUS_EXT="",
-    ACRES=lambda d: (d.geometry.area / 43_560).round(3),
-    PHYADDR="",
-    PHYCITY="",
-    PHYZIP="",
-    NBHD="",
-    LAND_VALUE=0,
-    BLDG_VALUE=0,
-    TOTAL_VALUE=0,
-)[parcels.columns]
-parcels = gpd.GeoDataFrame(pd.concat([parcels, sl], ignore_index=True), crs="EPSG:2264")
 parcels = parcels.sample(frac=1, random_state=7).reset_index(drop=True)  # files are rarely sorted helpfully
 
-# ---------- CAMA: one row per building card. ~3% of parcels have a second card (a garage apartment, a barn). ----------
-built = p[~p.vacant]
-cards = built.assign(CARD=1)
-second = built.sample(frac=0.03, random_state=11).assign(
-    CARD=2,
-    area=lambda d: (d.area * rng.uniform(0.2, 0.45, len(d))).round(-1),
-    beds=lambda d: d.beds.clip(upper=1),
-    full=1,
-    half=0,
-    stories=1.0,
-)
-cards = pd.concat([cards, second]).sort_values(["reid", "CARD"])
-cama = pd.DataFrame(
-    {
-        "REID": cards.reid,
-        "CARD_NUM": cards.CARD,
-        "HEATED_AREA": cards.area.astype(int),
-        "YEAR_BUILT": cards.year,
-        "EFF_YEAR": cards.eff_year,
-        "GRADE": cards.grade,
-        "COND": cards.cond,
-        "STORIES": cards.stories,
-        "BEDROOMS": cards.beds,
-        "FULL_BATHS": cards.full,
-        "HALF_BATHS": cards.half,
-    }
-)
-
-# Quality and condition the other ways exports write them, from the same grade and condition: with
-# +/- (B+, C-), a 1-10 number, words. A separate random stream, so the columns above don't change.
-q_rng = np.random.default_rng(2048)
-grade_letter = cama["GRADE"].to_numpy()
-cama["GRADE_PLUS"] = [g + q_rng.choice(["+", "", "-"], p=[0.3, 0.4, 0.3]) for g in grade_letter]
-cama["QUALITY_NUM"] = [
-    int(np.clip({"A": 9, "B": 7, "C": 5, "D": 3, "E": 2}[g] + q_rng.integers(-1, 2), 1, 10)) for g in grade_letter
+# ---------- Buildings: each parcel's own real building cards, nudged together so they still agree ----------
+# Moving a building a few years or a few percent keeps it whole: the effective year moves with the year built,
+# the footprint with the heated area, and a parcel without a building (vacant land) still has none.
+BUILDING = [
+    "REID",
+    "BLDG_CARD",
+    "BLDG_DESC",
+    "BLDG_TYPE",
+    "UNITS",
+    "HEATED_AREA",
+    "MB_FOOTPRINT_AREA",
+    "STYLE",
+    "EXTERIOR",
+    "HEATING",
+    "AIR_COND",
+    "YEAR_BUILT",
+    "EFF_YEAR",
+    "GRADE",
+    "GRADE_LETTER",
+    "GRADE_SCORE",
+    "CONDITION",
+    "CONDITION_CODE",
+    "CONDITION_SCORE",
+    "BEDROOMS",
+    "BATH_FULL",
+    "BATH_HALF",
 ]
-words = {"EX": "Excellent", "VG": "Very Good", "GD": "Good", "AV": "Average", "FR": "Fair", "PR": "Poor"}
-cama["COND_DESC"] = [words[c] for c in cama["COND"]]
-cama["COND_NUM"] = [{"EX": 6, "VG": 5, "GD": 4, "AV": 3, "FR": 2, "PR": 1}[c] for c in cama["COND"]]
+b = pd.read_csv(fetch("building.csv"), dtype=str, usecols=BUILDING)
+b = b[b.REID.isin(new_id)].copy()
+b["REID"] = b.REID.map(new_id)
+m = len(b)
+scale = rng.uniform(0.95, 1.05, m)
+for col in ("HEATED_AREA", "MB_FOOTPRINT_AREA"):
+    v = pd.to_numeric(b[col], errors="coerce")
+    b[col] = (v * scale).round().astype("Int64")
+shift = rng.integers(-3, 4, m)
+yb = pd.to_numeric(b.YEAR_BUILT, errors="coerce")
+eff = pd.to_numeric(b.EFF_YEAR, errors="coerce")
+b["YEAR_BUILT"] = np.minimum(yb + shift, 2024).astype("Int64")
+b["EFF_YEAR"] = np.maximum(np.minimum(eff + shift, 2024), b.YEAR_BUILT).astype("Int64")
+b = b.sort_values(["REID", "BLDG_CARD"], key=lambda s: pd.to_numeric(s, errors="coerce"))
+buildings = b[BUILDING]
 
-# ---------- Sales, 2019-2025: about a third of parcels, some twice. No sale ID column. ----------
-sold = p.sample(frac=0.34, random_state=3)
-again = sold.sample(frac=0.15, random_state=4)
-s = pd.concat([sold, again], ignore_index=True)
-days = rng.integers(0, (pd.Timestamp("2025-12-31") - pd.Timestamp("2019-01-01")).days, len(s))
-dates = pd.Timestamp("2019-01-01") + pd.to_timedelta(days, unit="D")
-years = (dates - pd.Timestamp("2025-01-01")).days / 365.25
-price = s.market.to_numpy() * np.exp(0.065 * years) * rng.lognormal(0, 0.09, len(s))
-qualified = rng.random(len(s)) > 0.12
-# unqualified: family transfers, foreclosures, nominal deeds
-price = np.where(qualified, price, price * rng.choice([0.0, 0.4, 0.7], len(s), p=[0.25, 0.35, 0.4]))
-price = np.where(price == 0, 10, price).round(-2)
-price = np.where(price < 100, 10, price)
-reid_txt = s.reid.astype(str).to_numpy().astype(object)
-# 4. Hand-keyed IDs: a few with a trailing space.
+# ---------- Sales since 2015: the real deeds, dates moved up to a month and prices nudged. No sale ID. ----------
+s = pd.read_csv(
+    fetch("sale.csv"),
+    dtype=str,
+    usecols=["REID", "SALE_DATE", "SALE_PRICE", "SALE_STATUS", "SALE_TYPE", "DEED_BOOK", "DEED_PAGE"],
+)
+s = s[s.REID.isin(new_id)].copy()
+when = pd.to_datetime(s.SALE_DATE, format="%m/%d/%Y %H:%M")
+s = s[when.dt.year >= SINCE]
+when = when[s.index] + pd.to_timedelta(rng.integers(-30, 31, len(s)), unit="D")
+when = when.clip(lower=pd.Timestamp(f"{SINCE}-01-01"))
+price = pd.to_numeric(s.SALE_PRICE, errors="coerce").to_numpy()
+price = np.where(price < 1_000, price, (price * rng.lognormal(0, 0.03, len(s))).round(-2)).astype(int)
+qualified = (s.SALE_STATUS == "QUALIFIED").to_numpy()
+# Some unqualified deeds are recorded at a nominal $10 (gifts, family transfers).
+nominal = ~qualified & (rng.random(len(s)) < 0.12)
+price = np.where(nominal, 10, price)
+
+reid_txt = s.REID.map(new_id).to_numpy().astype(object)
+# 3. Hand-keyed IDs: a few with a trailing space.
 for i in rng.choice(len(s), 18, replace=False):
     reid_txt[i] = reid_txt[i] + " "
-# 5. Sales of parcels since combined away: their IDs aren't in the universe any more.
+# 4. Sales of parcels since combined away: their IDs aren't in the parcel file any more.
 for i in rng.choice(len(s), 6, replace=False):
     reid_txt[i] = str(900_000 + i)
-pin = s.pin.to_numpy()
+pins = s.REID.map(dict(zip(p.REID, p.PIN_PLUS_EXT, strict=False))).fillna("").str[:10].to_numpy()
 sales = pd.DataFrame(
     {
         "REID": reid_txt,
-        # 6. The PIN as printed on the deed: hyphenated, unlike the parcel file.
-        "PIN": [f"{x[:4]}-{x[4:6]}-{x[6:]}" for x in pin],
-        "DEED_DATE": [f"{d.month}/{d.day}/{d.year} 0:00" for d in dates],
-        "DEED_BOOK": rng.integers(7000, 8900, len(s)),
-        "DEED_PAGE": rng.integers(1, 3200, len(s)),
-        "SALE_PRICE": price.astype(int),
-        "QUALIFIED": np.where(qualified, "Q", "U"),
-        "VACANT_LOT": np.where(s.vacant, "Y", ""),
+        # 5. The PIN as printed on the deed: hyphenated, unlike the parcel file's 7865743125-000.
+        "PIN": [f"{x[:4]}-{x[4:6]}-{x[6:]}" if len(x) == 10 else "" for x in pins],
+        "SALE_DATE": [f"{d.month}/{d.day}/{d.year} {d.hour}:{d.minute:02d}" for d in when],  # with a time
+        "DEED_BOOK": s.DEED_BOOK.to_numpy(),
+        "DEED_PAGE": s.DEED_PAGE.to_numpy(),
+        "SALE_PRICE": price,
+        "SALE_STATUS": s.SALE_STATUS.to_numpy(),  # QUALIFIED / UNQUALIFIED
+        "SALE_TYPE": s.SALE_TYPE.fillna("").to_numpy(),  # IMPROVED / VACANT
     }
-).sort_values("DEED_BOOK", kind="stable")
+).sort_values(["DEED_BOOK", "DEED_PAGE"], key=lambda c: pd.to_numeric(c, errors="coerce"), kind="stable")
 
-# 10. The same prices written the ways exports write them, one column each, to try the price checks on.
-#     A separate random stream, so the columns above don't change.
+# 6. The same prices written the ways exports write them, one column each, to try the price checks on.
+#    A separate random stream, so the columns above don't change.
 fmt_rng = np.random.default_rng(1024)
-p = sales["SALE_PRICE"].to_numpy()
-price_blank = fmt_rng.random(len(p)) < 0.02  # some exports leave the price out
-sales["PRICE_DOLLARS"] = [f"${v:,.2f}" for v in p]  # $250,000.00
-sales["PRICE_COMMAS"] = [f"{v:,}" for v in p]  # 250,000
-sales["PRICE_DECIMAL"] = [f"{v:.2f}" for v in p]  # 250000.00
-sales["PRICE_PADDED"] = [f"$ {v:>12,.2f} " for v in p]  # fixed-width report: "$   250,000.00 "
-sales["PRICE_EURO"] = [f"{v:,.2f}".replace(",", " ").replace(".", ",").replace(" ", ".") for v in p]  # 250.000,00
-sales["PRICE_THOUSANDS"] = [f"{v / 1000:g}" for v in p]  # 250 (in $1,000s, as some summaries give it)
-sales["PRICE_CENTS"] = [str(v * 100) for v in p]  # 25000000 (whole cents)
-sales["PRICE_EXCEL"] = [f"{v:.2E}" if v >= 1_000_000 else str(v) for v in p]  # 1.25E+06: Excel's big numbers
-sales["PRICE_SHORT"] = [f"${v / 1e6:.2f}M" if v >= 1e6 else f"${v / 1000:.0f}K" for v in p]  # $250K, $1.25M
+v = sales["SALE_PRICE"].to_numpy()
+price_blank = fmt_rng.random(len(v)) < 0.02  # some exports leave the price out
+sales["PRICE_DOLLARS"] = [f"${x:,.2f}" for x in v]  # $250,000.00
+sales["PRICE_COMMAS"] = [f"{x:,}" for x in v]  # 250,000
+sales["PRICE_DECIMAL"] = [f"{x:.2f}" for x in v]  # 250000.00
+sales["PRICE_PADDED"] = [f"$ {x:>12,.2f} " for x in v]  # fixed-width report: "$   250,000.00 "
+sales["PRICE_EURO"] = [f"{x:,.2f}".replace(",", " ").replace(".", ",").replace(" ", ".") for x in v]  # 250.000,00
+sales["PRICE_THOUSANDS"] = [f"{x / 1000:g}" for x in v]  # 250 (in $1,000s, as some summaries give it)
+sales["PRICE_CENTS"] = [str(x * 100) for x in v]  # 25000000 (whole cents)
+sales["PRICE_EXCEL"] = [f"{x:.2E}" if x >= 1_000_000 else str(x) for x in v]  # 1.25E+06: Excel's big numbers
+sales["PRICE_SHORT"] = [f"${x / 1e6:.2f}M" if x >= 1e6 else f"${x / 1000:.0f}K" for x in v]  # $250K, $1.25M
 sales["PRICE_MIXED"] = [  # hand-kept: a bit of everything, with blanks and placeholders
-    "" if b else fmt_rng.choice([f"${v:,}", f"{v:,}", str(v), f"${v:,.2f}", f"{v}.00"])
-    for v, b in zip(p, price_blank, strict=True)
+    "" if blank else fmt_rng.choice([f"${x:,}", f"{x:,}", str(x), f"${x:,.2f}", f"{x}.00"])
+    for x, blank in zip(v, price_blank, strict=True)
 ]
-for i in np.flatnonzero(fmt_rng.random(len(p)) < 0.01):
+for i in np.flatnonzero(fmt_rng.random(len(v)) < 0.01):
     sales.iloc[i, sales.columns.get_loc("PRICE_MIXED")] = fmt_rng.choice(["N/A", "-", "0", "$0.00", "TBD"])
-sales["PRICE_NEGATIVE"] = [f"({v:,})" if v < 100 else f"{v:,}" for v in p]  # accounting: (10) for a $10 deed refund
+sales["PRICE_NEGATIVE"] = [f"({x:,})" if x < 100 else f"{x:,}" for x in v]  # accounting: (10) for a $10 deed
 
-(IN / "geo").mkdir(parents=True, exist_ok=True)
+# ---------- Map layers: Guilford's own, cut to the window ----------
+zoning = layer("zoning")[["ZONING", "CLASSIFICATION", "geometry"]]
+zoning["geometry"] = zoning.geometry.simplify(1.0)
+zoning = zoning.to_crs(4326)  # 7. in degrees, unlike the parcels
+lakes = layer("lakes")[["MAJORLAKES", "geometry"]]
+streams = layer("streams")[["NAME", "geometry"]]
+districts = layer("school_district")[["DISTRICT", "geometry"]]
+cbd = layer("central_business_district")[["geometry"]].assign(NAME="Downtown Greensboro")
+parks = layer("parks")[["name", "geometry"]]
+universities = layer("universities")[["name", "geometry"]]
+universities["geometry"] = universities.to_crs(2264).geometry.representative_point().to_crs(universities.crs)
 
-# ---------- Map layers (the Shapefiles section): zoning polygons and school points ----------
-# A separate random stream, so the files above don't change.
-geo_rng = np.random.default_rng(4096)
-zones = []
-for b, (_nbhd, (_, _, _, w, d, _, q)) in enumerate(NBHDS.items()):
-    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
-    width, height = 4 * (10 * w + 60), 8 * (2 * d + 60)
-    # Two zoning districts per neighborhood, split east-west; commercial along the eastern edge.
-    code = "R-3" if q < 0.95 else "R-5" if q < 1.1 else "RS-12"
-    zones.append(
-        dict(
-            ZONE_CODE=code,
-            ZONE_DESC={"R-3": "Residential 3", "R-5": "Residential 5", "RS-12": "Residential single-family 12"}[code],
-            geometry=box(bx - 50, by - 50, bx + width * 0.7, by + height + 50),
-        )
-    )
-    zones.append(
-        dict(
-            ZONE_CODE="C-M",
-            ZONE_DESC="Commercial medium",
-            geometry=box(bx + width * 0.7, by - 50, bx + width + 50, by + height + 50),
-        )
-    )
-zoning = gpd.GeoDataFrame(pd.DataFrame(zones), crs="EPSG:2264").to_crs(4326)
-schools = []
-for b in range(len(NBHDS)):
-    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
-    for k in range(2):
-        x, y = bx + geo_rng.uniform(-1500, 5500), by + geo_rng.uniform(-1500, 8000)
-        schools.append(dict(SCHOOL=f"School {b * 2 + k + 1}", LEVEL=["Elementary", "Middle"][k], geometry=Point(x, y)))
-schools_gdf = gpd.GeoDataFrame(pd.DataFrame(schools), crs="EPSG:2264")
-
-# School attendance zones (polygons covering every parcel): one per pair of neighborhoods, split north-south.
-zone_rows = []
-for i in range(4):
-    x0 = E0 + i * 9_000 - 3_000
-    for j, (name, lo, hi) in enumerate([("South", N0 - 3_000, N0 + 6_000), ("North", N0 + 6_000, N0 + 15_000)]):
-        zone_rows.append(
-            dict(
-                ZONE_ID=f"ES-{i * 2 + j + 1:02d}",
-                ZONE_NAME=f"{name} Elementary {i + 1}",
-                GRADES="K-5",
-                geometry=box(x0, lo, x0 + 9_000, hi),
-            )
-        )
-school_zones = gpd.GeoDataFrame(pd.DataFrame(zone_rows), crs="EPSG:2264")
-
-# Flood zones (polygons covering some parcels): bands along creeks through a few neighborhoods. AE is the
-# 1% annual chance floodplain; X (shaded) the 0.2%.
-flood_rows = []
-for b in (0, 2, 5, 7):
-    bx, by = E0 + (b % 4) * 9_000, N0 + (b // 4) * 9_000
-    y = by + float(geo_rng.uniform(800, 3_000))
-    flood_rows.append(
-        dict(FLD_ZONE="AE", ZONE_SUBTY="1% ANNUAL CHANCE", geometry=box(bx - 500, y, bx + 6_000, y + 350))
-    )
-    flood_rows.append(
-        dict(FLD_ZONE="X", ZONE_SUBTY="0.2% ANNUAL CHANCE", geometry=box(bx - 500, y + 350, bx + 6_000, y + 650))
-    )
-flood_zones = gpd.GeoDataFrame(pd.DataFrame(flood_rows), crs="EPSG:2264")
-
-# For distances: lakes (polygons), rivers (lines) and the central business district (one polygon). The
-# neighborhood blocks sit on a 4 x 2 grid, 9,000 ft apart, from (E0, N0); these lie between and beside them.
-lakes = gpd.GeoDataFrame(
-    {
-        "NAME": ["Lake Brandt", "Lake Higgins", "Oak Hollow Lake"],
-        "TYPE": ["Reservoir", "Reservoir", "Reservoir"],
-    },
-    geometry=[
-        Point(E0 + 7_400, N0 + 13_800).buffer(1_400),
-        Point(E0 + 16_200, N0 + 15_600).buffer(900),
-        Point(E0 + 26_300, N0 + 4_200).buffer(1_200),
-    ],
-    crs="EPSG:2264",
+# Flood zones: Guilford's FEMA maps aren't in the container, so bands along the real streams stand in. AE (1%
+# annual chance) within 150 ft of a stream, X (0.2%) out to 400 ft: most parcels are in neither.
+s2264 = streams.to_crs(2264).geometry.union_all()
+ae = s2264.buffer(150)
+flood = gpd.GeoDataFrame(
+    {"FLD_ZONE": ["AE", "X"], "ZONE_SUBTY": ["1% ANNUAL CHANCE", "0.2% ANNUAL CHANCE"]},
+    geometry=[ae, s2264.buffer(400).difference(ae)],
+    crs=2264,
 )
-rivers = gpd.GeoDataFrame(
-    {"NAME": ["Reedy Fork", "Deep River"], "TYPE": ["Creek", "River"]},
-    geometry=[
-        LineString(
-            [(E0 - 2_000, N0 + 7_600), (E0 + 8_000, N0 + 8_200), (E0 + 18_000, N0 + 7_400), (E0 + 34_000, N0 + 8_300)]
-        ),
-        LineString(
-            [
-                (E0 + 20_500, N0 - 2_000),
-                (E0 + 21_500, N0 + 5_000),
-                (E0 + 19_800, N0 + 12_000),
-                (E0 + 20_600, N0 + 18_000),
-            ]
-        ),
-    ],
-    crs="EPSG:2264",
-)
-# Downtown: the northeast corner of the oldest Greensboro neighborhood (1001) and the gap beside it.
-cbd = gpd.GeoDataFrame(
-    {"NAME": ["Downtown Greensboro"]}, geometry=[box(E0 + 1_200, N0 + 2_400, E0 + 3_800, N0 + 5_200)], crs="EPSG:2264"
-)
+
+if IN.exists():
+    shutil.rmtree(IN)
+(IN / "geo").mkdir(parents=True)
 parcels.to_parquet(IN / "geo" / "parcels.parquet")
-zoning.to_file(IN / "geo" / "zoning.geojson", driver="GeoJSON")  # in degrees, unlike the parcels
-schools_gdf.to_file(IN / "geo" / "schools.shp")
-school_zones.to_file(IN / "geo" / "school_zones.shp")
-flood_zones.to_file(IN / "geo" / "flood_zones.shp")
+zoning.to_file(IN / "geo" / "zoning.geojson", driver="GeoJSON")
 lakes.to_file(IN / "geo" / "lakes.shp")
-rivers.to_file(IN / "geo" / "rivers.shp")
+streams.to_file(IN / "geo" / "streams.shp")
+districts.to_file(IN / "geo" / "school_districts.shp")
+flood.to_file(IN / "geo" / "flood_zones.shp")
 cbd.to_file(IN / "geo" / "cbd.gpkg", layer="cbd", driver="GPKG")
-cama.to_csv(IN / "cama.csv", index=False)
+universities.to_file(IN / "geo" / "universities.shp")
+parks.to_file(IN / "geo" / "parks.shp")
+(IN / "geo" / "parks.prj").unlink()  # 8. a shapefile that lost its .prj: no coordinate system
+buildings.to_csv(IN / "building.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
-print(f"{len(parcels):,} parcel shapes, {len(cama):,} building cards, {len(sales):,} sales")
+print(f"{len(parcels):,} parcel shapes, {len(buildings):,} building cards, {len(sales):,} sales")
