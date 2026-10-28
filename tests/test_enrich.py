@@ -76,7 +76,7 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
     v = client.get(f"/api/projects/{pid}/wizard/enrich").json()
     assert v["key_saved"] and v["key_end"] == "3456"
     assert "abcdef" not in client.get("/api/app-settings").text
-    assert "abcdef" not in (projects.project_dir(pid) / "in" / "settings.json").read_text()
+    assert "abcdef" not in (projects.project_dir(pid) / "in" / "settings.json").read_text(encoding="utf-8")
     assert _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"] == []
 
     bad = client.put(f"/api/projects/{pid}/wizard/enrich", json=s | {"fips": "99999"})

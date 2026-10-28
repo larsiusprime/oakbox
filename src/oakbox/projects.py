@@ -51,7 +51,7 @@ NumberStyle = Literal["1,234.56", "1.234,56", "1 234,56", "1'234.56", "1 234.56"
 @cache
 def locales() -> dict:
     """Per country, its currency, number style and units (from Unicode CLDR: packaging/make_locales.py)."""
-    return json.loads(resources.files("oakbox").joinpath("locales.json").read_text())
+    return json.loads(resources.files("oakbox").joinpath("locales.json").read_text(encoding="utf-8"))
 
 
 def country_defaults(country: str) -> dict:
@@ -197,7 +197,7 @@ def _register(project_id: str, folder: Path) -> None:
 def _read(folder: Path) -> Project | None:
     """The project in a folder; None for damaged files and for sample projects of earlier builds (SPEC D19)."""
     try:
-        project = Project.model_validate_json((folder / "oakbox.json").read_text())
+        project = Project.model_validate_json((folder / "oakbox.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     return None if project.sample is not None else project
@@ -237,7 +237,7 @@ def list_projects() -> list[Project]:
 
 
 def load(project_id: str) -> Project:
-    return Project.model_validate_json((project_dir(project_id) / "oakbox.json").read_text())
+    return Project.model_validate_json((project_dir(project_id) / "oakbox.json").read_text(encoding="utf-8"))
 
 
 def save(project: Project, folder: Path | None = None) -> None:
@@ -245,7 +245,7 @@ def save(project: Project, folder: Path | None = None) -> None:
     path = folder / "oakbox.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(project.model_dump_json(indent=2))
+    tmp.write_text(project.model_dump_json(indent=2), encoding="utf-8")
     tmp.replace(path)
 
 
@@ -552,7 +552,7 @@ def write_settings(project: Project) -> Path:
     path = project_dir(project.id) / "in" / "settings.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     settings = base_settings(project)
-    path.write_text(json.dumps(settings, indent=2))
+    path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
     return path
 
 

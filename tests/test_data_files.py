@@ -45,18 +45,20 @@ def _map(n=3):
 
 
 def _settings(pid):
-    return json.loads((projects.project_dir(pid) / "in" / "settings.json").read_text())
+    return json.loads((projects.project_dir(pid) / "in" / "settings.json").read_text(encoding="utf-8"))
 
 
 def test_copy_a_csv_keeps_the_original(client, pid, tmp_path):
     src = tmp_path / "Sales 2025.csv"
-    src.write_text("PIN,PRICE\n1,100\n")
+    src.write_text("PIN,PRICE\n1,100\n", encoding="utf-8")
     check = client.post(f"/api/projects/{pid}/files/check", json={"path": str(src)}).json()
     assert check["problem"] is None and check["format"] == "CSV" and check["suggested_name"] == "sales_2025"
     r = client.post(f"/api/projects/{pid}/files", json={"path": str(src), "mode": "copy", "name": "sales_2025"})
     assert r.status_code == 200, r.text
     assert src.exists()
-    assert (projects.project_dir(pid) / "in" / "Sales 2025.csv").read_text() == src.read_text()
+    assert (projects.project_dir(pid) / "in" / "Sales 2025.csv").read_text(encoding="utf-8") == src.read_text(
+        encoding="utf-8"
+    )
     assert _settings(pid)["data"]["load"] == {"sales_2025": {"filename": "Sales 2025.csv"}}
 
 
@@ -101,8 +103,8 @@ def test_a_taken_file_name_needs_a_new_name(client, pid, tmp_path):
     a, b = tmp_path / "a", tmp_path / "b"
     a.mkdir()
     b.mkdir()
-    (a / "data.csv").write_text("x\n1\n")
-    (b / "data.csv").write_text("x\n2\n")
+    (a / "data.csv").write_text("x\n1\n", encoding="utf-8")
+    (b / "data.csv").write_text("x\n2\n", encoding="utf-8")
     client.post(f"/api/projects/{pid}/files", json={"path": str(a / "data.csv"), "mode": "copy", "name": "data"})
     check = client.post(f"/api/projects/{pid}/files/check", json={"path": str(b / "data.csv")}).json()
     assert check["filename_taken"] and check["suggested_name"] == "data_2"

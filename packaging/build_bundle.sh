@@ -72,13 +72,13 @@ rm -rf "$OUT"/sample/*/.cache  # the downloads make.py keeps; what it made is in
 if [ "$PLATFORM" = windows ]; then
   cat > "$OUT/Oakbox.cmd" <<'CMD'
 @echo off
-rem Start Oakbox. pythonw.exe runs it without a console window.
-start "" "%~dp0python\pythonw.exe" -m oakbox
+rem Start Oakbox. pythonw.exe runs it without a console window; -X utf8: text is UTF-8, not the code page.
+start "" "%~dp0python\pythonw.exe" -X utf8 -m oakbox
 CMD
   cat > "$OUT/smoke.cmd" <<'CMD'
 @echo off
 rem End-to-end test through the app service: download the sample county and run steps 1-4.
-"%~dp0python\python.exe" -m oakbox.smoke || exit /b 1
+"%~dp0python\python.exe" -X utf8 -m oakbox.smoke || exit /b 1
 CMD
   (cd dist && zip -qr "$NAME.zip" "$NAME")
   du -sh "$OUT" "dist/$NAME.zip"
@@ -88,13 +88,13 @@ else
 # Start OAK box: a native Qt window, or a browser window if Qt can't open one here
 # (it needs the desktop's usual display libraries, e.g. libEGL and libxcb-cursor on X11).
 HERE=$(cd "$(dirname "$0")" && pwd)
-exec "$HERE/python/bin/python3" -m oakbox "$@"
+exec "$HERE/python/bin/python3" -X utf8 -m oakbox "$@"
 SH
   cat > "$OUT/smoke.sh" <<'SH'
 #!/bin/sh
 # End-to-end test through the app service: download the sample county and run steps 1-4.
 HERE=$(cd "$(dirname "$0")" && pwd)
-exec "$HERE/python/bin/python3" -m oakbox.smoke
+exec "$HERE/python/bin/python3" -X utf8 -m oakbox.smoke
 SH
   chmod +x "$OUT/oakbox.sh" "$OUT/smoke.sh"
   tar -czf "dist/$NAME.tar.gz" -C dist "$NAME"

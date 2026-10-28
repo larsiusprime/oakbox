@@ -510,7 +510,7 @@ def shapes_path(project_dir: Path) -> Path:
     stamp = _stamp(src)
     out = project_dir / "out" / "oakbox" / "groups" / "shapes.geojson"
     meta = out.with_suffix(".json")
-    if out.is_file() and meta.is_file() and json.loads(meta.read_text()).get("from") == list(stamp):
+    if out.is_file() and meta.is_file() and json.loads(meta.read_text(encoding="utf-8")).get("from") == list(stamp):
         return out
     import geopandas as gpd
 
@@ -532,8 +532,8 @@ def shapes_path(project_dir: Path) -> Path:
         for i, g in enumerate(geoms)
     )
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text('{"type":"FeatureCollection","features":[' + body + "]}")
-    meta.write_text(json.dumps({"from": list(stamp)}))
+    out.write_text('{"type":"FeatureCollection","features":[' + body + "]}", encoding="utf-8")
+    meta.write_text(json.dumps({"from": list(stamp)}), encoding="utf-8")
     return out
 
 

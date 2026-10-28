@@ -172,7 +172,7 @@ def test_saved_groups_are_what_openavmkit_tags(brought_in, monkeypatch):
     view = client.put(_url(pid), json={"groups": groups}).json()
     assert view["groups"][0]["name"] == "Condos"
     pdir = projects.project_dir(pid)
-    settings = json.loads((pdir / "in" / "settings.json").read_text())
+    settings = json.loads((pdir / "in" / "settings.json").read_text(encoding="utf-8"))
     mg = settings["modeling"]["model_groups"]
     assert list(mg) == [g["id"] for g in groups] and mg["condos_townhomes"]["name"] == "Condos"
     p = client.post(f"{_url(pid)}/preview", json={"groups": view["groups"]}).json()

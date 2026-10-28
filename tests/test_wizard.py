@@ -74,7 +74,7 @@ def pid(client, tmp_path):
 
 
 def _settings(pid):
-    return json.loads((projects.project_dir(pid) / "in" / "settings.json").read_text())
+    return json.loads((projects.project_dir(pid) / "in" / "settings.json").read_text(encoding="utf-8"))
 
 
 def _step(w, key):

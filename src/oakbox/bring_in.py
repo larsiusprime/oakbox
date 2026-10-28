@@ -381,7 +381,11 @@ def _clear_cache_if_rows_change(pdir: Path, settings: dict) -> None:
     """Condo units change which rows the parcel universe has, and OpenAVMKit's enrichment cache refuses a
     different set of rows (it stops rather than recompute): clear it when condo handling changes."""
     ran = out_dir(pdir) / "settings.json"
-    before = json.loads(ran.read_text()).get("data", {}).get("process", {}).get("condos") if ran.is_file() else None
+    before = (
+        json.loads(ran.read_text(encoding="utf-8")).get("data", {}).get("process", {}).get("condos")
+        if ran.is_file()
+        else None
+    )
     now = settings.get("data", {}).get("process", {}).get("condos")
     if before != now and (pdir / "cache").is_dir():
         shutil.rmtree(pdir / "cache", ignore_errors=True)
@@ -402,7 +406,7 @@ def run(project_id: str) -> None:
     tmp = out_dir(pdir).with_suffix(".tmp")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
-    settings_text = (in_dir / "settings.json").read_text()
+    settings_text = (in_dir / "settings.json").read_text(encoding="utf-8")
     _clear_cache_if_rows_change(pdir, json.loads(settings_text))
     os.chdir(pdir)
     from importlib.metadata import version
@@ -747,8 +751,8 @@ def run(project_id: str) -> None:
         timings=timings,
         enrichments=enriched,
     )
-    (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1))
-    (tmp / "settings.json").write_text(settings_text)
+    (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
+    (tmp / "settings.json").write_text(settings_text, encoding="utf-8")
     final = out_dir(pdir)
     shutil.rmtree(final, ignore_errors=True)
     tmp.rename(final)
@@ -787,11 +791,13 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
         log = project_dir / "out" / "oakbox" / f"{module}.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
-            [sys.executable, "-m", f"oakbox.{module}", project_id],
+            [sys.executable, "-X", "utf8", "-m", f"oakbox.{module}", project_id],
             stdout=subprocess.PIPE,
-            stderr=log.open("w"),
+            stderr=log.open("w", encoding="utf-8"),
             text=True,
-            env={**os.environ, "PYTHONWARNINGS": "ignore::DeprecationWarning", **_keys()},
+            encoding="utf-8",
+            errors="replace",
+            env=child_env(),
         )
         job = Job(status="running", started=time.time())
         _jobs[key], _procs[key] = job, proc
@@ -818,11 +824,25 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
                 job.status = "done"
             else:
                 job.status = "failed"
-                tail = log.read_text(errors="replace").strip().splitlines()[-1:] if log.is_file() else []
+                tail = (
+                    log.read_text(errors="replace", encoding="utf-8").strip().splitlines()[-1:] if log.is_file() else []
+                )
                 job.error = tail[0] if tail else f"stopped with code {code}"
 
     threading.Thread(target=follow, daemon=True).start()
     return job
+
+
+def child_env() -> dict[str, str]:
+    """A run's environment: Python's UTF-8 mode, so OpenAVMKit reads, writes and prints UTF-8 on Windows too (not
+    the code page, cp1252, which can't write a "−"); and the user's keys for public data."""
+    return {
+        **os.environ,
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONWARNINGS": "ignore::DeprecationWarning",
+        **_keys(),
+    }
 
 
 def _keys() -> dict[str, str]:
@@ -901,7 +921,7 @@ def plan(project, in_dir: Path) -> Plan:
 
 
 def view(project, project_dir: Path, problems: list[str]) -> View:
-    current = json.loads((project_dir / "in" / "settings.json").read_text())
+    current = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
     r, ran = receipt(project_dir)
     j = job(project.id)
     stale = bool(r and ran and settings_hash(ran) != settings_hash(current))
@@ -920,7 +940,7 @@ def view(project, project_dir: Path, problems: list[str]) -> View:
 
 
 def accept(project, project_dir: Path) -> None:
-    current = json.loads((project_dir / "in" / "settings.json").read_text())
+    current = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
     r, ran = receipt(project_dir)
     if r is None or ran is None or settings_hash(ran) != settings_hash(current):
         raise ValueError("Bring in data again first: the Data wizard changed since it ran.")
@@ -931,8 +951,10 @@ def receipt(project_dir: Path) -> tuple[Receipt | None, dict | None]:
     base = out_dir(project_dir)
     if not (base / "receipt.json").is_file():
         return None, None
-    ran = json.loads((base / "settings.json").read_text()) if (base / "settings.json").is_file() else None
-    return Receipt.model_validate_json((base / "receipt.json").read_text()), ran
+    ran = (
+        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
+    )
+    return Receipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
 
 
 if __name__ == "__main__":

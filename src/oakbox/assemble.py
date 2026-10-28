@@ -115,7 +115,7 @@ def run(project_id: str) -> None:
     tmp = out_dir(pdir).with_suffix(".tmp")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
-    settings_text = (pdir / "in" / "settings.json").read_text()
+    settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
@@ -180,8 +180,10 @@ def run(project_id: str) -> None:
         matches_preview=all(c.parcels == c.preview for c in counts),
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
-    (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1))
-    (tmp / "settings.json").write_text(json.dumps({"settings": json.loads(settings_text), "exports": sorted(exports)}))
+    (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
+    (tmp / "settings.json").write_text(
+        json.dumps({"settings": json.loads(settings_text), "exports": sorted(exports)}), encoding="utf-8"
+    )
     final = out_dir(pdir)
     shutil.rmtree(final, ignore_errors=True)
     tmp.rename(final)
@@ -206,17 +208,19 @@ def _ran(project_dir: Path) -> tuple[AssembleReceipt | None, dict | None]:
     base = out_dir(project_dir)
     if not (base / "receipt.json").is_file():
         return None, None
-    ran = json.loads((base / "settings.json").read_text()) if (base / "settings.json").is_file() else None
-    return AssembleReceipt.model_validate_json((base / "receipt.json").read_text()), ran
+    ran = (
+        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
+    )
+    return AssembleReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
 
 
 def current_hash(project, project_dir: Path) -> str:
-    settings = json.loads((project_dir / "in" / "settings.json").read_text())
+    settings = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
     return settings_hash(settings, list(project.assemble_exports))
 
 
 def view(project, project_dir: Path) -> AssembleView:
-    settings = json.loads((project_dir / "in" / "settings.json").read_text())
+    settings = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
     r, ran = _ran(project_dir)
     j = bring_in.job(project.id, MODULE)
     now = settings_hash(settings, list(project.assemble_exports))

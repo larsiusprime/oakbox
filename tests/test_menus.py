@@ -117,7 +117,7 @@ def test_every_menu_command_is_handled():
 
 
 def test_the_page_handles_every_page_command():
-    source = (Path(__file__).parents[1] / "web" / "src" / "menu.ts").read_text()
+    source = (Path(__file__).parents[1] / "web" / "src" / "menu.ts").read_text(encoding="utf-8")
     listed = re.search(r"MENU_COMMANDS = \[(.*?)\] as const", source, re.S)
     assert listed is not None
     assert tuple(re.findall(r'"([a-z-]+)"', listed.group(1))) == (*menus.PAGE_COMMANDS, "display")

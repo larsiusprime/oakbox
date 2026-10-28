@@ -181,7 +181,7 @@ class County(BaseModel):
 
 @cache
 def counties() -> list[County]:
-    raw = json.loads(resources.files("oakbox").joinpath("counties.json").read_text())
+    raw = json.loads(resources.files("oakbox").joinpath("counties.json").read_text(encoding="utf-8"))
     return [County(fips=f, state=s, name=n) for f, s, n in raw["counties"]]
 
 
@@ -489,7 +489,7 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
             # What OpenAVMKit said while it ran, kept for when something needs explaining.
             logs = Path("out") / "oakbox" / "enrich_logs"
             logs.mkdir(parents=True, exist_ok=True)
-            (logs / f"{key}.log").write_text("\n".join([log, *said, error or ""]))
+            (logs / f"{key}.log").write_text("\n".join([log, *said, error or ""]), encoding="utf-8")
             added = [str(c) for c in out.columns if c not in before]
             seconds = round(time.time() - t0, 1)
             results.append(_result(key, out, added, error or down, said, log, osm, seconds, saved))

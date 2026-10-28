@@ -1,1 +1,1 @@
-uv run python -m oakbox
+uv run python -X utf8 -m oakbox

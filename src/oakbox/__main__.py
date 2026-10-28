@@ -54,6 +54,10 @@ def _open_browser(url: str) -> None:
 
 
 def main() -> None:
+    # What's printed is UTF-8 even where the console's code page isn't (Windows); pythonw has no console at all.
+    for stream in (sys.stdout, sys.stderr):
+        if stream is not None and hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
     parser = argparse.ArgumentParser(prog="oakbox")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--browser", action="store_true", help="open in a browser instead of a window")

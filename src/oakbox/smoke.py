@@ -47,8 +47,10 @@ def engine(locality: Path) -> None:
     from openavmkit.pipeline import load_settings, read_pickle
     from openavmkit.value_studies import run_value_field_studies
 
-    settings = resources.files("oakbox.smokedata").joinpath("us-va-petersburgcity-settings.json").read_text()
-    (locality / "in" / "settings.json").write_text(settings)
+    settings = (
+        resources.files("oakbox.smokedata").joinpath("us-va-petersburgcity-settings.json").read_text(encoding="utf-8")
+    )
+    (locality / "in" / "settings.json").write_text(settings, encoding="utf-8")
     last = ""
 
     def on_progress(event) -> None:
@@ -104,7 +106,9 @@ def _check_ui(base: str) -> None:
 def app(port: int, data_file: Path) -> None:
     env = dict(os.environ)
     base = f"http://127.0.0.1:{port}"
-    server = subprocess.Popen([sys.executable, "-m", "oakbox", "--no-window", "--port", str(port)], env=env)
+    server = subprocess.Popen(
+        [sys.executable, "-X", "utf8", "-m", "oakbox", "--no-window", "--port", str(port)], env=env
+    )
     try:
         for _ in range(240):
             try:
@@ -138,7 +142,7 @@ def app(port: int, data_file: Path) -> None:
         detail = _call(base, "GET", f"/api/projects/{pid}")
         files = detail["files"]
         assert files and files[0]["size_bytes"] > 0, "the added file isn't in the project"
-        settings = json.loads((Path(detail["folder"]) / "in" / "settings.json").read_text())
+        settings = json.loads((Path(detail["folder"]) / "in" / "settings.json").read_text(encoding="utf-8"))
         assert settings["data"]["load"][files[0]["name"]] == {"filename": data_file.name}
         print(f"APP OK: project created, {data_file.name} added as {files[0]['name']}", flush=True)
     finally:

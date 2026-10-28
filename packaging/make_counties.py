@@ -35,5 +35,7 @@ counties = sorted(
     key=lambda c: (c[1], c[2]),
 )
 rows = ",\n".join(json.dumps(c, ensure_ascii=False) for c in counties)
-(ROOT / "src/oakbox/counties.json").write_text(f'{{"source": "US Census Bureau TIGERweb", "counties": [\n{rows}\n]}}\n')
+(ROOT / "src/oakbox/counties.json").write_text(
+    f'{{"source": "US Census Bureau TIGERweb", "counties": [\n{rows}\n]}}\n', encoding="utf-8"
+)
 print(len(counties), "counties")

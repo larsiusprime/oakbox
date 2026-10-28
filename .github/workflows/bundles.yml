@@ -35,6 +35,15 @@ jobs:
           uv run ruff format --check src tests
           uv run pyright
           uv run pytest -q tests
+      - name: Tests with a non-UTF-8 default encoding (as on Windows)
+        # Windows reads and writes text in its code page (cp1252) unless told otherwise. Plain ASCII is stricter,
+        # so anything that leans on the default encoding fails here first (AGENTS.md, "Windows").
+        env:
+          PYTHONUTF8: "0"
+          PYTHONCOERCECLOCALE: "0"
+          LC_ALL: C
+          LANG: C
+        run: uv run python -c "import locale; assert locale.getpreferredencoding(False).lower() != 'utf-8'" && uv run pytest -q tests
       - name: Web lint, types
         working-directory: web
         run: |

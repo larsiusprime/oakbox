@@ -18,7 +18,9 @@ def test_smoke_settings_are_complete_and_explicit():
     # The engine smoke test runs OpenAVMKit on Petersburg with these checked-in settings.
     from importlib import resources
 
-    s = json.loads(resources.files("oakbox.smokedata").joinpath("us-va-petersburgcity-settings.json").read_text())
+    s = json.loads(
+        resources.files("oakbox.smokedata").joinpath("us-va-petersburgcity-settings.json").read_text(encoding="utf-8")
+    )
     load = s["data"]["load"]
     assert all(entry["dupes"]["subset"] for entry in load.values())  # SPEC §6.3
     assert set(load["sales"]["calc"]) == {"valid_sale", "vacant_sale", "key_sale"}
@@ -40,7 +42,8 @@ def test_sample_projects_from_earlier_builds_are_not_listed(oakbox_home):
                 "answers": {},
                 "steps": {},
             }
-        )
+        ),
+        encoding="utf-8",
     )
     assert projects.list_projects() == []
     assert TestClient(create_app()).get("/api/projects/abc123").status_code == 404
@@ -56,8 +59,8 @@ def test_ui_assets_have_browser_safe_content_types(tmp_path, monkeypatch):
 
     web = tmp_path / "web"
     (web / "assets").mkdir(parents=True)
-    (web / "index.html").write_text("<script type=module src=/assets/app.js></script>")
-    (web / "assets" / "app.js").write_text("export {}")
+    (web / "index.html").write_text("<script type=module src=/assets/app.js></script>", encoding="utf-8")
+    (web / "assets" / "app.js").write_text("export {}", encoding="utf-8")
     (web / "assets" / "app.css").write_text("body{}")
     monkeypatch.setattr(app_module, "WEB_DIST", web)
     mimetypes.add_type("text/plain", ".js")  # what a bad Windows registry entry does

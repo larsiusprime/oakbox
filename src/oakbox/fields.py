@@ -186,7 +186,9 @@ def dictionary(jurisdiction: str = "") -> list[DictionaryField]:
     Names and descriptions say "{jurisdiction}" for the assessing office: that becomes the
     project's jurisdiction ("Travis County land value"), or the assessor without one.
     """
-    raw = json.loads(resources.files("openavmkit.resources.settings").joinpath("data_dictionary.json").read_text())
+    raw = json.loads(
+        resources.files("openavmkit.resources.settings").joinpath("data_dictionary.json").read_text(encoding="utf-8")
+    )
     raw = {**EXTRA, **raw}
     return [
         DictionaryField(

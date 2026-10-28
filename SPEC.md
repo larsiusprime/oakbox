@@ -1073,6 +1073,8 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 - **Privacy.** No telemetry and no crash upload. **Send log to support** builds a zip the user emails themselves.
 
 ### 6.1 Cross-platform: Linux now, macOS possible
+**Windows text is UTF-8, always.** Most users are on Windows, where Python reads and writes text in the code page (cp1252) unless told otherwise, so a "−" or an "é" can stop a run there and nowhere else. Every text read and write names `encoding="utf-8"` (`tests/test_encoding.py` checks the source). Every Python process OAK box starts, the launchers included, runs in UTF-8 mode (`-X utf8`, `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`), so OpenAVMKit's own I/O is UTF-8 too. The app's console output is reconfigured to UTF-8. CI runs the whole suite a second time with a non-UTF-8 default encoding. AGENTS.md has the rules for contributors and coding agents.
+
 **Linux (supported).** It's the development environment as well as a target. Many contributors and most CI already run on it, and the engine runs there unchanged.
 - **Window:** a native Qt window (pywebview on PySide6, which the bundle includes). Qt still needs the desktop's usual display libraries (libEGL, and libxcb-cursor on X11), which some minimal installs lack. Before opening the window, OAK box tries Qt in a short-lived process (a missing library makes Qt abort rather than fail cleanly). If that fails, it opens the UI in the user's browser instead: Chromium/Chrome "app" mode (a chromeless window) when one is installed, else a normal tab.
 

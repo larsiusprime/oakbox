@@ -96,7 +96,7 @@ def _path() -> Path:
 
 def load() -> AppSettings:
     try:
-        return AppSettings.model_validate_json(_path().read_text())
+        return AppSettings.model_validate_json(_path().read_text(encoding="utf-8"))
     except (FileNotFoundError, ValueError):
         return AppSettings()
 
@@ -105,7 +105,7 @@ def save(s: AppSettings) -> None:
     path = _path()
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(s.model_dump_json(indent=2))
+    tmp.write_text(s.model_dump_json(indent=2), encoding="utf-8")
     tmp.replace(path)
 
 

@@ -36,7 +36,7 @@ def test_new_project_writes_only_the_locality_and_valuation_date(client, oakbox_
     p = r.json()
     folder = oakbox_home / "Travis County 2026"
     assert (folder / "in").is_dir() and (folder / "out").is_dir()
-    settings = json.loads((folder / "in" / "settings.json").read_text())
+    settings = json.loads((folder / "in" / "settings.json").read_text(encoding="utf-8"))
     assert settings["locality"] == {
         "name": "Travis County",
         "state": "TX",
@@ -84,7 +84,7 @@ def test_projects_from_the_first_builds_are_still_found(tmp_path, monkeypatch):
         "created_at": "2026-10-01T00:00:00Z",
         "sample": None,
     }
-    (legacy / "oakbox.json").write_text(json.dumps(old))
+    (legacy / "oakbox.json").write_text(json.dumps(old), encoding="utf-8")
     monkeypatch.setattr(appsettings, "legacy_storage", lambda: legacy.parent)
     assert [p.id for p in projects.list_projects()] == ["us-va-cityofpetersburg-2026"]
     assert projects.project_dir("us-va-cityofpetersburg-2026") == legacy
@@ -132,13 +132,13 @@ def test_currency_number_style_and_units_come_from_the_country_and_can_be_change
     # Changed later, under Metadata: units reach OpenAVMKit's settings.
     r = client.patch(f"/api/projects/{p['id']}/locale", json={"numbers": "1 234,56", "units": "imperial"})
     assert (r.json()["currency"], r.json()["numbers"], r.json()["units"]) == ("EUR", "1 234,56", "imperial")
-    settings = json.loads((oakbox_home / "Berlin" / "in" / "settings.json").read_text())
+    settings = json.loads((oakbox_home / "Berlin" / "in" / "settings.json").read_text(encoding="utf-8"))
     assert settings["locality"]["units"] == "imperial"
     assert client.patch(f"/api/projects/{p['id']}/locale", json={"currency": "nope"}).status_code == 422
 
     # A project saved before these existed takes its country's.
     path = oakbox_home / "Berlin" / "oakbox.json"
-    old = json.loads(path.read_text())
+    old = json.loads(path.read_text(encoding="utf-8"))
     del old["currency"], old["numbers"]
-    path.write_text(json.dumps(old))
+    path.write_text(json.dumps(old), encoding="utf-8")
     assert projects.load(p["id"]).currency == "EUR"

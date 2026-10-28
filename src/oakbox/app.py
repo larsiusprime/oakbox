@@ -304,7 +304,9 @@ class DiskUsage(BaseModel):
 def _regions() -> Regions:
     from importlib import resources
 
-    regions = Regions.model_validate_json(resources.files("oakbox").joinpath("iso3166.json").read_text())
+    regions = Regions.model_validate_json(
+        resources.files("oakbox").joinpath("iso3166.json").read_text(encoding="utf-8")
+    )
     loc = projects.locales()
     regions.defaults = {k: CountryDefaults(**v) for k, v in loc["countries"].items()}
     regions.currencies = [Currency(**c) for c in loc["currencies"]]
