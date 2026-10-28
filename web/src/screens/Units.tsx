@@ -211,15 +211,16 @@ export function UnitsPanel({
 }
 
 function Prefix({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
+  // What's typed, until it's saved; otherwise the value as it is.
+  const [draft, setDraft] = useState<string | null>(null);
+  const text = draft ?? String(value);
   const save = () => {
     const n = Number.parseInt(text, 10);
     if (n >= 1 && n <= 64 && n !== value) onChange(n);
-    else setText(String(value));
+    setDraft(null);
   };
   return (
-    <TextField aria-label={u.characters} value={text} onChange={setText} onBlur={save} className="ly-max">
+    <TextField aria-label={u.characters} value={text} onChange={setDraft} onBlur={save} className="ly-max">
       <Input
         className="input ly-input wiz-num"
         inputMode="numeric"

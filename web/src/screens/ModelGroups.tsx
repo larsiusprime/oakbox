@@ -745,7 +745,9 @@ function ParcelMap({
   });
   const style = useRef<(i: number) => L.PathOptions>(() => ({}));
   const pick = useRef(onPick);
-  pick.current = onPick;
+  useEffect(() => {
+    pick.current = onPick;
+  });
 
   useEffect(() => {
     if (!el.current || !shapes.data) return;
@@ -938,16 +940,18 @@ function FromField({
   const cats = fields.filter((f) => f.kind === "category");
   const [field, setField] = useState(cats[0]?.name ?? "");
   const [list, setList] = useState<ModelGroup[]>(groups);
-  const [sent, setSent] = useState<Record<string, string>>({});
-  const vals = useValues(projectId, field);
-  // What the groups already say about this field.
-  useEffect(() => {
+  // Where each value goes: what the groups already say about this field, until changed here (for this field).
+  const said = useMemo(() => {
     const out: Record<string, string> = {};
     for (const x of groups)
       for (const c of x.rule.conditions)
         if (c.column === field && c.op === "isin") for (const v of c.values) out[v] = out[v] ?? x.id;
-    setSent(out);
+    return out;
   }, [field, groups]);
+  const [edited, setEdited] = useState<{ field: string; sent: Record<string, string> } | null>(null);
+  const sent = edited?.field === field ? edited.sent : said;
+  const setSent = (next: Record<string, string>) => setEdited({ field, sent: next });
+  const vals = useValues(projectId, field);
   const addGroup = (value: string) => {
     const nm = value || g.newName(list.length + 1);
     const used = new Set(list.map((x) => x.color));

@@ -1761,6 +1761,7 @@ def _suggest(
     target, mine = ("sale IDs", f"{entry.name} IDs") if kind == "more_sales" else ("parcel IDs", f"{entry.name} IDs")
     if kind == "sales":
         mine = "sales IDs"
+
     def on(steps: list[CleanStep], what: str) -> str:
         return f"{_describe(steps)} {'in' if all(st.kind == 'upper' for st in steps) else 'from'} the {what}"
 
@@ -2637,7 +2638,7 @@ def _field_by_id(project: Project, files: _Files, key: str, match: str) -> dict[
     if key in f.numbers:
         nums = list(_read_numbers(stamp, f.layer, column, f.numbers[key].model_dump_json()))
     else:
-        nums = pd.to_numeric(pd.Series(_values(stamp, f.layer, column)), errors="coerce").tolist()
+        nums = pd.Series(pd.to_numeric(pd.Series(_values(stamp, f.layer, column)), errors="coerce")).tolist()
     factor = 1.0
     if key in AREA_FIELDS:
         factor = SQFT_PER[f.area_units.get(key, small_unit(project.units))] / SQFT_PER[small_unit(project.units)]
@@ -2673,7 +2674,7 @@ def _sales_evidence(project: Project, files: _Files, match: str) -> tuple[list[t
     if "sale_price" in sales.numbers:
         prices = list(_read_numbers(stamp, sales.layer, column, sales.numbers["sale_price"].model_dump_json()))
     else:
-        prices = pd.to_numeric(pd.Series(_values(stamp, sales.layer, column)), errors="coerce").tolist()
+        prices = pd.Series(pd.to_numeric(pd.Series(_values(stamp, sales.layer, column)), errors="coerce")).tolist()
     notes = []
     rule = sales.rules.get("valid_sale")
     if rule is not None and _complete(rule):
@@ -2749,9 +2750,9 @@ def _trend(project: Project, files: _Files, entry: DataFile, column: str) -> tup
     pairs = [(float(v), ages[i]) for i, v in _by_parcel(files, entry, column).items() if i in ages]
     if len(pairs) < 20:
         return None, basis
-    df = pd.DataFrame(pairs, columns=["v", "age"]).rank()
-    r = df["v"].corr(df["age"])
-    return (None if r != r else float(r)), basis
+    df = pd.DataFrame({"v": [p[0] for p in pairs], "age": [p[1] for p in pairs]}).rank()
+    r = float(pd.Series(df["v"]).corr(pd.Series(df["age"])))
+    return (None if r != r else r), basis
 
 
 class Tier(BaseModel):
@@ -3193,8 +3194,8 @@ def set_custom(
     name: str,
     file: str | None,
     column: str | None,
-    group: str = "other",
-    type_: str = "category",
+    group: Literal["land", "building", "other"] = "other",
+    type_: Literal["category", "number"] = "category",
 ) -> None:
     """Load a parcel file's column as a field the user names and classifies (or, with no column, remove it)."""
     from oakbox.projects import CustomField
@@ -3542,9 +3543,10 @@ def _coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple
 
     parcels = _read_geo(base, base_layer)
     shapes = _read_geo(other, layer)
-    shapes = shapes[shapes.geometry.geom_type.isin(["Polygon", "MultiPolygon"])].to_crs(parcels.crs)
+    shapes = gpd.GeoDataFrame(shapes[shapes.geometry.geom_type.isin(["Polygon", "MultiPolygon"])]).to_crs(parcels.crs)
     centres = gpd.GeoDataFrame(geometry=parcels.geometry.centroid, crs=parcels.crs)
-    hits = gpd.sjoin(centres, shapes[["geometry"]], how="inner", predicate="within").groupby(level=0).size()
+    hits = gpd.sjoin(centres, gpd.GeoDataFrame(geometry=shapes.geometry), how="inner", predicate="within")
+    hits = hits.groupby(level=0).size()
     one = int((hits == 1).sum())
     several = int((hits > 1).sum())
     return one, several, len(parcels) - one - several
@@ -3690,13 +3692,15 @@ class LayerMap(BaseModel):
 def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
     import json as _json
 
+    import geopandas as gpd
+
     entry = next((f for f in project.files if f.name == name and f.holds == "overlay"), None)
     if entry is None:
         raise LookupError(name)
     gdf = _geo(in_dir, entry)
     if gdf.crs is None:
         raise ValueError(f"{name} has no coordinate system, so it can't be placed on a map.")
-    shapes = gdf[["geometry"]].head(2000).to_crs(4326)
+    shapes = gpd.GeoDataFrame(geometry=gdf.geometry.iloc[:2000], crs=gdf.crs).to_crs(4326)
     shapes["geometry"] = shapes.geometry.simplify(0.00005, preserve_topology=True)
     return LayerMap(shapes=_json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
 
@@ -3740,7 +3744,7 @@ def _deeds_check(project: Project, files: _Files) -> DeedsCheck | None:
     together = (ids + "|" + when.astype(str))[~blank]
     counts = together.value_counts()
     shared = counts[counts > 1]
-    n_blank = int(blank.sum())
+    n_blank = int(pd.Series(blank).sum())
     if len(shared):
         words = f"{len(shared):,} deeds have more than one sale on the same day: {int(shared.sum()):,} sales"
         words += ", likely sales of several parcels together. Sales scrutiny (notebook 2) sets them aside."
@@ -3763,7 +3767,7 @@ PERMIT_DATE_NAMES = re.compile(r"issue|permit.?date|applied|date", re.IGNORECASE
 
 
 def guess_meaning(value: str) -> PermitMeaning:
-    return next((m for rx, m in PERMIT_WORDS if rx.search(value)), "none")
+    return cast(PermitMeaning, next((m for rx, m in PERMIT_WORDS if rx.search(value)), "none"))
 
 
 def _permits_view(project: Project, files: _Files) -> PermitsView | None:

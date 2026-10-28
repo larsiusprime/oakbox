@@ -2,6 +2,7 @@
 
 import json
 import time
+from typing import cast
 
 import geopandas as gpd
 import pandas as pd
@@ -77,6 +78,7 @@ def brought_in(tmp_path_factory):
     assert client.put(f"/api/projects/{pid}/wizard/custom/subdivision", json=body).status_code == 200
     url = f"/api/projects/{pid}/bring-in"
     assert client.post(f"{url}/run").json()["status"] == "running"
+    view: dict = {}
     for _ in range(240):
         view = client.get(url).json()
         if view["status"] != "running":
@@ -147,7 +149,7 @@ def test_inspect_says_why_and_finds_parcels_like_it(brought_in, monkeypatch):
     client = TestClient(create_app())
     groups = client.post(f"{_url(pid)}/start", json={"how": "suggested"}).json()["groups"]
     u = pd.read_parquet(projects.project_dir(pid) / "out" / "oakbox" / "bring_in" / "universe.parquet")
-    house_on_comm = int(u.index[u["key"] == "32"][0])
+    house_on_comm = int(u.index[u["key"] == "32"].tolist()[0])
     v = client.post(f"{_url(pid)}/inspect", json={"groups": groups, "index": house_on_comm}).json()
     assert v["key"] == "32" and v["group"] == "commercial_industrial"
     why = {w["group"]: w for w in v["why"]}
@@ -176,9 +178,9 @@ def test_saved_groups_are_what_openavmkit_tags(brought_in, monkeypatch):
     p = client.post(f"{_url(pid)}/preview", json={"groups": view["groups"]}).json()
     assert p["moves"] == []  # saved: nothing differs
 
-    from openavmkit.data import _tag_model_groups_sup
+    from openavmkit.data import SalesUniversePair, _tag_model_groups_sup
 
-    sup = pd.read_pickle(pdir / "out" / "oakbox" / "bring_in" / "sup.pickle")
+    sup = cast(SalesUniversePair, pd.read_pickle(pdir / "out" / "oakbox" / "bring_in" / "sup.pickle"))
     monkeypatch.chdir(tmp)  # it writes out/look/
     tagged = _tag_model_groups_sup(sup, settings)
     counts = tagged.universe["model_group"].value_counts().to_dict()
@@ -198,6 +200,7 @@ def test_from_scratch_starts_empty_and_needs_data_first(client):
 
 
 def _wait(client, url):
+    view: dict = {}
     for _ in range(240):
         view = client.get(url).json()
         if view["status"] != "running":

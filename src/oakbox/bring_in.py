@@ -189,7 +189,8 @@ def _text(df) -> list[list[str]]:
         if isinstance(v, float):
             return f"{v:,.2f}".rstrip("0").rstrip(".") if v != round(v) or abs(v) >= 1e15 else f"{v:.0f}"
         if isinstance(v, (pd.Timestamp, dt.datetime)):
-            return v.strftime("%Y-%m-%d") if v == v.normalize() else v.strftime("%Y-%m-%d %H:%M")
+            midnight = (v.hour, v.minute, v.second, v.microsecond) == (0, 0, 0, 0)
+            return v.strftime("%Y-%m-%d") if midnight else v.strftime("%Y-%m-%d %H:%M")
         return str(v)
 
     return [[cell(v) for v in row] for row in df.itertuples(index=False, name=None)]
@@ -262,25 +263,25 @@ def profile(project_dir: Path, name: str, field: str, search: str = "") -> Field
     stats: list[Stat] = []
     if pd.api.types.is_bool_dtype(filled):
         kind = "yes/no"
-        counts = filled.map({True: "yes", False: "no"}).value_counts()
+        counts = filled.map(lambda b: "yes" if b else "no").value_counts()
     elif pd.api.types.is_numeric_dtype(filled):
         kind = "number"
-        x = filled.astype(float)
+        x = pd.Series(filled.astype(float))
         year = "year" in field
         g = (lambda v: f"{v:.0f}") if year else _g
         if len(x):
-            q = x.quantile([0.1, 0.25, 0.5, 0.75, 0.9])
+            q = {p: float(x.quantile(p)) for p in (0.1, 0.25, 0.5, 0.75, 0.9)}
             stats = [
                 Stat(label="filled", value=f"{len(x):,}"),
                 Stat(label="zero", value=f"{int((x == 0).sum()):,}"),
-                Stat(label="lowest", value=g(x.min())),
+                Stat(label="lowest", value=g(float(x.min()))),
                 Stat(label="10%", value=g(q[0.1])),
                 Stat(label="25%", value=g(q[0.25])),
                 Stat(label="median", value=g(q[0.5])),
                 Stat(label="75%", value=g(q[0.75])),
                 Stat(label="90%", value=g(q[0.9])),
-                Stat(label="highest", value=g(x.max())),
-                Stat(label="mean", value=g(x.mean())),
+                Stat(label="highest", value=g(float(x.max()))),
+                Stat(label="mean", value=g(float(x.mean()))),
             ]
         counts = x.map(g).value_counts()
     elif pd.api.types.is_datetime64_any_dtype(filled):
@@ -517,7 +518,7 @@ def run(project_id: str) -> None:
             )
         lines.append(Line(op="=", n=int(joined.sum()), text="parcels in the parcel universe with a row from it"))
         have = set(ids[joined])
-        missing = universe[~universe["key"].astype(str).isin(have)]
+        missing = universe[~universe["key"].astype(str).isin(list(have))]
         lines.append(
             Line(
                 n=len(missing),
@@ -576,8 +577,8 @@ def run(project_id: str) -> None:
                         rows=save("sales_teardown", sales[torn.to_numpy()]),
                     )
                 )
-        unmatched = sales[~sales["key"].astype(str).isin(keys)]
-        said_share = float(ids[valid.to_numpy()].isin(said_keys).mean()) if said_valid else None
+        unmatched = sales[~sales["key"].astype(str).isin(list(keys))]
+        said_share = float(ids.loc[valid.to_numpy()].isin(list(said_keys)).mean()) if said_valid else None
         lines.append(
             Line(
                 n=len(unmatched),
@@ -619,7 +620,7 @@ def run(project_id: str) -> None:
                     stamped[sf.name] = f.filename
             elif f.overlay.use == "distance":
                 measured[f.overlay.feature or f.name] = (f.filename, f.overlay.max_distance, f.overlay.unit)
-    vacant_n = int(universe.get("is_vacant", pd.Series(dtype=bool)).fillna(False).astype(bool).sum())
+    vacant_n = int(universe["is_vacant"].fillna(False).astype(bool).sum()) if "is_vacant" in universe else 0
 
     public = {c: SOURCES[r.key] for r in enriched for c in r.fields}
 
@@ -691,7 +692,7 @@ def run(project_id: str) -> None:
             Said(what="Valid sales", said=f"{said_valid:,}", got=f"{len(sales):,}", ok=said_valid == len(sales))
         )
     if said_share is not None and len(sales):
-        got = float(sales["key"].astype(str).isin(keys).mean())
+        got = float(sales["key"].astype(str).isin(list(keys)).mean())
         checks.append(
             Said(
                 what="Valid sales finding a parcel",
@@ -711,19 +712,20 @@ def run(project_id: str) -> None:
             wizard._stamp(in_dir / base.filename), base.layer, wizard._stamp(in_dir / entry.filename), entry.layer
         )
         # Units take their building's shape, and its layers with it: compared over parcels with shapes of their own.
-        own = ~universe["geometry_borrowed"].fillna(False).astype(bool) if "geometry_borrowed" in universe else None
-        got_n = int(
-            universe[o.fields[0].name][own].notna().sum()
-            if own is not None
-            else universe[o.fields[0].name].notna().sum()
+        own = (
+            ~pd.Series(universe["geometry_borrowed"]).fillna(False).astype(bool)
+            if "geometry_borrowed" in universe
+            else None
         )
+        stamped_col = pd.Series(universe[o.fields[0].name])
+        got_n = int(stamped_col.loc[own].notna().sum() if own is not None else stamped_col.notna().sum())
         # Counted over the file's shapes (some dropped since, without an ID): "every parcel" when none were outside.
         said = "every parcel" if none == 0 else f"{one + several:,}"
         shaped = int(own.sum()) if own is not None else len(universe)
         got = "every parcel" if got_n == shaped else f"{got_n:,}"
         ok = said == got or abs(one + several - got_n) <= max(1, 0.001 * len(universe))
         what = f"Parcels in a {lv.name} shape" + (
-            " (units take their building's)" if own is not None and not own.all() else ""
+            " (units take their building's)" if own is not None and not bool(own.all()) else ""
         )
         checks.append(Said(what=what, said=said, got=got, ok=ok))
 

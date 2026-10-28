@@ -18,7 +18,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import Field
 
@@ -118,14 +118,14 @@ def run(project_id: str) -> None:
     settings_text = (pdir / "in" / "settings.json").read_text()
     os.chdir(pdir)
     from openavmkit import pipeline as pl
-    from openavmkit.data import get_hydrated_sales_from_sup
+    from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
 
     t0 = time.time()
     exports = set(project.assemble_exports)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         _emit(step="load", fraction=0.0, message="Reading what Bring in data loaded")
-        sup = pd.read_pickle(src)
+        sup = cast("SalesUniversePair", pd.read_pickle(src))
         _emit(step="tag", fraction=0.2, message="Tagging each parcel with its model group")
         sup = pl.tag_model_groups_sup(sup, pl.load_settings(), verbose=False)
         _emit(step="write", fraction=0.6, message="Writing notebook 1's output")
@@ -137,7 +137,9 @@ def run(project_id: str) -> None:
     universe = sup.universe
     hydrated = get_hydrated_sales_from_sup(sup)
     valid = hydrated[hydrated["valid_sale"].fillna(False).astype(bool)] if "valid_sale" in hydrated else hydrated
-    vacant_sale = valid["vacant_sale"].fillna(False).astype(bool) if "vacant_sale" in valid else pd.Series(False)
+    vacant_sale = (
+        pd.Series(valid["vacant_sale"]).fillna(False).astype(bool) if "vacant_sale" in valid else pd.Series(False)
+    )
     is_vacant = universe["is_vacant"].fillna(False).astype(bool) if "is_vacant" in universe else None
 
     # The builder's preview on the same parcel universe, to check it against what OpenAVMKit did.

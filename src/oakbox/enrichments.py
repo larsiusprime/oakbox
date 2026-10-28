@@ -309,7 +309,7 @@ SOURCES = {
     "elevation": "USGS 3DEP",
 }
 # OpenAVMKit's functions, and what each is while it runs.
-STEPS = {
+STEPS: dict[str, tuple[Literal["distances", "footprints", "census", "elevation"], str]] = {
     "_enrich_df_overture": ("footprints", "Downloading building footprints from Overture Maps"),
     "_enrich_df_census": ("census", "Downloading census figures"),
     "_enrich_df_distances": ("distances", "Measuring distances to OpenStreetMap features"),

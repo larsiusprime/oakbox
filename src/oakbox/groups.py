@@ -74,7 +74,7 @@ def _sales(stamp: tuple[str, float], ustamp: tuple[str, float]):
         s = s[s["valid_sale"].fillna(False).astype(bool)]
     u = _universe(ustamp)
     pos = pd.Series(range(len(u)), index=u["key"].astype(str))
-    s = s.assign(pos=s["key"].astype(str).map(pos)).dropna(subset=["pos"])
+    s = s.assign(pos=pd.Series(s["key"]).astype(str).map(lambda k: pos.get(k))).dropna(subset=["pos"])
     s["pos"] = s["pos"].astype(int)
     s["vacant"] = s["vacant_sale"].fillna(False).astype(bool) if "vacant_sale" in s.columns else False
     return s.reset_index(drop=True)
@@ -177,7 +177,7 @@ def values(project_dir: Path, field: str) -> GroupValues:
     sold = s["pos"].value_counts().reindex(u.index, fill_value=0)
     df = pd.DataFrame({"v": text, "vac": vacant, "sales": sold.values})
     g = df.groupby("v").agg(parcels=("v", "size"), vacant=("vac", "sum"), sales=("sales", "sum"))
-    g = g.sort_values("parcels", ascending=False)
+    g = pd.DataFrame(g).sort_values(by="parcels", ascending=False)
     rows = [
         GroupValue(value=str(v), parcels=int(r.parcels), vacant=int(r.vacant), sales=int(r.sales))
         for v, r in g.head(VALUES_SHOWN).iterrows()
@@ -341,15 +341,19 @@ def preview(project: Project, project_dir: Path, groups: list[ModelGroup]) -> Gr
     import pandas as pd
 
     sold = np.zeros(len(u), dtype=int)
-    sold[s["pos"].unique()] = 1
+    sold[pd.Series(s["pos"]).unique().astype(int)] = 1
     df = pd.DataFrame({"a": before_id, "b": now_id, "sold": sold})
     df = df[df["a"] != df["b"]]
-    moved = df.groupby(["a", "b"]).agg(n=("sold", "size"), k=("sold", "sum")).sort_values("n", ascending=False)
+    moved = pd.DataFrame(df.groupby(["a", "b"]).agg(n=("sold", "size"), k=("sold", "sum")))
+    moved = moved.sort_values(by="n", ascending=False)
     return GroupsPreview(
         assign=now.tolist(),
         saved=before.tolist(),
         stats=stats,
-        moves=[GroupMove(from_id=a, to_id=b, parcels=int(r.n), sold=int(r.k)) for (a, b), r in moved.iterrows()],
+        moves=[
+            GroupMove(from_id=str(a), to_id=str(b), parcels=int(n), sold=int(k))
+            for (a, b), n, k in zip(moved.index, moved["n"], moved["k"], strict=True)
+        ],
         total=len(u),
     )
 
@@ -458,7 +462,11 @@ def inspect(project_dir: Path, groups: list[ModelGroup], pos: int) -> ParcelInsp
             cols = list(dict.fromkeys(c.column for c in g.rule.conditions))
             text = ", ".join(f"{labels.get(c, c).lower()} {_value_text(u, pos, c)}" for c in cols if c in u.columns)
         why.append(GroupWhy(group=g.id, order=i + 1, met=hit, text=text))
-    ps = s[s["pos"] == pos].sort_values("sale_date") if "sale_date" in s.columns else s[s["pos"] == pos]
+    import pandas as pd
+
+    ps = pd.DataFrame(s[s["pos"] == pos])
+    if "sale_date" in ps.columns:
+        ps = ps.sort_values(by="sale_date")
     sales = [
         ParcelSale(
             date=_text(r.get("sale_date"))[:10] if "sale_date" in ps.columns else "",

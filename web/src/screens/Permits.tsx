@@ -135,15 +135,16 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
 }
 
 function Days({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
+  // What's typed, until it's saved; otherwise the value as it is.
+  const [draft, setDraft] = useState<string | null>(null);
+  const text = draft ?? String(value);
   const commit = () => {
     const n = Number.parseInt(text, 10);
     if (n >= 1 && n <= 3650 && n !== value) onChange(n);
-    else setText(String(value));
+    setDraft(null);
   };
   return (
-    <TextField aria-label={p.days} value={text} onChange={setText} onBlur={commit} className="ly-max">
+    <TextField aria-label={p.days} value={text} onChange={setDraft} onBlur={commit} className="ly-max">
       <Input
         className="input ly-input wiz-num"
         inputMode="numeric"

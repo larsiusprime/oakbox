@@ -1142,6 +1142,7 @@ def test_bring_in_data_runs_openavmkit_and_writes_a_receipt(client, tmp_path):
     assert (view["status"], view["blocked"], view["receipt"]) == ("never", [], None)
 
     assert client.post(f"{url}/run").json()["status"] == "running"
+    view: dict = {}
     for _ in range(240):
         view = client.get(url).json()
         if view["status"] != "running":
@@ -1309,6 +1310,7 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     url = f"/api/projects/{pid}/bring-in"
     r = client.post(f"{url}/run").json()
     assert r.get("status") == "running", r
+    view: dict = {}
     for _ in range(240):
         view = client.get(url).json()
         if view["status"] != "running":
