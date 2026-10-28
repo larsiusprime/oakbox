@@ -179,6 +179,7 @@ export const t = {
     stepOf: (n: number, of: number) => `Step ${n} of ${of}`,
     back: "‹ Back",
     next: "Next ›",
+    toBringIn: "Bring in data ›",
     // Above the button bar while Next is greyed (it still answers a click).
     // A few are named, so it's clear what Next waits for ("2 things left: Pick the valid sale; Pick the vacant sale").
     left: (n: number, what: string[] = []) =>
@@ -192,6 +193,13 @@ export const t = {
       body: "You can come back to it: the step list keeps its mark until it's done.",
       skip: "Skip ahead anyway",
       finish: "Finish this step",
+    },
+    // Bring in data, from Review while something stops a run.
+    unfinishedRun: {
+      title: "OpenAVMKit can't run yet",
+      body: "These stop Bring in data. You can look at it anyway: it lists what will run.",
+      skip: "Go to Bring in data anyway",
+      finish: "Fix them first",
     },
     skip: "I don't have these",
     more: (n: number) => `${n} more ${n === 1 ? "field" : "fields"}`,

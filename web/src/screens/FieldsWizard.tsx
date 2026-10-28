@@ -126,10 +126,16 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
   // Only what stops a run greys Next; warnings and notes stay on the step without holding it up.
   const gated = current.status === "blocked";
-  const blocking = current.left.filter((l) => l.blocking);
+  // Review's own to-dos are what stops a run.
+  const blocking =
+    current.key === "review"
+      ? data.problems.map((text) => ({ text, blocking: true }))
+      : current.left.filter((l) => l.blocking);
+  // After the last step, the next tab: Bring in data.
+  const ahead = () => (next ? go(next.key) : navigate({ name: "project", id: projectId, tab: "bring" }));
   const onward = () =>
     // Moving on confirms the step: an optional step is then complete (SPEC F3d).
-    next && change.mutate({ kind: "confirm", step: current.key }, { onSuccess: () => go(next.key) });
+    change.mutate({ kind: "confirm", step: current.key }, { onSuccess: ahead });
 
   return (
     <div className="wiz">
@@ -201,24 +207,23 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
               {w.skip}
             </Button>
           )}
-          {next && (
-            <Button
-              className={gated ? "button button-primary is-gated" : "button button-primary"}
-              aria-disabled={gated}
-              onPress={() => (gated ? setUnfinished(true) : onward())}
-            >
-              {current.key === "welcome" ? w.start : w.next}
-            </Button>
-          )}
+          <Button
+            className={gated ? "button button-primary is-gated" : "button button-primary"}
+            aria-disabled={gated}
+            onPress={() => (gated ? setUnfinished(true) : onward())}
+          >
+            {current.key === "welcome" ? w.start : next ? w.next : w.toBringIn}
+          </Button>
         </div>
       </div>
-      {unfinished && next && (
+      {unfinished && (
         <UnfinishedDialog
+          copy={next ? w.unfinished : w.unfinishedRun}
           left={blocking}
           close={() => setUnfinished(false)}
           skip={() => {
             setUnfinished(false);
-            go(next.key);
+            ahead();
           }}
         />
       )}
@@ -228,10 +233,12 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
 
 /** Clicking the greyed Next: what's left on the step, and the choice to move on anyway. */
 function UnfinishedDialog({
+  copy,
   left,
   close,
   skip,
 }: {
+  copy: typeof w.unfinished;
   left: WizardStep["left"];
   close: () => void;
   skip: () => void;
@@ -241,7 +248,7 @@ function UnfinishedDialog({
       <Modal className="modal wiz-unfinished">
         <Dialog className="modal-body" role="alertdialog">
           <Heading slot="title" className="modal-title">
-            {w.unfinished.title}
+            {copy.title}
           </Heading>
           <ul className="wiz-left-list">
             {left.map((item) => (
@@ -251,13 +258,13 @@ function UnfinishedDialog({
               </li>
             ))}
           </ul>
-          <p className="wiz-from">{w.unfinished.body}</p>
+          <p className="wiz-from">{copy.body}</p>
           <div className="form-actions wiz-unfinished-actions">
             <Button className="button" onPress={skip}>
-              {w.unfinished.skip}
+              {copy.skip}
             </Button>
             <Button className="button button-primary" onPress={close} autoFocus>
-              {w.unfinished.finish}
+              {copy.finish}
             </Button>
           </div>
         </Dialog>
