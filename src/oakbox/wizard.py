@@ -3213,7 +3213,19 @@ def layers(project: Project, in_dir: Path) -> list[LayerView]:
                 one, several, none = _coverage(
                     _stamp(in_dir / base.filename), base.layer, _stamp(in_dir / f.filename), f.layer
                 )
-                text = f"{one + several:,} parcels in a shape · {several:,} in more than one · {none:,} in none"
+                # Only what isn't zero: "every parcel in one shape", or "1,252 in a shape · 8,107 in none".
+                if several == 0 and none == 0:
+                    text = "every parcel in one shape"
+                else:
+                    text = " · ".join(
+                        x
+                        for x in (
+                            f"{one + several:,} in a shape",
+                            f"{several:,} in more than one" if several else "",
+                            f"{none:,} in none" if none else "",
+                        )
+                        if x
+                    )
                 if one + several == 0:
                     left.append(Left(text="no parcel falls in any shape: is it the right place, or projection?"))
                     check = Check(ok=False, text=text)
@@ -3222,7 +3234,7 @@ def layers(project: Project, in_dir: Path) -> list[LayerView]:
         elif o.use == "distance":
             if not o.feature:
                 left.append(Left(text="name the distance"))
-            check = Check(ok=True, text=f"✓ {_n(len(gdf) if gdf is not None else 0, 'feature')}")
+            # How many features is in the layer's header already: no check line of its own.
         out.append(
             LayerView(
                 name=f.name,

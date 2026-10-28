@@ -15,6 +15,7 @@ import {
   unwrap,
 } from "../api/client";
 import { Choice } from "../components/Form";
+import { Seg } from "../components/Seg";
 import { t } from "../strings";
 import { useSettled, ValuePicker } from "./FieldRules";
 
@@ -387,31 +388,6 @@ function delta(p: GroupsPreview | undefined, id: string): number {
   return p.moves.reduce(
     (n: number, m: Move) => n + (m.to_id === id ? m.parcels : 0) - (m.from_id === id ? m.parcels : 0),
     0,
-  );
-}
-
-function Seg<V extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: V;
-  options: readonly (readonly [V, string])[];
-  onChange: (v: V) => void;
-}) {
-  return (
-    <span className="mg-seg">
-      {options.map(([k, label]) => (
-        <Button
-          key={k}
-          className={k === value ? "mg-seg-b on" : "mg-seg-b"}
-          onPress={() => onChange(k)}
-          aria-pressed={k === value}
-        >
-          {label}
-        </Button>
-      ))}
-    </span>
   );
 }
 

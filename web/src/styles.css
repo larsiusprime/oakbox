@@ -3310,13 +3310,13 @@ a.row-title:hover {
 .mg-hl {
   color: var(--muted);
 }
-.mg-seg {
+.seg {
   display: inline-flex;
   overflow: hidden;
   border: 1px solid var(--btn-edge);
   border-radius: var(--radius);
 }
-.mg-seg-b {
+.seg-b {
   padding: 0.05rem 0.5rem;
   font: inherit;
   color: var(--text);
@@ -3325,12 +3325,17 @@ a.row-title:hover {
   border-right: 1px solid var(--rule);
   cursor: pointer;
 }
-.mg-seg-b:last-child {
+.seg-b:last-child {
   border-right: 0;
 }
-.mg-seg-b.on {
+.seg-b.on {
   font-weight: 600;
   background: #dfe9f8;
+}
+.seg-b[data-disabled] {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.6;
 }
 .mg-x {
   display: inline-flex;
@@ -3590,4 +3595,112 @@ a.row-title:hover {
 }
 .cf-name-input {
   width: 10rem;
+}
+
+/* ---------- Shapefiles: one compact card per map layer ---------- */
+.ly {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.ly-head,
+.ly-body,
+.ly-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.ly-name {
+  font-weight: 600;
+}
+.ly-grow {
+  flex: 1;
+}
+.ly-icon {
+  display: inline-flex;
+  padding: 0.2rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ly-icon[data-hovered],
+.ly-icon.on {
+  color: var(--text);
+  border-color: var(--rule);
+  background: var(--head);
+}
+.ly-left {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  list-style: none;
+}
+.ly-label {
+  color: var(--muted);
+}
+.ly-chip {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.05rem 0.2rem 0.05rem 0.5rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+.ly-kind,
+.ly-add {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  padding: 0 0.3rem;
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ly-kind[data-hovered],
+.ly-add[data-hovered] {
+  background: #eaf1fc;
+}
+.ly-x {
+  display: inline-flex;
+  padding: 0.1rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.ly-prefix {
+  margin-right: -0.4rem;
+}
+.ly-feature .ly-input {
+  width: 9rem;
+}
+.ly-max .ly-input {
+  width: 5rem;
+}
+.ly-unit .choice {
+  min-width: 6.5rem;
+}
+.ly-pop {
+  width: 20rem;
+}
+.ly-form {
+  display: grid;
+  gap: 0.5rem;
+}
+.ly-help {
+  margin: 0;
+  font-size: 0.82rem;
 }

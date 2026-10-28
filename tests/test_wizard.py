@@ -809,7 +809,7 @@ def test_map_layers_stamped_onto_parcels_or_measured_to(client, tmp_path, monkey
     stamp = {"use": "stamp", "fields": [{"column": "ZONE_CODE", "name": "zoning_district", "kind": "location"}]}
     w = client.put(f"{layer}/zoning", json=stamp).json()
     z = next(x for x in w["layers"] if x["name"] == "zoning")
-    assert z["check"]["text"] == "✓ 6 parcels in a shape · 0 in more than one · 0 in none"
+    assert z["check"]["text"] == "✓ every parcel in one shape"
     # Points can only be measured to; names OpenAVMKit computes are refused.
     bad = {"use": "stamp", "fields": [{"column": "SCHOOL", "name": "school", "kind": "location"}]}
     w = client.put(f"{layer}/schools", json=bad).json()
