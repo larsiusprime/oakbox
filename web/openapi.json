@@ -3964,6 +3964,7 @@
        "zeros",
        "remove",
        "trim",
+       "upper",
        "replace",
        "first",
        "last",
@@ -3971,7 +3972,7 @@
        "after"
       ],
       "title": "Kind",
-      "description": "zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text."
+      "description": "zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; upper: letters as capitals; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text."
      },
      "text": {
       "type": "string",
@@ -4005,6 +4006,7 @@
        "zeros",
        "remove",
        "trim",
+       "upper",
        "replace",
        "first",
        "last",
@@ -4012,7 +4014,7 @@
        "after"
       ],
       "title": "Kind",
-      "description": "zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text."
+      "description": "zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; upper: letters as capitals; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text."
      },
      "text": {
       "type": "string",
@@ -6748,6 +6750,16 @@
    },
    "MissingParcels": {
     "properties": {
+     "kind": {
+      "type": "string",
+      "enum": [
+       "missing",
+       "other_id"
+      ],
+      "title": "Kind",
+      "description": "missing: parcels the parcel universe lacks; other_id: under half match, likely another ID.",
+      "default": "missing"
+     },
      "rows": {
       "type": "integer",
       "title": "Rows",
@@ -6769,6 +6781,7 @@
     },
     "type": "object",
     "required": [
+     "kind",
      "rows",
      "ids",
      "lines"

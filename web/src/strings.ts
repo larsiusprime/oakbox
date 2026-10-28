@@ -747,6 +747,7 @@ export const t = {
         spaces: ["Remove spaces", "12 34 → 1234"],
         other: ["Remove other characters…", "pick the characters"],
         trim: ["Trim spaces at the ends", '" 1234 " → "1234"'],
+        upper: ["Make letters capitals", "r0123456 → R0123456"],
         replace: ["Replace text…", "find this, put that"],
         first: ["Keep the first characters…", "first N"],
         last: ["Keep the last characters…", "last N"],
@@ -757,6 +758,7 @@ export const t = {
       step: {
         zeros: "Remove leading zeros",
         trim: "Trim spaces at the ends",
+        upper: "Make letters capitals",
         remove: "Remove these characters",
         replace: "Replace",
         with: "with",
@@ -769,6 +771,7 @@ export const t = {
       describe: {
         zeros: "remove leading zeros",
         trim: "trim spaces",
+        upper: "make letters capitals",
         remove: (chars: string) =>
           chars === "-" ? "remove hyphens" : chars === " " ? "remove spaces" : `remove "${chars}"`,
         replace: (a: string, b: string) => `replace "${a}" with "${b}"`,

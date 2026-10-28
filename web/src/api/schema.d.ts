@@ -1527,10 +1527,10 @@ export interface components {
         "CleanStep-Input": {
             /**
              * Kind
-             * @description zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text.
+             * @description zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; upper: letters as capitals; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text.
              * @enum {string}
              */
-            kind: "zeros" | "remove" | "trim" | "replace" | "first" | "last" | "before" | "after";
+            kind: "zeros" | "remove" | "trim" | "upper" | "replace" | "first" | "last" | "before" | "after";
             /**
              * Text
              * @default
@@ -1554,10 +1554,10 @@ export interface components {
         "CleanStep-Output": {
             /**
              * Kind
-             * @description zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text.
+             * @description zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; upper: letters as capitals; replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after the first text.
              * @enum {string}
              */
-            kind: "zeros" | "remove" | "trim" | "replace" | "first" | "last" | "before" | "after";
+            kind: "zeros" | "remove" | "trim" | "upper" | "replace" | "first" | "last" | "before" | "after";
             /**
              * Text
              * @default
@@ -2836,6 +2836,13 @@ export interface components {
         };
         /** MissingParcels */
         MissingParcels: {
+            /**
+             * Kind
+             * @description missing: parcels the parcel universe lacks; other_id: under half match, likely another ID.
+             * @default missing
+             * @enum {string}
+             */
+            kind: "missing" | "other_id";
             /**
              * Rows
              * @description Its rows that find no parcel.

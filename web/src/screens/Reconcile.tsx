@@ -29,6 +29,7 @@ const PRESETS: Record<string, Step> = {
   spaces: { kind: "remove", text: " ", to: "", n: 0 },
   other: { kind: "remove", text: "./", to: "", n: 0 },
   trim: { kind: "trim", text: "", to: "", n: 0 },
+  upper: { kind: "upper", text: "", to: "", n: 0 },
   replace: { kind: "replace", text: "", to: "", n: 0 },
   first: { kind: "first", text: "", to: "", n: 6 },
   last: { kind: "last", text: "", to: "", n: 6 },
@@ -45,17 +46,19 @@ export function describeSteps(steps: Step[]): string {
         ? d.zeros
         : s.kind === "trim"
           ? d.trim
-          : s.kind === "remove"
-            ? d.remove(s.text)
-            : s.kind === "replace"
-              ? d.replace(s.text, s.to)
-              : s.kind === "first"
-                ? d.first(s.n)
-                : s.kind === "last"
-                  ? d.last(s.n)
-                  : s.kind === "before"
-                    ? d.before(s.text)
-                    : d.after(s.text),
+          : s.kind === "upper"
+            ? d.upper
+            : s.kind === "remove"
+              ? d.remove(s.text)
+              : s.kind === "replace"
+                ? d.replace(s.text, s.to)
+                : s.kind === "first"
+                  ? d.first(s.n)
+                  : s.kind === "last"
+                    ? d.last(s.n)
+                    : s.kind === "before"
+                      ? d.before(s.text)
+                      : d.after(s.text),
     )
     .join(", then ");
 }
@@ -316,6 +319,8 @@ function StepText({ step, set }: { step: Step; set: (patch: Partial<Step>) => vo
       return <>{s.zeros}</>;
     case "trim":
       return <>{s.trim}</>;
+    case "upper":
+      return <>{s.upper}</>;
     case "remove":
       return (
         <>

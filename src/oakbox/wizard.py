@@ -322,6 +322,10 @@ class UnitsView(BaseModel):
 
 
 class MissingParcels(BaseModel):
+    kind: Literal["missing", "other_id"] = Field(
+        default="missing",
+        description="missing: parcels the parcel universe lacks; other_id: under half match, likely another ID.",
+    )
     rows: int = Field(description="Its rows that find no parcel.")
     ids: int = Field(description="The different parcel IDs they're for.")
     lines: list[str] = Field(description="What it means and what to do, a sentence each.")
@@ -1718,11 +1722,13 @@ _TRIES: list[list[CleanStep]] = [
     [CleanStep(kind="remove", text="- ")],
     [CleanStep(kind="remove", text="- "), CleanStep(kind="zeros")],
     [CleanStep(kind="remove", text="-. /"), CleanStep(kind="zeros")],
+    [CleanStep(kind="upper")],
+    [CleanStep(kind="trim"), CleanStep(kind="upper")],
 ]
 
 
 def _describe(steps: list[CleanStep]) -> str:
-    names = {"zeros": "remove leading zeros", "trim": "trim spaces"}
+    names = {"zeros": "remove leading zeros", "trim": "trim spaces", "upper": "make letters capitals"}
     out = []
     for st in steps:
         if st.kind == "remove":
@@ -1755,10 +1761,13 @@ def _suggest(
     target, mine = ("sale IDs", f"{entry.name} IDs") if kind == "more_sales" else ("parcel IDs", f"{entry.name} IDs")
     if kind == "sales":
         mine = "sales IDs"
+    def on(steps: list[CleanStep], what: str) -> str:
+        return f"{_describe(steps)} {'in' if all(st.kind == 'upper' for st in steps) else 'from'} the {what}"
+
     if _TRIES[b]:
-        parts.append(f"{_describe(_TRIES[b])} from the {target}")
+        parts.append(on(_TRIES[b], target))
     if _TRIES[f]:
-        parts.append(f"{_describe(_TRIES[f])} from the {mine}")
+        parts.append(on(_TRIES[f], mine))
     text = "; ".join(parts)
     return Suggestion(text=text[:1].upper() + text[1:], base_steps=_TRIES[b], file_steps=_TRIES[f], share=share)
 
@@ -3857,8 +3866,32 @@ MISSING_FEW = 10  # fewer parcels than this: odd rows (a parcel combined away), 
 
 
 def _shape(v: str) -> str:
-    """How an ID is written: digits as 9, letters as A, the rest as is ("0012-001" → "9999-999")."""
-    return re.sub(r"[A-Za-z]", "A", re.sub(r"\d", "9", v))
+    """How an ID is written: digits as 9, capitals as A, small letters as a, the rest as is ("0012-001" →
+    "9999-999", "r0123456" → "a9999999")."""
+    return re.sub(r"[a-z]", "a", re.sub(r"[A-Z]", "A", re.sub(r"\d", "9", v)))
+
+
+def _near(v: str, known: set[str] | frozenset[str]) -> bool:
+    """One digit off another ID in known (a keying slip): 1234 for 1284."""
+    for i, ch in enumerate(v):
+        if ch.isdigit():
+            for d in "0123456789":
+                if d != ch and f"{v[:i]}{d}{v[i + 1 :]}" in known:
+                    return True
+    return False
+
+
+def _slips(missing: set[str], known: set[str], matched: list[str]) -> int:
+    """About how many of the missing IDs are keying slips. Where IDs are packed close (short numbers), plenty of
+    real IDs are one digit off another too: what counts is how much more often the missing ones are than the
+    matched ones."""
+    sample = sorted(missing)[:3000]
+    near = sum(1 for v in sample if _near(v, known)) / len(sample)
+    peers = matched[:2000]
+    base = sum(1 for v in peers if _near(v, known)) / len(peers) if peers else 0.0
+    if base >= 0.9:
+        return 0
+    return round(max(0.0, (near - base) / (1 - base)) * len(missing))
 
 
 @lru_cache(maxsize=256)
@@ -3882,6 +3915,7 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
     if base is None or base.name not in files.preview:
         return
     gaps: dict[str, tuple[set[str], int]] = {}
+    known = _base_ids(files, base.name)
     for wf in out:
         f = files.entry(wf.name)
         if wf.base or wf.id_check is None or f.match not in ("key", *EXTRA_IDS) or _more_sales(f):
@@ -3897,11 +3931,23 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
         if len(missing) < MISSING_FEW:
             continue
         f = files.entry(wf.name)
-        # A clean-up that matches clearly more: a matter of cleaning, for Reconcile.
         total = len(files.ids(f.name, f.match))
         now = (total - rows) / total if total else 0.0
-        found = _suggest(files, f, base, f.match, now + MISSING_GAIN - 0.01, "parcels")
+        shapeless = wf.holds == "parcels" and wf.unshaped >= 0.5 * (wf.rows or 1) and wf.units is None
         shaped = sum(1 for v in missing if _shape(v) in base_shapes) / len(missing)
+        if (wf.id_check.share or 0) < MATCH_MIN and not shapeless and shaped >= MISSING_SHAPED:
+            # Fewer than half, written like parcel IDs: more likely another numbering than half the parcels
+            # missing. (Written otherwise, it's for Reconcile.)
+            column = wf.id_column or "the ID column"
+            line = (
+                f"Fewer than half find a parcel: is {column} the parcel ID, the same one the parcel universe "
+                f"uses? Or does {base.filename} cover a smaller area than {f.filename}?"
+            )
+            if _suggest(files, f, base, f.match, now + MISSING_GAIN - 0.01, "parcels") is None:
+                wf.not_in_universe = MissingParcels(kind="other_id", rows=rows, ids=len(missing), lines=[line])
+            continue
+        # A clean-up that matches clearly more: a matter of cleaning, for Reconcile.
+        found = _suggest(files, f, base, f.match, now + MISSING_GAIN - 0.01, "parcels")
         if found is not None or shaped < MISSING_SHAPED:
             continue
         what = {"sales": "sales", "permits": "permits"}.get(wf.holds or "", "rows")
@@ -3911,14 +3957,26 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
             f"{rows:,} {what} for parcels that aren't in the parcel universe{ids}. "
             f"Their IDs are written like the parcel universe's, so cleaning them up won't help."
         ]
-        if wf.holds == "parcels" and wf.unshaped >= 0.5 * (wf.rows or 1) and wf.units is None:
+        if shapeless:
             lines.append(
                 "Its rows have no shape of their own: if they're units of a shared parcel (condos, say), "
                 "\u201cTreat them as units\u201d below gives each its building's shape."
             )
         # A file in the project that has them: added, but not joined as parcels.
         # A file in the project that has them, not joined as parcels yet (unless this file holds them itself).
-        holder = None if len(lines) > 1 else _holder(project, files, f, missing, base)
+        # Keying slips, where the rows aren't units waiting to be set up.
+        matched = [v for v in files.ids(f.name, f.match) if v and v in known]
+        slips = 0 if shapeless else _slips(missing, known, matched)
+        if slips >= MISSING_FEW and slips >= 0.2 * len(missing):
+            lines.append(
+                f"About {slips:,} of them look like keying slips: one digit off a parcel ID. See them to check; "
+                f"fixing them is for the file they came from."
+            )
+        if slips >= 0.8 * len(missing):
+            wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines)
+            continue
+        units_line = any("Treat them as units" in x for x in lines)
+        holder = None if units_line else _holder(project, files, f, missing, base)
         if holder is not None:
             name, column, n = holder
             lines.append(
@@ -3926,7 +3984,7 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
                 f"shape of their own (condo units, say), set it up on More files: more about each parcel, then "
                 f"\u201cTreat them as units of a shared parcel\u201d."
             )
-        elif len(lines) == 1:
+        elif not units_line:
             lines.append(
                 f"Usually they're parcels kept outside {base.filename}: condo units, mobile homes, parcels made "
                 f"since. Have a file with them? Add it on More files."
@@ -3946,8 +4004,8 @@ def _holder(
     project: Project, files: _Files, f: DataFile, missing: set[str], base: DataFile
 ) -> tuple[str, str, int] | None:
     """The project file (not joined as parcels yet) with a column holding the most of these IDs, cleaned as this
-    file's are: at least half of them, or 20."""
-    steps = _steps_key(f.clean.get(f.match, []))
+    file's are, or as the parcel universe's (as it would be, joined to it): at least half of them, or 20."""
+    tries = {_steps_key(f.clean.get(f.match, [])), _steps_key(base.clean.get(f.match, []))}
     best = None
     for g in project.files:
         if g is f or g is base or g.holds in ("overlay", "sales", "permits") or g.units is not None:
@@ -3959,7 +4017,8 @@ def _holder(
             continue
         stamp = _stamp(files.in_dir / g.filename)
         for c in files.columns(g.name):
-            n = len(missing & _column_ids(stamp, g.layer, c.name, steps))
-            if (n >= 20 or n >= 0.5 * len(missing)) and (best is None or n > best[2]):
-                best = (g.name, c.name, n)
+            for steps in tries:
+                n = len(missing & _column_ids(stamp, g.layer, c.name, steps))
+                if (n >= 20 or n >= 0.5 * len(missing)) and (best is None or n > best[2]):
+                    best = (g.name, c.name, n)
     return best

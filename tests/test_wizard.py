@@ -1371,3 +1371,49 @@ def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(c
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
     w = _put_file(client, pid, "sales2", holds="sales").json()
     assert _file(w, "sales2")["not_in_universe"] is None
+
+
+def _sales_against(client, tmp_path, name, parcel_ids, sale_ids):
+    pid = client.post("/api/projects", json={**NEW, "name": name}).json()["id"]
+    gpd.GeoDataFrame(
+        {"PID": parcel_ids},
+        geometry=[box(i % 100, i // 100, i % 100 + 1, i // 100 + 1) for i in range(len(parcel_ids))],
+    ).set_crs(4326).to_parquet(tmp_path / f"{name}.parquet")
+    n = len(sale_ids)
+    pd.DataFrame({"PID": sale_ids, "SALE_PRICE": [1] * n, "SALE_DATE": ["2024-01-02"] * n}).to_csv(
+        tmp_path / f"{name}.csv", index=False
+    )
+    for f in (f"{name}.parquet", f"{name}.csv"):
+        body = {"path": str(tmp_path / f), "mode": "copy", "name": f.replace(".", "_")}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    assert _put_file(client, pid, f"{name}_parquet", universe=True, id_column="PID").status_code == 200
+    w = _put_file(client, pid, f"{name}_csv", holds="sales", id_column="PID").json()
+    return pid, _file(w, f"{name}_csv")
+
+
+def test_another_numbering_lower_case_and_keying_slips(client, tmp_path):
+    import random
+
+    r = random.Random(3)
+    ids = sorted({f"R{r.randint(0, 9_999_999):07d}" for _ in range(2_000)})
+    # Another numbering written the same way: none match. Not "missing parcels": check the ID column.
+    other = [f"R{r.randint(0, 9_999_999):07d}" for _ in range(600)]
+    _, sales = _sales_against(client, tmp_path, "other", ids, [v for v in other if v not in ids])
+    assert sales["not_in_universe"]["kind"] == "other_id"
+    assert sales["not_in_universe"]["lines"][0].startswith("Fewer than half find a parcel: is PID the parcel ID")
+    # Written in small letters: a clean-up, for Reconcile.
+    pid, sales = _sales_against(client, tmp_path, "lower", ids, [v.lower() for v in ids[:600]])
+    assert sales["not_in_universe"] is None
+    body = {"file_steps": [], "base_steps": [], "view": "unmatched", "seed": 0, "suggest": True}
+    s = client.post(f"/api/projects/{pid}/wizard/files/lower_csv/reconcile", json=body).json()["suggestion"]
+    assert s["text"] == "Make letters capitals in the sales IDs" and s["share"] == 1.0
+
+    # 15% one digit off: keying slips.
+    def slip(v):
+        return v[:-1] + str((int(v[-1]) + 1) % 10)
+
+    sold = [slip(v) if i % 7 == 0 else v for i, v in enumerate(ids[:700])]
+    _, sales = _sales_against(client, tmp_path, "slips", ids, sold)
+    lines = sales["not_in_universe"]["lines"]
+    assert any(x.startswith("About ") and "keying slips" in x for x in lines)
+    assert not any("Add it on More files" in x for x in lines)  # nearly all slips: no talk of missing parcels

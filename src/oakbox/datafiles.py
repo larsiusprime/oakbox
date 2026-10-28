@@ -228,7 +228,7 @@ def raw_name(column: str) -> str:
     return f"{slug if slug[0].isalpha() else 'col_' + slug}_raw"
 
 
-CleanKind = Literal["zeros", "remove", "trim", "replace", "first", "last", "before", "after"]
+CleanKind = Literal["zeros", "remove", "trim", "upper", "replace", "first", "last", "before", "after"]
 
 
 class CleanStep(BaseModel):
@@ -236,6 +236,7 @@ class CleanStep(BaseModel):
 
     kind: CleanKind = Field(
         description="zeros: remove leading zeros; remove: remove the characters in text; trim: spaces at the ends; "
+        "upper: letters as capitals; "
         "replace: text with to; first/last: keep the first/last n characters; before/after: the text before/after "
         "the first text."
     )
@@ -343,6 +344,8 @@ def clean_value(v: str, steps: list[CleanStep]) -> str:
                 v = v.replace(c, "")
         elif st.kind == "trim":
             v = v.strip()
+        elif st.kind == "upper":
+            v = v.upper()
         elif st.kind == "replace" and st.text:
             v = v.replace(st.text, st.to)
         elif st.kind == "first":
@@ -368,6 +371,8 @@ def clean_calc(field: str, steps: list[CleanStep]) -> list:
             e = ["replace", e, {c: "" for c in dict.fromkeys(st.text)}]
         elif st.kind == "trim":
             e = ["strip", e]
+        elif st.kind == "upper":
+            e = ["upper", e]
         elif st.kind == "replace" and st.text:
             e = ["replace", e, {st.text: st.to}]
         elif st.kind == "first":
