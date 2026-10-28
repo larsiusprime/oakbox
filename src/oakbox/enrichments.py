@@ -11,6 +11,7 @@ and handed to OpenAVMKit as CENSUS_API_KEY when it runs.
 
 from __future__ import annotations
 
+import io
 import json
 import math
 import re
@@ -450,6 +451,8 @@ PROBES = {
     "elevation": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/",
 }
 CACHES = {"footprints": "geom/overture", "census": "census", "elevation": "dem/all", "distances": "osm/all"}
+# The parts of a run that can be skipped while it runs: their fields are left out, nothing else changes.
+SKIPPABLE = ("footprints", "census", "distances", "elevation")
 
 
 def reachable(url: str, timeout: float = 10) -> str | None:
@@ -487,12 +490,12 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
     OpenAVMKit saves the distances it measured even when a feature's download failed; that's cleared, so running
     again downloads the feature rather than reusing its absence."""
     import contextlib
-    import io
     import time
     import warnings
 
     import osmnx as ox
     from openavmkit import data as engine
+    from openavmkit import progress
     from openavmkit.utilities.cache import clear_cache, get_cached_df
 
     enrich = settings.get("data", {}).get("process", {}).get("enrich", {})
@@ -511,9 +514,14 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
         def run(df, *args, **kwargs):
             if not on[key]:
                 return fn(df, *args, **kwargs)
-            emit(step=key, fraction=None, message=message)
-            before, t0, buf = set(df.columns), time.time(), io.StringIO()
+            emit(step=key, fraction=None, message=message, part=key)
+            before, t0, buf = set(df.columns), time.time(), _Said(emit, key)
             error = None
+            try:
+                progress.check_skipped(key)  # skipped before it started
+            except progress.Skipped:
+                results.append(_skipped(key, t0))
+                return df
             # Its settings come first after the parcels: OpenAVMKit finds what it saved before by them.
             saved = get_cached_df(df, CACHES[key], "key", args[0]) is not None
             down = None
@@ -537,6 +545,11 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
                 warnings.simplefilter("always")
                 try:
                     out = fn(df, *args, **kwargs)
+                except progress.Skipped:
+                    # Stopped at a checkpoint: the parcels as they came in (nothing half-done kept; OpenAVMKit
+                    # saves what it downloaded only once a part is done).
+                    results.append(_skipped(key, t0))
+                    return df
                 except Exception as e:  # noqa: BLE001 - a failed download is skipped, not the run
                     out, error = df, f"{type(e).__name__}: {e}"
             said = [str(w.message) for w in caught if issubclass(w.category, UserWarning)]
@@ -566,6 +579,43 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
     for name in STEPS:
         setattr(engine, name, wrap(name, getattr(engine, name)))
     return results
+
+
+def _skipped(key, t0: float) -> EnrichResult:
+    import time
+
+    return EnrichResult(
+        key=key,
+        status="skipped",
+        text="Skipped: you skipped it while it ran",
+        fields=[],
+        seconds=round(time.time() - t0, 1),
+        reused=False,
+    )
+
+
+class _Said(io.StringIO):
+    """What OpenAVMKit prints while an enrichment runs: kept for its log, and its latest line passed on to the app
+    as what the step is doing (at most a few times a second)."""
+
+    def __init__(self, emit, part: str):
+        super().__init__()
+        self._emit, self._part, self._last, self._line = emit, part, 0.0, ""
+
+    def write(self, s: str) -> int:
+        import time
+
+        n = super().write(s)
+        self._line += s
+        if "\n" in self._line:
+            lines = [x.strip() for x in self._line.split("\n")]
+            self._line = lines[-1]
+            said = next((x for x in reversed(lines[:-1]) if x), "")
+            now = time.time()
+            if said and now - self._last > 0.3:
+                self._last = now
+                self._emit(detail=said.lstrip("-> ").strip()[:160], part=self._part)
+        return n
 
 
 def recount(results: list[EnrichResult], universe) -> None:

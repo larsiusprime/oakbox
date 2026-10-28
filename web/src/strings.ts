@@ -1139,6 +1139,14 @@ export const t = {
       `Running · ${elapsed} so far${left ? `, about ${left} left` : ""}`,
     stop: "Stop",
     stopped: "Stopped before it finished. The last receipt, if there is one, is unchanged.",
+    alive: (inStep: string) => `working · ${inStep} on this step`,
+    silent: (quiet: string) =>
+      `No word from the run for ${quiet}: it may be stuck. Stop it, or wait a little longer.`,
+    starting: "Starting Python and OpenAVMKit (it can take a few seconds)",
+    skip: "Skip this step",
+    skipping: "Skipping…",
+    skipNote:
+      "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
     failed: "It stopped with an error:",
     failedLog: "The full log is in out/oakbox/bring_in.log in the project folder.",
     stale: "Out of date: Data changed since this ran:",

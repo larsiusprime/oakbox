@@ -998,6 +998,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/bring-in/skip/{part}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bring In Skip
+         * @description Skip one part of the run while it runs (an enrichment): it stops at its next checkpoint, its fields left
+         *     out, and the run carries on.
+         */
+        post: operations["bring_in_skip_api_projects__project_id__bring_in_skip__part__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/bring-in/accept": {
         parameters: {
             query?: never;
@@ -2836,6 +2857,38 @@ export interface components {
             steps: components["schemas"]["Progress"][];
             /** Error */
             error: string | null;
+            /**
+             * Elapsed
+             * @description Seconds since it started, as of this answer.
+             * @default 0
+             */
+            elapsed: number;
+            /**
+             * Quiet
+             * @description Seconds since the run last said anything (it says so every 2).
+             * @default 0
+             */
+            quiet: number;
+            /**
+             * Detail
+             * @description What the current step is doing: 'Parks (2 of 4)'.
+             */
+            detail: string | null;
+            /**
+             * Sub
+             * @description How far through the current step, 0-1, when known.
+             */
+            sub: number | null;
+            /**
+             * Part
+             * @description The current step can be skipped: its name.
+             */
+            part: string | null;
+            /**
+             * Skipping
+             * @description Parts asked to be skipped.
+             */
+            skipping: string[];
         };
         /** LayerMap */
         LayerMap: {
@@ -6823,6 +6876,38 @@ export interface operations {
             header?: never;
             path: {
                 project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["View"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_in_skip_api_projects__project_id__bring_in_skip__part__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                part: string;
             };
             cookie?: never;
         };

@@ -51,6 +51,7 @@ export type ScalePreview = components["schemas"]["ScalePreview"];
 export type TiersPreview = components["schemas"]["TiersPreview"];
 export type Source = components["schemas"]["Source"];
 export type BringIn = components["schemas"]["View"];
+export type Job = components["schemas"]["Job"];
 export type Receipt = components["schemas"]["Receipt"];
 export type Funnel = components["schemas"]["Funnel"];
 export type ReceiptField = components["schemas"]["FieldRow"];

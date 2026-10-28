@@ -2,7 +2,15 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
-import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
+import {
+  api,
+  type EnrichResult,
+  type Funnel,
+  type Job,
+  type Receipt,
+  type ReceiptField,
+  unwrap,
+} from "../api/client";
 import { FieldDetail } from "../components/FieldDetail";
 import { t } from "../strings";
 
@@ -42,8 +50,15 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const state = useBringIn(projectId);
   const act = useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept") => {
-      const path = `/api/projects/{project_id}/bring-in/${what}` as const;
+    mutationFn: async (what: "run" | "stop" | "accept" | `skip:${string}`) => {
+      if (what.startsWith("skip:")) {
+        return unwrap(
+          await api.POST("/api/projects/{project_id}/bring-in/skip/{part}", {
+            params: { path: { project_id: projectId, part: what.slice(5) } },
+          }),
+        );
+      }
+      const path = `/api/projects/{project_id}/bring-in/${what as "run" | "stop" | "accept"}` as const;
       return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
     },
     onSuccess: (data) => queryClient.setQueryData(["bring-in", projectId], data),
@@ -56,8 +71,9 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const last = v.job?.steps.at(-1);
   // Enrichments say when they start, without a share of the run.
   const fraction = [...(v.job?.steps ?? [])].reverse().find((s) => s.fraction !== null)?.fraction ?? 0.05;
-  const elapsed = last ? last.at : 0;
-  const left = r && running ? Math.max(0, r.seconds + 4 - elapsed) : null;
+  // The server's clock, every answer: it moves while a step is busy (it didn't, before).
+  const elapsed = v.job?.elapsed ?? (last ? last.at : 0);
+  const left = r && running && elapsed < r.seconds ? r.seconds - elapsed : null;
   return (
     <div className="bi">
       <div className="bi-kicker">{b.kicker}</div>
@@ -98,12 +114,24 @@ export function BringInTab({ projectId }: { projectId: string }) {
             <i style={{ width: `${Math.round(100 * fraction)}%` }} />
           </div>
           <ul className="bi-steps">
-            {v.job?.steps.map((s, i) => (
-              <li key={s.step} className={i === (v.job?.steps.length ?? 0) - 1 ? "now" : "done"}>
-                {i === (v.job?.steps.length ?? 0) - 1 ? "● " : "✓ "}
-                {s.message}
+            {(v.job?.steps.length ?? 0) === 0 && (
+              <li className="now">
+                <span className="bi-pulse" aria-hidden="true" />
+                {b.starting}
               </li>
-            ))}
+            )}
+            {v.job?.steps.map((s, i) => {
+              const now = i === (v.job?.steps.length ?? 0) - 1;
+              return (
+                <li key={s.step} className={now ? "now" : "done"}>
+                  {now ? <span className="bi-pulse" aria-hidden="true" /> : "✓ "}
+                  {s.message}
+                  {now && v.job && (
+                    <Busy job={v.job} since={s.at} skip={(part) => act.mutate(`skip:${part}`)} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : !r ? (
@@ -457,6 +485,33 @@ const PAGE = 50;
 export function band(bands: number[] | null | undefined, i: number): string | undefined {
   if (!bands) return undefined;
   return bands[i] ? "band-b" : "band-a";
+}
+
+/** The step that's running, in detail: what it's doing, how far through, how long it's taken, that the run is
+ * still alive (it says so every 2 seconds), and Skip for a step that can be left out. */
+function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
+  const skipping = job.part !== null && job.skipping.includes(job.part);
+  // Two missed heartbeats and more: it may be stuck (a frozen process says nothing at all).
+  const silent = job.quiet > 10;
+  return (
+    <div className="bi-busy">
+      {job.detail && <span className="bi-detail">{job.detail}</span>}
+      {job.sub !== null && (
+        <span className="bi-prog bi-sub">
+          <i style={{ width: `${Math.round(100 * job.sub)}%` }} />
+        </span>
+      )}
+      <span className={silent ? "wiz-warn" : "bi-alive"}>
+        {silent ? b.silent(clock(job.quiet)) : b.alive(clock(Math.max(0, job.elapsed - since)))}
+      </span>
+      {job.part && (
+        <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>
+          {skipping ? b.skipping : b.skip}
+        </Button>
+      )}
+      {job.part && !skipping && <span className="bi-skip-note">{b.skipNote}</span>}
+    </div>
+  );
 }
 
 function RowsDialog({

@@ -26,12 +26,12 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel
-from oakbox.enrichments import SOURCES, EnrichResult, instrument, recount
+from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
 
 ROW_GROUP = 1_000
 PAGE = 50
@@ -404,8 +404,48 @@ def csv_chunks(project_dir: Path, name: str):
 # ---------- The run (in its own process) ----------
 
 
+_emit_lock = threading.Lock()
+
+
 def _emit(**kw) -> None:
-    print(json.dumps(kw), flush=True)
+    """One line of progress for the app, on the real stdout: enrichments capture what OpenAVMKit prints, and the
+    heartbeat writes from its own thread."""
+    out = sys.__stdout__
+    if out is None:
+        return
+    with _emit_lock:
+        out.write(json.dumps(kw) + "\n")
+        out.flush()
+
+
+HEARTBEAT = 2.0  # seconds between "still working" lines from a run
+
+
+def skip_path(project_dir: Path, module: str = "bring_in") -> Path:
+    """Where the app asks a running run to skip a part (one name per line): the run checks it at each checkpoint."""
+    return project_dir / "out" / "oakbox" / f"{module}.skip"
+
+
+def _skipper(path: Path):
+    """The run's skip check: is this part in the skip file? Read at most every half second."""
+    seen: dict[str, object] = {"at": 0.0, "parts": set()}
+
+    def skip(part: str) -> bool:
+        now = time.time()
+        if now - cast(float, seen["at"]) > 0.5:
+            seen["at"] = now
+            try:
+                seen["parts"] = set(path.read_text(encoding="utf-8").split())
+            except OSError:
+                seen["parts"] = set()
+        return part in cast(set, seen["parts"])
+
+    return skip
+
+
+def _heartbeat(stop: threading.Event) -> None:
+    while not stop.wait(HEARTBEAT):
+        _emit(beat=True)
 
 
 def _write(df, path: Path) -> None:
@@ -490,11 +530,21 @@ def run(project_id: str) -> None:
     from importlib.metadata import version
 
     from openavmkit import pipeline as pl
+    from openavmkit import progress
 
     enriched = instrument(json.loads(settings_text), _emit)
     timings: list[list] = []
     t0 = time.time()
-    with warnings.catch_warnings(record=True) as caught:
+    skips = skip_path(pdir)
+    skips.unlink(missing_ok=True)
+    beating = threading.Event()
+    threading.Thread(target=_heartbeat, args=(beating,), daemon=True).start()
+
+    def inside(e) -> None:
+        # What OpenAVMKit is doing inside a step ("Parks (2 of 4)"), and how far through it.
+        _emit(detail=e.message, sub=e.sub, part=e.part)
+
+    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside, skip=_skipper(skips)):
         warnings.simplefilter("always")
         _emit(step="load", fraction=0.0, message="Loading data files")
         settings = pl.load_settings()
@@ -504,6 +554,7 @@ def run(project_id: str) -> None:
         t1 = time.time()
         sup = pl.process_dataframes(dfs, pl.load_settings())
         timings.append(["process_dataframes", round(time.time() - t1, 1)])
+    beating.set()
     _emit(step="receipt", fraction=0.85, message="Counting and saving")
     t2 = time.time()
     universe, sales = sup.universe, sup.sales
@@ -852,6 +903,13 @@ class Job(BaseModel):
     started: float
     steps: list[Progress] = Field(default_factory=list)
     error: str | None = None
+    elapsed: float = Field(default=0.0, description="Seconds since it started, as of this answer.")
+    quiet: float = Field(default=0.0, description="Seconds since the run last said anything (it says so every 2).")
+    detail: str | None = Field(default=None, description="What the current step is doing: 'Parks (2 of 4)'.")
+    sub: float | None = Field(default=None, description="How far through the current step, 0-1, when known.")
+    part: str | None = Field(default=None, description="The current step can be skipped: its name.")
+    skipping: list[str] = Field(default_factory=list, description="Parts asked to be skipped.")
+    heard: float = Field(default=0.0, exclude=True, description="When the run last said anything (epoch).")
 
 
 _jobs: dict[str, Job] = {}
@@ -877,7 +935,7 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
             errors="replace",
             env=child_env(),
         )
-        job = Job(status="running", started=time.time())
+        job = Job(status="running", started=time.time(), heard=time.time())
         _jobs[key], _procs[key] = job, proc
 
     def follow() -> None:
@@ -887,6 +945,9 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
                 msg = json.loads(line)
             except ValueError:
                 continue  # OpenAVMKit prints as it goes
+            if not isinstance(msg, dict):
+                continue
+            job.heard = time.time()
             if "step" in msg:
                 job.steps.append(
                     Progress(
@@ -896,6 +957,10 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
                         at=time.time() - job.started,
                     )
                 )
+                job.detail, job.sub, job.part = None, None, msg.get("part")
+            elif "detail" in msg:
+                job.detail, job.sub = msg["detail"], msg.get("sub")
+                job.part = msg.get("part") or job.part
         code = proc.wait()
         if job.status == "running":
             if code == 0:
@@ -942,7 +1007,27 @@ def stop(project_id: str, module: str = "bring_in") -> None:
 
 
 def job(project_id: str, module: str = "bring_in") -> Job | None:
-    return _jobs.get(f"{module}:{project_id}")
+    j = _jobs.get(f"{module}:{project_id}")
+    if j is not None and j.status == "running":
+        now = time.time()
+        j.elapsed, j.quiet = now - j.started, now - j.heard
+    return j
+
+
+def skip(project_id: str, project_dir: Path, part: str, module: str = "bring_in") -> None:
+    """Ask a running run to skip one part (an enrichment): it stops at its next checkpoint, its fields left out,
+    and the run carries on."""
+    j = _jobs.get(f"{module}:{project_id}")
+    if j is None or j.status != "running":
+        raise ValueError("Nothing is running.")
+    if part not in SKIPPABLE:
+        raise ValueError(f"{part} can't be skipped.")
+    path = skip_path(project_dir, module)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(part + "\n")
+    if part not in j.skipping:
+        j.skipping.append(part)
 
 
 class Plan(BaseModel):

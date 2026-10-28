@@ -211,12 +211,16 @@ def test_a_failed_enrichment_is_skipped_and_says_why(engine, monkeypatch):
     monkeypatch.setattr(engine, "_enrich_df_distances", distances)
     monkeypatch.setattr(engine, "_enrich_df_dem", lambda df, s, *a, **k: df.assign(elevation_mean_ft=[1.0, 2.0, 3.0]))
     lines = []
-    results = enrichments.instrument(SETTINGS, lambda **kw: lines.append(kw["step"]))
+    said = []  # what OpenAVMKit printed, passed on as each step's detail
+    results = enrichments.instrument(
+        SETTINGS, lambda **kw: lines.append(kw["step"]) if "step" in kw else said.append(kw["detail"])
+    )
     df = _parcels()
     df = engine._enrich_df_overture(df, {}, {}, {})
     df = engine._enrich_df_distances(df, {"enabled": True}, {})
     df = engine._enrich_df_dem(df, {"enabled": True}, {})
     assert lines == ["footprints", "distances", "elevation"]
+    assert said and said[0] == "Getting water_bodies from OSM..."
     by = {r.key: r for r in results}
     assert by["footprints"].status == "skipped" and by["footprints"].text == "Skipped: OSError: S3 said no"
     d = by["distances"]
@@ -240,6 +244,27 @@ def test_a_service_that_cant_be_reached_is_skipped_at_once(engine, monkeypatch):
     df = engine._enrich_df_overture(_parcels(), {}, {}, {})
     assert called == [] and len(df) == 3
     assert results[0].status == "skipped" and "didn't answer" in results[0].text
+
+
+def test_a_step_can_be_skipped_while_it_runs(engine, monkeypatch):
+    """Skip at a checkpoint: the parcels come back as they went in (nothing half-done), it says so, and the next
+    enrichment runs."""
+    from openavmkit import progress
+
+    def distances(df, s, *a, **k):
+        progress.report("distances", message="Parks (1 of 4)", sub=0.0, part="distances")
+        return df.assign(dist_to_osm_parks=1.0)
+
+    monkeypatch.setattr(engine, "_enrich_df_distances", distances)
+    monkeypatch.setattr(engine, "_enrich_df_dem", lambda df, s, *a, **k: df.assign(elevation_mean_ft=1.0))
+    results = enrichments.instrument(SETTINGS, lambda **kw: None)
+    with progress.reporting(skip=lambda part: part == "distances"):
+        df = engine._enrich_df_distances(_parcels(), {"enabled": True}, {})
+        df = engine._enrich_df_dem(df, {"enabled": True}, {})
+    assert "dist_to_osm_parks" not in df and "elevation_mean_ft" in df
+    by = {r.key: r for r in results}
+    assert by["distances"].status == "skipped" and by["distances"].text == "Skipped: you skipped it while it ran"
+    assert by["elevation"].status == "ok"
 
 
 def test_overpass_is_asked_politely(engine, monkeypatch):
@@ -360,3 +385,23 @@ def test_permits_are_guessed_and_written_for_openavmkit(client, tmp_path, monkey
 
     r = client.put(f"/api/projects/{pid}/wizard/files/permits/permits", json={"permits": None})
     assert "permits" not in _settings(pid)["data"]["process"].get("enrich", {})
+
+
+def test_the_app_asks_a_running_run_to_skip_a_part(tmp_path, monkeypatch):
+    """The skip request is a line in out/oakbox/bring_in.skip, which the run reads at its checkpoints."""
+    import time
+
+    from oakbox import bring_in
+
+    job = bring_in.Job(status="running", started=time.time() - 30, heard=time.time() - 3)
+    monkeypatch.setitem(bring_in._jobs, "bring_in:p1", job)
+    seen = bring_in._skipper(bring_in.skip_path(tmp_path))
+    assert not seen("distances")
+    bring_in.skip("p1", tmp_path, "distances")
+    time.sleep(0.6)  # the run reads the file at most every half second
+    assert seen("distances") and not seen("elevation")
+    assert job.skipping == ["distances"]
+    with pytest.raises(ValueError):
+        bring_in.skip("p1", tmp_path, "load")  # loading the files isn't optional
+    j = bring_in.job("p1")
+    assert j is not None and j.elapsed >= 30 and 3 <= j.quiet < 10  # alive: it spoke 3 s ago

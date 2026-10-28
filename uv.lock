@@ -1376,7 +1376,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "openavmkit", git = "https://github.com/larsiusprime/oakbox?rev=f87b7277d0d336e7a0bdfcbe8f9dd588527f09fe" },
+    { name = "openavmkit", git = "https://github.com/larsiusprime/oakbox?rev=24cd55abea9024fcd77b27c343efe96b8fc22223" },
     { name = "psutil", specifier = ">=6" },
     { name = "pyside6", marker = "sys_platform == 'linux'", specifier = ">=6.12" },
     { name = "pywebview", specifier = ">=6.2.1,<6.3" },
@@ -1397,8 +1397,8 @@ dev = [
 
 [[package]]
 name = "openavmkit"
-version = "0.0.post1.dev910+gf87b7277d"
-source = { git = "https://github.com/larsiusprime/oakbox?rev=f87b7277d0d336e7a0bdfcbe8f9dd588527f09fe#f87b7277d0d336e7a0bdfcbe8f9dd588527f09fe" }
+version = "0.0.post1.dev911+g24cd55abe"
+source = { git = "https://github.com/larsiusprime/oakbox?rev=24cd55abea9024fcd77b27c343efe96b8fc22223#24cd55abea9024fcd77b27c343efe96b8fc22223" }
 dependencies = [
     { name = "azure-core" },
     { name = "azure-storage-blob" },

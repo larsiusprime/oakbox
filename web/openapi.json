@@ -2698,6 +2698,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/bring-in/skip/{part}": {
+   "post": {
+    "summary": "Bring In Skip",
+    "description": "Skip one part of the run while it runs (an enrichment): it stops at its next checkpoint, its fields left\nout, and the run carries on.",
+    "operationId": "bring_in_skip_api_projects__project_id__bring_in_skip__part__post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "part",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Part"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/View"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/bring-in/accept": {
    "post": {
     "summary": "Bring In Accept",
@@ -6763,6 +6812,62 @@
        }
       ],
       "title": "Error"
+     },
+     "elapsed": {
+      "type": "number",
+      "title": "Elapsed",
+      "description": "Seconds since it started, as of this answer.",
+      "default": 0.0
+     },
+     "quiet": {
+      "type": "number",
+      "title": "Quiet",
+      "description": "Seconds since the run last said anything (it says so every 2).",
+      "default": 0.0
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail",
+      "description": "What the current step is doing: 'Parks (2 of 4)'."
+     },
+     "sub": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sub",
+      "description": "How far through the current step, 0-1, when known."
+     },
+     "part": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Part",
+      "description": "The current step can be skipped: its name."
+     },
+     "skipping": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Skipping",
+      "description": "Parts asked to be skipped."
      }
     },
     "type": "object",
@@ -6770,7 +6875,13 @@
      "status",
      "started",
      "steps",
-     "error"
+     "error",
+     "elapsed",
+     "quiet",
+     "detail",
+     "sub",
+     "part",
+     "skipping"
     ],
     "title": "Job"
    },

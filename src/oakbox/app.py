@@ -892,6 +892,17 @@ def create_app() -> FastAPI:
         bring_in.stop(project_id)
         return _bring_in_view(_load(project_id))
 
+    @app.post("/api/projects/{project_id}/bring-in/skip/{part}")
+    def bring_in_skip(project_id: str, part: str) -> bring_in.View:
+        """Skip one part of the run while it runs (an enrichment): it stops at its next checkpoint, its fields left
+        out, and the run carries on."""
+        project = _load(project_id)
+        try:
+            bring_in.skip(project_id, projects.project_dir(project_id), part)
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        return _bring_in_view(project)
+
     @app.post("/api/projects/{project_id}/bring-in/accept")
     def bring_in_accept(project_id: str) -> bring_in.View:
         """Looks right: model groups can start from this."""

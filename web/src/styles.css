@@ -4202,3 +4202,49 @@ tr.band-b > td {
 tr.bi-kept > td {
   font-weight: 600;
 }
+
+/* The step that's running: what it's doing, its own bar, that the run is alive, Skip. */
+.bi-busy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  align-items: center;
+  margin: 0.25rem 0 0.15rem 1.2rem;
+  font-weight: 400;
+  font-size: 0.88rem;
+}
+.bi-detail {
+  color: var(--text);
+}
+.bi-sub {
+  display: inline-block;
+  width: 9rem;
+  height: 0.5rem;
+}
+.bi-alive,
+.bi-skip-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.bi-skip-note {
+  flex-basis: 100%;
+}
+.bi-pulse {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: 0 0.45rem 0.08rem 0.1rem;
+  background: #1d5bb8;
+  border-radius: 50%;
+  animation: bi-pulse 1.2s ease-in-out infinite;
+}
+@keyframes bi-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bi-pulse {
+    animation: none;
+  }
+}
