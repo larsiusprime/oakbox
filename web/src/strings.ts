@@ -236,7 +236,7 @@ export const t = {
       property_type: {
         title: "Land use & building type",
         question: "What kind of property is each parcel?",
-        lede: "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have, and add any other field you want to use, saying whether it describes the land, the building or something else.",
+        lede: "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have, and add any other field you want to use, saying whether it's a land/location, improvement or other field.",
       },
       assessed: {
         title: "Assessed values",
@@ -473,13 +473,13 @@ export const t = {
     },
     custom: {
       title: "Your own fields",
-      lede: "Any other column of a parcel file, under a name you choose. Say whether it describes the land, the building or something else, and whether it's a category or a number: OpenAVMKit treats them that way when it models.",
+      lede: "Any other column of a parcel file, under a name you choose. Say whether it's a land/location, improvement or other field, and whether it's a category or a number: OpenAVMKit treats them that way when it models.",
       column: "Column",
       pickColumn: "Pick a column…",
       name: "Name",
       namePlaceholder: "name_like_this",
-      group: "Describes",
-      groups: { land: "the land", building: "the building", other: "something else" } as Record<
+      group: "Class",
+      groups: { land: "Land/location", building: "Improvement", other: "Other" } as Record<
         string,
         string
       >,
