@@ -12,6 +12,7 @@ import {
   type WizardFile,
 } from "../api/client";
 import { Choice, Tick } from "../components/Form";
+import { MultiPick } from "../components/MultiPick";
 import { t } from "../strings";
 
 const r = t.wizard.rule;
@@ -137,7 +138,7 @@ export function RuleDialog({
           <ol className="rl-tests">
             {rule.conditions.map((c, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: tests have no id; their place is what they are
-              <li key={i} className="rc-card">
+              <li key={i} className="rc-card rl-test">
                 <div className="rl-head">
                   <Choice
                     label={r.column}
@@ -155,6 +156,22 @@ export function RuleDialog({
                       set(i, { op, values: LISTS.includes(op) === LISTS.includes(c.op) ? c.values : [] })
                     }
                   />
+                  {LISTS.includes(c.op) ? (
+                    <MultiPick
+                      label={r.value}
+                      values={v?.values[c.column] ?? []}
+                      more={v?.more[c.column] ?? 0}
+                      chosen={c.values}
+                      onChange={(values) => set(i, { values })}
+                      countNoun={r.countRows}
+                    />
+                  ) : NO_VALUE.includes(c.op) ? null : (
+                    <Mini
+                      label={r.value}
+                      value={c.values[0] ?? ""}
+                      onChange={(x) => set(i, { values: x ? [x] : [] })}
+                    />
+                  )}
                   {rule.conditions.length > 1 && (
                     <Button
                       className="rc-x"
@@ -167,20 +184,6 @@ export function RuleDialog({
                     </Button>
                   )}
                 </div>
-                {LISTS.includes(c.op) ? (
-                  <ValuePicker
-                    values={v?.values[c.column] ?? []}
-                    more={v?.more[c.column] ?? 0}
-                    chosen={c.values}
-                    onChange={(values) => set(i, { values })}
-                  />
-                ) : NO_VALUE.includes(c.op) ? null : (
-                  <Mini
-                    label={r.value}
-                    value={c.values[0] ?? ""}
-                    onChange={(x) => set(i, { values: x ? [x] : [] })}
-                  />
-                )}
               </li>
             ))}
           </ol>
@@ -293,48 +296,6 @@ export function RuleDialog({
         </Dialog>
       </Modal>
     </ModalOverlay>
-  );
-}
-
-/** A column's values with how many sales have each: tick the ones the test means. */
-export function ValuePicker({
-  values,
-  more,
-  chosen,
-  onChange,
-}: {
-  values: { value: string; count: number }[];
-  more: number;
-  chosen: string[];
-  onChange: (v: string[]) => void;
-}) {
-  const [typed, setTyped] = useState("");
-  const listed = new Set(values.map((x) => x.value));
-  const extra = chosen.filter((c) => !listed.has(c));
-  const toggle = (value: string, on: boolean) =>
-    onChange(on ? [...chosen, value] : chosen.filter((c) => c !== value));
-  return (
-    <div className="rl-values">
-      {[...values, ...extra.map((value) => ({ value, count: -1 }))].map((x) => (
-        <Tick key={x.value} isSelected={chosen.includes(x.value)} onChange={(on) => toggle(x.value, on)}>
-          <span className="rl-value">{x.value || r.blank}</span>
-          {x.count >= 0 && <span className="rl-count">{x.count.toLocaleString()}</span>}
-        </Tick>
-      ))}
-      {more > 0 && (
-        <form
-          className="rl-other"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (typed.trim() && !chosen.includes(typed)) onChange([...chosen, typed]);
-            setTyped("");
-          }}
-        >
-          <small>{r.more(more)}</small>
-          <Mini label={r.addValue} value={typed} onChange={setTyped} />
-        </form>
-      )}
-    </div>
   );
 }
 

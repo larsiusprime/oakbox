@@ -2456,36 +2456,6 @@ a.row-title:hover {
   align-items: center;
 }
 
-.rl-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 1.1rem;
-  max-height: 11rem;
-  overflow: auto;
-}
-
-.rl-value {
-  font-family: var(--mono);
-  font-size: 0.85rem;
-}
-
-.rl-count {
-  margin-left: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.rl-other {
-  display: flex;
-  flex-basis: 100%;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.rl-other small {
-  color: var(--muted);
-}
-
 .rl-input {
   width: 12rem;
   font-family: var(--mono);
@@ -3252,7 +3222,15 @@ a.row-title:hover {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
-/* A condition on one line (field, test, values, ×), wrapping when the editor is narrow. */
+/* A test of a yes/no rule on one line too (column, test, values, ×). */
+.rl-test .rl-head {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.2fr) minmax(7rem, 0.9fr) minmax(9rem, 2fr) auto;
+}
+.rl-test .choice {
+  min-width: 0;
+}
+/* A condition on one line (field, test, values, ×). */
 .mg-cond .rl-head {
   display: grid;
   grid-template-columns: minmax(8rem, 1.4fr) minmax(6rem, 0.8fr) minmax(8rem, 2fr) auto;
