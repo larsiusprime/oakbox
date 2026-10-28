@@ -919,6 +919,21 @@ export const t = {
     close: "Close",
   },
 
+  multiPick: {
+    choose: "Choose values…",
+    none: "none chosen",
+    blank: "(blank)",
+    search: "Search values",
+    chosen: (n: number, of: number) => `${n.toLocaleString()} of ${of.toLocaleString()} chosen`,
+    all: "All",
+    allShown: "All shown",
+    clear: "Clear",
+    noMatch: "No value matches",
+    add: (v: string) => `+ Add “${v}”`,
+    more: (n: number) => `${n.toLocaleString()} more values not listed: search, or type one to add it`,
+    counts: (noun: string) => `Counts are ${noun}.`,
+  },
+
   groups: {
     kicker: "Step 2 of 5",
     title: "Model groups",
@@ -960,6 +975,7 @@ export const t = {
     addCondition: "+ Condition",
     removeCondition: "Remove this condition",
     counts: "Counts are parcels in the parcel universe.",
+    countParcels: "parcels in the parcel universe",
     checks: "Checks",
     live: "Live · not saved yet",
     moveIn: (n: number, from: string, sold: number) =>

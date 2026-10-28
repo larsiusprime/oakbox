@@ -15,10 +15,11 @@ import {
   unwrap,
 } from "../api/client";
 import { Choice } from "../components/Form";
+import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { t } from "../strings";
 import { RunBar } from "./Assemble";
-import { useSettled, ValuePicker } from "./FieldRules";
+import { useSettled } from "./FieldRules";
 
 const g = t.groups;
 type Op = Condition["op"];
@@ -515,9 +516,8 @@ function GroupEditor({
   const set = (i: number, patch: Partial<Condition>) =>
     setConditions(rule.conditions.map((c, j) => (j === i ? { ...c, ...patch } : c)));
   const kind = (f: string) => fields.find((x) => x.name === f)?.kind ?? "category";
-  const options = fields.map(
-    (f) => [f.name, f.label === f.name ? f.name : `${f.label} (${f.name})`] as const,
-  );
+  // Fields by name ("Land use"), so a condition fits on one line.
+  const options = fields.map((f) => [f.name, f.label] as const);
   const moves = preview?.moves.filter((m) => m.to_id === group.id || m.from_id === group.id) ?? [];
   return (
     <div className="mg-editor">
@@ -603,6 +603,23 @@ function GroupEditor({
                     set(i, { op, values: LISTS.includes(op) === LISTS.includes(c.op) ? c.values : [] })
                   }
                 />
+                {LISTS.includes(c.op) ? (
+                  <CondValues
+                    projectId={projectId}
+                    field={c.column}
+                    chosen={c.values}
+                    onChange={(values) => set(i, { values })}
+                  />
+                ) : NO_VALUE.includes(c.op) ? null : (
+                  <TextField
+                    aria-label={t.wizard.rule.value}
+                    value={c.values[0] ?? ""}
+                    onChange={(x) => set(i, { values: x ? [x] : [] })}
+                    className="rl-mini"
+                  >
+                    <Input className="input rl-input" />
+                  </TextField>
+                )}
                 <Button
                   className="rc-x"
                   aria-label={g.removeCondition}
@@ -611,23 +628,6 @@ function GroupEditor({
                   <X size="0.9em" />
                 </Button>
               </div>
-              {LISTS.includes(c.op) ? (
-                <CondValues
-                  projectId={projectId}
-                  field={c.column}
-                  chosen={c.values}
-                  onChange={(values) => set(i, { values })}
-                />
-              ) : NO_VALUE.includes(c.op) ? null : (
-                <TextField
-                  aria-label={t.wizard.rule.value}
-                  value={c.values[0] ?? ""}
-                  onChange={(x) => set(i, { values: x ? [x] : [] })}
-                  className="rl-mini"
-                >
-                  <Input className="input rl-input" />
-                </TextField>
-              )}
             </li>
           ))}
         </ol>
@@ -697,11 +697,13 @@ function CondValues({
   const vals = useValues(projectId, field);
   const rows = vals.data?.rows ?? [];
   return (
-    <ValuePicker
+    <MultiPick
+      label={t.wizard.rule.value}
       values={rows.map((r) => ({ value: r.value, count: r.parcels }))}
       more={vals.data?.more ?? 0}
       chosen={chosen}
       onChange={onChange}
+      countNoun={g.countParcels}
     />
   );
 }
