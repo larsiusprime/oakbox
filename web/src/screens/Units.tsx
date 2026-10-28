@@ -2,7 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, TextField } from "react-aria-components";
-import { api, type Condition, type Units, unwrap, type Wizard, type WizardFile } from "../api/client";
+import {
+  api,
+  type Condition,
+  type Units,
+  type UnitsView as Units_View,
+  unwrap,
+  type Wizard,
+  type WizardFile,
+} from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
@@ -12,7 +20,8 @@ const u = t.wizard.units;
 
 export type UnitsChange =
   | { kind: "units"; name: string; units: Units | null; guess?: boolean }
-  | { kind: "unitField"; name: string; field: string; column: string | null };
+  | { kind: "unitField"; name: string; field: string; column: string | null }
+  | { kind: "unitFields"; name: string; fields: Record<string, string> };
 
 const DEFAULT: Units = {
   rule: null,
@@ -20,8 +29,9 @@ const DEFAULT: Units = {
   column: null,
   base_column: null,
   prefix_len: 10,
-  land: "field",
+  land: "equal",
   location: true,
+  guessed: false,
 };
 
 /** F3d, on a parcel file of More files: its rows without a shape, as units of a shared parcel (condos). Off: a
@@ -155,12 +165,20 @@ export function UnitsPanel({
           </>
         )}
       </div>
+      {v.basis && <p className="un-basis">{v.basis}</p>}
       {v.examples.length > 0 && (
         <ul className="un-examples">
           {v.examples.map((x) => (
             <li key={x.unit} className={x.building ? "" : "wiz-warn"}>
               <span className="mono">{x.unit}</span>{" "}
               {x.building ? `${u.building} ${x.building}` : u.noBuilding}
+              {x.building_value && <span className="wiz-from mono"> {u.matched(x.building_value)}</span>}
+              {x.share && (
+                <span className="wiz-from">
+                  {" "}
+                  · {u.share} {x.share}
+                </span>
+              )}
               {x.address && <span className="wiz-from"> · {x.address}</span>}
             </li>
           ))}
@@ -173,16 +191,19 @@ export function UnitsPanel({
           label={u.land}
           value={s.land}
           options={[
-            ["field", u.ownLand],
+            ["equal", u.equalLand],
             ["floor_area", u.sharedLand],
+            ["field", u.ownLand],
           ]}
           onChange={(land) => set({ land })}
         />
-        <span className={v.land.ok ? "wiz-ok" : "wiz-warn"}>{v.land.text}</span>
+        <span className={v.land.ok ? (v.land.warn ? "wiz-warn" : "wiz-ok") : "wiz-bad"}>{v.land.text}</span>
       </div>
+      <p className="un-basis">{u.landHelp[s.land]}</p>
 
       <div className="un-row">
         <span className="un-label">{u.gives}</span>
+        {v.fields.length === 0 && <span className="wiz-from">{u.givesNone}</span>}
         {v.fields.map((f) => (
           <span key={f.field} className="ly-chip">
             <span>{f.name}</span>
@@ -203,10 +224,55 @@ export function UnitsPanel({
           add={(field, column) => change({ kind: "unitField", name: file.name, field, column })}
         />
       </div>
+      <p className="un-basis">{u.onlyThis}</p>
+      {v.offers.length > 0 && <Offers file={file} offers={v.offers} change={change} />}
       <Tick isSelected={s.location} onChange={(location) => set({ location })}>
         {u.location}
       </Tick>
     </section>
+  );
+}
+
+/** The parcel universe's fields this file has same-named columns for: listed, ticked, given only when asked. */
+function Offers({
+  file,
+  offers,
+  change,
+}: {
+  file: WizardFile;
+  offers: Units_View["offers"];
+  change: (c: UnitsChange) => void;
+}) {
+  const [off, setOff] = useState<string[]>([]);
+  const chosen = offers.filter((o) => !off.includes(o.field));
+  return (
+    <div className="un-offers">
+      <span>{u.offerTitle(offers.length)}</span>
+      <div className="un-offer-list">
+        {offers.map((o) => (
+          <Tick
+            key={o.field}
+            isSelected={!off.includes(o.field)}
+            onChange={(on) => setOff((x) => (on ? x.filter((k) => k !== o.field) : [...x, o.field]))}
+          >
+            {o.name} <span className="wiz-from mono">← {o.column}</span>
+          </Tick>
+        ))}
+      </div>
+      <Button
+        className="button"
+        isDisabled={chosen.length === 0}
+        onPress={() =>
+          change({
+            kind: "unitFields",
+            name: file.name,
+            fields: Object.fromEntries(chosen.map((o) => [o.field, o.column])),
+          })
+        }
+      >
+        {u.giveThese(chosen.length)}
+      </Button>
+    </div>
   );
 }
 

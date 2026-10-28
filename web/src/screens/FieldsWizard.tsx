@@ -413,6 +413,14 @@ function useChange(projectId: string) {
           }),
         );
       }
+      if (c.kind === "unitFields") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/units/fields", {
+            params: { path: { project_id, name: c.name } },
+            body: { fields: c.fields },
+          }),
+        );
+      }
       if (c.kind === "unitField") {
         return unwrap(
           await api.PUT("/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}", {

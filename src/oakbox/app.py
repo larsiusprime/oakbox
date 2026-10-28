@@ -262,6 +262,10 @@ class AppSettingsView(BaseModel):
     display: Display
 
 
+class UnitFieldsBody(BaseModel):
+    fields: dict[str, str]
+
+
 class PermitsBody(BaseModel):
     permits: datafiles.Permits | None = None
     guess: bool = False
@@ -701,6 +705,16 @@ def create_app() -> FastAPI:
         """A parcel file's rows without a shape are units of a shared parcel (condos), each borrowing its building's
         shape; no settings stops it. guess: work out how units find their building again."""
         return _change(project_id, lambda p, d: wizard.set_units(p, d, name, body.units, body.guess))
+
+    @app.put("/api/projects/{project_id}/wizard/files/{name}/units/fields")
+    def wizard_unit_fields(project_id: str, name: str, body: UnitFieldsBody) -> wizard.Wizard:
+        """Give the units several of the parcel universe's fields at once: field -> column of their file."""
+
+        def give(p, d):
+            for field, column in body.fields.items():
+                wizard.set_unit_field(p, d, name, field, column)
+
+        return _change(project_id, give)
 
     @app.put("/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}")
     def wizard_unit_field(project_id: str, name: str, field: str, body: UnitFieldBody) -> wizard.Wizard:

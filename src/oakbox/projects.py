@@ -480,11 +480,12 @@ def _condos(project: Project, out: dict) -> None:
         if f is not u and (f is base or f.holds == "parcels") and f.name in load:
             load[f.name].setdefault("calc", {})[CONDO_UNIT] = ["?", ["isempty", "key"]]
     land_field = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"
-    share = (
-        {"method": "field", "field": land_field}
-        if units.land == "field"
-        else {"method": "floor_area", "floor_field": "bldg_area_finished_sqft"}
-    )
+    share = {
+        "equal": {"method": "equal"},
+        "field": {"method": "field", "field": land_field},
+        # The finished area may come from another file (building cards): OpenAVMKit shares it after the merge.
+        "floor_area": {"method": "floor_area", "floor_field": "bldg_area_finished_sqft"},
+    }[units.land]
     out.setdefault("process", {})["condos"] = {
         "enabled": True,
         "select": ["==", CONDO_UNIT, True],

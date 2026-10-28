@@ -159,7 +159,7 @@ RENAMED = {
 ALIASES: dict[str, list[str]] = {
     "address": [
         *("situs", "situsaddr", "situsaddress", "siteaddr", "siteaddress", "propaddr", "addr", "locaddr"),
-        *("phyaddr", "physaddr", "physicaladdress", "propertyaddress", "locationaddress"),
+        *("phyaddr", "physaddr", "physicaladdress", "propertyaddress", "locationaddress", "locationaddr"),
     ],
     "neighborhood": ["nbhd", "nbhdcd", "nbhdcode", "neighborhoodcode", "neighcode", "hood"],
     "city": ["situscity", "sitecity"],
@@ -169,7 +169,7 @@ ALIASES: dict[str, list[str]] = {
     "zoning_desc": ["zonedesc", "zoningdescription"],
     "land_area_sqft": [
         *("landsqft", "lotsqft", "landsf", "lotsf", "lotsize", "landarea", "lotarea"),
-        *("acres", "acreage", "calcacres", "deededacres", "gisacres", "landacres", "hectares", "landha"),
+        *("acres", "acreage", "calcacres", "deededacres", "gisacres", "landacres", "totalacres", "hectares", "landha"),
         *("landsqm", "lotsqm", "landm2"),
     ],
     "land_class": [
@@ -209,9 +209,22 @@ ALIASES: dict[str, list[str]] = {
     "sale_date": ["saledate", "saledt", "deeddate"],
     "valid_sale": ["valid", "validsale", "salevalid", "qualified", "qualifiedsale", "salequalified", "armslength"],
     "vacant_sale": ["vacant", "vac", "vacantsale", "salevacant", "vacantatsale"],
-    "assr_land_value": ["landval", "landvalue", "apprland", "appraisedland"],
-    "assr_impr_value": ["imprval", "imprvval", "improvementvalue", "bldgval"],
-    "assr_market_value": ["marketval", "mktval", "totalval", "apprval", "appraisedvalue", "marketvalue"],
+    "assr_land_value": [
+        "landval",
+        "landvalue",
+        "apprland",
+        "appraisedland",
+        "totallandvalue",
+        "totallandvalueassessed",
+    ],
+    "assr_impr_value": [
+        *("imprval", "imprvval", "improvementvalue", "bldgval", "bldgvalue", "totalbldgvalue"),
+        "totalbldgvalueassessed",
+    ],
+    "assr_market_value": [
+        *("marketval", "mktval", "totalval", "apprval", "appraisedvalue", "marketvalue", "totalvalue"),
+        *("totalpropvalue", "totalpropertyvalue"),
+    ],
     "deed_id": [
         *("deedid", "deedno", "deednum", "deednumber", "instrument", "instrumentno", "instrumentnum"),
         *("instrumentnumber", "instno", "docno", "docnum", "documentno", "documentnumber", "recordingno"),
@@ -299,6 +312,10 @@ class RepeatRows(BaseModel):
 class UnitExample(BaseModel):
     unit: str = Field(description="The unit's ID (or the column the link is read from).")
     building: str | None = Field(description="The building parcel it finds, None: none.")
+    building_value: str | None = Field(
+        default=None, description="What it matched in the parcel universe file (the building's own value)."
+    )
+    share: str | None = Field(default=None, description="Its land share, worked out as the land setting says.")
     address: str = ""
 
 
@@ -317,6 +334,11 @@ class UnitsView(BaseModel):
     buildings: int
     examples: list[UnitExample]
     fields: list[UnitField] = Field(description="The parcel universe's fields this file gives its units.")
+    offers: list[UnitField] = Field(
+        default_factory=list,
+        description="The parcel universe's fields not given yet that this file has a column of the same name for.",
+    )
+    basis: str | None = Field(default=None, description="How the link was guessed, when it was.")
     land: Check
     check: Check
 
@@ -1114,6 +1136,17 @@ def _status(
                 ids(f, f.name)
                 for i in left[before:]:
                     i.text = f"{f.name}: {i.text}"
+                if f.units is not None and not f.units.land.ok:
+                    left.append(Left(text=f"{f.name}: units' land: {f.units.land.text}"))
+                if f.units is not None and f.units.offers:
+                    n = len(f.units.offers)
+                    left.append(
+                        Left(
+                            text=f"{f.name}: {n} of the parcel universe's fields could be given to the units "
+                            f"from columns of the same name",
+                            blocking=False,
+                        )
+                    )
     elif step.key == "permits":
         f = next((f for f in files if f.holds == "permits"), None)
         if f is not None:
@@ -1196,6 +1229,9 @@ def _problems(files: list[WizardFile], sale_id: SaleId, flds: list[WizardField])
             out.append(f"{_label(f)}: {issue.text.split(',')[0]}. Resolve them on its step to drop those rows.")
         if f.id_check is not None and not f.id_check.ok and not blocking and f.holds in ("parcels", "sales"):
             out.append(f"{_label(f)}: {f.id_check.text}.")
+        if f.units is not None and not f.units.land.ok:
+            # OpenAVMKit stops when it can't work out the units' land.
+            out.append(f"{_label(f)}: units' land: {f.units.land.text}.")
     if not any(f.holds == "sales" for f in files):
         out.append("No sales record yet.")
     else:
@@ -1235,6 +1271,12 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
                 "Resolve it on its step; until then OpenAVMKit keeps the first row of each."
             )
     for f in files:
+        if f.units is not None and f.units.offers:
+            names = ", ".join(x.name.lower() for x in f.units.offers[:4]) + ("…" if len(f.units.offers) > 4 else "")
+            out.append(
+                f"{_label(f)}: its units don't have {names} yet; the file has columns of the same name. Give them "
+                f"on More files, or the units go without."
+            )
         if f.not_in_universe is not None:
             out.append(f"{_label(f)}: {' '.join(f.not_in_universe.lines)}")
     for group in RECOMMENDED:
@@ -2616,14 +2658,17 @@ def _row_ids(files: _Files, entry: DataFile, match: str) -> tuple[str, ...]:
     return files.ids(entry.name, match)
 
 
-def _field_by_id(project: Project, files: _Files, key: str, match: str) -> dict[str, float]:
-    """A loaded parcel field as numbers, by parcel ID (the first row of each): areas in the project's unit."""
+def _field_by_id(
+    project: Project, files: _Files, key: str, match: str, only: DataFile | None = None
+) -> dict[str, float]:
+    """A loaded parcel field as numbers, by parcel ID (the first row of each): areas in the project's unit. From the
+    first parcel file that loads it, or from the one file given."""
     import pandas as pd
 
     f = next(
         (
             x
-            for x in project.files
+            for x in ([only] if only is not None else project.files)
             if key in x.load
             and match in x.load
             and x.holds not in ("sales", "overlay", "unused")
@@ -3315,8 +3360,16 @@ def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
     linked = [b for b in links if b]
     ids = files.ids(f.name, "key")
     base = project.wizard.base
+    base_entry = files.entry(base) if base else None
     addr_col = f.load.get("address", [None])[0]
     addrs = files.values(f.name, addr_col) if addr_col and files.column(f.name, addr_col) else None
+    land, shares = _unit_land(project, files, f, units, rows, links)
+    # What each building was matched by, in the parcel universe file: shown beside the unit's own value.
+    matched: dict[str, str] = {}
+    if base and units.link == "prefix" and units.base_column and files.column(base, units.base_column):
+        for v, k in zip(files.values(base, units.base_column), files.ids(base, "key"), strict=False):
+            if v and k:
+                matched.setdefault(k, v)
     show = [i for i, b in enumerate(links) if b][:4] + [i for i, b in enumerate(links) if not b][:2]
     examples = [
         UnitExample(
@@ -3326,31 +3379,33 @@ def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
                 else ids[rows[i]]
             ),
             building=links[i],
+            building_value=matched.get(links[i] or ""),
+            share=shares.get(rows[i]),
             address=addrs[rows[i]] if addrs else "",
         )
         for i in show
     ]
     by_key = _by_key()
+
+    def named(k: str) -> str:
+        return RENAMED.get(k, (by_key[k].name, ""))[0] if k in by_key else k
+
+    base_load = base_entry.load if base_entry is not None else {}
     given = [
-        UnitField(field=k, name=RENAMED.get(k, (by_key[k].name, ""))[0] if k in by_key else k, column=spec[0])
+        UnitField(field=k, name=named(k), column=spec[0])
         for k, spec in f.load.items()
-        if k not in ("key", *EXTRA_IDS) and base is not None and k in files.entry(base).load
+        if k not in ("key", *EXTRA_IDS) and k in base_load
     ]
+    # Offered, never copied unasked: the parcel universe's fields this file has a same-named column for.
+    columns = {c.name for c in files.columns(f.name)}
+    # The land size only when it's what the units' land is (otherwise their share replaces it).
     land_key = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"
-    if units.land == "field":
-        land = (
-            Check(ok=True, text=f"✓ each unit's own land size, from {f.load[land_key][0]}")
-            if land_key in f.load
-            else Check(ok=False, text="give the units their land size: a column of this file")
-        )
-    else:
-        land = (
-            Check(
-                ok=True, text=f"✓ the building's land, shared by finished area ({f.load['bldg_area_finished_sqft'][0]})"
-            )
-            if "bldg_area_finished_sqft" in f.load
-            else Check(ok=False, text="give the units their finished area: a column of this file")
-        )
+    skip = {"key", *EXTRA_IDS, projects.CONDO_LINK, *([land_key] if units.land != "field" else [])}
+    offers = [
+        UnitField(field=k, name=named(k), column=spec[0])
+        for k, spec in base_load.items()
+        if k not in skip and k not in f.load and spec[0] in columns
+    ]
     if not rows:
         check = Check(ok=False, text="no row without a shape is a unit: check which rows are units")
     elif units.column is None:
@@ -3361,6 +3416,23 @@ def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
         if missing:
             text += f" · {missing:,} {'finds' if missing == 1 else 'find'} none: left out"
         check = Check(ok=bool(linked), warn=missing > 0, text=("✓ " if not missing else "") + text)
+    basis = None
+    if units.guessed and units.column:
+        if units.link == "prefix":
+            cut = next(
+                (v[units.prefix_len] for v in files.values(f.name, units.column) if len(v) > units.prefix_len), ""
+            )
+            sep = f" (up to the \u201c{cut}\u201d)" if cut and not cut.isalnum() else ""
+            basis = (
+                f"Guessed: {units.column} is in both files, and its first {units.prefix_len} characters{sep} match "
+                f"one building's for more units than any other column or length. Change it if your county links "
+                f"units otherwise."
+            )
+        else:
+            basis = (
+                f"Guessed: {units.column} holds a parcel ID of the parcel universe for most units. Change it if "
+                f"your county links units otherwise."
+            )
     return UnitsView(
         settings=units,
         units=len(rows),
@@ -3368,9 +3440,94 @@ def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
         buildings=len(set(linked)),
         examples=examples,
         fields=given,
+        offers=offers,
+        basis=basis,
         land=land,
         check=check,
     )
+
+
+@lru_cache(maxsize=8)
+def _shape_areas(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> dict[str, float]:
+    """Each parcel shape's area in square feet, by its parcel ID (cleaned as it joins): a building's land when its
+    units share it, as OpenAVMKit measures it."""
+    gdf = _read_geo(stamp, layer)
+    if gdf.crs is None or column not in gdf.columns:
+        return {}
+    area = gdf.to_crs(gdf.estimate_utm_crs()).geometry.area * 10.7639
+    cleaned = _cleaned(stamp, layer, column, steps)
+    raw = _values(stamp, layer, column)
+    by_raw = {r: c for r, c in zip(raw, cleaned, strict=False)}
+    out: dict[str, float] = {}
+    for v, a in zip(gdf[column].astype(str), area, strict=False):
+        k = by_raw.get(v.strip(), by_raw.get(v, v))
+        if k:
+            out[k] = max(out.get(k, 0.0), float(a))
+    return out
+
+
+def _unit_land(
+    project: Project, files: _Files, f: DataFile, units: Units, rows: list[int], links: list[str | None]
+) -> tuple[Check, dict[int, str]]:
+    """Whether the land setting can be worked out (else Bring in data stops), and the shares it gives, by row."""
+    base = files.entry(project.wizard.base) if project.wizard.base else None
+    land_key = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"
+    ids = files.ids(f.name, "key")
+    area_of: dict[str, float] = {}
+    if base is not None and "key" in base.load:
+        area_of = _shape_areas(
+            _stamp(files.in_dir / base.filename), base.layer, base.load["key"][0], _steps_key(base.clean.get("key", []))
+        )
+
+    def acres(sqft: float) -> str:
+        if project.units != "imperial":
+            return f"{sqft / 10.7639:,.0f} m²"
+        return f"{sqft / 43_560:,.2f} acres" if sqft >= 0.5 * 43_560 else f"{sqft:,.0f} sq ft"
+
+    shares: dict[int, str] = {}
+    by_building: dict[str, list[int]] = {}
+    for r, b in zip(rows, links, strict=True):
+        if b:
+            by_building.setdefault(b, []).append(r)
+    if units.land == "equal":
+        for b, rs in by_building.items():
+            if b in area_of:
+                for r in rs:
+                    shares[r] = f"1/{len(rs)} of {acres(area_of[b])} = {acres(area_of[b] / len(rs))}"
+        return Check(ok=True, text="✓ the building's land in equal shares, one per unit"), shares
+    if units.land == "floor_area":
+        holder = next(
+            (x for x in [f, *project.files] if "bldg_area_finished_sqft" in x.load and x.holds == "parcels"), None
+        )
+        if holder is None:
+            text = "pick the building size (finished area) on Big five first, or share the land equally"
+            return Check(ok=False, text=text), shares
+        floors: dict[str, float] = {}
+        for x in [f, *(y for y in project.files if y is not f and y.holds == "parcels")]:
+            for k, v in _field_by_id(project, files, "bldg_area_finished_sqft", "key", only=x).items():
+                floors.setdefault(k, v)
+        for b, rs in by_building.items():
+            total = sum(floors.get(ids[r], 0.0) for r in rs)
+            if b in area_of and total:
+                for r in rs:
+                    part = floors.get(ids[r], 0.0) / total
+                    shares[r] = f"{part:.1%} of {acres(area_of[b])} = {acres(area_of[b] * part)}"
+        column = holder.load["bldg_area_finished_sqft"][0]
+        return Check(ok=True, text=f"✓ shared by finished area ({column} in {holder.name})"), shares
+    if land_key not in f.load:
+        text = f"pick the column of {f.name} with each unit's land size, or share the building's land"
+        return Check(ok=False, text=text), shares
+    own = _field_by_id(project, files, land_key, "key", only=f)
+    filled = sum(1 for r in rows if ids[r] in own)
+    for r in rows:
+        if ids[r] in own:
+            shares[r] = acres(own[ids[r]] * SQFT_PER[small_unit(project.units)] / SQFT_PER["sqft"])
+    if not filled:
+        return Check(ok=False, text=f"{f.load[land_key][0]} is blank for every unit: share the building's land"), shares
+    text = f"✓ each unit's own land size, from {f.load[land_key][0]}" + (
+        f" · {len(rows) - filled:,} blank" if filled < len(rows) else ""
+    )
+    return Check(ok=True, warn=filled < len(rows), text=text), shares
 
 
 def _guess_units(project: Project, files: _Files, f: DataFile) -> Units:
@@ -3410,7 +3567,8 @@ def _guess_units(project: Project, files: _Files, f: DataFile) -> Units:
 
 def set_units(project: Project, in_dir: Path, name: str, units: Units | None, guess: bool = False) -> None:
     """Treat a parcel file's rows without a shape as units of a shared parcel (or stop). The first time, guess how
-    they find their building and give them the parcel universe's fields from columns of the same name."""
+    they find their building (said as a guess on the panel). The parcel universe's fields are offered for the
+    units, never copied unasked."""
     files = _Files(project, in_dir)
     f = next((x for x in project.files if x.name == name), None)
     if f is None or f.holds != "parcels" or f.name == project.wizard.base:
@@ -3425,23 +3583,16 @@ def set_units(project: Project, in_dir: Path, name: str, units: Units | None, gu
     if other is not None:
         raise ValueError(f"{other.name} already holds the units: OpenAVMKit takes one units file.")
     first = f.units is None
-    f.units = units
     if guess or (first and units.column is None):
         f.units = _guess_units(project, files, f).model_copy(
-            update={"land": units.land, "location": units.location, "rule": units.rule}
+            update={"land": units.land, "location": units.location, "rule": units.rule, "guessed": True}
         )
-    if first:
-        base = files.entry(project.wizard.base) if project.wizard.base else None
-        columns = {c.name for c in files.columns(f.name)}
-        if base is not None:
-            for k, spec in base.load.items():
-                if k in ("key", *EXTRA_IDS) or k in f.load or spec[0] not in columns:
-                    continue
-                f.load[k] = list(spec)
-                for attr in ("area_units", "numbers", "scales"):
-                    src = getattr(base, attr)
-                    if k in src:
-                        getattr(f, attr)[k] = src[k]
+        return
+    old = f.units
+    # Changing how units find their building makes it the user's choice, no longer a guess.
+    link = ("link", "column", "base_column", "prefix_len")
+    same = old is not None and all(getattr(old, k) == getattr(units, k) for k in link)
+    f.units = units.model_copy(update={"guessed": bool(old and old.guessed and same)})
 
 
 def set_unit_field(project: Project, in_dir: Path, name: str, field: str, column: str | None) -> None:

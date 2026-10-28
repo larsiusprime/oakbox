@@ -1628,6 +1628,65 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/units/fields": {
+   "put": {
+    "summary": "Wizard Unit Fields",
+    "description": "Give the units several of the parcel universe's fields at once: field -> column of their file.",
+    "operationId": "wizard_unit_fields_api_projects__project_id__wizard_files__name__units_fields_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UnitFieldsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}": {
    "put": {
     "summary": "Wizard Unit Field",
@@ -9578,6 +9637,30 @@
       "title": "Building",
       "description": "The building parcel it finds, None: none."
      },
+     "building_value": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Building Value",
+      "description": "What it matched in the parcel universe file (the building's own value)."
+     },
+     "share": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Share",
+      "description": "Its land share, worked out as the land setting says."
+     },
      "address": {
       "type": "string",
       "title": "Address",
@@ -9588,6 +9671,8 @@
     "required": [
      "unit",
      "building",
+     "building_value",
+     "share",
      "address"
     ],
     "title": "UnitExample"
@@ -9631,6 +9716,22 @@
     },
     "type": "object",
     "title": "UnitFieldBody"
+   },
+   "UnitFieldsBody": {
+    "properties": {
+     "fields": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Fields"
+     }
+    },
+    "type": "object",
+    "required": [
+     "fields"
+    ],
+    "title": "UnitFieldsBody"
    },
    "Units-Input": {
     "properties": {
@@ -9689,12 +9790,19 @@
      "land": {
       "type": "string",
       "enum": [
-       "field",
-       "floor_area"
+       "equal",
+       "floor_area",
+       "field"
       ],
       "title": "Land",
-      "description": "field: each unit's own land size (loaded as land size from this file). floor_area: the building's land shared by the units' finished area (loaded from this file).",
-      "default": "field"
+      "description": "equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).",
+      "default": "equal"
+     },
+     "guessed": {
+      "type": "boolean",
+      "title": "Guessed",
+      "description": "How units find their building was guessed, not chosen: said so on the panel.",
+      "default": false
      },
      "location": {
       "type": "boolean",
@@ -9764,12 +9872,19 @@
      "land": {
       "type": "string",
       "enum": [
-       "field",
-       "floor_area"
+       "equal",
+       "floor_area",
+       "field"
       ],
       "title": "Land",
-      "description": "field: each unit's own land size (loaded as land size from this file). floor_area: the building's land shared by the units' finished area (loaded from this file).",
-      "default": "field"
+      "description": "equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).",
+      "default": "equal"
+     },
+     "guessed": {
+      "type": "boolean",
+      "title": "Guessed",
+      "description": "How units find their building was guessed, not chosen: said so on the panel.",
+      "default": false
      },
      "location": {
       "type": "boolean",
@@ -9786,6 +9901,7 @@
      "base_column",
      "prefix_len",
      "land",
+     "guessed",
      "location"
     ],
     "title": "Units",
@@ -9846,6 +9962,26 @@
       "title": "Fields",
       "description": "The parcel universe's fields this file gives its units."
      },
+     "offers": {
+      "items": {
+       "$ref": "#/components/schemas/UnitField"
+      },
+      "type": "array",
+      "title": "Offers",
+      "description": "The parcel universe's fields not given yet that this file has a column of the same name for."
+     },
+     "basis": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Basis",
+      "description": "How the link was guessed, when it was."
+     },
      "land": {
       "$ref": "#/components/schemas/Check"
      },
@@ -9861,6 +9997,8 @@
      "buildings",
      "examples",
      "fields",
+     "offers",
+     "basis",
      "land",
      "check"
     ],

@@ -4038,3 +4038,28 @@ a.row-title:hover {
 .wiz-missing p:last-child {
   margin-bottom: 0;
 }
+
+/* Units of a shared parcel: what was guessed and what each choice does, said plainly. */
+.un-basis {
+  max-width: 44rem;
+  margin: 0.1rem 0 0.3rem;
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+.un-offers {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  max-width: 44rem;
+  margin: 0.2rem 0 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.88rem;
+  background: #fff8e8;
+  border: 1px solid #f0d9a8;
+  border-radius: var(--radius);
+}
+.un-offer-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+}

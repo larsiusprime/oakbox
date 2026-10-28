@@ -601,9 +601,25 @@ export const t = {
       building: "→ building",
       noBuilding: "→ no building on the map",
       land: "Land",
-      ownLand: "Each unit's own land size",
-      sharedLand: "The building's land, shared by finished area",
+      equalLand: "Equal shares",
+      sharedLand: "Shared by finished area",
+      ownLand: "Each unit's own",
+      landHelp: {
+        equal:
+          "The building's land (its shape's area) in equal shares, one per unit. Needs nothing from the units.",
+        floor_area:
+          "The building's land shared by each unit's finished area, wherever that's loaded (the units' building cards, say).",
+        field: "Each unit's own land size, from a column of this file. Many rolls leave it blank for units.",
+      } as Record<string, string>,
+      share: "land",
+      matched: (v: string) => `(matches ${v})`,
       gives: "Gives its units",
+      givesNone: "nothing yet",
+      onlyThis:
+        "A unit has only what this file gives it: nothing is copied from its building. Its location (map layers, distances, elevation) is its building's, as it takes the building's shape.",
+      offerTitle: (n: number) =>
+        `The parcel universe has ${n === 1 ? "this field" : "these fields"}, and this file has a column of the same name:`,
+      giveThese: (n: number) => (n === 1 ? "Give it to the units" : `Give these ${n} to the units`),
       addField: "Field",
       fieldPick: "Parcel universe field",
       columnPick: "Column of this file",

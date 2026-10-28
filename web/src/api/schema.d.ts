@@ -614,6 +614,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/units/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Unit Fields
+         * @description Give the units several of the parcel universe's fields at once: field -> column of their file.
+         */
+        put: operations["wizard_unit_fields_api_projects__project_id__wizard_files__name__units_fields_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}": {
         parameters: {
             query?: never;
@@ -4185,6 +4205,16 @@ export interface components {
              */
             building: string | null;
             /**
+             * Building Value
+             * @description What it matched in the parcel universe file (the building's own value).
+             */
+            building_value: string | null;
+            /**
+             * Share
+             * @description Its land share, worked out as the land setting says.
+             */
+            share: string | null;
+            /**
              * Address
              * @default
              */
@@ -4203,6 +4233,13 @@ export interface components {
         UnitFieldBody: {
             /** Column */
             column?: string | null;
+        };
+        /** UnitFieldsBody */
+        UnitFieldsBody: {
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
         };
         /**
          * Units
@@ -4236,11 +4273,17 @@ export interface components {
             prefix_len: number;
             /**
              * Land
-             * @description field: each unit's own land size (loaded as land size from this file). floor_area: the building's land shared by the units' finished area (loaded from this file).
-             * @default field
+             * @description equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).
+             * @default equal
              * @enum {string}
              */
-            land: "field" | "floor_area";
+            land: "equal" | "floor_area" | "field";
+            /**
+             * Guessed
+             * @description How units find their building was guessed, not chosen: said so on the panel.
+             * @default false
+             */
+            guessed: boolean;
             /**
              * Location
              * @description The building (condo_group) is also a location, like a neighborhood.
@@ -4280,11 +4323,17 @@ export interface components {
             prefix_len: number;
             /**
              * Land
-             * @description field: each unit's own land size (loaded as land size from this file). floor_area: the building's land shared by the units' finished area (loaded from this file).
-             * @default field
+             * @description equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).
+             * @default equal
              * @enum {string}
              */
-            land: "field" | "floor_area";
+            land: "equal" | "floor_area" | "field";
+            /**
+             * Guessed
+             * @description How units find their building was guessed, not chosen: said so on the panel.
+             * @default false
+             */
+            guessed: boolean;
             /**
              * Location
              * @description The building (condo_group) is also a location, like a neighborhood.
@@ -4326,6 +4375,16 @@ export interface components {
              * @description The parcel universe's fields this file gives its units.
              */
             fields: components["schemas"]["UnitField"][];
+            /**
+             * Offers
+             * @description The parcel universe's fields not given yet that this file has a column of the same name for.
+             */
+            offers: components["schemas"]["UnitField"][];
+            /**
+             * Basis
+             * @description How the link was guessed, when it was.
+             */
+            basis: string | null;
             land: components["schemas"]["Check"];
             check: components["schemas"]["Check"];
         };
@@ -5928,6 +5987,42 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UnitsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_unit_fields_api_projects__project_id__wizard_files__name__units_fields_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitFieldsBody"];
             };
         };
         responses: {

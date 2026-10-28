@@ -1294,8 +1294,35 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     assert (u["settings"]["link"], u["settings"]["column"], u["settings"]["prefix_len"]) == ("prefix", "PIN", 3)
     assert (u["units"], u["linked"], u["buildings"]) == (5, 4, 2)
     assert u["check"]["text"] == "4 of 5 units find their building (2 buildings) · 1 finds none: left out"
-    assert {f["field"] for f in u["fields"]} >= {"land_class", "land_area_sqft", "bldg_area_finished_sqft"}
-    assert u["land"]["ok"]
+    assert u["settings"]["guessed"] and u["basis"].startswith(
+        "Guessed: PIN is in both files, and its first 3 characters"
+    )
+    # Nothing is copied unasked: the same-named fields are offered, and given when asked.
+    assert u["fields"] == []
+    # Land size isn't offered while the units' land is a share of their building's.
+    assert {f["field"] for f in u["offers"]} >= {"land_class", "bldg_area_finished_sqft"}
+    assert "land_area_sqft" not in {f["field"] for f in u["offers"]}
+    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit").json()
+    assert any("could be given to the units" in x["text"] for x in _step(w, "more_files")["left"])
+    give = {f["field"]: f["column"] for f in u["offers"]}
+    w = client.put(f"/api/projects/{pid}/wizard/files/units/units/fields", json={"fields": give}).json()
+    u = _file(w, "units")["units"]
+    assert {f["field"] for f in u["fields"]} >= {"land_class", "bldg_area_finished_sqft"} and u["offers"] == []
+    # Land: equal shares to start with (needs nothing); each unit's own land size, once there's a column for it.
+    assert u["settings"]["land"] == "equal" and u["land"]["ok"]
+    assert u["examples"][0]["share"].startswith("1/2 of ")
+    w = client.put(
+        f"/api/projects/{pid}/wizard/files/units/units", json={"units": {**u["settings"], "land": "field"}}
+    ).json()
+    u = _file(w, "units")["units"]
+    assert not u["land"]["ok"] and any("units' land" in p for p in w["problems"])  # OpenAVMKit would stop
+    assert [f["field"] for f in u["offers"]] == ["land_area_sqft"]
+    w = client.put(
+        f"/api/projects/{pid}/wizard/files/units/units/fields", json={"fields": {"land_area_sqft": "ACRES"}}
+    ).json()
+    u = _file(w, "units")["units"]
+    assert u["land"]["ok"], u["land"]
+    assert u["settings"]["guessed"]  # the link wasn't changed: still a guess
     # Its fields are the units' own, not a second source of the parcel universe's.
     assert _field(w, "land_class")["sources"] == [{"file": "geo_parcels", "column": "USE"}]
     assert _file(w, "units")["id_check"]["ok"]

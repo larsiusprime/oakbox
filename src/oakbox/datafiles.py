@@ -400,10 +400,13 @@ class Units(BaseModel):
     column: str | None = Field(default=None, description="The units file's column: the ID (prefix) or the parent ID.")
     base_column: str | None = Field(default=None, description="prefix: the parcel universe file's column to match.")
     prefix_len: int = Field(default=10, ge=1, le=64)
-    land: Literal["field", "floor_area"] = Field(
-        default="field",
-        description="field: each unit's own land size (loaded as land size from this file). floor_area: the "
-        "building's land shared by the units' finished area (loaded from this file).",
+    land: Literal["equal", "floor_area", "field"] = Field(
+        default="equal",
+        description="equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared "
+        "by the units' finished area (from any parcel file). field: each unit's own land size (from this file).",
+    )
+    guessed: bool = Field(
+        default=False, description="How units find their building was guessed, not chosen: said so on the panel."
     )
     location: bool = Field(
         default=True, description="The building (condo_group) is also a location, like a neighborhood."
