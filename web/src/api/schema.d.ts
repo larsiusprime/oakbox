@@ -593,6 +593,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/condos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Condos
+         * @description Condo units: do some parcels have no shape of their own, on a parcel they share? No stops any units.
+         */
+        put: operations["wizard_condos_api_projects__project_id__wizard_condos_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/files/{name}/units": {
         parameters: {
             query?: never;
@@ -603,8 +623,8 @@ export interface paths {
         get?: never;
         /**
          * Wizard Units
-         * @description A parcel file's rows without a shape are units of a shared parcel (condos), each borrowing its building's
-         *     shape; no settings stops it. guess: work out how units find their building again.
+         * @description A parcel file's rows without a shape are units on a parcel they share (condos and the like), each
+         *     borrowing that parcel's shape; no settings stops it. guess: work out how units find their parcel again.
          */
         put: operations["wizard_units_api_projects__project_id__wizard_files__name__units_put"];
         post?: never;
@@ -1678,6 +1698,52 @@ export interface components {
              * @description isin/notin: the values ("" for blank); ==, !=, contains, >, <, >=, <=: the first one.
              */
             values: string[];
+        };
+        /** CondoFile */
+        CondoFile: {
+            /** Name */
+            name: string;
+            /** Filename */
+            filename: string;
+            /** Rows */
+            rows: number | null;
+            /**
+             * Unshaped
+             * @description Rows whose parcel ID finds no shape in the parcel universe.
+             */
+            unshaped: number;
+        };
+        /** CondosBody */
+        CondosBody: {
+            /** Has */
+            has?: boolean | null;
+        };
+        /**
+         * CondosView
+         * @description The Condo units step: the answer to "do you have condos?", what the files suggest, and the files that could
+         *     hold the units.
+         */
+        CondosView: {
+            /**
+             * Answer
+             * @description None: not answered yet.
+             */
+            answer: boolean | null;
+            /**
+             * Evidence
+             * @description What the files suggest, a sentence each.
+             */
+            evidence: string[];
+            /**
+             * Files
+             * @description Parcel files joined to the parcel universe, those with rows without a shape first.
+             */
+            files: components["schemas"]["CondoFile"][];
+            /**
+             * File
+             * @description The file holding the units.
+             */
+            file: string | null;
         };
         /** CountryDefaults */
         CountryDefaults: {
@@ -2878,6 +2944,12 @@ export interface components {
              * @description What it means and what to do, a sentence each.
              */
             lines: string[];
+            /**
+             * Units
+             * @description They look like units without a shape of their own: the Condo units step's.
+             * @default false
+             */
+            units: boolean;
         };
         /**
          * ModelGroup
@@ -4243,8 +4315,9 @@ export interface components {
         };
         /**
          * Units
-         * @description Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each
-         *     borrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos.
+         * @description Rows of a parcel file with no shape of their own, on a parcel they share (condos of any kind, timeshares,
+         *     homes in a mobile-home park, buildings on leased land): each borrows that parcel's shape and gets a share of its
+         *     land, or none. OpenAVMKit's data.process.condos.
          */
         "Units-Input": {
             /** @description Which rows are units; None: every row. */
@@ -4273,11 +4346,11 @@ export interface components {
             prefix_len: number;
             /**
              * Land
-             * @description equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).
+             * @description equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file). none: the land is the shared parcel's, not the units' (a mobile-home park, leased land).
              * @default equal
              * @enum {string}
              */
-            land: "equal" | "floor_area" | "field";
+            land: "equal" | "floor_area" | "field" | "none";
             /**
              * Guessed
              * @description How units find their building was guessed, not chosen: said so on the panel.
@@ -4286,15 +4359,16 @@ export interface components {
             guessed: boolean;
             /**
              * Location
-             * @description The building (condo_group) is also a location, like a neighborhood.
+             * @description The shared parcel (condo_group) is also a location, like a neighborhood.
              * @default true
              */
             location: boolean;
         };
         /**
          * Units
-         * @description Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each
-         *     borrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos.
+         * @description Rows of a parcel file with no shape of their own, on a parcel they share (condos of any kind, timeshares,
+         *     homes in a mobile-home park, buildings on leased land): each borrows that parcel's shape and gets a share of its
+         *     land, or none. OpenAVMKit's data.process.condos.
          */
         "Units-Output": {
             /** @description Which rows are units; None: every row. */
@@ -4323,11 +4397,11 @@ export interface components {
             prefix_len: number;
             /**
              * Land
-             * @description equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).
+             * @description equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file). none: the land is the shared parcel's, not the units' (a mobile-home park, leased land).
              * @default equal
              * @enum {string}
              */
-            land: "equal" | "floor_area" | "field";
+            land: "equal" | "floor_area" | "field" | "none";
             /**
              * Guessed
              * @description How units find their building was guessed, not chosen: said so on the panel.
@@ -4336,7 +4410,7 @@ export interface components {
             guessed: boolean;
             /**
              * Location
-             * @description The building (condo_group) is also a location, like a neighborhood.
+             * @description The shared parcel (condo_group) is also a location, like a neighborhood.
              * @default true
              */
             location: boolean;
@@ -4502,6 +4576,8 @@ export interface components {
             deeds: components["schemas"]["DeedsCheck"] | null;
             /** @description The permits file, set up (the Permits step). */
             permits: components["schemas"]["PermitsView"] | null;
+            /** @description The Condo units step. */
+            condos: components["schemas"]["CondosView"] | null;
         };
         /** WizardColumnRef */
         WizardColumnRef: {
@@ -4862,6 +4938,11 @@ export interface components {
              * @description Fields the user named and classified.
              */
             custom: components["schemas"]["CustomField"][];
+            /**
+             * Condos
+             * @description Condo units: whether some parcels are units without a shape of their own; None: not asked yet.
+             */
+            condos: boolean | null;
         };
         /** Written */
         Written: {
@@ -5961,6 +6042,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ColumnValues"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_condos_api_projects__project_id__wizard_condos_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CondosBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
                 };
             };
             /** @description Validation Error */

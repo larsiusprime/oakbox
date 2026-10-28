@@ -113,6 +113,17 @@ STEPS: list[Step] = [
     ),
     # Map layers joined onto the parcels by where they are, or measured to (F3d Shapefiles).
     Step(key="shapefiles", parent="details"),
+    # Condos and the like: units on the roll without a shape of their own, on a parcel they share (F3d condos).
+    # Asked first; the rest, one decision each, only when the answer is yes.
+    Step(key="condos"),
+    Step(key="condo_ask", parent="condos"),
+    Step(key="condo_file", parent="condos"),
+    Step(key="condo_rows", parent="condos"),
+    Step(key="condo_link", parent="condos"),
+    Step(key="condo_land", parent="condos"),
+    Step(key="condo_fields", parent="condos"),
+    Step(key="condo_location", parent="condos"),
+    Step(key="condo_summary", parent="condos"),
     # The deed each sale was recorded under: several sales on one deed are one sale of several parcels (F3f).
     Step(key="deeds", fields=["deed_id", "deed_book", "deed_page"], more=["deed_grantor", "deed_grantee"], sales=True),
     # Public data about each parcel, downloaded as Bring in data runs (F3e).
@@ -122,6 +133,7 @@ STEPS: list[Step] = [
     Step(key="review"),
 ]
 STEP_KEYS = [s.key for s in STEPS]
+PARENTS = {s.parent for s in STEPS if s.parent}
 SALES_FIELDS = {f for s in STEPS if s.sales for f in s.fields}
 # The "big five" a model needs: building size is required; land size comes from the shapes when
 # missing; age is flagged when missing; quality and condition are nice to have.
@@ -351,6 +363,9 @@ class MissingParcels(BaseModel):
     rows: int = Field(description="Its rows that find no parcel.")
     ids: int = Field(description="The different parcel IDs they're for.")
     lines: list[str] = Field(description="What it means and what to do, a sentence each.")
+    units: bool = Field(
+        default=False, description="They look like units without a shape of their own: the Condo units step's."
+    )
 
 
 class WizardFile(BaseModel):
@@ -478,6 +493,25 @@ class PermitsView(BaseModel):
     ready: bool
 
 
+class CondoFile(BaseModel):
+    name: str
+    filename: str
+    rows: int | None
+    unshaped: int = Field(description="Rows whose parcel ID finds no shape in the parcel universe.")
+
+
+class CondosView(BaseModel):
+    """The Condo units step: the answer to "do you have condos?", what the files suggest, and the files that could
+    hold the units."""
+
+    answer: bool | None = Field(description="None: not answered yet.")
+    evidence: list[str] = Field(description="What the files suggest, a sentence each.")
+    files: list[CondoFile] = Field(
+        description="Parcel files joined to the parcel universe, those with rows without a shape first."
+    )
+    file: str | None = Field(description="The file holding the units.")
+
+
 class Wizard(BaseModel):
     steps: list[StepView]
     files: list[WizardFile]
@@ -492,6 +526,7 @@ class Wizard(BaseModel):
     layers: list[LayerView] = Field(default_factory=list, description="Map layers (Shapefiles).")
     deeds: DeedsCheck | None = Field(default=None, description="Sales sharing a deed (the Deeds step).")
     permits: PermitsView | None = Field(default=None, description="The permits file, set up (the Permits step).")
+    condos: CondosView | None = Field(default=None, description="The Condo units step.")
 
 
 # ---------- Reading the files (cached on the file's size and time) ----------
@@ -745,7 +780,8 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         # Units that find their building's shape join as well as rows with a shape of their own.
         v = _units_view(files.project, files, f)
         share = min(1.0, share + v.linked / len(set(present)))
-        text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match parcels or units' buildings"
+        pct = _pct(round(share * 1000), 1000)
+        text = f"{tick}one row per parcel · {pct} match a parcel (units, the parcel they're on)"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN and not blocked, text=text, warn=warn, issues=issues, share=share), flagged
     text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match parcels"
@@ -1021,7 +1057,10 @@ def view(project: Project, in_dir: Path) -> Wizard:
     warnings = _warnings(out_files, out_fields)
     layer_list = layers(project, in_dir)
     steps = []
+    has = has_condos(project)
     for step in STEPS:
+        if step.parent == "condos" and step.key != "condo_ask" and not has:
+            continue  # the rest of Condo units, only once some parcels are units
         status, left = _status(project, step, out_files, sale_id, out_fields, problems, warnings, layer_list)
         steps.append(
             StepView(
@@ -1034,13 +1073,14 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 sales=step.sales,
             )
         )
-    details = next(s for s in steps if s.key == "details")
-    subs = [s.status for s in steps if s.parent == "details"]
-    worst = min(subs, key=lambda x: ORDER[x])
-    if worst in ("blocked", "attention"):
-        details.status = worst
-    else:
-        details.status = "done" if all(x == "done" for x in subs) else "blank"
+    for parent in (s for s in steps if s.key in PARENTS):
+        # A step with parts (More details, Condo units) shows the worst of them.
+        subs = [s.status for s in steps if s.parent == parent.key]
+        worst = min(subs, key=lambda x: ORDER[x])
+        if worst in ("blocked", "attention"):
+            parent.status = worst
+        else:
+            parent.status = "done" if all(x == "done" for x in subs) else "blank"
 
     not_loaded = []
     for f in project.files:
@@ -1063,6 +1103,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         layers=layer_list,
         deeds=_deeds_check(project, files),
         permits=_permits_view(project, files),
+        condos=_condos_view(project, out_files),
     )
 
 
@@ -1079,8 +1120,12 @@ def _status(
     """A step's mark, worked out from what's on it, and what's left to do there (SPEC F3d). Blank until visited."""
     w = project.wizard
     layer_views = layer_views or []
-    if step.key == "details" or step.key not in w.visited:
-        return "blank", []  # More details is the worst of its parts, filled in by the caller
+    if step.key in PARENTS:
+        return "blank", []  # the worst of its parts, filled in by the caller
+    if step.key == "condo_ask":
+        return _condo_ask_status(project, files)
+    if step.key not in w.visited:
+        return "blank", []
     if step.key == "welcome":
         return ("done" if "welcome" in w.confirmed else "blank"), []
     if step.key == "review":
@@ -1104,17 +1149,30 @@ def _status(
             left.extend(Left(text=i.todo or i.text, blocking=i.blocking) for i in todo)
             share = f.id_check.share
             low = share is not None and share < MATCH_OK
-            if low and f.not_in_universe is not None:
+            if low and _shapeless(f):
+                # Rows without a shape of their own are the Condo units step's: a pointer there, never a stop here.
+                n = _n(f.unshaped, "row")
+                text = (
+                    f"{n} without a shape of their own are left out: no units, you said on Condo units"
+                    if project.wizard.condos is False
+                    else f"{n} without a shape of their own: condos or other units? Set them up on Condo units"
+                )
+                left.append(Left(text=text, blocking=False))
+            elif low and f.not_in_universe is not None:
                 # Parcels missing from the parcel universe, not IDs to clean: a note on the step (and on Review),
                 # not a to-do here, unless so few match that it's likely the wrong file or ID.
                 if (share or 0) < MATCH_MIN:
-                    lines = f.not_in_universe.lines
-                    left.append(Left(text=next((x for x in lines if "Treat them as units" in x), lines[0])))
+                    left.append(Left(text=f.not_in_universe.lines[0]))
             elif low:
                 text = f.id_check.text
                 matched = text if "match" in text else f"only {_pct(round((share or 0) * 1000), 1000)} match"
                 left.append(Left(text=f"Reconcile the IDs: {matched}", blocking=(share or 0) < MATCH_MIN))
-            if not f.id_check.ok and not any(i.blocking for i in todo) and not (low and (share or 0) < MATCH_MIN):
+            if (
+                not f.id_check.ok
+                and not any(i.blocking for i in todo)
+                and not (low and (share or 0) < MATCH_MIN)
+                and not _shapeless(f)
+            ):
                 left.append(Left(text=f"Parcel ID: {f.id_check.text}"))
 
     if step.key == "universe":
@@ -1136,17 +1194,8 @@ def _status(
                 ids(f, f.name)
                 for i in left[before:]:
                     i.text = f"{f.name}: {i.text}"
-                if f.units is not None and not f.units.land.ok:
-                    left.append(Left(text=f"{f.name}: units' land: {f.units.land.text}"))
-                if f.units is not None and f.units.offers:
-                    n = len(f.units.offers)
-                    left.append(
-                        Left(
-                            text=f"{f.name}: {n} of the parcel universe's fields could be given to the units "
-                            f"from columns of the same name",
-                            blocking=False,
-                        )
-                    )
+    elif step.key.startswith("condo_"):
+        left.extend(_condo_left(step.key, files))
     elif step.key == "permits":
         f = next((f for f in files if f.holds == "permits"), None)
         if f is not None:
@@ -1205,6 +1254,11 @@ def _rows(files: _Files, name: str) -> int | None:
     return len(files.values(name, cols[0].name)) if cols else None
 
 
+def _shapeless(f: WizardFile) -> bool:
+    """A parcel file whose rows mostly have no shape of their own, not set up as units: the Condo units step's."""
+    return f.holds == "parcels" and not f.base and f.units is None and f.unshaped >= 0.5 * (f.rows or 1) > 0
+
+
 def _label(f: WizardFile) -> str:
     """What a file is called in messages: the parcel universe and the sales record by those names (our terms)."""
     if f.base:
@@ -1228,10 +1282,13 @@ def _problems(files: list[WizardFile], sale_id: SaleId, flds: list[WizardField])
         for issue in blocking:
             out.append(f"{_label(f)}: {issue.text.split(',')[0]}. Resolve them on its step to drop those rows.")
         if f.id_check is not None and not f.id_check.ok and not blocking and f.holds in ("parcels", "sales"):
-            out.append(f"{_label(f)}: {f.id_check.text}.")
+            if not _shapeless(f):  # rows without a shape: Condo units' to set up (or leave out), not a stop
+                out.append(f"{_label(f)}: {f.id_check.text.removeprefix('✓ ')}.")
         if f.units is not None and not f.units.land.ok:
             # OpenAVMKit stops when it can't work out the units' land.
-            out.append(f"{_label(f)}: units' land: {f.units.land.text}.")
+            out.append(f"Condo units › Land: {f.units.land.text}.")
+        if f.units is not None and not f.units.check.ok:
+            out.append(f"Condo units: {f.units.check.text}.")
     if not any(f.holds == "sales" for f in files):
         out.append("No sales record yet.")
     else:
@@ -1275,7 +1332,7 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
             names = ", ".join(x.name.lower() for x in f.units.offers[:4]) + ("…" if len(f.units.offers) > 4 else "")
             out.append(
                 f"{_label(f)}: its units don't have {names} yet; the file has columns of the same name. Give them "
-                f"on More files, or the units go without."
+                f"on Condo units › Their fields, or the units go without."
             )
         if f.not_in_universe is not None:
             out.append(f"{_label(f)}: {' '.join(f.not_in_universe.lines)}")
@@ -3409,10 +3466,10 @@ def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
     if not rows:
         check = Check(ok=False, text="no row without a shape is a unit: check which rows are units")
     elif units.column is None:
-        check = Check(ok=False, text="say how each unit finds its building")
+        check = Check(ok=False, text="say how each unit finds the parcel it's on")
     else:
         missing = len(rows) - len(linked)
-        text = f"{len(linked):,} of {len(rows):,} units find their building ({_n(len(set(linked)), 'building')})"
+        text = f"{len(linked):,} of {len(rows):,} units find the parcel they're on ({_n(len(set(linked)), 'parcel')})"
         if missing:
             text += f" · {missing:,} {'finds' if missing == 1 else 'find'} none: left out"
         check = Check(ok=bool(linked), warn=missing > 0, text=("✓ " if not missing else "") + text)
@@ -3425,13 +3482,13 @@ def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
             sep = f" (up to the \u201c{cut}\u201d)" if cut and not cut.isalnum() else ""
             basis = (
                 f"Guessed: {units.column} is in both files, and its first {units.prefix_len} characters{sep} match "
-                f"one building's for more units than any other column or length. Change it if your county links "
-                f"units otherwise."
+                f"a parcel's for more units than any other column or length. Check the examples; change it if your "
+                f"files link units otherwise."
             )
         else:
             basis = (
-                f"Guessed: {units.column} holds a parcel ID of the parcel universe for most units. Change it if "
-                f"your county links units otherwise."
+                f"Guessed: {units.column} holds a parcel ID of the parcel universe for most units. Check the "
+                f"examples; change it if your files link units otherwise."
             )
     return UnitsView(
         settings=units,
@@ -3494,13 +3551,17 @@ def _unit_land(
             if b in area_of:
                 for r in rs:
                     shares[r] = f"1/{len(rs)} of {acres(area_of[b])} = {acres(area_of[b] / len(rs))}"
-        return Check(ok=True, text="✓ the building's land in equal shares, one per unit"), shares
+        return Check(ok=True, text="✓ the parcel's land in equal shares, one per unit"), shares
+    if units.land == "none":
+        for r in rows:
+            shares[r] = "0 (the land is the parcel's)"
+        return Check(ok=True, text="✓ no land of their own: it's the parcel's"), shares
     if units.land == "floor_area":
         holder = next(
             (x for x in [f, *project.files] if "bldg_area_finished_sqft" in x.load and x.holds == "parcels"), None
         )
         if holder is None:
-            text = "pick the building size (finished area) on Big five first, or share the land equally"
+            text = "pick the building size (finished area) on More details › Big five first, or share the land equally"
             return Check(ok=False, text=text), shares
         floors: dict[str, float] = {}
         for x in [f, *(y for y in project.files if y is not f and y.holds == "parcels")]:
@@ -3515,7 +3576,7 @@ def _unit_land(
         column = holder.load["bldg_area_finished_sqft"][0]
         return Check(ok=True, text=f"✓ shared by finished area ({column} in {holder.name})"), shares
     if land_key not in f.load:
-        text = f"pick the column of {f.name} with each unit's land size, or share the building's land"
+        text = f"pick the column of {f.name} with each unit's land size, or share the parcel's land"
         return Check(ok=False, text=text), shares
     own = _field_by_id(project, files, land_key, "key", only=f)
     filled = sum(1 for r in rows if ids[r] in own)
@@ -3523,7 +3584,7 @@ def _unit_land(
         if ids[r] in own:
             shares[r] = acres(own[ids[r]] * SQFT_PER[small_unit(project.units)] / SQFT_PER["sqft"])
     if not filled:
-        return Check(ok=False, text=f"{f.load[land_key][0]} is blank for every unit: share the building's land"), shares
+        return Check(ok=False, text=f"{f.load[land_key][0]} is blank for every unit: share the parcel's land"), shares
     text = f"✓ each unit's own land size, from {f.load[land_key][0]}" + (
         f" · {len(rows) - filled:,} blank" if filled < len(rows) else ""
     )
@@ -3581,7 +3642,9 @@ def set_units(project: Project, in_dir: Path, name: str, units: Units | None, gu
         return
     other = next((x for x in project.files if x.units is not None and x is not f), None)
     if other is not None:
-        raise ValueError(f"{other.name} already holds the units: OpenAVMKit takes one units file.")
+        set_units(project, in_dir, other.name, None)  # OpenAVMKit takes one units file: they move to this one
+    if project.wizard.condos is None:
+        project.wizard.condos = True
     first = f.units is None
     if guess or (first and units.column is None):
         f.units = _guess_units(project, files, f).model_copy(
@@ -3601,18 +3664,101 @@ def set_unit_field(project: Project, in_dir: Path, name: str, field: str, column
     base = next((x for x in project.files if x.name == project.wizard.base), None)
     if f is None or base is None:
         raise ValueError("Set up the units first.")
-    if field not in base.load or field in ("key", *EXTRA_IDS):
+    land_key = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"
+    # The units' own land size (Condo units › Land) even when the parcel universe's comes from its shapes.
+    if (field not in base.load and field != land_key) or field in ("key", *EXTRA_IDS):
         raise ValueError(f"{field} isn't one of the parcel universe's fields.")
     if column is None:
         f.load.pop(field, None)
         return
     if _Files(project, in_dir).column(f.name, column) is None:
         raise ValueError(f"{f.name} has no column {column}.")
+    if field not in base.load:
+        f.load[field] = [column, "float"]
+        f.area_units[field] = guess_area_unit(column) or small_unit(project.units)
+        return
     f.load[field] = [column, *base.load[field][1:]]
     for attr in ("area_units", "numbers", "scales"):
         src = getattr(base, attr)
         if field in src:
             getattr(f, attr)[field] = src[field]
+
+
+def has_condos(project: Project) -> bool | None:
+    """The answer on Condo units; a project that set up units before the question was asked has them."""
+    if project.wizard.condos is not None:
+        return project.wizard.condos
+    return True if projects.units_file(project) is not None else None
+
+
+def _condo_ask_status(project: Project, files: list[WizardFile]) -> tuple[Status, list[Left]]:
+    """Do you have condos? Done once answered; until then worth deciding when the files suggest units, even before
+    the step is reached."""
+    if has_condos(project) is not None:
+        return "done", []
+    if _condo_evidence(files):
+        return "attention", [Left(text="Say whether some parcels are condos or other units", blocking=False)]
+    return "blank", []
+
+
+def _condo_evidence(files: list[WizardFile]) -> list[str]:
+    """What the files suggest about units without a shape of their own, a sentence each."""
+    out = []
+    for f in files:
+        many = f.unshaped >= MISSING_FEW or f.unshaped >= 0.5 * (f.rows or 1)
+        if f.holds == "parcels" and not f.base and f.unshaped and many:
+            of = f" of {f.rows:,}" if f.rows else ""
+            out.append(f"{f.filename}: {f.unshaped:,}{of} rows have a parcel ID but no shape in the parcel universe.")
+        elif f.holds == "sales" and not _more_sales(f) and f.not_in_universe and f.not_in_universe.kind == "missing":
+            n = f.not_in_universe.rows
+            out.append(f"{_n(n, 'sale')} {'is' if n == 1 else 'are'} for parcels the parcel universe doesn't have.")
+    return out
+
+
+def _condo_left(key: str, files: list[WizardFile]) -> list[Left]:
+    """What's left on a part of Condo units."""
+    u = next((f for f in files if f.units is not None), None)
+    if key == "condo_file":
+        return [Left(text="Pick the file with the units")] if u is None else []
+    if u is None or u.units is None:
+        return []
+    v = u.units
+    if key == "condo_rows" and v.units == 0:
+        return [Left(text=v.check.text)]
+    if key == "condo_link" and v.units:
+        if not v.check.ok:
+            return [Left(text=v.check.text)]
+        if v.check.warn:
+            return [Left(text=v.check.text, blocking=False)]
+    if key == "condo_land":
+        if not v.land.ok:
+            return [Left(text=v.land.text)]
+        if v.land.warn:
+            return [Left(text=v.land.text.removeprefix("✓ "), blocking=False)]
+    if key == "condo_fields" and v.offers:
+        n = len(v.offers)
+        return [Left(text=f"{_n(n, 'field')} of {u.name} could be given to the units", blocking=False)]
+    return []
+
+
+def _condos_view(project: Project, files: list[WizardFile]) -> CondosView:
+    parcels = sorted(
+        (f for f in files if f.holds == "parcels" and not f.base), key=lambda f: -f.unshaped / (f.rows or 1)
+    )
+    return CondosView(
+        answer=has_condos(project),
+        evidence=_condo_evidence(files),
+        files=[CondoFile(name=f.name, filename=f.filename, rows=f.rows, unshaped=f.unshaped) for f in parcels],
+        file=next((f.name for f in files if f.units is not None), None),
+    )
+
+
+def set_condos(project: Project, in_dir: Path, has: bool | None) -> None:
+    """Answer "Do you have condos?". No stops any units set up (their settings and the fields given them)."""
+    project.wizard.condos = has
+    if has is False:
+        for f in [f for f in project.files if f.units is not None]:
+            set_units(project, in_dir, f.name, None)
 
 
 class MapView(BaseModel):
@@ -4123,8 +4269,11 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
         ]
         if shapeless:
             lines.append(
-                "Its rows have no shape of their own: if they're units of a shared parcel (condos, say), "
-                "\u201cTreat them as units\u201d below gives each its building's shape."
+                "Its rows have no shape of their own, and you said on Condo units that no parcels are units: "
+                "they're left out."
+                if project.wizard.condos is False
+                else "Its rows have no shape of their own: if they're condos or other units on a parcel they share, "
+                "set them up on the Condo units step."
             )
         # A file in the project that has them: added, but not joined as parcels.
         # A file in the project that has them, not joined as parcels yet (unless this file holds them itself).
@@ -4139,19 +4288,27 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
         if slips >= 0.8 * len(missing):
             wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines)
             continue
-        units_line = any("Treat them as units" in x for x in lines)
-        holder = None if units_line else _holder(project, files, f, missing, base)
+        units = shapeless
+        holder = None if shapeless else _holder(project, files, f, missing, base)
         if holder is not None:
             name, column, n = holder
+            them = f"{n:,} of them {'is' if n == 1 else 'are'} in {name} ({column})"
+            if files.entry(name).holds == "parcels":
+                units = True
+                lines.append(
+                    f"{them}, whose rows have no shape of their own: condos or other units, it seems. Set them up on "
+                    f"the Condo units step."
+                )
+            else:
+                lines.append(
+                    f"{them}. If its rows are condos or other units without a shape of their own, join it on More "
+                    f"files (more about each parcel, on {column}), then set them up on the Condo units step."
+                )
+        elif not shapeless:
             lines.append(
-                f"{n:,} of them {'is' if n == 1 else 'are'} in {name} ({column}). If its rows are parcels without a "
-                f"shape of their own (condo units, say), set it up on More files: more about each parcel, then "
-                f"\u201cTreat them as units of a shared parcel\u201d."
-            )
-        elif not units_line:
-            lines.append(
-                f"Usually they're parcels kept outside {base.filename}: condo units, mobile homes, parcels made "
-                f"since. Have a file with them? Add it on More files."
+                f"Usually they're parcels kept outside {base.filename}: condos and other units without a shape of "
+                f"their own (timeshares, homes in a mobile-home park, buildings on leased land), or parcels made "
+                f"since. Have a file with them? Add it on More files; units are set up on the Condo units step."
             )
         for other, (theirs, _) in gaps.items():
             same = len(missing & theirs)
@@ -4161,7 +4318,7 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
                     f"{other} lacks {same:,} of the same parcel{'' if same == 1 else 's'} too: "
                     f"they're missing from the parcel universe, not written differently."
                 )
-        wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines)
+        wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines, units=units)
 
 
 def _beyond(sug: Suggestion, f: DataFile, base: DataFile) -> str:

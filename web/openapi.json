@@ -1569,10 +1569,60 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/condos": {
+   "put": {
+    "summary": "Wizard Condos",
+    "description": "Condo units: do some parcels have no shape of their own, on a parcel they share? No stops any units.",
+    "operationId": "wizard_condos_api_projects__project_id__wizard_condos_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CondosBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/files/{name}/units": {
    "put": {
     "summary": "Wizard Units",
-    "description": "A parcel file's rows without a shape are units of a shared parcel (condos), each borrowing its building's\nshape; no settings stops it. guess: work out how units find their building again.",
+    "description": "A parcel file's rows without a shape are units on a parcel they share (condos and the like), each\nborrowing that parcel's shape; no settings stops it. guess: work out how units find their parcel again.",
     "operationId": "wizard_units_api_projects__project_id__wizard_files__name__units_put",
     "parameters": [
      {
@@ -4281,6 +4331,112 @@
     "title": "Condition",
     "description": "One test on a column of the sales file, as an OpenAVMKit filter."
    },
+   "CondoFile": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "unshaped": {
+      "type": "integer",
+      "title": "Unshaped",
+      "description": "Rows whose parcel ID finds no shape in the parcel universe."
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "filename",
+     "rows",
+     "unshaped"
+    ],
+    "title": "CondoFile"
+   },
+   "CondosBody": {
+    "properties": {
+     "has": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Has"
+     }
+    },
+    "type": "object",
+    "title": "CondosBody"
+   },
+   "CondosView": {
+    "properties": {
+     "answer": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Answer",
+      "description": "None: not answered yet."
+     },
+     "evidence": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Evidence",
+      "description": "What the files suggest, a sentence each."
+     },
+     "files": {
+      "items": {
+       "$ref": "#/components/schemas/CondoFile"
+      },
+      "type": "array",
+      "title": "Files",
+      "description": "Parcel files joined to the parcel universe, those with rows without a shape first."
+     },
+     "file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File",
+      "description": "The file holding the units."
+     }
+    },
+    "type": "object",
+    "required": [
+     "answer",
+     "evidence",
+     "files",
+     "file"
+    ],
+    "title": "CondosView",
+    "description": "The Condo units step: the answer to \"do you have condos?\", what the files suggest, and the files that could\nhold the units."
+   },
    "CountryDefaults": {
     "properties": {
      "currency": {
@@ -6836,6 +6992,12 @@
       "type": "array",
       "title": "Lines",
       "description": "What it means and what to do, a sentence each."
+     },
+     "units": {
+      "type": "boolean",
+      "title": "Units",
+      "description": "They look like units without a shape of their own: the Condo units step's.",
+      "default": false
      }
     },
     "type": "object",
@@ -6843,7 +7005,8 @@
      "kind",
      "rows",
      "ids",
-     "lines"
+     "lines",
+     "units"
     ],
     "title": "MissingParcels"
    },
@@ -9792,10 +9955,11 @@
       "enum": [
        "equal",
        "floor_area",
-       "field"
+       "field",
+       "none"
       ],
       "title": "Land",
-      "description": "equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).",
+      "description": "equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file). none: the land is the shared parcel's, not the units' (a mobile-home park, leased land).",
       "default": "equal"
      },
      "guessed": {
@@ -9807,13 +9971,13 @@
      "location": {
       "type": "boolean",
       "title": "Location",
-      "description": "The building (condo_group) is also a location, like a neighborhood.",
+      "description": "The shared parcel (condo_group) is also a location, like a neighborhood.",
       "default": true
      }
     },
     "type": "object",
     "title": "Units",
-    "description": "Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each\nborrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos."
+    "description": "Rows of a parcel file with no shape of their own, on a parcel they share (condos of any kind, timeshares,\nhomes in a mobile-home park, buildings on leased land): each borrows that parcel's shape and gets a share of its\nland, or none. OpenAVMKit's data.process.condos."
    },
    "Units-Output": {
     "properties": {
@@ -9874,10 +10038,11 @@
       "enum": [
        "equal",
        "floor_area",
-       "field"
+       "field",
+       "none"
       ],
       "title": "Land",
-      "description": "equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file).",
+      "description": "equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared by the units' finished area (from any parcel file). field: each unit's own land size (from this file). none: the land is the shared parcel's, not the units' (a mobile-home park, leased land).",
       "default": "equal"
      },
      "guessed": {
@@ -9889,7 +10054,7 @@
      "location": {
       "type": "boolean",
       "title": "Location",
-      "description": "The building (condo_group) is also a location, like a neighborhood.",
+      "description": "The shared parcel (condo_group) is also a location, like a neighborhood.",
       "default": true
      }
     },
@@ -9905,7 +10070,7 @@
      "location"
     ],
     "title": "Units",
-    "description": "Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each\nborrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos."
+    "description": "Rows of a parcel file with no shape of their own, on a parcel they share (condos of any kind, timeshares,\nhomes in a mobile-home park, buildings on leased land): each borrows that parcel's shape and gets a share of its\nland, or none. OpenAVMKit's data.process.condos."
    },
    "UnitsBody": {
     "properties": {
@@ -10280,6 +10445,17 @@
        }
       ],
       "description": "The permits file, set up (the Permits step)."
+     },
+     "condos": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CondosView"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The Condo units step."
      }
     },
     "type": "object",
@@ -10296,7 +10472,8 @@
      "custom",
      "layers",
      "deeds",
-     "permits"
+     "permits",
+     "condos"
     ],
     "title": "Wizard"
    },
@@ -11186,6 +11363,18 @@
       "type": "array",
       "title": "Custom",
       "description": "Fields the user named and classified."
+     },
+     "condos": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Condos",
+      "description": "Condo units: whether some parcels are units without a shape of their own; None: not asked yet."
      }
     },
     "type": "object",
@@ -11197,7 +11386,8 @@
      "decided",
      "locations",
      "absent",
-     "custom"
+     "custom",
+     "condos"
     ],
     "title": "WizardState",
     "description": "The Fields wizard's own state (SPEC \u00a73.0 F3d). Everything it chooses is in the files' entries."

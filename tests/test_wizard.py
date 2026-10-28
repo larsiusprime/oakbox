@@ -1288,12 +1288,27 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "acres"})
     w = _put_file(client, pid, "units", holds="parcels", id_column="ID").json()
     assert _file(w, "units")["unshaped"] == 5  # all but the house
+    # Rows without a shape are Condo units' to set up: a pointer there from More files, never a stop.
+    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit").json()
+    pointer = [x for x in _step(w, "more_files")["left"] if "Condo units" in x["text"]]
+    assert pointer and not pointer[0]["blocking"]
+    assert not any("units:" in p for p in w["problems"])
+    # Condo units asks first, worth deciding before it's reached since the files suggest units; its parts wait.
+    assert _step(w, "condo_ask")["status"] == "attention" and _step(w, "condos")["status"] == "attention"
+    assert not any(st["key"] == "condo_file" for st in w["steps"])
+    assert "units.csv: 5 of 6 rows have a parcel ID but no shape in the parcel universe." in w["condos"]["evidence"]
+    w = client.put(f"/api/projects/{pid}/wizard/condos", json={"has": True}).json()
+    assert w["condos"]["answer"] is True and _step(w, "condo_ask")["status"] == "done"
+    assert [f["name"] for f in w["condos"]["files"]] == ["units"] and w["condos"]["file"] is None
+    w = client.post(f"/api/projects/{pid}/wizard/steps/condo_file/visit").json()
+    assert _step(w, "condo_file")["status"] == "blocked"
 
     w = client.put(f"/api/projects/{pid}/wizard/files/units/units", json={"units": {}}).json()
+    assert w["condos"]["file"] == "units" and _step(w, "condo_file")["status"] != "blocked"
     u = _file(w, "units")["units"]
     assert (u["settings"]["link"], u["settings"]["column"], u["settings"]["prefix_len"]) == ("prefix", "PIN", 3)
     assert (u["units"], u["linked"], u["buildings"]) == (5, 4, 2)
-    assert u["check"]["text"] == "4 of 5 units find their building (2 buildings) · 1 finds none: left out"
+    assert u["check"]["text"] == "4 of 5 units find the parcel they're on (2 parcels) · 1 finds none: left out"
     assert u["settings"]["guessed"] and u["basis"].startswith(
         "Guessed: PIN is in both files, and its first 3 characters"
     )
@@ -1302,8 +1317,8 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     # Land size isn't offered while the units' land is a share of their building's.
     assert {f["field"] for f in u["offers"]} >= {"land_class", "bldg_area_finished_sqft"}
     assert "land_area_sqft" not in {f["field"] for f in u["offers"]}
-    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit").json()
-    assert any("could be given to the units" in x["text"] for x in _step(w, "more_files")["left"])
+    w = client.post(f"/api/projects/{pid}/wizard/steps/condo_fields/visit").json()
+    assert any("could be given to the units" in x["text"] for x in _step(w, "condo_fields")["left"])
     give = {f["field"]: f["column"] for f in u["offers"]}
     w = client.put(f"/api/projects/{pid}/wizard/files/units/units/fields", json={"fields": give}).json()
     u = _file(w, "units")["units"]
@@ -1315,7 +1330,7 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
         f"/api/projects/{pid}/wizard/files/units/units", json={"units": {**u["settings"], "land": "field"}}
     ).json()
     u = _file(w, "units")["units"]
-    assert not u["land"]["ok"] and any("units' land" in p for p in w["problems"])  # OpenAVMKit would stop
+    assert not u["land"]["ok"] and any("Condo units › Land" in p for p in w["problems"])  # OpenAVMKit would stop
     assert [f["field"] for f in u["offers"]] == ["land_area_sqft"]
     w = client.put(
         f"/api/projects/{pid}/wizard/files/units/units/fields", json={"fields": {"land_area_sqft": "ACRES"}}
@@ -1356,6 +1371,19 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     assert all(c["ok"] for c in view["receipt"]["checks"]), view["receipt"]["checks"]
     unit_lines = {line["text"] for f in view["receipt"]["universe"]["funnels"][1:] for line in f["lines"]}
     assert "units that find no building: left out" in unit_lines
+
+    # No land of their own (a mobile-home park, leased land): the land is the shared parcel's.
+    w = client.put(
+        f"/api/projects/{pid}/wizard/files/units/units", json={"units": {**u["settings"], "land": "none"}}
+    ).json()
+    assert _file(w, "units")["units"]["land"]["ok"]
+    assert _settings(pid)["data"]["process"]["condos"]["land_share"] == {"method": "none"}
+    # No condos after all: the units and the fields given them go, and so do the step's parts.
+    w = client.put(f"/api/projects/{pid}/wizard/condos", json={"has": False}).json()
+    assert _file(w, "units")["units"] is None and w["condos"]["file"] is None
+    assert [st["key"] for st in w["steps"] if st["parent"] == "condos"] == ["condo_ask"]
+    assert "condos" not in _settings(pid)["data"]["process"]
+    assert any("no units, you said" in x["text"] for x in _step(w, "more_files")["left"])
 
 
 def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(client, tmp_path):

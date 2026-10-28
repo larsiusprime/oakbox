@@ -388,8 +388,9 @@ Dupes = Literal["first", "all"]
 
 
 class Units(BaseModel):
-    """Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each
-    borrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos."""
+    """Rows of a parcel file with no shape of their own, on a parcel they share (condos of any kind, timeshares,
+    homes in a mobile-home park, buildings on leased land): each borrows that parcel's shape and gets a share of its
+    land, or none. OpenAVMKit's data.process.condos."""
 
     rule: Rule | None = Field(default=None, description="Which rows are units; None: every row.")
     link: Literal["prefix", "parent"] = Field(
@@ -400,16 +401,17 @@ class Units(BaseModel):
     column: str | None = Field(default=None, description="The units file's column: the ID (prefix) or the parent ID.")
     base_column: str | None = Field(default=None, description="prefix: the parcel universe file's column to match.")
     prefix_len: int = Field(default=10, ge=1, le=64)
-    land: Literal["equal", "floor_area", "field"] = Field(
+    land: Literal["equal", "floor_area", "field", "none"] = Field(
         default="equal",
         description="equal: the building's land in equal shares, one per unit (needs nothing). floor_area: shared "
-        "by the units' finished area (from any parcel file). field: each unit's own land size (from this file).",
+        "by the units' finished area (from any parcel file). field: each unit's own land size (from this file). "
+        "none: the land is the shared parcel's, not the units' (a mobile-home park, leased land).",
     )
     guessed: bool = Field(
         default=False, description="How units find their building was guessed, not chosen: said so on the panel."
     )
     location: bool = Field(
-        default=True, description="The building (condo_group) is also a location, like a neighborhood."
+        default=True, description="The shared parcel (condo_group) is also a location, like a neighborhood."
     )
 
 

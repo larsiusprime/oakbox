@@ -3858,6 +3858,88 @@ a.row-title:hover {
   border: 1px solid #f0c78a;
   border-radius: var(--radius);
 }
+/* ---------- Condo units: one decision per part, each choice a card (F3d condos) ---------- */
+.cu {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 46rem;
+  font-size: 0.92rem;
+}
+.cu-kinds ul,
+.cu-ev ul {
+  margin: 0.2rem 0 0.3rem;
+  padding-left: 1.1rem;
+}
+.cu-ev {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.88rem;
+  background: #f3f7fd;
+  border: 1px solid #b9cdee;
+  border-radius: var(--radius);
+}
+.cu-ev p {
+  margin: 0.2rem 0 0;
+}
+.cu-choices {
+  display: grid;
+  gap: 0.4rem;
+}
+.cu-big {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+.radio.cu-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.radio.cu-choice .radio-dot {
+  margin-top: 0.2rem;
+}
+.radio.cu-choice[data-selected] {
+  background: #f3f7fd;
+  border-color: var(--primary-edge);
+}
+.cu-text {
+  display: grid;
+  gap: 0.1rem;
+}
+.cu-sub {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.cu-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+  margin: 0;
+}
+.cu-guess {
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.88rem;
+  background: #fff8e8;
+  border: 1px solid #f0d9a8;
+  border-radius: var(--radius);
+}
+.cu-ex {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  list-style: none;
+}
+.cu-ex li {
+  padding: 0.12rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.cu-sum li {
+  margin: 0.2rem 0;
+}
 .un {
   display: grid;
   gap: 0.45rem;

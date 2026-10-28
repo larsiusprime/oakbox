@@ -107,6 +107,10 @@ class WizardState(BaseModel):
         default_factory=list, description="Fields said not to exist (no condition: effective age carries it)."
     )
     custom: list[CustomField] = Field(default_factory=list, description="Fields the user named and classified.")
+    condos: bool | None = Field(
+        default=None,
+        description="Condo units: whether some parcels are units without a shape of their own; None: not asked yet.",
+    )
 
 
 class ModelGroup(BaseModel):
@@ -485,6 +489,7 @@ def _condos(project: Project, out: dict) -> None:
         "field": {"method": "field", "field": land_field},
         # The finished area may come from another file (building cards): OpenAVMKit shares it after the merge.
         "floor_area": {"method": "floor_area", "floor_field": "bldg_area_finished_sqft"},
+        "none": {"method": "none"},
     }[units.land]
     out.setdefault("process", {})["condos"] = {
         "enabled": True,

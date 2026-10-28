@@ -52,7 +52,7 @@ import { type PermitsChange, PermitsStep } from "./Permits";
 import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { type LayerChange, ShapefilesStep } from "./Shapefiles";
-import { type UnitsChange, UnitsPanel } from "./Units";
+import { CondoStep, CondosLink, type UnitsChange, UnitsPointer } from "./Units";
 
 const w = t.wizard;
 type AreaUnit = NonNullable<WizardField["area_unit"]>;
@@ -79,9 +79,15 @@ export function FieldsTab({ detail, step }: { detail: ProjectDetail; step: strin
   return <WizardView project={detail.project} data={wizard.data} step={step} />;
 }
 
-/** Steps in the order Next goes through them: the parts of More details, not More details itself. */
+/** Steps in the order Next goes through them: the parts of a step that has them (More details, Condo units), not
+ * the step itself. */
 function order(steps: WizardStep[]): WizardStep[] {
-  return steps.filter((s) => s.key !== "details");
+  return steps.filter((s) => !steps.some((x) => x.parent === s.key));
+}
+
+/** A step with parts opens at its first. */
+function firstPart(steps: WizardStep[], key: string): string {
+  return steps.find((s) => s.parent === key)?.key ?? key;
 }
 
 function WizardView({ project, data, step }: { project: Project; data: Wizard; step: string | null }) {
@@ -89,7 +95,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const flat = order(data.steps);
   // Opens at the first step not done yet, or at Review (SPEC F3d).
   const [opening] = useState(() => flat.find((s) => s.status !== "done")?.key ?? "review");
-  const wanted = step === "details" ? "big_five" : step;
+  const wanted = step ? firstPart(data.steps, step) : step;
   const current = flat.find((s) => s.key === wanted) ?? flat.find((s) => s.key === opening) ?? flat[0];
   const change = useChange(projectId);
   const [unfinished, setUnfinished] = useState(false);
@@ -161,6 +167,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
           {current.key === "enrich" && <EnrichStep projectId={projectId} />}
           {current.key === "permits" && <PermitsStep project={project} data={data} change={change.mutate} />}
+          {current.parent === "condos" && (
+            <CondoStep step={current.key} projectId={projectId} data={data} change={change.mutate} />
+          )}
           {change.error && (
             <p className="error" role="alert">
               {change.error.message}
@@ -279,7 +288,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
           <li key={s.key} className={classes}>
             <button
               type="button"
-              onClick={() => go(s.key === "details" ? "big_five" : s.key)}
+              onClick={() => go(firstPart(steps, s.key))}
               aria-current={s.key === current ? "step" : undefined}
             >
               <span className="n" aria-hidden="true">
@@ -402,6 +411,14 @@ function useChange(projectId: string) {
           await api.PUT("/api/projects/{project_id}/wizard/files/{name}/permits", {
             params: { path: { project_id, name: c.name } },
             body: { permits: c.permits, guess: c.guess ?? false },
+          }),
+        );
+      }
+      if (c.kind === "condos") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/condos", {
+            params: { path: { project_id } },
+            body: { has: c.has },
           }),
         );
       }
@@ -574,6 +591,7 @@ function IdCheck({
           {missing.lines.map((line) => (
             <p key={line}>{line}</p>
           ))}
+          {missing.units && <CondosLink projectId={projectId} />}
         </div>
       )}
       {reconciling && base && (
@@ -1139,7 +1157,7 @@ function ExtraFile({
         </Radio>
       </RadioGroup>
       {holds && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
-      {holds === "parcels" && <UnitsPanel projectId={project.id} data={data} file={file} change={change} />}
+      {holds === "parcels" && <UnitsPointer projectId={project.id} file={file} />}
     </section>
   );
 }

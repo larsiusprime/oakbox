@@ -254,6 +254,47 @@ export const t = {
         question: "Any map layers?",
         lede: "Zoning, school zones, flood zones, parks, schools… Each layer either stamps its areas onto the parcels inside them, or gives each parcel its distance to the nearest feature.",
       },
+      condos: { title: "Condo units", question: "", lede: "" },
+      condo_ask: {
+        title: "Do you have condos?",
+        question: "Do you have condos?",
+        lede: "Or anything else on the roll but not on the map: a unit with a parcel ID of its own but no parcel shape, because it sits on a parcel it shares. OAK box can give each unit the shape of the parcel it's on, so it's valued like any other parcel.",
+      },
+      condo_file: {
+        title: "Units file",
+        question: "Which file has the units?",
+        lede: "The file whose rows are the units: each with a parcel ID of its own, and no shape of its own. It's joined on More files like any file with more about each parcel.",
+      },
+      condo_rows: {
+        title: "Which rows",
+        question: "Which rows are units?",
+        lede: "Usually every row of the units file without a shape. If the file mixes units with other things that have no shape (mineral or air rights, business property, a building's common areas), say which rows are units: the rest are left out.",
+      },
+      condo_link: {
+        title: "The parcel they're on",
+        question: "How does each unit find the parcel it's on?",
+        lede: "A unit takes the shape of the parcel it sits on: its building, complex or park. Often the unit's ID starts with that parcel's; sometimes a column names it.",
+      },
+      condo_land: {
+        title: "Land",
+        question: "How much land is each unit's?",
+        lede: "Land is a big part of a parcel's value. Say how the shared parcel's land (its shape's area) is split among its units, or whether they have none of their own. The examples show what each unit gets.",
+      },
+      condo_fields: {
+        title: "Their fields",
+        question: "What should the units carry?",
+        lede: "A unit has only what its own file gives it: nothing is copied from the parcel it's on except its shape. Give the units the parcel universe's fields from the units file's columns.",
+      },
+      condo_location: {
+        title: "As a location",
+        question: "Treat each shared parcel as a location?",
+        lede: "Units on one parcel share a lot: the building, its amenities, an association. As a location, like a neighborhood, models can learn what being on each one is worth.",
+      },
+      condo_summary: {
+        title: "Summary",
+        question: "Here's what happens to the units",
+        lede: "When Bring in data runs, OpenAVMKit does this, in this order. Change any part from the steps on the left.",
+      },
       deeds: {
         title: "Deeds",
         question: "Which deed was each sale recorded under?",
@@ -577,54 +618,123 @@ export const t = {
       loading: "Reading the values…",
     },
     units: {
-      offer: (n: number) =>
-        `${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no parcel shape. Condo units (and townhome units, mobile-home pads…) are often on the roll but not on the map: each can borrow its building's shape.`,
-      setUp: "Treat them as units of a shared parcel",
-      title: "Units of a shared parcel",
-      stop: "Stop treating them as units",
+      // Condo units (F3d condos): every kind of unit on the roll but not on the map, on a parcel it shares.
+      kinds: [
+        "Condos of any kind: homes, offices, shops, warehouse and flex units",
+        "Parking spaces, storage units, boat slips and hangars sold as condos",
+        "Timeshares, where each share has a parcel ID of its own",
+        "Homes in a mobile-home park, on land the park owns",
+        "Buildings on leased land: ground leases, hangars at an airport, cabins on public land",
+      ],
+      kindsTitle: "Like these:",
+      notThese:
+        "Not these: townhomes and other units on a lot of their own already have a shape, and a co-op is usually one parcel for its whole building.",
+      evidence: "What the files suggest",
+      noEvidence: "Nothing in the files so far suggests units: every parcel file's rows find a parcel shape.",
+      answer: "Do you have condos?",
+      yes: "Yes, some parcels are units",
+      yesSub: "Next: which file has them, how each finds the parcel it's on, and its land.",
+      no: "No",
+      noSub: "Every parcel has a shape of its own. This step is done.",
+      noLeft: "The rows above are left out; Review keeps a note of them.",
+      fileLabel: "The units file",
+      rowsOf: (rows: number | null) => (rows === null ? "" : ` · ${rows.toLocaleString()} rows`),
+      fileMostly: (n: number, rows: number) =>
+        n === rows
+          ? `All ${rows.toLocaleString()} rows have no shape of their own: likely the units.`
+          : `${n.toLocaleString()} of ${rows.toLocaleString()} rows have no shape of their own: likely the units.`,
+      fileSome: (n: number, rows: number) =>
+        `${n.toLocaleString()} of ${rows.toLocaleString()} rows have no shape: more likely more about the units (their building cards, say) than the units themselves.`,
+      fileNone: "Every row has a shape: not units.",
+      notListed: "Not listed? Add it on More files, as more about each parcel, joined on the parcel ID.",
+      toMoreFiles: "More files…",
+      oneFile:
+        "OpenAVMKit takes one units file: units in more than one file (condos in one, mobile homes in another) need combining first.",
+      units: (n: number) => `${n.toLocaleString()} ${n === 1 ? "unit" : "units"}`,
       which: "Which rows are units",
       every: "Every row",
+      everySub: "Every row of the file without a shape.",
       where: "Rows where…",
+      whereSub: "A test on a column, like LAND_CLASS is CONDO.",
       addCondition: "+ Condition",
       column: "Column",
       remove: "Remove",
-      finds: "Each finds its building by",
+      finds: "Each finds the parcel it's on by",
       byPrefix: "The start of an ID",
       byParent: "A column naming it",
       first: "first",
       characters: "characters of",
       match: "match",
       inUniverse: "in the parcel universe",
-      holds: "holds its building's parcel ID",
+      holds: "holds the parcel ID of the parcel it's on",
       guess: "Guess again",
-      unit: "Unit",
-      building: "→ building",
-      noBuilding: "→ no building on the map",
+      onParcel: "→ parcel",
+      noParcel: "→ no parcel on the map: left out",
+      matched: (column: string | null, v: string) => (column ? `(its ${column} is ${v})` : `(matches ${v})`),
       land: "Land",
-      equalLand: "Equal shares",
-      sharedLand: "Shared by finished area",
-      ownLand: "Each unit's own",
-      landHelp: {
-        equal:
-          "The building's land (its shape's area) in equal shares, one per unit. Needs nothing from the units.",
-        floor_area:
-          "The building's land shared by each unit's finished area, wherever that's loaded (the units' building cards, say).",
-        field: "Each unit's own land size, from a column of this file. Many rolls leave it blank for units.",
-      } as Record<string, string>,
+      landChoices: {
+        equal: [
+          "Equal shares",
+          "The parcel's land split equally, one share per unit. Needs nothing from the units. Usual for condos.",
+        ],
+        floor_area: [
+          "Shared by finished area",
+          "Bigger units get more. Uses each unit's finished area, as loaded on More details › Big five.",
+        ],
+        field: [
+          "Each unit's own land size",
+          "From a column of the units file: some rolls record each unit's share.",
+        ],
+        none: [
+          "No land of their own",
+          "The land is the shared parcel's, not the units': homes in a mobile-home park, buildings on leased land. The parcel keeps its land; units are valued on what's theirs.",
+        ],
+      } as Record<string, [string, string]>,
+      landColumn: "Land size column",
       share: "land",
-      matched: (v: string) => `(matches ${v})`,
-      gives: "Gives its units",
-      givesNone: "nothing yet",
-      onlyThis:
-        "A unit has only what this file gives it: nothing is copied from its building. Its location (map layers, distances, elevation) is its building's, as it takes the building's shape.",
+      gives: "The units have",
+      givesNone: "nothing from their file yet",
+      fromParcel:
+        "Their location is the parcel's: map layers, distances, elevation and census data come from its shape. Their building cards (size, age, quality) join from any file with more about each parcel, as for every parcel.",
       offerTitle: (n: number) =>
-        `The parcel universe has ${n === 1 ? "this field" : "these fields"}, and this file has a column of the same name:`,
+        `The parcel universe has ${n === 1 ? "this field" : "these fields"}, and the units file has a column of the same name:`,
       giveThese: (n: number) => (n === 1 ? "Give it to the units" : `Give these ${n} to the units`),
-      addField: "Field",
+      addField: "Another field from a column…",
       fieldPick: "Parcel universe field",
-      columnPick: "Column of this file",
+      columnPick: "Column of the units file",
       add: "Add",
-      location: "Also use the building as a location, like a neighborhood (condo_group)",
+      location: "Yes: the parcel each unit is on is a location (condo_group)",
+      locationOff: "Without it, models see units only by their own fields and where they are.",
+      locationEg: "For example:",
+      summary: {
+        rows: (n: number, file: string, every: boolean) =>
+          `${n.toLocaleString()} ${n === 1 ? "row" : "rows"} of ${file} ${n === 1 ? "is a unit" : "are units"}${every ? " (every row without a shape)" : " (the rows the test picks)"}.`,
+        link: (how: string, linked: number, units: number, parcels: number) =>
+          `Each finds the parcel it's on by ${how}: ${linked.toLocaleString()} of ${units.toLocaleString()}, on ${parcels.toLocaleString()} ${parcels === 1 ? "parcel" : "parcels"}.`,
+        prefix: (n: number, column: string) => `the first ${n} characters of ${column}`,
+        parent: (column: string) => `the parcel ID in ${column}`,
+        shape: (linked: number) =>
+          `Each takes that parcel's shape, so it joins the parcel universe as a parcel of its own: ${linked.toLocaleString()} more parcels.`,
+        land: {
+          equal: "Its land is an equal share of the parcel's.",
+          floor_area: "Its land is a share of the parcel's, by finished area.",
+          field: "Its land is its own land size, from its file.",
+          none: "It has no land of its own: the land is the parcel's.",
+        } as Record<string, string>,
+        carries: (names: string[], file: string) =>
+          names.length
+            ? `It carries ${names.join(", ")} from ${file}.`
+            : `It carries nothing from ${file} yet.`,
+        location: (on: boolean) =>
+          on ? "Its parcel is a location (condo_group)." : "Its parcel isn't used as a location.",
+        sales: (text: string) => `Sales: ${text}.`,
+      },
+      pointer: (n: number) =>
+        `${n.toLocaleString()} ${n === 1 ? "row has" : "rows have"} no shape of their own: condos or other units? They're set up on Condo units.`,
+      pointerUnits: "Its rows are the units: they're set up on Condo units.",
+      toCondos: "Condo units…",
+      pickFirst: "Pick the file with the units first.",
+      toFile: "Units file…",
     },
     custom: {
       title: "Your own fields",

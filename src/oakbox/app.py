@@ -146,6 +146,10 @@ class UnitsBody(BaseModel):
     guess: bool = False
 
 
+class CondosBody(BaseModel):
+    has: bool | None = None
+
+
 class UnitFieldBody(BaseModel):
     column: str | None = None
 
@@ -700,10 +704,15 @@ def create_app() -> FastAPI:
         except LookupError as e:
             raise HTTPException(404, f"No column {column} in {name}.") from e
 
+    @app.put("/api/projects/{project_id}/wizard/condos")
+    def wizard_condos(project_id: str, body: CondosBody) -> wizard.Wizard:
+        """Condo units: do some parcels have no shape of their own, on a parcel they share? No stops any units."""
+        return _change(project_id, lambda p, d: wizard.set_condos(p, d, body.has))
+
     @app.put("/api/projects/{project_id}/wizard/files/{name}/units")
     def wizard_units(project_id: str, name: str, body: UnitsBody) -> wizard.Wizard:
-        """A parcel file's rows without a shape are units of a shared parcel (condos), each borrowing its building's
-        shape; no settings stops it. guess: work out how units find their building again."""
+        """A parcel file's rows without a shape are units on a parcel they share (condos and the like), each
+        borrowing that parcel's shape; no settings stops it. guess: work out how units find their parcel again."""
         return _change(project_id, lambda p, d: wizard.set_units(p, d, name, body.units, body.guess))
 
     @app.put("/api/projects/{project_id}/wizard/files/{name}/units/fields")
