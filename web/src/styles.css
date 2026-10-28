@@ -3363,11 +3363,30 @@ a.row-title:hover {
 }
 .mg-legend i {
   display: inline-block;
-  width: 0.7rem;
-  height: 0.7rem;
+  box-sizing: border-box;
+  width: 0.8rem;
+  height: 0.8rem;
   margin-right: 0.3rem;
   vertical-align: -1px;
+  background: #ffffff;
+  border: 2px solid;
   border-radius: 2px;
+}
+/* Each colour is a checkbox: filled when its parcels are shown, hollow when hidden. */
+.mg-key {
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.mg-key:not([data-selected]) {
+  color: var(--muted);
+}
+.mg-key[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 .mg-pop {
   position: absolute;

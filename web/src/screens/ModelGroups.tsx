@@ -3,7 +3,16 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
+import {
+  Button,
+  Dialog,
+  Heading,
+  Input,
+  Modal,
+  ModalOverlay,
+  TextField,
+  ToggleButton,
+} from "react-aria-components";
 import {
   api,
   type Condition,
@@ -120,6 +129,8 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
   const [colourBy, setColourBy] = useState<ColourBy>("group");
   const [picked, setPicked] = useState<number | null>(null);
   const [highlight, setHighlight] = useState<number[] | null>(null);
+  // What the legend has switched off: group ids ("" unassigned), or SAME (unchanged, when colouring by changes).
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [fromField, setFromField] = useState(false);
   const dirty = !same(draft, view.groups);
 
@@ -161,6 +172,15 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
     );
   };
   const colours = useMemo(() => asked.map((x) => x.color), [asked]);
+  const ids = useMemo(() => asked.map((x) => x.id), [asked]);
+  // Unassigned alone: every group off, unassigned on. Clicking it again (or the legend) brings them back.
+  const onlyUnassigned = ids.length > 0 && ids.every((id) => hidden.has(id)) && !hidden.has("");
+  const toggle = (key: string, on: boolean) => {
+    const next = new Set(hidden);
+    if (on) next.delete(key);
+    else next.add(key);
+    setHidden(next);
+  };
   const statsFor = (id: string) => p?.stats.find((s) => s.id === id);
   const group = draft.find((x) => x.id === selected) ?? null;
   const name = (id: string) =>
@@ -224,10 +244,11 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
             color={view.unassigned_color}
             stats={statsFor("")}
             delta={delta(p, "")}
-            isSelected={false}
+            isSelected={onlyUnassigned}
             onSelect={() => {
-              const n = p?.assign.flatMap((a, i) => (a === -1 ? [i] : [])) ?? [];
-              setHighlight(n);
+              setHighlight(null);
+              setHidden(onlyUnassigned ? new Set() : new Set(ids));
+              if (!mapShown) setMapMode("docked");
             }}
           />
           <div className="mg-adds">
@@ -332,6 +353,8 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
               projectId={projectId}
               preview={p}
               colours={colours}
+              ids={ids}
+              hidden={hidden}
               unassigned={view.unassigned_color}
               colourBy={colourBy}
               highlight={highlight}
@@ -356,14 +379,18 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
               items={
                 colourBy === "group"
                   ? [
-                      ...asked.map((x) => [x.color, x.name] as const),
-                      [view.unassigned_color, g.unassigned] as const,
+                      ...asked.map((x) => [x.id, x.color, x.name] as const),
+                      ["", view.unassigned_color, g.unassigned] as const,
                     ]
                   : [
-                      ...asked.map((x) => [x.color, `${g.movesTo} ${x.name}`] as const),
-                      [CHANGE_GREY, g.noChanges] as const,
+                      ...asked.map((x) => [x.id, x.color, `${g.movesTo} ${x.name}`] as const),
+                      ["", view.unassigned_color, `${g.movesTo} ${g.unassigned}`] as const,
+                      [SAME, CHANGE_GREY, g.noChanges] as const,
                     ]
               }
+              hidden={hidden}
+              toggle={toggle}
+              showAll={() => setHidden(new Set())}
             />
           </div>
         )}
@@ -387,6 +414,7 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
 }
 
 const CHANGE_GREY = "#d9dcd4";
+const SAME = "__same";
 type Move = GroupsPreview["moves"][number];
 
 /** Parcels in and out of a group since the saved groups. */
@@ -398,15 +426,42 @@ function delta(p: GroupsPreview | undefined, id: string): number {
   );
 }
 
-function Legend({ items }: { items: readonly (readonly [string, string])[] }) {
+/** What each colour is, and whether it's shown: each square is a checkbox, hollow when its parcels are hidden. */
+function Legend({
+  items,
+  hidden,
+  toggle,
+  showAll,
+}: {
+  items: readonly (readonly [string, string, string])[];
+  hidden: Set<string>;
+  toggle: (key: string, on: boolean) => void;
+  showAll: () => void;
+}) {
+  const any = items.some(([key]) => hidden.has(key));
   return (
-    <div className="mg-legend">
-      {items.map(([c, label]) => (
-        <span key={label}>
-          <i style={{ background: c }} />
-          {label}
-        </span>
-      ))}
+    // biome-ignore lint/a11y/useSemanticElements: a row of toggle buttons, not a form field set
+    <div className="mg-legend" role="group" aria-label={g.legend}>
+      {items.map(([key, c, label]) => {
+        const on = !hidden.has(key);
+        return (
+          <ToggleButton
+            key={key}
+            className="mg-key"
+            isSelected={on}
+            onChange={(v) => toggle(key, v)}
+            aria-label={`${label}: ${on ? g.shown : g.hiddenOnMap}`}
+          >
+            <i style={on ? { background: c, borderColor: c } : { borderColor: c }} />
+            {label}
+          </ToggleButton>
+        );
+      })}
+      {any && (
+        <Button className="wiz-link" onPress={showAll}>
+          {g.showAll}
+        </Button>
+      )}
     </div>
   );
 }
@@ -713,6 +768,8 @@ function ParcelMap({
   projectId,
   preview,
   colours,
+  ids,
+  hidden,
   unassigned,
   colourBy,
   highlight,
@@ -723,6 +780,8 @@ function ParcelMap({
   projectId: string;
   preview: GroupsPreview | undefined;
   colours: string[];
+  ids: string[];
+  hidden: Set<string>;
   unassigned: string;
   colourBy: ColourBy;
   highlight: number[] | null;
@@ -783,9 +842,15 @@ function ParcelMap({
     style.current = (i: number) => {
       const a = assign?.[i] ?? -1;
       let fill = a >= 0 ? (colours[a] ?? unassigned) : unassigned;
-      if (colourBy === "changes") fill = a !== (saved?.[i] ?? -1) ? fill : CHANGE_GREY;
+      const unchanged = colourBy === "changes" && a === (saved?.[i] ?? -1);
+      if (unchanged) fill = CHANGE_GREY;
+      // Switched off in the legend: not drawn, and not clickable (canvas hits need a fill or a stroke).
+      const key = unchanged ? SAME : a >= 0 ? (ids[a] ?? "") : "";
+      if (hidden.has(key)) return { fill: false, stroke: false };
       const dim = hl && !hl.has(i);
       return {
+        fill: true,
+        stroke: true,
         fillColor: fill,
         fillOpacity: dim ? 0.18 : 0.72,
         color: hl?.has(i) ? "#111" : "#ffffff",
@@ -794,7 +859,7 @@ function ParcelMap({
       };
     };
     layer.current?.setStyle((f) => style.current(Number(f?.id ?? -1)));
-  }, [preview, colours, unassigned, colourBy, highlight, shapes.data]);
+  }, [preview, colours, ids, hidden, unassigned, colourBy, highlight, shapes.data]);
 
   // The picked parcel, outlined on top.
   useEffect(() => {
