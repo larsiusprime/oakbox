@@ -42,6 +42,7 @@ import { Choice, Tick } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
+import { type CustomChange, CustomFields } from "./CustomFields";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { LocationExtras } from "./Location";
@@ -142,6 +143,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "location" && (
             <LocationExtras project={project} data={data} change={change.mutate} />
           )}
+          {current.key === "property_type" && <CustomFields data={data} change={change.mutate} />}
           {current.key === "shapefiles" && (
             <ShapefilesStep project={project} data={data} change={change.mutate} />
           )}
@@ -309,6 +311,7 @@ type Change =
     }
   | { kind: "rule"; key: string; rule: Rule }
   | { kind: "location"; name: string; file: string | null; column: string | null }
+  | CustomChange
   | LayerChange;
 
 function useChange(projectId: string) {
@@ -370,6 +373,14 @@ function useChange(projectId: string) {
           await api.PUT("/api/projects/{project_id}/wizard/locations/{name}", {
             params: { path: { project_id, name: c.name } },
             body: { file: c.file, column: c.column },
+          }),
+        );
+      }
+      if (c.kind === "custom") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/custom/{name}", {
+            params: { path: { project_id, name: c.name } },
+            body: { file: c.file, column: c.column, group: c.group, type: c.type },
           }),
         );
       }
@@ -1504,9 +1515,10 @@ function FieldRow({
   );
 }
 
-/** The dictionary's name, without "Building" for building fields ("Year built"). */
+/** The dictionary's name, without "Building" for building fields ("Year built"), except where "Building type"
+ * sits beside "Land use". */
 function shortName(field: WizardField): string {
-  if (!field.key.startsWith("bldg_")) return field.name;
+  if (!field.key.startsWith("bldg_") || field.step === "property_type") return field.name;
   const rest = field.name.replace(/^Building /, "");
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 }

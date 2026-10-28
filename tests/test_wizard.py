@@ -1177,3 +1177,37 @@ def test_bring_in_data_runs_openavmkit_and_writes_a_receipt(client, tmp_path):
     view = client.get(url).json()
     assert view["stale"] and not view["accepted"] and "how sale is read" in view["changed"]
     assert client.post(f"{url}/accept").status_code == 409
+
+
+def test_own_fields_named_and_classified_as_land_building_or_other(client, pid):
+    """Any parcel column under the user's name, in OpenAVMKit's land / impr / other field classification."""
+    from oakbox import bring_in
+
+    _start(client, pid)
+    url = f"/api/projects/{pid}/wizard/custom"
+    w = client.put(f"{url}/zone_class", json={"file": "geo_parcels", "column": "ZONE", "group": "land"}).json()
+    own = {x["name"]: x for x in w["custom"]}
+    assert own["zone_class"]["column"] == "ZONE" and own["zone_class"]["check"]["text"] == "✓ 3 values"
+    s = _settings(pid)
+    assert s["data"]["load"]["geo_parcels"]["load"]["zone_class"] == ["ZONE", "string"]
+    assert s["field_classification"]["land"] == {"categorical": ["zone_class"]}
+    before = s
+
+    # Reclassified as a number about the building: the column reads as one, and no text value is a number.
+    w = client.put(
+        f"{url}/zone_class", json={"file": "geo_parcels", "column": "ZONE", "group": "building", "type": "number"}
+    ).json()
+    assert next(x for x in w["custom"] if x["name"] == "zone_class")["check"]["warn"]
+    s = _settings(pid)
+    assert s["field_classification"]["impr"] == {"numeric": ["zone_class"]} and "land" not in s["field_classification"]
+    assert "your own fields" in bring_in.changes(before, s)
+
+    # OpenAVMKit's own names, and bad ones, are refused.
+    body = {"file": "geo_parcels", "column": "MAP_NO"}
+    assert client.put(f"{url}/land_class", json=body).status_code == 422
+    assert client.put(f"{url}/Map%20No", json=body).status_code == 422
+    assert client.put(f"{url}/other_zone", json={"file": "geo_parcels", "column": "ZONE"}).status_code == 422
+
+    w = client.put(f"{url}/zone_class", json={"file": None, "column": None}).json()
+    assert w["custom"] == [] and "zone_class" not in _settings(pid)["data"]["load"]["geo_parcels"]["load"]
+    assert "field_classification" not in _settings(pid)

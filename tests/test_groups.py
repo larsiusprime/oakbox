@@ -39,7 +39,13 @@ def brought_in(tmp_path_factory):
     client = TestClient(create_app())
     pid = client.post("/api/projects", json=NEW).json()["id"]
     gpd.GeoDataFrame(
-        {"ID": [str(i) for i in range(40)], "LANDUSE": USES, "BLDGTYPE": TYPES, "AREA": AREAS},
+        {
+            "ID": [str(i) for i in range(40)],
+            "LANDUSE": USES,
+            "BLDGTYPE": TYPES,
+            "AREA": AREAS,
+            "SUBDIV": ["OAKS", "PINES"] * 20,
+        },
         geometry=[box(-79.8 + i * 0.001, 36.0, -79.8 + i * 0.001 + 0.0005, 36.0005) for i in range(40)],
         crs="EPSG:4326",
     ).to_parquet(tmp / "parcels.parquet")
@@ -66,6 +72,9 @@ def brought_in(tmp_path_factory):
     w = client.post(f"/api/projects/{pid}/wizard/steps/property_type/visit").json()
     used = {f["key"]: f for f in w["fields"]}
     assert used["land_class"]["check"] and used["bldg_type"]["check"]
+    # A field of the user's own, classified as about the land.
+    body = {"file": "geo_parcels", "column": "SUBDIV", "group": "land", "type": "category"}
+    assert client.put(f"/api/projects/{pid}/wizard/custom/subdivision", json=body).status_code == 200
     url = f"/api/projects/{pid}/bring-in"
     assert client.post(f"{url}/run").json()["status"] == "running"
     for _ in range(240):
@@ -93,6 +102,8 @@ def test_suggested_groups_and_where_parcels_land(brought_in, monkeypatch):
     view = client.get(_url(pid)).json()
     assert view["ready"] and view["can_suggest"] and view["start"] is None
     assert [f["name"] for f in view["fields"]][:2] == ["land_class", "bldg_type"]  # property type first
+    own = next(f for f in view["fields"] if f["name"] == "subdivision")  # the user's own field, to group on
+    assert (own["kind"], own["distinct"]) == ("category", 2)
 
     view = client.post(f"{_url(pid)}/start", json={"how": "suggested"}).json()
     assert _names(view) == [

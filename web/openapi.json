@@ -1501,6 +1501,65 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/custom/{name}": {
+   "put": {
+    "summary": "Wizard Custom",
+    "description": "Load a parcel file's column as a field the user names and classifies (land, building or other); no column\nremoves it (F3d).",
+    "operationId": "wizard_custom_api_projects__project_id__wizard_custom__name__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WizardCustom"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/layers/{name}": {
    "put": {
     "summary": "Wizard Layer",
@@ -3247,6 +3306,94 @@
      "symbol"
     ],
     "title": "Currency"
+   },
+   "CustomField": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "group": {
+      "type": "string",
+      "enum": [
+       "land",
+       "building",
+       "other"
+      ],
+      "title": "Group",
+      "description": "OpenAVMKit's land, impr or other fields."
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "category",
+       "number"
+      ],
+      "title": "Type"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "group",
+     "type"
+    ],
+    "title": "CustomField",
+    "description": "A field the user names and classifies (F3d Land use & building type): loaded from a parcel file's column\nunder its name; the column is in the file's load."
+   },
+   "CustomFieldView": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "group": {
+      "type": "string",
+      "enum": [
+       "land",
+       "building",
+       "other"
+      ],
+      "title": "Group"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "category",
+       "number"
+      ],
+      "title": "Type"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "check": {
+      "$ref": "#/components/schemas/Check"
+     },
+     "samples": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Samples"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "group",
+     "type",
+     "file",
+     "column",
+     "check",
+     "samples"
+    ],
+    "title": "CustomFieldView"
    },
    "DataFile": {
     "properties": {
@@ -7638,6 +7785,14 @@
       "title": "Locations",
       "description": "The location fields the user named."
      },
+     "custom": {
+      "items": {
+       "$ref": "#/components/schemas/CustomFieldView"
+      },
+      "type": "array",
+      "title": "Custom",
+      "description": "Fields the user named and classified."
+     },
      "layers": {
       "items": {
        "$ref": "#/components/schemas/LayerView"
@@ -7658,6 +7813,7 @@
      "warnings",
      "not_loaded",
      "locations",
+     "custom",
      "layers"
     ],
     "title": "Wizard"
@@ -7690,6 +7846,54 @@
      "column"
     ],
     "title": "WizardColumnRef"
+   },
+   "WizardCustom": {
+    "properties": {
+     "file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "None removes the field."
+     },
+     "group": {
+      "type": "string",
+      "enum": [
+       "land",
+       "building",
+       "other"
+      ],
+      "title": "Group",
+      "default": "other"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "category",
+       "number"
+      ],
+      "title": "Type",
+      "default": "category"
+     }
+    },
+    "type": "object",
+    "title": "WizardCustom"
    },
    "WizardDates": {
     "properties": {
@@ -8446,6 +8650,14 @@
       "type": "array",
       "title": "Absent",
       "description": "Fields said not to exist (no condition: effective age carries it)."
+     },
+     "custom": {
+      "items": {
+       "$ref": "#/components/schemas/CustomField"
+      },
+      "type": "array",
+      "title": "Custom",
+      "description": "Fields the user named and classified."
      }
     },
     "type": "object",
@@ -8456,7 +8668,8 @@
      "confirmed",
      "decided",
      "locations",
-     "absent"
+     "absent",
+     "custom"
     ],
     "title": "WizardState",
     "description": "The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."

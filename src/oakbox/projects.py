@@ -79,6 +79,15 @@ class Locale(BaseModel):
     numbers: NumberStyle | None = None
 
 
+class CustomField(BaseModel):
+    """A field the user names and classifies (F3d Land use & building type): loaded from a parcel file's column
+    under its name; the column is in the file's load."""
+
+    name: str
+    group: Literal["land", "building", "other"] = Field(description="OpenAVMKit's land, impr or other fields.")
+    type: Literal["category", "number"]
+
+
 class WizardState(BaseModel):
     """The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."""
 
@@ -95,6 +104,7 @@ class WizardState(BaseModel):
     absent: list[str] = Field(
         default_factory=list, description="Fields said not to exist (no condition: effective age carries it)."
     )
+    custom: list[CustomField] = Field(default_factory=list, description="Fields the user named and classified.")
 
 
 class ModelGroup(BaseModel):
@@ -278,21 +288,30 @@ def create(new: NewProject) -> Project:
     return _start(project, _new_folder(new.name))
 
 
+BUCKETS = {"land": "land", "building": "impr", "other": "other"}
+
+
 def _classification(project: Project) -> dict:
     locations, categorical, numeric = list(project.wizard.locations), list(project.wizard.locations), []
+    fc: dict = {}
+    # The user's own fields, in OpenAVMKit's land / impr / other buckets.
+    loaded = {k for f in project.files for k in f.load}
+    for c in project.wizard.custom:
+        if c.name in loaded:
+            kind = "numeric" if c.type == "number" else "categorical"
+            fc.setdefault(BUCKETS[c.group], {}).setdefault(kind, []).append(c.name)
     for f in project.files:
         if f.holds == "overlay" and f.overlay and f.overlay.use == "stamp":
             for x in f.overlay.fields:
                 if x.kind == "location":
                     locations.append(x.name)
                 (numeric if x.kind == "number" else categorical).append(x.name)
-    fc: dict = {}
     if locations:
         fc.setdefault("important", {})["locations"] = locations
     if categorical:
-        fc.setdefault("other", {})["categorical"] = categorical
+        fc.setdefault("other", {}).setdefault("categorical", []).extend(categorical)
     if numeric:
-        fc.setdefault("other", {})["numeric"] = numeric
+        fc.setdefault("other", {}).setdefault("numeric", []).extend(numeric)
     return {"field_classification": fc} if fc else {}
 
 

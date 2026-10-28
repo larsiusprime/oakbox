@@ -3471,3 +3471,13 @@ a.row-title:hover {
   height: 0.7rem;
   border-radius: 2px;
 }
+
+.wiz-custom {
+  display: grid;
+  grid-template-columns: max-content max-content auto auto 1fr auto;
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+}
+.wiz-custom-samples {
+  grid-column: 2 / -1;
+}

@@ -573,6 +573,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/custom/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Custom
+         * @description Load a parcel file's column as a field the user names and classifies (land, building or other); no column
+         *     removes it (F3d).
+         */
+        put: operations["wizard_custom_api_projects__project_id__wizard_custom__name__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/layers/{name}": {
         parameters: {
             query?: never;
@@ -1291,6 +1312,48 @@ export interface components {
             name: string;
             /** Symbol */
             symbol: string;
+        };
+        /**
+         * CustomField
+         * @description A field the user names and classifies (F3d Land use & building type): loaded from a parcel file's column
+         *     under its name; the column is in the file's load.
+         */
+        CustomField: {
+            /** Name */
+            name: string;
+            /**
+             * Group
+             * @description OpenAVMKit's land, impr or other fields.
+             * @enum {string}
+             */
+            group: "land" | "building" | "other";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "category" | "number";
+        };
+        /** CustomFieldView */
+        CustomFieldView: {
+            /** Name */
+            name: string;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "land" | "building" | "other";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "category" | "number";
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            check: components["schemas"]["Check"];
+            /** Samples */
+            samples: string[];
         };
         /**
          * DataFile
@@ -3327,6 +3390,11 @@ export interface components {
              */
             locations: components["schemas"]["LocationField"][];
             /**
+             * Custom
+             * @description Fields the user named and classified.
+             */
+            custom: components["schemas"]["CustomFieldView"][];
+            /**
              * Layers
              * @description Map layers (Shapefiles).
              */
@@ -3340,6 +3408,28 @@ export interface components {
             column: string;
             /** @description None: the saved one, or a first one. */
             scale?: components["schemas"]["Scale-Input"] | null;
+        };
+        /** WizardCustom */
+        WizardCustom: {
+            /** File */
+            file?: string | null;
+            /**
+             * Column
+             * @description None removes the field.
+             */
+            column?: string | null;
+            /**
+             * Group
+             * @default other
+             * @enum {string}
+             */
+            group: "land" | "building" | "other";
+            /**
+             * Type
+             * @default category
+             * @enum {string}
+             */
+            type: "category" | "number";
         };
         /** WizardDates */
         WizardDates: {
@@ -3649,6 +3739,11 @@ export interface components {
              * @description Fields said not to exist (no condition: effective age carries it).
              */
             absent: string[];
+            /**
+             * Custom
+             * @description Fields the user named and classified.
+             */
+            custom: components["schemas"]["CustomField"][];
         };
     };
     responses: never;
@@ -4691,6 +4786,42 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WizardLocation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_custom_api_projects__project_id__wizard_custom__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WizardCustom"];
             };
         };
         responses: {

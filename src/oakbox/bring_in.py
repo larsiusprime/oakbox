@@ -121,9 +121,26 @@ def changes(old: dict, new: dict) -> list[str]:
         out.append("how sales find their parcel")
     if old.get("locality") != new.get("locality"):
         out.append("the centre")
-    if old.get("field_classification") != new.get("field_classification"):
+    fa, fb = old.get("field_classification", {}), new.get("field_classification", {})
+    if fa.get("important") != fb.get("important"):
         out.append("location fields")
+    if _own(old, fa) != _own(new, fb):
+        out.append("your own fields")
     return list(dict.fromkeys(out))
+
+
+def _own(settings: dict, fc: dict) -> dict:
+    """The user's own classified fields: field_classification's land / impr / other, without map layers' fields."""
+    stamped = {
+        x
+        for g in settings.get("data", {}).get("process", {}).get("enrich", {}).get("geometry", [])
+        for x in g["fields"]
+    }
+    return {
+        (bucket, kind): sorted(set(names) - stamped)
+        for bucket in ("land", "impr", "other")
+        for kind, names in fc.get(bucket, {}).items()
+    }
 
 
 # ---------- Reading the results: a page of rows, or all of them as CSV ----------

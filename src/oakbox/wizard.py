@@ -382,6 +382,7 @@ class Wizard(BaseModel):
     warnings: list[str] = Field(description="Recommended fields that are missing.")
     not_loaded: list[NotLoaded]
     locations: list[LocationField] = Field(default_factory=list, description="The location fields the user named.")
+    custom: list[CustomFieldView] = Field(default_factory=list, description="Fields the user named and classified.")
     layers: list[LayerView] = Field(default_factory=list, description="Map layers (Shapefiles).")
 
 
@@ -925,6 +926,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         warnings=warnings,
         not_loaded=not_loaded,
         locations=locations(project, in_dir),
+        custom=custom_fields(project, in_dir),
         layers=layer_list,
     )
 
@@ -2921,6 +2923,113 @@ def set_location(project: Project, in_dir: Path, name: str, file: str | None, co
     entry.load[name] = [column, "string"]
     if name not in project.wizard.locations:
         project.wizard.locations.append(name)
+
+
+# ---------- Fields the user names and classifies: land, building or other (F3d Land use & building type) ----------
+
+
+class CustomFieldView(BaseModel):
+    name: str
+    group: Literal["land", "building", "other"]
+    type: Literal["category", "number"]
+    file: str
+    column: str
+    check: Check
+    samples: list[str]
+
+
+def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
+    files = _Files(project, in_dir)
+    out = []
+    for c in project.wizard.custom:
+        entry = next((f for f in _field_files(project, False) if c.name in f.load), None)
+        if entry is None:
+            continue
+        column = entry.load[c.name][0]
+        values = (
+            [v.strip() for v in files.values(entry.name, column) if v.strip()] if entry.name in files.preview else []
+        )
+        distinct = len(set(values))
+        if not values:
+            check = Check(ok=False, text="empty")
+        elif c.type == "number":
+            bad = sum(1 for v in values if not _is_number(v))
+            check = (
+                Check(ok=True, text=f"✓ numbers · {distinct:,} values")
+                if bad == 0
+                else Check(ok=True, warn=True, text=f"{bad:,} values aren't numbers: they'll be blank")
+            )
+        elif distinct == 1:
+            check = Check(ok=True, warn=True, text="one value for every parcel")
+        else:
+            check = Check(ok=True, text=f"✓ {distinct:,} values")
+        col = files.column(entry.name, column)
+        out.append(
+            CustomFieldView(
+                name=c.name,
+                group=c.group,
+                type=c.type,
+                file=entry.name,
+                column=column,
+                check=check,
+                samples=col.samples if col else [],
+            )
+        )
+    return out
+
+
+def _is_number(v: str) -> bool:
+    try:
+        float(v.replace(",", ""))
+    except ValueError:
+        return False
+    return True
+
+
+def set_custom(
+    project: Project,
+    in_dir: Path,
+    name: str,
+    file: str | None,
+    column: str | None,
+    group: str = "other",
+    type_: str = "category",
+) -> None:
+    """Load a parcel file's column as a field the user names and classifies (or, with no column, remove it)."""
+    from oakbox.projects import CustomField
+
+    mine = [c.name for c in project.wizard.custom]
+    if column is None:
+        if name in mine:
+            for f in _field_files(project, False):
+                f.load.pop(name, None)
+            project.wizard.custom = [c for c in project.wizard.custom if c.name != name]
+        return
+    if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+        raise ValueError("Names use lowercase letters, digits and underscores, and start with a letter.")
+    if name in TAKEN or name.startswith("polar_") or name in _by_key():
+        raise ValueError(f"{name} is one of OpenAVMKit's own fields: choose another name.")
+    if name in project.wizard.locations:
+        raise ValueError(f"{name} is already a location field.")
+    entry = next((f for f in _field_files(project, False) if f.name == file), None)
+    if entry is None:
+        raise ValueError("Your own fields come from a parcel file: the parcel universe, or one joined to it.")
+    if _Files(project, in_dir).column(entry.name, column) is None:
+        raise ValueError(f"{entry.name} has no column {column}.")
+    loaded_as = {spec[0]: field for field, spec in entry.load.items()}
+    if column in loaded_as and loaded_as[column] != name:
+        raise ValueError(f"{column} is already loaded as {loaded_as[column]}.")
+    for f in project.files:
+        if name in f.load and name not in mine:
+            raise ValueError(f"{name} is already used for another field.")
+        if name in f.load and f is not entry:
+            f.load.pop(name)
+    entry.load[name] = [column, "float" if type_ == "number" else "string"]
+    field = CustomField(name=name, group=group, type=type_)
+    if name in mine:
+        project.wizard.custom = [field if c.name == name else c for c in project.wizard.custom]
+    else:
+        project.wizard.custom.append(field)
 
 
 class MapView(BaseModel):

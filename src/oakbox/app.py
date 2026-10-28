@@ -130,6 +130,13 @@ class GroupsBody(BaseModel):
     groups: list[projects.ModelGroup]
 
 
+class WizardCustom(BaseModel):
+    file: str | None = None
+    column: str | None = Field(default=None, description="None removes the field.")
+    group: Literal["land", "building", "other"] = "other"
+    type: Literal["category", "number"] = "category"
+
+
 class InspectBody(BaseModel):
     groups: list[projects.ModelGroup]
     index: int
@@ -645,6 +652,14 @@ def create_app() -> FastAPI:
     def wizard_location(project_id: str, name: str, body: WizardLocation) -> wizard.Wizard:
         """Load a parcel file's column as a location field the user names; no column removes it (F3d)."""
         return _change(project_id, lambda p, d: wizard.set_location(p, d, name, body.file, body.column))
+
+    @app.put("/api/projects/{project_id}/wizard/custom/{name}")
+    def wizard_custom(project_id: str, name: str, body: WizardCustom) -> wizard.Wizard:
+        """Load a parcel file's column as a field the user names and classifies (land, building or other); no column
+        removes it (F3d)."""
+        return _change(
+            project_id, lambda p, d: wizard.set_custom(p, d, name, body.file, body.column, body.group, body.type)
+        )
 
     @app.put("/api/projects/{project_id}/wizard/layers/{name}")
     def wizard_layer(project_id: str, name: str, body: datafiles.Overlay | None = None) -> wizard.Wizard:
