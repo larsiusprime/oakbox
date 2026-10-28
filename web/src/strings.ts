@@ -180,7 +180,13 @@ export const t = {
     back: "‹ Back",
     next: "Next ›",
     // Above the button bar while Next is greyed (it still answers a click).
-    left: (n: number) => (n === 1 ? "1 thing left on this step" : `${n} things left on this step`),
+    // A few are named, so it's clear what Next waits for ("2 things left: Pick the valid sale; Pick the vacant sale").
+    left: (n: number, what: string[] = []) =>
+      n <= 3 && what.length === n
+        ? `${n === 1 ? "1 thing" : `${n} things`} left: ${what.join("; ")}`
+        : n === 1
+          ? "1 thing left on this step"
+          : `${n} things left on this step`,
     unfinished: {
       title: "This step isn't finished",
       body: "You can come back to it: the step list keeps its mark until it's done.",

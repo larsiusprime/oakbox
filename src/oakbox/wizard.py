@@ -3953,9 +3953,18 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
         what = {"sales": "sales", "permits": "permits"}.get(wf.holds or "", "rows")
         what = f"{what[:-1]} is" if rows == 1 else f"{what} are"
         ids = f" ({_n(len(missing), 'parcel ID')})" if len(missing) != rows else ""
+        # A clean-up too small to be the story (under 2 points) can still match a few: say which, and how many.
+        kind = "sales" if wf.holds == "sales" else "parcels"
+        small = _suggest(files, f, base, f.match, now - 0.01 + 1e-9, kind)
+        some = round((small.share - now) * total) if small is not None else 0
         lines = [
             f"{rows:,} {what} for parcels that aren't in the parcel universe{ids}. "
-            f"Their IDs are written like the parcel universe's, so cleaning them up won't help."
+            + (
+                f"Their IDs are written like the parcel universe's, so cleaning up won't help most of them: "
+                f"{some:,} more match if you {_beyond(small, f, base)} (Reconcile\u2026)."
+                if small is not None and some > 0
+                else "Their IDs are written like the parcel universe's, so cleaning them up won't help."
+            )
         ]
         if shapeless:
             lines.append(
@@ -3998,6 +4007,17 @@ def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) ->
                     f"they're missing from the parcel universe, not written differently."
                 )
         wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines)
+
+
+def _beyond(sug: Suggestion, f: DataFile, base: DataFile) -> str:
+    """A suggestion in words, leaving out the sides already cleaned that way: "trim spaces from the sales IDs"."""
+    parts = []
+    if sug.base_steps and sug.base_steps != base.clean.get(f.match, []):
+        parts.append(f"{_describe(sug.base_steps)} from the parcel IDs")
+    if sug.file_steps and sug.file_steps != f.clean.get(f.match, []):
+        mine = "sales IDs" if f.holds == "sales" else f"{f.name} IDs"
+        parts.append(f"{_describe(sug.file_steps)} from the {mine}")
+    return " and ".join(parts) or "clean them up"
 
 
 def _holder(

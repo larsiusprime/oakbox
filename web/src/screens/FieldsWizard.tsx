@@ -166,7 +166,12 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
         </div>
         {next && gated && current.left.length > 0 && (
-          <p className="wiz-left">{w.left(current.left.length)}</p>
+          <p className="wiz-left">
+            {w.left(
+              current.left.length,
+              current.left.map((l) => l.text),
+            )}
+          </p>
         )}
         <div className="wiz-foot">
           <span className="wiz-grow" />
