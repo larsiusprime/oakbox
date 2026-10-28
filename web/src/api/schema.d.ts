@@ -3797,6 +3797,11 @@ export interface components {
             columns: string[];
             /** Rows */
             rows: string[][];
+            /**
+             * Bands
+             * @description 0 or 1 per row, alternating per ID.
+             */
+            bands: number[];
         };
         /**
          * Repeats
@@ -3859,6 +3864,11 @@ export interface components {
             columns: string[];
             /** Rows */
             rows: string[][];
+            /**
+             * Bands
+             * @description Repeated IDs (sorted by the ID, its first column): 0 or 1 per row, alternating per ID, so the rows of one ID share a background.
+             */
+            bands: number[] | null;
         };
         /**
          * Rule

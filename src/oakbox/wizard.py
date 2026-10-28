@@ -319,6 +319,7 @@ class RepeatRows(BaseModel):
 
     columns: list[str]
     rows: list[list[str]]
+    bands: list[int] = Field(default_factory=list, description="0 or 1 per row, alternating per ID.")
 
 
 class UnitExample(BaseModel):
@@ -1488,7 +1489,11 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     for v in values:
         if v:
             counts[v] = counts.get(v, 0) + 1
+    # A few of the most repeated, then shown sorted by the ID, each ID's rows together.
+    from oakbox.bring_in import _natural, bands
+
     ids = [v for v, n in sorted(counts.items(), key=lambda kv: -kv[1]) if n > 1][:limit]
+    ids.sort(key=_natural)
     loaded = [s[0] for s in entry.load.values()]
     shown = [spec[0], *[c for c in loaded if c != spec[0]]][:8]
     rest = [c.name for c in files.columns(name) if c.name not in shown]
@@ -1496,7 +1501,8 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     picked = [i for i, v in enumerate(values) if v in set(ids)]
     columns = {c: files.values(name, c) for c in shown}
     rows = [[columns[c][i] for c in shown] for i in sorted(picked, key=lambda i: ids.index(values[i]))]
-    return RepeatRows(columns=shown, rows=rows[:40])
+    rows = rows[:40]
+    return RepeatRows(columns=shown, rows=rows, bands=bands(r[0] for r in rows))
 
 
 def made_sale_id(match: Match) -> list:

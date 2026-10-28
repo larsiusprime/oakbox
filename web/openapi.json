@@ -8764,12 +8764,21 @@
       },
       "type": "array",
       "title": "Rows"
+     },
+     "bands": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Bands",
+      "description": "0 or 1 per row, alternating per ID."
      }
     },
     "type": "object",
     "required": [
      "columns",
-     "rows"
+     "rows",
+     "bands"
     ],
     "title": "RepeatRows",
     "description": "Examples of repeated IDs, every row of each, for the duplicates dialog."
@@ -8893,6 +8902,21 @@
       },
       "type": "array",
       "title": "Rows"
+     },
+     "bands": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bands",
+      "description": "Repeated IDs (sorted by the ID, its first column): 0 or 1 per row, alternating per ID, so the rows of one ID share a background."
      }
     },
     "type": "object",
@@ -8901,7 +8925,8 @@
      "total",
      "offset",
      "columns",
-     "rows"
+     "rows",
+     "bands"
     ],
     "title": "Rows"
    },

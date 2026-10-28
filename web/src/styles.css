@@ -4156,3 +4156,13 @@ a.row-title:hover {
   flex-wrap: wrap;
   gap: 0.2rem 1rem;
 }
+
+/* Repeated IDs: the rows of one ID share a background, and IDs alternate (sorted by the ID). */
+/* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
+tr.band-a > td {
+  background: #ffffff;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
+tr.band-b > td {
+  background: #eeeeee;
+}

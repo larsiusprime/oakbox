@@ -19,6 +19,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -169,6 +170,33 @@ class Rows(BaseModel):
     offset: int
     columns: list[str]
     rows: list[list[str]]
+    bands: list[int] | None = Field(
+        default=None,
+        description="Repeated IDs (sorted by the ID, its first column): 0 or 1 per row, alternating per ID, so the "
+        "rows of one ID share a background.",
+    )
+
+
+def bands(values) -> list[int]:
+    """0 or 1 per row, changing where the value does: the rows of one ID share a background, IDs alternate."""
+    out, band, last = [], 1, object()
+    for v in values:
+        if v != last:
+            band, last = 1 - band, v
+        out.append(band)
+    return out
+
+
+def by_id(df, ids):
+    """Rows of repeated IDs, the ID column first and the rows sorted by it (each ID's rows in file order)."""
+    values = [str(v) for v in ids]
+    # Numbers in an ID as numbers: 99 before 100.
+    order = sorted(range(len(values)), key=lambda i: _natural(values[i]))
+    out = df.iloc[order]
+    column = getattr(ids, "name", None)
+    if column in out.columns:
+        out = out[[column, *[c for c in out.columns if c != column]]]
+    return out
 
 
 def _rows_path(project_dir: Path, name: str) -> Path:
@@ -196,6 +224,15 @@ def _text(df) -> list[list[str]]:
     return [[cell(v) for v in row] for row in df.itertuples(index=False, name=None)]
 
 
+def _natural(v: str) -> list:
+    return [(0, int(p), "") if p.isdigit() else (1, 0, p) for p in re.split(r"(\d+)", v) if p]
+
+
+def _named(ids, f, field: str):
+    """The IDs, named as their column in the file, to sort and lead the rows by."""
+    return ids.reset_index(drop=True).rename(f.load.get(field, [None])[0])
+
+
 def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
     """Rows offset.. of a set, reading only the row groups they're in."""
     import pyarrow.parquet as pq
@@ -217,7 +254,14 @@ def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
     df = pf.read_row_groups(groups).to_pandas() if groups else pf.schema_arrow.empty_table().to_pandas()
     skip = offset - (first or 0)
     df = df.iloc[skip : skip + limit]
-    return Rows(set=name, total=total, offset=offset, columns=[str(c) for c in df.columns], rows=_text(df))
+    banded = None
+    if name.endswith("_repeats") and total:
+        # Bands over the whole set, so they carry on from one page to the next.
+        first_col = pf.schema_arrow.names[0]
+        banded = bands(pf.read(columns=[first_col]).column(0).to_pylist())[offset : offset + len(df)]
+    return Rows(
+        set=name, total=total, offset=offset, columns=[str(c) for c in df.columns], rows=_text(df), bands=banded
+    )
 
 
 class Stat(BaseModel):
@@ -470,7 +514,7 @@ def run(project_id: str) -> None:
                     op="−",
                     n=int(repeated.sum()),
                     text=f"repeated parcel IDs: {how}",
-                    rows=save("universe_repeats", raw[repeated]),
+                    rows=save("universe_repeats", by_id(raw[repeated], _named(ids[repeated], base, "key"))),
                 )
             )
         units_f = projects.units_file(project)
@@ -506,7 +550,7 @@ def run(project_id: str) -> None:
                     op="−",
                     n=int(extra.sum()),
                     text=f"more than one row for a parcel: {how}",
-                    rows=save(f"{f.name}_repeats", raw[extra]),
+                    rows=save(f"{f.name}_repeats", by_id(raw[extra], _named(ids[extra], f, f.match))),
                 )
             )
         if orphan.any():

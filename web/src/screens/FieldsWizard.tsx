@@ -43,6 +43,7 @@ import { Tip, TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
+import { band } from "./BringIn";
 import { type CustomChange, CustomFields } from "./CustomFields";
 import { EnrichStep } from "./Enrich";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
@@ -689,7 +690,7 @@ function DupesDialog({
                 <tbody>
                   {examples.data.rows.map((row, i) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
-                    <tr key={i}>
+                    <tr key={i} className={band(examples.data.bands, i)}>
                       {row.map((v, j) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
                         <td key={j} className="mono">

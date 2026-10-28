@@ -450,6 +450,12 @@ function pct(share: number): string {
 const PAGE = 50;
 
 /** Rows a page at a time: only that page is read from the file. CSV export streams the whole set. */
+/** Repeated IDs: the rows of one ID share a background, and IDs alternate. */
+export function band(bands: number[] | null | undefined, i: number): string | undefined {
+  if (!bands) return undefined;
+  return bands[i] ? "band-b" : "band-a";
+}
+
 function RowsDialog({
   projectId,
   set,
@@ -524,7 +530,7 @@ function RowsDialog({
                 <tbody>
                   {p.rows.map((row, i) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: a page of rows, in file order
-                    <tr key={offset + i}>
+                    <tr key={offset + i} className={band(p.bands, i)}>
                       {row.map((cell, j) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: a row's cells, by column
                         <td key={j} className="mono bi-cell">
