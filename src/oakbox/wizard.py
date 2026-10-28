@@ -95,6 +95,13 @@ STEPS: list[Step] = [
         # Land, Building and Rooms & features steps are left out for now: their fields are in the advanced view.
         fields=["address"],
     ),
+    # What kind of property each parcel is: model groups are made from these (F5).
+    Step(
+        key="property_type",
+        parent="details",
+        fields=["land_class", "bldg_type"],
+        more=["bldg_desc", "bldg_class", "bldg_units", "bldg_stories"],
+    ),
     Step(
         key="assessed",
         parent="details",
@@ -133,6 +140,10 @@ RENAMED = {
         "Situs address",
         "The physical address of the property itself: where it is, not where the owner gets mail.",
     ),
+    "land_class": (
+        "Land use",
+        "What the land is used for: residential, commercial, condo, government… Often called land class or use code.",
+    ),
 }
 
 # Common column names, beside the field's own key and name (normalised: lowercase letters and digits).
@@ -152,6 +163,11 @@ ALIASES: dict[str, list[str]] = {
         *("acres", "acreage", "calcacres", "deededacres", "gisacres", "landacres", "hectares", "landha"),
         *("landsqm", "lotsqm", "landm2"),
     ],
+    "land_class": [
+        *("landuse", "landusecode", "luc", "usecode", "landclass", "landclasscode", "propertyclass", "propclass"),
+        *("propertyuse", "propuse", "puc", "stateclass", "propertytype", "proptype", "classcode"),
+    ],
+    "bldg_desc": ["bldgdesc", "buildingdesc", "buildingdescription", "imprvdesc", "improvementdescription"],
     "bldg_type": ["imprvtype", "imprtype", "buildingtype", "improvementtype", "bldgtype"],
     "bldg_class": ["buildingclass", "bldgclass", "imprvclass"],
     "bldg_stories": ["stories", "numstories", "story"],

@@ -29,7 +29,7 @@ export function ruleComplete(rule: Rule): boolean {
 }
 
 /** Waits for typing to stop before asking the server again. */
-function useSettled<T>(value: T, ms = 250): T {
+export function useSettled<T>(value: T, ms = 250): T {
   const [settled, setSettled] = useState(value);
   useEffect(() => {
     const id = setTimeout(() => setSettled(value), ms);
@@ -297,7 +297,7 @@ export function RuleDialog({
 }
 
 /** A column's values with how many sales have each: tick the ones the test means. */
-function ValuePicker({
+export function ValuePicker({
   values,
   more,
   chosen,

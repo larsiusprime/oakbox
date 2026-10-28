@@ -32,7 +32,7 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
-from oakbox.datafiles import DataFile, data_load, overlay_distance
+from oakbox.datafiles import DataFile, Rule, data_load, overlay_distance, rule_filter
 
 
 class BaseModel(_PydanticBase):
@@ -97,6 +97,29 @@ class WizardState(BaseModel):
     )
 
 
+class ModelGroup(BaseModel):
+    """Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins."""
+
+    id: str = Field(description="The model_group value OpenAVMKit gives its parcels; kept when renamed.")
+    name: str
+    color: str = Field(description="On the map and in the list.")
+    rule: Rule = Field(
+        default_factory=lambda: Rule(join="any"),
+        description="Conditions on parcel universe fields (a condition's column is the field).",
+    )
+    numeric: list[str] = Field(default_factory=list, description="Fields the rule tests that are numbers.")
+
+
+def group_filter(g: ModelGroup) -> list:
+    """The group's rule as an OpenAVMKit filter ([] while it has no complete condition)."""
+    conditions = [c for c in g.rule.conditions if c.values or c.op in ("isempty", "notempty")]
+    if not conditions:
+        return []
+    rule = g.rule.model_copy(update={"conditions": conditions})
+    names = {c.column: (c.column, "float" if c.column in g.numeric else "string") for c in conditions}
+    return rule_filter(rule, names)
+
+
 class Center(BaseModel):
     """The point polar coordinates are measured from (OpenAVMKit's locality.center), in degrees."""
 
@@ -120,6 +143,10 @@ class Project(BaseModel):
     sample: str | None = None
     files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
     wizard: WizardState = Field(default_factory=WizardState)
+    groups: list[ModelGroup] = Field(default_factory=list, description="Model groups, in order (SPEC §3.5).")
+    groups_start: Literal["scratch", "suggested"] | None = Field(
+        default=None, description="How model groups were started; None: not yet."
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -284,10 +311,16 @@ def base_settings(project: Project) -> dict:
         # categories and numbers. Lists here add to OpenAVMKit's defaults rather than replacing them.
         **_classification(project),
         "modeling": {
-            "metadata": {"valuation_date": project.valuation_date.isoformat() if project.valuation_date else None}
+            "metadata": {"valuation_date": project.valuation_date.isoformat() if project.valuation_date else None},
+            **_model_groups(project),
         },
         **({"data": _data(project)} if project.files else {}),
     }
+
+
+def _model_groups(project: Project) -> dict:
+    groups = {g.id: {"name": g.name, "filter": f} for g in project.groups if (f := group_filter(g))}
+    return {"model_groups": groups} if groups else {}
 
 
 def _data(project: Project) -> dict:

@@ -11,6 +11,7 @@ import { desktop } from "../desktop";
 import { t } from "../strings";
 import { BringInTab, useAccepted } from "./BringIn";
 import { FieldsTab } from "./FieldsWizard";
+import { ModelGroupsTab } from "./ModelGroups";
 
 export const TABS = ["metadata", "files", "fields", "bring", "groups"] as const;
 export type TabId = (typeof TABS)[number];
@@ -55,7 +56,7 @@ function ProjectView({
   const selected = tab === "files" || !tab ? "fields" : tab === "groups" && !accepted ? "bring" : tab;
 
   return (
-    <div className="project">
+    <div className={selected === "groups" ? "project project-wide" : "project"}>
       <header className="page-head">
         <a className="back-link" href="#/">
           <ChevronLeft aria-hidden="true" size="1.1em" />
@@ -105,7 +106,7 @@ function ProjectView({
           <BringInTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="groups" className="folder-panel">
-          <p className="bi-lede bi-soon">{t.bringIn.groupsSoon}</p>
+          <ModelGroupsTab projectId={projectId} />
         </TabPanel>
       </Tabs>
     </div>

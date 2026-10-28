@@ -870,6 +870,131 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Groups State
+         * @description The model groups, and the parcel universe's fields a rule can test.
+         */
+        get: operations["groups_state_api_projects__project_id__groups_get"];
+        /**
+         * Groups Save
+         * @description Save the groups, in order, and write them into the settings.
+         */
+        put: operations["groups_save_api_projects__project_id__groups_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/groups/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Groups Start
+         * @description Start from scratch (no groups yet) or from a suggested set made from the property-type fields.
+         */
+        post: operations["groups_start_api_projects__project_id__groups_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/groups/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Groups Preview
+         * @description Where each parcel lands under these groups (saved or not), each group's counts and checks, and what
+         *     moved since the saved groups.
+         */
+        post: operations["groups_preview_api_projects__project_id__groups_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/groups/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Groups Inspect
+         * @description One parcel: its fields, its sales, and why it's in its group under these groups.
+         */
+        post: operations["groups_inspect_api_projects__project_id__groups_inspect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/groups/values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Groups Values
+         * @description A field's values, with parcels, vacant parcels and valid sales for each.
+         */
+        get: operations["groups_values_api_projects__project_id__groups_values__field__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/groups/shapes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Groups Shapes
+         * @description The parcel shapes as GeoJSON, in the parcel universe's order (a preview's indexes).
+         */
+        get: operations["groups_shapes_api_projects__project_id__groups_shapes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -1566,6 +1691,193 @@ export interface components {
             /** Note */
             note: string | null;
         };
+        /** GroupCheck */
+        GroupCheck: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "ok" | "warn" | "bad";
+            /** Text */
+            text: string;
+        };
+        /** GroupField */
+        GroupField: {
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "category" | "number";
+            /** Distinct */
+            distinct: number;
+        };
+        /** GroupMove */
+        GroupMove: {
+            /**
+             * From Id
+             * @description The group in the saved groups ("" unassigned).
+             */
+            from_id: string;
+            /**
+             * To Id
+             * @description The group in these groups ("" unassigned).
+             */
+            to_id: string;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Sold
+             * @description Of them, parcels with a valid sale.
+             */
+            sold: number;
+        };
+        /** GroupStats */
+        GroupStats: {
+            /**
+             * Id
+             * @description The group, or "" for unassigned.
+             */
+            id: string;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Vacant
+             * @description Parcels without a building.
+             */
+            vacant: number;
+            /**
+             * Sales
+             * @description Valid improved sales.
+             */
+            sales: number;
+            /** Vacant Sales */
+            vacant_sales: number;
+            /**
+             * Median Price
+             * @description Of the improved sales.
+             */
+            median_price: number | null;
+            /** First Year */
+            first_year: number | null;
+            /** Last Year */
+            last_year: number | null;
+            /** Checks */
+            checks: components["schemas"]["GroupCheck"][];
+        };
+        /** GroupValue */
+        GroupValue: {
+            /**
+             * Value
+             * @description As a rule names it ("" for blank).
+             */
+            value: string;
+            /** Parcels */
+            parcels: number;
+            /** Vacant */
+            vacant: number;
+            /**
+             * Sales
+             * @description Valid sales of these parcels.
+             */
+            sales: number;
+        };
+        /** GroupValues */
+        GroupValues: {
+            /** Field */
+            field: string;
+            /** Rows */
+            rows: components["schemas"]["GroupValue"][];
+            /**
+             * More
+             * @description GroupValues not shown.
+             */
+            more: number;
+        };
+        /** GroupWhy */
+        GroupWhy: {
+            /**
+             * Group
+             * @description The group's id.
+             */
+            group: string;
+            /**
+             * Order
+             * @description 1 for the first group.
+             */
+            order: number;
+            /** Met */
+            met: boolean;
+            /** Text */
+            text: string;
+        };
+        /** GroupsBody */
+        GroupsBody: {
+            /** Groups */
+            groups: components["schemas"]["ModelGroup-Input"][];
+        };
+        /** GroupsPreview */
+        GroupsPreview: {
+            /**
+             * Assign
+             * @description Per parcel (in the shapes' order), the index of its group; -1: none.
+             */
+            assign: number[];
+            /**
+             * Saved
+             * @description The same for the saved groups.
+             */
+            saved: number[];
+            /**
+             * Stats
+             * @description Per group, then unassigned last.
+             */
+            stats: components["schemas"]["GroupStats"][];
+            /**
+             * Moves
+             * @description Parcels in a different group than in the saved groups, by from and to.
+             */
+            moves: components["schemas"]["GroupMove"][];
+            /** Total */
+            total: number;
+        };
+        /** GroupsStart */
+        GroupsStart: {
+            /**
+             * How
+             * @enum {string}
+             */
+            how: "scratch" | "suggested";
+        };
+        /** GroupsView */
+        GroupsView: {
+            /**
+             * Ready
+             * @description Bring in data has a receipt to make groups from.
+             */
+            ready: boolean;
+            /** Start */
+            start: ("scratch" | "suggested") | null;
+            /** Groups */
+            groups: components["schemas"]["ModelGroup-Output"][];
+            /** Fields */
+            fields: components["schemas"]["GroupField"][];
+            /** Colors */
+            colors: string[];
+            /**
+             * Unassigned Color
+             * @default #9a9a9a
+             */
+            unassigned_color: string;
+            /**
+             * Can Suggest
+             * @description The parcel universe has a property-type field to suggest groups from.
+             */
+            can_suggest: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1609,6 +1921,13 @@ export interface components {
              * @description Columns in the file, not counting geometry. None if missing or unreadable.
              */
             columns: number | null;
+        };
+        /** InspectBody */
+        InspectBody: {
+            /** Groups */
+            groups: components["schemas"]["ModelGroup-Input"][];
+            /** Index */
+            index: number;
         };
         /** Issue */
         Issue: {
@@ -1784,6 +2103,56 @@ export interface components {
             ] | null;
             /** Parcels */
             parcels: number;
+        };
+        /**
+         * ModelGroup
+         * @description Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins.
+         */
+        "ModelGroup-Input": {
+            /**
+             * Id
+             * @description The model_group value OpenAVMKit gives its parcels; kept when renamed.
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Color
+             * @description On the map and in the list.
+             */
+            color: string;
+            /** @description Conditions on parcel universe fields (a condition's column is the field). */
+            rule?: components["schemas"]["Rule-Input"];
+            /**
+             * Numeric
+             * @description Fields the rule tests that are numbers.
+             */
+            numeric?: string[];
+        };
+        /**
+         * ModelGroup
+         * @description Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins.
+         */
+        "ModelGroup-Output": {
+            /**
+             * Id
+             * @description The model_group value OpenAVMKit gives its parcels; kept when renamed.
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Color
+             * @description On the map and in the list.
+             */
+            color: string;
+            /** @description Conditions on parcel universe fields (a condition's column is the field). */
+            rule: components["schemas"]["Rule-Output"];
+            /**
+             * Numeric
+             * @description Fields the rule tests that are numbers.
+             */
+            numeric: string[];
         };
         /**
          * NewProject
@@ -2077,6 +2446,52 @@ export interface components {
              */
             name_column: string | null;
         };
+        /** ParcelField */
+        ParcelField: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /** ParcelInspect */
+        ParcelInspect: {
+            /** Index */
+            index: number;
+            /** Key */
+            key: string;
+            /**
+             * Group
+             * @description Its group's id, "" for none.
+             */
+            group: string;
+            /** Fields */
+            fields: components["schemas"]["ParcelField"][];
+            /** Sales */
+            sales: components["schemas"]["ParcelSale"][];
+            /**
+             * Why
+             * @description The groups in order up to the one it's in, then any later one it also meets.
+             */
+            why: components["schemas"]["GroupWhy"][];
+            /**
+             * Like
+             * @description Parcels with the same values in the fields the rules test.
+             */
+            like: number[];
+            /** Like Sold */
+            like_sold: number;
+            /** Like Text */
+            like_text: string;
+        };
+        /** ParcelSale */
+        ParcelSale: {
+            /** Date */
+            date: string;
+            /** Price */
+            price: number | null;
+            /** Vacant */
+            vacant: boolean;
+        };
         /** Plan */
         Plan: {
             /**
@@ -2162,6 +2577,16 @@ export interface components {
              */
             files: components["schemas"]["DataFile"][];
             wizard: components["schemas"]["WizardState"];
+            /**
+             * Groups
+             * @description Model groups, in order (SPEC §3.5).
+             */
+            groups: components["schemas"]["ModelGroup-Output"][];
+            /**
+             * Groups Start
+             * @description How model groups were started; None: not yet.
+             */
+            groups_start: ("scratch" | "suggested") | null;
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -4765,6 +5190,240 @@ export interface operations {
             path: {
                 project_id: string;
                 name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_state_api_projects__project_id__groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_save_api_projects__project_id__groups_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_start_api_projects__project_id__groups_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupsStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_preview_api_projects__project_id__groups_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupsPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_inspect_api_projects__project_id__groups_inspect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParcelInspect"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_values_api_projects__project_id__groups_values__field__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupValues"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_shapes_api_projects__project_id__groups_shapes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
             };
             cookie?: never;
         };

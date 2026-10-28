@@ -2277,6 +2277,331 @@
     }
    }
   },
+  "/api/projects/{project_id}/groups": {
+   "get": {
+    "summary": "Groups State",
+    "description": "The model groups, and the parcel universe's fields a rule can test.",
+    "operationId": "groups_state_api_projects__project_id__groups_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GroupsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Groups Save",
+    "description": "Save the groups, in order, and write them into the settings.",
+    "operationId": "groups_save_api_projects__project_id__groups_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GroupsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GroupsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/groups/start": {
+   "post": {
+    "summary": "Groups Start",
+    "description": "Start from scratch (no groups yet) or from a suggested set made from the property-type fields.",
+    "operationId": "groups_start_api_projects__project_id__groups_start_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GroupsStart"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GroupsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/groups/preview": {
+   "post": {
+    "summary": "Groups Preview",
+    "description": "Where each parcel lands under these groups (saved or not), each group's counts and checks, and what\nmoved since the saved groups.",
+    "operationId": "groups_preview_api_projects__project_id__groups_preview_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GroupsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GroupsPreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/groups/inspect": {
+   "post": {
+    "summary": "Groups Inspect",
+    "description": "One parcel: its fields, its sales, and why it's in its group under these groups.",
+    "operationId": "groups_inspect_api_projects__project_id__groups_inspect_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InspectBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ParcelInspect"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/groups/values/{field}": {
+   "get": {
+    "summary": "Groups Values",
+    "description": "A field's values, with parcels, vacant parcels and valid sales for each.",
+    "operationId": "groups_values_api_projects__project_id__groups_values__field__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/GroupValues"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/groups/shapes": {
+   "get": {
+    "summary": "Groups Shapes",
+    "description": "The parcel shapes as GeoJSON, in the parcel universe's order (a preview's indexes).",
+    "operationId": "groups_shapes_api_projects__project_id__groups_shapes_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -3783,6 +4108,408 @@
     ],
     "title": "Funnel"
    },
+   "GroupCheck": {
+    "properties": {
+     "level": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "warn",
+       "bad"
+      ],
+      "title": "Level"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "level",
+     "text"
+    ],
+    "title": "GroupCheck"
+   },
+   "GroupField": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "category",
+       "number"
+      ],
+      "title": "Kind"
+     },
+     "distinct": {
+      "type": "integer",
+      "title": "Distinct"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "label",
+     "kind",
+     "distinct"
+    ],
+    "title": "GroupField"
+   },
+   "GroupMove": {
+    "properties": {
+     "from_id": {
+      "type": "string",
+      "title": "From Id",
+      "description": "The group in the saved groups (\"\" unassigned)."
+     },
+     "to_id": {
+      "type": "string",
+      "title": "To Id",
+      "description": "The group in these groups (\"\" unassigned)."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "sold": {
+      "type": "integer",
+      "title": "Sold",
+      "description": "Of them, parcels with a valid sale."
+     }
+    },
+    "type": "object",
+    "required": [
+     "from_id",
+     "to_id",
+     "parcels",
+     "sold"
+    ],
+    "title": "GroupMove"
+   },
+   "GroupStats": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "The group, or \"\" for unassigned."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "vacant": {
+      "type": "integer",
+      "title": "Vacant",
+      "description": "Parcels without a building."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Valid improved sales."
+     },
+     "vacant_sales": {
+      "type": "integer",
+      "title": "Vacant Sales"
+     },
+     "median_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median Price",
+      "description": "Of the improved sales."
+     },
+     "first_year": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First Year"
+     },
+     "last_year": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Year"
+     },
+     "checks": {
+      "items": {
+       "$ref": "#/components/schemas/GroupCheck"
+      },
+      "type": "array",
+      "title": "Checks"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "parcels",
+     "vacant",
+     "sales",
+     "vacant_sales",
+     "median_price",
+     "first_year",
+     "last_year",
+     "checks"
+    ],
+    "title": "GroupStats"
+   },
+   "GroupValue": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value",
+      "description": "As a rule names it (\"\" for blank)."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "vacant": {
+      "type": "integer",
+      "title": "Vacant"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Valid sales of these parcels."
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "parcels",
+     "vacant",
+     "sales"
+    ],
+    "title": "GroupValue"
+   },
+   "GroupValues": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/GroupValue"
+      },
+      "type": "array",
+      "title": "Rows"
+     },
+     "more": {
+      "type": "integer",
+      "title": "More",
+      "description": "GroupValues not shown."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "rows",
+     "more"
+    ],
+    "title": "GroupValues"
+   },
+   "GroupWhy": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group",
+      "description": "The group's id."
+     },
+     "order": {
+      "type": "integer",
+      "title": "Order",
+      "description": "1 for the first group."
+     },
+     "met": {
+      "type": "boolean",
+      "title": "Met"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "order",
+     "met",
+     "text"
+    ],
+    "title": "GroupWhy"
+   },
+   "GroupsBody": {
+    "properties": {
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroup-Input"
+      },
+      "type": "array",
+      "title": "Groups"
+     }
+    },
+    "type": "object",
+    "required": [
+     "groups"
+    ],
+    "title": "GroupsBody"
+   },
+   "GroupsPreview": {
+    "properties": {
+     "assign": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Assign",
+      "description": "Per parcel (in the shapes' order), the index of its group; -1: none."
+     },
+     "saved": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Saved",
+      "description": "The same for the saved groups."
+     },
+     "stats": {
+      "items": {
+       "$ref": "#/components/schemas/GroupStats"
+      },
+      "type": "array",
+      "title": "Stats",
+      "description": "Per group, then unassigned last."
+     },
+     "moves": {
+      "items": {
+       "$ref": "#/components/schemas/GroupMove"
+      },
+      "type": "array",
+      "title": "Moves",
+      "description": "Parcels in a different group than in the saved groups, by from and to."
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     }
+    },
+    "type": "object",
+    "required": [
+     "assign",
+     "saved",
+     "stats",
+     "moves",
+     "total"
+    ],
+    "title": "GroupsPreview"
+   },
+   "GroupsStart": {
+    "properties": {
+     "how": {
+      "type": "string",
+      "enum": [
+       "scratch",
+       "suggested"
+      ],
+      "title": "How"
+     }
+    },
+    "type": "object",
+    "required": [
+     "how"
+    ],
+    "title": "GroupsStart"
+   },
+   "GroupsView": {
+    "properties": {
+     "ready": {
+      "type": "boolean",
+      "title": "Ready",
+      "description": "Bring in data has a receipt to make groups from."
+     },
+     "start": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "scratch",
+         "suggested"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroup-Output"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/GroupField"
+      },
+      "type": "array",
+      "title": "Fields"
+     },
+     "colors": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Colors"
+     },
+     "unassigned_color": {
+      "type": "string",
+      "title": "Unassigned Color",
+      "default": "#9a9a9a"
+     },
+     "can_suggest": {
+      "type": "boolean",
+      "title": "Can Suggest",
+      "description": "The parcel universe has a property-type field to suggest groups from."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ready",
+     "start",
+     "groups",
+     "fields",
+     "colors",
+     "unassigned_color",
+     "can_suggest"
+    ],
+    "title": "GroupsView"
+   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -3875,6 +4602,27 @@
     ],
     "title": "InputFile",
     "description": "An input file as the Input files tab shows it (SPEC §3.0 F3)."
+   },
+   "InspectBody": {
+    "properties": {
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroup-Input"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "index": {
+      "type": "integer",
+      "title": "Index"
+     }
+    },
+    "type": "object",
+    "required": [
+     "groups",
+     "index"
+    ],
+    "title": "InspectBody"
    },
    "Issue": {
     "properties": {
@@ -4292,6 +5040,84 @@
     ],
     "title": "MapView",
     "description": "Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre."
+   },
+   "ModelGroup-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "The model_group value OpenAVMKit gives its parcels; kept when renamed."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color",
+      "description": "On the map and in the list."
+     },
+     "rule": {
+      "$ref": "#/components/schemas/Rule-Input",
+      "description": "Conditions on parcel universe fields (a condition's column is the field)."
+     },
+     "numeric": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Numeric",
+      "description": "Fields the rule tests that are numbers."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color"
+    ],
+    "title": "ModelGroup",
+    "description": "Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins."
+   },
+   "ModelGroup-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "The model_group value OpenAVMKit gives its parcels; kept when renamed."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color",
+      "description": "On the map and in the list."
+     },
+     "rule": {
+      "$ref": "#/components/schemas/Rule-Output",
+      "description": "Conditions on parcel universe fields (a condition's column is the field)."
+     },
+     "numeric": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Numeric",
+      "description": "Fields the rule tests that are numbers."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "rule",
+     "numeric"
+    ],
+    "title": "ModelGroup",
+    "description": "Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins."
    },
    "NewProject": {
     "properties": {
@@ -4871,6 +5697,122 @@
     "title": "Overlay",
     "description": "A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.\n\nstamp: enrich.geometry, the shape each parcel's centre falls in (predicate contains_centroid), copying\nthe chosen columns. distance: enrich.distances, how far each parcel is from the nearest feature."
    },
+   "ParcelField": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "value": {
+      "type": "string",
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "value"
+    ],
+    "title": "ParcelField"
+   },
+   "ParcelInspect": {
+    "properties": {
+     "index": {
+      "type": "integer",
+      "title": "Index"
+     },
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "group": {
+      "type": "string",
+      "title": "Group",
+      "description": "Its group's id, \"\" for none."
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/ParcelField"
+      },
+      "type": "array",
+      "title": "Fields"
+     },
+     "sales": {
+      "items": {
+       "$ref": "#/components/schemas/ParcelSale"
+      },
+      "type": "array",
+      "title": "Sales"
+     },
+     "why": {
+      "items": {
+       "$ref": "#/components/schemas/GroupWhy"
+      },
+      "type": "array",
+      "title": "Why",
+      "description": "The groups in order up to the one it's in, then any later one it also meets."
+     },
+     "like": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Like",
+      "description": "Parcels with the same values in the fields the rules test."
+     },
+     "like_sold": {
+      "type": "integer",
+      "title": "Like Sold"
+     },
+     "like_text": {
+      "type": "string",
+      "title": "Like Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "index",
+     "key",
+     "group",
+     "fields",
+     "sales",
+     "why",
+     "like",
+     "like_sold",
+     "like_text"
+    ],
+    "title": "ParcelInspect"
+   },
+   "ParcelSale": {
+    "properties": {
+     "date": {
+      "type": "string",
+      "title": "Date"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "vacant": {
+      "type": "boolean",
+      "title": "Vacant"
+     }
+    },
+    "type": "object",
+    "required": [
+     "date",
+     "price",
+     "vacant"
+    ],
+    "title": "ParcelSale"
+   },
    "Plan": {
     "properties": {
      "files": {
@@ -5044,6 +5986,30 @@
      "wizard": {
       "$ref": "#/components/schemas/WizardState"
      },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroup-Output"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "Model groups, in order (SPEC §3.5)."
+     },
+     "groups_start": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "scratch",
+         "suggested"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups Start",
+      "description": "How model groups were started; None: not yet."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -5070,6 +6036,8 @@
      "sample",
      "files",
      "wizard",
+     "groups",
+     "groups_start",
      "accepted"
     ],
     "title": "Project"

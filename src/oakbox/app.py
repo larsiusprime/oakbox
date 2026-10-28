@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, bring_in, datafiles, fields, projects, wizard
+from oakbox import __version__, appsettings, bring_in, datafiles, fields, groups, projects, wizard
 from oakbox.datafiles import CleanStep
 
 WEB_DIST = Path(__file__).parent / "web"
@@ -120,6 +120,19 @@ class WizardLocation(BaseModel):
 class WizardDates(BaseModel):
     column: str
     format: str
+
+
+class GroupsStart(BaseModel):
+    how: Literal["scratch", "suggested"]
+
+
+class GroupsBody(BaseModel):
+    groups: list[projects.ModelGroup]
+
+
+class InspectBody(BaseModel):
+    groups: list[projects.ModelGroup]
+    index: int
 
 
 class WizardFieldChoice(BaseModel):
@@ -791,6 +804,77 @@ def create_app() -> FastAPI:
         return StreamingResponse(
             body(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}.csv"'}
         )
+
+    # ---------- Step 2, Model groups (SPEC §3.5) ----------
+
+    def _groups_view(project: projects.Project) -> groups.GroupsView:
+        return groups.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/groups")
+    def groups_state(project_id: str) -> groups.GroupsView:
+        """The model groups, and the parcel universe's fields a rule can test."""
+        return _groups_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/groups/start")
+    def groups_start(project_id: str, body: GroupsStart) -> groups.GroupsView:
+        """Start from scratch (no groups yet) or from a suggested set made from the property-type fields."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            project.groups = groups.suggest(pdir) if body.how == "suggested" else []
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+        project.groups_start = body.how
+        projects.save(project)
+        projects.write_settings(project)
+        return _groups_view(project)
+
+    @app.put("/api/projects/{project_id}/groups")
+    def groups_save(project_id: str, body: GroupsBody) -> groups.GroupsView:
+        """Save the groups, in order, and write them into the settings."""
+        project = _load(project_id)
+        project.groups = groups.clean(projects.project_dir(project_id), body.groups)
+        project.groups_start = project.groups_start or "scratch"
+        projects.save(project)
+        projects.write_settings(project)
+        return _groups_view(project)
+
+    @app.post("/api/projects/{project_id}/groups/preview")
+    def groups_preview(project_id: str, body: GroupsBody) -> groups.GroupsPreview:
+        """Where each parcel lands under these groups (saved or not), each group's counts and checks, and what
+        moved since the saved groups."""
+        project = _load(project_id)
+        try:
+            return groups.preview(project, projects.project_dir(project_id), body.groups)
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+
+    @app.post("/api/projects/{project_id}/groups/inspect")
+    def groups_inspect(project_id: str, body: InspectBody) -> groups.ParcelInspect:
+        """One parcel: its fields, its sales, and why it's in its group under these groups."""
+        _load(project_id)
+        try:
+            return groups.inspect(projects.project_dir(project_id), body.groups, body.index)
+        except LookupError as e:
+            raise HTTPException(404, f"No parcel {body.index}.") from e
+
+    @app.get("/api/projects/{project_id}/groups/values/{field}")
+    def groups_values(project_id: str, field: str) -> groups.GroupValues:
+        """A field's values, with parcels, vacant parcels and valid sales for each."""
+        _load(project_id)
+        try:
+            return groups.values(projects.project_dir(project_id), field)
+        except LookupError as e:
+            raise HTTPException(404, f"No field {field} in the parcel universe.") from e
+
+    @app.get("/api/projects/{project_id}/groups/shapes")
+    def groups_shapes(project_id: str) -> FileResponse:
+        """The parcel shapes as GeoJSON, in the parcel universe's order (a preview's indexes)."""
+        _load(project_id)
+        try:
+            return FileResponse(groups.shapes_path(projects.project_dir(project_id)), media_type="application/geo+json")
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
