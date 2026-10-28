@@ -30,6 +30,7 @@ from typing import Literal
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel
+from oakbox.enrichments import SOURCES, EnrichResult, instrument, recount
 
 ROW_GROUP = 1_000
 PAGE = 50
@@ -58,7 +59,7 @@ class Funnel(BaseModel):
 
 class FieldRow(BaseModel):
     field: str
-    group: Literal["files", "layers", "engine"]
+    group: Literal["files", "layers", "public", "engine"]
     filled: int
     share: float
     summary: str
@@ -89,6 +90,7 @@ class Receipt(BaseModel):
     notes: list[str] = Field(description="What OpenAVMKit warned about.")
     notices: int = Field(description="Warnings from the libraries it uses, not shown.")
     timings: list[list] = Field(description="[step, seconds].")
+    enrichments: list[EnrichResult] = Field(default_factory=list, description="Public data (F3e), as it went.")
 
 
 def settings_key(settings: dict) -> dict:
@@ -115,8 +117,13 @@ def changes(old: dict, new: dict) -> list[str]:
     if pa.get("merge") != pb.get("merge"):
         out.append("how the files join")
     ea, eb = pa.get("enrich", {}), pb.get("enrich", {})
-    if ea.get("geometry") != eb.get("geometry") or ea.get("distances") != eb.get("distances"):
+    if ea.get("geometry") != eb.get("geometry") or _layers(ea) != _layers(eb):
         out.append("map layers")
+    for part, words in (("overture", "building footprints"), ("census", "census"), ("dem", "elevation")):
+        if ea.get(part) != eb.get(part):
+            out.append(words)
+    if _osm(ea) != _osm(eb):
+        out.append("distances to OpenStreetMap features")
     if ea.get("ref_tables") != eb.get("ref_tables"):
         out.append("how sales find their parcel")
     if old.get("locality") != new.get("locality"):
@@ -129,6 +136,14 @@ def changes(old: dict, new: dict) -> list[str]:
     if _own(old, fa) != _own(new, fb):
         out.append("your own fields")
     return list(dict.fromkeys(out))
+
+
+def _osm(enrich: dict) -> dict:
+    return {k: v for k, v in enrich.get("distances", {}).items() if isinstance(v, dict) and v.get("osm")}
+
+
+def _layers(enrich: dict) -> dict:
+    return {k: v for k, v in enrich.get("distances", {}).items() if isinstance(v, dict) and not v.get("osm")}
 
 
 def _own(settings: dict, fc: dict) -> dict:
@@ -320,6 +335,8 @@ def _write(df, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(df.drop(columns=[c for c in ("geometry",) if c in df.columns]))
     for c in df.columns:  # mixed columns (a code that's sometimes a number) as text, so Parquet takes them
+        if isinstance(df[c].dtype, pd.CategoricalDtype) and df[c].cat.categories.dtype == object:
+            df[c] = df[c].astype(object)  # categories of mixed types (dates and text): the same
         if df[c].dtype == object:
             df[c] = df[c].map(lambda v: None if v is None or (isinstance(v, float) and v != v) else str(v))
     df.reset_index(drop=True).to_parquet(path, index=False, row_group_size=ROW_GROUP)
@@ -391,6 +408,7 @@ def run(project_id: str) -> None:
 
     from openavmkit import pipeline as pl
 
+    enriched = instrument(json.loads(settings_text), _emit)
     timings: list[list] = []
     t0 = time.time()
     with warnings.catch_warnings(record=True) as caught:
@@ -406,6 +424,7 @@ def run(project_id: str) -> None:
     _emit(step="receipt", fraction=0.85, message="Counting and saving")
     t2 = time.time()
     universe, sales = sup.universe, sup.sales
+    recount(enriched, universe)
     files = wizard._Files(project, in_dir)
     base = wizard._base(project)
     keys = set(universe["key"].astype(str))
@@ -545,6 +564,18 @@ def run(project_id: str) -> None:
         if "vacant_sale" in sales:
             vacant = int(sales["vacant_sale"].fillna(False).astype(bool).sum())
             lines += [Line(n=len(sales) - vacant, text="improved"), Line(n=vacant, text="vacant")]
+            if "is_teardown_sale" in sales:
+                # Permits (F3g): sold, then demolished soon after: a sale of the land.
+                torn = sales["is_teardown_sale"].fillna(False).astype(bool)
+                days = settings.get("data", {}).get("process", {}).get("enrich", {}).get("permits", {})
+                within = days.get("max_days_to_demo", 365)
+                lines.append(
+                    Line(
+                        n=int(torn.sum()),
+                        text=f"of them teardown sales: demolished within {within} days, so counted as vacant",
+                        rows=save("sales_teardown", sales[torn.to_numpy()]),
+                    )
+                )
         unmatched = sales[~sales["key"].astype(str).isin(keys)]
         said_share = float(ids[valid.to_numpy()].isin(said_keys).mean()) if said_valid else None
         lines.append(
@@ -590,6 +621,8 @@ def run(project_id: str) -> None:
                 measured[f.overlay.feature or f.name] = (f.filename, f.overlay.max_distance, f.overlay.unit)
     vacant_n = int(universe.get("is_vacant", pd.Series(dtype=bool)).fillna(False).astype(bool).sum())
 
+    public = {c: SOURCES[r.key] for r in enriched for c in r.fields}
+
     def fields_of(df, mine: dict[str, str], is_universe: bool) -> list[FieldRow]:
         out = []
         for col in df.columns:
@@ -610,6 +643,8 @@ def run(project_id: str) -> None:
                 group, source = "layers", measured[name][0]
                 if filled < len(df) and measured[name][1]:
                     note = f"within {measured[name][1]:g} {measured[name][2]}s; farther away is blank"
+            elif col in public:
+                group, source = "public", public[col]
             elif col in mine or col in ("key", "key_sale", "valid_sale", "vacant_sale"):
                 group, source = "files", mine.get(col, "your files")
             else:
@@ -630,7 +665,7 @@ def run(project_id: str) -> None:
                     note=note,
                 )
             )
-        order = {"files": 0, "layers": 1, "engine": 2}
+        order = {"files": 0, "layers": 1, "public": 2, "engine": 3}
         return sorted(out, key=lambda r: order[r.group])
 
     u_fields = fields_of(universe, loaded, True)
@@ -708,6 +743,7 @@ def run(project_id: str) -> None:
         notes=notes,
         notices=len(caught) - len(mine),
         timings=timings,
+        enrichments=enriched,
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1))
     (tmp / "settings.json").write_text(settings_text)
@@ -753,7 +789,7 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
             stdout=subprocess.PIPE,
             stderr=log.open("w"),
             text=True,
-            env={**os.environ, "PYTHONWARNINGS": "ignore::DeprecationWarning"},
+            env={**os.environ, "PYTHONWARNINGS": "ignore::DeprecationWarning", **_keys()},
         )
         job = Job(status="running", started=time.time())
         _jobs[key], _procs[key] = job, proc
@@ -787,6 +823,14 @@ def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
     return job
 
 
+def _keys() -> dict[str, str]:
+    """The user's own keys for public data, from OAK box's settings, as OpenAVMKit reads them."""
+    from oakbox import appsettings
+
+    key = appsettings.load().census_api_key
+    return {"CENSUS_API_KEY": key} if key else {}
+
+
 def stop(project_id: str, module: str = "bring_in") -> None:
     key = f"{module}:{project_id}"
     proc = _procs.get(key)
@@ -804,6 +848,7 @@ def job(project_id: str, module: str = "bring_in") -> Job | None:
 class Plan(BaseModel):
     files: list[str] = Field(description="What's loaded, in words: the parcel universe, the sales record, the rest.")
     layers: list[str]
+    enrichments: list[str] = Field(description="Public data downloaded as it runs (F3e).")
     fields: int
 
 
@@ -840,7 +885,17 @@ def plan(project, in_dir: Path) -> Plan:
             use = "stamped onto parcels" if f.overlay.use == "stamp" else "distances measured to it"
             layers.append(f"{f.name}: {use}")
     loaded = {k for f in project.files if f.holds in ("parcels", "sales") for k in f.load} - {"key", "key_sale"}
-    return Plan(files=out, layers=layers, fields=len(loaded) + len(project.wizard.locations))
+    e = project.enrich
+    public = []
+    if e is not None:
+        n = sum(1 for f in e.features.values() if f.on) if e.distances else 0
+        public = [
+            *([f"distances to {n} OpenStreetMap features"] if n else []),
+            *(["building footprints (Overture Maps)"] if e.footprints else []),
+            *(["census figures"] if e.census and e.fips else []),
+            *(["elevation (USGS)"] if e.elevation else []),
+        ]
+    return Plan(files=out, layers=layers, enrichments=public, fields=len(loaded) + len(project.wizard.locations))
 
 
 def view(project, project_dir: Path, problems: list[str]) -> View:

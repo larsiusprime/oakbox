@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
-import { api, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
+import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
 import { FieldDetail } from "../components/FieldDetail";
 import { t } from "../strings";
 
@@ -54,6 +54,8 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const running = v.status === "running";
   const r = v.receipt;
   const last = v.job?.steps.at(-1);
+  // Enrichments say when they start, without a share of the run.
+  const fraction = [...(v.job?.steps ?? [])].reverse().find((s) => s.fraction !== null)?.fraction ?? 0.05;
   const elapsed = last ? last.at : 0;
   const left = r && running ? Math.max(0, r.seconds + 4 - elapsed) : null;
   return (
@@ -93,7 +95,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
         <div className="bi-card">
           <h3>{b.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
           <div className="bi-prog">
-            <i style={{ width: `${Math.round(100 * (last?.fraction ?? 0.05))}%` }} />
+            <i style={{ width: `${Math.round(100 * fraction)}%` }} />
           </div>
           <ul className="bi-steps">
             {v.job?.steps.map((s, i) => (
@@ -116,6 +118,11 @@ export function BringInTab({ projectId }: { projectId: string }) {
                 <b>{b.layers}:</b> {v.plan.layers.join("; ")}
               </li>
             )}
+            {v.plan.enrichments.length > 0 && (
+              <li>
+                <b>{b.enrich.title}:</b> {v.plan.enrichments.join("; ")}
+              </li>
+            )}
             <li>{b.fields(v.plan.fields)}</li>
           </ul>
         </div>
@@ -125,6 +132,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
           receipt={r}
           stale={v.stale}
           open={(set, title) => setRows({ set, title })}
+          rerun={running || v.blocked.length > 0 ? null : () => act.mutate("run")}
         />
       )}
 
@@ -189,11 +197,13 @@ function ReceiptView({
   receipt: r,
   stale,
   open,
+  rerun,
 }: {
   projectId: string;
   receipt: Receipt;
   stale: boolean;
   open: (set: string, title: string) => void;
+  rerun: (() => void) | null;
 }) {
   return (
     <div className={stale ? "bi-receipt bi-stale" : "bi-receipt"}>
@@ -202,6 +212,7 @@ function ReceiptView({
         <b>{b.meter(r.universe.rows, r.sales.rows)}</b>
         <span className="rc-was">{b.ran(when(r.ran_at), r.seconds, r.engine)}</span>
       </div>
+      {r.enrichments.length > 0 && <EnrichCard results={r.enrichments} rerun={rerun} />}
       <Section
         title={b.universe}
         funnels={r.universe.funnels}
@@ -264,6 +275,68 @@ function ReceiptView({
   );
 }
 
+/** F3e: each enrichment as it went; one that failed was skipped, and running again tries it again. */
+function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() => void) | null }) {
+  const e = b.enrich;
+  return (
+    <section className="bi-card">
+      <h3>{e.title}</h3>
+      <table className="bi-tbl">
+        <thead>
+          <tr>
+            <th>{e.what}</th>
+            <th>{e.result}</th>
+            <th>{e.fields}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((x) => (
+            <tr key={x.key}>
+              <td>{e.names[x.key]}</td>
+              <td className={x.status === "ok" ? "wiz-ok" : x.status === "partial" ? "wiz-warn" : "wiz-bad"}>
+                {x.status === "ok" ? "✓ " : x.status === "partial" ? "⚠ " : "✗ "}
+                {x.text}
+                <span className="wiz-from">
+                  {" · "}
+                  {x.reused ? e.reused : e.seconds(x.seconds)}
+                </span>
+                {x.status === "partial" && (
+                  <ul className="bi-feats">
+                    {x.features
+                      .filter((f) => f.status === "failed")
+                      .map((f) => (
+                        <li key={f.key}>
+                          {f.label}: {f.text}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </td>
+              <td>
+                {x.fields.slice(0, 3).map((f) => (
+                  <span key={f} className="en-chip">
+                    {f}
+                  </span>
+                ))}
+                {x.fields.length > 3 && <span className="wiz-from"> {e.more(x.fields.length - 3)}</span>}
+              </td>
+              <td>
+                {x.status !== "ok" && rerun && (
+                  <Button className="wiz-link" onPress={rerun}>
+                    {e.retry}
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {results.some((x) => x.status !== "ok") && <p className="bi-note">{e.skippedNote}</p>}
+    </section>
+  );
+}
+
 function Section({
   title,
   funnels,
@@ -281,7 +354,9 @@ function Section({
   set: string;
   open: (set: string, title: string) => void;
 }) {
-  const groups = ["files", "layers", "engine"].map((g) => [g, fields.filter((f) => f.group === g)] as const);
+  const groups = ["files", "layers", "public", "engine"].map(
+    (g) => [g, fields.filter((f) => f.group === g)] as const,
+  );
   return (
     <section className="bi-card">
       <div className="bi-head">

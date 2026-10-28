@@ -24,8 +24,8 @@ x 1,760,000–1,772,000, y 843,000–862,000.
   - A parcel with no building, such as vacant land, still has none. Bedrooms, baths, grade and condition stay with
     their building.
 - **Sales:** the real deeds, with these changes:
-  - dates moved by up to a month;
-  - prices nudged by about 3%;
+  - dates moved by up to a month, and prices nudged by about 3%: a deed's sales together, so the 123 deeds that
+    sold several parcels at once keep them on one day at one price;
   - qualified/unqualified and improved/vacant kept as Guilford coded them;
   - about 12% of unqualified deeds recorded at a nominal $10.
 - **Assessed values:** the 2022 revaluation's, each nudged by about 4%.
@@ -43,6 +43,7 @@ it against.
 | `in/condo_units.csv` | 1,360 condo units | The units without a shape of their own: the parcel file's columns (`REID` the plain parcel ID, `PIN_PLUS_EXT` with the unit's extension, `-001` and on), no geometry. Their building's parcel (`-000`) is in `parcels.parquet`. |
 | `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE`; and as other systems combine them: `QC_RATING` (`Q3C2`, `Q3/C2`: UAD-style quality and condition in one value, 1 best) and `CDU` (EX … PR) |
 | `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), and `PRICE_*`: the same prices in other formats (below) |
+| `in/permits.csv` | 2,140 permits | Made up: `PERMIT_NO`, `REID` (the plain parcel ID), `ISSUE_DATE` (2011–2025, year-month-day), `WORK_CLASS` (ALTERATION, REROOF, ADDITION, ELECTRICAL, NEW CONSTRUCTION, DEMOLITION, POOL), `VALUATION` |
 | `in/geo/zoning.geojson` | 588 polygons | Zoning districts: `ZONING` (R-5, C-M…), `CLASSIFICATION` (RESIDENTIAL, COMMERCIAL…). In degrees (EPSG:4326), unlike the parcels. |
 | `in/geo/school_districts.shp` | 4 polygons | School board districts: `DISTRICT`. Every parcel is in one. |
 | `in/geo/flood_zones.shp` | 2 polygons | `FLD_ZONE` (AE: 1% annual chance, within 150 ft of a stream; X: 0.2%, to 400 ft), `ZONE_SUBTY`. 331 parcels are in one. |
@@ -100,3 +101,8 @@ it against.
     `parcels.parquet`; a unit's PIN starts with its building's (`7865782948-030` is in `7865782948-000`). Until they're
     set up as units, their sales and building cards find no parcel. The four complexes without a `-000` parcel keep
     their units' shapes.
+15. **Teardowns.** 40 improved, qualified sales are followed by a `DEMOLITION` permit 20 to 330 days later: the buyer
+    bought the land. With the permits step set up, they're counted as vacant sales.
+16. **Sales of several parcels on one deed.** 123 deeds (`DEED_BOOK`/`DEED_PAGE`) record two or more sales on the same
+    day, Guilford's own: one transaction of several parcels, each given the whole price or a share. Sales scrutiny
+    sets them aside once the Deeds step names the deed.

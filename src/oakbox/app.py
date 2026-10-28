@@ -20,7 +20,18 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, assemble, bring_in, datafiles, fields, groups, projects, wizard
+from oakbox import (
+    __version__,
+    appsettings,
+    assemble,
+    bring_in,
+    datafiles,
+    enrichments,
+    fields,
+    groups,
+    projects,
+    wizard,
+)
 from oakbox.datafiles import CleanStep
 
 WEB_DIST = Path(__file__).parent / "web"
@@ -249,6 +260,15 @@ class AppSettingsView(BaseModel):
     storage_location: str
     default_storage_location: str
     display: Display
+
+
+class PermitsBody(BaseModel):
+    permits: datafiles.Permits | None = None
+    guess: bool = False
+
+
+class CensusKey(BaseModel):
+    key: str
 
 
 class StorageLocation(BaseModel):
@@ -699,6 +719,30 @@ def create_app() -> FastAPI:
     def wizard_layer(project_id: str, name: str, body: datafiles.Overlay | None = None) -> wizard.Wizard:
         """Use a file as a map layer (stamped onto parcels, or measured to); no body sets it aside (F3d)."""
         return _change(project_id, lambda p, d: wizard.set_overlay(p, d, name, body))
+
+    @app.put("/api/projects/{project_id}/wizard/files/{name}/permits")
+    def wizard_permits(project_id: str, name: str, body: PermitsBody) -> wizard.Wizard:
+        """The permits file's date and type columns and what each kind of permit means (F3g); no settings stops using
+        it as permits. guess: work them out from the file."""
+        return _change(project_id, lambda p, d: wizard.set_permits(p, d, name, body.permits, body.guess))
+
+    @app.get("/api/projects/{project_id}/wizard/enrich")
+    def wizard_enrich(project_id: str) -> enrichments.EnrichView:
+        """The Enrichments step (F3e): what's chosen, the counties, the area the downloads cover."""
+        return wizard.enrich_view(_load(project_id), projects.project_dir(project_id) / "in")
+
+    @app.put("/api/projects/{project_id}/wizard/enrich")
+    def set_wizard_enrich(project_id: str, body: enrichments.Enrichments) -> enrichments.EnrichView:
+        """Choose the enrichments and their options (F3e)."""
+        _change(project_id, lambda p, _d: enrichments.set_enrichments(p, body))
+        return wizard.enrich_view(_load(project_id), projects.project_dir(project_id) / "in")
+
+    @app.put("/api/census-key")
+    def put_census_key(body: CensusKey) -> None:
+        """Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it."""
+        s = appsettings.load()
+        s.census_api_key = body.key.strip() or None
+        appsettings.save(s)
 
     @app.get("/api/projects/{project_id}/wizard/layers/{name}/map")
     def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:

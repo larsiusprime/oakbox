@@ -35,7 +35,8 @@ class BaseModel(_PydanticBase):
 
 
 # overlay: a map layer (zoning, school zones, parks) joined onto the parcels by where they are (F3d Shapefiles).
-Holds = Literal["parcels", "sales", "unused", "overlay"]
+# permits: building permits, one row per permit, joined on the parcel ID (F3g).
+Holds = Literal["parcels", "sales", "unused", "overlay", "permits"]
 # The ID a file joins on: the universe's parcel ID or an extra ID; or, for more sales details, the sale ID.
 Match = Literal["key", "key2", "key3", "key_sale"]
 # The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.
@@ -404,6 +405,22 @@ class Units(BaseModel):
     )
 
 
+PermitMeaning = Literal["teardown", "major", "minor", "none"]
+
+
+class Permits(BaseModel):
+    """A permits file's columns and what its kinds of permit mean (F3g): OpenAVMKit's permits enrichment."""
+
+    date: str | None = Field(default=None, description="The column with the date each permit was issued.")
+    date_format: str | None = None
+    type: str | None = Field(default=None, description="The column that says what each permit is for.")
+    means: dict[str, PermitMeaning] = Field(
+        default_factory=dict, description="Each value of the type column -> what it means; missing: not a renovation."
+    )
+    max_days: int = Field(default=365, ge=1, le=3650, description="A sale demolished within this is a teardown sale.")
+    effective_age: bool = Field(default=True, description="Major renovations reset the effective year built.")
+
+
 class DataFile(BaseModel):
     """One data.load entry, as OAK box wrote it."""
 
@@ -445,6 +462,7 @@ class DataFile(BaseModel):
         default_factory=dict, description="Area field -> the unit its column is in; converted as it loads (F3d)."
     )
     overlay: Overlay | None = Field(default=None, description="A map layer's use (holds overlay, F3d).")
+    permits: Permits | None = Field(default=None, description="A permits file's set-up (holds permits, F3g).")
     numbers: dict[str, NumberFormat] = Field(
         default_factory=dict, description="Number field -> how its column's text is read (money written as text)."
     )
@@ -685,11 +703,14 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
             order = "desc" if f.dupes_desc else "asc"
             drop: bool | str = "all" if f.dupes == "all" else True
             entry["dupes"] = {"subset": [f.match], "sort_by": [f.dupes_sort or f.match, order], "drop": drop}
-        if f.holds == "overlay" or (
-            not load and f.holds not in ("parcels", "sales") and Path(f.filename).suffix.lower() != ".csv"
+        if (
+            f.holds == "overlay"
+            or f.holds == "permits"
+            or (not load and f.holds not in ("parcels", "sales") and Path(f.filename).suffix.lower() != ".csv")
         ):
             # Every shape counts: without this OpenAVMKit keeps one per value of its first column, and fails on a
-            # map file nothing is taken from yet (a layer not used yet), which has no column at all.
+            # map file nothing is taken from yet (a layer not used yet), which has no column at all. Every permit
+            # counts too: a parcel has many.
             entry["dupes"] = "allow"
         if f.holds == "sales":
             # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.

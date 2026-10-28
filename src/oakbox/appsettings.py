@@ -28,6 +28,7 @@ class AppSettings(BaseModel):
     large_text: bool = False
     high_contrast: bool = False
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
+    census_api_key: str | None = Field(default=None, description="The user's own, for the Census enrichment (F3e).")
 
 
 def _override() -> Path | None:

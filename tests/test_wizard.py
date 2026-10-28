@@ -1269,9 +1269,9 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
             "AREA": [900.0, 1100.0, 800.0, 850.0, 700.0, 1500.0],
         }
     ).to_csv(tmp_path / "units.csv", index=False)
-    pd.DataFrame(
-        {"PID": ["11", "21", "3"], "PRICE": [150_000, 140_000, 300_000], "DATE": ["2024-01-02"] * 3}
-    ).to_csv(tmp_path / "sale.csv", index=False)
+    pd.DataFrame({"PID": ["11", "21", "3"], "PRICE": [150_000, 140_000, 300_000], "DATE": ["2024-01-02"] * 3}).to_csv(
+        tmp_path / "sale.csv", index=False
+    )
     for name, ext in (("parcels", "parquet"), ("units", "csv"), ("sale", "csv")):
         body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
         assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200

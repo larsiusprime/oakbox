@@ -1,0 +1,321 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Globe } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { Button, Input, TextField } from "react-aria-components";
+import { api, type Enrichments, type EnrichView, unwrap } from "../api/client";
+import { Choice, Tick } from "../components/Form";
+import { t } from "../strings";
+
+const e = t.wizard.enrich;
+const KEY_URL = "https://api.census.gov/data/key_signup.html";
+
+/** F3e, Enrichments: public data about each parcel, downloaded as Bring in data runs. One card each: on or off,
+ * where it comes from and what it sends, its options, and the fields it adds. */
+export function EnrichStep({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient();
+  const q = useQuery({
+    queryKey: ["enrich", projectId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/wizard/enrich", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+  });
+  const save = useMutation({
+    mutationFn: async (body: Enrichments) =>
+      unwrap(
+        await api.PUT("/api/projects/{project_id}/wizard/enrich", {
+          params: { path: { project_id: projectId } },
+          body,
+        }),
+      ),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(["enrich", projectId], data);
+      // The step's mark (census without a key or county) and Bring in data's "changed since".
+      await queryClient.invalidateQueries({ queryKey: ["wizard", projectId] });
+    },
+  });
+  const v = q.data;
+  if (!v) return null;
+  const s = v.settings;
+  const set = (patch: Partial<Enrichments>) => save.mutate({ ...s, ...patch });
+  const adds = (key: string) => v.adds.find((a) => a.enrichment === key)?.fields ?? [];
+
+  return (
+    <div className="en">
+      <p className="en-note">
+        <Globe aria-hidden="true" size="1.1em" />
+        <span>{e.online(v.area ? v.area.km2 : null)}</span>
+      </p>
+
+      <Card
+        title={e.distances}
+        from={e.distancesFrom}
+        sends={e.distancesSends}
+        on={s.distances}
+        onChange={(distances) => set({ distances })}
+      >
+        <Distances view={v} save={(features) => set({ features })} />
+      </Card>
+
+      <Card
+        title={e.footprints}
+        from={e.footprintsFrom}
+        sends={e.footprintsSends}
+        on={s.footprints}
+        onChange={(footprints) => set({ footprints })}
+      >
+        <Chips label={e.adds} fields={adds("footprints")} />
+      </Card>
+
+      <Card
+        title={e.census}
+        from={e.censusFrom}
+        sends={e.censusSends}
+        on={s.census}
+        onChange={(census) => set({ census })}
+        off={v.key_saved ? undefined : e.censusOff}
+      >
+        <CensusKey view={v} />
+        <div className="en-row">
+          <span className="en-lab">{e.county}</span>
+          <Choice
+            label={e.county}
+            hideLabel
+            value={s.fips}
+            placeholder={e.countyPick}
+            options={v.counties.map((c) => [c.fips, `${c.name}, ${c.state} (${c.fips})`] as const)}
+            onChange={(fips) => set({ fips })}
+          />
+          {s.fips && s.fips === v.county_guess && <span className="en-sub">{e.countyGuess}</span>}
+        </div>
+        <div className="en-row">
+          <span className="en-lab">{e.year}</span>
+          <Choice
+            label={e.year}
+            hideLabel
+            value={String(s.census_year)}
+            options={v.years.map((y) => [String(y), e.yearOf(y)] as const)}
+            onChange={(y) => set({ census_year: Number(y) })}
+          />
+        </div>
+        <Chips label={e.addsByBlockGroup} fields={adds("census")} />
+      </Card>
+
+      <Card
+        title={e.elevation}
+        from={e.elevationFrom}
+        sends={e.elevationSends}
+        on={s.elevation}
+        onChange={(elevation) => set({ elevation })}
+      >
+        <div className="en-row">
+          <span className="en-lab">{e.detail}</span>
+          <Choice
+            label={e.detail}
+            hideLabel
+            value={String(s.resolution_m)}
+            options={([10, 30, 60] as const).map((m) => [String(m), e.resolution(m)] as const)}
+            onChange={(m) => set({ resolution_m: Number(m) as 10 | 30 | 60 })}
+          />
+          <span className="en-sub">{e.suggested(v.resolution, v.area ? v.area.km2 : null)}</span>
+        </div>
+        <Chips label={e.adds} fields={adds("elevation")} />
+      </Card>
+      {save.error && (
+        <p className="error" role="alert">
+          {save.error.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Card({
+  title,
+  from,
+  sends,
+  on,
+  onChange,
+  off,
+  children,
+}: {
+  title: string;
+  from: string;
+  sends: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+  off?: string | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <section className={on ? "en-card" : "en-card is-off"}>
+      <div className="en-head">
+        <Tick isSelected={on} onChange={onChange}>
+          <b>{title}</b>
+        </Tick>
+        <span className="en-sub">{from}</span>
+      </div>
+      <div className="en-body">
+        <span className="en-online">
+          <Globe aria-label={e.onlineShort} size="0.9em" /> {sends}
+        </span>
+        {on ? children : off && <span className="en-sub">{off}</span>}
+      </div>
+    </section>
+  );
+}
+
+function Chips({ label, fields }: { label: string; fields: string[] }) {
+  return (
+    <div className="en-row">
+      <span className="en-lab">{label}</span>
+      {fields.map((f) => (
+        <span key={f} className="en-chip">
+          {f}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** The OpenStreetMap features: a line summing them up, and Change… for each one's options. */
+function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["features"]) => void }) {
+  const [open, setOpen] = useState(false);
+  const s = view.settings;
+  const unit = e.units[view.unit] ?? view.unit;
+  const on = view.features.filter((f) => s.features[f.key]?.on);
+  const set = (key: string, patch: Partial<Enrichments["features"][string]>) => {
+    const f = s.features[key];
+    if (f) save({ ...s.features, [key]: { ...f, ...patch } });
+  };
+  if (!open) {
+    const far = on.map((f) => s.features[f.key]?.max_distance ?? 0);
+    const range = far.length ? `${Math.min(...far)}–${Math.max(...far)}`.replace(/^(\S+)–\1$/, "$1") : "";
+    return (
+      <div className="en-row">
+        <span className="en-sub">
+          {e.summary(on.map((f) => f.label))}
+          {range && ` · ${e.upTo} ${range} ${unit}`}
+        </span>
+        <Button className="wiz-link" onPress={() => setOpen(true)}>
+          {e.change}
+        </Button>
+      </div>
+    );
+  }
+  const example = on[0]?.key ?? "parks";
+  return (
+    <>
+      <div className="en-feats">
+        {view.features.map((f) => {
+          const x = s.features[f.key];
+          if (!x) return null;
+          const taken = view.taken.includes(f.key);
+          return (
+            <div key={f.key} className="en-feat">
+              <Tick isSelected={x.on} onChange={(v) => set(f.key, { on: v })}>
+                {f.label}
+              </Tick>
+              <span className="en-sub">{f.what}</span>
+              <span className="en-dist">
+                <Num
+                  label={e.maxDistance(f.label)}
+                  value={x.max_distance}
+                  onChange={(max_distance) => set(f.key, { max_distance })}
+                />
+                {unit}
+              </span>
+              <span className="en-sub">
+                {taken ? (
+                  e.taken(f.label)
+                ) : f.named && x.on ? (
+                  <Choice
+                    label={e.largestLabel}
+                    hideLabel
+                    value={String(x.top_n)}
+                    options={[0, 1, 2, 3, 5].map(
+                      (n) => [String(n), n ? e.largest(n) : e.noneLargest] as const,
+                    )}
+                    onChange={(n) => set(f.key, { top_n: Number(n) })}
+                  />
+                ) : null}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="en-row">
+        <span className="en-sub">
+          {e.gives} <span className="en-chip">dist_to_osm_{example}</span>{" "}
+          <span className="en-chip">within_osm_{example}</span>{" "}
+          <span className="en-chip">proximity_to_osm_{example}</span> {e.givesMore}
+        </span>
+        <Button className="wiz-link" onPress={() => setOpen(false)}>
+          {e.done}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function Num({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+  const commit = () => {
+    const n = Number.parseFloat(text);
+    if (n > 0 && n !== value) onChange(n);
+    else setText(String(value));
+  };
+  return (
+    <TextField aria-label={label} value={text} onChange={setText} onBlur={commit} className="ly-max">
+      <Input
+        className="input ly-input wiz-num"
+        inputMode="decimal"
+        onKeyDown={(k) => {
+          if (k.key === "Enter") commit();
+        }}
+      />
+    </TextField>
+  );
+}
+
+/** The Census API key: kept in OAK box's settings on this computer, never in the project. */
+function CensusKey({ view }: { view: EnrichView }) {
+  const queryClient = useQueryClient();
+  const [key, setKey] = useState("");
+  const put = useMutation({
+    mutationFn: async (k: string) => unwrap(await api.PUT("/api/census-key", { body: { key: k } })),
+    onSuccess: async () => {
+      setKey("");
+      await queryClient.invalidateQueries({ queryKey: ["enrich"] });
+      await queryClient.invalidateQueries({ queryKey: ["wizard"] });
+    },
+  });
+  return (
+    <div className="en-row">
+      <span className="en-lab">{e.key}</span>
+      {view.key_saved && view.key_end ? (
+        <>
+          <span className="wiz-ok">✓ {e.keySaved(view.key_end)}</span>
+          <Button className="wiz-link" onPress={() => put.mutate("")}>
+            {e.keyForget}
+          </Button>
+        </>
+      ) : (
+        <>
+          <TextField aria-label={e.key} value={key} onChange={setKey} type="password" className="en-key">
+            <Input className="input en-key-input" placeholder={e.keyPlaceholder} />
+          </TextField>
+          <Button className="button" isDisabled={!key.trim()} onPress={() => put.mutate(key)}>
+            {e.keySave}
+          </Button>
+          <a className="en-link" href={KEY_URL} target="_blank" rel="noreferrer">
+            {e.keyGet}
+          </a>
+        </>
+      )}
+    </div>
+  );
+}

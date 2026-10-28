@@ -675,6 +675,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/permits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Permits
+         * @description The permits file's date and type columns and what each kind of permit means (F3g); no settings stops using
+         *     it as permits. guess: work them out from the file.
+         */
+        put: operations["wizard_permits_api_projects__project_id__wizard_files__name__permits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/enrich": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Enrich
+         * @description The Enrichments step (F3e): what's chosen, the counties, the area the downloads cover.
+         */
+        get: operations["wizard_enrich_api_projects__project_id__wizard_enrich_get"];
+        /**
+         * Set Wizard Enrich
+         * @description Choose the enrichments and their options (F3e).
+         */
+        put: operations["set_wizard_enrich_api_projects__project_id__wizard_enrich_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/census-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Census Key
+         * @description Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it.
+         */
+        put: operations["put_census_key_api_census_key_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/layers/{name}/map": {
         parameters: {
             query?: never;
@@ -1282,6 +1347,13 @@ export interface components {
              */
             filename?: string | null;
         };
+        /** Adds */
+        Adds: {
+            /** Enrichment */
+            enrichment: string;
+            /** Fields */
+            fields: string[];
+        };
         /** AppSettingsView */
         AppSettingsView: {
             /** Storage Location */
@@ -1289,6 +1361,22 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+        };
+        /** Area */
+        Area: {
+            /** West */
+            west: number;
+            /** South */
+            south: number;
+            /** East */
+            east: number;
+            /** North */
+            north: number;
+            /**
+             * Km2
+             * @description The rectangle around the parcels.
+             */
+            km2: number;
         };
         /** AssembleExports */
         AssembleExports: {
@@ -1390,6 +1478,11 @@ export interface components {
             warn: boolean;
             /** Loaded As */
             loaded_as: ("number" | "category") | null;
+        };
+        /** CensusKey */
+        CensusKey: {
+            /** Key */
+            key: string;
         };
         /**
          * Center
@@ -1581,6 +1674,15 @@ export interface components {
              */
             units: "imperial" | "metric";
         };
+        /** County */
+        County: {
+            /** Fips */
+            fips: string;
+            /** State */
+            state: string;
+            /** Name */
+            name: string;
+        };
         /** Currency */
         Currency: {
             /** Code */
@@ -1701,7 +1803,7 @@ export interface components {
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
              */
-            holds: ("parcels" | "sales" | "unused" | "overlay") | null;
+            holds: ("parcels" | "sales" | "unused" | "overlay" | "permits") | null;
             /**
              * Clean
              * @description ID field -> clean-up steps, so it matches the other files (F3d reconcile).
@@ -1725,6 +1827,8 @@ export interface components {
             };
             /** @description A map layer's use (holds overlay, F3d). */
             overlay: components["schemas"]["Overlay-Output"] | null;
+            /** @description A permits file's set-up (holds permits, F3g). */
+            permits: components["schemas"]["Permits-Output"] | null;
             /**
              * Numbers
              * @description Number field -> how its column's text is read (money written as text).
@@ -1812,6 +1916,28 @@ export interface components {
              */
             read: string | null;
         };
+        /** DeedsCheck */
+        DeedsCheck: {
+            /** Ok */
+            ok: boolean;
+            /** Text */
+            text: string;
+            /**
+             * Deeds
+             * @description Deeds (on one day) that more than one sale was recorded under.
+             */
+            deeds: number;
+            /**
+             * Sales
+             * @description The sales on them.
+             */
+            sales: number;
+            /**
+             * Blank
+             * @description Sales without a deed ID: never counted as one deed.
+             */
+            blank: number;
+        };
         /** DictionaryField */
         DictionaryField: {
             /** Key */
@@ -1887,6 +2013,174 @@ export interface components {
              */
             high_contrast: boolean;
         };
+        /** EnrichResult */
+        EnrichResult: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "distances" | "footprints" | "census" | "elevation";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "partial" | "skipped";
+            /** Text */
+            text: string;
+            /**
+             * Fields
+             * @description The fields it added.
+             */
+            fields: string[];
+            /** Seconds */
+            seconds: number;
+            /**
+             * Reused
+             * @description Read from what was downloaded before.
+             */
+            reused: boolean;
+            /**
+             * Features
+             * @description distances: each OpenStreetMap feature.
+             */
+            features: components["schemas"]["FeatureResult"][];
+        };
+        /** EnrichView */
+        EnrichView: {
+            settings: components["schemas"]["Enrichments-Output"];
+            /** Features */
+            features: components["schemas"]["FeatureSpec"][];
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "m" | "km" | "ft" | "mile";
+            area: components["schemas"]["Area"] | null;
+            /**
+             * Resolution
+             * @description The elevation detail suggested for the area.
+             * @enum {integer}
+             */
+            resolution: 10 | 30 | 60;
+            /**
+             * Counties
+             * @description The project's state's counties (every county outside the US).
+             */
+            counties: components["schemas"]["County"][];
+            /** County Guess */
+            county_guess: string | null;
+            /** Years */
+            years: number[];
+            /**
+             * Key Saved
+             * @description A Census API key is saved on this computer.
+             */
+            key_saved: boolean;
+            /**
+             * Key End
+             * @description Its last four characters, to recognise it.
+             */
+            key_end: string | null;
+            /**
+             * Taken
+             * @description Features a map layer already uses the name of: not measured from OSM.
+             */
+            taken: string[];
+            /** Adds */
+            adds: components["schemas"]["Adds"][];
+        };
+        /** Enrichments */
+        "Enrichments-Input": {
+            /**
+             * Distances
+             * @default true
+             */
+            distances: boolean;
+            /**
+             * Features
+             * @description OpenStreetMap feature -> its options.
+             */
+            features?: {
+                [key: string]: components["schemas"]["OsmFeature-Input"];
+            };
+            /**
+             * Footprints
+             * @default true
+             */
+            footprints: boolean;
+            /**
+             * Census
+             * @default false
+             */
+            census: boolean;
+            /**
+             * Census Year
+             * @default 2022
+             */
+            census_year: number;
+            /**
+             * Fips
+             * @description The county's five-digit FIPS code.
+             */
+            fips?: string | null;
+            /**
+             * Elevation
+             * @default true
+             */
+            elevation: boolean;
+            /**
+             * Resolution M
+             * @default 10
+             * @enum {integer}
+             */
+            resolution_m: 10 | 30 | 60;
+        };
+        /** Enrichments */
+        "Enrichments-Output": {
+            /**
+             * Distances
+             * @default true
+             */
+            distances: boolean;
+            /**
+             * Features
+             * @description OpenStreetMap feature -> its options.
+             */
+            features: {
+                [key: string]: components["schemas"]["OsmFeature-Output"];
+            };
+            /**
+             * Footprints
+             * @default true
+             */
+            footprints: boolean;
+            /**
+             * Census
+             * @default false
+             */
+            census: boolean;
+            /**
+             * Census Year
+             * @default 2022
+             */
+            census_year: number;
+            /**
+             * Fips
+             * @description The county's five-digit FIPS code.
+             */
+            fips: string | null;
+            /**
+             * Elevation
+             * @default true
+             */
+            elevation: boolean;
+            /**
+             * Resolution M
+             * @default 10
+             * @enum {integer}
+             */
+            resolution_m: 10 | 30 | 60;
+        };
         /** EntryLoad */
         EntryLoad: {
             /** Load */
@@ -1913,6 +2207,37 @@ export interface components {
             field: "key2" | "key3";
             /** Column */
             column: string;
+        };
+        /** FeatureResult */
+        FeatureResult: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "none" | "failed";
+            /** Text */
+            text: string;
+        };
+        /** FeatureSpec */
+        FeatureSpec: {
+            /**
+             * Key
+             * @description OpenAVMKit's distances entry (columns are dist_to_osm_<key>).
+             */
+            key: string;
+            /** Label */
+            label: string;
+            /** What */
+            what: string;
+            /**
+             * Named
+             * @description Its features have names, so the largest can be measured to one by one.
+             */
+            named: boolean;
         };
         /**
          * FieldProfile
@@ -1956,7 +2281,7 @@ export interface components {
              * Group
              * @enum {string}
              */
-            group: "files" | "layers" | "engine";
+            group: "files" | "layers" | "public" | "engine";
             /** Filled */
             filled: number;
             /** Share */
@@ -2743,6 +3068,38 @@ export interface components {
              */
             read: number | null;
         };
+        /** OsmFeature */
+        "OsmFeature-Input": {
+            /** On */
+            on: boolean;
+            /**
+             * Max Distance
+             * @description Past it, no distance (in the project's long distance unit).
+             */
+            max_distance: number;
+            /**
+             * Top N
+             * @description Also measured to each of the N largest, by name.
+             * @default 0
+             */
+            top_n: number;
+        };
+        /** OsmFeature */
+        "OsmFeature-Output": {
+            /** On */
+            on: boolean;
+            /**
+             * Max Distance
+             * @description Past it, no distance (in the project's long distance unit).
+             */
+            max_distance: number;
+            /**
+             * Top N
+             * @description Also measured to each of the N largest, by name.
+             * @default 0
+             */
+            top_n: number;
+        };
         /**
          * Overlay
          * @description A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.
@@ -2897,6 +3254,134 @@ export interface components {
             /** Vacant */
             vacant: boolean;
         };
+        /** PermitKind */
+        PermitKind: {
+            /** Value */
+            value: string;
+            /** Count */
+            count: number;
+            /**
+             * Means
+             * @enum {string}
+             */
+            means: "teardown" | "major" | "minor" | "none";
+            /**
+             * Guessed
+             * @description Not said yet: what the words suggest.
+             */
+            guessed: boolean;
+        };
+        /**
+         * Permits
+         * @description A permits file's columns and what its kinds of permit mean (F3g): OpenAVMKit's permits enrichment.
+         */
+        "Permits-Input": {
+            /**
+             * Date
+             * @description The column with the date each permit was issued.
+             */
+            date?: string | null;
+            /** Date Format */
+            date_format?: string | null;
+            /**
+             * Type
+             * @description The column that says what each permit is for.
+             */
+            type?: string | null;
+            /**
+             * Means
+             * @description Each value of the type column -> what it means; missing: not a renovation.
+             */
+            means?: {
+                [key: string]: "teardown" | "major" | "minor" | "none";
+            };
+            /**
+             * Max Days
+             * @description A sale demolished within this is a teardown sale.
+             * @default 365
+             */
+            max_days: number;
+            /**
+             * Effective Age
+             * @description Major renovations reset the effective year built.
+             * @default true
+             */
+            effective_age: boolean;
+        };
+        /**
+         * Permits
+         * @description A permits file's columns and what its kinds of permit mean (F3g): OpenAVMKit's permits enrichment.
+         */
+        "Permits-Output": {
+            /**
+             * Date
+             * @description The column with the date each permit was issued.
+             */
+            date: string | null;
+            /** Date Format */
+            date_format: string | null;
+            /**
+             * Type
+             * @description The column that says what each permit is for.
+             */
+            type: string | null;
+            /**
+             * Means
+             * @description Each value of the type column -> what it means; missing: not a renovation.
+             */
+            means: {
+                [key: string]: "teardown" | "major" | "minor" | "none";
+            };
+            /**
+             * Max Days
+             * @description A sale demolished within this is a teardown sale.
+             * @default 365
+             */
+            max_days: number;
+            /**
+             * Effective Age
+             * @description Major renovations reset the effective year built.
+             * @default true
+             */
+            effective_age: boolean;
+        };
+        /** PermitsBody */
+        PermitsBody: {
+            permits?: components["schemas"]["Permits-Input"] | null;
+            /**
+             * Guess
+             * @default false
+             */
+            guess: boolean;
+        };
+        /** PermitsView */
+        PermitsView: {
+            /** File */
+            file: string;
+            settings: components["schemas"]["Permits-Output"];
+            /** Rows */
+            rows: number;
+            date: components["schemas"]["Check"] | null;
+            /**
+             * Span
+             * @description The first and last permit dates.
+             */
+            span: string | null;
+            /** Kinds */
+            kinds: components["schemas"]["PermitKind"][];
+            /**
+             * More
+             * @description Kinds of permit not listed (the rarest).
+             */
+            more: number;
+            /**
+             * Year Built
+             * @description The year built is loaded: renovations can reset the effective year.
+             */
+            year_built: boolean;
+            /** Ready */
+            ready: boolean;
+        };
         /** Plan */
         Plan: {
             /**
@@ -2906,6 +3391,11 @@ export interface components {
             files: string[];
             /** Layers */
             layers: string[];
+            /**
+             * Enrichments
+             * @description Public data downloaded as it runs (F3e).
+             */
+            enrichments: string[];
             /** Fields */
             fields: number;
         };
@@ -2997,6 +3487,8 @@ export interface components {
              * @description How model groups were started; None: not yet.
              */
             groups_start: ("scratch" | "suggested") | null;
+            /** @description Enrichments (F3e); None: the step not shown yet. */
+            enrich: components["schemas"]["Enrichments-Output"] | null;
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -3045,6 +3537,11 @@ export interface components {
              * @description [step, seconds].
              */
             timings: unknown[][];
+            /**
+             * Enrichments
+             * @description Public data (F3e), as it went.
+             */
+            enrichments: components["schemas"]["EnrichResult"][];
         };
         /** Reconcile */
         Reconcile: {
@@ -3917,6 +4414,10 @@ export interface components {
              * @description Map layers (Shapefiles).
              */
             layers: components["schemas"]["LayerView"][];
+            /** @description Sales sharing a deed (the Deeds step). */
+            deeds: components["schemas"]["DeedsCheck"] | null;
+            /** @description The permits file, set up (the Permits step). */
+            permits: components["schemas"]["PermitsView"] | null;
         };
         /** WizardColumnRef */
         WizardColumnRef: {
@@ -4065,7 +4566,7 @@ export interface components {
             /** Geometry */
             geometry: boolean;
             /** Holds */
-            holds: ("parcels" | "sales" | "unused" | "overlay") | null;
+            holds: ("parcels" | "sales" | "unused" | "overlay" | "permits") | null;
             /**
              * Match
              * @description Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).
@@ -4111,7 +4612,7 @@ export interface components {
          */
         WizardFileChoice: {
             /** Holds */
-            holds?: ("parcels" | "sales" | "unused" | "overlay") | null;
+            holds?: ("parcels" | "sales" | "unused" | "overlay" | "permits") | null;
             /**
              * Universe
              * @description Make this the parcel universe file (it needs shapes).
@@ -5519,6 +6020,141 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_permits_api_projects__project_id__wizard_files__name__permits_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermitsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_enrich_api_projects__project_id__wizard_enrich_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_wizard_enrich_api_projects__project_id__wizard_enrich_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Enrichments-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_census_key_api_census_key_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CensusKey"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

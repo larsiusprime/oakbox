@@ -76,6 +76,17 @@ class DictionaryField(BaseModel):
 
 # Computed when configured, so not offered by default; your own column would still win (SPEC F3c).
 NOT_OFFERED_PREFIXES = ("dist_to_",)
+# Fields OAK box asks for that OpenAVMKit's dictionary doesn't list, though its settings name them.
+EXTRA = {
+    "deed_id": {
+        "name": "Deed ID",
+        "description": "The deed's or instrument's number, as recorded. Sales that share one on the same day are "
+        "one sale of several parcels: sales scrutiny (notebook 2) flags them.",
+        "type": "string",
+        "groups": ["deed"],
+        "source": "input",
+    },
+}
 
 
 class DateCheck(BaseModel):
@@ -176,6 +187,7 @@ def dictionary(jurisdiction: str = "") -> list[DictionaryField]:
     project's jurisdiction ("Travis County land value"), or the assessor without one.
     """
     raw = json.loads(resources.files("openavmkit.resources.settings").joinpath("data_dictionary.json").read_text())
+    raw = {**EXTRA, **raw}
     return [
         DictionaryField(
             key=key,

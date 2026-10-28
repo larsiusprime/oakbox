@@ -210,13 +210,18 @@ s = pd.read_csv(
 s = s[s.REID.isin(new_id)].copy()
 when = pd.to_datetime(s.SALE_DATE, format="%m/%d/%Y %H:%M")
 s = s[when.dt.year >= SINCE]
-when = when[s.index] + pd.to_timedelta(rng.integers(-30, 31, len(s)), unit="D")
+# Several sales on one deed (one sale of several parcels) move together, keeping its date and price the same: that
+# is how sales scrutiny finds them. The same draws as before, so nothing else changes.
+deed = (s.DEED_BOOK.fillna("") + "/" + s.DEED_PAGE.fillna("") + "/" + s.SALE_DATE).to_numpy()
+first = pd.Series(np.arange(len(s))).groupby(deed).transform("first").to_numpy()
+shift = rng.integers(-30, 31, len(s))[first]
+when = when[s.index] + pd.to_timedelta(shift, unit="D")
 when = when.clip(lower=pd.Timestamp(f"{SINCE}-01-01"))
 price = pd.to_numeric(s.SALE_PRICE, errors="coerce").to_numpy()
-price = np.where(price < 1_000, price, (price * rng.lognormal(0, 0.03, len(s))).round(-2)).astype(int)
+price = np.where(price < 1_000, price, (price * rng.lognormal(0, 0.03, len(s))[first]).round(-2)).astype(int)
 qualified = (s.SALE_STATUS == "QUALIFIED").to_numpy()
 # Some unqualified deeds are recorded at a nominal $10 (gifts, family transfers).
-nominal = ~qualified & (rng.random(len(s)) < 0.12)
+nominal = ~qualified & (rng.random(len(s)) < 0.12)[first]
 price = np.where(nominal, 10, price)
 
 reid_txt = s.REID.map(new_id).to_numpy().astype(object)
@@ -263,6 +268,31 @@ for i in np.flatnonzero(fmt_rng.random(len(v)) < 0.01):
     sales.iloc[i, sales.columns.get_loc("PRICE_MIXED")] = fmt_rng.choice(["N/A", "-", "0", "$0.00", "TBD"])
 sales["PRICE_NEGATIVE"] = [f"({x:,})" if x < 100 else f"{x:,}" for x in v]  # accounting: (10) for a $10 deed
 
+# ---------- Building permits: made up, one row per permit, on the plain parcel ID ----------
+# 15. Teardowns: 40 improved, qualified sales are followed by a demolition permit within a year, so the sale was
+#     really of the land. Its own random stream, so nothing above changes.
+permit_rng = np.random.default_rng(4242)
+KINDS = ["ALTERATION", "REROOF", "ADDITION", "ELECTRICAL", "NEW CONSTRUCTION", "DEMOLITION", "POOL"]
+WEIGHTS = [0.32, 0.22, 0.14, 0.14, 0.09, 0.04, 0.05]
+n_permits = 2_100
+permit_ids = permit_rng.choice(p["reid"].dropna().to_numpy(), n_permits)
+issued = pd.Timestamp("2011-01-01") + pd.to_timedelta(permit_rng.integers(0, 15 * 365, n_permits), unit="D")
+kinds = permit_rng.choice(KINDS, n_permits, p=WEIGHTS)
+torn = sales[(sales.SALE_STATUS == "QUALIFIED") & (sales.SALE_TYPE == "IMPROVED") & (sales.REID.str.len() == 6)]
+torn = torn.iloc[permit_rng.choice(len(torn), 40, replace=False)]
+torn_when = pd.to_datetime(torn.SALE_DATE, format="%m/%d/%Y %H:%M") + pd.to_timedelta(
+    permit_rng.integers(20, 330, len(torn)), unit="D"
+)
+permits = pd.DataFrame(
+    {
+        "REID": [*permit_ids, *torn.REID],
+        "ISSUE_DATE": [d.strftime("%Y-%m-%d") for d in [*issued, *torn_when]],
+        "WORK_CLASS": [*kinds, *["DEMOLITION"] * len(torn)],
+    }
+).sort_values("ISSUE_DATE", kind="stable")
+permits.insert(0, "PERMIT_NO", [f"BP-{d[:4]}-{i:05d}" for i, d in enumerate(permits.ISSUE_DATE)])
+permits["VALUATION"] = (permit_rng.lognormal(9.5, 1.0, len(permits)) // 100 * 100).astype(int)
+
 # ---------- Map layers: Guilford's own, cut to the window ----------
 zoning = layer("zoning")[["ZONING", "CLASSIFICATION", "geometry"]]
 zoning["geometry"] = zoning.geometry.simplify(1.0)
@@ -301,7 +331,8 @@ parks.to_file(IN / "geo" / "parks.shp")
 buildings.to_csv(IN / "building.csv", index=False)
 units.to_csv(IN / "condo_units.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
+permits.to_csv(IN / "permits.csv", index=False)
 print(
     f"{len(parcels):,} parcel shapes, {len(units):,} condo units without one, {len(buildings):,} building cards, "
-    f"{len(sales):,} sales"
+    f"{len(sales):,} sales, {len(permits):,} permits"
 )

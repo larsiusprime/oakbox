@@ -33,6 +33,8 @@ from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
 from oakbox.datafiles import DataFile, Rule, clean_calc, data_load, overlay_distance, rule_fields, rule_filter
+from oakbox.enrichments import Enrichments
+from oakbox.enrichments import settings as enrich_settings
 
 
 class BaseModel(_PydanticBase):
@@ -160,6 +162,7 @@ class Project(BaseModel):
     groups_start: Literal["scratch", "suggested"] | None = Field(
         default=None, description="How model groups were started; None: not yet."
     )
+    enrich: Enrichments | None = Field(default=None, description="Enrichments (F3e); None: the step not shown yet.")
 
     @model_validator(mode="before")
     @classmethod
@@ -345,7 +348,27 @@ def base_settings(project: Project) -> dict:
             **_model_groups(project),
         },
         **({"data": _data(project)} if project.files else {}),
+        **_analysis(project),
     }
+
+
+DEED_BOOK_PAGE = "deed_book_and_page"
+
+
+def _deed(project: Project) -> str | None:
+    """The field sales scrutiny reads as the deed ID: the deed ID, or the book and page together (F3f)."""
+    sales = [f for f in project.files if f.holds == "sales"]
+    loaded = {k for f in sales for k in f.load}
+    if "deed_id" in loaded:
+        return "deed_id"
+    if {"deed_book", "deed_page"} <= loaded:
+        return DEED_BOOK_PAGE
+    return None
+
+
+def _analysis(project: Project) -> dict:
+    deed = _deed(project)
+    return {"analysis": {"sales_scrutiny": {"deed_id": deed}}} if deed else {}
 
 
 def _model_groups(project: Project) -> dict:
@@ -377,11 +400,20 @@ def _data(project: Project) -> dict:
             process["enrich"] = {"ref_tables": {"sales": lookups}}
         out["process"] = process
     _condos(project, out)
+    _permits(project, out)
+    if _deed(project) == DEED_BOOK_PAGE:
+        # Book and page as one deed ID, "123-45"; blank when either is (no deed is no deed).
+        f = next(f for f in project.files if f.holds == "sales" and "deed_page" in f.load)
+        joined = ["+", ["+", ["asstr", "deed_book"], "str:-"], ["asstr", "deed_page"]]
+        blank = ["or", ["isempty", "deed_book"], ["isempty", "deed_page"]]
+        out["load"].setdefault(f.name, {}).setdefault("calc", {})[DEED_BOOK_PAGE] = ["where", blank, None, joined]
     # Map layers (F3d Shapefiles): joined by where each parcel is, or measured to.
     layers = [f for f in project.files if f.holds == "overlay" and f.overlay and f.overlay.use]
     stamps = [f for f in layers if f.overlay and f.overlay.use == "stamp" and f.overlay.fields]
     dists = [f for f in layers if f.overlay and f.overlay.use == "distance" and f.overlay.feature]
-    if stamps or dists:
+    # Enrichments (F3e): public data, and distances to OpenStreetMap features beside the layers' own.
+    public, osm = enrich_settings(project.enrich, project.units, {f.overlay.feature for f in dists if f.overlay})
+    if stamps or dists or public or osm:
         enrich = out.setdefault("process", {}).setdefault("enrich", {})
         if stamps:
             enrich["geometry"] = [
@@ -389,10 +421,13 @@ def _data(project: Project) -> dict:
                 for f in stamps
                 if f.overlay
             ]
-        if dists:
-            enrich["distances"] = {"enabled": True} | {
-                f.overlay.feature: overlay_distance(f.name, f.overlay) for f in dists if f.overlay
-            }
+        enrich |= public
+        if dists or osm:
+            enrich["distances"] = (
+                {"enabled": True}
+                | {f.overlay.feature: overlay_distance(f.name, f.overlay) for f in dists if f.overlay}
+                | osm
+            )
     return out
 
 
@@ -457,6 +492,53 @@ def _condos(project: Project, out: dict) -> None:
         "group_field": CONDO_GROUP,
         "borrow_geometry": True,
         "land_share": share,
+    }
+
+
+PERMIT_FIELDS = ("date", "permit_type", "is_teardown", "is_renovation", "renovation_num", "renovation_txt")
+
+
+def permits_file(project: Project) -> DataFile | None:
+    return next((f for f in project.files if f.holds == "permits"), None)
+
+
+def permits_ready(f: DataFile) -> bool:
+    p = f.permits
+    return bool(p and p.date and p.date_format and p.type and "key" in f.load)
+
+
+def _permits(project: Project, out: dict) -> None:
+    """The permits file's fields, worked out from its type column, and data.process.enrich.permits (F3g).
+
+    OpenAVMKit reads key, date, is_teardown, is_renovation, renovation_num (3 major, 1 minor) and renovation_txt
+    from each permit."""
+    f = permits_file(project)
+    if f is None or not permits_ready(f) or f.permits is None:
+        return
+    p = f.permits
+    entry = out["load"].setdefault(f.name, {"filename": f.filename})
+    entry.setdefault("load", {}).update(
+        {"date": [p.date, "datetime", p.date_format], "permit_type": [p.type, "string"]}
+    )
+
+    def of(meaning: str) -> list:
+        return ["isin", "permit_type", [f"str:{v}" for v, m in p.means.items() if m == meaning]]
+
+    major, minor = of("major"), of("minor")
+    entry.setdefault("calc", {}).update(
+        {
+            "is_teardown": ["?", of("teardown")],
+            "is_renovation": ["?", ["or", major, minor]],
+            "renovation_num": ["where", major, 3, ["where", minor, 1, 0]],
+            "renovation_txt": ["asstr", "permit_type"],
+        }
+    )
+    loaded = {k for x in project.files if x.holds in ("parcels", "sales") for k in x.load}
+    out.setdefault("process", {}).setdefault("enrich", {})["permits"] = {
+        "sources": [f.name],
+        "max_days_to_demo": p.max_days,
+        # It needs the year built to start from.
+        "calc_effective_age": p.effective_age and "bldg_year_built" in loaded,
     }
 
 

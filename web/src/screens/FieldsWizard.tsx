@@ -44,9 +44,11 @@ import { ValuesButton } from "../components/ValuesButton";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { type CustomChange, CustomFields } from "./CustomFields";
+import { EnrichStep } from "./Enrich";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
 import { LocationExtras } from "./Location";
+import { type PermitsChange, PermitsStep } from "./Permits";
 import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { type LayerChange, ShapefilesStep } from "./Shapefiles";
@@ -54,7 +56,7 @@ import { type UnitsChange, UnitsPanel } from "./Units";
 
 const w = t.wizard;
 type AreaUnit = NonNullable<WizardField["area_unit"]>;
-type Holds = "parcels" | "sales" | "unused";
+type Holds = "parcels" | "sales" | "unused" | "permits";
 // Fields with no column that can instead be assumed, after a warning (SPEC F3d).
 const ASSUMABLE = ["valid_sale", "vacant_sale"];
 const NONE = "__none";
@@ -113,7 +115,8 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   ]
     .filter(Boolean)
     .join(" · ");
-  const skippable = current.fields.length > 0 && !current.sales;
+  // Sales must have their fields; a step of optional fields (deeds, too) can be answered "I don't have these".
+  const skippable = current.fields.length > 0 && current.key !== "sales";
   // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
   const gated = current.status === "blocked" || current.status === "attention";
   const onward = () =>
@@ -151,6 +154,11 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "shapefiles" && (
             <ShapefilesStep project={project} data={data} change={change.mutate} />
           )}
+          {current.key === "deeds" && data.deeds && (
+            <p className={data.deeds.ok ? "wiz-note" : "wiz-note wiz-warn"}>{data.deeds.text}</p>
+          )}
+          {current.key === "enrich" && <EnrichStep projectId={projectId} />}
+          {current.key === "permits" && <PermitsStep project={project} data={data} change={change.mutate} />}
           {change.error && (
             <p className="error" role="alert">
               {change.error.message}
@@ -317,7 +325,8 @@ type Change =
   | { kind: "location"; name: string; file: string | null; column: string | null }
   | CustomChange
   | UnitsChange
-  | LayerChange;
+  | LayerChange
+  | PermitsChange;
 
 function useChange(projectId: string) {
   const queryClient = useQueryClient();
@@ -381,6 +390,14 @@ function useChange(projectId: string) {
           }),
         );
       }
+      if (c.kind === "permits") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/permits", {
+            params: { path: { project_id, name: c.name } },
+            body: { permits: c.permits, guess: c.guess ?? false },
+          }),
+        );
+      }
       if (c.kind === "units") {
         return unwrap(
           await api.PUT("/api/projects/{project_id}/wizard/files/{name}/units", {
@@ -439,7 +456,7 @@ function useChange(projectId: string) {
   });
 }
 
-type Mutate = (c: Change, options?: { onSuccess?: () => void }) => void;
+export type Mutate = (c: Change, options?: { onSuccess?: () => void }) => void;
 type MutateAsync = (c: Change) => Promise<Wizard>;
 
 // ---------- Welcome, parcel universe, sales ----------
@@ -792,7 +809,7 @@ export function FilePicker({
   );
 }
 
-function FileHeader({ file, onReplace }: { file: WizardFile; onReplace: () => void }) {
+export function FileHeader({ file, onReplace }: { file: WizardFile; onReplace: () => void }) {
   return (
     <div className="wiz-file">
       <span className="mono">{file.name}</span>
@@ -1104,7 +1121,7 @@ function ExtraFile({
 }
 
 /** A file's ID column, and whether it matches the universe's parcel ID or its second ID. */
-function IdRow({
+export function IdRow({
   projectId,
   data,
   file,

@@ -22,7 +22,7 @@ from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import fields
+from oakbox import enrichments, fields, projects
 from oakbox.datafiles import (
     AREA_FIELDS,
     EXTRA_IDS,
@@ -38,6 +38,8 @@ from oakbox.datafiles import (
     Match,
     NumberFormat,
     Overlay,
+    PermitMeaning,
+    Permits,
     Rule,
     Scale,
     Units,
@@ -111,6 +113,12 @@ STEPS: list[Step] = [
     ),
     # Map layers joined onto the parcels by where they are, or measured to (F3d Shapefiles).
     Step(key="shapefiles", parent="details"),
+    # The deed each sale was recorded under: several sales on one deed are one sale of several parcels (F3f).
+    Step(key="deeds", fields=["deed_id", "deed_book", "deed_page"], more=["deed_grantor", "deed_grantee"], sales=True),
+    # Public data about each parcel, downloaded as Bring in data runs (F3e).
+    Step(key="enrich"),
+    # Building permits: teardowns make a sale a land sale; major renovations reset the effective year (F3g).
+    Step(key="permits"),
     Step(key="review"),
 ]
 STEP_KEYS = [s.key for s in STEPS]
@@ -204,6 +212,11 @@ ALIASES: dict[str, list[str]] = {
     "assr_land_value": ["landval", "landvalue", "apprland", "appraisedland"],
     "assr_impr_value": ["imprval", "imprvval", "improvementvalue", "bldgval"],
     "assr_market_value": ["marketval", "mktval", "totalval", "apprval", "appraisedvalue", "marketvalue"],
+    "deed_id": [
+        *("deedid", "deedno", "deednum", "deednumber", "instrument", "instrumentno", "instrumentnum"),
+        *("instrumentnumber", "instno", "docno", "docnum", "documentno", "documentnumber", "recordingno"),
+        *("recordingnumber", "receptionno", "receptionnumber", "bookpage", "deedbookpage"),
+    ],
     "deed_book": ["book", "deedbook"],
     "deed_page": ["page", "deedpage"],
     "deed_grantor": ["grantor", "seller"],
@@ -401,6 +414,33 @@ class NotLoaded(BaseModel):
     columns: list[str]
 
 
+class DeedsCheck(BaseModel):
+    ok: bool
+    text: str
+    deeds: int = Field(description="Deeds (on one day) that more than one sale was recorded under.")
+    sales: int = Field(description="The sales on them.")
+    blank: int = Field(description="Sales without a deed ID: never counted as one deed.")
+
+
+class PermitKind(BaseModel):
+    value: str
+    count: int
+    means: PermitMeaning
+    guessed: bool = Field(description="Not said yet: what the words suggest.")
+
+
+class PermitsView(BaseModel):
+    file: str
+    settings: Permits
+    rows: int
+    date: Check | None
+    span: str | None = Field(description="The first and last permit dates.")
+    kinds: list[PermitKind]
+    more: int = Field(description="Kinds of permit not listed (the rarest).")
+    year_built: bool = Field(description="The year built is loaded: renovations can reset the effective year.")
+    ready: bool
+
+
 class Wizard(BaseModel):
     steps: list[StepView]
     files: list[WizardFile]
@@ -413,6 +453,8 @@ class Wizard(BaseModel):
     locations: list[LocationField] = Field(default_factory=list, description="The location fields the user named.")
     custom: list[CustomFieldView] = Field(default_factory=list, description="Fields the user named and classified.")
     layers: list[LayerView] = Field(default_factory=list, description="Map layers (Shapefiles).")
+    deeds: DeedsCheck | None = Field(default=None, description="Sales sharing a deed (the Deeds step).")
+    permits: PermitsView | None = Field(default=None, description="The permits file, set up (the Permits step).")
 
 
 # ---------- Reading the files (cached on the file's size and time) ----------
@@ -634,6 +676,14 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         share = found / r.rows if r.rows else 0.0
         text = f"{_pct(found, r.rows)} of sales match a parcel"
         # Under half matching is a blocker; under 95% worth reconciling (SPEC F3d).
+        warn = open_issues or share < MATCH_OK
+        return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
+    if holds == "permits":
+        # Many permits to a parcel is expected; what matters is that they find their parcel.
+        base_ids = _base_ids(files, base, match) | _unit_ids(files)
+        found = sum(1 for v in present if v in base_ids)
+        share = found / r.rows if r.rows else 0.0
+        text = f"{r.rows:,} permits · {_pct(found, r.rows)} find a parcel"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds != "parcels":
@@ -973,6 +1023,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
         locations=locations(project, in_dir),
         custom=custom_fields(project, in_dir),
         layers=layer_list,
+        deeds=_deeds_check(project, files),
+        permits=_permits_view(project, files),
     )
 
 
@@ -1029,7 +1081,7 @@ def _status(
     elif step.key == "more_files":
         for f in files:
             # Map layers are the Shapefiles step's; they join by where parcels are, not on an ID.
-            if f.base or f.holds in ("unused", "overlay") or (f.holds == "sales" and not _more_sales(f)):
+            if f.base or f.holds in ("unused", "overlay", "permits") or (f.holds == "sales" and not _more_sales(f)):
                 continue
             if f.holds is None:
                 left.append(Left(text=f"{f.name}: say what it joins to", blocking=False))
@@ -1040,6 +1092,14 @@ def _status(
                 ids(f, f.name)
                 for i in left[before:]:
                     i.text = f"{f.name}: {i.text}"
+    elif step.key == "permits":
+        f = next((f for f in files if f.holds == "permits"), None)
+        if f is not None:
+            ids(f, "permits")
+            pv = _permits_left(project)
+            left.extend(Left(text=t) for t in pv)
+    elif step.key == "enrich":
+        left.extend(Left(text=t, blocking=False) for t in enrichments.left(project))
     elif step.key == "shapefiles":
         for lv in layer_views:
             left.extend(Left(text=f"{lv.name}: {p.text}", blocking=p.blocking) for p in lv.left)
@@ -1165,6 +1225,8 @@ def visit(project: Project, in_dir: Path, step: str) -> None:
     if step not in STEP_KEYS:
         raise LookupError(step)
     _guess(project, in_dir, step)
+    if step == "enrich":
+        enrichments.start(project, in_dir)
     if step not in project.wizard.visited:
         project.wizard.visited.append(step)
 
@@ -1416,6 +1478,12 @@ def set_file(
         _guess(project, in_dir, "universe")
     elif holds == "sales":
         _guess(project, in_dir, "sales")
+    elif holds == "permits":
+        for f in project.files:  # one permits file: a new one replaces it
+            if f is not entry and f.holds == "permits":
+                f.holds, f.permits = "unused", None
+        if entry.permits is None:
+            entry.permits = _guess_permits(_Files(project, in_dir), entry)
     elif holds == "parcels":  # more parcel details: the steps already seen may find more in it
         for step in STEPS:
             if step.fields and not step.sales and step.key in project.wizard.visited:
@@ -3534,7 +3602,8 @@ def _taken_names(project: Project, skip: str) -> set[str]:
             names |= {x.name for x in f.overlay.fields}
             if f.overlay.feature:
                 names.add(f"dist_to_{f.overlay.feature}")
-    return names
+    # OpenStreetMap features measured to (F3e) take their names in OpenAVMKit's distances too.
+    return names | {f"dist_to_{k}" for k in enrichments.osm_names(project.enrich)}
 
 
 def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | None) -> None:
@@ -3600,3 +3669,160 @@ def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
     shapes = gdf[["geometry"]].head(2000).to_crs(4326)
     shapes["geometry"] = shapes.geometry.simplify(0.00005, preserve_topology=True)
     return LayerMap(shapes=_json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
+
+
+# ---------- Enrichments (F3e) ----------
+
+
+def enrich_view(project: Project, in_dir: Path) -> enrichments.EnrichView:
+    taken = {
+        f.overlay.feature for f in project.files if f.holds == "overlay" and f.overlay and f.overlay.use == "distance"
+    }
+    return enrichments.view(project, in_dir, taken)
+
+
+# ---------- Deeds (F3f) ----------
+
+
+def _deeds_check(project: Project, files: _Files) -> DeedsCheck | None:
+    """What sales scrutiny will find (notebook 2): sales sharing a deed ID and a sale date are one sale of several
+    parcels. Worked out from the sales file the deed fields and the sale date are both in."""
+    import pandas as pd
+
+    deed = projects._deed(project)
+    if deed is None:
+        return None
+    wanted = ["deed_id"] if deed == "deed_id" else ["deed_book", "deed_page"]
+    need = [*wanted, "sale_date"]
+    f = next((f for f in project.files if f.holds == "sales" and all(k in f.load for k in need)), None)
+    if f is None or f.name not in files.preview:
+        return None
+    stamp = _stamp(files.in_dir / f.filename)
+
+    def text(key: str) -> pd.Series:
+        return pd.Series(_values(stamp, f.layer, f.load[key][0], raw=True)).astype(str).str.strip()
+
+    parts = [text(k) for k in wanted]
+    blank = pd.concat([p.str.lower().isin(["", "nan", "none", "null"]) for p in parts], axis=1).any(axis=1)
+    ids = parts[0] if len(parts) == 1 else parts[0] + "-" + parts[1]
+    spec = f.load["sale_date"]
+    when = _parse(stamp, f.layer, spec[0], spec[2]) if len(spec) > 2 else pd.Series(_values(stamp, f.layer, spec[0]))
+    together = (ids + "|" + when.astype(str))[~blank]
+    counts = together.value_counts()
+    shared = counts[counts > 1]
+    n_blank = int(blank.sum())
+    if len(shared):
+        words = f"{len(shared):,} deeds have more than one sale on the same day: {int(shared.sum()):,} sales"
+        words += ", likely sales of several parcels together. Sales scrutiny (notebook 2) sets them aside."
+    else:
+        words = "No deed has more than one sale on the same day."
+    if n_blank:
+        words += f" {n_blank:,} {'sale has' if n_blank == 1 else 'sales have'} no deed ID."
+    return DeedsCheck(ok=True, text=words, deeds=len(shared), sales=int(shared.sum()), blank=n_blank)
+
+
+# ---------- Permits (F3g) ----------
+
+PERMIT_WORDS: list[tuple[re.Pattern, PermitMeaning]] = [
+    (re.compile(r"demo|wreck|raze|tear", re.IGNORECASE), "teardown"),
+    (re.compile(r"addition|remodel|renovat|rehab|convers|gut", re.IGNORECASE), "major"),
+    (re.compile(r"alter|repair|interior|kitchen|bath|finish", re.IGNORECASE), "minor"),
+]
+PERMIT_TYPE_NAMES = re.compile(r"(work|permit|job)?(class|type|kind|desc|category|scope)", re.IGNORECASE)
+PERMIT_DATE_NAMES = re.compile(r"issue|permit.?date|applied|date", re.IGNORECASE)
+
+
+def guess_meaning(value: str) -> PermitMeaning:
+    return next((m for rx, m in PERMIT_WORDS if rx.search(value)), "none")
+
+
+def _permits_view(project: Project, files: _Files) -> PermitsView | None:
+    f = projects.permits_file(project)
+    if f is None or f.name not in files.preview:
+        return None
+    p = f.permits or Permits()
+    date = span = None
+    if p.date and p.date_format and files.column(f.name, p.date) is not None:
+        date = _date_check(files, f.name, p.date, p.date_format)
+        when = _parse(_stamp(files.in_dir / f.filename), f.layer, p.date, p.date_format).dropna()
+        if len(when):
+            span = f"{when.min():%Y-%m-%d} to {when.max():%Y-%m-%d}"
+    kinds: list[PermitKind] = []
+    more = 0
+    if p.type and files.column(f.name, p.type) is not None:
+        counts = [(v, n) for v, n in _value_counts(_stamp(files.in_dir / f.filename), f.layer, p.type) if v]
+        more = max(0, len(counts) - VALUES_SHOWN)
+        for v, n in counts[:VALUES_SHOWN]:
+            said = p.means.get(v)
+            kinds.append(PermitKind(value=v, count=n, means=said or guess_meaning(v), guessed=said is None))
+    loaded = {k for x in project.files if x.holds in ("parcels", "sales") for k in x.load}
+    return PermitsView(
+        file=f.name,
+        settings=p,
+        rows=_rows(files, f.name) or 0,
+        date=date,
+        span=span,
+        kinds=kinds,
+        more=more,
+        year_built="bldg_year_built" in loaded,
+        ready=projects.permits_ready(f),
+    )
+
+
+def _permits_left(project: Project) -> list[str]:
+    f = projects.permits_file(project)
+    if f is None:
+        return []
+    p = f.permits or Permits()
+    out = []
+    if not p.date or not p.date_format:
+        out.append("Pick the date each permit was issued")
+    if not p.type:
+        out.append("Pick the column that says what each permit is")
+    return out
+
+
+def _guess_permits(files: _Files, f: DataFile) -> Permits:
+    """The date column (the first that reads as a date, issue dates first) and the type column (a few kinds,
+    named like a type or class), and what each kind means from its words."""
+    cols = files.columns(f.name)
+    dated = [c for c in cols if c.date_format and c.name not in f.load.get("key", [])]
+    dated.sort(key=lambda c: (not re.search(r"issue", c.name, re.IGNORECASE), not PERMIT_DATE_NAMES.search(c.name)))
+    p = Permits()
+    if dated:
+        p.date, p.date_format = dated[0].name, dated[0].date_format
+    stamp = _stamp(files.in_dir / f.filename)
+    best = None
+    for c in cols:
+        if c.type != "text" or c.date_format or c.name in (f.load.get("key") or [None])[:1]:
+            continue
+        n = len([v for v, _ in _value_counts(stamp, f.layer, c.name) if v])
+        if 2 <= n <= 60:
+            score = (bool(PERMIT_TYPE_NAMES.search(_norm(c.name))), -n)
+            if best is None or score > best[0]:
+                best = (score, c.name)
+    if best:
+        p.type = best[1]
+        p.means = {v: guess_meaning(v) for v, _ in _value_counts(stamp, f.layer, p.type) if v}
+    return p
+
+
+def set_permits(project: Project, in_dir: Path, name: str, permits: Permits | None, guess: bool = False) -> None:
+    """A file's permits set-up; None stops using it as permits. guess: work out the columns from the file."""
+    files = _Files(project, in_dir)
+    entry = files.entry(name)
+    if permits is None:
+        entry.holds, entry.permits = "unused", None
+        return
+    if entry.holds != "permits":
+        raise ValueError(f"{name} isn't the permits file.")
+    if guess:
+        permits = _guess_permits(files, entry)
+    for column in (permits.date, permits.type):
+        if column is not None and files.column(name, column) is None:
+            raise ValueError(f"{name} has no column {column}.")
+    if permits.type and entry.permits and permits.type != entry.permits.type:
+        # A new type column: its own values, guessed from their words.
+        stamp = _stamp(in_dir / entry.filename)
+        permits.means = {v: guess_meaning(v) for v, _ in _value_counts(stamp, entry.layer, permits.type) if v}
+    entry.permits = permits

@@ -1821,6 +1821,190 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/permits": {
+   "put": {
+    "summary": "Wizard Permits",
+    "description": "The permits file's date and type columns and what each kind of permit means (F3g); no settings stops using\nit as permits. guess: work them out from the file.",
+    "operationId": "wizard_permits_api_projects__project_id__wizard_files__name__permits_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PermitsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/enrich": {
+   "get": {
+    "summary": "Wizard Enrich",
+    "description": "The Enrichments step (F3e): what's chosen, the counties, the area the downloads cover.",
+    "operationId": "wizard_enrich_api_projects__project_id__wizard_enrich_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EnrichView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Set Wizard Enrich",
+    "description": "Choose the enrichments and their options (F3e).",
+    "operationId": "set_wizard_enrich_api_projects__project_id__wizard_enrich_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Enrichments-Input"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EnrichView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/census-key": {
+   "put": {
+    "summary": "Put Census Key",
+    "description": "Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it.",
+    "operationId": "put_census_key_api_census_key_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CensusKey"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/layers/{name}/map": {
    "get": {
     "summary": "Wizard Layer Map",
@@ -3309,6 +3493,27 @@
     ],
     "title": "AddFile"
    },
+   "Adds": {
+    "properties": {
+     "enrichment": {
+      "type": "string",
+      "title": "Enrichment"
+     },
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields"
+     }
+    },
+    "type": "object",
+    "required": [
+     "enrichment",
+     "fields"
+    ],
+    "title": "Adds"
+   },
    "AppSettingsView": {
     "properties": {
      "storage_location": {
@@ -3330,6 +3535,40 @@
      "display"
     ],
     "title": "AppSettingsView"
+   },
+   "Area": {
+    "properties": {
+     "west": {
+      "type": "number",
+      "title": "West"
+     },
+     "south": {
+      "type": "number",
+      "title": "South"
+     },
+     "east": {
+      "type": "number",
+      "title": "East"
+     },
+     "north": {
+      "type": "number",
+      "title": "North"
+     },
+     "km2": {
+      "type": "number",
+      "title": "Km2",
+      "description": "The rectangle around the parcels."
+     }
+    },
+    "type": "object",
+    "required": [
+     "west",
+     "south",
+     "east",
+     "north",
+     "km2"
+    ],
+    "title": "Area"
    },
    "AssembleExports": {
     "properties": {
@@ -3632,6 +3871,19 @@
      "loaded_as"
     ],
     "title": "Candidate"
+   },
+   "CensusKey": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key"
+    ],
+    "title": "CensusKey"
    },
    "Center": {
     "properties": {
@@ -4002,6 +4254,29 @@
     ],
     "title": "CountryDefaults"
    },
+   "County": {
+    "properties": {
+     "fips": {
+      "type": "string",
+      "title": "Fips"
+     },
+     "state": {
+      "type": "string",
+      "title": "State"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "fips",
+     "state",
+     "name"
+    ],
+    "title": "County"
+   },
    "Currency": {
     "properties": {
      "code": {
@@ -4232,7 +4507,8 @@
          "parcels",
          "sales",
          "unused",
-         "overlay"
+         "overlay",
+         "permits"
         ]
        },
        {
@@ -4290,6 +4566,17 @@
       ],
       "description": "A map layer's use (holds overlay, F3d)."
      },
+     "permits": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Permits-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "A permits file's set-up (holds permits, F3g)."
+     },
      "numbers": {
       "additionalProperties": {
        "$ref": "#/components/schemas/NumberFormat-Output"
@@ -4325,6 +4612,7 @@
      "rules",
      "area_units",
      "overlay",
+     "permits",
      "numbers",
      "scales"
     ],
@@ -4537,6 +4825,42 @@
     ],
     "title": "DateSample"
    },
+   "DeedsCheck": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "deeds": {
+      "type": "integer",
+      "title": "Deeds",
+      "description": "Deeds (on one day) that more than one sale was recorded under."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "The sales on them."
+     },
+     "blank": {
+      "type": "integer",
+      "title": "Blank",
+      "description": "Sales without a deed ID: never counted as one deed."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "text",
+     "deeds",
+     "sales",
+     "blank"
+    ],
+    "title": "DeedsCheck"
+   },
    "DictionaryField": {
     "properties": {
      "key": {
@@ -4685,6 +5009,319 @@
     "title": "Display",
     "description": "How the app looks (SPEC D43, View menu)."
    },
+   "EnrichResult": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "enum": [
+       "distances",
+       "footprints",
+       "census",
+       "elevation"
+      ],
+      "title": "Key"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "partial",
+       "skipped"
+      ],
+      "title": "Status"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "The fields it added."
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "reused": {
+      "type": "boolean",
+      "title": "Reused",
+      "description": "Read from what was downloaded before."
+     },
+     "features": {
+      "items": {
+       "$ref": "#/components/schemas/FeatureResult"
+      },
+      "type": "array",
+      "title": "Features",
+      "description": "distances: each OpenStreetMap feature."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "status",
+     "text",
+     "fields",
+     "seconds",
+     "reused",
+     "features"
+    ],
+    "title": "EnrichResult"
+   },
+   "EnrichView": {
+    "properties": {
+     "settings": {
+      "$ref": "#/components/schemas/Enrichments-Output"
+     },
+     "features": {
+      "items": {
+       "$ref": "#/components/schemas/FeatureSpec"
+      },
+      "type": "array",
+      "title": "Features"
+     },
+     "unit": {
+      "type": "string",
+      "enum": [
+       "m",
+       "km",
+       "ft",
+       "mile"
+      ],
+      "title": "Unit"
+     },
+     "area": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Area"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "resolution": {
+      "type": "integer",
+      "enum": [
+       10,
+       30,
+       60
+      ],
+      "title": "Resolution",
+      "description": "The elevation detail suggested for the area."
+     },
+     "counties": {
+      "items": {
+       "$ref": "#/components/schemas/County"
+      },
+      "type": "array",
+      "title": "Counties",
+      "description": "The project's state's counties (every county outside the US)."
+     },
+     "county_guess": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "County Guess"
+     },
+     "years": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Years"
+     },
+     "key_saved": {
+      "type": "boolean",
+      "title": "Key Saved",
+      "description": "A Census API key is saved on this computer."
+     },
+     "key_end": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key End",
+      "description": "Its last four characters, to recognise it."
+     },
+     "taken": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Taken",
+      "description": "Features a map layer already uses the name of: not measured from OSM."
+     },
+     "adds": {
+      "items": {
+       "$ref": "#/components/schemas/Adds"
+      },
+      "type": "array",
+      "title": "Adds"
+     }
+    },
+    "type": "object",
+    "required": [
+     "settings",
+     "features",
+     "unit",
+     "area",
+     "resolution",
+     "counties",
+     "county_guess",
+     "years",
+     "key_saved",
+     "key_end",
+     "taken",
+     "adds"
+    ],
+    "title": "EnrichView"
+   },
+   "Enrichments-Input": {
+    "properties": {
+     "distances": {
+      "type": "boolean",
+      "title": "Distances",
+      "default": true
+     },
+     "features": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/OsmFeature-Input"
+      },
+      "type": "object",
+      "title": "Features",
+      "description": "OpenStreetMap feature -> its options."
+     },
+     "footprints": {
+      "type": "boolean",
+      "title": "Footprints",
+      "default": true
+     },
+     "census": {
+      "type": "boolean",
+      "title": "Census",
+      "default": false
+     },
+     "census_year": {
+      "type": "integer",
+      "title": "Census Year",
+      "default": 2022
+     },
+     "fips": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fips",
+      "description": "The county's five-digit FIPS code."
+     },
+     "elevation": {
+      "type": "boolean",
+      "title": "Elevation",
+      "default": true
+     },
+     "resolution_m": {
+      "type": "integer",
+      "enum": [
+       10,
+       30,
+       60
+      ],
+      "title": "Resolution M",
+      "default": 10
+     }
+    },
+    "type": "object",
+    "title": "Enrichments"
+   },
+   "Enrichments-Output": {
+    "properties": {
+     "distances": {
+      "type": "boolean",
+      "title": "Distances",
+      "default": true
+     },
+     "features": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/OsmFeature-Output"
+      },
+      "type": "object",
+      "title": "Features",
+      "description": "OpenStreetMap feature -> its options."
+     },
+     "footprints": {
+      "type": "boolean",
+      "title": "Footprints",
+      "default": true
+     },
+     "census": {
+      "type": "boolean",
+      "title": "Census",
+      "default": false
+     },
+     "census_year": {
+      "type": "integer",
+      "title": "Census Year",
+      "default": 2022
+     },
+     "fips": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fips",
+      "description": "The county's five-digit FIPS code."
+     },
+     "elevation": {
+      "type": "boolean",
+      "title": "Elevation",
+      "default": true
+     },
+     "resolution_m": {
+      "type": "integer",
+      "enum": [
+       10,
+       30,
+       60
+      ],
+      "title": "Resolution M",
+      "default": 10
+     }
+    },
+    "type": "object",
+    "required": [
+     "distances",
+     "features",
+     "footprints",
+     "census",
+     "census_year",
+     "fips",
+     "elevation",
+     "resolution_m"
+    ],
+    "title": "Enrichments"
+   },
    "EntryLoad": {
     "properties": {
      "load": {
@@ -4739,6 +5376,69 @@
     ],
     "title": "ExtraId",
     "description": "An extra ID of the parcel universe, for files that join on a different key (F3d).\n\nNot checked: rows are kept or dropped by the parcel ID alone."
+   },
+   "FeatureResult": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "none",
+       "failed"
+      ],
+      "title": "Status"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "label",
+     "status",
+     "text"
+    ],
+    "title": "FeatureResult"
+   },
+   "FeatureSpec": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key",
+      "description": "OpenAVMKit's distances entry (columns are dist_to_osm_<key>)."
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "what": {
+      "type": "string",
+      "title": "What"
+     },
+     "named": {
+      "type": "boolean",
+      "title": "Named",
+      "description": "Its features have names, so the largest can be measured to one by one."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "label",
+     "what",
+     "named"
+    ],
+    "title": "FeatureSpec"
    },
    "FieldProfile": {
     "properties": {
@@ -4815,6 +5515,7 @@
       "enum": [
        "files",
        "layers",
+       "public",
        "engine"
       ],
       "title": "Group"
@@ -6490,6 +7191,63 @@
     ],
     "title": "NumberSample"
    },
+   "OsmFeature-Input": {
+    "properties": {
+     "on": {
+      "type": "boolean",
+      "title": "On"
+     },
+     "max_distance": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Max Distance",
+      "description": "Past it, no distance (in the project's long distance unit)."
+     },
+     "top_n": {
+      "type": "integer",
+      "maximum": 10.0,
+      "minimum": 0.0,
+      "title": "Top N",
+      "description": "Also measured to each of the N largest, by name.",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "on",
+     "max_distance"
+    ],
+    "title": "OsmFeature"
+   },
+   "OsmFeature-Output": {
+    "properties": {
+     "on": {
+      "type": "boolean",
+      "title": "On"
+     },
+     "max_distance": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Max Distance",
+      "description": "Past it, no distance (in the project's long distance unit)."
+     },
+     "top_n": {
+      "type": "integer",
+      "maximum": 10.0,
+      "minimum": 0.0,
+      "title": "Top N",
+      "description": "Also measured to each of the N largest, by name.",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "on",
+     "max_distance",
+     "top_n"
+    ],
+    "title": "OsmFeature"
+   },
    "Overlay-Input": {
     "properties": {
      "use": {
@@ -6817,6 +7575,281 @@
     ],
     "title": "ParcelSale"
    },
+   "PermitKind": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "means": {
+      "type": "string",
+      "enum": [
+       "teardown",
+       "major",
+       "minor",
+       "none"
+      ],
+      "title": "Means"
+     },
+     "guessed": {
+      "type": "boolean",
+      "title": "Guessed",
+      "description": "Not said yet: what the words suggest."
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "count",
+     "means",
+     "guessed"
+    ],
+    "title": "PermitKind"
+   },
+   "Permits-Input": {
+    "properties": {
+     "date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date",
+      "description": "The column with the date each permit was issued."
+     },
+     "date_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Format"
+     },
+     "type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Type",
+      "description": "The column that says what each permit is for."
+     },
+     "means": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "teardown",
+        "major",
+        "minor",
+        "none"
+       ]
+      },
+      "type": "object",
+      "title": "Means",
+      "description": "Each value of the type column -> what it means; missing: not a renovation."
+     },
+     "max_days": {
+      "type": "integer",
+      "maximum": 3650.0,
+      "minimum": 1.0,
+      "title": "Max Days",
+      "description": "A sale demolished within this is a teardown sale.",
+      "default": 365
+     },
+     "effective_age": {
+      "type": "boolean",
+      "title": "Effective Age",
+      "description": "Major renovations reset the effective year built.",
+      "default": true
+     }
+    },
+    "type": "object",
+    "title": "Permits",
+    "description": "A permits file's columns and what its kinds of permit mean (F3g): OpenAVMKit's permits enrichment."
+   },
+   "Permits-Output": {
+    "properties": {
+     "date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date",
+      "description": "The column with the date each permit was issued."
+     },
+     "date_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Format"
+     },
+     "type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Type",
+      "description": "The column that says what each permit is for."
+     },
+     "means": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "teardown",
+        "major",
+        "minor",
+        "none"
+       ]
+      },
+      "type": "object",
+      "title": "Means",
+      "description": "Each value of the type column -> what it means; missing: not a renovation."
+     },
+     "max_days": {
+      "type": "integer",
+      "maximum": 3650.0,
+      "minimum": 1.0,
+      "title": "Max Days",
+      "description": "A sale demolished within this is a teardown sale.",
+      "default": 365
+     },
+     "effective_age": {
+      "type": "boolean",
+      "title": "Effective Age",
+      "description": "Major renovations reset the effective year built.",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "date",
+     "date_format",
+     "type",
+     "means",
+     "max_days",
+     "effective_age"
+    ],
+    "title": "Permits",
+    "description": "A permits file's columns and what its kinds of permit mean (F3g): OpenAVMKit's permits enrichment."
+   },
+   "PermitsBody": {
+    "properties": {
+     "permits": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Permits-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "guess": {
+      "type": "boolean",
+      "title": "Guess",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "PermitsBody"
+   },
+   "PermitsView": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "settings": {
+      "$ref": "#/components/schemas/Permits-Output"
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "date": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Check"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "span": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Span",
+      "description": "The first and last permit dates."
+     },
+     "kinds": {
+      "items": {
+       "$ref": "#/components/schemas/PermitKind"
+      },
+      "type": "array",
+      "title": "Kinds"
+     },
+     "more": {
+      "type": "integer",
+      "title": "More",
+      "description": "Kinds of permit not listed (the rarest)."
+     },
+     "year_built": {
+      "type": "boolean",
+      "title": "Year Built",
+      "description": "The year built is loaded: renovations can reset the effective year."
+     },
+     "ready": {
+      "type": "boolean",
+      "title": "Ready"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "settings",
+     "rows",
+     "date",
+     "span",
+     "kinds",
+     "more",
+     "year_built",
+     "ready"
+    ],
+    "title": "PermitsView"
+   },
    "Plan": {
     "properties": {
      "files": {
@@ -6834,6 +7867,14 @@
       "type": "array",
       "title": "Layers"
      },
+     "enrichments": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Enrichments",
+      "description": "Public data downloaded as it runs (F3e)."
+     },
      "fields": {
       "type": "integer",
       "title": "Fields"
@@ -6843,6 +7884,7 @@
     "required": [
      "files",
      "layers",
+     "enrichments",
      "fields"
     ],
     "title": "Plan"
@@ -7027,6 +8069,17 @@
       "title": "Groups Start",
       "description": "How model groups were started; None: not yet."
      },
+     "enrich": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Enrichments-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Enrichments (F3e); None: the step not shown yet."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -7056,6 +8109,7 @@
      "groups",
      "assemble_exports",
      "groups_start",
+     "enrich",
      "accepted"
     ],
     "title": "Project"
@@ -7136,6 +8190,14 @@
       "type": "array",
       "title": "Timings",
       "description": "[step, seconds]."
+     },
+     "enrichments": {
+      "items": {
+       "$ref": "#/components/schemas/EnrichResult"
+      },
+      "type": "array",
+      "title": "Enrichments",
+      "description": "Public data (F3e), as it went."
      }
     },
     "type": "object",
@@ -7148,7 +8210,8 @@
      "checks",
      "notes",
      "notices",
-     "timings"
+     "timings",
+     "enrichments"
     ],
     "title": "Receipt"
    },
@@ -9015,6 +10078,28 @@
       "type": "array",
       "title": "Layers",
       "description": "Map layers (Shapefiles)."
+     },
+     "deeds": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/DeedsCheck"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Sales sharing a deed (the Deeds step)."
+     },
+     "permits": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PermitsView"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The permits file, set up (the Permits step)."
      }
     },
     "type": "object",
@@ -9029,7 +10114,9 @@
      "not_loaded",
      "locations",
      "custom",
-     "layers"
+     "layers",
+     "deeds",
+     "permits"
     ],
     "title": "Wizard"
    },
@@ -9435,7 +10522,8 @@
          "parcels",
          "sales",
          "unused",
-         "overlay"
+         "overlay",
+         "permits"
         ]
        },
        {
@@ -9568,7 +10656,8 @@
          "parcels",
          "sales",
          "unused",
-         "overlay"
+         "overlay",
+         "permits"
         ]
        },
        {
