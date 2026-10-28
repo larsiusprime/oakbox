@@ -748,6 +748,7 @@ export const t = {
       pickColumn: "Pick a column…",
       name: "Name",
       namePlaceholder: "name_like_this",
+      clear: "Clear this line without adding a field",
       group: "Class",
       groups: { land: "Land/location", building: "Improvement", other: "Other" } as Record<string, string>,
       type: "Kind",

@@ -60,6 +60,14 @@ export function CustomFields({
   const [file, column] = picked ? picked.split("\u0000") : [null, null];
   const groups = Object.entries(c.groups) as [Group, string][];
   const kinds = Object.entries(c.types) as [Kind, string][];
+  // Back to an empty line, without adding anything.
+  const clear = () => {
+    setPicked(null);
+    setName("");
+    setGroup("other");
+    setKind("category");
+  };
+  const dirty = picked !== null || name !== "" || group !== "other" || kind !== "category";
   const add = () => {
     if (!file || !column || !name) return;
     // Cleared once it's added; a refusal (a name already used) keeps what was typed.
@@ -185,10 +193,17 @@ export function CustomFields({
             <td className="cf-td cf-add-td">
               <Choice label={c.type} hideLabel value={kind} options={kinds} onChange={setKind} />
             </td>
-            <td className="cf-td cf-add-td" colSpan={2}>
+            <td className="cf-td cf-add-td">
               <Button className="button" isDisabled={!file || !name} onPress={add}>
                 {c.add}
               </Button>
+            </td>
+            <td className="cf-td cf-add-td">
+              {dirty && (
+                <Button className="rc-x" aria-label={c.clear} onPress={clear}>
+                  <X size="0.9em" />
+                </Button>
+              )}
             </td>
           </tr>
         </tfoot>
