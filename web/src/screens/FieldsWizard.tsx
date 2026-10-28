@@ -118,7 +118,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   // Sales must have their fields; a step of optional fields (deeds, too) can be answered "I don't have these".
   const skippable = current.fields.length > 0 && current.key !== "sales";
   // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
-  const gated = current.status === "blocked" || current.status === "attention";
+  // Only what stops a run greys Next; warnings and notes stay on the step without holding it up.
+  const gated = current.status === "blocked";
+  const blocking = current.left.filter((l) => l.blocking);
   const onward = () =>
     // Moving on confirms the step: an optional step is then complete (SPEC F3d).
     next && change.mutate({ kind: "confirm", step: current.key }, { onSuccess: () => go(next.key) });
@@ -203,7 +205,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
       </div>
       {unfinished && next && (
         <UnfinishedDialog
-          left={current.left}
+          left={blocking}
           close={() => setUnfinished(false)}
           skip={() => {
             setUnfinished(false);
