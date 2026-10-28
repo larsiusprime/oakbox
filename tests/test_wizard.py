@@ -1225,3 +1225,10 @@ def test_a_column_already_loaded_is_named_by_its_field(client, pid):
     assert client.put(f"{field}/bldg_type", json={"file": "geo_parcels", "column": "MAP_NO"}).status_code == 200
     r = client.put(f"/api/projects/{pid}/wizard/custom/map_no", json={"file": "geo_parcels", "column": "MAP_NO"})
     assert r.status_code == 422 and r.json()["detail"] == "MAP_NO is already loaded as Building type."
+
+
+def test_true_values_are_not_asked(client, pid):
+    """OpenAVMKit's true_* values are synthetic data's answer key: the wizard never shows or guesses them."""
+    w = client.get(f"/api/projects/{pid}/wizard").json()
+    assert not [f["key"] for f in w["fields"] if f["key"].startswith("true_")]
+    assert _step(w, "assessed")["more"] == []

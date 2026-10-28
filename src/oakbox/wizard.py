@@ -105,8 +105,8 @@ STEPS: list[Step] = [
     Step(
         key="assessed",
         parent="details",
+        # Not OpenAVMKit's true_* values: they're the answer key of synthetic data, never a real roll.
         fields=["assr_land_value", "assr_impr_value", "assr_market_value"],
-        more=["true_land_value", "true_impr_value", "true_market_value"],
     ),
     # Map layers joined onto the parcels by where they are, or measured to (F3d Shapefiles).
     Step(key="shapefiles", parent="details"),
