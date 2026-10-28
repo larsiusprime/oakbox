@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Globe } from "lucide-react";
+import { Check, Globe } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { Button, Input, TextField } from "react-aria-components";
-import { api, type Enrichments, type EnrichView, unwrap } from "../api/client";
+import { Button, Input, TextField, ToggleButton } from "react-aria-components";
+import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
 import { Choice, Tick } from "../components/Form";
+import { Tip } from "../components/Tip";
 import { t } from "../strings";
 
 const e = t.wizard.enrich;
@@ -41,6 +42,11 @@ export function EnrichStep({ projectId }: { projectId: string }) {
   const s = v.settings;
   const set = (patch: Partial<Enrichments>) => save.mutate({ ...s, ...patch });
   const adds = (key: string) => v.adds.find((a) => a.enrichment === key)?.fields ?? [];
+  // A field ticked or not: a distance kind, or a field of footprints, census or elevation.
+  const kinds = (key: string, on: boolean) =>
+    set({ kinds: on ? [...s.kinds, key as Enrichments["kinds"][number]] : s.kinds.filter((k) => k !== key) });
+  const field = (key: string, on: boolean) =>
+    set({ off: on ? s.off.filter((f) => f !== key) : [...s.off, key] });
 
   return (
     <div className="en">
@@ -57,6 +63,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
         onChange={(distances) => set({ distances })}
       >
         <Distances view={v} save={(features) => set({ features })} />
+        <Picks label={e.addsPerFeature} fields={adds("distances")} toggle={kinds} />
       </Card>
 
       <Card
@@ -66,7 +73,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
         on={s.footprints}
         onChange={(footprints) => set({ footprints })}
       >
-        <Chips label={e.adds} fields={adds("footprints")} />
+        <Picks label={e.adds} fields={adds("footprints")} toggle={field} />
       </Card>
 
       <Card
@@ -100,7 +107,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
             onChange={(y) => set({ census_year: Number(y) })}
           />
         </div>
-        <Chips label={e.addsByBlockGroup} fields={adds("census")} />
+        <Picks label={e.addsByBlockGroup} fields={adds("census")} toggle={field} />
       </Card>
 
       <Card
@@ -121,7 +128,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
           />
           <span className="en-sub">{e.suggested(v.resolution, v.area ? v.area.km2 : null)}</span>
         </div>
-        <Chips label={e.adds} fields={adds("elevation")} />
+        <Picks label={e.adds} fields={adds("elevation")} toggle={field} />
       </Card>
       {save.error && (
         <p className="error" role="alert">
@@ -167,15 +174,34 @@ function Card({
   );
 }
 
-function Chips({ label, fields }: { label: string; fields: string[] }) {
+/** The fields an enrichment adds, each ticked or not; what each is on hover. Unticked ones are dropped as the run
+ * ends, and an enrichment with none ticked isn't downloaded. */
+function Picks({
+  label,
+  fields,
+  toggle,
+}: {
+  label: string;
+  fields: EnrichAddField[];
+  toggle: (key: string, on: boolean) => void;
+}) {
   return (
     <div className="en-row">
       <span className="en-lab">{label}</span>
       {fields.map((f) => (
-        <span key={f} className="en-chip">
-          {f}
-        </span>
+        <Tip key={f.key} text={f.what}>
+          <ToggleButton
+            className="en-chip en-pick"
+            isSelected={f.on}
+            onChange={(on) => toggle(f.key, on)}
+            aria-label={`${f.name}: ${f.what}`}
+          >
+            <Check aria-hidden="true" size="0.85em" className="en-pick-tick" />
+            {f.name}
+          </ToggleButton>
+        </Tip>
       ))}
+      {fields.every((f) => !f.on) && <span className="wiz-warn">{e.noneTicked}</span>}
     </div>
   );
 }
@@ -205,7 +231,6 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
       </div>
     );
   }
-  const example = on[0]?.key ?? "parks";
   return (
     <>
       <div className="en-feats">
@@ -247,11 +272,6 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
         })}
       </div>
       <div className="en-row">
-        <span className="en-sub">
-          {e.gives} <span className="en-chip">dist_to_osm_{example}</span>{" "}
-          <span className="en-chip">within_osm_{example}</span>{" "}
-          <span className="en-chip">proximity_to_osm_{example}</span> {e.givesMore}
-        </span>
         <Button className="wiz-link" onPress={() => setOpen(false)}>
           {e.done}
         </Button>

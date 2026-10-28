@@ -1365,6 +1365,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AddField */
+        AddField: {
+            /**
+             * Key
+             * @description What ticking it changes: the field (in off), or a distance kind (in kinds).
+             */
+            key: string;
+            /**
+             * Name
+             * @description The field as it's named, distances with the feature as <feature>.
+             */
+            name: string;
+            /** What */
+            what: string;
+            /** On */
+            on: boolean;
+        };
         /** AddFile */
         AddFile: {
             /** Path */
@@ -1392,7 +1409,7 @@ export interface components {
             /** Enrichment */
             enrichment: string;
             /** Fields */
-            fields: string[];
+            fields: components["schemas"]["AddField"][];
         };
         /** AppSettingsView */
         AppSettingsView: {
@@ -2190,6 +2207,16 @@ export interface components {
                 [key: string]: components["schemas"]["OsmFeature-Input"];
             };
             /**
+             * Kinds
+             * @description Which of the three columns each feature gives (and each of its largest).
+             */
+            kinds?: ("dist_to" | "within" | "proximity_to")[];
+            /**
+             * Off
+             * @description Fields not wanted from footprints, census and elevation (OpenAVMKit's names): dropped as the run ends; an enrichment with every field off isn't downloaded.
+             */
+            off?: string[];
+            /**
              * Footprints
              * @default true
              */
@@ -2235,6 +2262,16 @@ export interface components {
             features: {
                 [key: string]: components["schemas"]["OsmFeature-Output"];
             };
+            /**
+             * Kinds
+             * @description Which of the three columns each feature gives (and each of its largest).
+             */
+            kinds: ("dist_to" | "within" | "proximity_to")[];
+            /**
+             * Off
+             * @description Fields not wanted from footprints, census and elevation (OpenAVMKit's names): dropped as the run ends; an enrichment with every field off isn't downloaded.
+             */
+            off: string[];
             /**
              * Footprints
              * @default true

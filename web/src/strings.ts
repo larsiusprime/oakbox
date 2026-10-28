@@ -583,8 +583,8 @@ export const t = {
       units: { mile: "miles", km: "km", m: "m", ft: "ft" } as Record<string, string>,
       taken: (label: string) =>
         `${label}: a map layer already uses this name, so it's measured from the layer instead`,
-      gives: "Gives each parcel",
-      givesMore: "… and the same for each feature.",
+      addsPerFeature: "Adds, for each feature",
+      noneTicked: "None ticked: nothing is downloaded",
       key: "API key",
       keySaved: (end: string) => `saved on this computer, not in the project (…${end})`,
       keyNone: "None yet: get one free from the Census Bureau",

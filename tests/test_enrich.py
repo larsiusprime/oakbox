@@ -81,6 +81,40 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
 
     bad = client.put(f"/api/projects/{pid}/wizard/enrich", json=s | {"fips": "99999"})
     assert bad.status_code == 422
+    assert "drop_fields" not in _settings(pid)["data"]["process"]["enrich"]  # every field, to start with
+
+
+def test_the_fields_each_enrichment_adds_can_be_chosen(client, pid):
+    """Each field ticked or not: unticked ones are dropped as the run ends (the largest features' distances by a
+    pattern); an enrichment with none ticked isn't downloaded."""
+    _start(client, pid)
+    _visit(client, pid, "enrich")
+    v = client.get(f"/api/projects/{pid}/wizard/enrich").json()
+    adds = {a["enrichment"]: a["fields"] for a in v["adds"]}
+    assert [f["key"] for f in adds["distances"]] == ["dist_to", "within", "proximity_to"]
+    assert adds["distances"][1]["name"] == "within_osm_<feature>" and adds["distances"][1]["what"]
+    assert [f["name"] for f in adds["elevation"]] == ["elevation_mean_ft", "elevation_stdev_ft", "slope_mean_deg"]
+    assert all(f["on"] for a in adds.values() for f in a)
+
+    s = v["settings"] | {"kinds": ["dist_to"], "off": ["bldg_height_ft", "elevation_stdev_ft"]}
+    v = client.put(f"/api/projects/{pid}/wizard/enrich", json=s).json()
+    adds = {a["enrichment"]: {f["key"]: f["on"] for f in a["fields"]} for a in v["adds"]}
+    assert adds["distances"] == {"dist_to": True, "within": False, "proximity_to": False}
+    assert not adds["footprints"]["bldg_height_ft"] and adds["footprints"]["bldg_area_footprint_sqft"]
+    enrich = _settings(pid)["data"]["process"]["enrich"]
+    drop = enrich["drop_fields"]["universe"]
+    assert {"bldg_height_ft", "elevation_stdev_ft", "within_osm_parks", "within_osm_parks_*"} <= set(drop)
+    assert "dist_to_osm_parks" not in drop and enrich["drop_fields"]["sales"] == drop
+    assert "overture" in enrich and "dem" in enrich
+
+    # Every field of one unticked: not downloaded at all, and the step says so.
+    s |= {"off": ["elevation_mean_ft", "elevation_stdev_ft", "slope_mean_deg"]}
+    client.put(f"/api/projects/{pid}/wizard/enrich", json=s)
+    enrich = _settings(pid)["data"]["process"]["enrich"]
+    assert "dem" not in enrich and not any(f.startswith("elevation") for f in enrich["drop_fields"]["universe"])
+    left = _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
+    assert "Elevation: every field is unticked, so nothing is downloaded" in [x["text"] for x in left]
+    assert client.put(f"/api/projects/{pid}/wizard/enrich", json=s | {"off": ["nope"]}).status_code == 422
 
 
 def test_the_county_comes_from_the_projects_place():

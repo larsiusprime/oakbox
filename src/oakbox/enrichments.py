@@ -31,9 +31,21 @@ class OsmFeature(BaseModel):
     top_n: int = Field(default=0, ge=0, le=10, description="Also measured to each of the N largest, by name.")
 
 
+DistanceKind = Literal["dist_to", "within", "proximity_to"]
+
+
 class Enrichments(BaseModel):
     distances: bool = True
     features: dict[str, OsmFeature] = Field(default_factory=dict, description="OpenStreetMap feature -> its options.")
+    kinds: list[DistanceKind] = Field(
+        default_factory=lambda: ["dist_to", "within", "proximity_to"],
+        description="Which of the three columns each feature gives (and each of its largest).",
+    )
+    off: list[str] = Field(
+        default_factory=list,
+        description="Fields not wanted from footprints, census and elevation (OpenAVMKit's names): dropped as the "
+        "run ends; an enrichment with every field off isn't downloaded.",
+    )
     footprints: bool = True
     census: bool = False
     census_year: int = 2022
@@ -64,6 +76,40 @@ SPECS = {s.key: s for s, *_ in FEATURES}
 OSM_TAGS = {"major_roads": {"highway": ["motorway", "trunk"]}}
 CENSUS_YEARS = list(range(2018, 2025))
 CENSUS_FIELDS = ["median_income", "total_population", "median_g_rent", "median_c_rent"]
+KINDS: list[DistanceKind] = ["dist_to", "within", "proximity_to"]
+
+
+def fields_of(key: str, units: str) -> list[str]:
+    """The fields an enrichment adds, as OpenAVMKit names them (distances: per feature, see kinds)."""
+    area, length = ("sqft", "ft") if units == "imperial" else ("sqm", "m")
+    return {
+        "footprints": [f"bldg_area_footprint_{area}", f"bldg_height_{length}"],
+        "census": [*CENSUS_FIELDS, "census_tract", "census_block_group"],
+        "elevation": [f"elevation_mean_{length}", f"elevation_stdev_{length}", "slope_mean_deg"],
+    }.get(key, [])
+
+
+# What each field is, for the step's field choices.
+WHAT = {
+    "bldg_area_footprint": "The ground area the parcel's buildings cover",
+    "bldg_height": "The tallest building's height, where Overture has it",
+    "median_income": "Median household income in the block group (ACS B19013)",
+    "total_population": "People living in the block group (ACS B01003)",
+    "median_g_rent": "Median gross rent: rent plus utilities (ACS B25064)",
+    "median_c_rent": "Median contract rent: the rent alone (ACS B25058)",
+    "census_tract": "The census tract: a location, like a neighborhood",
+    "census_block_group": "The block group: a smaller location within a tract",
+    "elevation_mean": "The parcel's average elevation",
+    "elevation_stdev": "How much the elevation varies within the parcel (bumpiness)",
+    "slope_mean_deg": "The parcel's average slope, in degrees",
+    "dist_to": "Distance to the nearest one; blank past the maximum distance",
+    "within": "Whether the parcel is inside one (yes/no)",
+    "proximity_to": "Closeness: the maximum distance minus the distance; 0 past it",
+}
+
+
+def what(field: str) -> str:
+    return next((v for k, v in WHAT.items() if field.startswith(k)), "")
 
 
 def long_unit(units: str) -> DistanceUnit:
@@ -93,19 +139,22 @@ def settings(e: Enrichments | None, units: str, taken: set[str]) -> tuple[dict, 
         return {}, {}
     out: dict = {}
     imperial = units == "imperial"
-    if e.footprints:
+    # An enrichment whose every field is unticked is as good as off: nothing downloaded for nothing.
+    wanted = {k: [f for f in fields_of(k, units) if f not in e.off] for k in ("footprints", "census", "elevation")}
+    drop = [f for k, fs in wanted.items() if fs for f in fields_of(k, units) if f not in fs]
+    if e.footprints and wanted["footprints"]:
         area, length = ("sqft", "ft") if imperial else ("sqm", "m")
         out["overture"] = {
             "enabled": True,
             "footprint": {"units": area, "field": f"bldg_area_footprint_{area}"},
             "height": {"units": length, "field": f"bldg_height_{length}"},
         }
-    if e.census and e.fips:
+    if e.census and e.fips and wanted["census"]:
         out["census"] = {"enabled": True, "fips": e.fips, "year": e.census_year}
-    if e.elevation:
+    if e.elevation and wanted["elevation"]:
         out["dem"] = {"enabled": True, "resolution_m": e.resolution_m}
     dists: dict = {}
-    if e.distances:
+    if e.distances and e.kinds:
         for key, f in e.features.items():
             if not f.on or key in taken or key not in SPECS:
                 continue
@@ -114,6 +163,10 @@ def settings(e: Enrichments | None, units: str, taken: set[str]) -> tuple[dict, 
                 entry["osm_tags"] = OSM_TAGS[key]
             entry |= {"store_top": True, "top_n": f.top_n} if f.top_n and SPECS[key].named else {"store_top": False}
             dists[key] = entry
+            # The columns not wanted, the largest features' too (named as they're found: a pattern).
+            drop += [c for k in KINDS if k not in e.kinds for c in (f"{k}_osm_{key}", f"{k}_osm_{key}_*")]
+    if drop:
+        out["drop_fields"] = {"universe": drop, "sales": drop}
     return out, dists
 
 
@@ -188,9 +241,16 @@ def suggested_resolution(km2: float | None) -> Literal[10, 30, 60]:
     return 30 if km2 <= 8_000 else 60
 
 
+class AddField(BaseModel):
+    key: str = Field(description="What ticking it changes: the field (in off), or a distance kind (in kinds).")
+    name: str = Field(description="The field as it's named, distances with the feature as <feature>.")
+    what: str
+    on: bool
+
+
 class Adds(BaseModel):
     enrichment: str
-    fields: list[str]
+    fields: list[AddField]
 
 
 class EnrichView(BaseModel):
@@ -209,18 +269,17 @@ class EnrichView(BaseModel):
 
 
 def adds(e: Enrichments, units: str) -> list[Adds]:
-    imperial = units == "imperial"
-    area_u, len_u = ("sqft", "ft") if imperial else ("sqm", "m")
-    feats = [k for k, f in e.features.items() if f.on]
-    return [
+    """Each enrichment's fields, ticked or not."""
+    out = [
         Adds(
             enrichment="distances",
-            fields=[c for k in feats[:1] for c in (f"dist_to_osm_{k}", f"within_osm_{k}", f"proximity_to_osm_{k}")],
-        ),
-        Adds(enrichment="footprints", fields=[f"bldg_area_footprint_{area_u}", f"bldg_height_{len_u}"]),
-        Adds(enrichment="census", fields=[*CENSUS_FIELDS, "census_tract", "census_block_group"]),
-        Adds(enrichment="elevation", fields=[f"elevation_mean_{len_u}", f"elevation_stdev_{len_u}", "slope_mean_deg"]),
+            fields=[AddField(key=k, name=f"{k}_osm_<feature>", what=WHAT[k], on=k in e.kinds) for k in KINDS],
+        )
     ]
+    for key in ("footprints", "census", "elevation"):
+        fs = [AddField(key=f, name=f, what=what(f), on=f not in e.off) for f in fields_of(key, units)]
+        out.append(Adds(enrichment=key, fields=fs))
+    return out
 
 
 def view(project, in_dir: Path, taken: set[str]) -> EnrichView:
@@ -265,6 +324,9 @@ def set_enrichments(project, e: Enrichments) -> None:
             raise ValueError(f"No such feature: {k}")
     if e.fips is not None and not any(c.fips == e.fips for c in counties()):
         raise ValueError(f"No county has the code {e.fips}.")
+    known = {f for k in ("footprints", "census", "elevation") for f in fields_of(k, project.units)}
+    if unknown := sorted(set(e.off) - known):
+        raise ValueError(f"No such field: {', '.join(unknown)}")
     project.enrich = e
 
 
@@ -274,6 +336,12 @@ def left(project) -> list[str]:
 
     e = project.enrich
     out = []
+    names = {"footprints": "Building footprints", "census": "Census", "elevation": "Elevation"}
+    for key, name in names.items():
+        if e is not None and getattr(e, key) and all(f in e.off for f in fields_of(key, project.units)):
+            out.append(f"{name}: every field is unticked, so nothing is downloaded")
+    if e is not None and e.distances and not e.kinds:
+        out.append("Distances: every field is unticked, so nothing is downloaded")
     if e is not None and e.census:
         if not e.fips:
             out.append("Census: pick the county")
@@ -442,6 +510,8 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
 def recount(results: list[EnrichResult], universe) -> None:
     """Coverage as the parcel universe ended up (later steps fill in or clear some), in each result's words."""
     for r in results:
+        # The fields as they came out: those unticked on the step are dropped as the run ends.
+        r.fields = [c for c in r.fields if c in universe.columns]
         if r.status == "ok" and r.key != "distances" and r.fields:
             r.text = _coverage(r.key, universe, r.fields)
 
@@ -461,7 +531,7 @@ def _coverage(key: str, out, added: list[str]) -> str:
         got = have(next((c for c in added if c.startswith("bldg_area_footprint")), added[0]), positive=True)
         return f"{got:,} parcels ({100 * got / n:.0f}%) have a building"
     if key == "census":
-        got = have("median_income")
+        got = have(next((c for c in CENSUS_FIELDS if c in added), added[0]))
         return f"{got:,} parcels ({100 * got / n:.0f}%) in a block group with figures"
     got = have(next((c for c in added if c.startswith("elevation_mean")), added[0]))
     return "every parcel" if got == n else f"{got:,} parcels ({100 * got / n:.0f}%)"

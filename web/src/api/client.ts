@@ -40,6 +40,7 @@ export type LayerView = components["schemas"]["LayerView"];
 export type EnrichView = components["schemas"]["EnrichView"];
 export type Enrichments = components["schemas"]["Enrichments-Output"];
 export type EnrichResult = components["schemas"]["EnrichResult"];
+export type EnrichAddField = components["schemas"]["AddField"];
 export type Permits = components["schemas"]["Permits-Output"];
 export type PermitsView = components["schemas"]["PermitsView"];
 export type NumberPreview = components["schemas"]["NumberPreview"];
