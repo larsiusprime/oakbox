@@ -333,6 +333,14 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
         </tbody>
       </table>
       {results.some((x) => x.status !== "ok") && <p className="bi-note">{e.skippedNote}</p>}
+      {results.some((x) => x.key === "distances" && x.fields.length > 0) && (
+        <p className="bi-note">
+          {e.osmCredit}{" "}
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+            {e.osmLicence}
+          </a>
+        </p>
+      )}
     </section>
   );
 }

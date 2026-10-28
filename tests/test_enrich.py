@@ -71,13 +71,15 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
     v = client.put(f"/api/projects/{pid}/wizard/enrich", json=s).json()
     assert _settings(pid)["data"]["process"]["enrich"]["census"] == {"enabled": True, "fips": "48453", "year": 2021}
     left = _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
-    assert [x["text"] for x in left] == ["Census: add your API key"]
+    # The fixture's parcels are nowhere near Travis County: their census figures would all be blank.
+    off = "Census: the parcels aren't in Travis County, TX"
+    assert [x["text"] for x in left] == [off, "Census: add your API key"]
     assert client.put("/api/census-key", json={"key": "abcdef123456"}).status_code == 200
     v = client.get(f"/api/projects/{pid}/wizard/enrich").json()
     assert v["key_saved"] and v["key_end"] == "3456"
     assert "abcdef" not in client.get("/api/app-settings").text
     assert "abcdef" not in (projects.project_dir(pid) / "in" / "settings.json").read_text(encoding="utf-8")
-    assert _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"] == []
+    assert [x["text"] for x in _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]] == [off]
 
     bad = client.put(f"/api/projects/{pid}/wizard/enrich", json=s | {"fips": "99999"})
     assert bad.status_code == 422
@@ -122,6 +124,41 @@ def test_the_county_comes_from_the_projects_place():
     assert enrichments.guess_county("NC", "Guilford") == "37081"
     assert enrichments.guess_county("LA", "Orleans Parish") == "22071"
     assert enrichments.guess_county("NC", "Nowhere") is None
+
+
+def test_census_is_for_the_county_the_parcels_are_in():
+    """Guilford's parcels with Wake County picked: every census figure would be blank. Said, with the county
+    they're in; and that's the county guessed when the project's place names none (or one they aren't in)."""
+    guilford = enrichments.Area(west=-80.0, south=35.95, east=-79.6, north=36.2, km2=1300)
+    assert enrichments.county_check("37183", guilford) == (
+        "Census: the parcels aren't in Wake County, NC: they look to be in Guilford County, NC (37081)"
+    )
+    assert enrichments.county_check("37081", guilford) is None
+    assert enrichments.county_at(guilford).fips == "37081"  # type: ignore[union-attr]
+
+    class P:
+        region, jurisdiction = "NC", "Guilford Synthetic"
+
+    assert enrichments._guess(P(), guilford) == "37081"
+    P.jurisdiction = "Wake County"
+    assert enrichments._guess(P(), guilford) == "37081"  # the place's name, but the parcels aren't there
+
+
+def test_a_certificate_that_cant_be_checked_says_so_plainly(monkeypatch):
+    import requests
+
+    def head(url, **kw):
+        assert kw["headers"]["User-Agent"].startswith("OAK box/")  # who's asking
+        raise requests.exceptions.SSLError(
+            "HTTPSConnectionPool(host='overpass-api.de', port=443): Max retries exceeded (Caused by SSLError("
+            "SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate "
+            "has expired (_ssl.c:992)')))"
+        )
+
+    monkeypatch.setattr(requests, "head", head)
+    assert enrichments.reachable("https://overpass-api.de/api/status") == (
+        "overpass-api.de's certificate couldn't be checked (certificate has expired)"
+    )
 
 
 def _parcels():
@@ -203,6 +240,19 @@ def test_a_service_that_cant_be_reached_is_skipped_at_once(engine, monkeypatch):
     df = engine._enrich_df_overture(_parcels(), {}, {}, {})
     assert called == [] and len(df) == 3
     assert results[0].status == "skipped" and "didn't answer" in results[0].text
+
+
+def test_overpass_is_asked_politely(engine, monkeypatch):
+    """OSMnx says it's OAK box and keeps its rate limit; when Overpass doesn't answer, nothing is sent to it."""
+    import osmnx as ox
+
+    called = []
+    monkeypatch.setattr(engine, "_enrich_df_distances", lambda df, *a, **k: called.append(1) or df)
+    monkeypatch.setattr(enrichments, "reachable", lambda url, timeout=10: "overpass-api.de didn't answer")
+    results = enrichments.instrument(SETTINGS, lambda **kw: None)
+    assert ox.settings.http_user_agent.startswith("OAK box/") and ox.settings.overpass_rate_limit
+    engine._enrich_df_distances(_parcels(), {"enabled": True}, {})
+    assert called == [] and results[0].key == "distances" and results[0].status == "skipped"
 
 
 # ---------- Deeds ----------

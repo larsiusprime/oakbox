@@ -94,7 +94,22 @@ export function EnrichStep({ projectId }: { projectId: string }) {
             options={v.counties.map((c) => [c.fips, `${c.name}, ${c.state} (${c.fips})`] as const)}
             onChange={(fips) => set({ fips })}
           />
-          {s.fips && s.fips === v.county_guess && <span className="en-sub">{e.countyGuess}</span>}
+          {s.fips && s.fips === v.county_guess && !v.county_off && (
+            <span className="en-sub">{e.countyGuess}</span>
+          )}
+          {v.county_off && (
+            <span className="wiz-warn">
+              {v.county_off.replace(/^Census: /, "")}
+              {v.county_guess && v.county_guess !== s.fips && (
+                <>
+                  {" "}
+                  <Button className="wiz-link" onPress={() => set({ fips: v.county_guess })}>
+                    {e.useCounty}
+                  </Button>
+                </>
+              )}
+            </span>
+          )}
         </div>
         <div className="en-row">
           <span className="en-lab">{e.year}</span>

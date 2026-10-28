@@ -5378,7 +5378,20 @@
         "type": "null"
        }
       ],
-      "title": "County Guess"
+      "title": "County Guess",
+      "description": "The county the parcels are in (or else the project's place names)."
+     },
+     "county_off": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "County Off",
+      "description": "Census's county doesn't hold the parcels: why."
      },
      "years": {
       "items": {
@@ -5429,6 +5442,7 @@
      "resolution",
      "counties",
      "county_guess",
+     "county_off",
      "years",
      "key_saved",
      "key_end",

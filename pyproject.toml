@@ -16,6 +16,10 @@ dependencies = [
     "PySide6>=6.12; sys_platform == 'linux'",  # needs glibc 2.34+ (Ubuntu 22.04, Debian 12)
     "QtPy>=2.4; sys_platform == 'linux'",
     "send2trash>=2.1.0",
+    # HTTPS certificates checked as the computer does (Windows' own verifier): oakbox/net.py.
+    "truststore>=0.10",
+    # Already there for OSMnx: the online check asks as the downloads do.
+    "requests>=2.31",
 ]
 
 [dependency-groups]

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from functools import cache, lru_cache
 from importlib import resources
 from pathlib import Path
@@ -177,12 +178,44 @@ class County(BaseModel):
     fips: str
     state: str
     name: str
+    box: tuple[float, float, float, float] | None = Field(
+        default=None, exclude=True, description="The rectangle around it: west, south, east, north (degrees)."
+    )
 
 
 @cache
 def counties() -> list[County]:
     raw = json.loads(resources.files("oakbox").joinpath("counties.json").read_text(encoding="utf-8"))
-    return [County(fips=f, state=s, name=n) for f, s, n in raw["counties"]]
+    return [County(fips=f, state=s, name=n, box=tuple(b) if b else None) for f, s, n, b in raw["counties"]]
+
+
+def county_at(a: Area | None) -> County | None:
+    """The county the parcels are in: of those whose rectangle holds the parcels' middle, the one whose middle is
+    nearest it (neighbours' rectangles overlap)."""
+    if a is None:
+        return None
+    x, y = (a.west + a.east) / 2, (a.south + a.north) / 2
+    holding = [c for c in counties() if c.box and c.box[0] <= x <= c.box[2] and c.box[1] <= y <= c.box[3]]
+
+    def off(c: County) -> float:
+        assert c.box is not None
+        return ((c.box[0] + c.box[2]) / 2 - x) ** 2 + ((c.box[1] + c.box[3]) / 2 - y) ** 2
+
+    return min(holding, key=off, default=None)
+
+
+def county_check(fips: str | None, a: Area | None) -> str | None:
+    """Census for a county the parcels aren't in gives them no figures: say so, and which county they're in."""
+    chosen = next((c for c in counties() if c.fips == fips), None)
+    if chosen is None or chosen.box is None or a is None:
+        return None
+    x, y = (a.west + a.east) / 2, (a.south + a.north) / 2
+    w, s, e, n = chosen.box
+    if w <= x <= e and s <= y <= n:
+        return None
+    here = county_at(a)
+    there = f": they look to be in {here.name}, {here.state} ({here.fips})" if here else ""
+    return f"Census: the parcels aren't in {chosen.name}, {chosen.state}{there}"
 
 
 def guess_county(state: str, jurisdiction: str) -> str | None:
@@ -260,7 +293,8 @@ class EnrichView(BaseModel):
     area: Area | None
     resolution: Literal[10, 30, 60] = Field(description="The elevation detail suggested for the area.")
     counties: list[County] = Field(description="The project's state's counties (every county outside the US).")
-    county_guess: str | None
+    county_guess: str | None = Field(description="The county the parcels are in (or else the project's place names).")
+    county_off: str | None = Field(default=None, description="Census's county doesn't hold the parcels: why.")
     years: list[int]
     key_saved: bool = Field(description="A Census API key is saved on this computer.")
     key_end: str | None = Field(description="Its last four characters, to recognise it.")
@@ -296,7 +330,8 @@ def view(project, in_dir: Path, taken: set[str]) -> EnrichView:
         area=a,
         resolution=suggested_resolution(a.km2 if a else None),
         counties=[c for c in counties() if c.state == state] if state else counties(),
-        county_guess=guess_county(state, project.jurisdiction) if state else None,
+        county_guess=_guess(project, a) if state else None,
+        county_off=county_check(e.fips, a) if e.census else None,
         years=CENSUS_YEARS,
         key_saved=bool(key),
         key_end=key[-4:] if key else None,
@@ -305,15 +340,25 @@ def view(project, in_dir: Path, taken: set[str]) -> EnrichView:
     )
 
 
+def _guess(project, a: Area | None) -> str | None:
+    """The county for census figures: the one the project's place names, if the parcels are in it; else the one
+    the parcels are in."""
+    named = guess_county(project.region, project.jurisdiction)
+    if named and not county_check(named, a):
+        return named
+    here = county_at(a)
+    return here.fips if here else named
+
+
 def start(project, in_dir: Path) -> None:
     """Visiting the step the first time: the defaults, the county from the project's place, the detail for its
     size."""
     if project.enrich is not None:
         return
     e = defaults(project.units)
-    if project.country == "US":
-        e.fips = guess_county(project.region, project.jurisdiction)
     a = area(project, in_dir)
+    if project.country == "US":
+        e.fips = _guess(project, a)
     e.resolution_m = suggested_resolution(a.km2 if a else None)
     project.enrich = e
 
@@ -343,6 +388,10 @@ def left(project) -> list[str]:
     if e is not None and e.distances and not e.kinds:
         out.append("Distances: every field is unticked, so nothing is downloaded")
     if e is not None and e.census:
+        from oakbox import projects
+
+        if off := county_check(e.fips, area(project, projects.project_dir(project.id) / "in")):
+            out.append(off)
         if not e.fips:
             out.append("Census: pick the county")
         if not appsettings.load().census_api_key:
@@ -371,7 +420,7 @@ class EnrichResult(BaseModel):
 
 
 SOURCES = {
-    "distances": "OpenStreetMap",
+    "distances": "OpenStreetMap contributors (ODbL)",
     "footprints": "Overture Maps",
     "census": "US Census Bureau",
     "elevation": "USGS 3DEP",
@@ -404,17 +453,25 @@ CACHES = {"footprints": "geom/overture", "census": "census", "elevation": "dem/a
 
 
 def reachable(url: str, timeout: float = 10) -> str | None:
-    """None if the service answers at all (any HTTP status); else why not, in a few words."""
-    import urllib.error
-    import urllib.request
+    """None if the service answers at all (any HTTP status); else why not, in a few words. Asked with requests, as
+    the downloads are (OSMnx, OpenAVMKit), so the check and the download can't disagree about a certificate."""
+    import requests
 
+    from oakbox.net import USER_AGENT
+
+    host = url.split("/")[2]
     try:
-        urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=timeout)  # noqa: S310
-    except urllib.error.HTTPError:
-        return None
-    except (urllib.error.URLError, OSError) as e:
-        reason = getattr(e, "reason", e)
-        return f"{url.split('/')[2]} didn't answer ({reason})"
+        requests.head(url, timeout=timeout, allow_redirects=True, headers={"User-Agent": USER_AGENT})
+    except requests.exceptions.SSLError as e:
+        # "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired" -> its last part
+        found = re.search(r"verify failed: ([^(')\]]+)", str(e))
+        return f"{host}'s certificate couldn't be checked ({found.group(1).strip() if found else 'SSL error'})"
+    except requests.exceptions.ProxyError:
+        return f"{host} didn't answer (the network's proxy didn't let it through)"
+    except requests.exceptions.Timeout:
+        return f"{host} didn't answer within {timeout:g} seconds"
+    except requests.exceptions.RequestException:
+        return f"{host} didn't answer (no connection)"
     return None
 
 
@@ -462,7 +519,9 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
             down = None
             if not saved:
                 down = reachable(_probe(key))
-                if down and key != "distances":
+                if down:
+                    # Not asked at all: OpenStreetMap's Overpass is a shared, volunteer-run service, and its rate
+                    # limit stays on, so nothing goes to it unchecked.
                     results.append(
                         EnrichResult(
                             key=key,
@@ -474,10 +533,6 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
                         )
                     )
                     return df
-                if down:
-                    # Features downloaded before still come from what was kept; the rest fail at once.
-                    ox.settings.overpass_rate_limit = False
-                    ox.settings.requests_timeout = 10
             with warnings.catch_warnings(record=True) as caught, contextlib.redirect_stdout(buf):
                 warnings.simplefilter("always")
                 try:
@@ -502,6 +557,12 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
     def _probe(key: str) -> str:
         return f"{ox.settings.overpass_url}/status" if key == "distances" else PROBES[key]
 
+    from oakbox.net import HOME, USER_AGENT
+
+    # Who's asking, as OpenStreetMap's services ask apps to say (not OSMnx's own name).
+    ox.settings.http_user_agent = USER_AGENT
+    ox.settings.http_referer = HOME
+    ox.settings.overpass_rate_limit = True
     for name in STEPS:
         setattr(engine, name, wrap(name, getattr(engine, name)))
     return results

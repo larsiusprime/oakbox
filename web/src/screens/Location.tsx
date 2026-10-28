@@ -144,7 +144,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
     const m = L.map(el.current, { preferCanvas: true, scrollWheelZoom: false });
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(m);
     const renderer = L.canvas();
     for (const [lat, lon] of view.points) {

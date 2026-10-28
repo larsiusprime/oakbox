@@ -607,7 +607,8 @@ export const t = {
       keyForget: "Forget",
       county: "County",
       countyPick: "Pick the county",
-      countyGuess: "from the project's place",
+      countyGuess: "where the parcels are",
+      useCounty: "Use it",
       year: "Survey",
       yearOf: (y: number) => `ACS 5-year ${y}`,
       detail: "Detail",
@@ -1171,6 +1172,8 @@ export const t = {
       seconds: (s: number) => `${s} s`,
       more: (n: number) => `+${n} more`,
       retry: "Run again",
+      osmCredit: "Distances to features: map data © OpenStreetMap contributors, available under the",
+      osmLicence: "Open Database License (ODbL)",
       skippedNote:
         "A skipped enrichment never stops Bring in data: its fields are simply missing until it runs. Running again tries it again; the rest is reused.",
     },

@@ -28,6 +28,14 @@ encode character…`). Every time you touch I/O:
   cp1252). Do the same before pushing:
   `PYTHONUTF8=0 PYTHONCOERCECLOCALE=0 LC_ALL=C LANG=C uv run pytest -q tests`
 
+## Going online
+
+- Downloads check certificates as the computer does: every process OAK box starts calls
+  `oakbox.net.use_system_certificates()` first (a new entry point does too).
+- Say who's asking: `oakbox.net.USER_AGENT`. Public services are shared (OpenStreetMap's Overpass is run by
+  volunteers): keep rate limits on, cache and reuse, never retry in a loop, and send nothing to a service that
+  didn't answer. Credit data as its licence asks ("© OpenStreetMap contributors", ODbL).
+
 ## Before pushing: what CI runs
 
 Run all of it, not only the tests; CI fails on any of these.

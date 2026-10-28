@@ -257,6 +257,9 @@ def accept(project, project_dir: Path) -> None:
 
 
 if __name__ == "__main__":
+    from oakbox.net import use_system_certificates
+
+    use_system_certificates()
     try:
         run(sys.argv[1])
     except Exception as e:  # noqa: BLE001 - the app shows the last line of the log

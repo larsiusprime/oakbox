@@ -275,4 +275,7 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
 
 
 if __name__ == "__main__":
+    from oakbox.net import use_system_certificates
+
+    use_system_certificates()
     main()

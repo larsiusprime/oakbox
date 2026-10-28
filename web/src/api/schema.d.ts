@@ -2170,8 +2170,16 @@ export interface components {
              * @description The project's state's counties (every county outside the US).
              */
             counties: components["schemas"]["County"][];
-            /** County Guess */
+            /**
+             * County Guess
+             * @description The county the parcels are in (or else the project's place names).
+             */
             county_guess: string | null;
+            /**
+             * County Off
+             * @description Census's county doesn't hold the parcels: why.
+             */
+            county_off: string | null;
             /** Years */
             years: number[];
             /**
