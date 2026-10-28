@@ -4248,3 +4248,32 @@ tr.bi-kept > td {
     animation: none;
   }
 }
+
+/* A number's spread, in its details. */
+.fd-hist {
+  margin: 0;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: the chart's own svg, not an icon's */
+.fd-hist svg {
+  display: block;
+  width: 100%;
+  height: 4.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.fd-hist rect {
+  fill: #7a9fd6;
+}
+.fd-hist rect:hover {
+  fill: #1d5bb8;
+}
+.fd-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+/* Value lists: every other row grey, to read across to the count. */
+.vals-tbl tbody tr:nth-child(even) > td {
+  background: #f4f4f4;
+}

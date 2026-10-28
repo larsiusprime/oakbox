@@ -482,8 +482,9 @@ const PAGE = 50;
 
 /** Rows a page at a time: only that page is read from the file. CSV export streams the whole set. */
 /** Repeated IDs: the rows of one ID share a background, and IDs alternate. */
-export function band(bands: number[] | null | undefined, i: number): string | undefined {
-  if (!bands) return undefined;
+export function band(bands: number[] | null | undefined, i: number): string {
+  // Otherwise every other row, for reading across wide tables.
+  if (!bands) return i % 2 ? "band-b" : "band-a";
   return bands[i] ? "band-b" : "band-a";
 }
 

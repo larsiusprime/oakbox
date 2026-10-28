@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
-import { api, unwrap } from "../api/client";
+import { api, type Histogram, unwrap } from "../api/client";
 import { t } from "../strings";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
@@ -73,6 +73,7 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
               ))}
             </dl>
           )}
+          {v.histogram && <Spread h={v.histogram} years={field.includes("year")} />}
           {v.distinct > 12 && (
             <SearchField
               aria-label={t.wizard.values.search}
@@ -96,5 +97,45 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
         </>
       )}
     </>
+  );
+}
+
+/** How a number's values spread: a bar per bin over the middle 98% (lowest and highest 1% counted apart), zeros
+ * said apart; a log scale when the values span orders of magnitude. Each bar says its range and count on hover. */
+function Spread({ h, years }: { h: Histogram; years: boolean }) {
+  const top = Math.max(1, ...h.counts);
+  const n = h.counts.length;
+  const fmt = (x: number) =>
+    years
+      ? String(Math.round(x))
+      : new Intl.NumberFormat(undefined, {
+          notation: Math.abs(x) >= 10_000 ? "compact" : "standard",
+          maximumSignificantDigits: 3,
+        }).format(x);
+  const mid = h.log
+    ? Math.sqrt((h.edges[0] ?? 0) * (h.edges[n] ?? 0))
+    : ((h.edges[0] ?? 0) + (h.edges[n] ?? 0)) / 2;
+  const notes = [
+    h.below + h.above > 0 ? d.outside(h.below, h.above) : null,
+    h.zeros > 0 ? d.zeros(h.zeros) : null,
+    h.log ? d.log : null,
+  ].filter(Boolean);
+  return (
+    <figure className="fd-hist">
+      <svg viewBox={`0 0 ${n} 40`} preserveAspectRatio="none" role="img" aria-label={d.histogram}>
+        {h.counts.map((c, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: bins by position
+          <rect key={i} x={i + 0.06} width={0.88} y={40 - (38 * c) / top} height={(38 * c) / top}>
+            <title>{d.bin(fmt(h.edges[i] ?? 0), fmt(h.edges[i + 1] ?? 0), c)}</title>
+          </rect>
+        ))}
+      </svg>
+      <div className="fd-axis">
+        <span>{fmt(h.edges[0] ?? 0)}</span>
+        <span>{fmt(mid)}</span>
+        <span>{fmt(h.edges[n] ?? 0)}</span>
+      </div>
+      {notes.length > 0 && <figcaption className="vals-sub">{notes.join(" · ")}</figcaption>}
+    </figure>
   );
 }

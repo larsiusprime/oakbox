@@ -50,3 +50,18 @@ def test_every_row_of_a_repeated_id_is_shown_the_kept_one_marked(tmp_path):
     # Every row dropped: none kept.
     all_out = bring_in._repeats(raw, ids, ids.duplicated(keep=False), ids == "", f, "key")
     assert set(all_out["kept?"]) == {"left out"}
+
+
+def test_a_numbers_spread_leaves_out_zeros_and_the_extremes():
+    """Land areas from 20 to millions of square feet: a log scale over the middle 98%; zeros (no building, no year)
+    counted apart."""
+    import numpy as np
+
+    x = pd.Series(np.r_[np.zeros(40), np.geomspace(100, 1_000_000, 1000)])
+    h = bring_in.histogram(x)
+    assert h is not None and h.log and h.zeros == 40
+    assert len(h.counts) == bring_in.BINS and len(h.edges) == bring_in.BINS + 1
+    assert h.below == h.above == 10 and sum(h.counts) + h.below + h.above == 1000
+    years = bring_in.histogram(pd.Series(np.r_[np.zeros(5), np.arange(1900, 2000)], dtype=float))
+    assert years is not None and not years.log  # a narrow range: equal bins
+    assert bring_in.histogram(pd.Series([7.0, 7.0])) is None  # one value: nothing to spread

@@ -300,6 +300,49 @@ class ValueN(BaseModel):
     count: int
 
 
+class Histogram(BaseModel):
+    """How a number's values spread: counts in equal bins between its 1st and 99th percentiles (on a log scale when
+    they span orders of magnitude), with what's outside and the zeros said apart."""
+
+    edges: list[float] = Field(description="Bin edges, one more than counts.")
+    counts: list[int]
+    log: bool = Field(description="Bins equal on a log scale (values spanning orders of magnitude).")
+    below: int = Field(description="Values under the first edge (the lowest 1%).")
+    above: int = Field(description="Values over the last edge (the highest 1%).")
+    zeros: int = Field(description="Zeros, left out (often 'none': no building, no year).")
+
+
+BINS = 24
+
+
+def histogram(x) -> Histogram | None:
+    """Bins for a number's values (a pandas Series of floats), or None when there's nothing to spread."""
+    import numpy as np
+
+    zeros = int((x == 0).sum())
+    v = x[x != 0].to_numpy(dtype=float)
+    v = v[np.isfinite(v)]
+    if len(v) < 2:
+        return None
+    lo, hi = (float(q) for q in np.quantile(v, [0.01, 0.99]))
+    if hi <= lo:
+        lo, hi = float(v.min()), float(v.max())
+    if hi <= lo:
+        return None
+    log = lo > 0 and hi / lo >= 50
+    edges = np.geomspace(lo, hi, BINS + 1) if log else np.linspace(lo, hi, BINS + 1)
+    inside = v[(v >= lo) & (v <= hi)]
+    counts, _ = np.histogram(inside, bins=edges)
+    return Histogram(
+        edges=[float(e) for e in edges],
+        counts=[int(c) for c in counts],
+        log=bool(log),
+        below=int((v < lo).sum()),
+        above=int((v > hi).sum()),
+        zeros=zeros,
+    )
+
+
 class FieldProfile(BaseModel):
     """One field of the parcel universe or sales record in detail: notebook 1's "examine in ridiculous detail"."""
 
@@ -311,6 +354,7 @@ class FieldProfile(BaseModel):
     stats: list[Stat] = Field(description="Numbers: count, zero, lowest, percentiles, mean, highest. Dates: range.")
     values: list[ValueN] = Field(description="Most common first (dates: by year). At most 500, after the search.")
     more: int
+    histogram: Histogram | None = Field(default=None, description="Numbers: how the values spread.")
 
 
 PROFILE_VALUES = 500
@@ -338,6 +382,7 @@ def profile(
     s = pd.read_parquet(path, columns=[field])[field]
     rows, filled = len(s), s.dropna()
     stats: list[Stat] = []
+    spread = None
     if pd.api.types.is_bool_dtype(filled):
         kind = "yes/no"
         counts = filled.map(lambda b: "yes" if b else "no").value_counts()
@@ -361,6 +406,7 @@ def profile(
                 Stat(label="mean", value=g(float(x.mean()))),
             ]
         counts = x.map(g).value_counts()
+        spread = histogram(x)
     elif pd.api.types.is_datetime64_any_dtype(filled):
         kind = "date"
         if len(filled):
@@ -384,6 +430,7 @@ def profile(
         stats=stats,
         values=[ValueN(value=v, count=n) for v, n in hits[:PROFILE_VALUES]],
         more=max(0, len(hits) - PROFILE_VALUES),
+        histogram=spread,
     )
 
 

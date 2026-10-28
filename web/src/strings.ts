@@ -1213,6 +1213,12 @@ export const t = {
     nextPage: "Next",
     exportCsv: "Export CSV",
     detail: {
+      histogram: "How the values spread",
+      bin: (from: string, to: string, n: number) => `${from} to ${to}: ${n.toLocaleString()} rows`,
+      outside: (below: number, above: number) =>
+        `${(below + above).toLocaleString()} outside the range shown (the lowest and highest 1%)`,
+      zeros: (n: number) => `${n.toLocaleString()} zeros not shown`,
+      log: "log scale",
       button: "details",
       label: (field: string) => `Details of ${field}`,
       universe: "parcel universe",

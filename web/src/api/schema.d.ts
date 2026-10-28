@@ -2426,6 +2426,8 @@ export interface components {
             values: components["schemas"]["ValueN"][];
             /** More */
             more: number;
+            /** @description Numbers: how the values spread. */
+            histogram: components["schemas"]["Histogram"] | null;
         };
         /** FieldRow */
         FieldRow: {
@@ -2772,6 +2774,40 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * Histogram
+         * @description How a number's values spread: counts in equal bins between its 1st and 99th percentiles (on a log scale when
+         *     they span orders of magnitude), with what's outside and the zeros said apart.
+         */
+        Histogram: {
+            /**
+             * Edges
+             * @description Bin edges, one more than counts.
+             */
+            edges: number[];
+            /** Counts */
+            counts: number[];
+            /**
+             * Log
+             * @description Bins equal on a log scale (values spanning orders of magnitude).
+             */
+            log: boolean;
+            /**
+             * Below
+             * @description Values under the first edge (the lowest 1%).
+             */
+            below: number;
+            /**
+             * Above
+             * @description Values over the last edge (the highest 1%).
+             */
+            above: number;
+            /**
+             * Zeros
+             * @description Zeros, left out (often 'none': no building, no year).
+             */
+            zeros: number;
         };
         /**
          * InputFile
