@@ -4044,29 +4044,16 @@ a.row-title:hover {
   border: 1px solid var(--rule);
   border-radius: 999px;
 }
-.en-pick {
-  display: inline-flex;
-  gap: 0.2rem;
-  align-items: center;
-  color: var(--muted);
-  cursor: pointer;
-  background: #ffffff;
-  border-style: dashed;
+.en-fields {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 26rem;
 }
-.en-pick[data-selected] {
-  color: var(--text);
-  background: var(--head);
-  border-style: solid;
+.en-fields .tick {
+  align-items: flex-start;
 }
-.en-pick-tick {
-  visibility: hidden;
-}
-.en-pick[data-selected] .en-pick-tick {
-  visibility: visible;
-}
-.en-pick[data-focus-visible] {
-  outline: 3px solid var(--focus);
-  outline-offset: 1px;
+.en-field {
+  display: grid;
 }
 .en-feats {
   display: grid;

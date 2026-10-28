@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";

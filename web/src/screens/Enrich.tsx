@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Globe } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { Button, Input, TextField, ToggleButton } from "react-aria-components";
+import { ChevronDown, Globe } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } from "react-aria-components";
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
 import { Choice, Tick } from "../components/Form";
-import { Tip } from "../components/Tip";
 import { t } from "../strings";
 
 const e = t.wizard.enrich;
@@ -63,7 +62,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
         onChange={(distances) => set({ distances })}
       >
         <Distances view={v} save={(features) => set({ features })} />
-        <Picks label={e.addsPerFeature} fields={adds("distances")} toggle={kinds} />
+        <Picks label={e.addsPerFeature} title={e.distances} fields={adds("distances")} toggle={kinds} />
       </Card>
 
       <Card
@@ -73,7 +72,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
         on={s.footprints}
         onChange={(footprints) => set({ footprints })}
       >
-        <Picks label={e.adds} fields={adds("footprints")} toggle={field} />
+        <Picks label={e.adds} title={e.footprints} fields={adds("footprints")} toggle={field} />
       </Card>
 
       <Card
@@ -107,7 +106,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
             onChange={(y) => set({ census_year: Number(y) })}
           />
         </div>
-        <Picks label={e.addsByBlockGroup} fields={adds("census")} toggle={field} />
+        <Picks label={e.addsByBlockGroup} title={e.census} fields={adds("census")} toggle={field} />
       </Card>
 
       <Card
@@ -128,7 +127,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
           />
           <span className="en-sub">{e.suggested(v.resolution, v.area ? v.area.km2 : null)}</span>
         </div>
-        <Picks label={e.adds} fields={adds("elevation")} toggle={field} />
+        <Picks label={e.adds} title={e.elevation} fields={adds("elevation")} toggle={field} />
       </Card>
       {save.error && (
         <p className="error" role="alert">
@@ -174,34 +173,51 @@ function Card({
   );
 }
 
-/** The fields an enrichment adds, each ticked or not; what each is on hover. Unticked ones are dropped as the run
- * ends, and an enrichment with none ticked isn't downloaded. */
+/** The fields an enrichment adds: "3 fields ▾" and their names; the button opens them as checkboxes, each saying
+ * what it is. Unticked ones are dropped as the run ends, and an enrichment with none ticked isn't downloaded. */
 function Picks({
   label,
+  title,
   fields,
   toggle,
 }: {
   label: string;
+  title: string;
   fields: EnrichAddField[];
   toggle: (key: string, on: boolean) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const on = fields.filter((f) => f.on);
   return (
     <div className="en-row">
       <span className="en-lab">{label}</span>
-      {fields.map((f) => (
-        <Tip key={f.key} text={f.what}>
-          <ToggleButton
-            className="en-chip en-pick"
-            isSelected={f.on}
-            onChange={(on) => toggle(f.key, on)}
-            aria-label={`${f.name}: ${f.what}`}
-          >
-            <Check aria-hidden="true" size="0.85em" className="en-pick-tick" />
-            {f.name}
-          </ToggleButton>
-        </Tip>
-      ))}
-      {fields.every((f) => !f.on) && <span className="wiz-warn">{e.noneTicked}</span>}
+      <DialogTrigger isOpen={open} onOpenChange={setOpen}>
+        <Button className="vals-button">
+          {e.fieldsOf(on.length, fields.length)}
+          <ChevronDown aria-hidden="true" size="0.85em" />
+        </Button>
+        <Popover className="popover" placement="bottom start">
+          <Dialog className="popover-body en-fields" aria-label={e.fieldsTitle(title)}>
+            <Heading slot="title" className="vals-title">
+              {e.fieldsTitle(title)}
+            </Heading>
+            {fields.map((f) => (
+              <Tick key={f.key} isSelected={f.on} onChange={(v) => toggle(f.key, v)}>
+                <span className="en-field">
+                  <span className="mono">{f.name}</span>
+                  <span className="en-sub">{f.what}</span>
+                </span>
+              </Tick>
+            ))}
+            <p className="en-sub">{e.fieldsNote}</p>
+          </Dialog>
+        </Popover>
+      </DialogTrigger>
+      {on.length ? (
+        <span className="en-sub mono">{on.map((f) => f.name).join(", ")}</span>
+      ) : (
+        <span className="wiz-warn">{e.noneTicked}</span>
+      )}
     </div>
   );
 }

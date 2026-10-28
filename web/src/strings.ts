@@ -584,7 +584,12 @@ export const t = {
       taken: (label: string) =>
         `${label}: a map layer already uses this name, so it's measured from the layer instead`,
       addsPerFeature: "Adds, for each feature",
-      noneTicked: "None ticked: nothing is downloaded",
+      noneTicked: "None chosen: nothing is downloaded",
+      fieldsOf: (on: number, all: number) =>
+        on === all ? `${all} ${all === 1 ? "field" : "fields"}` : `${on} of ${all} fields`,
+      fieldsTitle: (name: string) => `Fields from ${name}`,
+      fieldsNote:
+        "Fields you untick are left out of the parcel data. With none ticked, nothing is downloaded.",
       key: "API key",
       keySaved: (end: string) => `saved on this computer, not in the project (…${end})`,
       keyNone: "None yet: get one free from the Census Bureau",
