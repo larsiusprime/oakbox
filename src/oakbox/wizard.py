@@ -2969,7 +2969,7 @@ def set_location(project: Project, in_dir: Path, name: str, file: str | None, co
         raise ValueError(f"{entry.name} has no column {column}.")
     loaded_as = {spec[0]: field for field, spec in entry.load.items()}
     if column in loaded_as and loaded_as[column] != name:
-        raise ValueError(f"{column} is already loaded as {loaded_as[column]}.")
+        raise ValueError(f"{column} is already loaded as {_field_name(loaded_as[column])}.")
     for f in project.files:
         if name in f.load and name not in project.wizard.locations:
             raise ValueError(f"{name} is already used for another field.")
@@ -3032,6 +3032,12 @@ def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
     return out
 
 
+def _field_name(key: str) -> str:
+    """A field as the wizard names it ("Building units"); the user's own fields by their own name."""
+    d = _by_key().get(key)
+    return RENAMED.get(key, (d.name, ""))[0] if d else key
+
+
 def _is_number(v: str) -> bool:
     try:
         float(v.replace(",", ""))
@@ -3072,7 +3078,7 @@ def set_custom(
         raise ValueError(f"{entry.name} has no column {column}.")
     loaded_as = {spec[0]: field for field, spec in entry.load.items()}
     if column in loaded_as and loaded_as[column] != name:
-        raise ValueError(f"{column} is already loaded as {loaded_as[column]}.")
+        raise ValueError(f"{column} is already loaded as {_field_name(loaded_as[column])}.")
     for f in project.files:
         if name in f.load and name not in mine:
             raise ValueError(f"{name} is already used for another field.")

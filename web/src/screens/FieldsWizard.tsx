@@ -1147,8 +1147,10 @@ function FieldsStep({
   const mine = data.fields.filter((f) => f.step === step.key && !f.hidden);
   // Only the universe so far: building details are often in a separate file (a CAMA export).
   const onlyBase = step.key === "big_five" && data.files.filter((f) => f.holds === "parcels").length <= 1;
-  const shown = mine.filter((f) => !f.more || more);
-  const hasMore = mine.some((f) => f.more);
+  // A field under More that's loaded (guessed or chosen) always shows: nothing loaded is ever out of sight.
+  const inUse = (f: WizardField) => f.sources.length > 0 || f.assumed || f.absent;
+  const shown = mine.filter((f) => !f.more || more || inUse(f));
+  const hidden = mine.filter((f) => f.more && !inUse(f)).length;
   return (
     <>
       {onlyBase && <p className="wiz-note wiz-another">{w.anotherFileHint}</p>}
@@ -1187,9 +1189,9 @@ function FieldsStep({
               ],
         )}
       </div>
-      {hasMore && (
+      {hidden > 0 && (
         <Button className="wiz-more" onPress={() => setMore(!more)}>
-          {more ? w.fewer : w.more}
+          {more ? w.fewer : w.more(hidden)}
         </Button>
       )}
     </>

@@ -311,6 +311,7 @@ OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed t
 
 **Revised (built): the wizard comes first, and collects the files itself.** It supersedes "Step 1: Your files" below; the field steps, checks, guesses, assumptions and Review carry over.
 
+- **Nothing loaded is out of sight.** A field under a step's **More** shows in the main list as soon as it's loaded, whether guessed or chosen. The link (**2 more fields**) reveals only the ones not loaded, and says how many; it's gone when there are none. A column already loaded is named by its field ("UNITS is already loaded as Building units"), never by OpenAVMKit's key.
 - **What a column holds: one pattern, "N values ▾".** Beside a field, the check line says only what was checked; it never lists sample values. A small **N values** button (**N areas** for a location field) counts the column's different values. It opens a list of every value with how many rows have it (most common first, with a bar), a summary ("25 different values in 9,359 rows, 4 blank") and a search box when there are more than 12. Up to 500 are listed; past that, "N more: search to find them". The check line wraps rather than hiding its end. The same button serves the field rows on every step, location fields and your own fields. (The column dropdown still shows a few samples beside each column, to help pick one.)
 
 - **New project → the Data tab** (first after Metadata; Input files is the advanced view after it). Steps:

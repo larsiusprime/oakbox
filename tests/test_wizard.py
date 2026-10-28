@@ -1217,3 +1217,11 @@ def test_own_fields_named_and_classified_as_land_building_or_other(client, pid):
     w = client.put(f"{url}/zone_class", json={"file": None, "column": None}).json()
     assert w["custom"] == [] and "zone_class" not in _settings(pid)["data"]["load"]["geo_parcels"]["load"]
     assert "field_classification" not in _settings(pid)
+
+
+def test_a_column_already_loaded_is_named_by_its_field(client, pid):
+    _start(client, pid)
+    field = f"/api/projects/{pid}/wizard/fields"
+    assert client.put(f"{field}/bldg_type", json={"file": "geo_parcels", "column": "MAP_NO"}).status_code == 200
+    r = client.put(f"/api/projects/{pid}/wizard/custom/map_no", json={"file": "geo_parcels", "column": "MAP_NO"})
+    assert r.status_code == 422 and r.json()["detail"] == "MAP_NO is already loaded as Building type."

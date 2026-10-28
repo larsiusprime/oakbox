@@ -188,7 +188,7 @@ export const t = {
       finish: "Finish this step",
     },
     skip: "I don't have these",
-    more: "More fields",
+    more: (n: number) => `${n} more ${n === 1 ? "field" : "fields"}`,
     fewer: "Fewer fields",
     none: "(none)",
     used: (field: string) => `used: ${field}`,
@@ -479,10 +479,7 @@ export const t = {
       name: "Name",
       namePlaceholder: "name_like_this",
       group: "Class",
-      groups: { land: "Land/location", building: "Improvement", other: "Other" } as Record<
-        string,
-        string
-      >,
+      groups: { land: "Land/location", building: "Improvement", other: "Other" } as Record<string, string>,
       type: "Kind",
       types: { category: "a category", number: "a number" } as Record<string, string>,
       values: "Values",

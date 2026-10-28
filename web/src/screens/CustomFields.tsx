@@ -48,7 +48,9 @@ export function CustomFields({
     f.columns
       .filter((col) => col.type !== "geometry")
       .map((col) => {
-        const as = data.used[f.name]?.[col.name];
+        const key = data.used[f.name]?.[col.name];
+        // What it's loaded as, by name ("Building units"), not OpenAVMKit's key.
+        const as = key && (data.fields.find((x) => x.key === key)?.name ?? key);
         return [
           `${f.name}\u0000${col.name}`,
           as ? `${col.name} · ${f.name} (${as})` : `${col.name} · ${f.name}`,
