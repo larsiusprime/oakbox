@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
+import { FieldDetail } from "../components/FieldDetail";
 import { t } from "../strings";
 
 const b = t.bringIn;
@@ -119,7 +120,12 @@ export function BringInTab({ projectId }: { projectId: string }) {
           </ul>
         </div>
       ) : (
-        <ReceiptView receipt={r} stale={v.stale} open={(set, title) => setRows({ set, title })} />
+        <ReceiptView
+          projectId={projectId}
+          receipt={r}
+          stale={v.stale}
+          open={(set, title) => setRows({ set, title })}
+        />
       )}
 
       {act.error && (
@@ -179,10 +185,12 @@ export function BringInTab({ projectId }: { projectId: string }) {
 }
 
 function ReceiptView({
+  projectId,
   receipt: r,
   stale,
   open,
 }: {
+  projectId: string;
   receipt: Receipt;
   stale: boolean;
   open: (set: string, title: string) => void;
@@ -201,6 +209,7 @@ function ReceiptView({
         rows={r.universe.rows}
         set="universe"
         open={open}
+        projectId={projectId}
       />
       <Section
         title={b.sales}
@@ -209,6 +218,7 @@ function ReceiptView({
         rows={r.sales.rows}
         set="sales"
         open={open}
+        projectId={projectId}
       />
       {r.checks.length > 0 && (
         <div className="bi-card">
@@ -261,7 +271,9 @@ function Section({
   rows,
   set,
   open,
+  projectId,
 }: {
+  projectId: string;
   title: string;
   funnels: Funnel[];
   fields: ReceiptField[];
@@ -327,7 +339,14 @@ function Section({
                     </span>
                     {f.filled.toLocaleString()} · {pct(f.share)}
                   </td>
-                  <td>{f.summary}</td>
+                  <td>
+                    {f.summary}
+                    <FieldDetail
+                      projectId={projectId}
+                      set={set === "sales" ? "sales" : "universe"}
+                      field={f.field}
+                    />
+                  </td>
                   <td className="mono bi-src">{f.source}</td>
                   <td>{f.note}</td>
                 </tr>

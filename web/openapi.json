@@ -2357,6 +2357,74 @@
     }
    }
   },
+  "/api/projects/{project_id}/bring-in/fields/{name}/{field}": {
+   "get": {
+    "summary": "Bring In Field",
+    "description": "One field of the parcel universe or the sales record in detail: its statistics, or its values.",
+    "operationId": "bring_in_field_api_projects__project_id__bring_in_fields__name___field__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "field",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Search"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FieldProfile"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/bring-in/rows/{name}/csv": {
    "get": {
     "summary": "Bring In Csv",
@@ -2729,6 +2797,253 @@
     }
    }
   },
+  "/api/projects/{project_id}/assemble": {
+   "get": {
+    "summary": "Assemble State",
+    "description": "Ready, running, or the receipt of the last run, and whether it's out of date.",
+    "operationId": "assemble_state_api_projects__project_id__assemble_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/run": {
+   "post": {
+    "summary": "Assemble Run",
+    "description": "Tag each parcel with its model group and write notebook 1's output, in a process of its own.",
+    "operationId": "assemble_run_api_projects__project_id__assemble_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/stop": {
+   "post": {
+    "summary": "Assemble Stop",
+    "operationId": "assemble_stop_api_projects__project_id__assemble_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/exports": {
+   "put": {
+    "summary": "Assemble Exports",
+    "description": "Also write the output as GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets.",
+    "operationId": "assemble_exports_api_projects__project_id__assemble_exports_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AssembleExports"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/accept": {
+   "post": {
+    "summary": "Assemble Accept",
+    "description": "Looks right: notebook 1 is done.",
+    "operationId": "assemble_accept_api_projects__project_id__assemble_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/show": {
+   "post": {
+    "summary": "Assemble Show",
+    "description": "Show the written files (out/look/) in the file manager.",
+    "operationId": "assemble_show_api_projects__project_id__assemble_show_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -2888,6 +3203,165 @@
      "display"
     ],
     "title": "AppSettingsView"
+   },
+   "AssembleExports": {
+    "properties": {
+     "exports": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "gpkg",
+        "shp",
+        "csv"
+       ]
+      },
+      "type": "array",
+      "title": "Exports"
+     }
+    },
+    "type": "object",
+    "required": [
+     "exports"
+    ],
+    "title": "AssembleExports"
+   },
+   "AssembleReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/GroupCount"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "written": {
+      "items": {
+       "$ref": "#/components/schemas/Written"
+      },
+      "type": "array",
+      "title": "Written"
+     },
+     "matches_preview": {
+      "type": "boolean",
+      "title": "Matches Preview"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes",
+      "description": "OpenAVMKit's own warnings, if any."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "groups",
+     "parcels",
+     "sales",
+     "written",
+     "matches_preview",
+     "notes"
+    ],
+    "title": "AssembleReceipt"
+   },
+   "AssembleView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/AssembleReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "The data, the model groups or the formats changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
+     "exports": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "gpkg",
+        "shp",
+        "csv"
+       ]
+      },
+      "type": "array",
+      "title": "Exports"
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "blocked",
+     "exports",
+     "accepted"
+    ],
+    "title": "AssembleView"
    },
    "Band": {
     "properties": {
@@ -4127,6 +4601,70 @@
     "title": "ExtraId",
     "description": "An extra ID of the parcel universe, for files that join on a different key (F3d).\n\nNot checked: rows are kept or dropped by the parcel ID alone."
    },
+   "FieldProfile": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "blank": {
+      "type": "integer",
+      "title": "Blank"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "number",
+       "category",
+       "date",
+       "yes/no"
+      ],
+      "title": "Kind"
+     },
+     "distinct": {
+      "type": "integer",
+      "title": "Distinct",
+      "description": "Different values, not counting blank."
+     },
+     "stats": {
+      "items": {
+       "$ref": "#/components/schemas/Stat"
+      },
+      "type": "array",
+      "title": "Stats",
+      "description": "Numbers: count, zero, lowest, percentiles, mean, highest. Dates: range."
+     },
+     "values": {
+      "items": {
+       "$ref": "#/components/schemas/ValueN"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "Most common first (dates: by year). At most 500, after the search."
+     },
+     "more": {
+      "type": "integer",
+      "title": "More"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "rows",
+     "blank",
+     "kind",
+     "distinct",
+     "stats",
+     "values",
+     "more"
+    ],
+    "title": "FieldProfile",
+    "description": "One field of the parcel universe or sales record in detail: notebook 1's \"examine in ridiculous detail\"."
+   },
    "FieldRow": {
     "properties": {
      "field": {
@@ -4398,6 +4936,60 @@
      "text"
     ],
     "title": "GroupCheck"
+   },
+   "GroupCount": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "The model_group value; \"UNKNOWN\" for parcels in no group."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "vacant": {
+      "type": "integer",
+      "title": "Vacant",
+      "description": "Parcels without a building."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Valid improved sales."
+     },
+     "vacant_sales": {
+      "type": "integer",
+      "title": "Vacant Sales"
+     },
+     "preview": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Preview",
+      "description": "Parcels the builder's preview put in it, to compare."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "parcels",
+     "vacant",
+     "sales",
+     "vacant_sales",
+     "preview"
+    ],
+    "title": "GroupCount"
    },
    "GroupField": {
     "properties": {
@@ -6266,6 +6858,19 @@
       "title": "Groups",
       "description": "Model groups, in order (SPEC §3.5)."
      },
+     "assemble_exports": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "gpkg",
+        "shp",
+        "csv"
+       ]
+      },
+      "type": "array",
+      "title": "Assemble Exports",
+      "description": "Formats notebook 1's output is also written in, beside Parquet."
+     },
      "groups_start": {
       "anyOf": [
        {
@@ -6309,6 +6914,7 @@
      "files",
      "wizard",
      "groups",
+     "assemble_exports",
      "groups_start",
      "accepted"
     ],
@@ -7434,6 +8040,24 @@
     "title": "StampField",
     "description": "A column of a map layer copied onto each parcel whose centre falls in one of its shapes."
    },
+   "Stat": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "value": {
+      "type": "string",
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "value"
+    ],
+    "title": "Stat"
+   },
    "StepView": {
     "properties": {
      "key": {
@@ -7748,6 +8372,24 @@
      "count"
     ],
     "title": "ValueCount"
+   },
+   "ValueN": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "count"
+    ],
+    "title": "ValueN"
    },
    "Versions": {
     "properties": {
@@ -8811,6 +9453,30 @@
     ],
     "title": "WizardState",
     "description": "The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."
+   },
+   "Written": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path",
+      "description": "Relative to the project folder."
+     },
+     "what": {
+      "type": "string",
+      "title": "What"
+     },
+     "bytes": {
+      "type": "integer",
+      "title": "Bytes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "what",
+     "bytes"
+    ],
+    "title": "Written"
    }
   }
  }

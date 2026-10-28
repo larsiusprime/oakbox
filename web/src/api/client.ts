@@ -56,3 +56,5 @@ export type GroupStats = components["schemas"]["GroupStats"];
 export type GroupField = components["schemas"]["GroupField"];
 export type GroupValues = components["schemas"]["GroupValues"];
 export type ParcelInspect = components["schemas"]["ParcelInspect"];
+export type AssembleView = components["schemas"]["AssembleView"];
+export type AssembleReceipt = components["schemas"]["AssembleReceipt"];

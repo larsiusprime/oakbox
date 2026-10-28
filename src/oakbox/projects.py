@@ -154,6 +154,9 @@ class Project(BaseModel):
     files: list[DataFile] = Field(default_factory=list, description="data.load entries (SPEC §3.0 F2).")
     wizard: WizardState = Field(default_factory=WizardState)
     groups: list[ModelGroup] = Field(default_factory=list, description="Model groups, in order (SPEC §3.5).")
+    assemble_exports: list[Literal["gpkg", "shp", "csv"]] = Field(
+        default_factory=list, description="Formats notebook 1's output is also written in, beside Parquet."
+    )
     groups_start: Literal["scratch", "suggested"] | None = Field(
         default=None, description="How model groups were started; None: not yet."
     )

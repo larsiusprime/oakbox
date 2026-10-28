@@ -1168,6 +1168,15 @@ def test_bring_in_data_runs_openavmkit_and_writes_a_receipt(client, tmp_path):
     assert len(csv) == 31 and csv[0].startswith("key")
     assert client.get(f"{url}/rows/nope").status_code == 404
 
+    # One field in detail: a number's statistics; a category's values, searchable.
+    area = client.get(f"{url}/fields/universe/bldg_area_finished_sqft").json()
+    assert area["kind"] == "number" and area["rows"] == 30
+    stats = {x["label"]: x["value"] for x in area["stats"]}
+    assert (stats["lowest"], stats["highest"], stats["filled"]) == ("1,000", "1,029", "30")
+    key = client.get(f"{url}/fields/sales/key", params={"search": "2"}).json()
+    assert key["kind"] == "category" and key["distinct"] == 30 and all("2" in v["value"] for v in key["values"])
+    assert client.get(f"{url}/fields/universe/nope").status_code == 404
+
     # Looks right, then Data changes: out of date, and no longer accepted.
     assert client.post(f"{url}/accept").json()["accepted"]
     client.put(f"{field}/vacant_sale", json={"assume": False})

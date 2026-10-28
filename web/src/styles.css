@@ -2539,6 +2539,7 @@ a.row-title:hover {
 }
 
 .wiz-map {
+  isolation: isolate;
   height: 18rem;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -3011,12 +3012,14 @@ a.row-title:hover {
   color: var(--muted);
   font-size: 0.9rem;
 }
+.mg-wrap {
+  margin: calc(-1 * var(--pad));
+}
 .mg {
   display: grid;
   grid-template-columns: 17rem minmax(24rem, 1fr) minmax(26rem, 42%);
-  height: calc(100vh - 8.5rem);
+  height: calc(100vh - 11rem);
   min-height: 34rem;
-  margin: calc(-1 * var(--pad));
 }
 .mg-full {
   grid-template-columns: 17rem 1fr;
@@ -3352,6 +3355,8 @@ a.row-title:hover {
 .mg-leaflet {
   position: absolute;
   inset: 0;
+  /* Leaflet's panes and controls use z-indexes up to 1000: kept inside the map, so dialogs stay on top. */
+  isolation: isolate;
   background: #eef0ea;
 }
 .mg-map-msg {
@@ -3703,4 +3708,80 @@ a.row-title:hover {
 .ly-help {
   margin: 0;
   font-size: 0.82rem;
+}
+
+/* ---------- The end of notebook 1: the run bar above the model group builder, and its receipt ---------- */
+.ab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.7rem;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.9rem;
+  background: var(--head);
+  border-bottom: 1px solid var(--rule);
+}
+.ab-what {
+  flex: 1 1 20rem;
+  color: var(--muted);
+}
+.ab-status {
+  font-weight: 600;
+}
+.ab-formats {
+  display: grid;
+  gap: 0.35rem;
+  width: 18rem;
+}
+.ab-modal {
+  width: min(46rem, 94vw);
+}
+.ab-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ab-sw {
+  display: inline-block;
+  margin: 0 0.4rem 0 0;
+  vertical-align: -1px;
+}
+.ab-unknown {
+  color: var(--muted);
+}
+.ab-h {
+  margin: 0.4rem 0 0;
+  font-size: 0.92rem;
+}
+.ab-files {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  list-style: none;
+}
+.ab-grow {
+  flex: 1;
+}
+
+/* A number field's statistics, in the field detail popover. */
+.fd-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+  margin: 0;
+}
+.fd-stat {
+  padding: 0.15rem 0.3rem;
+  background: var(--head);
+  border-radius: var(--radius);
+}
+.fd-stat dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.fd-stat dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
 }

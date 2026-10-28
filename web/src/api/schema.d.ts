@@ -891,6 +891,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/bring-in/fields/{name}/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bring In Field
+         * @description One field of the parcel universe or the sales record in detail: its statistics, or its values.
+         */
+        get: operations["bring_in_field_api_projects__project_id__bring_in_fields__name___field__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/bring-in/rows/{name}/csv": {
         parameters: {
             query?: never;
@@ -1036,6 +1056,123 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/assemble": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assemble State
+         * @description Ready, running, or the receipt of the last run, and whether it's out of date.
+         */
+        get: operations["assemble_state_api_projects__project_id__assemble_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/assemble/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assemble Run
+         * @description Tag each parcel with its model group and write notebook 1's output, in a process of its own.
+         */
+        post: operations["assemble_run_api_projects__project_id__assemble_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/assemble/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assemble Stop */
+        post: operations["assemble_stop_api_projects__project_id__assemble_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/assemble/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assemble Exports
+         * @description Also write the output as GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets.
+         */
+        put: operations["assemble_exports_api_projects__project_id__assemble_exports_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/assemble/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assemble Accept
+         * @description Looks right: notebook 1 is done.
+         */
+        post: operations["assemble_accept_api_projects__project_id__assemble_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/assemble/show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assemble Show
+         * @description Show the written files (out/look/) in the file manager.
+         */
+        post: operations["assemble_show_api_projects__project_id__assemble_show_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -1111,6 +1248,59 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+        };
+        /** AssembleExports */
+        AssembleExports: {
+            /** Exports */
+            exports: ("gpkg" | "shp" | "csv")[];
+        };
+        /** AssembleReceipt */
+        AssembleReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /** Groups */
+            groups: components["schemas"]["GroupCount"][];
+            /** Parcels */
+            parcels: number;
+            /** Sales */
+            sales: number;
+            /** Written */
+            written: components["schemas"]["Written"][];
+            /** Matches Preview */
+            matches_preview: boolean;
+            /**
+             * Notes
+             * @description OpenAVMKit's own warnings, if any.
+             */
+            notes: string[];
+        };
+        /** AssembleView */
+        AssembleView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["AssembleReceipt"] | null;
+            /**
+             * Stale
+             * @description The data, the model groups or the formats changed since it ran.
+             */
+            stale: boolean;
+            /**
+             * Blocked
+             * @description What stops it running.
+             */
+            blocked: string[];
+            /** Exports */
+            exports: ("gpkg" | "shp" | "csv")[];
+            /** Accepted */
+            accepted: boolean;
         };
         /** Band */
         Band: {
@@ -1681,6 +1871,40 @@ export interface components {
             /** Column */
             column: string;
         };
+        /**
+         * FieldProfile
+         * @description One field of the parcel universe or sales record in detail: notebook 1's "examine in ridiculous detail".
+         */
+        FieldProfile: {
+            /** Field */
+            field: string;
+            /** Rows */
+            rows: number;
+            /** Blank */
+            blank: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "number" | "category" | "date" | "yes/no";
+            /**
+             * Distinct
+             * @description Different values, not counting blank.
+             */
+            distinct: number;
+            /**
+             * Stats
+             * @description Numbers: count, zero, lowest, percentiles, mean, highest. Dates: range.
+             */
+            stats: components["schemas"]["Stat"][];
+            /**
+             * Values
+             * @description Most common first (dates: by year). At most 500, after the search.
+             */
+            values: components["schemas"]["ValueN"][];
+            /** More */
+            more: number;
+        };
         /** FieldRow */
         FieldRow: {
             /** Field */
@@ -1809,6 +2033,35 @@ export interface components {
             level: "ok" | "warn" | "bad";
             /** Text */
             text: string;
+        };
+        /** GroupCount */
+        GroupCount: {
+            /**
+             * Id
+             * @description The model_group value; "UNKNOWN" for parcels in no group.
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Vacant
+             * @description Parcels without a building.
+             */
+            vacant: number;
+            /**
+             * Sales
+             * @description Valid improved sales.
+             */
+            sales: number;
+            /** Vacant Sales */
+            vacant_sales: number;
+            /**
+             * Preview
+             * @description Parcels the builder's preview put in it, to compare.
+             */
+            preview: number | null;
         };
         /** GroupField */
         GroupField: {
@@ -2692,6 +2945,11 @@ export interface components {
              */
             groups: components["schemas"]["ModelGroup-Output"][];
             /**
+             * Assemble Exports
+             * @description Formats notebook 1's output is also written in, beside Parquet.
+             */
+            assemble_exports: ("gpkg" | "shp" | "csv")[];
+            /**
              * Groups Start
              * @description How model groups were started; None: not yet.
              */
@@ -3236,6 +3494,13 @@ export interface components {
              */
             kind: "location" | "category" | "number";
         };
+        /** Stat */
+        Stat: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
         /** StepView */
         StepView: {
             /** Key */
@@ -3361,6 +3626,13 @@ export interface components {
              * Value
              * @description "" for blank.
              */
+            value: string;
+            /** Count */
+            count: number;
+        };
+        /** ValueN */
+        ValueN: {
+            /** Value */
             value: string;
             /** Count */
             count: number;
@@ -3795,6 +4067,18 @@ export interface components {
              * @description Fields the user named and classified.
              */
             custom: components["schemas"]["CustomField"][];
+        };
+        /** Written */
+        Written: {
+            /**
+             * Path
+             * @description Relative to the project folder.
+             */
+            path: string;
+            /** What */
+            what: string;
+            /** Bytes */
+            bytes: number;
         };
     };
     responses: never;
@@ -5400,6 +5684,41 @@ export interface operations {
             };
         };
     };
+    bring_in_field_api_projects__project_id__bring_in_fields__name___field__get: {
+        parameters: {
+            query?: {
+                search?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+                field: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     bring_in_csv_api_projects__project_id__bring_in_rows__name__csv_get: {
         parameters: {
             query?: never;
@@ -5636,6 +5955,196 @@ export interface operations {
         };
     };
     groups_shapes_api_projects__project_id__groups_shapes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_state_api_projects__project_id__assemble_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssembleView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_run_api_projects__project_id__assemble_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssembleView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_stop_api_projects__project_id__assemble_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssembleView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_exports_api_projects__project_id__assemble_exports_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssembleExports"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssembleView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_accept_api_projects__project_id__assemble_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssembleView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_show_api_projects__project_id__assemble_show_post: {
         parameters: {
             query?: never;
             header?: never;

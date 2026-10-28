@@ -195,3 +195,52 @@ def test_from_scratch_starts_empty_and_needs_data_first(client):
     assert client.post(f"{_url(pid)}/start", json={"how": "suggested"}).status_code == 409
     view = client.post(f"{_url(pid)}/start", json={"how": "scratch"}).json()
     assert view["start"] == "scratch" and view["groups"] == []
+
+
+def _wait(client, url):
+    for _ in range(240):
+        view = client.get(url).json()
+        if view["status"] != "running":
+            return view
+        time.sleep(0.5)
+    raise AssertionError("still running")
+
+
+def test_tag_and_write_notebook_1s_output(brought_in, monkeypatch):
+    """OpenAVMKit tags the parcels and writes 1-assemble; the receipt counts each group and matches the preview."""
+    tmp, pid = brought_in
+    monkeypatch.setenv("OAKBOX_HOME", str(tmp / "home"))
+    client = TestClient(create_app())
+    groups = client.post(f"{_url(pid)}/start", json={"how": "suggested"}).json()["groups"]
+    groups = [g for g in groups if g["id"] != "public_exempt"]  # the public land ends up in no group
+    client.put(_url(pid), json={"groups": groups})
+    url = f"/api/projects/{pid}/assemble"
+    view = client.get(url).json()
+    assert (view["status"], view["blocked"]) == ("never", [])
+    client.put(f"{url}/exports", json={"exports": ["gpkg"]})
+
+    assert client.post(f"{url}/run").json()["status"] == "running"
+    view = _wait(client, url)
+    assert view["status"] == "done", view["job"]
+    r = view["receipt"]
+    counts = {g["id"]: g for g in r["groups"]}
+    assert counts["single_family"]["parcels"] == 20 and counts["single_family"]["sales"] == 40
+    assert counts["UNKNOWN"]["parcels"] == 2  # the two public parcels
+    assert r["matches_preview"] and r["parcels"] == 40
+    paths = {w["path"] for w in r["written"]}
+    assert {
+        "out/1-assemble-sup.pickle",
+        "out/look/1-assemble-universe.parquet",
+        "out/look/1-assemble-universe.gpkg",
+    } <= paths
+
+    # What's written is what notebook 2 reads: the parcels carry their model group.
+    sup = pd.read_pickle(projects.project_dir(pid) / "out" / "1-assemble-sup.pickle")
+    assert sup.universe["model_group"].value_counts()["condos_townhomes"] == 8
+
+    assert client.post(f"{url}/accept").json()["accepted"]
+    # A change to the groups puts it out of date, and Looks right with it.
+    client.put(_url(pid), json={"groups": groups[:-1]})
+    view = client.get(url).json()
+    assert view["stale"] and not view["accepted"]
+    assert client.post(f"{url}/accept").status_code == 409

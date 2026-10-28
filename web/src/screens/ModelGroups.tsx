@@ -17,6 +17,7 @@ import {
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { t } from "../strings";
+import { RunBar } from "./Assemble";
 import { useSettled, ValuePicker } from "./FieldRules";
 
 const g = t.groups;
@@ -144,6 +145,8 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
     onSuccess: (data) => {
       queryClient.setQueryData(["groups", projectId], data);
       setDraft(data.groups);
+      // Saved groups can put notebook 1's output out of date.
+      void queryClient.invalidateQueries({ queryKey: ["assemble", projectId] });
     },
   });
   const p = preview.data;
@@ -191,190 +194,193 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
 
   const mapShown = mapMode !== "hidden";
   return (
-    <div className={`mg mg-${mapMode}`}>
-      <div className="mg-list">
-        <h3 className="mg-h">{g.listTitle}</h3>
-        <ol className="mg-items">
-          {draft.map((x, i) => (
-            <GroupItem
-              key={x.id}
-              name={x.name}
-              color={x.color}
-              stats={statsFor(x.id)}
-              delta={delta(p, x.id)}
-              isSelected={x.id === selected}
-              onSelect={() => {
-                setSelected(x.id);
-                if (mapMode === "full") setMapMode("docked");
-              }}
-              onUp={i > 0 ? () => move(i, -1) : undefined}
-              onDown={i < draft.length - 1 ? () => move(i, 1) : undefined}
-            />
-          ))}
-        </ol>
-        <div className="mg-sep" />
-        <GroupItem
-          name={g.unassigned}
-          color={view.unassigned_color}
-          stats={statsFor("")}
-          delta={delta(p, "")}
-          isSelected={false}
-          onSelect={() => {
-            const n = p?.assign.flatMap((a, i) => (a === -1 ? [i] : [])) ?? [];
-            setHighlight(n);
-          }}
-        />
-        <div className="mg-adds">
-          <Button className="button" onPress={add}>
-            {g.addGroup}
-          </Button>
-          <Button className="button" onPress={() => setFromField(true)}>
-            {g.fromField}
-          </Button>
-        </div>
-        <p className="mg-help">{g.orderHelp}</p>
-        <div className="mg-save">
-          <Button className="button" isDisabled={!dirty} onPress={() => setDraft(view.groups)}>
-            {g.undo}
-          </Button>
-          <Button
-            className="button button-primary"
-            isDisabled={!dirty || save.isPending}
-            onPress={() => save.mutate(draft)}
-          >
-            {g.save}
-          </Button>
-          {!dirty && view.groups.length > 0 && <span className="mg-saved">{g.saved}</span>}
-        </div>
-        {save.error && (
-          <p className="error" role="alert">
-            {save.error.message}
-          </p>
-        )}
-      </div>
-
-      {mapMode !== "full" && (
-        <div className="mg-ed">
-          {group ? (
-            <GroupEditor
-              key={group.id}
-              projectId={projectId}
-              group={group}
-              order={draft.indexOf(group) + 1}
-              fields={view.fields}
-              colors={view.colors}
-              stats={statsFor(group.id)}
-              preview={p}
-              name={name}
-              onChange={(patch) => update(group.id, patch)}
-              onDelete={() => {
-                setDraft(draft.filter((x) => x.id !== group.id));
-                setSelected(null);
-              }}
-              onShow={(n) => {
-                setHighlight(n);
-                if (!mapShown) setMapMode("docked");
-              }}
-              moved={moved}
-            />
-          ) : (
-            <p className="bi-lede">{g.pickGroup}</p>
-          )}
-          {!mapShown && (
-            <Button className="button mg-showmap" onPress={() => setMapMode("docked")}>
-              {g.showMap}
+    <div className="mg-wrap">
+      <RunBar projectId={projectId} groups={view.groups} dirty={dirty} />
+      <div className={`mg mg-${mapMode}`}>
+        <div className="mg-list">
+          <h3 className="mg-h">{g.listTitle}</h3>
+          <ol className="mg-items">
+            {draft.map((x, i) => (
+              <GroupItem
+                key={x.id}
+                name={x.name}
+                color={x.color}
+                stats={statsFor(x.id)}
+                delta={delta(p, x.id)}
+                isSelected={x.id === selected}
+                onSelect={() => {
+                  setSelected(x.id);
+                  if (mapMode === "full") setMapMode("docked");
+                }}
+                onUp={i > 0 ? () => move(i, -1) : undefined}
+                onDown={i < draft.length - 1 ? () => move(i, 1) : undefined}
+              />
+            ))}
+          </ol>
+          <div className="mg-sep" />
+          <GroupItem
+            name={g.unassigned}
+            color={view.unassigned_color}
+            stats={statsFor("")}
+            delta={delta(p, "")}
+            isSelected={false}
+            onSelect={() => {
+              const n = p?.assign.flatMap((a, i) => (a === -1 ? [i] : [])) ?? [];
+              setHighlight(n);
+            }}
+          />
+          <div className="mg-adds">
+            <Button className="button" onPress={add}>
+              {g.addGroup}
             </Button>
-          )}
-        </div>
-      )}
-
-      {mapShown && (
-        <div className="mg-map">
-          <div className="mg-bar">
-            <b>{g.map}</b>
-            <Seg
-              value={colourBy}
-              options={[
-                ["group", g.byGroup],
-                ["changes", g.byChanges],
-              ]}
-              onChange={setColourBy}
-            />
-            {highlight && (
-              <span className="mg-hl">
-                {g.highlighted(highlight.length)}{" "}
-                <Button className="wiz-link" onPress={() => setHighlight(null)}>
-                  {g.clearHighlight}
-                </Button>
-              </span>
-            )}
-            <span className="mg-grow" />
-            <span className="mg-hint">{g.clickHint}</span>
-            <Seg
-              value={mapMode}
-              options={[
-                ["docked", g.docked],
-                ["full", g.full],
-              ]}
-              onChange={setMapMode}
-            />
-            <Button className="mg-x" aria-label={g.hide} onPress={() => setMapMode("hidden")}>
-              <X size="0.9em" />
+            <Button className="button" onPress={() => setFromField(true)}>
+              {g.fromField}
             </Button>
           </div>
-          <ParcelMap
-            projectId={projectId}
-            preview={p}
-            colours={colours}
-            unassigned={view.unassigned_color}
-            colourBy={colourBy}
-            highlight={highlight}
-            picked={picked}
-            mode={mapMode}
-            onPick={setPicked}
-          />
-          {picked != null && (
-            <Inspector
-              projectId={projectId}
-              groups={asked}
-              index={picked}
-              name={name}
-              colour={(id) =>
-                id === "" ? view.unassigned_color : (asked.find((x) => x.id === id)?.color ?? "#888")
-              }
-              onShow={(n) => setHighlight(n)}
-              onClose={() => setPicked(null)}
-            />
+          <p className="mg-help">{g.orderHelp}</p>
+          <div className="mg-save">
+            <Button className="button" isDisabled={!dirty} onPress={() => setDraft(view.groups)}>
+              {g.undo}
+            </Button>
+            <Button
+              className="button button-primary"
+              isDisabled={!dirty || save.isPending}
+              onPress={() => save.mutate(draft)}
+            >
+              {g.save}
+            </Button>
+            {!dirty && view.groups.length > 0 && <span className="mg-saved">{g.saved}</span>}
+          </div>
+          {save.error && (
+            <p className="error" role="alert">
+              {save.error.message}
+            </p>
           )}
-          <Legend
-            items={
-              colourBy === "group"
-                ? [
-                    ...asked.map((x) => [x.color, x.name] as const),
-                    [view.unassigned_color, g.unassigned] as const,
-                  ]
-                : [
-                    ...asked.map((x) => [x.color, `${g.movesTo} ${x.name}`] as const),
-                    [CHANGE_GREY, g.noChanges] as const,
-                  ]
-            }
-          />
         </div>
-      )}
-      {fromField && (
-        <FromField
-          projectId={projectId}
-          fields={view.fields}
-          groups={draft}
-          colors={view.colors}
-          close={() => setFromField(false)}
-          apply={(groups) => {
-            setDraft(groups);
-            setFromField(false);
-            setSelected(groups[0]?.id ?? null);
-          }}
-        />
-      )}
+
+        {mapMode !== "full" && (
+          <div className="mg-ed">
+            {group ? (
+              <GroupEditor
+                key={group.id}
+                projectId={projectId}
+                group={group}
+                order={draft.indexOf(group) + 1}
+                fields={view.fields}
+                colors={view.colors}
+                stats={statsFor(group.id)}
+                preview={p}
+                name={name}
+                onChange={(patch) => update(group.id, patch)}
+                onDelete={() => {
+                  setDraft(draft.filter((x) => x.id !== group.id));
+                  setSelected(null);
+                }}
+                onShow={(n) => {
+                  setHighlight(n);
+                  if (!mapShown) setMapMode("docked");
+                }}
+                moved={moved}
+              />
+            ) : (
+              <p className="bi-lede">{g.pickGroup}</p>
+            )}
+            {!mapShown && (
+              <Button className="button mg-showmap" onPress={() => setMapMode("docked")}>
+                {g.showMap}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {mapShown && (
+          <div className="mg-map">
+            <div className="mg-bar">
+              <b>{g.map}</b>
+              <Seg
+                value={colourBy}
+                options={[
+                  ["group", g.byGroup],
+                  ["changes", g.byChanges],
+                ]}
+                onChange={setColourBy}
+              />
+              {highlight && (
+                <span className="mg-hl">
+                  {g.highlighted(highlight.length)}{" "}
+                  <Button className="wiz-link" onPress={() => setHighlight(null)}>
+                    {g.clearHighlight}
+                  </Button>
+                </span>
+              )}
+              <span className="mg-grow" />
+              <span className="mg-hint">{g.clickHint}</span>
+              <Seg
+                value={mapMode}
+                options={[
+                  ["docked", g.docked],
+                  ["full", g.full],
+                ]}
+                onChange={setMapMode}
+              />
+              <Button className="mg-x" aria-label={g.hide} onPress={() => setMapMode("hidden")}>
+                <X size="0.9em" />
+              </Button>
+            </div>
+            <ParcelMap
+              projectId={projectId}
+              preview={p}
+              colours={colours}
+              unassigned={view.unassigned_color}
+              colourBy={colourBy}
+              highlight={highlight}
+              picked={picked}
+              mode={mapMode}
+              onPick={setPicked}
+            />
+            {picked != null && (
+              <Inspector
+                projectId={projectId}
+                groups={asked}
+                index={picked}
+                name={name}
+                colour={(id) =>
+                  id === "" ? view.unassigned_color : (asked.find((x) => x.id === id)?.color ?? "#888")
+                }
+                onShow={(n) => setHighlight(n)}
+                onClose={() => setPicked(null)}
+              />
+            )}
+            <Legend
+              items={
+                colourBy === "group"
+                  ? [
+                      ...asked.map((x) => [x.color, x.name] as const),
+                      [view.unassigned_color, g.unassigned] as const,
+                    ]
+                  : [
+                      ...asked.map((x) => [x.color, `${g.movesTo} ${x.name}`] as const),
+                      [CHANGE_GREY, g.noChanges] as const,
+                    ]
+              }
+            />
+          </div>
+        )}
+        {fromField && (
+          <FromField
+            projectId={projectId}
+            fields={view.fields}
+            groups={draft}
+            colors={view.colors}
+            close={() => setFromField(false)}
+            apply={(groups) => {
+              setDraft(groups);
+              setFromField(false);
+              setSelected(groups[0]?.id ?? null);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

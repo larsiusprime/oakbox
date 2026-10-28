@@ -202,6 +202,95 @@ def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
     return Rows(set=name, total=total, offset=offset, columns=[str(c) for c in df.columns], rows=_text(df))
 
 
+class Stat(BaseModel):
+    label: str
+    value: str
+
+
+class ValueN(BaseModel):
+    value: str
+    count: int
+
+
+class FieldProfile(BaseModel):
+    """One field of the parcel universe or sales record in detail: notebook 1's "examine in ridiculous detail"."""
+
+    field: str
+    rows: int
+    blank: int
+    kind: Literal["number", "category", "date", "yes/no"]
+    distinct: int = Field(description="Different values, not counting blank.")
+    stats: list[Stat] = Field(description="Numbers: count, zero, lowest, percentiles, mean, highest. Dates: range.")
+    values: list[ValueN] = Field(description="Most common first (dates: by year). At most 500, after the search.")
+    more: int
+
+
+PROFILE_VALUES = 500
+
+
+def profile(project_dir: Path, name: str, field: str, search: str = "") -> FieldProfile:
+    """A field's summary statistics (numbers) or its values with counts (everything else), read from one column."""
+    import pandas as pd
+    import pyarrow.parquet as pq
+
+    from oakbox.wizard import _g
+
+    if name not in ("universe", "sales"):
+        raise LookupError(name)
+    path = _rows_path(project_dir, name)
+    if not path.is_file() or field not in pq.ParquetFile(path).schema_arrow.names:
+        raise LookupError(field)
+    s = pd.read_parquet(path, columns=[field])[field]
+    rows, filled = len(s), s.dropna()
+    stats: list[Stat] = []
+    if pd.api.types.is_bool_dtype(filled):
+        kind = "yes/no"
+        counts = filled.map({True: "yes", False: "no"}).value_counts()
+    elif pd.api.types.is_numeric_dtype(filled):
+        kind = "number"
+        x = filled.astype(float)
+        year = "year" in field
+        g = (lambda v: f"{v:.0f}") if year else _g
+        if len(x):
+            q = x.quantile([0.1, 0.25, 0.5, 0.75, 0.9])
+            stats = [
+                Stat(label="filled", value=f"{len(x):,}"),
+                Stat(label="zero", value=f"{int((x == 0).sum()):,}"),
+                Stat(label="lowest", value=g(x.min())),
+                Stat(label="10%", value=g(q[0.1])),
+                Stat(label="25%", value=g(q[0.25])),
+                Stat(label="median", value=g(q[0.5])),
+                Stat(label="75%", value=g(q[0.75])),
+                Stat(label="90%", value=g(q[0.9])),
+                Stat(label="highest", value=g(x.max())),
+                Stat(label="mean", value=g(x.mean())),
+            ]
+        counts = x.map(g).value_counts()
+    elif pd.api.types.is_datetime64_any_dtype(filled):
+        kind = "date"
+        if len(filled):
+            stats = [
+                Stat(label="earliest", value=f"{filled.min():%Y-%m-%d}"),
+                Stat(label="latest", value=f"{filled.max():%Y-%m-%d}"),
+            ]
+        counts = filled.dt.year.astype(str).value_counts().sort_index()
+    else:
+        kind = "category"
+        counts = filled.astype(str).value_counts()
+    q = search.strip().lower()
+    hits = [(str(v), int(n)) for v, n in counts.items() if not q or q in str(v).lower()]
+    return FieldProfile(
+        field=field,
+        rows=rows,
+        blank=rows - len(filled),
+        kind=kind,
+        distinct=len(counts),
+        stats=stats,
+        values=[ValueN(value=v, count=n) for v, n in hits[:PROFILE_VALUES]],
+        more=max(0, len(hits) - PROFILE_VALUES),
+    )
+
+
 def csv_chunks(project_dir: Path, name: str):
     """The whole set as CSV, a row group at a time."""
     import pyarrow.parquet as pq
@@ -612,21 +701,24 @@ _procs: dict[str, subprocess.Popen] = {}
 _lock = threading.Lock()
 
 
-def start(project_id: str, project_dir: Path) -> Job:
+def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
+    """Run `python -m oakbox.<module> <project id>` in a process of its own, following the JSON step lines it
+    prints. One run per module and project at a time; its log is out/oakbox/<module>.log."""
+    key = f"{module}:{project_id}"
     with _lock:
-        if project_id in _jobs and _jobs[project_id].status == "running":
+        if key in _jobs and _jobs[key].status == "running":
             raise ValueError("It's already running.")
-        log = project_dir / "out" / "oakbox" / "bring_in.log"
+        log = project_dir / "out" / "oakbox" / f"{module}.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
-            [sys.executable, "-m", "oakbox.bring_in", project_id],
+            [sys.executable, "-m", f"oakbox.{module}", project_id],
             stdout=subprocess.PIPE,
             stderr=log.open("w"),
             text=True,
             env={**os.environ, "PYTHONWARNINGS": "ignore::DeprecationWarning"},
         )
         job = Job(status="running", started=time.time())
-        _jobs[project_id], _procs[project_id] = job, proc
+        _jobs[key], _procs[key] = job, proc
 
     def follow() -> None:
         assert proc.stdout is not None
@@ -657,17 +749,18 @@ def start(project_id: str, project_dir: Path) -> Job:
     return job
 
 
-def stop(project_id: str) -> None:
-    proc = _procs.get(project_id)
-    job = _jobs.get(project_id)
+def stop(project_id: str, module: str = "bring_in") -> None:
+    key = f"{module}:{project_id}"
+    proc = _procs.get(key)
+    job = _jobs.get(key)
     if proc is None or job is None or job.status != "running":
         return
     job.status = "stopped"
     proc.terminate()
 
 
-def job(project_id: str) -> Job | None:
-    return _jobs.get(project_id)
+def job(project_id: str, module: str = "bring_in") -> Job | None:
+    return _jobs.get(f"{module}:{project_id}")
 
 
 class Plan(BaseModel):

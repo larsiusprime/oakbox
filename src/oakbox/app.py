@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox import __version__, appsettings, bring_in, datafiles, fields, groups, projects, wizard
+from oakbox import __version__, appsettings, assemble, bring_in, datafiles, fields, groups, projects, wizard
 from oakbox.datafiles import CleanStep
 
 WEB_DIST = Path(__file__).parent / "web"
@@ -135,6 +135,10 @@ class WizardCustom(BaseModel):
     column: str | None = Field(default=None, description="None removes the field.")
     group: Literal["land", "building", "other"] = "other"
     type: Literal["category", "number"] = "category"
+
+
+class AssembleExports(BaseModel):
+    exports: list[Literal["gpkg", "shp", "csv"]]
 
 
 class InspectBody(BaseModel):
@@ -811,6 +815,15 @@ def create_app() -> FastAPI:
         except LookupError as e:
             raise HTTPException(404, f"No rows called {name}: bring in data first.") from e
 
+    @app.get("/api/projects/{project_id}/bring-in/fields/{name}/{field}")
+    def bring_in_field(project_id: str, name: str, field: str, search: str = "") -> bring_in.FieldProfile:
+        """One field of the parcel universe or the sales record in detail: its statistics, or its values."""
+        _load(project_id)
+        try:
+            return bring_in.profile(projects.project_dir(project_id), name, field, search)
+        except LookupError as e:
+            raise HTTPException(404, f"No field {field} in {name}: bring in data first.") from e
+
     @app.get("/api/projects/{project_id}/bring-in/rows/{name}/csv")
     def bring_in_csv(project_id: str, name: str) -> StreamingResponse:
         """The whole set as CSV, written a chunk at a time."""
@@ -900,6 +913,59 @@ def create_app() -> FastAPI:
             return FileResponse(groups.shapes_path(projects.project_dir(project_id)), media_type="application/geo+json")
         except LookupError as e:
             raise HTTPException(409, str(e)) from e
+
+    # ---------- The end of notebook 1: tag model groups and write its output ----------
+
+    def _assemble_view(project: projects.Project) -> assemble.AssembleView:
+        return assemble.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/assemble")
+    def assemble_state(project_id: str) -> assemble.AssembleView:
+        """Ready, running, or the receipt of the last run, and whether it's out of date."""
+        return _assemble_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/assemble/run")
+    def assemble_run(project_id: str) -> assemble.AssembleView:
+        """Tag each parcel with its model group and write notebook 1's output, in a process of its own."""
+        project = _load(project_id)
+        projects.write_settings(project)
+        try:
+            assemble.start(project, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        return _assemble_view(project)
+
+    @app.post("/api/projects/{project_id}/assemble/stop")
+    def assemble_stop(project_id: str) -> assemble.AssembleView:
+        bring_in.stop(project_id, assemble.MODULE)
+        return _assemble_view(_load(project_id))
+
+    @app.put("/api/projects/{project_id}/assemble/exports")
+    def assemble_exports(project_id: str, body: AssembleExports) -> assemble.AssembleView:
+        """Also write the output as GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets."""
+        project = _load(project_id)
+        project.assemble_exports = sorted(set(body.exports))
+        projects.save(project)
+        return _assemble_view(project)
+
+    @app.post("/api/projects/{project_id}/assemble/accept")
+    def assemble_accept(project_id: str) -> assemble.AssembleView:
+        """Looks right: notebook 1 is done."""
+        project = _load(project_id)
+        try:
+            assemble.accept(project, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        projects.save(project)
+        return _assemble_view(project)
+
+    @app.post("/api/projects/{project_id}/assemble/show")
+    def assemble_show(project_id: str) -> None:
+        """Show the written files (out/look/) in the file manager."""
+        _load(project_id)
+        look = projects.project_dir(project_id) / "out" / "look"
+        first = next(iter(sorted(look.glob("1-assemble-universe*"))), None)
+        projects.show_file(first or look)
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
