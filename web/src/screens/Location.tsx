@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
 import { Choice } from "../components/Form";
+import { ValuesButton } from "../components/ValuesButton";
 import { t } from "../strings";
 
 const l = t.wizard.location;
@@ -29,7 +30,7 @@ export function LocationExtras({
   return (
     <>
       <Coordinates projectId={project.id} hasShapes={data.files.some((f) => f.base && f.geometry)} />
-      <LocationFields data={data} change={change} />
+      <LocationFields projectId={project.id} data={data} change={change} />
     </>
   );
 }
@@ -193,9 +194,11 @@ function nameFor(column: string): string {
 }
 
 function LocationFields({
+  projectId,
   data,
   change,
 }: {
+  projectId: string;
   data: Wizard;
   change: (c: { kind: "location"; name: string; file: string | null; column: string | null }) => void;
 }) {
@@ -227,7 +230,13 @@ function LocationFields({
               <span className={x.check.warn ? "wiz-warn" : x.check.ok ? "wiz-ok" : "wiz-warn"}>
                 {x.check.text}
               </span>
-              <span className="wiz-sample-values">{x.samples.slice(0, 5).join(", ")}</span>
+              <ValuesButton
+                projectId={projectId}
+                file={x.file}
+                column={x.column}
+                distinct={x.distinct}
+                noun={l.areas(x.distinct ?? 0)}
+              />
               <Button
                 className="rc-x"
                 aria-label={l.remove(x.name)}

@@ -573,6 +573,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Column Values
+         * @description A column's values with their row counts, most common first (the values list beside a field).
+         */
+        get: operations["wizard_column_values_api_projects__project_id__wizard_files__name__values_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/custom/{name}": {
         parameters: {
             query?: never;
@@ -1251,6 +1271,32 @@ export interface components {
              */
             date_format: string | null;
         };
+        /** ColumnValues */
+        ColumnValues: {
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            /** Rows */
+            rows: number;
+            /** Blank */
+            blank: number;
+            /**
+             * Distinct
+             * @description Different values, not counting blank.
+             */
+            distinct: number;
+            /**
+             * Values
+             * @description Most common first; blank last. At most `limit`.
+             */
+            values: components["schemas"]["ValueCount"][];
+            /**
+             * More
+             * @description Values not listed (search to narrow).
+             */
+            more: number;
+        };
         /**
          * Condition
          * @description One test on a column of the sales file, as an OpenAVMKit filter.
@@ -1352,8 +1398,8 @@ export interface components {
             /** Column */
             column: string;
             check: components["schemas"]["Check"];
-            /** Samples */
-            samples: string[];
+            /** Distinct */
+            distinct: number | null;
         };
         /**
          * DataFile
@@ -2132,8 +2178,8 @@ export interface components {
             /** Column */
             column: string;
             check: components["schemas"]["Check"];
-            /** Samples */
-            samples: string[];
+            /** Distinct */
+            distinct: number | null;
         };
         /**
          * MapView
@@ -3490,6 +3536,11 @@ export interface components {
              * @default false
              */
             absent: boolean;
+            /**
+             * Distinct
+             * @description How many different values its column has (not blank).
+             */
+            distinct: number | null;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -4796,6 +4847,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_column_values_api_projects__project_id__wizard_files__name__values_get: {
+        parameters: {
+            query: {
+                column: string;
+                search?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnValues"];
                 };
             };
             /** @description Validation Error */

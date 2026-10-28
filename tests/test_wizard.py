@@ -731,9 +731,7 @@ def test_location_fields_the_user_names_and_the_polar_centre(client, tmp_path, m
 
     url = f"/api/projects/{pid}/wizard/locations"
     w = client.put(f"{url}/market_area", json={"file": "geo_parcels", "column": "NBHD"}).json()
-    assert [(x["name"], x["column"], x["check"]["text"]) for x in w["locations"]] == [
-        ("market_area", "NBHD", "✓ 3 areas")
-    ]
+    assert [(x["name"], x["column"], x["check"]["text"]) for x in w["locations"]] == [("market_area", "NBHD", "✓")]
     assert client.put(f"{url}/Bad Name", json={"file": "geo_parcels", "column": "NBHD"}).status_code == 422
     assert client.put(f"{url}/latitude", json={"file": "geo_parcels", "column": "NBHD"}).status_code == 422
     assert client.put(f"{url}/sale_price", json={"file": "geo_parcels", "column": "MAIL_ADDR"}).status_code == 422
@@ -1053,7 +1051,7 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
         f"{field}/bldg_quality_num",
         json={"file": "cama", "column": "QUALITY_SCORE", "scale": {**depr, "kind": "lower", "fraction": False}},
     ).json()
-    assert _field(w, "bldg_quality_num")["check"]["text"] == "✓ 1–4 · 4 values · flipped, so higher is better"
+    assert _field(w, "bldg_quality_num")["check"]["text"] == "✓ 1–4 · flipped, so higher is better"
     assert _settings(pid)["data"]["load"]["cama"]["calc"]["bldg_quality_num"] == ["-", 5.0, "bldg_quality_num_src"]
 
     # A category instead: its tiers in a known order, with what each sells for; then ranked, and kept as text too.
@@ -1187,7 +1185,15 @@ def test_own_fields_named_and_classified_as_land_building_or_other(client, pid):
     url = f"/api/projects/{pid}/wizard/custom"
     w = client.put(f"{url}/zone_class", json={"file": "geo_parcels", "column": "ZONE", "group": "land"}).json()
     own = {x["name"]: x for x in w["custom"]}
-    assert own["zone_class"]["column"] == "ZONE" and own["zone_class"]["check"]["text"] == "✓ 3 values"
+    assert own["zone_class"]["column"] == "ZONE" and own["zone_class"]["distinct"] == 3
+    # Its values, most common first, behind the "3 values" button; searchable.
+    vals = client.get(f"/api/projects/{pid}/wizard/files/geo_parcels/values", params={"column": "ZONE"}).json()
+    assert (vals["rows"], vals["distinct"], vals["blank"], vals["more"]) == (6, 3, 0, 0)
+    assert [(v["value"], v["count"]) for v in vals["values"]] == [("R1", 3), ("R2", 2), ("C1", 1)]
+    vals = client.get(
+        f"/api/projects/{pid}/wizard/files/geo_parcels/values", params={"column": "ZONE", "search": "r"}
+    ).json()
+    assert [v["value"] for v in vals["values"]] == ["R1", "R2"] and vals["distinct"] == 3
     s = _settings(pid)
     assert s["data"]["load"]["geo_parcels"]["load"]["zone_class"] == ["ZONE", "string"]
     assert s["field_classification"]["land"] == {"categorical": ["zone_class"]}

@@ -1827,14 +1827,11 @@ a.row-title:hover {
   width: 100%;
 }
 
+/* The check line beside a field: wraps rather than hiding the end (its values are behind "N values"). */
 .wiz-samples {
-  overflow: hidden;
   font-size: 0.88rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
-.wiz-sample-values,
 .wiz-from,
 .wiz-none {
   color: var(--muted);
@@ -3472,12 +3469,125 @@ a.row-title:hover {
   border-radius: 2px;
 }
 
-.wiz-custom {
+/* ---------- A column's values, behind "N values ▾" ---------- */
+.vals-button {
+  display: inline-flex;
+  margin-left: 0.4rem;
+  gap: 0.2rem;
+  align-items: center;
+  padding: 0 0.45rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--link);
+  white-space: nowrap;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.vals-button[data-hovered] {
+  border-color: var(--focus);
+}
+.vals-popover {
+  width: 24rem;
+  max-width: 92vw;
+}
+.vals-body {
   display: grid;
-  grid-template-columns: max-content max-content auto auto 1fr auto;
-  gap: 0.15rem 0.6rem;
+  gap: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  outline: none;
+}
+.vals-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.vals-file {
+  color: var(--muted);
+  font-weight: 400;
+}
+.vals-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.vals-search-input {
+  width: 100%;
+}
+.vals-scroll {
+  max-height: 20rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--rule);
+}
+.vals-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.vals-th {
+  position: sticky;
+  top: 0;
+  padding: 0.15rem 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  background: var(--panel);
+}
+.vals-td {
+  padding: 0.1rem 0.3rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.vals-v {
+  overflow-wrap: anywhere;
+}
+.vals-n {
+  position: relative;
+  isolation: isolate;
+  width: 6rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.vals-bar {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0;
+  z-index: -1;
+  background: #dfe9f8;
+  border-radius: 2px;
+}
+
+/* Your own fields (Land use & building type): one table, the add row last. */
+.cf-tbl {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.cf-th {
+  padding: 0.15rem 0.5rem 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+.cf-td {
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+.cf-add-td {
+  padding-top: 0.5rem;
+  border-bottom: 0;
+}
+.cf-td .choice {
+  min-width: 9.5rem;
+}
+.cf-vals {
+  display: inline-flex;
+  gap: 0.4rem;
   align-items: center;
 }
-.wiz-custom-samples {
-  grid-column: 2 / -1;
+.cf-name-input {
+  width: 10rem;
 }

@@ -341,6 +341,7 @@ class WizardField(BaseModel):
     )
     scale: Scale | None = Field(default=None, description="Quality/condition number: how it becomes higher-is-better.")
     absent: bool = Field(default=False, description="Said not to exist (no condition: effective age carries it).")
+    distinct: int | None = Field(default=None, description="How many different values its column has (not blank).")
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -881,6 +882,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         number_format=number_format,
                         scale=scale,
                         absent=key in project.wizard.absent and not sources,
+                        distinct=_distinct(files, sources[0]) if len(sources) == 1 else None,
                     )
                 )
 
@@ -1706,6 +1708,54 @@ class ValueCount(BaseModel):
     count: int
 
 
+@lru_cache(maxsize=256)
+def _value_counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
+    """A column's values (trimmed, as shown) with how many rows have each, most common first; blanks as ''."""
+    counts = Counter(_values(stamp, layer, column))
+    return tuple(sorted(counts.items(), key=lambda vc: (-vc[1], vc[0])))
+
+
+def _distinct(files: _Files, source: Source) -> int | None:
+    if source.file not in files.preview or files.column(source.file, source.column) is None:
+        return None
+    f = files.entry(source.file)
+    counts = _value_counts(_stamp(files.in_dir / f.filename), f.layer, source.column)
+    return sum(1 for v, _ in counts if v)
+
+
+class ColumnValues(BaseModel):
+    file: str
+    column: str
+    rows: int
+    blank: int
+    distinct: int = Field(description="Different values, not counting blank.")
+    values: list[ValueCount] = Field(description="Most common first; blank last. At most `limit`.")
+    more: int = Field(description="Values not listed (search to narrow).")
+
+
+def column_values(project: Project, in_dir: Path, file: str, column: str, search: str = "", limit: int = 500):
+    """Every value of a file's column with its row count, for the values list beside a field."""
+    files = _Files(project, in_dir)
+    if file not in files.preview or files.column(file, column) is None:
+        raise LookupError(f"{file}.{column}")
+    f = files.entry(file)
+    counts = _value_counts(_stamp(in_dir / f.filename), f.layer, column)
+    blank = next((n for v, n in counts if v == ""), 0)
+    listed = [(v, n) for v, n in counts if v]
+    q = search.strip().lower()
+    hits = [(v, n) for v, n in listed if q in v.lower()] if q else listed
+    shown = hits[:limit]
+    return ColumnValues(
+        file=file,
+        column=column,
+        rows=sum(n for _, n in counts),
+        blank=blank,
+        distinct=len(listed),
+        values=[ValueCount(value=v, count=n) for v, n in shown],
+        more=len(hits) - len(shown),
+    )
+
+
 class RuleRow(BaseModel):
     cells: list[str]
     yes: bool
@@ -2413,7 +2463,7 @@ def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale
         return Check(ok=True, text=f"✓ {text}")
     if s.kind == "life":
         return Check(ok=True, text=f"✓ years left · median {_g(statistics.median(out))}")
-    text = f"{_g(min(nums))}–{_g(max(nums))} · {len(set(nums)):,} values"
+    text = f"{_g(min(nums))}–{_g(max(nums))}"  # how many values: on its "N values" button
     return Check(ok=True, text=f"✓ {text}" + (" · flipped, so higher is better" if s.kind == "lower" else ""))
 
 
@@ -2860,7 +2910,7 @@ class LocationField(BaseModel):
     file: str
     column: str
     check: Check
-    samples: list[str]
+    distinct: int | None
 
 
 # Names OpenAVMKit gives a meaning of its own, besides its dictionary's derived fields.
@@ -2884,10 +2934,15 @@ def locations(project: Project, in_dir: Path) -> list[LocationField]:
         elif distinct > 0.5 * len(values):
             check = Check(ok=True, warn=True, text=f"{distinct:,} values: nearly one per parcel. An ID, not an area?")
         else:
-            check = Check(ok=True, text=f"✓ {distinct:,} areas")
-        col = files.column(entry.name, column)
+            check = Check(ok=True, text="✓")
         out.append(
-            LocationField(name=name, file=entry.name, column=column, check=check, samples=col.samples if col else [])
+            LocationField(
+                name=name,
+                file=entry.name,
+                column=column,
+                check=check,
+                distinct=_distinct(files, Source(file=entry.name, column=column)),
+            )
         )
     return out
 
@@ -2935,7 +2990,7 @@ class CustomFieldView(BaseModel):
     file: str
     column: str
     check: Check
-    samples: list[str]
+    distinct: int | None
 
 
 def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
@@ -2955,15 +3010,14 @@ def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
         elif c.type == "number":
             bad = sum(1 for v in values if not _is_number(v))
             check = (
-                Check(ok=True, text=f"✓ numbers · {distinct:,} values")
+                Check(ok=True, text="✓ numbers")
                 if bad == 0
                 else Check(ok=True, warn=True, text=f"{bad:,} values aren't numbers: they'll be blank")
             )
         elif distinct == 1:
             check = Check(ok=True, warn=True, text="one value for every parcel")
         else:
-            check = Check(ok=True, text=f"✓ {distinct:,} values")
-        col = files.column(entry.name, column)
+            check = Check(ok=True, text="✓")
         out.append(
             CustomFieldView(
                 name=c.name,
@@ -2972,7 +3026,7 @@ def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
                 file=entry.name,
                 column=column,
                 check=check,
-                samples=col.samples if col else [],
+                distinct=_distinct(files, Source(file=entry.name, column=column)),
             )
         )
     return out

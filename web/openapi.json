@@ -1501,6 +1501,74 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/values": {
+   "get": {
+    "summary": "Wizard Column Values",
+    "description": "A column's values with their row counts, most common first (the values list beside a field).",
+    "operationId": "wizard_column_values_api_projects__project_id__wizard_files__name__values_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "column",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Column"
+      }
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Search"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ColumnValues"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/custom/{name}": {
    "put": {
     "summary": "Wizard Custom",
@@ -3168,6 +3236,55 @@
     ],
     "title": "Column"
    },
+   "ColumnValues": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "blank": {
+      "type": "integer",
+      "title": "Blank"
+     },
+     "distinct": {
+      "type": "integer",
+      "title": "Distinct",
+      "description": "Different values, not counting blank."
+     },
+     "values": {
+      "items": {
+       "$ref": "#/components/schemas/ValueCount"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "Most common first; blank last. At most `limit`."
+     },
+     "more": {
+      "type": "integer",
+      "title": "More",
+      "description": "Values not listed (search to narrow)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "file",
+     "column",
+     "rows",
+     "blank",
+     "distinct",
+     "values",
+     "more"
+    ],
+    "title": "ColumnValues"
+   },
    "Condition-Input": {
     "properties": {
      "column": {
@@ -3375,12 +3492,16 @@
      "check": {
       "$ref": "#/components/schemas/Check"
      },
-     "samples": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Samples"
+     "distinct": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distinct"
      }
     },
     "type": "object",
@@ -3391,7 +3512,7 @@
      "file",
      "column",
      "check",
-     "samples"
+     "distinct"
     ],
     "title": "CustomFieldView"
    },
@@ -5091,12 +5212,16 @@
      "check": {
       "$ref": "#/components/schemas/Check"
      },
-     "samples": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Samples"
+     "distinct": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distinct"
      }
     },
     "type": "object",
@@ -5105,7 +5230,7 @@
      "file",
      "column",
      "check",
-     "samples"
+     "distinct"
     ],
     "title": "LocationField"
    },
@@ -8039,6 +8164,18 @@
       "title": "Absent",
       "description": "Said not to exist (no condition: effective age carries it).",
       "default": false
+     },
+     "distinct": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distinct",
+      "description": "How many different values its column has (not blank)."
      }
     },
     "type": "object",
@@ -8058,7 +8195,8 @@
      "area_unit",
      "number_format",
      "scale",
-     "absent"
+     "absent",
+     "distinct"
     ],
     "title": "WizardField"
    },

@@ -40,6 +40,7 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Choice, Tick } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
+import { ValuesButton } from "../components/ValuesButton";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { type CustomChange, CustomFields } from "./CustomFields";
@@ -143,7 +144,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "location" && (
             <LocationExtras project={project} data={data} change={change.mutate} />
           )}
-          {current.key === "property_type" && <CustomFields data={data} change={change.mutate} />}
+          {current.key === "property_type" && (
+            <CustomFields projectId={projectId} data={data} change={change.mutate} />
+          )}
           {current.key === "shapefiles" && (
             <ShapefilesStep project={project} data={data} change={change.mutate} />
           )}
@@ -1374,11 +1377,13 @@ function FieldRow({
                 {field.check?.warn || !field.check?.ok ? w.numbers.check : w.numbers.change}
               </Button>
             )}
-            {column && column.samples.length > 0 && !field.rule && (
-              <span className="wiz-sample-values">
-                {field.check ? " · " : ""}
-                {column.samples.join(", ")}
-              </span>
+            {sourceFile && column && !field.rule && (
+              <ValuesButton
+                projectId={project.id}
+                file={sourceFile.name}
+                column={column.name}
+                distinct={field.distinct}
+              />
             )}
           </>
         )}

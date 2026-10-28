@@ -653,6 +653,16 @@ def create_app() -> FastAPI:
         """Load a parcel file's column as a location field the user names; no column removes it (F3d)."""
         return _change(project_id, lambda p, d: wizard.set_location(p, d, name, body.file, body.column))
 
+    @app.get("/api/projects/{project_id}/wizard/files/{name}/values")
+    def wizard_column_values(project_id: str, name: str, column: str, search: str = "") -> wizard.ColumnValues:
+        """A column's values with their row counts, most common first (the values list beside a field)."""
+        try:
+            return wizard.column_values(
+                _load(project_id), projects.project_dir(project_id) / "in", name, column, search
+            )
+        except LookupError as e:
+            raise HTTPException(404, f"No column {column} in {name}.") from e
+
     @app.put("/api/projects/{project_id}/wizard/custom/{name}")
     def wizard_custom(project_id: str, name: str, body: WizardCustom) -> wizard.Wizard:
         """Load a parcel file's column as a field the user names and classifies (land, building or other); no column

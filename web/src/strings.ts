@@ -459,6 +459,18 @@ export const t = {
       byLength: "length",
       mapLabel: (name: string) => `Map of ${name} over the parcels`,
     },
+    values: {
+      button: (n: number, noun?: string) => `${n.toLocaleString()} ${noun ?? (n === 1 ? "value" : "values")}`,
+      title: (column: string, file: string) => `${column} · ${file}`,
+      summary: (distinct: number, rows: number, blank: number) =>
+        `${distinct.toLocaleString()} different ${distinct === 1 ? "value" : "values"} in ${rows.toLocaleString()} rows${blank ? `, ${blank.toLocaleString()} blank` : ""}`,
+      search: "Search values",
+      value: "Value",
+      rows: "Rows",
+      more: (n: number) => `${n.toLocaleString()} more: search to find them`,
+      none: "No value matches",
+      loading: "Reading the values…",
+    },
     custom: {
       title: "Your own fields",
       lede: "Any other column of a parcel file, under a name you choose. Say whether it describes the land, the building or something else, and whether it's a category or a number: OpenAVMKit treats them that way when it models.",
@@ -473,10 +485,13 @@ export const t = {
       >,
       type: "Kind",
       types: { category: "a category", number: "a number" } as Record<string, string>,
+      values: "Values",
+      actions: "Remove",
       add: "Add field",
       remove: (name: string) => `Remove ${name}`,
     },
     location: {
+      areas: (n: number) => (n === 1 ? "area" : "areas"),
       coordinates: "Coordinates",
       latlon: "Latitude and longitude",
       latlonHow: "worked out by OpenAVMKit from each parcel's shape (its centre point). Nothing to load.",
