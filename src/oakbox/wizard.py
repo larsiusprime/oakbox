@@ -321,6 +321,12 @@ class UnitsView(BaseModel):
     check: Check
 
 
+class MissingParcels(BaseModel):
+    rows: int = Field(description="Its rows that find no parcel.")
+    ids: int = Field(description="The different parcel IDs they're for.")
+    lines: list[str] = Field(description="What it means and what to do, a sentence each.")
+
+
 class WizardFile(BaseModel):
     name: str
     filename: str
@@ -339,6 +345,11 @@ class WizardFile(BaseModel):
     clean: dict[str, list[CleanStep]] = Field(description="ID field -> its clean-up steps (Reconcile).")
     unshaped: int = Field(default=0, description="Parcel file: rows whose ID finds no parcel shape.")
     units: UnitsView | None = Field(default=None, description="Its rows without a shape, as units (condos).")
+    not_in_universe: MissingParcels | None = Field(
+        default=None,
+        description="Its rows that don't find a parcel are for parcels missing from the parcel universe, not IDs "
+        "written differently: cleaning won't help (Reconcile is for that).",
+    )
 
 
 class ExtraId(BaseModel):
@@ -979,6 +990,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     )
                 )
 
+    _diagnose_missing(project, files, out_files)
     problems = _problems(out_files, sale_id, out_fields)
     warnings = _warnings(out_files, out_fields)
     layer_list = layers(project, in_dir)
@@ -1066,7 +1078,13 @@ def _status(
             left.extend(Left(text=i.todo or i.text, blocking=i.blocking) for i in todo)
             share = f.id_check.share
             low = share is not None and share < MATCH_OK
-            if low:
+            if low and f.not_in_universe is not None:
+                # Parcels missing from the parcel universe, not IDs to clean: a note on the step (and on Review),
+                # not a to-do here, unless so few match that it's likely the wrong file or ID.
+                if (share or 0) < MATCH_MIN:
+                    lines = f.not_in_universe.lines
+                    left.append(Left(text=next((x for x in lines if "Treat them as units" in x), lines[0])))
+            elif low:
                 text = f.id_check.text
                 matched = text if "match" in text else f"only {_pct(round((share or 0) * 1000), 1000)} match"
                 left.append(Left(text=f"Reconcile the IDs: {matched}", blocking=(share or 0) < MATCH_MIN))
@@ -1212,6 +1230,9 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
                 f"{_label(f)}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}. "
                 "Resolve it on its step; until then OpenAVMKit keeps the first row of each."
             )
+    for f in files:
+        if f.not_in_universe is not None:
+            out.append(f"{_label(f)}: {' '.join(f.not_in_universe.lines)}")
     for group in RECOMMENDED:
         if not any(by_key[k].sources for k in group if k in by_key):
             first = by_key.get(group[0])
@@ -3826,3 +3847,119 @@ def set_permits(project: Project, in_dir: Path, name: str, permits: Permits | No
         stamp = _stamp(in_dir / entry.filename)
         permits.means = {v: guess_meaning(v) for v, _ in _value_counts(stamp, entry.layer, permits.type) if v}
     entry.permits = permits
+
+
+# ---------- Rows for parcels missing from the parcel universe (F3d) ----------
+
+MISSING_SHAPED = 0.8  # this share of the unmatched IDs written like the universe's: not a matter of cleaning
+MISSING_GAIN = 0.02  # a clean-up that matches this many more rows makes it a matter of cleaning after all
+MISSING_FEW = 10  # fewer parcels than this: odd rows (a parcel combined away), not parcels left out of the map
+
+
+def _shape(v: str) -> str:
+    """How an ID is written: digits as 9, letters as A, the rest as is ("0012-001" → "9999-999")."""
+    return re.sub(r"[A-Za-z]", "A", re.sub(r"\d", "9", v))
+
+
+@lru_cache(maxsize=256)
+def _column_ids(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> frozenset[str]:
+    return frozenset(v for v in _cleaned(stamp, layer, column, steps) if v)
+
+
+def _unmatched(files: _Files, f: DataFile, base: DataFile) -> tuple[set[str], int]:
+    """(the parcel IDs a file's rows have that the parcel universe lacks, how many rows have one)."""
+    ids = [v for v in files.ids(f.name, f.match) if v]
+    known = _base_ids(files, base.name, f.match) | (_unit_ids(files) if f.match == "key" else set())
+    missing = [v for v in ids if v not in known]
+    return set(missing), len(missing)
+
+
+def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) -> None:
+    """Tell rows whose IDs are written differently (Reconcile cleans those up) from rows for parcels the parcel
+    universe doesn't have: condo units on the roll but not the map, newer parcels, a file not added. For the
+    second, say so, name a file in the project that has them, and the other files missing the same IDs."""
+    base = _base(project)
+    if base is None or base.name not in files.preview:
+        return
+    gaps: dict[str, tuple[set[str], int]] = {}
+    for wf in out:
+        f = files.entry(wf.name)
+        if wf.base or wf.id_check is None or f.match not in ("key", *EXTRA_IDS) or _more_sales(f):
+            continue
+        if wf.holds not in ("sales", "parcels", "permits"):
+            continue
+        gaps[wf.name] = _unmatched(files, f, base)
+    base_shapes = {_shape(v) for v in _base_ids(files, base.name)}
+    for wf in out:
+        if wf.name not in gaps or wf.id_check is None or (wf.id_check.share or 0) >= MATCH_OK:
+            continue
+        missing, rows = gaps[wf.name]
+        if len(missing) < MISSING_FEW:
+            continue
+        f = files.entry(wf.name)
+        # A clean-up that matches clearly more: a matter of cleaning, for Reconcile.
+        total = len(files.ids(f.name, f.match))
+        now = (total - rows) / total if total else 0.0
+        found = _suggest(files, f, base, f.match, now + MISSING_GAIN - 0.01, "parcels")
+        shaped = sum(1 for v in missing if _shape(v) in base_shapes) / len(missing)
+        if found is not None or shaped < MISSING_SHAPED:
+            continue
+        what = {"sales": "sales", "permits": "permits"}.get(wf.holds or "", "rows")
+        what = f"{what[:-1]} is" if rows == 1 else f"{what} are"
+        ids = f" ({_n(len(missing), 'parcel ID')})" if len(missing) != rows else ""
+        lines = [
+            f"{rows:,} {what} for parcels that aren't in the parcel universe{ids}. "
+            f"Their IDs are written like the parcel universe's, so cleaning them up won't help."
+        ]
+        if wf.holds == "parcels" and wf.unshaped >= 0.5 * (wf.rows or 1) and wf.units is None:
+            lines.append(
+                "Its rows have no shape of their own: if they're units of a shared parcel (condos, say), "
+                "\u201cTreat them as units\u201d below gives each its building's shape."
+            )
+        # A file in the project that has them: added, but not joined as parcels.
+        # A file in the project that has them, not joined as parcels yet (unless this file holds them itself).
+        holder = None if len(lines) > 1 else _holder(project, files, f, missing, base)
+        if holder is not None:
+            name, column, n = holder
+            lines.append(
+                f"{n:,} of them {'is' if n == 1 else 'are'} in {name} ({column}). If its rows are parcels without a "
+                f"shape of their own (condo units, say), set it up on More files: more about each parcel, then "
+                f"\u201cTreat them as units of a shared parcel\u201d."
+            )
+        elif len(lines) == 1:
+            lines.append(
+                f"Usually they're parcels kept outside {base.filename}: condo units, mobile homes, parcels made "
+                f"since. Have a file with them? Add it on More files."
+            )
+        for other, (theirs, _) in gaps.items():
+            same = len(missing & theirs)
+            held = holder is not None and other == holder[0]
+            if other != wf.name and not held and same >= 10 and same >= 0.3 * min(len(missing), len(theirs)):
+                lines.append(
+                    f"{other} lacks {same:,} of the same parcel{'' if same == 1 else 's'} too: "
+                    f"they're missing from the parcel universe, not written differently."
+                )
+        wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines)
+
+
+def _holder(
+    project: Project, files: _Files, f: DataFile, missing: set[str], base: DataFile
+) -> tuple[str, str, int] | None:
+    """The project file (not joined as parcels yet) with a column holding the most of these IDs, cleaned as this
+    file's are: at least half of them, or 20."""
+    steps = _steps_key(f.clean.get(f.match, []))
+    best = None
+    for g in project.files:
+        if g is f or g is base or g.holds in ("overlay", "sales", "permits") or g.units is not None:
+            continue
+        if g.name not in files.preview:
+            continue
+        # A file joined as parcel details adds no parcels, unless its rows are parcels without a shape (units).
+        if g.holds == "parcels" and _unshaped(files, g, base.name) < 0.5 * (_rows(files, g.name) or 1):
+            continue
+        stamp = _stamp(files.in_dir / g.filename)
+        for c in files.columns(g.name):
+            n = len(missing & _column_ids(stamp, g.layer, c.name, steps))
+            if (n >= 20 or n >= 0.5 * len(missing)) and (best is None or n > best[2]):
+                best = (g.name, c.name, n)
+    return best

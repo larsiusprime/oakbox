@@ -660,6 +660,7 @@ export const t = {
     },
     reconcile: {
       open: "Reconcile…",
+      seeThem: "See them…",
       cleaned: (what: string) => `IDs cleaned: ${what}`,
       // Per kind of join: the main sales to the parcels, more parcel details, more sales details (F3d).
       kinds: {

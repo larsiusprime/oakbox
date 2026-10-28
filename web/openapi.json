@@ -6746,6 +6746,35 @@
     "title": "MapView",
     "description": "Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre."
    },
+   "MissingParcels": {
+    "properties": {
+     "rows": {
+      "type": "integer",
+      "title": "Rows",
+      "description": "Its rows that find no parcel."
+     },
+     "ids": {
+      "type": "integer",
+      "title": "Ids",
+      "description": "The different parcel IDs they're for."
+     },
+     "lines": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Lines",
+      "description": "What it means and what to do, a sentence each."
+     }
+    },
+    "type": "object",
+    "required": [
+     "rows",
+     "ids",
+     "lines"
+    ],
+    "title": "MissingParcels"
+   },
    "ModelGroup-Input": {
     "properties": {
      "id": {
@@ -10622,6 +10651,17 @@
        }
       ],
       "description": "Its rows without a shape, as units (condos)."
+     },
+     "not_in_universe": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MissingParcels"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Its rows that don't find a parcel are for parcels missing from the parcel universe, not IDs written differently: cleaning won't help (Reconcile is for that)."
      }
     },
     "type": "object",
@@ -10642,7 +10682,8 @@
      "base",
      "clean",
      "unshaped",
-     "units"
+     "units",
+     "not_in_universe"
     ],
     "title": "WizardFile"
    },

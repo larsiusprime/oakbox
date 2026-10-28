@@ -527,9 +527,11 @@ function IdCheck({
     share !== null &&
     share !== undefined &&
     (share < 1 || steps.length > 0 || (base.clean[field] ?? []).length > 0);
+  // Rows for parcels missing from the parcel universe: cleaning won't help, so it's a note and a look at them.
+  const missing = file.not_in_universe;
   const reconcile = reconcilable && (
     <Button className="wiz-link wiz-resolve" onPress={() => setReconciling(true)}>
-      {w.reconcile.open}
+      {missing ? w.reconcile.seeThem : w.reconcile.open}
     </Button>
   );
   return (
@@ -552,6 +554,13 @@ function IdCheck({
         }
       />
       {steps.length > 0 && <span className="wiz-cleaned">{w.reconcile.cleaned(describeSteps(steps))}</span>}
+      {missing && (
+        <div className="wiz-missing">
+          {missing.lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      )}
       {reconciling && base && (
         <ReconcileDialog
           projectId={projectId}

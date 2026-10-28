@@ -4020,3 +4020,21 @@ a.row-title:hover {
   align-items: center;
   margin: 0.35rem 0;
 }
+
+/* Rows for parcels missing from the parcel universe: a note, not a to-do (F3d). */
+.wiz-missing {
+  max-width: 34rem;
+  margin-top: 0.2rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: #fff8e8;
+  border: 1px solid #f0d9a8;
+  border-radius: var(--radius);
+}
+.wiz-missing p {
+  margin: 0 0 0.25rem;
+}
+.wiz-missing p:last-child {
+  margin-bottom: 0;
+}

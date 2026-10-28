@@ -2834,6 +2834,24 @@ export interface components {
             /** Parcels */
             parcels: number;
         };
+        /** MissingParcels */
+        MissingParcels: {
+            /**
+             * Rows
+             * @description Its rows that find no parcel.
+             */
+            rows: number;
+            /**
+             * Ids
+             * @description The different parcel IDs they're for.
+             */
+            ids: number;
+            /**
+             * Lines
+             * @description What it means and what to do, a sentence each.
+             */
+            lines: string[];
+        };
         /**
          * ModelGroup
          * @description Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins.
@@ -4605,6 +4623,8 @@ export interface components {
             unshaped: number;
             /** @description Its rows without a shape, as units (condos). */
             units: components["schemas"]["UnitsView"] | null;
+            /** @description Its rows that don't find a parcel are for parcels missing from the parcel universe, not IDs written differently: cleaning won't help (Reconcile is for that). */
+            not_in_universe: components["schemas"]["MissingParcels"] | null;
         };
         /**
          * WizardFileChoice

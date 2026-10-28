@@ -1327,3 +1327,47 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     assert all(c["ok"] for c in view["receipt"]["checks"]), view["receipt"]["checks"]
     unit_lines = {line["text"] for f in view["receipt"]["universe"]["funnels"][1:] for line in f["lines"]}
     assert "units that find no building: left out" in unit_lines
+
+
+def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(client, tmp_path):
+    """IDs written like the parcel universe's that it simply lacks (condo units kept off the map, say): cleaning
+    won't help, so the step says why and where they are, without holding up Next; Reconcile stays for IDs written
+    differently."""
+    pid = client.post("/api/projects", json={**NEW, "name": "Missing"}).json()["id"]
+    gpd.GeoDataFrame(
+        {"PID": [f"0012-{n:03d}" for n in range(1, 21)]}, geometry=[box(i, 0, i + 1, 1) for i in range(20)], crs=4326
+    ).to_parquet(tmp_path / "shapes.parquet")
+    # 20 sales on the map, 12 of units that aren't: 62% find a parcel.
+    sold = [f"0012-{n:03d}" for n in range(1, 21)] + [f"0012-{n:03d}" for n in range(101, 113)]
+    pd.DataFrame({"PID": sold, "SALE_PRICE": [100_000] * 32, "SALE_DATE": ["2024-01-02"] * 32}).to_csv(
+        tmp_path / "sales.csv", index=False
+    )
+    pd.DataFrame({"PID": [f"0012-{n:03d}" for n in range(101, 131)], "AREA": [900] * 30}).to_csv(
+        tmp_path / "units.csv", index=False
+    )
+    for name, ext in (("shapes", "parquet"), ("sales", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    w = _start(client, pid)
+    sales = _file(w, "sales")
+    assert sales["id_check"]["text"] == "62% of sales match a parcel"
+    lines = sales["not_in_universe"]["lines"]
+    assert lines[0].startswith("12 sales are for parcels that aren't in the parcel universe.")
+    assert "Add it on More files" in lines[1]
+    assert not any("Reconcile" in x["text"] for x in _step(w, "sales")["left"])
+    assert any("12 sales are for parcels" in x for x in w["warnings"])
+
+    # The file that has them, once it's in the project.
+    body = {"path": str(tmp_path / "units.csv"), "mode": "copy", "name": "units"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    w = client.get(f"/api/projects/{pid}/wizard").json()
+    assert _file(w, "sales")["not_in_universe"]["lines"][1].startswith("12 of them are in units (PID).")
+
+    # IDs written differently are still for Reconcile.
+    pd.DataFrame(
+        {"PID": [v.replace("-", "") for v in sold[:20]], "SALE_PRICE": [1] * 20, "SALE_DATE": ["2024-01-02"] * 20}
+    ).to_csv(tmp_path / "sales2.csv", index=False)
+    body = {"path": str(tmp_path / "sales2.csv"), "mode": "copy", "name": "sales2"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    w = _put_file(client, pid, "sales2", holds="sales").json()
+    assert _file(w, "sales2")["not_in_universe"] is None
