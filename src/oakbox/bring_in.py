@@ -44,7 +44,7 @@ def out_dir(project_dir: Path) -> Path:
 
 
 class Line(BaseModel):
-    op: Literal["", "−", "="] = ""
+    op: Literal["", "−", "+", "="] = ""
     n: int
     text: str
     rows: str | None = Field(default=None, description="The row set behind it, for See them.")
@@ -121,6 +121,8 @@ def changes(old: dict, new: dict) -> list[str]:
         out.append("how sales find their parcel")
     if old.get("locality") != new.get("locality"):
         out.append("the centre")
+    if pa.get("condos") != pb.get("condos"):
+        out.append("condo units")
     fa, fb = old.get("field_classification", {}), new.get("field_classification", {})
     if fa.get("important") != fb.get("important"):
         out.append("location fields")
@@ -357,6 +359,16 @@ def _raw(files, entry, columns=None):
     return pd.DataFrame({c: _values(stamp, entry.layer, c, raw=True) for c in cols})
 
 
+def _clear_cache_if_rows_change(pdir: Path, settings: dict) -> None:
+    """Condo units change which rows the parcel universe has, and OpenAVMKit's enrichment cache refuses a
+    different set of rows (it stops rather than recompute): clear it when condo handling changes."""
+    ran = out_dir(pdir) / "settings.json"
+    before = json.loads(ran.read_text()).get("data", {}).get("process", {}).get("condos") if ran.is_file() else None
+    now = settings.get("data", {}).get("process", {}).get("condos")
+    if before != now and (pdir / "cache").is_dir():
+        shutil.rmtree(pdir / "cache", ignore_errors=True)
+
+
 def run(project_id: str) -> None:
     """Load and join, then write the receipt and the rows behind it (see the module's docstring)."""
     import warnings
@@ -373,6 +385,7 @@ def run(project_id: str) -> None:
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
     settings_text = (in_dir / "settings.json").read_text()
+    _clear_cache_if_rows_change(pdir, json.loads(settings_text))
     os.chdir(pdir)
     from importlib.metadata import version
 
@@ -436,6 +449,16 @@ def run(project_id: str) -> None:
                     rows=save("universe_repeats", raw[repeated]),
                 )
             )
+        units_f = projects.units_file(project)
+        borrowed = (
+            int(universe["geometry_borrowed"].fillna(False).astype(bool).sum())
+            if "geometry_borrowed" in universe
+            else 0
+        )
+        if units_f is not None:
+            # Condo units with no shape of their own: in the parcel universe with their building's (F3d).
+            predicted += wizard._units_view(project, files, units_f).linked
+            lines.append(Line(op="+", n=borrowed, text=f"units from {units_f.filename}, with their building's shape"))
         lines.append(Line(op="=", n=len(universe), text="parcels in the parcel universe"))
         u_funnels.append(Funnel(file=base.name, lines=lines))
     for f in project.files:
@@ -467,7 +490,9 @@ def run(project_id: str) -> None:
                 Line(
                     op="−",
                     n=int(orphan.sum()),
-                    text="for a parcel not in the parcel universe",
+                    text="units that find no building: left out"
+                    if f.units is not None
+                    else "for a parcel not in the parcel universe",
                     rows=save(f"{f.name}_orphans", raw[orphan]),
                 )
             )
@@ -488,7 +513,10 @@ def run(project_id: str) -> None:
 
     # The sales record: the main sales file, then sales details joined to it.
     s_funnels: list[Funnel] = []
-    said_keys = set(pd.Series(files.ids(base.name, "key"))) - {""} if base is not None else keys
+    # The parcels Data predicted: the parcel shapes, and the units that find their building.
+    said_keys = (
+        (set(pd.Series(files.ids(base.name, "key"))) - {""}) | wizard._unit_ids(files) if base is not None else keys
+    )
     main = wizard._sales_file(project)
     said_valid = said_share = None
     if main is not None and main.name in files.preview:
@@ -647,12 +675,22 @@ def run(project_id: str) -> None:
         one, several, none = wizard._coverage(
             wizard._stamp(in_dir / base.filename), base.layer, wizard._stamp(in_dir / entry.filename), entry.layer
         )
-        got_n = int(universe[o.fields[0].name].notna().sum())
+        # Units take their building's shape, and its layers with it: compared over parcels with shapes of their own.
+        own = ~universe["geometry_borrowed"].fillna(False).astype(bool) if "geometry_borrowed" in universe else None
+        got_n = int(
+            universe[o.fields[0].name][own].notna().sum()
+            if own is not None
+            else universe[o.fields[0].name].notna().sum()
+        )
         # Counted over the file's shapes (some dropped since, without an ID): "every parcel" when none were outside.
         said = "every parcel" if none == 0 else f"{one + several:,}"
-        got = "every parcel" if got_n == len(universe) else f"{got_n:,}"
+        shaped = int(own.sum()) if own is not None else len(universe)
+        got = "every parcel" if got_n == shaped else f"{got_n:,}"
         ok = said == got or abs(one + several - got_n) <= max(1, 0.001 * len(universe))
-        checks.append(Said(what=f"Parcels in a {lv.name} shape", said=said, got=got, ok=ok))
+        what = f"Parcels in a {lv.name} shape" + (
+            " (units take their building's)" if own is not None and not own.all() else ""
+        )
+        checks.append(Said(what=what, said=said, got=got, ok=ok))
 
     mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
     notes = list(dict.fromkeys(str(w.message) for w in mine))[:20]

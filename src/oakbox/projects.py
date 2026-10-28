@@ -32,7 +32,7 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
-from oakbox.datafiles import DataFile, Rule, data_load, overlay_distance, rule_filter
+from oakbox.datafiles import DataFile, Rule, clean_calc, data_load, overlay_distance, rule_fields, rule_filter
 
 
 class BaseModel(_PydanticBase):
@@ -309,6 +309,14 @@ def _classification(project: Project) -> dict:
                 if x.kind == "location":
                     locations.append(x.name)
                 (numeric if x.kind == "number" else categorical).append(x.name)
+    u = units_file(project)
+    if u is not None and u.units is not None and u.units.column:
+        # The building each unit is in, a land category (and a location, like a neighborhood); its land share.
+        land = fc.setdefault("land", {})
+        land.setdefault("categorical", []).append(CONDO_GROUP)
+        land.setdefault("numeric", []).append("land_area_alloc_sqft")
+        if u.units.location:
+            locations.append(CONDO_GROUP)
     if locations:
         fc.setdefault("important", {})["locations"] = locations
     if categorical:
@@ -368,6 +376,7 @@ def _data(project: Project) -> dict:
         if lookups:
             process["enrich"] = {"ref_tables": {"sales": lookups}}
         out["process"] = process
+    _condos(project, out)
     # Map layers (F3d Shapefiles): joined by where each parcel is, or measured to.
     layers = [f for f in project.files if f.holds == "overlay" and f.overlay and f.overlay.use]
     stamps = [f for f in layers if f.overlay and f.overlay.use == "stamp" and f.overlay.fields]
@@ -385,6 +394,70 @@ def _data(project: Project) -> dict:
                 f.overlay.feature: overlay_distance(f.name, f.overlay) for f in dists if f.overlay
             }
     return out
+
+
+CONDO_LINK, CONDO_PARENT, CONDO_UNIT, CONDO_GROUP = "condo_link", "condo_parent", "condo_unit", "condo_group"
+
+
+def units_file(project: Project) -> DataFile | None:
+    """The parcel file whose rows without a shape are units of a shared parcel (one per project: OpenAVMKit has one
+    condos block)."""
+    return next((f for f in project.files if f.holds == "parcels" and f.units is not None), None)
+
+
+def _condos(project: Project, out: dict) -> None:
+    """data.process.condos, and what it needs loaded (F3d condos).
+
+    OpenAVMKit tests `select` on every parcel file, so each gets a yes/no field `condo_unit`: the units file's
+    rule (or every row) there, and no everywhere else. The link ID is loaded under one name in the units file and
+    the parcel universe file (prefix), or the parent ID in the units file, cleaned as the parcel ID is (parent).
+    """
+    u = units_file(project)
+    base = next((f for f in project.files if f.name == project.wizard.base), None)
+    if u is None or base is None or u.units is None or u.units.column is None:
+        return
+    units = u.units
+    load = out["load"]
+    entry = load.setdefault(u.name, {})
+    eload = entry.setdefault("load", {})
+    ecalc = entry.setdefault("calc", {})
+    select: list = ["not", ["isempty", "key"]]
+    if units.rule and units.rule.conditions:
+        names = rule_fields(u.load, units.rule)
+        for column, (field, kind) in names.items():
+            eload.setdefault(field, [column, kind])
+        select = rule_filter(units.rule, names) or select
+    if units.link == "prefix":
+        if not units.base_column:
+            return
+        eload[CONDO_LINK] = [units.column, "string"]
+        load.setdefault(base.name, {}).setdefault("load", {})[CONDO_LINK] = [units.base_column, "string"]
+        link = {"method": "id_prefix", "id_field": CONDO_LINK, "prefix_len": units.prefix_len, "from": base.name}
+    else:
+        eload[CONDO_PARENT] = [units.column, "string"]
+        steps = base.clean.get("key", [])
+        if steps:
+            ecalc[CONDO_PARENT] = clean_calc(CONDO_PARENT, steps)
+        link = {"method": "parent_id", "parent_field": CONDO_PARENT, "from_key": "key", "from": base.name}
+    ecalc[CONDO_UNIT] = ["?", select]
+    # Every other parcel file: no unit (its rows all have an ID, so "blank ID" is never true).
+    for f in project.files:
+        if f is not u and (f is base or f.holds == "parcels") and f.name in load:
+            load[f.name].setdefault("calc", {})[CONDO_UNIT] = ["?", ["isempty", "key"]]
+    land_field = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"
+    share = (
+        {"method": "field", "field": land_field}
+        if units.land == "field"
+        else {"method": "floor_area", "floor_field": "bldg_area_finished_sqft"}
+    )
+    out.setdefault("process", {})["condos"] = {
+        "enabled": True,
+        "select": ["==", CONDO_UNIT, True],
+        "link": link,
+        "group_field": CONDO_GROUP,
+        "borrow_geometry": True,
+        "land_share": share,
+    }
 
 
 def write_settings(project: Project) -> Path:

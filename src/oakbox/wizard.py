@@ -40,6 +40,7 @@ from oakbox.datafiles import (
     Overlay,
     Rule,
     Scale,
+    Units,
     clean_calc,
     clean_value,
     guess_area_unit,
@@ -282,6 +283,31 @@ class RepeatRows(BaseModel):
     rows: list[list[str]]
 
 
+class UnitExample(BaseModel):
+    unit: str = Field(description="The unit's ID (or the column the link is read from).")
+    building: str | None = Field(description="The building parcel it finds, None: none.")
+    address: str = ""
+
+
+class UnitField(BaseModel):
+    field: str
+    name: str
+    column: str
+
+
+class UnitsView(BaseModel):
+    """What the units settings do on the file's rows, worked out as OpenAVMKit's condo handling will."""
+
+    settings: Units
+    units: int = Field(description="Rows without a shape that the rule says are units.")
+    linked: int = Field(description="Of them, units that find their building's shape.")
+    buildings: int
+    examples: list[UnitExample]
+    fields: list[UnitField] = Field(description="The parcel universe's fields this file gives its units.")
+    land: Check
+    check: Check
+
+
 class WizardFile(BaseModel):
     name: str
     filename: str
@@ -298,6 +324,8 @@ class WizardFile(BaseModel):
     columns: list[Column]
     base: bool
     clean: dict[str, list[CleanStep]] = Field(description="ID field -> its clean-up steps (Reconcile).")
+    unshaped: int = Field(default=0, description="Parcel file: rows whose ID finds no parcel shape.")
+    units: UnitsView | None = Field(default=None, description="Its rows without a shape, as units (condos).")
 
 
 class ExtraId(BaseModel):
@@ -600,6 +628,8 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         if base is None or base == name:
             return Check(ok=True, text=f"{r.rows:,} sales", warn=open_issues, issues=issues), flagged
         base_ids = _base_ids(files, base, match)
+        if match == "key":
+            base_ids = base_ids | _unit_ids(files)  # units that find their building are parcels too
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
         text = f"{_pct(found, r.rows)} of sales match a parcel"
@@ -611,7 +641,9 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         return Check(ok=True, text=text, warn=open_issues, issues=issues), flagged
     share = None
     if name != base:
-        found = len(set(present) & _base_ids(files, base, match))
+        # Units that find their building are parcels too, for every other file (their building cards, say).
+        parcels = _base_ids(files, base, match) | (_unit_ids(files) if match == "key" and f.units is None else set())
+        found = len(set(present) & parcels)
         share = found / len(set(present)) if present else 0.0
     if r.extra and not r.few and r.policy is None:
         text = f"{_n(r.repeated, 'repeated ID')} ({_n(r.extra, 'extra row')}): choose what to do"
@@ -622,6 +654,13 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         text = f"{tick}{kept:,} parcels" + ("" if issues else ", all different")
         return Check(ok=not blocked, text=text, warn=open_issues, issues=issues), flagged
     share = share or 0.0
+    if f.units is not None and present:
+        # Units that find their building's shape join as well as rows with a shape of their own.
+        v = _units_view(files.project, files, f)
+        share = min(1.0, share + v.linked / len(set(present)))
+        text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match parcels or units' buildings"
+        warn = open_issues or share < MATCH_OK
+        return Check(ok=share >= MATCH_MIN and not blocked, text=text, warn=warn, issues=issues, share=share), flagged
     text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match parcels"
     warn = open_issues or share < MATCH_OK
     ok = share >= MATCH_MIN and not blocked
@@ -795,6 +834,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 columns=files.columns(f.name),
                 base=f.name == base,
                 clean=f.clean,
+                unshaped=_unshaped(files, f, base),
+                units=_units_view(project, files, f) if f.units is not None else None,
             )
         )
 
@@ -820,10 +861,12 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 d = by_key.get(key)
                 if d is None:
                     continue
+                # A units file gives its units the parcel universe's own fields: not a second source of them.
+                given = [f for f in _field_files(project, step.sales) if key in f.load]
                 sources = [
                     Source(file=f.name, column=f.load[key][0])
-                    for f in _field_files(project, step.sales)
-                    if key in f.load
+                    for f in given
+                    if f.units is None or all(g.units is not None for g in given)
                 ]
                 ruled = next((f for f in _field_files(project, step.sales) if key in f.rules), None)
                 rule = ruled.rules[key] if ruled else None
@@ -3090,6 +3133,236 @@ def set_custom(
         project.wizard.custom = [field if c.name == name else c for c in project.wizard.custom]
     else:
         project.wizard.custom.append(field)
+
+
+# ---------- Units of a shared parcel: condos (F3d) ----------
+
+
+def _unshaped(files: _Files, f: DataFile, base: str | None) -> int:
+    """A parcel file's rows whose ID finds no parcel shape (its own blank IDs aside)."""
+    if f.holds != "parcels" or f.name == base or base is None or f.name not in files.preview or "key" not in f.load:
+        return 0
+    shaped = _base_ids(files, base) | (_unit_ids(files) if f.units is None else set())
+    return sum(1 for v in files.ids(f.name, "key") if v and v not in shaped)
+
+
+def _unit_ids(files: _Files) -> set[str]:
+    """The IDs of units that find their building: parcels of the parcel universe once condos are resolved."""
+    f = next((x for x in files.project.files if x.units is not None and x.holds == "parcels"), None)
+    if f is None or f.name not in files.preview:
+        return set()
+    rows = _unit_rows(files, f, f.units or Units())
+    ids = files.ids(f.name, "key")
+    return {ids[i] for i, b in zip(rows, _links(files, f, f.units or Units(), rows), strict=True) if b}
+
+
+def _unit_rows(files: _Files, f: DataFile, units: Units) -> list[int]:
+    """Rows of the file without a shape that the rule says are units."""
+    shaped = _base_ids(files, files.project.wizard.base)
+    ids = files.ids(f.name, "key")
+    rows = [i for i, v in enumerate(ids) if v and v not in shaped]
+    if units.rule and units.rule.conditions:
+        try:
+            _, _, yes = _rule_result(files, f, units.rule)
+        except Exception:  # noqa: BLE001 - an unfinished rule selects nothing yet
+            return []
+        flags = yes.tolist()
+        rows = [i for i in rows if i < len(flags) and flags[i]]
+    return rows
+
+
+def _links(files: _Files, f: DataFile, units: Units, rows: list[int]) -> list[str | None]:
+    """Per unit row, the building it finds (the parcel universe's ID), as OpenAVMKit links them."""
+    base = files.project.wizard.base
+    if base is None or units.column is None or files.column(f.name, units.column) is None:
+        return [None] * len(rows)
+    mine = files.values(f.name, units.column)
+    if units.link == "prefix":
+        if not units.base_column or files.column(base, units.base_column) is None:
+            return [None] * len(rows)
+        n = units.prefix_len
+        theirs = files.values(base, units.base_column)
+        keys = files.ids(base, "key")
+        # OpenAVMKit takes the largest shape with the prefix: any of them names the building here.
+        building = {}
+        for v, k in zip(theirs, keys, strict=False):
+            if v and k:
+                building.setdefault(v[:n], k)
+        return [building.get(mine[i][:n]) if mine[i] else None for i in rows]
+    entry = files.entry(base)
+    shaped = _base_ids(files, base)
+    steps = entry.clean.get("key", [])
+    return [
+        (c if (c := clean_value(mine[i], steps) if mine[i] else "") in shaped else None) if mine[i] else None
+        for i in rows
+    ]
+
+
+def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
+    units = f.units or Units()
+    if f.name not in files.preview:
+        return UnitsView(
+            settings=units,
+            units=0,
+            linked=0,
+            buildings=0,
+            examples=[],
+            fields=[],
+            land=Check(ok=False, text="the file can't be read"),
+            check=Check(ok=False, text="the file can't be read"),
+        )
+    rows = _unit_rows(files, f, units)
+    links = _links(files, f, units, rows)
+    linked = [b for b in links if b]
+    ids = files.ids(f.name, "key")
+    base = project.wizard.base
+    addr_col = f.load.get("address", [None])[0]
+    addrs = files.values(f.name, addr_col) if addr_col and files.column(f.name, addr_col) else None
+    show = [i for i, b in enumerate(links) if b][:4] + [i for i, b in enumerate(links) if not b][:2]
+    examples = [
+        UnitExample(
+            unit=(
+                files.values(f.name, units.column)[rows[i]]
+                if units.column and files.column(f.name, units.column)
+                else ids[rows[i]]
+            ),
+            building=links[i],
+            address=addrs[rows[i]] if addrs else "",
+        )
+        for i in show
+    ]
+    by_key = _by_key()
+    given = [
+        UnitField(field=k, name=RENAMED.get(k, (by_key[k].name, ""))[0] if k in by_key else k, column=spec[0])
+        for k, spec in f.load.items()
+        if k not in ("key", *EXTRA_IDS) and base is not None and k in files.entry(base).load
+    ]
+    land_key = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"
+    if units.land == "field":
+        land = (
+            Check(ok=True, text=f"✓ each unit's own land size, from {f.load[land_key][0]}")
+            if land_key in f.load
+            else Check(ok=False, text="give the units their land size: a column of this file")
+        )
+    else:
+        land = (
+            Check(
+                ok=True, text=f"✓ the building's land, shared by finished area ({f.load['bldg_area_finished_sqft'][0]})"
+            )
+            if "bldg_area_finished_sqft" in f.load
+            else Check(ok=False, text="give the units their finished area: a column of this file")
+        )
+    if not rows:
+        check = Check(ok=False, text="no row without a shape is a unit: check which rows are units")
+    elif units.column is None:
+        check = Check(ok=False, text="say how each unit finds its building")
+    else:
+        missing = len(rows) - len(linked)
+        text = f"{len(linked):,} of {len(rows):,} units find their building ({_n(len(set(linked)), 'building')})"
+        if missing:
+            text += f" · {missing:,} {'finds' if missing == 1 else 'find'} none: left out"
+        check = Check(ok=bool(linked), warn=missing > 0, text=("✓ " if not missing else "") + text)
+    return UnitsView(
+        settings=units,
+        units=len(rows),
+        linked=len(linked),
+        buildings=len(set(linked)),
+        examples=examples,
+        fields=given,
+        land=land,
+        check=check,
+    )
+
+
+def _guess_units(project: Project, files: _Files, f: DataFile) -> Units:
+    """How the units find their building: a column both files have whose start matches (the longest start that
+    links the most units, ending before a separator), or a column holding the building's parcel ID."""
+    base = project.wizard.base
+    units = Units()
+    if base is None or base not in files.preview:
+        return units
+    rows = _unit_rows(files, f, units)
+    if not rows:
+        return units
+    mine_cols = {c.name for c in files.columns(f.name)}
+    best: tuple[int, int, int, str, int] | None = None  # (linked, separator, n, column, ...)
+    for col in [c.name for c in files.columns(base) if c.name in mine_cols and c.type != "geometry"]:
+        if col == f.load.get("key", [None])[0]:
+            continue
+        sample = [v for v in (files.values(f.name, col)[i] for i in rows[:2000]) if v]
+        if not sample:
+            continue
+        top = max(len(v) for v in sample)
+        for n in range(3, min(top, 24) + 1):
+            trial = Units(link="prefix", column=col, base_column=col, prefix_len=n)
+            linked = sum(1 for b in _links(files, f, trial, rows[:2000]) if b)
+            sep = sum(1 for v in sample if len(v) > n and not v[n].isalnum())
+            score = (linked, sep, n)
+            if linked and (best is None or score > best[:3]):
+                best = (linked, sep, n, col, 0)
+    if best is not None and best[0] >= 0.5 * min(len(rows), 2000):
+        return Units(link="prefix", column=best[3], base_column=best[3], prefix_len=best[2])
+    for col in mine_cols:
+        trial = Units(link="parent", column=col)
+        if sum(1 for b in _links(files, f, trial, rows[:2000]) if b) >= 0.5 * min(len(rows), 2000):
+            return trial
+    return units
+
+
+def set_units(project: Project, in_dir: Path, name: str, units: Units | None, guess: bool = False) -> None:
+    """Treat a parcel file's rows without a shape as units of a shared parcel (or stop). The first time, guess how
+    they find their building and give them the parcel universe's fields from columns of the same name."""
+    files = _Files(project, in_dir)
+    f = next((x for x in project.files if x.name == name), None)
+    if f is None or f.holds != "parcels" or f.name == project.wizard.base:
+        raise ValueError("Units come from a parcel file joined to the parcel universe.")
+    if units is None:
+        for k in [k for k in f.load if k not in ("key", *EXTRA_IDS)]:
+            if any(k in g.load for g in project.files if g is not f):
+                f.load.pop(k)  # the units' copies of the parcel universe's fields
+        f.units = None
+        return
+    other = next((x for x in project.files if x.units is not None and x is not f), None)
+    if other is not None:
+        raise ValueError(f"{other.name} already holds the units: OpenAVMKit takes one units file.")
+    first = f.units is None
+    f.units = units
+    if guess or (first and units.column is None):
+        f.units = _guess_units(project, files, f).model_copy(
+            update={"land": units.land, "location": units.location, "rule": units.rule}
+        )
+    if first:
+        base = files.entry(project.wizard.base) if project.wizard.base else None
+        columns = {c.name for c in files.columns(f.name)}
+        if base is not None:
+            for k, spec in base.load.items():
+                if k in ("key", *EXTRA_IDS) or k in f.load or spec[0] not in columns:
+                    continue
+                f.load[k] = list(spec)
+                for attr in ("area_units", "numbers", "scales"):
+                    src = getattr(base, attr)
+                    if k in src:
+                        getattr(f, attr)[k] = src[k]
+
+
+def set_unit_field(project: Project, in_dir: Path, name: str, field: str, column: str | None) -> None:
+    """Give the units a parcel universe field from a column of their file (or take it away)."""
+    f = next((x for x in project.files if x.name == name and x.units is not None), None)
+    base = next((x for x in project.files if x.name == project.wizard.base), None)
+    if f is None or base is None:
+        raise ValueError("Set up the units first.")
+    if field not in base.load or field in ("key", *EXTRA_IDS):
+        raise ValueError(f"{field} isn't one of the parcel universe's fields.")
+    if column is None:
+        f.load.pop(field, None)
+        return
+    if _Files(project, in_dir).column(f.name, column) is None:
+        raise ValueError(f"{f.name} has no column {column}.")
+    f.load[field] = [column, *base.load[field][1:]]
+    for attr in ("area_units", "numbers", "scales"):
+        src = getattr(base, attr)
+        if field in src:
+            getattr(f, attr)[field] = src[field]
 
 
 class MapView(BaseModel):

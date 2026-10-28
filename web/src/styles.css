@@ -3842,3 +3842,56 @@ a.row-title:hover {
 .mp-noun {
   font-size: 0.75rem;
 }
+
+/* ---------- A parcel file's rows without a shape, as units of a shared parcel (condos) ---------- */
+.un-offer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  background: #fff7ea;
+  border: 1px solid #f0c78a;
+  border-radius: var(--radius);
+}
+.un {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.un-head,
+.un-row,
+.un-rule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+.un-grow {
+  flex: 1;
+}
+.un-label {
+  min-width: 11rem;
+  color: var(--muted);
+}
+.un-indent,
+.un-rules,
+.un-examples {
+  margin-left: 11.5rem;
+}
+.un-rules {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+}
+.un-examples {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0;
+  font-size: 0.84rem;
+  list-style: none;
+}

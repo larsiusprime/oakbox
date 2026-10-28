@@ -1569,6 +1569,133 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/units": {
+   "put": {
+    "summary": "Wizard Units",
+    "description": "A parcel file's rows without a shape are units of a shared parcel (condos), each borrowing its building's\nshape; no settings stops it. guess: work out how units find their building again.",
+    "operationId": "wizard_units_api_projects__project_id__wizard_files__name__units_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UnitsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}": {
+   "put": {
+    "summary": "Wizard Unit Field",
+    "description": "Give the units one of the parcel universe's fields from a column of their file; no column takes it away.",
+    "operationId": "wizard_unit_field_api_projects__project_id__wizard_files__name__units_fields__field__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "field",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UnitFieldBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/custom/{name}": {
    "put": {
     "summary": "Wizard Custom",
@@ -4086,6 +4213,17 @@
       "description": "The rows with no ID have been acknowledged as dropped (F3d).",
       "default": false
      },
+     "units": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Units-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Parcel file: its rows without a shape are units of a shared parcel (F3d condos)."
+     },
      "holds": {
       "anyOf": [
        {
@@ -4181,6 +4319,7 @@
      "dupes_sort",
      "dupes_desc",
      "blank_ok",
+     "units",
      "holds",
      "clean",
      "rules",
@@ -5701,6 +5840,7 @@
       "enum": [
        "",
        "−",
+       "+",
        "="
       ],
       "title": "Op",
@@ -8314,6 +8454,314 @@
     ],
     "title": "TiersPreview"
    },
+   "UnitExample": {
+    "properties": {
+     "unit": {
+      "type": "string",
+      "title": "Unit",
+      "description": "The unit's ID (or the column the link is read from)."
+     },
+     "building": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Building",
+      "description": "The building parcel it finds, None: none."
+     },
+     "address": {
+      "type": "string",
+      "title": "Address",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "unit",
+     "building",
+     "address"
+    ],
+    "title": "UnitExample"
+   },
+   "UnitField": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "column"
+    ],
+    "title": "UnitField"
+   },
+   "UnitFieldBody": {
+    "properties": {
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column"
+     }
+    },
+    "type": "object",
+    "title": "UnitFieldBody"
+   },
+   "Units-Input": {
+    "properties": {
+     "rule": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Rule-Input"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Which rows are units; None: every row."
+     },
+     "link": {
+      "type": "string",
+      "enum": [
+       "prefix",
+       "parent"
+      ],
+      "title": "Link",
+      "description": "prefix: a unit's ID starts with its building's (7865782948-030 -> 7865782948). parent: a column holds the parcel ID of the unit's building.",
+      "default": "prefix"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "The units file's column: the ID (prefix) or the parent ID."
+     },
+     "base_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Column",
+      "description": "prefix: the parcel universe file's column to match."
+     },
+     "prefix_len": {
+      "type": "integer",
+      "maximum": 64.0,
+      "minimum": 1.0,
+      "title": "Prefix Len",
+      "default": 10
+     },
+     "land": {
+      "type": "string",
+      "enum": [
+       "field",
+       "floor_area"
+      ],
+      "title": "Land",
+      "description": "field: each unit's own land size (loaded as land size from this file). floor_area: the building's land shared by the units' finished area (loaded from this file).",
+      "default": "field"
+     },
+     "location": {
+      "type": "boolean",
+      "title": "Location",
+      "description": "The building (condo_group) is also a location, like a neighborhood.",
+      "default": true
+     }
+    },
+    "type": "object",
+    "title": "Units",
+    "description": "Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each\nborrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos."
+   },
+   "Units-Output": {
+    "properties": {
+     "rule": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Rule-Output"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Which rows are units; None: every row."
+     },
+     "link": {
+      "type": "string",
+      "enum": [
+       "prefix",
+       "parent"
+      ],
+      "title": "Link",
+      "description": "prefix: a unit's ID starts with its building's (7865782948-030 -> 7865782948). parent: a column holds the parcel ID of the unit's building.",
+      "default": "prefix"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "The units file's column: the ID (prefix) or the parent ID."
+     },
+     "base_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base Column",
+      "description": "prefix: the parcel universe file's column to match."
+     },
+     "prefix_len": {
+      "type": "integer",
+      "maximum": 64.0,
+      "minimum": 1.0,
+      "title": "Prefix Len",
+      "default": 10
+     },
+     "land": {
+      "type": "string",
+      "enum": [
+       "field",
+       "floor_area"
+      ],
+      "title": "Land",
+      "description": "field: each unit's own land size (loaded as land size from this file). floor_area: the building's land shared by the units' finished area (loaded from this file).",
+      "default": "field"
+     },
+     "location": {
+      "type": "boolean",
+      "title": "Location",
+      "description": "The building (condo_group) is also a location, like a neighborhood.",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "rule",
+     "link",
+     "column",
+     "base_column",
+     "prefix_len",
+     "land",
+     "location"
+    ],
+    "title": "Units",
+    "description": "Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each\nborrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos."
+   },
+   "UnitsBody": {
+    "properties": {
+     "units": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Units-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "guess": {
+      "type": "boolean",
+      "title": "Guess",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "UnitsBody"
+   },
+   "UnitsView": {
+    "properties": {
+     "settings": {
+      "$ref": "#/components/schemas/Units-Output"
+     },
+     "units": {
+      "type": "integer",
+      "title": "Units",
+      "description": "Rows without a shape that the rule says are units."
+     },
+     "linked": {
+      "type": "integer",
+      "title": "Linked",
+      "description": "Of them, units that find their building's shape."
+     },
+     "buildings": {
+      "type": "integer",
+      "title": "Buildings"
+     },
+     "examples": {
+      "items": {
+       "$ref": "#/components/schemas/UnitExample"
+      },
+      "type": "array",
+      "title": "Examples"
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/UnitField"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "The parcel universe's fields this file gives its units."
+     },
+     "land": {
+      "$ref": "#/components/schemas/Check"
+     },
+     "check": {
+      "$ref": "#/components/schemas/Check"
+     }
+    },
+    "type": "object",
+    "required": [
+     "settings",
+     "units",
+     "linked",
+     "buildings",
+     "examples",
+     "fields",
+     "land",
+     "check"
+    ],
+    "title": "UnitsView",
+    "description": "What the units settings do on the file's rows, worked out as OpenAVMKit's condo handling will."
+   },
    "ValidationError": {
     "properties": {
      "loc": {
@@ -9069,6 +9517,23 @@
       "type": "object",
       "title": "Clean",
       "description": "ID field -> its clean-up steps (Reconcile)."
+     },
+     "unshaped": {
+      "type": "integer",
+      "title": "Unshaped",
+      "description": "Parcel file: rows whose ID finds no parcel shape.",
+      "default": 0
+     },
+     "units": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/UnitsView"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Its rows without a shape, as units (condos)."
      }
     },
     "type": "object",
@@ -9087,7 +9552,9 @@
      "extra_ids",
      "columns",
      "base",
-     "clean"
+     "clean",
+     "unshaped",
+     "units"
     ],
     "title": "WizardFile"
    },

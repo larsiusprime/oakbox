@@ -130,6 +130,15 @@ class GroupsBody(BaseModel):
     groups: list[projects.ModelGroup]
 
 
+class UnitsBody(BaseModel):
+    units: datafiles.Units | None = None
+    guess: bool = False
+
+
+class UnitFieldBody(BaseModel):
+    column: str | None = None
+
+
 class WizardCustom(BaseModel):
     file: str | None = None
     column: str | None = Field(default=None, description="None removes the field.")
@@ -666,6 +675,17 @@ def create_app() -> FastAPI:
             )
         except LookupError as e:
             raise HTTPException(404, f"No column {column} in {name}.") from e
+
+    @app.put("/api/projects/{project_id}/wizard/files/{name}/units")
+    def wizard_units(project_id: str, name: str, body: UnitsBody) -> wizard.Wizard:
+        """A parcel file's rows without a shape are units of a shared parcel (condos), each borrowing its building's
+        shape; no settings stops it. guess: work out how units find their building again."""
+        return _change(project_id, lambda p, d: wizard.set_units(p, d, name, body.units, body.guess))
+
+    @app.put("/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}")
+    def wizard_unit_field(project_id: str, name: str, field: str, body: UnitFieldBody) -> wizard.Wizard:
+        """Give the units one of the parcel universe's fields from a column of their file; no column takes it away."""
+        return _change(project_id, lambda p, d: wizard.set_unit_field(p, d, name, field, body.column))
 
     @app.put("/api/projects/{project_id}/wizard/custom/{name}")
     def wizard_custom(project_id: str, name: str, body: WizardCustom) -> wizard.Wizard:

@@ -381,6 +381,29 @@ def clean_calc(field: str, steps: list[CleanStep]) -> list:
 Dupes = Literal["first", "all"]
 
 
+class Units(BaseModel):
+    """Rows of a parcel file with no shape of their own (condo units, townhome units, mobile-home pads...): each
+    borrows its building's shape and gets a share of its land. OpenAVMKit's data.process.condos."""
+
+    rule: Rule | None = Field(default=None, description="Which rows are units; None: every row.")
+    link: Literal["prefix", "parent"] = Field(
+        default="prefix",
+        description="prefix: a unit's ID starts with its building's (7865782948-030 -> 7865782948). parent: a column "
+        "holds the parcel ID of the unit's building.",
+    )
+    column: str | None = Field(default=None, description="The units file's column: the ID (prefix) or the parent ID.")
+    base_column: str | None = Field(default=None, description="prefix: the parcel universe file's column to match.")
+    prefix_len: int = Field(default=10, ge=1, le=64)
+    land: Literal["field", "floor_area"] = Field(
+        default="field",
+        description="field: each unit's own land size (loaded as land size from this file). floor_area: the "
+        "building's land shared by the units' finished area (loaded from this file).",
+    )
+    location: bool = Field(
+        default=True, description="The building (condo_group) is also a location, like a neighborhood."
+    )
+
+
 class DataFile(BaseModel):
     """One data.load entry, as OAK box wrote it."""
 
@@ -405,6 +428,9 @@ class DataFile(BaseModel):
     dupes_sort: str | None = Field(default=None, description="The field rows are sorted by before keeping the first.")
     dupes_desc: bool = Field(default=False, description="Sort descending before keeping the first.")
     blank_ok: bool = Field(default=False, description="The rows with no ID have been acknowledged as dropped (F3d).")
+    units: Units | None = Field(
+        default=None, description="Parcel file: its rows without a shape are units of a shared parcel (F3d condos)."
+    )
     holds: Holds | None = Field(
         default=None,
         description="What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.",

@@ -39,7 +39,8 @@ it against.
 
 | File | Rows | Key columns |
 | --- | --- | --- |
-| `in/geo/parcels.parquet` | 9,359 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `TOTAL_ACRES` (land, in acres), `LOCATION_ADDR`, `PHYADDR_CITY`, `PHYADDR_ZIP`, `NEIGHBORHOOD`, `LAND_CLASS`, `ZONING`, 2022 assessed `TOTAL_LAND_VALUE_ASSESSED` / `TOTAL_BLDG_VALUE_ASSESSED` / `TOTAL_PROP_VALUE` |
+| `in/geo/parcels.parquet` | 7,999 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `TOTAL_ACRES` (land, in acres), `LOCATION_ADDR`, `PHYADDR_CITY`, `PHYADDR_ZIP`, `NEIGHBORHOOD`, `LAND_CLASS`, `ZONING`, 2022 assessed `TOTAL_LAND_VALUE_ASSESSED` / `TOTAL_BLDG_VALUE_ASSESSED` / `TOTAL_PROP_VALUE` |
+| `in/condo_units.csv` | 1,360 condo units | The units without a shape of their own: the parcel file's columns (`REID` the plain parcel ID, `PIN_PLUS_EXT` with the unit's extension, `-001` and on), no geometry. Their building's parcel (`-000`) is in `parcels.parquet`. |
 | `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE`; and as other systems combine them: `QC_RATING` (`Q3C2`, `Q3/C2`: UAD-style quality and condition in one value, 1 best) and `CDU` (EX … PR) |
 | `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), and `PRICE_*`: the same prices in other formats (below) |
 | `in/geo/zoning.geojson` | 588 polygons | Zoning districts: `ZONING` (R-5, C-M…), `CLASSIFICATION` (RESIDENTIAL, COMMERCIAL…). In degrees (EPSG:4326), unlike the parcels. |
@@ -94,3 +95,8 @@ it against.
     - Flood zones cover only some parcels, so most are "in none".
     - Streams are lines and universities points, so they're for distances only.
     - `parks.shp` lost its `.prj`, so it has no coordinate system and can't be placed until one is supplied.
+14. **Condo units on the roll, not on the map.** As many counties keep them, 1,360 condo units (and office condos) have
+    no shape of their own: they're rows of `condo_units.csv`. Their building's parcel, the PIN's `-000` extension, is in
+    `parcels.parquet`; a unit's PIN starts with its building's (`7865782948-030` is in `7865782948-000`). Until they're
+    set up as units, their sales and building cards find no parcel. The four complexes without a `-000` parcel keep
+    their units' shapes.

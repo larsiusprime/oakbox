@@ -133,6 +133,17 @@ parcels = gpd.GeoDataFrame(
     geometry=p.geometry.to_numpy(),
     crs=2264,
 )
+# 9. Condo units on the roll, not on the map: as many counties keep them, a unit has no shape of its own. Its
+#    building's parcel (the PIN's -000 extension) is on the map; the units (-001, -002, ...) are rows of their own
+#    file, with the parcel file's columns and the plain ID. A building without a -000 parcel keeps its units' shapes.
+pin10 = parcels.PIN_PLUS_EXT.fillna("").str[:10]
+ext = parcels.PIN_PLUS_EXT.fillna("").str[11:]
+has_building = set(pin10[ext == "000"])
+unit = (ext != "000") & (ext != "") & pin10.isin(has_building)
+units = pd.DataFrame(parcels[unit].drop(columns="geometry"))
+units.insert(0, "REID", units.pop("GDV_REID").str.lstrip("0"))
+units = units.sample(frac=1, random_state=11).reset_index(drop=True)
+parcels = parcels[~unit]
 parcels = parcels.sample(frac=1, random_state=7).reset_index(drop=True)  # files are rarely sorted helpfully
 
 # ---------- Buildings: each parcel's own real building cards, nudged together so they still agree ----------
@@ -288,5 +299,9 @@ universities.to_file(IN / "geo" / "universities.shp")
 parks.to_file(IN / "geo" / "parks.shp")
 (IN / "geo" / "parks.prj").unlink()  # 8. a shapefile that lost its .prj: no coordinate system
 buildings.to_csv(IN / "building.csv", index=False)
+units.to_csv(IN / "condo_units.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
-print(f"{len(parcels):,} parcel shapes, {len(buildings):,} building cards, {len(sales):,} sales")
+print(
+    f"{len(parcels):,} parcel shapes, {len(units):,} condo units without one, {len(buildings):,} building cards, "
+    f"{len(sales):,} sales"
+)

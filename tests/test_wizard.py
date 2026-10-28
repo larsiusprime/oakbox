@@ -1241,3 +1241,89 @@ def test_true_values_are_not_asked(client, pid):
     w = client.get(f"/api/projects/{pid}/wizard").json()
     assert not [f["key"] for f in w["fields"] if f["key"].startswith("true_")]
     assert _step(w, "assessed")["more"] == []
+
+
+def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
+    """Units on the roll, not on the map: each finds its building by the start of its PIN, borrows its shape, and
+    comes in with its own fields and land size (OpenAVMKit's data.process.condos)."""
+    import time
+
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {
+            "ID": ["1", "2", "3"],
+            "PIN": ["100-000", "200-000", "300-000"],
+            "USE": ["COMMON", "COMMON", "RESIDENTIAL"],
+            "ACRES": [2.0, 1.0, 0.25],
+            "AREA": [None, None, 1500.0],
+        },
+        geometry=[box(-79.8 + i * 0.01, 36.0, -79.8 + i * 0.01 + 0.005, 36.005) for i in range(3)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {
+            "ID": ["11", "12", "21", "22", "91", "3"],
+            "PIN": ["100-001", "100-002", "200-001", "200-002", "999-001", "300-000"],
+            "USE": ["CONDO", "CONDO", "CONDO", "CONDO", "CONDO", "RESIDENTIAL"],
+            "ACRES": [0.01, 0.02, 0.01, 0.01, 0.01, 0.25],
+            "AREA": [900.0, 1100.0, 800.0, 850.0, 700.0, 1500.0],
+        }
+    ).to_csv(tmp_path / "units.csv", index=False)
+    pd.DataFrame(
+        {"PID": ["11", "21", "3"], "PRICE": [150_000, 140_000, 300_000], "DATE": ["2024-01-02"] * 3}
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("units", "csv"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    _put_file(client, pid, "parcels", universe=True, id_column="ID")
+    _put_file(client, pid, "sale", holds="sales", id_column="PID")
+    field = f"/api/projects/{pid}/wizard/fields"
+    for key, col in (("sale_price", "PRICE"), ("sale_date", "DATE")):
+        client.put(f"{field}/{key}", json={"file": "sale", "column": col})
+    for key in ("valid_sale", "vacant_sale"):
+        client.put(f"{field}/{key}", json={"assume": True})
+    for key, col in (("land_class", "USE"), ("bldg_area_finished_sqft", "AREA")):
+        client.put(f"{field}/{key}", json={"file": "geo_parcels", "column": col})
+    client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "acres"})
+    w = _put_file(client, pid, "units", holds="parcels", id_column="ID").json()
+    assert _file(w, "units")["unshaped"] == 5  # all but the house
+
+    w = client.put(f"/api/projects/{pid}/wizard/files/units/units", json={"units": {}}).json()
+    u = _file(w, "units")["units"]
+    assert (u["settings"]["link"], u["settings"]["column"], u["settings"]["prefix_len"]) == ("prefix", "PIN", 3)
+    assert (u["units"], u["linked"], u["buildings"]) == (5, 4, 2)
+    assert u["check"]["text"] == "4 of 5 units find their building (2 buildings) · 1 finds none: left out"
+    assert {f["field"] for f in u["fields"]} >= {"land_class", "land_area_sqft", "bldg_area_finished_sqft"}
+    assert u["land"]["ok"]
+    # Its fields are the units' own, not a second source of the parcel universe's.
+    assert _field(w, "land_class")["sources"] == [{"file": "geo_parcels", "column": "USE"}]
+    assert _file(w, "units")["id_check"]["ok"]
+
+    s = _settings(pid)
+    condos = s["data"]["process"]["condos"]
+    assert condos["link"] == {"method": "id_prefix", "id_field": "condo_link", "prefix_len": 3, "from": "geo_parcels"}
+    assert condos["select"] == ["==", "condo_unit", True]
+    assert s["data"]["load"]["geo_parcels"]["calc"]["condo_unit"] == ["?", ["isempty", "key"]]
+    assert "condo_group" in s["field_classification"]["important"]["locations"]
+
+    url = f"/api/projects/{pid}/bring-in"
+    r = client.post(f"{url}/run").json()
+    assert r.get("status") == "running", r
+    for _ in range(240):
+        view = client.get(url).json()
+        if view["status"] != "running":
+            break
+        time.sleep(0.5)
+    assert view["status"] == "done", view["job"]
+    out = projects.project_dir(pid) / "out" / "oakbox" / "bring_in"
+    uni = pd.read_parquet(out / "universe.parquet").set_index("key")
+    assert set(uni.index) == {"1", "2", "3", "11", "12", "21", "22"}  # 91's building isn't on the map
+    assert uni.loc["11", "condo_group"] == "100" and uni.loc["22", "condo_group"] == "200"
+    assert uni.loc["12", "land_class"] == "CONDO" and round(uni.loc["12", "land_area_sqft"]) == round(0.02 * 43560)
+    assert uni.loc["21", "bldg_area_finished_sqft"] == 800.0
+    assert view["receipt"]["sales"]["rows"] == 3  # the units' sales find them
+    lines = {line["text"]: line for line in view["receipt"]["universe"]["funnels"][0]["lines"]}
+    assert lines["units from units.csv, with their building's shape"]["n"] == 4
+    assert all(c["ok"] for c in view["receipt"]["checks"]), view["receipt"]["checks"]
+    unit_lines = {line["text"] for f in view["receipt"]["universe"]["funnels"][1:] for line in f["lines"]}
+    assert "units that find no building: left out" in unit_lines

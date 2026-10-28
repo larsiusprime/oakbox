@@ -50,6 +50,7 @@ import { LocationExtras } from "./Location";
 import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { type LayerChange, ShapefilesStep } from "./Shapefiles";
+import { type UnitsChange, UnitsPanel } from "./Units";
 
 const w = t.wizard;
 type AreaUnit = NonNullable<WizardField["area_unit"]>;
@@ -315,6 +316,7 @@ type Change =
   | { kind: "rule"; key: string; rule: Rule }
   | { kind: "location"; name: string; file: string | null; column: string | null }
   | CustomChange
+  | UnitsChange
   | LayerChange;
 
 function useChange(projectId: string) {
@@ -376,6 +378,22 @@ function useChange(projectId: string) {
           await api.PUT("/api/projects/{project_id}/wizard/locations/{name}", {
             params: { path: { project_id, name: c.name } },
             body: { file: c.file, column: c.column },
+          }),
+        );
+      }
+      if (c.kind === "units") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/units", {
+            params: { path: { project_id, name: c.name } },
+            body: { units: c.units, guess: c.guess ?? false },
+          }),
+        );
+      }
+      if (c.kind === "unitField") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/units/fields/{field}", {
+            params: { path: { project_id, name: c.name, field: c.field } },
+            body: { column: c.column },
           }),
         );
       }
@@ -1080,6 +1098,7 @@ function ExtraFile({
         </Radio>
       </RadioGroup>
       {holds && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
+      {holds === "parcels" && <UnitsPanel projectId={project.id} data={data} file={file} change={change} />}
     </section>
   );
 }
