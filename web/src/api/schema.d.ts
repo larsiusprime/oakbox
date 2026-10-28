@@ -582,7 +582,8 @@ export interface paths {
         };
         /**
          * Wizard Column Values
-         * @description A column's values with their row counts, most common first (the values list beside a field).
+         * @description A column's values with their row counts, most common first, or sorted by count or value (the values list
+         *     beside a field).
          */
         get: operations["wizard_column_values_api_projects__project_id__wizard_files__name__values_get"];
         put?: never;
@@ -1046,7 +1047,8 @@ export interface paths {
         };
         /**
          * Bring In Field
-         * @description One field of the parcel universe or the sales record in detail: its statistics, or its values.
+         * @description One field of the parcel universe or the sales record in detail: its statistics, or its values (sorted
+         *     by count or value when asked).
          */
         get: operations["bring_in_field_api_projects__project_id__bring_in_fields__name___field__get"];
         put?: never;
@@ -2518,6 +2520,12 @@ export interface components {
              * @description The file it's about (as added).
              */
             file: string;
+            /**
+             * Filename
+             * @description Its file's name, as the user knows it.
+             * @default
+             */
+            filename: string;
             /** Lines */
             lines: components["schemas"]["Line"][];
             /** Note */
@@ -3864,6 +3872,16 @@ export interface components {
             columns: string[];
             /** Rows */
             rows: string[][];
+            /**
+             * Kept
+             * @description Repeated IDs: per row, the one kept.
+             */
+            kept: boolean[] | null;
+            /**
+             * Kept Total
+             * @description Repeated IDs: how many of the set's rows are kept.
+             */
+            kept_total: number | null;
             /**
              * Bands
              * @description Repeated IDs (sorted by the ID, its first column): 0 or 1 per row, alternating per ID, so the rows of one ID share a background.
@@ -6080,6 +6098,8 @@ export interface operations {
             query: {
                 column: string;
                 search?: string;
+                sort?: ("count" | "value") | null;
+                desc?: boolean;
             };
             header?: never;
             path: {
@@ -6898,6 +6918,8 @@ export interface operations {
         parameters: {
             query?: {
                 search?: string;
+                sort?: ("count" | "value") | null;
+                desc?: boolean;
             };
             header?: never;
             path: {

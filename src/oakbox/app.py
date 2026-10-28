@@ -697,11 +697,19 @@ def create_app() -> FastAPI:
         return _change(project_id, lambda p, d: wizard.set_location(p, d, name, body.file, body.column))
 
     @app.get("/api/projects/{project_id}/wizard/files/{name}/values")
-    def wizard_column_values(project_id: str, name: str, column: str, search: str = "") -> wizard.ColumnValues:
-        """A column's values with their row counts, most common first (the values list beside a field)."""
+    def wizard_column_values(
+        project_id: str,
+        name: str,
+        column: str,
+        search: str = "",
+        sort: wizard.ValueSort | None = None,
+        desc: bool = True,
+    ) -> wizard.ColumnValues:
+        """A column's values with their row counts, most common first, or sorted by count or value (the values list
+        beside a field)."""
         try:
             return wizard.column_values(
-                _load(project_id), projects.project_dir(project_id) / "in", name, column, search
+                _load(project_id), projects.project_dir(project_id) / "in", name, column, search, sort=sort, desc=desc
             )
         except LookupError as e:
             raise HTTPException(404, f"No column {column} in {name}.") from e
@@ -905,11 +913,19 @@ def create_app() -> FastAPI:
             raise HTTPException(404, f"No rows called {name}: bring in data first.") from e
 
     @app.get("/api/projects/{project_id}/bring-in/fields/{name}/{field}")
-    def bring_in_field(project_id: str, name: str, field: str, search: str = "") -> bring_in.FieldProfile:
-        """One field of the parcel universe or the sales record in detail: its statistics, or its values."""
+    def bring_in_field(
+        project_id: str,
+        name: str,
+        field: str,
+        search: str = "",
+        sort: wizard.ValueSort | None = None,
+        desc: bool = True,
+    ) -> bring_in.FieldProfile:
+        """One field of the parcel universe or the sales record in detail: its statistics, or its values (sorted
+        by count or value when asked)."""
         _load(project_id)
         try:
-            return bring_in.profile(projects.project_dir(project_id), name, field, search)
+            return bring_in.profile(projects.project_dir(project_id), name, field, search, sort, desc)
         except LookupError as e:
             raise HTTPException(404, f"No field {field} in {name}: bring in data first.") from e
 

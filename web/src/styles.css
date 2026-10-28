@@ -3484,15 +3484,25 @@ a.row-title:hover {
 .vals-button[data-hovered] {
   border-color: var(--focus);
 }
+/* The popover is never taller than the room it has (react-aria sets its max-height): the list scrolls inside. */
 .vals-popover {
+  display: flex;
+  flex-direction: column;
   width: 24rem;
   max-width: 92vw;
 }
 .vals-body {
-  display: grid;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: 0.4rem;
+  min-height: 0;
   padding: 0.6rem 0.7rem;
+  overflow: hidden;
   outline: none;
+}
+.vals-body > * {
+  flex: none;
 }
 .vals-title {
   margin: 0;
@@ -3510,10 +3520,32 @@ a.row-title:hover {
 .vals-search-input {
   width: 100%;
 }
-.vals-scroll {
+/* The list is the one part that shrinks. */
+.vals-body > .vals-scroll {
+  flex: 1 1 auto;
+  min-height: 4rem;
   max-height: 20rem;
   overflow-y: auto;
   border-top: 1px solid var(--rule);
+}
+.vals-sort {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.vals-sort:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.vals-n .vals-sort {
+  justify-content: flex-end;
+  width: 100%;
 }
 .vals-tbl {
   width: 100%;
@@ -4165,4 +4197,8 @@ tr.band-a > td {
 /* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.band-b > td {
   background: #eeeeee;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
+tr.bi-kept > td {
+  font-weight: 600;
 }

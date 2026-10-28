@@ -1980,8 +1980,37 @@ class ColumnValues(BaseModel):
     more: int = Field(description="Values not listed (search to narrow).")
 
 
-def column_values(project: Project, in_dir: Path, file: str, column: str, search: str = "", limit: int = 500):
-    """Every value of a file's column with its row count, for the values list beside a field."""
+ValueSort = Literal["count", "value"]
+
+
+def sort_counts(pairs: list[tuple[str, int]], sort: ValueSort | None, desc: bool) -> list[tuple[str, int]]:
+    """(value, rows) by rows, or by value (numbers as numbers, before text); None keeps the order they came in."""
+    if sort is None:
+        return pairs
+    if sort == "count":
+        return sorted(pairs, key=lambda p: p[1], reverse=desc)
+
+    def key(p: tuple[str, int]) -> tuple[int, float, str]:
+        try:
+            return (0, float(p[0].replace(",", "")), "")
+        except ValueError:
+            return (1, 0.0, p[0].lower())
+
+    return sorted(pairs, key=key, reverse=desc)
+
+
+def column_values(
+    project: Project,
+    in_dir: Path,
+    file: str,
+    column: str,
+    search: str = "",
+    limit: int = 500,
+    sort: ValueSort | None = None,
+    desc: bool = True,
+):
+    """Every value of a file's column with its row count, for the values list beside a field (most common first,
+    unless sorted otherwise)."""
     files = _Files(project, in_dir)
     if file not in files.preview or files.column(file, column) is None:
         raise LookupError(f"{file}.{column}")
@@ -1991,6 +2020,7 @@ def column_values(project: Project, in_dir: Path, file: str, column: str, search
     listed = [(v, n) for v, n in counts if v]
     q = search.strip().lower()
     hits = [(v, n) for v, n in listed if q in v.lower()] if q else listed
+    hits = sort_counts(hits, sort, desc)
     shown = hits[:limit]
     return ColumnValues(
         file=file,

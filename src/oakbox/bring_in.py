@@ -54,6 +54,7 @@ class Line(BaseModel):
 
 class Funnel(BaseModel):
     file: str = Field(description="The file it's about (as added).")
+    filename: str = Field(default="", description="Its file's name, as the user knows it.")
     lines: list[Line]
     note: str | None = None
 
@@ -170,6 +171,8 @@ class Rows(BaseModel):
     offset: int
     columns: list[str]
     rows: list[list[str]]
+    kept: list[bool] | None = Field(default=None, description="Repeated IDs: per row, the one kept.")
+    kept_total: int | None = Field(default=None, description="Repeated IDs: how many of the set's rows are kept.")
     bands: list[int] | None = Field(
         default=None,
         description="Repeated IDs (sorted by the ID, its first column): 0 or 1 per row, alternating per ID, so the "
@@ -228,6 +231,19 @@ def _natural(v: str) -> list:
     return [(0, int(p), "") if p.isdigit() else (1, 0, p) for p in re.split(r"(\d+)", v) if p]
 
 
+# The column marking each repeated row: a name no assessor's file uses.
+MARK, KEPT, LEFT_OUT = "kept?", "✓ kept", "left out"
+
+
+def _repeats(raw, ids, dropped, blank, f, field: str):
+    """Every row of each repeated ID, the one kept marked as kept (none when all are dropped), sorted by the ID: the
+    kept row is what the others are judged against."""
+    group = ids.isin(set(ids[dropped])) & ~blank
+    rows = raw[group].copy()
+    rows.insert(0, MARK, [LEFT_OUT if d else KEPT for d in dropped[group]])
+    return by_id(rows, _named(ids[group], f, field))
+
+
 def _named(ids, f, field: str):
     """The IDs, named as their column in the file, to sort and lead the rows by."""
     return ids.reset_index(drop=True).rename(f.load.get(field, [None])[0])
@@ -254,13 +270,23 @@ def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
     df = pf.read_row_groups(groups).to_pandas() if groups else pf.schema_arrow.empty_table().to_pandas()
     skip = offset - (first or 0)
     df = df.iloc[skip : skip + limit]
-    banded = None
+    banded, kept, kept_total = None, None, None
     if name.endswith("_repeats") and total:
         # Bands over the whole set, so they carry on from one page to the next.
         first_col = pf.schema_arrow.names[0]
         banded = bands(pf.read(columns=[first_col]).column(0).to_pylist())[offset : offset + len(df)]
+        if MARK in df.columns:
+            kept = [v == KEPT for v in df[MARK]]
+            kept_total = sum(v == KEPT for v in pf.read(columns=[MARK]).column(0).to_pylist())
     return Rows(
-        set=name, total=total, offset=offset, columns=[str(c) for c in df.columns], rows=_text(df), bands=banded
+        set=name,
+        total=total,
+        offset=offset,
+        columns=[str(c) for c in df.columns],
+        rows=_text(df),
+        bands=banded,
+        kept=kept,
+        kept_total=kept_total,
     )
 
 
@@ -290,12 +316,19 @@ class FieldProfile(BaseModel):
 PROFILE_VALUES = 500
 
 
-def profile(project_dir: Path, name: str, field: str, search: str = "") -> FieldProfile:
+def profile(
+    project_dir: Path,
+    name: str,
+    field: str,
+    search: str = "",
+    sort: Literal["count", "value"] | None = None,
+    desc: bool = True,
+) -> FieldProfile:
     """A field's summary statistics (numbers) or its values with counts (everything else), read from one column."""
     import pandas as pd
     import pyarrow.parquet as pq
 
-    from oakbox.wizard import _g
+    from oakbox.wizard import _g, sort_counts
 
     if name not in ("universe", "sales"):
         raise LookupError(name)
@@ -341,6 +374,7 @@ def profile(project_dir: Path, name: str, field: str, search: str = "") -> Field
         counts = filled.astype(str).value_counts()
     q = search.strip().lower()
     hits = [(str(v), int(n)) for v, n in counts.items() if not q or q in str(v).lower()]
+    hits = sort_counts(hits, sort, desc)
     return FieldProfile(
         field=field,
         rows=rows,
@@ -514,7 +548,7 @@ def run(project_id: str) -> None:
                     op="−",
                     n=int(repeated.sum()),
                     text=f"repeated parcel IDs: {how}",
-                    rows=save("universe_repeats", by_id(raw[repeated], _named(ids[repeated], base, "key"))),
+                    rows=save("universe_repeats", _repeats(raw, ids, repeated, blank, base, "key")),
                 )
             )
         units_f = projects.units_file(project)
@@ -528,7 +562,7 @@ def run(project_id: str) -> None:
             predicted += wizard._units_view(project, files, units_f).linked
             lines.append(Line(op="+", n=borrowed, text=f"units from {units_f.filename}, with their building's shape"))
         lines.append(Line(op="=", n=len(universe), text="parcels in the parcel universe"))
-        u_funnels.append(Funnel(file=base.name, lines=lines))
+        u_funnels.append(Funnel(file=base.name, filename=base.filename, lines=lines))
     for f in project.files:
         if f.holds != "parcels" or f is base or f.name not in files.preview or f.match not in f.load:
             continue
@@ -550,7 +584,7 @@ def run(project_id: str) -> None:
                     op="−",
                     n=int(extra.sum()),
                     text=f"more than one row for a parcel: {how}",
-                    rows=save(f"{f.name}_repeats", by_id(raw[extra], _named(ids[extra], f, f.match))),
+                    rows=save(f"{f.name}_repeats", _repeats(raw, ids, extra, blank, f, f.match)),
                 )
             )
         if orphan.any():
@@ -577,7 +611,7 @@ def run(project_id: str) -> None:
         note = None
         if "bldg_area_finished_sqft" in f.load or any(k in f.load for k in AREA_FIELDS if k.startswith("bldg")):
             note = "OpenAVMKit treats a parcel without a building size as vacant land: its building fields are 0."
-        u_funnels.append(Funnel(file=f.name, lines=lines, note=note))
+        u_funnels.append(Funnel(file=f.name, filename=f.filename, lines=lines, note=note))
 
     # The sales record: the main sales file, then sales details joined to it.
     s_funnels: list[Funnel] = []
@@ -634,7 +668,7 @@ def run(project_id: str) -> None:
                 rows=save("sales_unmatched", unmatched),
             )
         )
-        s_funnels.append(Funnel(file=main.name, lines=lines))
+        s_funnels.append(Funnel(file=main.name, filename=main.filename, lines=lines))
 
     # Fields: where each came from, how many have it, and what it looks like, from the settings it ran with:
     # a column loaded as it is, or worked out by a calc from one (a scale, a rule, an area in other units).

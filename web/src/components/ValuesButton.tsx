@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import { t } from "../strings";
+import { type ValueSort, ValueTable } from "./ValueTable";
 
 const v = t.wizard.values;
 
@@ -42,18 +43,21 @@ export function ValuesButton({
 
 function ValuesList({ projectId, file, column }: { projectId: string; file: string; column: string }) {
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<ValueSort>(null);
   const q = useQuery({
-    queryKey: ["column-values", projectId, file, column, search],
+    queryKey: ["column-values", projectId, file, column, search, sort],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/wizard/files/{name}/values", {
-          params: { path: { project_id: projectId, name: file }, query: { column, search } },
+          params: {
+            path: { project_id: projectId, name: file },
+            query: { column, search, ...(sort ? { sort: sort.by, desc: sort.desc } : {}) },
+          },
         }),
       ),
     placeholderData: keepPreviousData,
   });
   const d = q.data;
-  const top = d?.values[0]?.count ?? 1;
   return (
     <>
       <Heading slot="title" className="vals-title">
@@ -76,27 +80,7 @@ function ValuesList({ projectId, file, column }: { projectId: string; file: stri
       ) : d.values.length === 0 ? (
         <p className="vals-sub">{v.none}</p>
       ) : (
-        <div className="vals-scroll">
-          <table className="vals-tbl">
-            <thead>
-              <tr>
-                <th className="vals-th">{v.value}</th>
-                <th className="vals-th vals-n">{v.rows}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.values.map((x) => (
-                <tr key={x.value}>
-                  <td className="vals-td mono vals-v">{x.value}</td>
-                  <td className="vals-td vals-n">
-                    <span className="vals-bar" style={{ width: `${Math.max(2, (100 * x.count) / top)}%` }} />
-                    {x.count.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ValueTable values={d.values} sort={sort} onSort={setSort} />
       )}
       {d && d.more > 0 && <p className="vals-sub">{v.more(d.more)}</p>}
     </>

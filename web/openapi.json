@@ -1504,7 +1504,7 @@
   "/api/projects/{project_id}/wizard/files/{name}/values": {
    "get": {
     "summary": "Wizard Column Values",
-    "description": "A column's values with their row counts, most common first (the values list beside a field).",
+    "description": "A column's values with their row counts, most common first, or sorted by count or value (the values list\nbeside a field).",
     "operationId": "wizard_column_values_api_projects__project_id__wizard_files__name__values_get",
     "parameters": [
      {
@@ -1542,6 +1542,36 @@
        "type": "string",
        "default": "",
        "title": "Search"
+      }
+     },
+     {
+      "name": "sort",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "count",
+          "value"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Sort"
+      }
+     },
+     {
+      "name": "desc",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Desc"
       }
      }
     ],
@@ -2780,7 +2810,7 @@
   "/api/projects/{project_id}/bring-in/fields/{name}/{field}": {
    "get": {
     "summary": "Bring In Field",
-    "description": "One field of the parcel universe or the sales record in detail: its statistics, or its values.",
+    "description": "One field of the parcel universe or the sales record in detail: its statistics, or its values (sorted\nby count or value when asked).",
     "operationId": "bring_in_field_api_projects__project_id__bring_in_fields__name___field__get",
     "parameters": [
      {
@@ -2818,6 +2848,36 @@
        "type": "string",
        "default": "",
        "title": "Search"
+      }
+     },
+     {
+      "name": "sort",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "count",
+          "value"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Sort"
+      }
+     },
+     {
+      "name": "desc",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Desc"
       }
      }
     ],
@@ -6032,6 +6092,12 @@
       "title": "File",
       "description": "The file it's about (as added)."
      },
+     "filename": {
+      "type": "string",
+      "title": "Filename",
+      "description": "Its file's name, as the user knows it.",
+      "default": ""
+     },
      "lines": {
       "items": {
        "$ref": "#/components/schemas/Line"
@@ -6054,6 +6120,7 @@
     "type": "object",
     "required": [
      "file",
+     "filename",
      "lines",
      "note"
     ],
@@ -8903,6 +8970,33 @@
       "type": "array",
       "title": "Rows"
      },
+     "kept": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "boolean"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kept",
+      "description": "Repeated IDs: per row, the one kept."
+     },
+     "kept_total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kept Total",
+      "description": "Repeated IDs: how many of the set's rows are kept."
+     },
      "bands": {
       "anyOf": [
        {
@@ -8926,6 +9020,8 @@
      "offset",
      "columns",
      "rows",
+     "kept",
+     "kept_total",
      "bands"
     ],
     "title": "Rows"

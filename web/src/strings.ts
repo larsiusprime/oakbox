@@ -1194,6 +1194,10 @@ export const t = {
     accepted: "✓ Looks right",
     next: "Next: model groups",
     rowsTitle: (what: string) => what,
+    keptNote: (out: number, kept: number) =>
+      kept
+        ? `Every row of each repeated ID: ${out.toLocaleString()} left out, and the ${kept.toLocaleString()} kept (marked ✓ kept, in bold) to compare them with.`
+        : `Every row of each repeated ID: all ${out.toLocaleString()} left out.`,
     rowsOf: (from: number, to: number, total: number) =>
       `Rows ${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()}`,
     first: "First",

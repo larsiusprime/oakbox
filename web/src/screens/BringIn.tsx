@@ -386,7 +386,10 @@ function Section({
                 <span>{l.text}</span>
                 <span>
                   {l.rows && (
-                    <Button className="wiz-link" onPress={() => open(l.rows ?? "", `${title}: ${l.text}`)}>
+                    <Button
+                      className="wiz-link"
+                      onPress={() => open(l.rows ?? "", `${f.filename || f.file}: ${l.text}`)}
+                    >
                       {b.seeThem}
                     </Button>
                   )}
@@ -487,6 +490,9 @@ function RowsDialog({
           <Heading slot="title" className="modal-title">
             {b.rowsTitle(title)}
           </Heading>
+          {p?.kept_total != null && (
+            <p className="wiz-from">{b.keptNote(total - p.kept_total, p.kept_total)}</p>
+          )}
           <div className="bi-pager">
             <span>{p ? b.rowsOf(total ? offset + 1 : 0, Math.min(offset + PAGE, total), total) : ""}</span>
             <span className="bi-grow" />
@@ -529,8 +535,11 @@ function RowsDialog({
                 </thead>
                 <tbody>
                   {p.rows.map((row, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a page of rows, in file order
-                    <tr key={offset + i} className={band(p.bands, i)}>
+                    <tr
+                      // biome-ignore lint/suspicious/noArrayIndexKey: a page of rows, in file order
+                      key={offset + i}
+                      className={[band(p.bands, i), p.kept?.[i] ? "bi-kept" : ""].filter(Boolean).join(" ")}
+                    >
                       {row.map((cell, j) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: a row's cells, by column
                         <td key={j} className="mono bi-cell">

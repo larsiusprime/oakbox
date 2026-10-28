@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import { t } from "../strings";
+import { type ValueSort, ValueTable } from "./ValueTable";
 
 const d = t.bringIn.detail;
 
@@ -36,18 +37,21 @@ export function FieldDetail({
 
 function Detail({ projectId, set, field }: { projectId: string; set: "universe" | "sales"; field: string }) {
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<ValueSort>(null);
   const q = useQuery({
-    queryKey: ["field-detail", projectId, set, field, search],
+    queryKey: ["field-detail", projectId, set, field, search, sort],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/bring-in/fields/{name}/{field}", {
-          params: { path: { project_id: projectId, name: set, field }, query: { search } },
+          params: {
+            path: { project_id: projectId, name: set, field },
+            query: { search, ...(sort ? { sort: sort.by, desc: sort.desc } : {}) },
+          },
         }),
       ),
     placeholderData: keepPreviousData,
   });
   const v = q.data;
-  const top = Math.max(1, ...(v?.values.map((x) => x.count) ?? [1]));
   return (
     <>
       <Heading slot="title" className="vals-title">
@@ -80,30 +84,13 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
             </SearchField>
           )}
           {v.values.length > 0 && (
-            <div className="vals-scroll">
-              <table className="vals-tbl">
-                <thead>
-                  <tr>
-                    <th className="vals-th">{v.kind === "date" ? d.year : t.wizard.values.value}</th>
-                    <th className="vals-th vals-n">{t.wizard.values.rows}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {v.values.map((x) => (
-                    <tr key={x.value}>
-                      <td className="vals-td mono vals-v">{x.value}</td>
-                      <td className="vals-td vals-n">
-                        <span
-                          className="vals-bar"
-                          style={{ width: `${Math.max(2, (100 * x.count) / top)}%` }}
-                        />
-                        {x.count.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ValueTable
+              values={v.values}
+              valueLabel={v.kind === "date" ? d.year : undefined}
+              natural={v.kind === "date" ? "value" : "count"}
+              sort={sort}
+              onSort={setSort}
+            />
           )}
           {v.more > 0 && <p className="vals-sub">{t.wizard.values.more(v.more)}</p>}
         </>
