@@ -27,11 +27,9 @@ from oakbox import bring_in, clean
 from oakbox.datafiles import BaseModel
 
 MODULE = "ratio"
-VALUE_FIELDS = {
-    "assr_market_value": "Assessed market value",
-    "assr_land_value": "Assessed land value",
-    "assr_impr_value": "Assessed improvement value",
-}
+# The value checked: the whole parcel's market value (land and improvement values aren't sold on their own).
+FIELD = "assr_market_value"
+FIELD_NAME = "Assessed market value"
 PropertyClass = Literal[
     "residential",
     "residential_homogeneous",
@@ -108,7 +106,6 @@ class Targets(BaseModel):
 
 
 class RatioState(BaseModel):
-    fields: list[str] = Field(default_factory=lambda: ["assr_market_value"], description="Value fields checked.")
     start: dt.date | None = Field(default=None, description="First sale date; None: proposed.")
     end: dt.date | None = Field(default=None, description="Last sale date; None: the day before valuation.")
     price: Literal["sold", "time_adjusted"] = "sold"
@@ -152,14 +149,6 @@ def classes(project) -> dict[str, PropertyClass]:
 # ---------- Before running: what's there, and the window proposed ----------
 
 
-class FieldChoice(BaseModel):
-    field: str
-    name: str
-    parcels: int = Field(description="Parcels with a value above zero.")
-    chosen: bool
-    note: str | None = Field(default=None, description="Why it can't be checked against sales, if it can't.")
-
-
 class GroupSetup(BaseModel):
     id: str
     name: str
@@ -182,7 +171,7 @@ def region(project) -> str:
 
 
 class RatioSetup(BaseModel):
-    fields: list[FieldChoice]
+    parcels: int = Field(description="Parcels with an assessed market value above zero.")
     valuation_date: dt.date
     start: dt.date
     end: dt.date
@@ -243,8 +232,7 @@ def window(project, sales=None, project_dir: Path | None = None) -> tuple[dt.dat
     if sales is None and project_dir is not None:
         sales = _sales(project_dir)
     if sales is not None and len(sales):
-        field = s.fields[0] if s.fields else "assr_market_value"
-        ok = _studied(sales, field) if field in sales else None
+        ok = _studied(sales, FIELD) if FIELD in sales else None
         for years in range(1, 6):
             start = _years_back(val, years)
             proposed = start
@@ -264,26 +252,8 @@ def setup(project, project_dir: Path) -> RatioSetup:
     universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
     start, end, proposed = window(project, sales)
     val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
-    field = s.fields[0] if s.fields else "assr_market_value"
-    fields = []
-    for f, name in VALUE_FIELDS.items():
-        if f not in universe:
-            continue
-        note = None
-        if f == "assr_impr_value":
-            note = "A building isn't sold apart from its land: not checked against sales."
-        elif f == "assr_land_value":
-            note = "Checked on vacant land sales only (it's land, not the whole parcel)."
-        fields.append(
-            FieldChoice(
-                field=f,
-                name=name,
-                parcels=int(clean._numbers(universe, f).gt(0).sum()),
-                chosen=f in s.fields,
-                note=note,
-            )
-        )
-    studied = _studied(sales, field) if field in sales else pd.Series(False, index=sales.index)
+    parcels = int(clean._numbers(universe, FIELD).gt(0).sum()) if FIELD in universe else 0
+    studied = _studied(sales, FIELD) if FIELD in sales else pd.Series(False, index=sales.index)
     inside = _in(sales, start, end)
     year_before = int((studied & _in(sales, _years_back(val, 1), val - dt.timedelta(days=1))).sum())
     group_of = clean._groups(sales)
@@ -313,7 +283,7 @@ def setup(project, project_dir: Path) -> RatioSetup:
         SalesLine(sign="=", count=int((studied & inside).sum()), text="sales the values answer to"),
     ]
     return RatioSetup(
-        fields=fields,
+        parcels=parcels,
         valuation_date=val,
         start=start,
         end=end,
@@ -475,7 +445,7 @@ def settings_key(project, project_dir: Path) -> dict:
     s: RatioState = project.ratio
     return {
         "clean": r.ran_at if r else None,
-        "fields": s.fields,
+        "fields": [FIELD],
         "window": [str(start), str(end)],
         "price": s.price,
         "trim": s.trim,
@@ -602,7 +572,7 @@ def run(project_id: str) -> None:
         studies = run_value_field_studies(
             sup,
             settings,
-            [f for f in s.fields if f in sup.universe],
+            [FIELD] if FIELD in sup.universe else [],
             start_date=str(start),
             end_date=str(end),
             sale_field="sale_price" if s.price == "sold" else "sale_price_time_adj",
@@ -651,7 +621,7 @@ def run(project_id: str) -> None:
         results.append(
             FieldResult(
                 field=field,
-                name=VALUE_FIELDS.get(field) or field,
+                name=FIELD_NAME if field == FIELD else field,
                 groups=groups,
                 overall=_study("", "All model groups", "#888888", None, study["overall"], table),
                 trimmed=trimmed,
@@ -729,8 +699,9 @@ def start(project, project_dir: Path) -> None:
     v = view(project, project_dir)
     if v.blocked:
         raise ValueError(v.blocked[0])
-    if not project.ratio.fields:
-        raise ValueError("Choose a value to check first.")
+    sales = _sales(project_dir)
+    if sales is None or FIELD not in sales:
+        raise ValueError("The parcels have no assessed market value (assr_market_value) to check.")
     bring_in.start(project.id, project_dir, MODULE)
 
 
@@ -742,7 +713,6 @@ def accept(project, project_dir: Path) -> None:
 
 
 class RatioPatch(BaseModel):
-    fields: list[str] | None = None
     start: dt.date | None = None
     end: dt.date | None = None
     reset_window: bool | None = Field(default=None, description="True: back to the proposed window.")
@@ -755,11 +725,6 @@ class RatioPatch(BaseModel):
 
 def change(project, body: RatioPatch) -> None:
     s: RatioState = project.ratio
-    if body.fields is not None:
-        unknown = [f for f in body.fields if f not in VALUE_FIELDS]
-        if unknown:
-            raise ValueError(f"Not a value field: {', '.join(unknown)}.")
-        s.fields = body.fields
     if body.reset_window:
         s.start = s.end = None
     if body.start is not None:

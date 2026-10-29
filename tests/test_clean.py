@@ -183,8 +183,7 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     # Step 4: the values checked against the sales Check sales kept.
     rv = f"/api/projects/{pid}/ratio"
     setup = client.get(f"{rv}/setup").json()
-    assert [f["field"] for f in setup["fields"] if f["chosen"]] == ["assr_market_value"]
-    if setup["fields"]:
+    if setup["parcels"]:  # Only the market value is checked.
         client.patch(f"{rv}/setup", json={"start": "2020-01-01"})
         assert client.post(f"{rv}/run").json()["status"] == "running"
         view = _wait(client, rv)

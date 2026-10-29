@@ -24,7 +24,6 @@ import { day, money, num } from "./CheckSales";
 
 const r = t.ratio;
 type RStep =
-  | "what"
   | "sales"
   | "standards"
   | "run"
@@ -36,7 +35,6 @@ type RStep =
   | "similar"
   | "extreme";
 const STEPS: RStep[] = [
-  "what",
   "sales",
   "standards",
   "run",
@@ -123,16 +121,16 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
     onSuccess: (data) => queryClient.setQueryData(["ratio", projectId], data),
   });
   const [at, setAt] = useState<{ step: RStep | null; after: boolean }>({ step: null, after: false });
-  const [field, setField] = useState<string | null>(null);
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   const running = v.status === "running";
   const rc = v.receipt;
   const fresh = !!rc && !v.stale;
-  const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "what";
+  const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "sales";
   const current: RStep = at.after && v.status === "done" ? "summary" : (at.step ?? fallback);
   const go = (step: string) => setAt({ step: step as RStep, after: false });
   const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
-  const result: FieldResult | undefined = rc?.results.find((x) => x.field === field) ?? rc?.results[0];
+  // Only the market value is checked (one result).
+  const result: FieldResult | undefined = rc?.results[0];
   const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
   const called = rc ? (v.stale ? "attention" : "done") : "blank";
   const steps: Step[] = STEPS.map((key) => ({
@@ -172,8 +170,8 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   );
   if (v.blocked.length)
     return (
-      <StepFrame steps={steps} current="what" go={() => {}}>
-        <StepBody kicker={r.kicker} title={r.what.title}>
+      <StepFrame steps={steps} current="sales" go={() => {}}>
+        <StepBody kicker={r.kicker} title={r.sales.title}>
           <div className="bi-warn">
             <b>{r.blocked}</b> {v.blocked[0]}
           </div>
@@ -181,34 +179,16 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       </StepFrame>
     );
   const loading = <p className="empty">{t.project.loading}</p>;
-  const fieldPick = rc && rc.results.length > 1 && (
-    <Choice
-      label={r.what.title}
-      hideLabel
-      value={result?.field ?? null}
-      options={rc.results.map((x) => [x.field, x.name] as [string, string])}
-      onChange={setField}
-    />
-  );
 
   return (
     <StepFrame steps={steps} current={current} go={go}>
-      {current === "what" && (
-        <>
-          <StepBody kicker={r.kicker} title={r.what.title} lede={r.what.lede}>
-            {u ? <WhatCard v={u} set={set} /> : loading}
-            {errors}
-          </StepBody>
-          <StepFoot next={onward} />
-        </>
-      )}
       {current === "sales" && (
         <>
           <StepBody kicker={r.kicker} title={r.sales.title} lede={r.sales.lede}>
             {u ? <SalesCard key={`${u.start}|${u.end}`} v={u} set={set} /> : loading}
             {errors}
           </StepBody>
-          <StepFoot back={back} next={onward} />
+          <StepFoot next={onward} />
         </>
       )}
       {current === "standards" && (
@@ -257,7 +237,6 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
           <StepBody kicker={r.kicker} {...(current === "prices" ? {} : { title: r.steps[current] })}>
             {(current === "map" || current === "regions") && <div className="rv-advanced">{r.advanced}</div>}
             {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
-            {fieldPick}
             {current === "summary" && (
               <Summary result={result} receipt={rc} nominal={nominal.length} see={() => go("extreme")} />
             )}
@@ -298,37 +277,6 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
 }
 
 type CardProps = { v: RatioSetup; set: (body: RatioPatch) => void };
-
-function WhatCard({ v, set }: CardProps) {
-  if (!v.fields.length) return <div className="bi-warn">{r.what.none}</div>;
-  return (
-    <div className="rv-choices">
-      {v.fields.map((f) => (
-        <div key={f.field} className="rv-choice">
-          <Tick
-            isSelected={f.chosen}
-            isDisabled={!!f.note}
-            onChange={(on) =>
-              set({
-                fields: on
-                  ? [...v.fields.filter((x) => x.chosen).map((x) => x.field), f.field]
-                  : v.fields.filter((x) => x.chosen && x.field !== f.field).map((x) => x.field),
-              })
-            }
-          >
-            {f.name}
-          </Tick>
-          <span className="mono wiz-from">{f.field}</span>
-          <span className="wiz-from">
-            {r.what.parcels(f.parcels)}
-            {f.note ? ` · ${f.note}` : ""}
-          </span>
-        </div>
-      ))}
-      <p className="wiz-from">{r.what.later}</p>
-    </div>
-  );
-}
 
 function SalesCard({ v, set }: CardProps) {
   // Typed until the box loses focus; the card is remounted (keyed on the window) when the window changes.

@@ -3194,25 +3194,6 @@ export interface components {
              */
             named: boolean;
         };
-        /** FieldChoice */
-        FieldChoice: {
-            /** Field */
-            field: string;
-            /** Name */
-            name: string;
-            /**
-             * Parcels
-             * @description Parcels with a value above zero.
-             */
-            parcels: number;
-            /** Chosen */
-            chosen: boolean;
-            /**
-             * Note
-             * @description Why it can't be checked against sales, if it can't.
-             */
-            note: string | null;
-        };
         /** FieldFold */
         FieldFold: {
             /** Field */
@@ -5043,8 +5024,6 @@ export interface components {
         };
         /** RatioPatch */
         RatioPatch: {
-            /** Fields */
-            fields?: string[] | null;
             /** Start */
             start?: string | null;
             /** End */
@@ -5104,8 +5083,11 @@ export interface components {
         };
         /** RatioSetup */
         RatioSetup: {
-            /** Fields */
-            fields: components["schemas"]["FieldChoice"][];
+            /**
+             * Parcels
+             * @description Parcels with an assessed market value above zero.
+             */
+            parcels: number;
             /**
              * Valuation Date
              * Format: date
@@ -5170,11 +5152,6 @@ export interface components {
         };
         /** RatioState */
         RatioState: {
-            /**
-             * Fields
-             * @description Value fields checked.
-             */
-            fields: string[];
             /**
              * Start
              * @description First sale date; None: proposed.

@@ -1887,7 +1887,6 @@ export const t = {
   ratio: {
     kicker: "Step 4 of 5",
     steps: {
-      what: "What to check",
       sales: "Which sales",
       standards: "Standards",
       run: "Check my values",
@@ -1900,16 +1899,9 @@ export const t = {
       extreme: "Extreme ratios",
     },
     blocked: "Not yet:",
-    what: {
-      title: "Which values are you checking?",
-      lede: "The values on the roll now, against what the parcels sold for. Nothing is modeled: the assessor's own values, checked the way a state reviewer would.",
-      parcels: (n: number) => `${n.toLocaleString()} parcels have one`,
-      none: "No value fields are loaded: Data › Assessed values.",
-      later: "Model values (step 5) are checked the same way once they're built.",
-    },
     sales: {
-      title: "Which sales do the values answer to?",
-      lede: "The sales Check sales kept for modeling, sold in the window, whose parcel looks now as it did when sold.",
+      title: "Which sales does the market value answer to?",
+      lede: "The assessed market value on the roll now, against what the parcels sold for, checked the way a state reviewer would: the sales Check sales kept for modeling, sold in the window, whose parcel looks now as it did when sold.",
       window: "The window",
       from: "From",
       to: "To",

@@ -7955,48 +7955,6 @@
     ],
     "title": "FeatureSpec"
    },
-   "FieldChoice": {
-    "properties": {
-     "field": {
-      "type": "string",
-      "title": "Field"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "parcels": {
-      "type": "integer",
-      "title": "Parcels",
-      "description": "Parcels with a value above zero."
-     },
-     "chosen": {
-      "type": "boolean",
-      "title": "Chosen"
-     },
-     "note": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Note",
-      "description": "Why it can't be checked against sales, if it can't."
-     }
-    },
-    "type": "object",
-    "required": [
-     "field",
-     "name",
-     "parcels",
-     "chosen",
-     "note"
-    ],
-    "title": "FieldChoice"
-   },
    "FieldFold": {
     "properties": {
      "field": {
@@ -12045,20 +12003,6 @@
    },
    "RatioPatch": {
     "properties": {
-     "fields": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Fields"
-     },
      "start": {
       "anyOf": [
        {
@@ -12239,12 +12183,10 @@
    },
    "RatioSetup": {
     "properties": {
-     "fields": {
-      "items": {
-       "$ref": "#/components/schemas/FieldChoice"
-      },
-      "type": "array",
-      "title": "Fields"
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels",
+      "description": "Parcels with an assessed market value above zero."
      },
      "valuation_date": {
       "type": "string",
@@ -12350,7 +12292,7 @@
     },
     "type": "object",
     "required": [
-     "fields",
+     "parcels",
      "valuation_date",
      "start",
      "end",
@@ -12372,14 +12314,6 @@
    },
    "RatioState": {
     "properties": {
-     "fields": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Fields",
-      "description": "Value fields checked."
-     },
      "start": {
       "anyOf": [
        {
@@ -12457,7 +12391,6 @@
     },
     "type": "object",
     "required": [
-     "fields",
      "start",
      "end",
      "price",

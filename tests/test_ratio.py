@@ -60,8 +60,6 @@ def test_the_window_reaches_back_until_there_are_enough_sales():
 def test_changes_are_checked():
     p = _project()
     with pytest.raises(ValueError):
-        ratio.change(p, ratio.RatioPatch(fields=["nope"]))
-    with pytest.raises(ValueError):
         ratio.change(p, ratio.RatioPatch(start=dt.date(2025, 1, 1), end=dt.date(2024, 1, 1)))
     ratio.change(p, ratio.RatioPatch(reset_window=True, classes={"sf": "commercial"}))
     assert p.ratio.start is None and ratio.classes(p) == {"sf": "commercial"}
