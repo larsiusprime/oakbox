@@ -4087,6 +4087,243 @@
     }
    }
   },
+  "/api/projects/{project_id}/clean/time": {
+   "get": {
+    "summary": "Clean Time",
+    "description": "The time adjustment preview: how prices moved per model group, before Check sales runs.",
+    "operationId": "clean_time_api_projects__project_id__clean_time_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TimePreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/time/run": {
+   "post": {
+    "summary": "Clean Time Run",
+    "description": "Work out the time adjustment alone (seconds), with the calls as they are now.",
+    "operationId": "clean_time_run_api_projects__project_id__clean_time_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TimePreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare": {
+   "get": {
+    "summary": "Prepare State",
+    "operationId": "prepare_state_api_projects__project_id__prepare_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare/run": {
+   "post": {
+    "summary": "Prepare Run",
+    "description": "Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again.",
+    "operationId": "prepare_run_api_projects__project_id__prepare_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare/stop": {
+   "post": {
+    "summary": "Prepare Stop",
+    "operationId": "prepare_stop_api_projects__project_id__prepare_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare/accept": {
+   "post": {
+    "summary": "Prepare Accept",
+    "operationId": "prepare_accept_api_projects__project_id__prepare_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -5070,6 +5307,14 @@
       "type": "array",
       "title": "Collapse Fields"
      },
+     "folds": {
+      "items": {
+       "$ref": "#/components/schemas/Fold"
+      },
+      "type": "array",
+      "title": "Folds",
+      "description": "What would fold at the thresholds set, per field (when it's on)."
+     },
      "notices": {
       "items": {
        "$ref": "#/components/schemas/Notice"
@@ -5102,6 +5347,7 @@
      "collapse_sales_min",
      "collapse_univ_min",
      "collapse_fields",
+     "folds",
      "notices"
     ],
     "title": "CleanSetup"
@@ -6936,6 +7182,38 @@
     ],
     "title": "FeatureSpec"
    },
+   "FieldFold": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "folded": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Folded",
+      "description": "The values that became Other."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "folded",
+     "parcels"
+    ],
+    "title": "FieldFold"
+   },
    "FieldProfile": {
     "properties": {
      "field": {
@@ -7324,6 +7602,11 @@
      "proposed": {
       "$ref": "#/components/schemas/Fill"
      },
+     "why": {
+      "type": "string",
+      "title": "Why",
+      "description": "Why that's proposed: what a blank means for this field."
+     },
      "stats": {
       "additionalProperties": {
        "type": "number"
@@ -7341,6 +7624,7 @@
      "parcels",
      "fill",
      "proposed",
+     "why",
      "stats"
     ],
     "title": "FillRow"
@@ -7372,6 +7656,45 @@
      "how"
     ],
     "title": "Filled"
+   },
+   "Fold": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "values": {
+      "type": "integer",
+      "title": "Values",
+      "description": "Different values the field has."
+     },
+     "folded": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Folded",
+      "description": "The values that would become Other, fewest parcels first."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels",
+      "description": "Parcels whose value would become Other."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "values",
+     "folded",
+     "parcels"
+    ],
+    "title": "Fold"
    },
    "Funnel": {
     "properties": {
@@ -10027,6 +10350,122 @@
     ],
     "title": "Plan"
    },
+   "PrepareReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "filled": {
+      "items": {
+       "$ref": "#/components/schemas/Filled"
+      },
+      "type": "array",
+      "title": "Filled"
+     },
+     "folded": {
+      "items": {
+       "$ref": "#/components/schemas/FieldFold"
+      },
+      "type": "array",
+      "title": "Folded"
+     },
+     "written": {
+      "items": {
+       "$ref": "#/components/schemas/Written"
+      },
+      "type": "array",
+      "title": "Written"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "filled",
+     "folded",
+     "written",
+     "notes"
+    ],
+    "title": "PrepareReceipt"
+   },
+   "PrepareView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/PrepareReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Check sales ran again, or a fill or the folding changed, since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked"
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "blocked",
+     "accepted"
+    ],
+    "title": "PrepareView"
+   },
    "Progress": {
     "properties": {
      "step": {
@@ -12059,6 +12498,154 @@
      "few"
     ],
     "title": "TiersPreview"
+   },
+   "TimeGroup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Valid sales in the window."
+     },
+     "per_year": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Year",
+      "description": "Price change a year, percent; None: no adjustment (too few sales)."
+     },
+     "first": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First"
+     },
+     "last": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last"
+     },
+     "curve": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Curve"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "sales",
+     "per_year",
+     "first",
+     "last",
+     "curve"
+    ],
+    "title": "TimeGroup"
+   },
+   "TimePreview": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "result": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TimeResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "The window, the time adjustment, or the data changed since it ran."
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "result",
+     "stale"
+    ],
+    "title": "TimePreview"
+   },
+   "TimeResult": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/TimeGroup"
+      },
+      "type": "array",
+      "title": "Groups"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "groups"
+    ],
+    "title": "TimeResult"
    },
    "UnitExample": {
     "properties": {

@@ -1119,6 +1119,8 @@ export const t = {
     groupsLocked: "Press Looks right on Bring in data first",
     sales: "3 Check sales",
     salesLocked: "Press Looks right on Model groups first",
+    values: "5 Model values",
+    valuesLocked: "Press Looks right on Check sales first",
     later: "Not available yet",
   },
 
@@ -1486,6 +1488,11 @@ export const t = {
       perYear: (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}% a year`,
       chartSub: "How prices moved, per model group (first period = 1).",
       lastRun: "Last run",
+      preview: "How prices moved",
+      previewNote: (sec: number) =>
+        `Worked out with the calls as they are (${sec} s), before running: Check sales does the same.`,
+      previewStale: "The calls changed since this was worked out.",
+      previewAgain: "Work it out again",
       schedule: "Show schedule",
     },
     fill: {
@@ -1546,6 +1553,12 @@ export const t = {
       salesMin: "Fewer sales than",
       univMin: "or fewer parcels than",
       fields: (f: string) => `Fields: ${f}.`,
+      values: "Values",
+      fold: "Folded",
+      parcels: "Parcels",
+      which: "Become Other",
+      none: "none",
+      more: (n: number) => `, and ${n.toLocaleString()} more`,
       noFields: "No category fields to fold.",
     },
     stale:
@@ -1657,6 +1670,36 @@ export const t = {
       undo: "Undo",
       next: "Next ›",
     },
+  },
+
+  // Step 5, Build model values: it begins by preparing the fields for the models.
+  values: {
+    kicker: "Step 5 of 5",
+    steps: {
+      fill: "Fill blanks",
+      rare: "Rare categories",
+      run: "Prepare the fields",
+      done: "What changed",
+      models: "Models (not built yet)",
+    },
+    fillLede:
+      "Blanks the models can't take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",
+    blocked: "Not yet:",
+    runLede:
+      "Fills the blanks and folds the rare categories as set, on what Check sales wrote, then writes notebook 2's output again (out/2-clean-sup.pickle): what the models start from.",
+    runNext: "Prepare the fields ›",
+    runAgain: "Prepare again",
+    runAgainNext: "Prepare again ›",
+    stale: "Out of date: Check sales ran again, or a fill or the folding changed.",
+    ran: (when: string, seconds: number) => `✓ Prepared ${when} · ${seconds} s`,
+    filled: "Filled",
+    noneFilled: "Nothing was filled.",
+    folded: "Folded into Other",
+    noneFolded: "Nothing was folded.",
+    foldLine: (name: string, values: number, parcels: number) =>
+      `${name}: ${values.toLocaleString()} ${values === 1 ? "value" : "values"}, ${parcels.toLocaleString()} parcels`,
+    looksRight: "Looks right",
+    accepted: "✓ Looks right",
   },
 
   metadata: {

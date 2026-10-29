@@ -119,7 +119,41 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
         client.put(f"{url}/marks/{key}", json={"action": None})
     assert client.post(f"{url}/accept").json()["accepted"]
 
+    # The time adjustment, worked out alone before a run.
+    assert client.post(f"{url}/time/run").json()["status"] == "running"
+    time_view = _wait(client, f"{url}/time")
+    assert time_view["status"] == "done", time_view["job"]
+    assert {g["id"] for g in time_view["result"]["groups"]} == {g["id"] for g in groups}
+
+    # Step 5 begins: the fills and folding Check sales left out, on what it wrote.
+    client.patch(f"{url}/setup", json={"collapse": True, "collapse_sales_min": 2, "collapse_univ_min": 2})
+    assert not client.get(url).json()["stale"]  # the fields' preparation doesn't put Check sales out of date
+    prep = f"/api/projects/{pid}/prepare"
+    assert client.get(prep).json()["blocked"] == []
+    assert client.post(f"{prep}/run").json()["status"] == "running"
+    view = _wait(client, prep)
+    assert view["status"] == "done", view["job"]
+    assert any(w["path"] == "out/2-clean-sup.pickle" for w in view["receipt"]["written"])
+    assert client.post(f"{prep}/accept").json()["accepted"]
+    client.patch(f"{url}/setup", json={"collapse_sales_min": 3})
+    assert client.get(prep).json()["stale"]
+
 
 @pytest.mark.parametrize("value", ["", "None", "nan", None])
 def test_a_sale_with_no_parcel_has_no_group(value):
     assert clean._group(value) == clean.NO_PARCEL
+
+
+@pytest.mark.parametrize(
+    ("field", "method"),
+    [
+        ("renovation_num", "zero"),  # blank: no renovation permit
+        ("days_to_reno", "leave"),  # blank: no date to count from
+        ("land_area_alloc_sqft", "leave"),  # only condo units have a share of land
+        ("median_income", "median"),
+        ("bldg_area_finished_sqft", "leave"),  # blank: no building
+    ],
+)
+def test_fills_proposed_from_what_a_blank_means(field, method):
+    fill, why = clean.propose(field)
+    assert fill.method == method and why

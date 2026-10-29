@@ -1524,6 +1524,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/clean/time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clean Time
+         * @description The time adjustment preview: how prices moved per model group, before Check sales runs.
+         */
+        get: operations["clean_time_api_projects__project_id__clean_time_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/time/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clean Time Run
+         * @description Work out the time adjustment alone (seconds), with the calls as they are now.
+         */
+        post: operations["clean_time_run_api_projects__project_id__clean_time_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prepare State */
+        get: operations["prepare_state_api_projects__project_id__prepare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/prepare/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare Run
+         * @description Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again.
+         */
+        post: operations["prepare_run_api_projects__project_id__prepare_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/prepare/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Stop */
+        post: operations["prepare_stop_api_projects__project_id__prepare_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/prepare/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Accept */
+        post: operations["prepare_accept_api_projects__project_id__prepare_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -1910,6 +2021,11 @@ export interface components {
             collapse_univ_min: number;
             /** Collapse Fields */
             collapse_fields: string[];
+            /**
+             * Folds
+             * @description What would fold at the thresholds set, per field (when it's on).
+             */
+            folds: components["schemas"]["Fold"][];
             /** Notices */
             notices: components["schemas"]["Notice"][];
         };
@@ -2799,6 +2915,20 @@ export interface components {
              */
             named: boolean;
         };
+        /** FieldFold */
+        FieldFold: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Folded
+             * @description The values that became Other.
+             */
+            folded: string[];
+            /** Parcels */
+            parcels: number;
+        };
         /**
          * FieldProfile
          * @description One field of the parcel universe or sales record in detail: notebook 1's "examine in ridiculous detail".
@@ -2987,6 +3117,11 @@ export interface components {
             fill: components["schemas"]["Fill"];
             proposed: components["schemas"]["Fill"];
             /**
+             * Why
+             * @description Why that's proposed: what a blank means for this field.
+             */
+            why: string;
+            /**
              * Stats
              * @description median, mean, mode, min, max of the values there are.
              */
@@ -3004,6 +3139,28 @@ export interface components {
             count: number;
             /** How */
             how: string;
+        };
+        /** Fold */
+        Fold: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @description Different values the field has.
+             */
+            values: number;
+            /**
+             * Folded
+             * @description The values that would become Other, fewest parcels first.
+             */
+            folded: string[];
+            /**
+             * Parcels
+             * @description Parcels whose value would become Other.
+             */
+            parcels: number;
         };
         /** Funnel */
         Funnel: {
@@ -4236,6 +4393,42 @@ export interface components {
             /** Fields */
             fields: number;
         };
+        /** PrepareReceipt */
+        PrepareReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /** Filled */
+            filled: components["schemas"]["Filled"][];
+            /** Folded */
+            folded: components["schemas"]["FieldFold"][];
+            /** Written */
+            written: components["schemas"]["Written"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** PrepareView */
+        PrepareView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["PrepareReceipt"] | null;
+            /**
+             * Stale
+             * @description Check sales ran again, or a fill or the folding changed, since it ran.
+             */
+            stale: boolean;
+            /** Blocked */
+            blocked: string[];
+            /** Accepted */
+            accepted: boolean;
+        };
         /** Progress */
         Progress: {
             /** Step */
@@ -5131,6 +5324,55 @@ export interface components {
              * @default 10
              */
             few: number;
+        };
+        /** TimeGroup */
+        TimeGroup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /**
+             * Sales
+             * @description Valid sales in the window.
+             */
+            sales: number;
+            /**
+             * Per Year
+             * @description Price change a year, percent; None: no adjustment (too few sales).
+             */
+            per_year: number | null;
+            /** First */
+            first: string | null;
+            /** Last */
+            last: string | null;
+            /** Curve */
+            curve: number[];
+        };
+        /** TimePreview */
+        TimePreview: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            result: components["schemas"]["TimeResult"] | null;
+            /**
+             * Stale
+             * @description The window, the time adjustment, or the data changed since it ran.
+             */
+            stale: boolean;
+        };
+        /** TimeResult */
+        TimeResult: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Groups */
+            groups: components["schemas"]["TimeGroup"][];
         };
         /** UnitExample */
         UnitExample: {
@@ -8559,6 +8801,192 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CleanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_time_api_projects__project_id__clean_time_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_time_run_api_projects__project_id__clean_time_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_state_api_projects__project_id__prepare_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepareView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_run_api_projects__project_id__prepare_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepareView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_stop_api_projects__project_id__prepare_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepareView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_accept_api_projects__project_id__prepare_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepareView"];
                 };
             };
             /** @description Validation Error */

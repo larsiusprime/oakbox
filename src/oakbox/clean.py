@@ -194,11 +194,30 @@ def settings_key(settings: dict, project) -> dict:
     return {
         **bring_in.settings_key(settings),
         "model_groups": settings.get("modeling", {}).get("model_groups"),
-        "process": {k: process.get(k) for k in bring_in.CLEAN_PROCESS},
+        "process": {k: process.get(k) for k in bring_in.CLEAN_PROCESS if k not in FIELD_PROCESS},
         "use_sales_from": settings.get("modeling", {}).get("metadata", {}).get("use_sales_from"),
         "analysis": {k: v for k, v in settings.get("analysis", {}).items() if k != "report"},
         "marks": {k: m.action for k, m in sorted(project.clean.marks.items())},
     }
+
+
+# The parts of data.process that prepare the fields for the models: the user's fills and rare categories.
+# Their calls are made in step 5 (prepare.py), and Check sales' run leaves them out.
+FIELD_PROCESS = ("fill", "collapse_sparse_categories")
+
+
+def without_fields(settings: dict, project) -> dict:
+    """The settings Check sales runs with: OpenAVMKit's own fills, but not the user's, and no folding."""
+    import copy
+
+    out = copy.deepcopy(settings)
+    process = out.get("data", {}).get("process", {})
+    mine = set(project.clean.fills)
+    fill = process.get("fill", {})
+    for key in list(fill):
+        fill[key] = [f for f in fill[key] if (f.get("field") if isinstance(f, dict) else f) not in mine]
+    process.pop("collapse_sparse_categories", None)
+    return out
 
 
 def settings_hash(settings: dict, project) -> str:
@@ -234,6 +253,7 @@ class FillRow(BaseModel):
     parcels: int
     fill: Fill
     proposed: Fill
+    why: str = Field(description="Why that's proposed: what a blank means for this field.")
     stats: dict[str, float] = Field(description="median, mean, mode, min, max of the values there are.")
 
 
@@ -245,6 +265,14 @@ class Choice(BaseModel):
 class Notice(BaseModel):
     text: str
     link: str | None = Field(default=None, description="Where it's fixed: a tab and step, 'fields:sales'.")
+
+
+class Fold(BaseModel):
+    field: str
+    name: str
+    values: int = Field(description="Different values the field has.")
+    folded: list[str] = Field(description="The values that would become Other, fewest parcels first.")
+    parcels: int = Field(description="Parcels whose value would become Other.")
 
 
 class CleanSetup(BaseModel):
@@ -270,6 +298,7 @@ class CleanSetup(BaseModel):
     collapse_sales_min: int
     collapse_univ_min: int
     collapse_fields: list[str]
+    folds: list[Fold] = Field(description="What would fold at the thresholds set, per field (when it's on).")
     notices: list[Notice]
 
 
@@ -357,7 +386,7 @@ def _fill_rows(project, project_dir: Path, universe) -> list[FillRow]:
                 "min": float(there.min()),
                 "max": float(there.max()),
             }
-        proposed = Fill(method="leave") if f in NEVER_PROPOSED else Fill(method="median")
+        proposed, why = propose(f)
         rows.append(
             FillRow(
                 field=f,
@@ -366,10 +395,31 @@ def _fill_rows(project, project_dir: Path, universe) -> list[FillRow]:
                 parcels=len(x),
                 fill=project.clean.fills.get(f, proposed),
                 proposed=proposed,
+                why=why,
                 stats=stats,
             )
         )
     return rows
+
+
+CENSUS = ("median_income", "median_c_rent", "median_g_rent", "total_population")
+
+
+def propose(field: str) -> tuple[Fill, str]:
+    """A fill for a field, from what a blank means in it."""
+    if field in NEVER_PROPOSED:
+        return Fill(method="leave"), "Blank means no building: 0 already says so."
+    if field.startswith("land_area_alloc"):
+        return Fill(method="leave"), "Only condo units have a share of land: blank for the rest is right."
+    if field in ("renovation_num", "is_renovated"):
+        return Fill(method="zero"), "Blank means no renovation permit: 0 is none."
+    if field.startswith("days_to_"):
+        return Fill(method="leave"), "Blank means no permit: there's no date to count from, so it stays blank."
+    if field in CENSUS:
+        return Fill(method="median"), "Blank where a parcel's census block group wasn't matched: its group's median."
+    if field.startswith(("elevation_", "slope_")):
+        return Fill(method="median"), "Blank where the elevation tiles didn't cover the parcel: its group's median."
+    return Fill(method="median"), "Blank where the data didn't say: its group's median, as a stand-in."
 
 
 def _auto(project_dir: Path, universe) -> list[str]:
@@ -413,6 +463,8 @@ def _collapsible(project_dir: Path, universe, locations: list[str]) -> list[str]
 
     s = _engine_settings(project_dir)
     cats = get_fields_categorical(s, universe, include_boolean=False) or []
+    import pandas as pd
+
     n = max(len(universe), 1)
     return [
         f
@@ -421,8 +473,49 @@ def _collapsible(project_dir: Path, universe, locations: list[str]) -> list[str]
         and f not in locations
         and f != "model_group"
         and not f.startswith(("key", "address"))
+        and not f.endswith(("_date", "_year"))
+        and not pd.api.types.is_datetime64_any_dtype(universe[f])  # a date, not a category
         and universe[f].nunique() < 0.5 * n  # an ID or an address, not a category
     ]
+
+
+def folds(project, project_dir: Path) -> list[Fold]:
+    """What rare categories would fold, per field, at the thresholds set: a value with fewer valid sales than
+    collapse_sales_min, or fewer parcels than collapse_univ_min, becomes Other (as OpenAVMKit counts them)."""
+    import pandas as pd
+
+    universe, sales = _data(project_dir)
+    valid, year, vacant = _valid(sales)
+    used = out_dir(project_dir) / "used.parquet"
+    if used.is_file():
+        # The sales for modeling, as Check sales left them: what OpenAVMKit counts when it folds.
+        keys = set(pd.read_parquet(used)["key_sale"].astype(str))
+        valid = cast("pd.DataFrame", valid[valid["key_sale"].astype(str).isin(list(keys))])
+    else:
+        impr_from, vacant_from = window(project)
+        valid = valid[(~vacant & (year >= impr_from)) | (vacant & (year >= vacant_from))]
+    c: CleanState = project.clean
+    names = _names()
+    out = []
+    collapsible = _collapsible(project_dir, universe, _locations(project_dir, universe))
+    for f in [f for f in c.collapse_fields if f in collapsible] or collapsible:
+        if f not in universe:
+            continue
+        parcels = {str(k): int(n) for k, n in universe[f].astype(str).value_counts().items()}
+        counted = cast("pd.Series", valid[f]).astype(str).value_counts() if f in valid else None
+        sold = {str(k): int(n) for k, n in counted.items()} if counted is not None else {}
+        rare = [v for v, n in parcels.items() if sold.get(v, 0) < c.collapse_sales_min or n < c.collapse_univ_min]
+        rare.sort(key=lambda v: (parcels[v], v))
+        out.append(
+            Fold(
+                field=f,
+                name=names.get(f, f),
+                values=len(parcels),
+                folded=rare,
+                parcels=sum(parcels[v] for v in rare),
+            )
+        )
+    return out
 
 
 def _last_run(project_dir: Path) -> dict[str, float | None]:
@@ -504,6 +597,8 @@ def setup(project, project_dir: Path) -> CleanSetup:
     if "bldg_condition_num" in universe:
         similar.append(names.get("bldg_condition_num", "condition"))
     c: CleanState = project.clean
+    collapsible = _collapsible(project_dir, universe, locations)
+    collapse_fields = [f for f in c.collapse_fields if f in collapsible] or collapsible
     return CleanSetup(
         valuation_year=valuation_year(project),
         default_from=valuation_year(project) - YEARS_BEFORE,
@@ -526,7 +621,8 @@ def setup(project, project_dir: Path) -> CleanSetup:
         collapse=c.collapse,
         collapse_sales_min=c.collapse_sales_min,
         collapse_univ_min=c.collapse_univ_min,
-        collapse_fields=c.collapse_fields or _collapsible(project_dir, universe, locations),
+        collapse_fields=collapse_fields,
+        folds=folds(project, project_dir) if c.collapse else [],
         notices=notices,
     )
 
@@ -540,8 +636,9 @@ def decide(project, project_dir: Path) -> None:
     locations = _locations(project_dir, universe)
     if c.location is None:
         c.location = _proposed_location(locations)
-    if not c.collapse_fields:
-        c.collapse_fields = _collapsible(project_dir, universe, locations)
+    collapsible = _collapsible(project_dir, universe, locations)
+    # Kept to what can fold now (dates and IDs never do).
+    c.collapse_fields = [f for f in c.collapse_fields if f in collapsible] or collapsible
 
 
 # ---------- The run ----------
@@ -687,10 +784,10 @@ def run(project_id: str) -> None:
         warnings.simplefilter("always")
         step("load", 0.0, "Reading step 2's hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
-        settings = pl.load_settings()
+        settings = without_fields(pl.load_settings(), project)
         start_sales = _valid_keys(get_hydrated_sales_from_sup(sup))
         before = get_hydrated_sales_from_sup(sup)
-        step("fill", 0.05, "Filling blanks")
+        step("fill", 0.05, "Filling blanks OpenAVMKit always fills")
         sup = pl.fill_unknown_values_sup(sup, settings)
         step("clusters", 0.1, "Grouping similar parcels (equity clusters)")
         sup = pl.mark_horizontal_equity_clusters_per_model_group_sup(
@@ -702,8 +799,6 @@ def run(project_id: str) -> None:
         hydrated = get_hydrated_sales_from_sup(sup)
         step("scrutiny", 0.6, "Checking sales against similar sales nearby")
         sup = pl.run_sales_scrutiny(sup=sup, settings=settings)
-        step("collapse", 0.9, "Folding rare categories")
-        sup = pl.collapse_sparse_categories_sup(sup, settings)
         step("write", 0.93, "Writing notebook 2's output")
         pl.write_notebook_output_sup(sup, "2-clean")
     beating.set()
@@ -714,6 +809,9 @@ def run(project_id: str) -> None:
     receipt = _receipt(project, pdir, before, start_sales, processed, used, flags, hydrated, sup.sales, t0, caught)
     receipt.engine = version("openavmkit")
     _review_tables(tmp, hydrated, sup.sales, flags, project.units)
+    # Step 5 prepares the fields from this (the user's fills, rare categories) and writes 2-clean again.
+    pd.to_pickle(sup, tmp / "sup.pickle")
+    pd.DataFrame({"key_sale": sorted(used)}).to_parquet(tmp / "used.parquet", index=False)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(
         json.dumps({"settings": json.loads(settings_text), "hash": settings_hash(json.loads(settings_text), project)}),

@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Input, TextArea, TextField } from "react-aria-components";
 import { navigate } from "../App";
 import {
@@ -74,15 +74,9 @@ function day(text: string | null | undefined): string {
   return text ? text.slice(0, 10) : "—";
 }
 
-type CsStep = "window" | "time" | "fill" | "scrutiny" | "rare" | "run" | "sales" | "aside";
-const CS_STEPS: CsStep[] = ["window", "time", "fill", "scrutiny", "rare", "run", "sales", "aside"];
-
-/** Step 3, Check sales (SPEC F6), one task at a time: a step per call (each with what it did last run), the run,
- * the sales it kept, and the sales set aside to keep or exclude. */
-export function SalesTab({ projectId, currency }: { projectId: string; currency: string }) {
+/** The calls before running (Check sales, and step 5's fills and folding), and changing one. */
+export function useCleanSetup(projectId: string, enabled: boolean) {
   const queryClient = useQueryClient();
-  const state = useClean(projectId);
-  const v = state.data;
   const setup = useQuery({
     queryKey: ["clean-setup", projectId],
     queryFn: async () =>
@@ -91,7 +85,7 @@ export function SalesTab({ projectId, currency }: { projectId: string; currency:
           params: { path: { project_id: projectId } },
         }),
       ),
-    enabled: !!v && v.blocked.length === 0,
+    enabled,
   });
   const change = useMutation({
     mutationFn: async (body: Patch) =>
@@ -104,8 +98,23 @@ export function SalesTab({ projectId, currency }: { projectId: string; currency:
     onSuccess: (data) => {
       queryClient.setQueryData(["clean-setup", projectId], data);
       queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["clean-time", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["prepare", projectId] });
     },
   });
+  return { setup, change };
+}
+
+type CsStep = "window" | "time" | "scrutiny" | "run" | "sales" | "aside";
+const CS_STEPS: CsStep[] = ["window", "time", "scrutiny", "run", "sales", "aside"];
+
+/** Step 3, Check sales (SPEC F6), one task at a time: a step per call (each with what it did last run), the run,
+ * the sales it kept, and the sales set aside to keep or exclude. */
+export function SalesTab({ projectId, currency }: { projectId: string; currency: string }) {
+  const queryClient = useQueryClient();
+  const state = useClean(projectId);
+  const v = state.data;
+  const { setup, change } = useCleanSetup(projectId, !!v && v.blocked.length === 0);
   const act = useMutation({
     mutationFn: async (what: "run" | "stop" | "accept") => {
       const path = `/api/projects/{project_id}/clean/${what}` as const;
@@ -228,23 +237,12 @@ export function SalesTab({ projectId, currency }: { projectId: string; currency:
           u && (
             <>
               <TimeCard v={u} set={set} />
-              {r && <TimeResult projectId={projectId} receipt={r} />}
+              {u.time_adjust && <TimePreviewPanel projectId={projectId} />}
             </>
           ),
-        )}
-      {current === "fill" &&
-        callStep(
-          u && (
-            <>
-              <FillCard v={u} set={set} />
-              {r && <FillResult receipt={r} />}
-            </>
-          ),
-          s.fill.sub,
         )}
       {current === "scrutiny" &&
         callStep(u && <ScrutinyCard v={u} set={set} projectId={projectId} />, s.scrutiny.sub)}
-      {current === "rare" && callStep(u && <CollapseCard v={u} set={set} />)}
       {current === "run" && (
         <>
           <StepBody kicker={kicker} title={s.steps.run} lede={s.runNote}>
@@ -358,7 +356,7 @@ function Notices({ projectId, v }: { projectId: string; v: CleanSetup }) {
   );
 }
 
-type CardProps = { v: CleanSetup; set: (body: Patch) => void };
+export type CardProps = { v: CleanSetup; set: (body: Patch) => void };
 
 function Card({ title, sub, children }: { title: React.ReactNode; sub: string; children: React.ReactNode }) {
   // In a step, the step says what it is: a card only shows its on/off control (a tick) and how it stands.
@@ -455,7 +453,6 @@ function TimeCard({ v, set }: CardProps) {
               <tr>
                 <th>{s.group}</th>
                 <th className="cs-n">{s.time.sales}</th>
-                <th className="cs-n">{s.time.last}</th>
               </tr>
             </thead>
             <tbody>
@@ -466,11 +463,6 @@ function TimeCard({ v, set }: CardProps) {
                     {g.name}
                   </td>
                   <td className="cs-n">{num(g.sales)}</td>
-                  <td className="cs-n">
-                    {g.per_year !== null && g.per_year !== undefined
-                      ? s.time.perYear(g.per_year)
-                      : s.time.notYet}
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -491,7 +483,7 @@ function putsIn(row: FillRow): string {
   return v === undefined ? "—" : s.fill.example(s.fill.methods[m], num(v, Math.abs(v) < 10 ? 1 : 0));
 }
 
-function FillCard({ v, set }: CardProps) {
+export function FillCard({ v, set }: CardProps) {
   return (
     <Card title={s.fill.title} sub={s.fill.sub}>
       <p className="cs-text wiz-from">{s.fill.what}</p>
@@ -511,6 +503,7 @@ function FillCard({ v, set }: CardProps) {
               <tr key={row.field}>
                 <td>
                   {row.name} <span className="mono wiz-from">{row.field}</span>
+                  <div className="wiz-from cs-why-fill">{row.why}</div>
                 </td>
                 <td className="cs-n">{num(row.blanks)}</td>
                 <td>
@@ -613,7 +606,7 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
   );
 }
 
-function CollapseCard({ v, set }: CardProps) {
+export function CollapseCard({ v, set }: CardProps) {
   return (
     <Card
       title={
@@ -640,9 +633,39 @@ function CollapseCard({ v, set }: CardProps) {
               onChange={(n) => set({ collapse_univ_min: n })}
             />
           </div>
-          <p className="cs-text">
-            {v.collapse_fields.length ? s.collapse.fields(v.collapse_fields.join(", ")) : s.collapse.noFields}
-          </p>
+          {v.folds.length ? (
+            <table className="bi-tbl cs-tbl">
+              <thead>
+                <tr>
+                  <th>{s.fill.field}</th>
+                  <th className="cs-n">{s.collapse.values}</th>
+                  <th className="cs-n">{s.collapse.fold}</th>
+                  <th className="cs-n">{s.collapse.parcels}</th>
+                  <th>{s.collapse.which}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {v.folds.map((f) => (
+                  <tr key={f.field}>
+                    <td>
+                      {f.name} <span className="mono wiz-from">{f.field}</span>
+                    </td>
+                    <td className="cs-n">{num(f.values)}</td>
+                    <td className="cs-n">{num(f.folded.length)}</td>
+                    <td className="cs-n">{num(f.parcels)}</td>
+                    <td className="cs-folds">
+                      {f.folded.length === 0
+                        ? s.collapse.none
+                        : f.folded.slice(0, 8).join(", ") +
+                          (f.folded.length > 8 ? s.collapse.more(f.folded.length - 8) : "")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="cs-text">{s.collapse.noFields}</p>
+          )}
         </>
       )}
     </Card>
@@ -802,53 +825,109 @@ function SalesResult({
   );
 }
 
-/** How prices moved last run, per model group. */
-function TimeResult({ projectId, receipt: r }: { projectId: string; receipt: CleanReceipt }) {
-  const show = useShow(projectId);
-  const curves = r.groups.filter((g) => g.curve.length > 1);
-  if (!curves.length) return null;
+type Curved = {
+  id: string;
+  name: string;
+  color: string;
+  per_year: number | null;
+  first: string | null;
+  last: string | null;
+  curve: number[];
+};
+
+/** How prices moved, per model group: an index line each. */
+function Charts({
+  groups,
+  schedule,
+}: {
+  groups: Curved[];
+  schedule?: ((group: string) => void) | undefined;
+}) {
+  const curves = groups.filter((g) => g.curve.length > 1);
   return (
-    <section className="cs-step">
-      <h3 className="wiz-group">{s.time.lastRun}</h3>
-      <p className="wiz-from cs-text">{s.time.chartSub}</p>
-      <div className="cs-charts">
-        {curves.map((g) => (
-          <figure key={g.id} className="cs-chart">
-            <figcaption>
-              <span className="mg-sw ab-sw" style={{ background: g.color }} />
-              <b>{g.name}</b> {g.per_year !== null && g.per_year !== undefined && s.time.perYear(g.per_year)}
-            </figcaption>
-            <Curve points={g.curve} color={g.color} />
-            <div className="cs-chart-foot">
-              <span>{g.first?.slice(0, 7)}</span>
-              <span>×{num(g.curve.at(-1) ?? 1, 2)}</span>
-              <span>{g.last?.slice(0, 7)}</span>
-            </div>
-            <Button className="wiz-link" onPress={() => show.mutate({ what: "schedule", group: g.id })}>
+    <div className="cs-charts">
+      {curves.map((g) => (
+        <figure key={g.id} className="cs-chart">
+          <figcaption>
+            <span className="mg-sw ab-sw" style={{ background: g.color }} />
+            <b>{g.name}</b> {g.per_year !== null && s.time.perYear(g.per_year)}
+          </figcaption>
+          <Curve points={g.curve} color={g.color} />
+          <div className="cs-chart-foot">
+            <span>{g.first?.slice(0, 7)}</span>
+            <span>×{num(g.curve.at(-1) ?? 1, 2)}</span>
+            <span>{g.last?.slice(0, 7)}</span>
+          </div>
+          {schedule && (
+            <Button className="wiz-link" onPress={() => schedule(g.id)}>
               {s.time.schedule}
             </Button>
-          </figure>
-        ))}
-      </div>
-    </section>
+          )}
+        </figure>
+      ))}
+    </div>
   );
 }
 
-/** What was filled last run. */
-function FillResult({ receipt: r }: { receipt: CleanReceipt }) {
+/** Time adjustment worked out alone, before running (seconds): started when the step opens, and again on asking. */
+function TimePreviewPanel({ projectId }: { projectId: string }) {
+  const queryClient = useQueryClient();
+  const q = useQuery({
+    queryKey: ["clean-time", projectId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/clean/time", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+    refetchInterval: (x) => (x.state.data?.status === "running" ? 600 : false),
+  });
+  const run = useMutation({
+    mutationFn: async () =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/clean/time/run", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+    onSuccess: (data) => queryClient.setQueryData(["clean-time", projectId], data),
+  });
+  const v = q.data;
+  const needed = !!v && v.status !== "running" && v.status !== "failed" && (!v.result || v.stale);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (needed && !asked.current) {
+      asked.current = true;
+      run.mutate();
+    }
+  }, [needed, run]);
+  if (!v) return null;
+  const result = v.result;
+  const flat = result?.groups.filter((g) => g.per_year === null && g.sales > 0) ?? [];
   return (
     <section className="cs-step">
-      <h3 className="wiz-group">{s.filled.title}</h3>
-      {r.filled.length ? (
-        <ul className="cs-list-plain">
-          {r.filled.map((f) => (
-            <li key={f.field}>
-              {s.filled.line(f.name, f.count, f.how)} <span className="mono wiz-from">{f.field}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="wiz-from">{s.filled.none}</p>
+      <h3 className="wiz-group">{s.time.preview}</h3>
+      {v.status === "running" ? (
+        <RunProgress job={v.job} lastSeconds={result?.seconds ?? null} />
+      ) : v.status === "failed" ? (
+        <p className="error" role="alert">
+          {t.bringIn.failed} <span className="mono">{v.job?.error}</span>
+        </p>
+      ) : result ? (
+        <>
+          <p className="wiz-from cs-text">
+            {v.stale ? s.time.previewStale : s.time.previewNote(result.seconds)}{" "}
+            <Button className="wiz-link" isDisabled={run.isPending} onPress={() => run.mutate()}>
+              {s.time.previewAgain}
+            </Button>
+          </p>
+          <Charts groups={result.groups} />
+          {flat.length > 0 && <p className="wiz-from">{s.groups.few(flat.map((g) => g.name).join(", "))}</p>}
+        </>
+      ) : null}
+      {run.error && (
+        <p className="error" role="alert">
+          {run.error.message}
+        </p>
       )}
     </section>
   );

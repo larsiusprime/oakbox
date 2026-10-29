@@ -75,3 +75,4 @@ export type FillRow = components["schemas"]["FillRow"];
 export type ReviewItem = components["schemas"]["ReviewItem"];
 export type SaleDetail = components["schemas"]["SaleDetail"];
 export type CleanPatch = components["schemas"]["CleanPatch"];
+export type PrepareView = components["schemas"]["PrepareView"];

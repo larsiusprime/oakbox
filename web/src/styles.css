@@ -4639,3 +4639,12 @@ tr.bi-kept > td {
   max-width: 62rem;
   box-sizing: border-box;
 }
+.cs-why-fill {
+  font-size: 0.8rem;
+  max-width: 24rem;
+  white-space: normal;
+}
+.cs-folds {
+  font-size: 0.82rem;
+  max-width: 30rem;
+}

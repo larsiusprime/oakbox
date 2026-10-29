@@ -30,7 +30,9 @@ from oakbox import (
     enrichments,
     fields,
     groups,
+    prepare,
     projects,
+    time_preview,
     wizard,
 )
 from oakbox.datafiles import CleanStep
@@ -1242,6 +1244,64 @@ def create_app() -> FastAPI:
         projects.save(project)
         projects.write_settings(project)
         return _clean_view(project)
+
+    @app.get("/api/projects/{project_id}/clean/time")
+    def clean_time(project_id: str) -> time_preview.TimePreview:
+        """The time adjustment preview: how prices moved per model group, before Check sales runs."""
+        project = _load(project_id)
+        return time_preview.view(project, projects.project_dir(project_id))
+
+    @app.post("/api/projects/{project_id}/clean/time/run")
+    def clean_time_run(project_id: str) -> time_preview.TimePreview:
+        """Work out the time adjustment alone (seconds), with the calls as they are now."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            clean.decide(project, pdir)
+            projects.save(project)
+            projects.write_settings(project)
+            time_preview.start(project, pdir)
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(409, str(e)) from e
+        return time_preview.view(project, pdir)
+
+    # ---------- Step 5 begins: prepare the fields for the models ----------
+
+    def _prepare_view(project: projects.Project) -> prepare.PrepareView:
+        return prepare.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/prepare")
+    def prepare_state(project_id: str) -> prepare.PrepareView:
+        return _prepare_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/prepare/run")
+    def prepare_run(project_id: str) -> prepare.PrepareView:
+        """Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            clean.decide(project, pdir)
+            projects.save(project)
+            projects.write_settings(project)
+            prepare.start(project, pdir)
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(409, str(e)) from e
+        return _prepare_view(project)
+
+    @app.post("/api/projects/{project_id}/prepare/stop")
+    def prepare_stop(project_id: str) -> prepare.PrepareView:
+        bring_in.stop(project_id, prepare.MODULE)
+        return _prepare_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/prepare/accept")
+    def prepare_accept(project_id: str) -> prepare.PrepareView:
+        project = _load(project_id)
+        try:
+            prepare.accept(project, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        projects.save(project)
+        return _prepare_view(project)
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
