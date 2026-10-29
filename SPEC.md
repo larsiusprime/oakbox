@@ -691,6 +691,57 @@ It opens once Check sales has Looks right (step 4 isn't built yet). Steps: **Fil
 - **Rare categories:** off by default. The category fields the models use, but not locations, the model group, IDs and addresses (or anything with more distinct values than half the parcels), or dates. With the thresholds (fewer sales than, fewer parcels than), a table per field: its values, how many fold, their parcels, and which ("Become Other"), counted on the sales Check sales kept, as OpenAVMKit counts them.
 - **Prepare the fields:** OpenAVMKit's `fill_unknown_values_sup` and `collapse_sparse_categories_sup` on Check sales' hand-off (`out/oakbox/clean/sup.pickle`), in a process of its own (`python -m oakbox.prepare`), then notebook 2's output written again (`out/2-clean-sup.pickle`, `out/look/2-clean-*`): the same as notebook 2 writes with the same settings. Out of date when Check sales runs again or a fill or the folding changes. The receipt: what was filled (per field, how many, how) and folded (per field, the values and their parcels), and the files.
 
+#### F9. Step 5, Build model values: the models (spec; not built)
+What stands between Prepare the fields (F7) and values a model made, and how step 5 continues. It replaces §3.10's earlier draft where they differ.
+
+**The spike** (2026-10-29, the sample: 7,994 parcels, 1,477 sales; Prepare's output; a hand-written variable list of finished area, land area, effective age, units, normalized latitude and longitude, polar coordinates, elevation and slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-fold nested cross-validation): `write_canonical_splits`, then `model_runner.run_models` (try, no vacant models), ran headless in **29 s** and wrote `out/models/`. The plumbing works. What it showed:
+1. **No variables, no models.** OpenAVMKit has no default list: `modeling.models.main.default.ind_vars` must be written, or every model raises. Nothing in OAK box writes it yet.
+2. **Linear models refuse blanks.** MRA stopped on `slope_mean_deg`, blank on 1 of 359 small multi-family parcels. Trees take blanks; linear models need every variable filled (F7's Fill blanks), so the variable list and the fills must agree before running.
+3. **Small groups get no values.** Groups under 15 sales are skipped with a warning: apartments (106 parcels) and public & exempt (564) got no value at all, and Unassigned (22) none either.
+4. **Tiny groups get nonsense.** Commercial & industrial, 9 sales for 1,217 parcels: LightGBM's holdout median ratio was −0.12 (COD −2,610); 118 parcels got **negative** values, and the ensemble kept them.
+5. **The results are in memory.** `run_models` returns each group's benchmark (per model: sales, median ratio, COD, PRD, PRB, VEI and its significance, trimmed versions; out-of-fold, the holdout); the pipeline's `try_models` and `finalize_models` return nothing, and nothing machine-readable about them is written. `out/models/all_model_groups/universe.parquet` has `model_group_x` and `model_group_y` (a merge that keeps both).
+6. **Variables matter more than plumbing.** Single-family holdout COD 34.5 (20.4 trimmed) against the roll's 18.9 in step 4: the sample has no quality or condition. Not a blocker for building it; the first thing a user will see.
+
+**Blockers, in order** (each one is work; slice 1 is what it takes to run models from the app):
+- **Slice 1, run models and see how they did:**
+  - **Variables:** a default list from what's loaded (below), written as `default.ind_vars`; ones with blanks left out of linear models, or filled (a link to Fill blanks).
+  - **Models:** a picker with **Choose for me**.
+  - **Try:** the run, its own process (`python -m oakbox.model`), with progress per group and model (`progress.report` exists in `_run_models`), Stop, and the results kept as `out/oakbox/model/results.json` from `run_models`' return.
+  - **Results:** per model group, the models side by side, with the roll's own value beside them, judged as step 4 judges.
+- **Slice 2, values for every parcel and the ones that ship:**
+  - **Small groups:** a choice per group under the minimum (below), and no negative values shipped.
+  - **Finalize:** `finalize_models`, then the model values checked as step 4 checks the roll's, side by side. **Looks right** ends step 5.
+- **Slice 3, working on them:** outliers back into Check sales; testing variables; per-group variables and models; "why this value" from the contributions OpenAVMKit already writes (`contributions_universe.csv`).
+
+**Steps** (the tab continues after What changed): Fill blanks › Rare categories › Prepare the fields › What changed › **Variables** › **Models** › **Try them** (the run) › **How they did** › **Small groups** › **Finalize** (the run) › **Model values** (Looks right).
+- **Variables.** One table: each candidate with what it is, its coverage after Prepare, and whether it has blanks left. Ticked by default:
+  - **The big five:** finished area, land area, effective age (else age), quality, condition; units for multi-family.
+  - **Location:** normalized latitude and longitude, polar radius and angle; the location fields as categories (trees only).
+  - **Public data:** elevation, slope, distances (`dist_to_*`), census fields, when brought in.
+
+  Missing ones are skipped and named ("No quality: Data › Building"). Written as `modeling.models.main.default.ind_vars`. Said plainly: OpenAVMKit prunes the default list per group by its own variable tests (`feature_selection`: correlation, VIF, p-value, coefficient sign) before linear models use it; trees keep it all. A variable with blanks is **trees only** unless filled, said on its row with **Fill it…**.
+- **Models.** **Choose for me** (preselected): LightGBM and MRA on log price (`"log": true`, so no negative values), median ensemble. The picker lists each engine in a line: LightGBM, XGBoost, CatBoost (gradient-boosted trees: the most accurate, harder to explain), MRA (a linear model: explainable, needs every variable filled), multi-MRA (one per neighbourhood), GWR (slow), local-area (the neighbourhood's price per area: a baseline). The ensemble combines the chosen models, never the roll's value. Written as `modeling.instructions.main.run` and `.ensemble`. Speed: OpenAVMKit's default (5-fold nested cross-validation) on every size until a Quick tier is measured (M0: fewer folds is slower at 150k+); the run's time is said beforehand from the last run or the parcel count.
+- **Try them.** `try` (no values written for keeps), no vacant models (`run_vacant=False`, §3.10). The step shows each group and model as it trains.
+- **How they did.** A table per model group: a row per model, the ensemble marked as what would ship, and **The roll's value** as the first row (`pass_through` on `assr_market_value`, or step 4's study); columns as step 4's scorecard (Level, Uniformity, Cheaper vs dearer) on the **holdout** (each sale predicted by a model that never saw it), with the trimmed figures under them, and the sales. Said plainly: holdout figures are what to judge by; figures on the training sales flatter. A group may ship one model instead of the ensemble (the others skipped for that group: `instructions.main.skip.<group>`).
+- **Small groups** (any group under 15 sales, or whose models came out implausible: a holdout median ratio outside 0.5 to 2, or a negative value). Per group, one of:
+  - **Keep the roll's value** (preselected): `pass_through` of `assr_market_value`, said as such on every report;
+  - **Value with another group's model** (rarely right across property types: said so);
+  - **Model it anyway**, with its figures shown.
+
+  OpenAVMKit has no fallback for a skipped group yet (engine work, below).
+- **Finalize.** `finalize_models`: writes `out/models/` and the values (`market_value`). Then step 4's study on `market_value` (holdout, by group), shown beside the roll's.
+- **Model values** (Looks right): the scorecard, the roll's beside it, how many parcels got a model value, how many kept the roll's (and why), and the files.
+- **Out of date when** Prepare runs again, or a variable, model or small-group choice changes. Tuning is reused unless **Re-tune** (§3.10); Stop never deletes it.
+
+**Engine work** (opt-in, defaults unchanged):
+- **Results returned:** `try_models` and `finalize_models` return `run_models`' results (today they drop them). Small.
+- **No negative values:** an opt-in floor (`modeling.instructions.min_value`), with the count clipped reported; and a model whose holdout median ratio is outside a sane range left out of the ensemble (`ensemble.exclude_implausible`).
+- **Small-group fallback:** `modeling.instructions.main.fallback.<group>` = `{"pass_through": "<field>"}` or `{"model_group": "<other>"}`, so a skipped group still gets a value, marked as where it came from.
+- **`all_model_groups/universe.parquet`:** one `model_group` column, not `_x` and `_y`.
+- **Outliers machine-readable** (C-list B8) and **headless `try_variables`** (C1), for slice 3.
+
+**Open:** see the questions after the spike (2026-10-29): the small-group default, Choose for me's models, and whether variables are per group in slice 1.
+
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
 
@@ -895,6 +946,8 @@ Rules for both screens:
 - **Download problem list (Excel),** so the office can fix the source in its appraisal (CAMA) system.
 
 ### 3.10 Building model values (step 5)
+*Superseded by §3.0 F9 where they differ (the variables, models, small groups and the steps); kept for Re-tune, speed tiers and total value only.*
+
 **Variables.** At the start of step 5, the user picks a path. They can switch later.
 - **Plow forward** (default). OpenAVMKit has no built-in default variable list, so Oakbox ships one, using whichever of these fields are mapped or enriched:
   - **The "big five":** building size (finished area), land size, building age (effective age if available, otherwise age), building quality, building condition.
@@ -1425,7 +1478,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - Report presets and editable templates
   - Upstream: B1–B10
 - **M3 — "Build model values."**
-  - Step 5: both variable paths, the model picker, Try/Finalize, outlier review, speed tiers
+  - Step 5 (§3.0 F9): slice 1 (variables, models, Try, how they did), slice 2 (small groups, Finalize, model values checked), slice 3 (outliers, testing variables, per-group choices, why this value); speed tiers once measured
   - CAMA export
   - Model summary report
   - Upstream: C1–C3
