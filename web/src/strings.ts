@@ -1974,6 +1974,31 @@ export const t = {
       ran: (when: string, seconds: number) => `✓ Checked ${when} · ${seconds} s`,
       stale: "Out of date: Check sales ran again, or a call changed since.",
     },
+    // The summary's scorecard: a column per question, short words; the tips say what's measured.
+    card: {
+      level: "Level",
+      levelWhy:
+        "The median ratio (value ÷ sale price): are values near what parcels sell for? The standard asks for 0.90 to 1.10 (the whole confidence interval outside it fails).",
+      uniform: "Uniformity",
+      uniformWhy:
+        "The COD: how far ratios typically sit from the median, as a % of it. Each group's category sets its range (single-family 5 to 15, say); under the range is suspiciously even (sales chasing, or an unrepresentative sample).",
+      vertical: "Cheaper vs dearer",
+      verticalWhy:
+        "Are dearer parcels valued relatively higher or lower than cheaper ones? The VEI (the IAAO's vertical equity test), or with too few sales for it, the PRB.",
+      inRange: "in range",
+      low: "too low",
+      high: "too high",
+      even: "uniform",
+      varied: "too varied",
+      tooEven: "suspiciously even",
+      alike: "alike",
+      notSignificant: "no significant difference",
+      dearerHigher: "dearer valued higher",
+      dearerLower: "dearer valued lower",
+      notJudged: "not judged",
+      tooFew: "Too few sales to judge: shown, not judged.",
+      noSales: "No sales in the window: not checked.",
+    },
     summary: {
       share: (pct: number) => `about ${pct}%`,
       head: (name: string, pct: number, start: string, end: string) =>
@@ -1990,17 +2015,6 @@ export const t = {
         ` Suspiciously uniform: ${names}, under the category's range: check for sales chasing or an unrepresentative sample.`,
       vertical: (names: string) => ` Significant vertical inequity: ${names}.`,
       noVertical: " No significant vertical inequity.",
-      values: (pct: number) => `Values are about ${pct}% of sale prices`,
-      uniformLine: "Uniform",
-      notUniformLine: "Not uniform enough",
-      suspectLine: "Suspiciously uniform",
-      alike: "Cheaper and dearer parcels valued alike",
-      dearerHigher: "Dearer parcels valued relatively higher",
-      dearerLower: "Dearer parcels valued relatively lower",
-      noSales: "No sales in the window: not checked.",
-      notJudged: (median: string, n: number) =>
-        `Median ratio ${median} on ${n} ${n === 1 ? "sale" : "sales"}: shown, not judged.`,
-      sales: (n: number) => `${n.toLocaleString()} ${n === 1 ? "sale" : "sales"}`,
       nominal: (n: number, names: string) =>
         n === 1
           ? `A trimmed sale has a nominal price (${names}): likely not a sale, but Check sales kept it.`
@@ -2090,8 +2104,6 @@ export const t = {
       untrimmed:
         "Untrimmed, these would swing the statistics: a $10 deed makes a ratio in the tens of thousands.",
     },
-    advanced:
-      "Not an IAAO test: openratiostudy.com's further analysis, to tell real inequity from invalid sales.",
     map: {
       lede: "Each sale where its parcel is, coloured by its ratio. Clusters of red or blue show where values are off; scattered colour is noise or invalid sales.",
       label: "Map of sales by ratio",

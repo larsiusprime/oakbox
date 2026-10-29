@@ -235,7 +235,6 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       {AFTER.includes(current) && rc && result && (
         <>
           <StepBody kicker={r.kicker} {...(current === "prices" ? {} : { title: r.steps[current] })}>
-            {(current === "map" || current === "regions") && <div className="rv-advanced">{r.advanced}</div>}
             {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
             {current === "summary" && (
               <Summary result={result} receipt={rc} nominal={nominal.length} see={() => go("extreme")} />
@@ -660,11 +659,7 @@ function Summary({
   return (
     <div className="rv-cards">
       <p className="rv-head">{text}</p>
-      <div className="rv-grid">
-        {result.groups.map((g) => (
-          <GroupCard key={g.id} g={g} />
-        ))}
-      </div>
+      <Scorecard groups={result.groups} />
       {nominal > 0 && (
         <div className="bi-warn">
           {r.summary.nominal(nominal, names)}{" "}
@@ -686,58 +681,137 @@ function Summary({
   );
 }
 
-function GroupCard({ g }: { g: RatioStudy }) {
-  const v = g.verdict;
-  const head = (
-    <b>
-      <span className="mg-sw ab-sw" style={{ background: g.color }} />
-      {g.name}
-      {g.sales > 0 && <span className="wiz-from"> · {r.summary.sales(g.sales)}</span>}
-    </b>
-  );
-  if (!g.sales || g.median === null || g.median === undefined)
-    return (
-      <div className="rv-card">
-        {head}
-        <span className="wiz-from">{r.summary.noSales}</span>
-      </div>
-    );
-  if (!v?.judged)
-    return (
-      <div className="rv-card">
-        {head}
-        <span className="wiz-from">{r.summary.notJudged(ratioText(g.median), g.sales)}</span>
-      </div>
-    );
-  // The VEI decides; with too few sales for it, the PRB.
-  const byVei = g.vei_verdict && g.vei_verdict !== "insufficient";
-  const tilted = byVei ? g.vei_verdict === "regressive" || g.vei_verdict === "progressive" : v.prb === false;
-  const lower = byVei ? g.vei_verdict === "regressive" : (g.prb ?? 0) < 0;
-  const vertical = tilted ? (lower ? r.summary.dearerLower : r.summary.dearerHigher) : r.summary.alike;
+/** One line per model group, its three questions in columns: a mark, the figure, a word, aligned down the table so
+ * groups compare at a glance. */
+function Scorecard({ groups }: { groups: RatioStudy[] }) {
+  const c = r.card;
   return (
-    <div className="rv-card">
-      {head}
-      <span>
-        {r.summary.values(pct(g.median))}{" "}
-        <Badge ok={v.level} label={`${r.table.median} ${num(g.median, 2)}`} />
+    <table className="bi-tbl cs-tbl rv-score">
+      <thead>
+        <tr>
+          <th>{r.table.group}</th>
+          <th className="cs-n">{r.table.sales}</th>
+          <th>
+            <InfoTip label={c.level} text={c.levelWhy} />
+          </th>
+          <th>
+            <InfoTip label={c.uniform} text={c.uniformWhy} />
+          </th>
+          <th>
+            <InfoTip label={c.vertical} text={c.verticalWhy} />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {groups.map((g) => {
+          const v = g.verdict;
+          const name = (
+            <td>
+              <span className="mg-sw ab-sw" style={{ background: g.color }} />
+              {g.name}
+            </td>
+          );
+          if (!g.sales || g.median == null)
+            return (
+              <tr key={g.id}>
+                {name}
+                <td className="cs-n">0</td>
+                <td colSpan={3} className="wiz-from">
+                  {c.noSales}
+                </td>
+              </tr>
+            );
+          if (!v?.judged)
+            return (
+              <tr key={g.id}>
+                {name}
+                <td className="cs-n">{num(g.sales)}</td>
+                <td>
+                  <Score ok={null} figure={ratioText(g.median)} />
+                </td>
+                <td colSpan={2} className="wiz-from">
+                  {c.tooFew}
+                </td>
+              </tr>
+            );
+          // The VEI decides; with too few sales for it, the PRB.
+          const byVei = g.vei_verdict && g.vei_verdict !== "insufficient";
+          const tilted = byVei
+            ? g.vei_verdict === "regressive" || g.vei_verdict === "progressive"
+            : v.prb === false;
+          const lower = byVei ? g.vei_verdict === "regressive" : (g.prb ?? 0) < 0;
+          return (
+            <tr key={g.id}>
+              {name}
+              <td className="cs-n">{num(g.sales)}</td>
+              <td>
+                <Score
+                  ok={v.level}
+                  figure={ratioText(g.median)}
+                  word={v.level ? c.inRange : g.median < 1 ? c.low : c.high}
+                />
+              </td>
+              <td>
+                <Score
+                  ok={v.cod_low ? false : v.cod}
+                  figure={num(g.cod, 1)}
+                  word={v.cod_low ? c.tooEven : v.cod === false ? c.varied : c.even}
+                />
+              </td>
+              <td>
+                <Score
+                  ok={byVei ? veiOk(g) : v.prb}
+                  figure={
+                    byVei && g.vei != null
+                      ? `${signed(g.vei, 1)}%`
+                      : `${g.prb == null ? "—" : signed(g.prb, 3)}`
+                  }
+                  word={
+                    tilted
+                      ? lower
+                        ? c.dearerLower
+                        : c.dearerHigher
+                      : g.vei_verdict === "not_significant"
+                        ? c.notSignificant
+                        : c.alike
+                  }
+                  note={byVei ? "VEI" : "PRB"}
+                />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+/** A verdict cell: mark, figure and word in the same three columns on every row. */
+function Score({
+  ok,
+  figure,
+  word,
+  note,
+}: {
+  ok: boolean | null | undefined;
+  figure: string;
+  word?: string;
+  note?: string;
+}) {
+  return (
+    <span className="rv-score-cell">
+      <span
+        className={ok == null ? "rv-mark" : ok ? "rv-mark rv-mark-ok" : "rv-mark rv-mark-bad"}
+        aria-hidden="true"
+      >
+        {ok == null ? "–" : ok ? "✓" : "✗"}
       </span>
-      <span>
-        {v.cod_low
-          ? r.summary.suspectLine
-          : v.cod === false
-            ? r.summary.notUniformLine
-            : r.summary.uniformLine}{" "}
-        <Badge ok={v.cod} label={`COD ${num(g.cod, 1)}`} />
-        {v.cod_low && <span className="rv-pill rv-bad"> {r.table.low}</span>}
+      <span className="rv-fig">
+        {figure}
+        {note && <span className="wiz-from"> {note}</span>}
       </span>
-      <span>
-        {vertical}{" "}
-        {g.vei_verdict && g.vei_verdict !== "insufficient" && (
-          <Badge ok={veiOk(g)} label={`VEI ${r.table.verdicts[g.vei_verdict] ?? g.vei_verdict}`} />
-        )}{" "}
-        <Badge ok={v.prb} label={`PRB ${g.prb == null ? "—" : signed(g.prb, 3)}`} />
-      </span>
-    </div>
+      <span className={ok === false ? "rv-word rv-word-bad" : "rv-word"}>{word ?? r.card.notJudged}</span>
+    </span>
   );
 }
 

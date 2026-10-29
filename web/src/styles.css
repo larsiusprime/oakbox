@@ -4837,20 +4837,6 @@ tr.bi-kept > td {
   font-size: 1.02rem;
   line-height: 1.5;
 }
-.rv-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
-  gap: 0.6rem;
-}
-.rv-card {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.7rem;
-  display: grid;
-  gap: 0.3rem;
-  font-size: 0.9rem;
-  align-content: start;
-}
 .rv-chart {
   width: 100%;
   display: block;
@@ -4885,14 +4871,6 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   border: 1px solid;
   margin-right: 0.3rem;
   vertical-align: -1px;
-}
-.rv-advanced {
-  justify-self: start;
-  padding: 0.2rem 0.6rem;
-  border: 1px dashed #c9a24a;
-  border-radius: var(--radius);
-  background: #fffaf0;
-  font-size: 0.84rem;
 }
 .rv-every {
   display: block;
@@ -4934,4 +4912,31 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
 }
 .leaflet-control-layers-overlays input {
   margin: 0;
+}
+
+/* Step 4's scorecard: mark, figure and word line up down each column. */
+.rv-score-cell {
+  display: inline-grid;
+  grid-template-columns: 1.1em 5.5em auto;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+.rv-mark {
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.rv-mark-ok {
+  color: #1d6b3a;
+}
+.rv-mark-bad {
+  color: #b42318;
+}
+.rv-fig {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.rv-word-bad {
+  color: #9b1c1c;
 }
