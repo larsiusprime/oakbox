@@ -1633,8 +1633,8 @@ export const t = {
       `✓ ${used.toLocaleString()} sales for modeling, ${aside.toLocaleString()} set aside for you to look at`,
     lookAt: (n: number) => `Look at the ${n.toLocaleString()} sales set aside ›`,
     changeCalls: "Change the calls…",
-    looksRight: "Looks right",
-    accepted: "✓ Looks right",
+    looksRight: "Looks right › Check my values",
+    toValues: "Check my values ›",
     patterns: {
       title: "Far from their group, by pattern",
       lede: (flagged: number, sales: number, name: string) =>
@@ -2127,8 +2127,8 @@ export const t = {
       lowest: "Cheapest",
       highest: "Dearest",
     },
-    accepted: "✓ Accepted",
-    looksRight: "Looks right",
+    looksRight: "Looks right › Model values",
+    toValues: "Model values ›",
   },
 
   // Step 5, Build model values: it begins by preparing the fields for the models.

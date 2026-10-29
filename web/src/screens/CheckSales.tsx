@@ -202,6 +202,7 @@ export function SalesTab({
   const prev = CS_STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
   const onward = { label: t.wizard.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
+  const toValues = () => navigate({ name: "project", id: projectId, tab: "check" });
   const kicker = s.kicker;
   const loading = <p className="empty">{setup.error?.message ?? t.project.loading}</p>;
   const errors = (
@@ -323,11 +324,11 @@ export function SalesTab({
             note={v.stale ? s.review.apply : null}
             next={
               v.accepted
-                ? { label: s.accepted, onPress: () => {}, disabled: true }
+                ? { label: s.toValues, onPress: toValues }
                 : {
                     label: s.looksRight,
                     disabled: v.stale || act.isPending,
-                    onPress: () => act.mutate("accept"),
+                    onPress: () => act.mutate("accept", { onSuccess: toValues }),
                   }
             }
           />
@@ -1491,6 +1492,12 @@ function SaleView({
 }) {
   const queryClient = useQueryClient();
   const [note, setNote] = useState(i.note);
+  // A new sale opens at its top: scrolled down to Next, the page would otherwise show its middle.
+  const top = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = top.current;
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
+  }, []);
   const detail = useQuery({
     queryKey: ["clean-sale", projectId, i.key_sale],
     queryFn: async () =>
@@ -1518,7 +1525,7 @@ function SaleView({
   const decide = (action: "keep" | "exclude" | null) =>
     mark.mutate({ key: i.key_sale, action, note }, { onSuccess: () => action && next() });
   return (
-    <section className="bi-card cs-detail" aria-label={i.address ?? i.key}>
+    <section ref={top} className="bi-card cs-detail" aria-label={i.address ?? i.key}>
       <h3>
         {i.address ?? i.key}{" "}
         <span className="wiz-from">{s.review.head(i.group_name, day(i.sale_date), i.key_sale)}</span>
@@ -1578,42 +1585,45 @@ function SaleView({
           {s.review.data(num(d.area), u, i.vacant, d.year_built, money(d.raw_price, currency))}
         </p>
       )}
-      <TextField className="cs-note-field" value={note} onChange={setNote} aria-label={s.review.noteLabel}>
-        <TextArea className="cs-note" placeholder={s.review.notePlaceholder} />
-      </TextField>
-      <div className="cs-actions">
-        {i.status === "undecided" ? (
-          <>
-            <Button
-              className="button"
-              isDisabled={!i.checks.length || !note.trim() || mark.isPending}
-              onPress={() => decide("keep")}
-            >
-              {s.review.keep}
-            </Button>
-            <Button className="button" isDisabled={mark.isPending} onPress={() => decide("exclude")}>
-              {s.review.exclude}
-            </Button>
-            <span className="wiz-from">{s.review.keepNote}</span>
-          </>
-        ) : (
-          <>
-            <span className="wiz-ok">{i.status === "kept" ? s.review.isKept : s.review.isExcluded}</span>
-            <Button className="button" isDisabled={mark.isPending} onPress={() => decide(null)}>
-              {s.review.undo}
-            </Button>
-          </>
+      {/* Pinned to the bottom of the window: Keep, Exclude and Next stay put from sale to sale. */}
+      <div className="cs-decide">
+        <TextField className="cs-note-field" value={note} onChange={setNote} aria-label={s.review.noteLabel}>
+          <TextArea className="cs-note" placeholder={s.review.notePlaceholder} />
+        </TextField>
+        <div className="cs-actions">
+          {i.status === "undecided" ? (
+            <>
+              <Button
+                className="button"
+                isDisabled={!i.checks.length || !note.trim() || mark.isPending}
+                onPress={() => decide("keep")}
+              >
+                {s.review.keep}
+              </Button>
+              <Button className="button" isDisabled={mark.isPending} onPress={() => decide("exclude")}>
+                {s.review.exclude}
+              </Button>
+              <span className="wiz-from">{s.review.keepNote}</span>
+            </>
+          ) : (
+            <>
+              <span className="wiz-ok">{i.status === "kept" ? s.review.isKept : s.review.isExcluded}</span>
+              <Button className="button" isDisabled={mark.isPending} onPress={() => decide(null)}>
+                {s.review.undo}
+              </Button>
+            </>
+          )}
+          <span className="bi-grow" />
+          <Button className="wiz-link" onPress={next}>
+            {s.review.next}
+          </Button>
+        </div>
+        {mark.error && (
+          <p className="error" role="alert">
+            {mark.error.message}
+          </p>
         )}
-        <span className="bi-grow" />
-        <Button className="wiz-link" onPress={next}>
-          {s.review.next}
-        </Button>
       </div>
-      {mark.error && (
-        <p className="error" role="alert">
-          {mark.error.message}
-        </p>
-      )}
     </section>
   );
 }

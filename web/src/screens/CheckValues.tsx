@@ -3,6 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { Button, Radio, RadioGroup } from "react-aria-components";
+import { navigate } from "../App";
 import {
   api,
   type FieldResult,
@@ -156,6 +157,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const i = STEPS.indexOf(current);
   const prev = STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
+  const toValues = () => navigate({ name: "project", id: projectId, tab: "values" });
   const onward = { label: t.wizard.next, onPress: () => go(STEPS[i + 1] ?? current) };
   const u = setup.data;
   const set = (body: RatioPatch) => change.mutate(body);
@@ -280,11 +282,11 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
               current !== "extreme"
                 ? onward
                 : v.accepted
-                  ? { label: r.accepted, onPress: () => {}, disabled: true }
+                  ? { label: r.toValues, onPress: toValues }
                   : {
                       label: r.looksRight,
                       disabled: v.stale || act.isPending,
-                      onPress: () => act.mutate("accept"),
+                      onPress: () => act.mutate("accept", { onSuccess: toValues }),
                     }
             }
           />

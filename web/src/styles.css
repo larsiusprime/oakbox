@@ -4574,6 +4574,19 @@ tr.bi-kept > td {
   font: inherit;
   font-size: 0.86rem;
 }
+.cs-decide {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 -0.8rem -0.6rem;
+  padding: 0.5rem 0.8rem 0.6rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: #fff;
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -4px 8px -6px rgb(0 0 0 / 0.25);
+}
 .cs-actions {
   display: flex;
   gap: 0.5rem;
