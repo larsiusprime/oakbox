@@ -12,11 +12,12 @@ import { t } from "../strings";
 import { useAssemble } from "./Assemble";
 import { BringInTab, useAccepted } from "./BringIn";
 import { SalesTab, useSalesAccepted } from "./CheckSales";
+import { CheckValuesTab } from "./CheckValues";
 import { FieldsTab } from "./FieldsWizard";
 import { ModelGroupsTab } from "./ModelGroups";
 import { ValuesTab } from "./ModelValues";
 
-export const TABS = ["metadata", "files", "fields", "bring", "groups", "sales", "values"] as const;
+export const TABS = ["metadata", "files", "fields", "bring", "groups", "sales", "check", "values"] as const;
 export type TabId = (typeof TABS)[number];
 const PLACEHOLDERS = ["later-1"] as const;
 
@@ -67,14 +68,14 @@ function ProjectView({
           ? accepted
             ? "groups"
             : "bring"
-          : tab === "values" && !checked
+          : (tab === "values" || tab === "check") && !checked
             ? "sales"
             : tab;
   const locked = [
     ...PLACEHOLDERS,
     ...(accepted ? [] : ["groups"]),
     ...(grouped ? [] : ["sales"]),
-    ...(checked ? [] : ["values"]),
+    ...(checked ? [] : ["check", "values"]),
   ];
 
   return (
@@ -115,6 +116,9 @@ function ProjectView({
           <Tab id="sales" className="folder-tab" aria-description={grouped ? undefined : t.tabs.salesLocked}>
             {t.tabs.sales}
           </Tab>
+          <Tab id="check" className="folder-tab" aria-description={checked ? undefined : t.tabs.valuesLocked}>
+            {t.tabs.check}
+          </Tab>
           <Tab
             id="values"
             className="folder-tab"
@@ -146,6 +150,9 @@ function ProjectView({
             currency={project.currency}
             place={`${project.jurisdiction}, ${project.region}`}
           />
+        </TabPanel>
+        <TabPanel id="check" className="folder-panel">
+          <CheckValuesTab projectId={projectId} currency={project.currency} />
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
           <ValuesTab projectId={projectId} />

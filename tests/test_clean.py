@@ -175,6 +175,22 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     assert _wait(client, url)["status"] == "done"
     assert client.post(f"{url}/accept").json()["accepted"]
 
+    # Step 4: the values checked against the sales Check sales kept.
+    rv = f"/api/projects/{pid}/ratio"
+    setup = client.get(f"{rv}/setup").json()
+    assert [f["field"] for f in setup["fields"] if f["chosen"]] == ["assr_market_value"]
+    if setup["fields"]:
+        client.patch(f"{rv}/setup", json={"start": "2020-01-01"})
+        assert client.post(f"{rv}/run").json()["status"] == "running"
+        view = _wait(client, rv)
+        assert view["status"] == "done", view["job"]
+        result = view["receipt"]["results"][0]
+        assert {g["id"] for g in result["groups"]} == {g["id"] for g in groups}
+        assert result["overall"]["sales"] == sum(g["sales"] for g in result["groups"])
+        assert client.post(f"{rv}/accept").json()["accepted"]
+        client.patch(f"{rv}/setup", json={"price": "sold", "targets": {**setup["targets"], "level_low": 0.5}})
+        assert client.get(rv).json()["stale"]
+
     # Step 5 begins: the fills and folding Check sales left out, on what it wrote.
     client.patch(f"{url}/setup", json={"collapse": True, "collapse_sales_min": 2, "collapse_univ_min": 2})
     assert not client.get(url).json()["stale"]  # the fields' preparation doesn't put Check sales out of date

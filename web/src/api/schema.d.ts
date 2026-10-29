@@ -1701,6 +1701,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ratio State */
+        get: operations["ratio_state_api_projects__project_id__ratio_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Setup
+         * @description The values to check, the window (proposed), the price, the targets and each group's class.
+         */
+        get: operations["ratio_setup_api_projects__project_id__ratio_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Ratio Change */
+        patch: operations["ratio_change_api_projects__project_id__ratio_setup_patch"];
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ratio Run
+         * @description Check the values: OpenAVMKit's value-field studies on the sales Check sales kept.
+         */
+        post: operations["ratio_run_api_projects__project_id__ratio_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ratio Stop */
+        post: operations["ratio_stop_api_projects__project_id__ratio_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ratio Accept */
+        post: operations["ratio_accept_api_projects__project_id__ratio_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/ratio/points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Points
+         * @description Each sale studied: its price, its ratio, and whether it was trimmed.
+         */
+        get: operations["ratio_points_api_projects__project_id__ratio_points_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -2069,7 +2181,7 @@ export interface components {
              */
             period: "M" | "Q";
             /** Groups */
-            groups: components["schemas"]["GroupSetup"][];
+            groups: components["schemas"]["oakbox__clean__GroupSetup"][];
             /** Fills */
             fills: components["schemas"]["FillRow"][];
             /**
@@ -3038,6 +3150,25 @@ export interface components {
              */
             named: boolean;
         };
+        /** FieldChoice */
+        FieldChoice: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Parcels
+             * @description Parcels with a value above zero.
+             */
+            parcels: number;
+            /** Chosen */
+            chosen: boolean;
+            /**
+             * Note
+             * @description Why it can't be checked against sales, if it can't.
+             */
+            note: string | null;
+        };
         /** FieldFold */
         FieldFold: {
             /** Field */
@@ -3088,6 +3219,21 @@ export interface components {
             /** @description Numbers: how the values spread. */
             histogram: components["schemas"]["Histogram"] | null;
         };
+        /** FieldResult */
+        FieldResult: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Groups */
+            groups: components["schemas"]["Study"][];
+            overall: components["schemas"]["Study"];
+            /**
+             * Trimmed
+             * @description Furthest from the rest first.
+             */
+            trimmed: components["schemas"]["Trimmed"][];
+        };
         /** FieldRow */
         FieldRow: {
             /** Field */
@@ -3107,6 +3253,17 @@ export interface components {
             source: string;
             /** Note */
             note: string | null;
+        };
+        /** Fifth */
+        Fifth: {
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+            /** Sales */
+            sales: number;
+            /** Median */
+            median: number;
         };
         /**
          * FileCheck
@@ -3423,32 +3580,6 @@ export interface components {
              * @description The price index over time (first = 1), about 40 points.
              */
             curve: number[];
-        };
-        /** GroupSetup */
-        GroupSetup: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Color */
-            color: string;
-            /**
-             * Sales
-             * @description Valid sales in the window.
-             */
-            sales: number;
-            /**
-             * Per Year
-             * @description Price change a year found last run, percent; None: none or not run.
-             */
-            per_year: number | null;
-            /**
-             * Borrow
-             * @description The group whose time adjustment it uses.
-             */
-            borrow: string | null;
-            /** @description Its own time adjustment file. */
-            file: components["schemas"]["TimeFile"] | null;
         };
         /** GroupStats */
         GroupStats: {
@@ -4795,6 +4926,8 @@ export interface components {
             enrich: components["schemas"]["Enrichments-Output"] | null;
             /** @description Step 3, Check sales: its calls (F6). */
             clean: components["schemas"]["CleanState"];
+            /** @description Step 4, Check my values: its calls (F8). */
+            ratio: components["schemas"]["RatioState"];
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -4810,6 +4943,175 @@ export interface components {
             folder: string;
             /** Files */
             files: components["schemas"]["InputFile"][];
+        };
+        /** RatioPatch */
+        RatioPatch: {
+            /** Fields */
+            fields?: string[] | null;
+            /** Start */
+            start?: string | null;
+            /** End */
+            end?: string | null;
+            /**
+             * Reset Window
+             * @description True: back to the proposed window.
+             */
+            reset_window?: boolean | null;
+            /** Price */
+            price?: ("sold" | "time_adjusted") | null;
+            targets?: components["schemas"]["Targets-Input"] | null;
+            /**
+             * Classes
+             * @description Merged into the groups' classes.
+             */
+            classes?: {
+                [key: string]: "residential" | "income" | "vacant" | "none";
+            } | null;
+            /** Trim */
+            trim?: boolean | null;
+        };
+        /** RatioReceipt */
+        RatioReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /**
+             * Price
+             * @enum {string}
+             */
+            price: "sold" | "time_adjusted";
+            /** Trim */
+            trim: boolean;
+            /** Results */
+            results: components["schemas"]["FieldResult"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** RatioSetup */
+        RatioSetup: {
+            /** Fields */
+            fields: components["schemas"]["FieldChoice"][];
+            /**
+             * Valuation Date
+             * Format: date
+             */
+            valuation_date: string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /**
+             * Proposed Start
+             * Format: date
+             */
+            proposed_start: string;
+            /**
+             * Window Proposed
+             * @description The window is the one proposed (not chosen).
+             */
+            window_proposed: boolean;
+            /** First Sale */
+            first_sale: string | null;
+            /** Last Sale */
+            last_sale: string | null;
+            /**
+             * Year Before
+             * @description Sales studied in the year before the valuation date (the IAAO's window).
+             */
+            year_before: number;
+            /**
+             * Price
+             * @enum {string}
+             */
+            price: "sold" | "time_adjusted";
+            /**
+             * Time Adjusted
+             * @description Check sales brought prices to the valuation date (time adjustment on).
+             */
+            time_adjusted: boolean;
+            targets: components["schemas"]["Targets-Output"];
+            /** Groups */
+            groups: components["schemas"]["oakbox__ratio__GroupSetup"][];
+            /** Funnel */
+            funnel: components["schemas"]["SalesLine"][];
+            /** Trim */
+            trim: boolean;
+        };
+        /** RatioState */
+        RatioState: {
+            /**
+             * Fields
+             * @description Value fields checked.
+             */
+            fields: string[];
+            /**
+             * Start
+             * @description First sale date; None: proposed.
+             */
+            start: string | null;
+            /**
+             * End
+             * @description Last sale date; None: the day before valuation.
+             */
+            end: string | null;
+            /**
+             * Price
+             * @default sold
+             * @enum {string}
+             */
+            price: "sold" | "time_adjusted";
+            targets: components["schemas"]["Targets-Output"];
+            /**
+             * Classes
+             * @description Group -> class; missing: proposed.
+             */
+            classes: {
+                [key: string]: "residential" | "income" | "vacant" | "none";
+            };
+            /**
+             * Trim
+             * @description Leave outlying ratios (1.5 x IQR) out of the statistics, listed.
+             * @default true
+             */
+            trim: boolean;
+        };
+        /** RatioView */
+        RatioView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["RatioReceipt"] | null;
+            /**
+             * Stale
+             * @description Check sales ran again, or a call changed, since it ran.
+             */
+            stale: boolean;
+            /** Blocked */
+            blocked: string[];
+            /** Accepted */
+            accepted: boolean;
         };
         /** Receipt */
         Receipt: {
@@ -5346,6 +5648,18 @@ export interface components {
              */
             note: string;
         };
+        /** SalesLine */
+        SalesLine: {
+            /**
+             * Sign
+             * @enum {string}
+             */
+            sign: "" | "-" | "=";
+            /** Count */
+            count: number;
+            /** Text */
+            text: string;
+        };
         /** Sample */
         Sample: {
             /**
@@ -5604,6 +5918,88 @@ export interface components {
              */
             storage_location?: string | null;
         };
+        /** Stratum */
+        Stratum: {
+            /** N */
+            n: number;
+            /** Median */
+            median: number | null;
+            /** Low */
+            low: number | null;
+            /** High */
+            high: number | null;
+        };
+        /**
+         * Study
+         * @description One model group's (or all groups') study of one value field.
+         */
+        Study: {
+            /**
+             * Id
+             * @description The model group; "" for all groups.
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Cls */
+            cls: ("residential" | "income" | "vacant" | "none") | null;
+            /**
+             * Sales
+             * @description Sales in the statistics (after trimming).
+             */
+            sales: number;
+            /** Trimmed */
+            trimmed: number;
+            /** Parcels */
+            parcels: number;
+            /** Median */
+            median: number | null;
+            /**
+             * Low
+             * @description The median's interval (90%, the IAAO's order statistics).
+             */
+            low: number | null;
+            /** High */
+            high: number | null;
+            /** Cod */
+            cod: number | null;
+            /** Prd */
+            prd: number | null;
+            /** Prb */
+            prb: number | null;
+            /** Vei */
+            vei: number | null;
+            /** Vei Significance */
+            vei_significance: number | null;
+            /**
+             * Vei Verdict
+             * @description compliant, inconclusive, regressive, progressive or insufficient.
+             */
+            vei_verdict: string | null;
+            /**
+             * Strata
+             * @description The VEI's percentile groups, low to high.
+             */
+            strata: components["schemas"]["Stratum"][];
+            /**
+             * Fifths
+             * @description Median ratio by fifths of sales, by price.
+             */
+            fifths: components["schemas"]["Fifth"][];
+            /**
+             * Clusters
+             * @description Groups of similar parcels (equity clusters).
+             */
+            clusters: number | null;
+            /**
+             * Median Chd
+             * @description Their median spread of values (CHD).
+             */
+            median_chd: number | null;
+            verdict: components["schemas"]["Verdict"] | null;
+        };
         /** Suggestion */
         Suggestion: {
             /**
@@ -5617,6 +6013,134 @@ export interface components {
             file_steps: components["schemas"]["CleanStep-Output"][];
             /** Share */
             share: number;
+        };
+        /**
+         * Targets
+         * @description What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the
+         *     May 2026 exposure draft), each editable.
+         */
+        "Targets-Input": {
+            /**
+             * Level Low
+             * @default 0.9
+             */
+            level_low: number;
+            /**
+             * Level High
+             * @default 1.1
+             */
+            level_high: number;
+            /**
+             * Prd Low
+             * @default 0.98
+             */
+            prd_low: number;
+            /**
+             * Prd High
+             * @default 1.03
+             */
+            prd_high: number;
+            /**
+             * Prb Low
+             * @default -0.05
+             */
+            prb_low: number;
+            /**
+             * Prb High
+             * @default 0.05
+             */
+            prb_high: number;
+            /**
+             * Vei
+             * @description The most a VEI may stray, percent, before it can be a finding.
+             * @default 10
+             */
+            vei: number;
+            /**
+             * Min Sales
+             * @description Fewer sales (after trimming): shown, not judged.
+             * @default 5
+             */
+            min_sales: number;
+            /**
+             * Cod Residential
+             * @default 15
+             */
+            cod_residential: number;
+            /**
+             * Cod Income
+             * @default 20
+             */
+            cod_income: number;
+            /**
+             * Cod Vacant
+             * @default 25
+             */
+            cod_vacant: number;
+        };
+        /**
+         * Targets
+         * @description What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the
+         *     May 2026 exposure draft), each editable.
+         */
+        "Targets-Output": {
+            /**
+             * Level Low
+             * @default 0.9
+             */
+            level_low: number;
+            /**
+             * Level High
+             * @default 1.1
+             */
+            level_high: number;
+            /**
+             * Prd Low
+             * @default 0.98
+             */
+            prd_low: number;
+            /**
+             * Prd High
+             * @default 1.03
+             */
+            prd_high: number;
+            /**
+             * Prb Low
+             * @default -0.05
+             */
+            prb_low: number;
+            /**
+             * Prb High
+             * @default 0.05
+             */
+            prb_high: number;
+            /**
+             * Vei
+             * @description The most a VEI may stray, percent, before it can be a finding.
+             * @default 10
+             */
+            vei: number;
+            /**
+             * Min Sales
+             * @description Fewer sales (after trimming): shown, not judged.
+             * @default 5
+             */
+            min_sales: number;
+            /**
+             * Cod Residential
+             * @default 15
+             */
+            cod_residential: number;
+            /**
+             * Cod Income
+             * @default 20
+             */
+            cod_income: number;
+            /**
+             * Cod Vacant
+             * @default 25
+             */
+            cod_vacant: number;
         };
         /** Tier */
         Tier: {
@@ -5772,6 +6296,30 @@ export interface components {
             seconds: number;
             /** Groups */
             groups: components["schemas"]["TimeGroup"][];
+        };
+        /** Trimmed */
+        Trimmed: {
+            /** Key Sale */
+            key_sale: string;
+            /** Group */
+            group: string;
+            /** Group Name */
+            group_name: string;
+            /** Address */
+            address: string | null;
+            /** Sale Date */
+            sale_date: string | null;
+            /** Price */
+            price: number;
+            /** Value */
+            value: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Nominal
+             * @description A price under 1,000: likely a nominal deed, not a sale.
+             */
+            nominal: boolean;
         };
         /** UnitExample */
         UnitExample: {
@@ -6000,6 +6548,23 @@ export interface components {
             value: string;
             /** Count */
             count: number;
+        };
+        /** Verdict */
+        Verdict: {
+            /** Judged */
+            judged: boolean;
+            /** Level */
+            level: boolean | null;
+            /** Cod */
+            cod: boolean | null;
+            /** Cod Target */
+            cod_target: number | null;
+            /** Prd */
+            prd: boolean | null;
+            /** Prb */
+            prb: boolean | null;
+            /** Vei */
+            vei: boolean | null;
         };
         /** Versions */
         Versions: {
@@ -6473,6 +7038,56 @@ export interface components {
             improved: number;
             /** Vacant */
             vacant: number;
+        };
+        /** GroupSetup */
+        oakbox__clean__GroupSetup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /**
+             * Sales
+             * @description Valid sales in the window.
+             */
+            sales: number;
+            /**
+             * Per Year
+             * @description Price change a year found last run, percent; None: none or not run.
+             */
+            per_year: number | null;
+            /**
+             * Borrow
+             * @description The group whose time adjustment it uses.
+             */
+            borrow: string | null;
+            /** @description Its own time adjustment file. */
+            file: components["schemas"]["TimeFile"] | null;
+        };
+        /** GroupSetup */
+        oakbox__ratio__GroupSetup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /**
+             * Cls
+             * @enum {string}
+             */
+            cls: "residential" | "income" | "vacant" | "none";
+            /**
+             * Proposed
+             * @description The class is proposed from the group's name, not chosen.
+             */
+            proposed: boolean;
+            /**
+             * Sales
+             * @description Sales studied in the window.
+             */
+            sales: number;
         };
     };
     responses: never;
@@ -9527,6 +10142,234 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrepareView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_state_api_projects__project_id__ratio_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_setup_api_projects__project_id__ratio_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_change_api_projects__project_id__ratio_setup_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatioPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_run_api_projects__project_id__ratio_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_stop_api_projects__project_id__ratio_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_accept_api_projects__project_id__ratio_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatioView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_points_api_projects__project_id__ratio_points_get: {
+        parameters: {
+            query: {
+                field: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": [
+                        number,
+                        number,
+                        boolean
+                    ][];
                 };
             };
             /** @description Validation Error */

@@ -33,6 +33,7 @@ from oakbox import (
     names,
     prepare,
     projects,
+    ratio,
     time_preview,
     wizard,
 )
@@ -1378,6 +1379,68 @@ def create_app() -> FastAPI:
             raise HTTPException(409, str(e)) from e
         projects.save(project)
         return _prepare_view(project)
+
+    # ---------- Step 4, Check my values (F8) ----------
+
+    def _ratio_view(project: projects.Project) -> ratio.RatioView:
+        return ratio.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/ratio")
+    def ratio_state(project_id: str) -> ratio.RatioView:
+        return _ratio_view(_load(project_id))
+
+    @app.get("/api/projects/{project_id}/ratio/setup")
+    def ratio_setup(project_id: str) -> ratio.RatioSetup:
+        """The values to check, the window (proposed), the price, the targets and each group's class."""
+        project = _load(project_id)
+        try:
+            return ratio.setup(project, projects.project_dir(project_id))
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+
+    @app.patch("/api/projects/{project_id}/ratio/setup")
+    def ratio_change(project_id: str, body: ratio.RatioPatch) -> ratio.RatioSetup:
+        project = _load(project_id)
+        try:
+            ratio.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        try:
+            return ratio.setup(project, projects.project_dir(project_id))
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+
+    @app.post("/api/projects/{project_id}/ratio/run")
+    def ratio_run(project_id: str) -> ratio.RatioView:
+        """Check the values: OpenAVMKit's value-field studies on the sales Check sales kept."""
+        project = _load(project_id)
+        try:
+            ratio.start(project, projects.project_dir(project_id))
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(409, str(e)) from e
+        return _ratio_view(project)
+
+    @app.post("/api/projects/{project_id}/ratio/stop")
+    def ratio_stop(project_id: str) -> ratio.RatioView:
+        bring_in.stop(project_id, ratio.MODULE)
+        return _ratio_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/ratio/accept")
+    def ratio_accept(project_id: str) -> ratio.RatioView:
+        project = _load(project_id)
+        try:
+            ratio.accept(project, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        projects.save(project)
+        return _ratio_view(project)
+
+    @app.get("/api/projects/{project_id}/ratio/points")
+    def ratio_points(project_id: str, field: str, group: str = "") -> list[tuple[float, float, bool]]:
+        """Each sale studied: its price, its ratio, and whether it was trimmed."""
+        _load(project_id)
+        return ratio.points(projects.project_dir(project_id), field, group or None)
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:

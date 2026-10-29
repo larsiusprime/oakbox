@@ -5,6 +5,12 @@ export const api = createClient<paths>({ baseUrl: "" });
 
 export type Project = components["schemas"]["Project"];
 export type NamesView = components["schemas"]["NamesView"];
+export type RatioView = components["schemas"]["RatioView"];
+export type RatioSetup = components["schemas"]["RatioSetup"];
+export type RatioPatch = components["schemas"]["RatioPatch"];
+export type RatioStudy = components["schemas"]["Study"];
+export type RatioTargets = components["schemas"]["Targets-Output"];
+export type FieldResult = components["schemas"]["FieldResult"];
 export type NameRow = components["schemas"]["NameRow"];
 export type ProjectDetail = components["schemas"]["ProjectDetail"];
 export type InputFile = components["schemas"]["InputFile"];

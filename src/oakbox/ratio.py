@@ -1,0 +1,671 @@
+"""Step 4, Check my values (SPEC F8): the values on the roll now, against what parcels sold for. OpenAVMKit's
+value-field studies (`run_value_field_studies`) on Check sales' hand-off: per model group and overall, the level
+(median ratio with the IAAO's order-statistic interval), uniformity (COD), vertical equity (PRD, PRB, VEI) and
+horizontal equity (spread within the equity clusters), judged against a standards profile (IAAO by default, every
+target editable), outlying ratios trimmed and listed. Nothing is modeled; it runs in a process of its own
+(`python -m oakbox.ratio <project id>`) and writes out/oakbox/ratio/: the receipt, OpenAVMKit's study files and the
+sales studied. Its calls are the project's `ratio` state: OAK box passes them to OpenAVMKit directly (settings.json
+has no place for them).
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+import os
+import re
+import shutil
+import sys
+import time
+from pathlib import Path
+from typing import Literal, cast
+
+from pydantic import Field
+
+from oakbox import bring_in, clean
+from oakbox.datafiles import BaseModel
+
+MODULE = "ratio"
+VALUE_FIELDS = {
+    "assr_market_value": "Assessed market value",
+    "assr_land_value": "Assessed land value",
+    "assr_impr_value": "Assessed improvement value",
+}
+PropertyClass = Literal["residential", "income", "vacant", "none"]
+MIN_PROPOSED = 30  # the proposed window reaches back until it holds this many sales
+NOMINAL = 1_000  # prices under this are nominal deeds, not prices (as Data's sale price check)
+
+
+def out_dir(project_dir: Path) -> Path:
+    return project_dir / "out" / "oakbox" / "ratio"
+
+
+def _hydrated(project_dir: Path) -> Path:
+    return project_dir / "out" / "look" / "2-clean-sales-hydrated.parquet"
+
+
+# ---------- The calls ----------
+
+
+class Targets(BaseModel):
+    """What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the
+    May 2026 exposure draft), each editable."""
+
+    level_low: float = 0.90
+    level_high: float = 1.10
+    prd_low: float = 0.98
+    prd_high: float = 1.03
+    prb_low: float = -0.05
+    prb_high: float = 0.05
+    vei: float = Field(default=10.0, description="The most a VEI may stray, percent, before it can be a finding.")
+    min_sales: int = Field(default=5, description="Fewer sales (after trimming): shown, not judged.")
+    cod_residential: float = 15.0
+    cod_income: float = 20.0
+    cod_vacant: float = 25.0
+
+    def standards(self) -> dict:
+        return {
+            "level": [self.level_low, self.level_high],
+            "prd": [self.prd_low, self.prd_high],
+            "prb": [self.prb_low, self.prb_high],
+            "vei": self.vei,
+            "min_sales": self.min_sales,
+            "cod": {"residential": self.cod_residential, "income": self.cod_income, "vacant": self.cod_vacant},
+        }
+
+
+class RatioState(BaseModel):
+    fields: list[str] = Field(default_factory=lambda: ["assr_market_value"], description="Value fields checked.")
+    start: dt.date | None = Field(default=None, description="First sale date; None: proposed.")
+    end: dt.date | None = Field(default=None, description="Last sale date; None: the day before valuation.")
+    price: Literal["sold", "time_adjusted"] = "sold"
+    targets: Targets = Field(default_factory=Targets)
+    classes: dict[str, PropertyClass] = Field(default_factory=dict, description="Group -> class; missing: proposed.")
+    trim: bool = Field(default=True, description="Leave outlying ratios (1.5 x IQR) out of the statistics, listed.")
+
+
+def proposed_class(group_id: str, name: str) -> PropertyClass:
+    """From the model group's name: land is vacant, exempt or public land isn't judged, commercial and larger
+    multi-family are income property, the rest residential."""
+    text = f"{group_id} {name}".lower()
+    if re.search(r"exempt|public|government|institution|church|school", text):
+        return "none"
+    if re.search(r"vacant|land\b|lots?\b", text):
+        return "vacant"
+    if re.search(r"small|duplex|townho|condo", text):
+        return "residential"
+    if re.search(r"commercial|industrial|apartment|multi|office|retail|income|hotel|warehouse", text):
+        return "income"
+    return "residential"
+
+
+def classes(project) -> dict[str, PropertyClass]:
+    s: RatioState = project.ratio
+    return {g.id: s.classes.get(g.id) or proposed_class(g.id, g.name) for g in project.groups}
+
+
+# ---------- Before running: what's there, and the window proposed ----------
+
+
+class FieldChoice(BaseModel):
+    field: str
+    name: str
+    parcels: int = Field(description="Parcels with a value above zero.")
+    chosen: bool
+    note: str | None = Field(default=None, description="Why it can't be checked against sales, if it can't.")
+
+
+class GroupSetup(BaseModel):
+    id: str
+    name: str
+    color: str
+    cls: PropertyClass
+    proposed: bool = Field(description="The class is proposed from the group's name, not chosen.")
+    sales: int = Field(description="Sales studied in the window.")
+
+
+class SalesLine(BaseModel):
+    sign: Literal["", "-", "="]
+    count: int
+    text: str
+
+
+class RatioSetup(BaseModel):
+    fields: list[FieldChoice]
+    valuation_date: dt.date
+    start: dt.date
+    end: dt.date
+    proposed_start: dt.date
+    window_proposed: bool = Field(description="The window is the one proposed (not chosen).")
+    first_sale: dt.date | None
+    last_sale: dt.date | None
+    year_before: int = Field(description="Sales studied in the year before the valuation date (the IAAO's window).")
+    price: Literal["sold", "time_adjusted"]
+    time_adjusted: bool = Field(description="Check sales brought prices to the valuation date (time adjustment on).")
+    targets: Targets
+    groups: list[GroupSetup]
+    funnel: list[SalesLine]
+    trim: bool
+
+
+def _sales(project_dir: Path):
+    import pandas as pd
+
+    path = _hydrated(project_dir)
+    if not path.is_file():
+        return None
+    s = pd.read_parquet(path)
+    s["sale_date"] = pd.to_datetime(s["sale_date"], errors="coerce")
+    return s
+
+
+def _studied(sales, field: str):
+    """Sales a value answers to: valid for a ratio study (the parcel looks as it did when sold), a price and a
+    value."""
+    ok = sales["valid_for_ratio_study"].fillna(False).astype(bool) if "valid_for_ratio_study" in sales else True
+    value = clean._numbers(sales, field)
+    return ok & clean._numbers(sales, "sale_price").gt(0) & value.notna()
+
+
+def _in(sales, start: dt.date, end: dt.date):
+    import pandas as pd
+
+    return sales["sale_date"].ge(pd.Timestamp(start)) & sales["sale_date"].lt(pd.Timestamp(end) + pd.Timedelta(days=1))
+
+
+def _years_back(day: dt.date, years: int) -> dt.date:
+    try:
+        return day.replace(year=day.year - years)
+    except ValueError:  # 29 February
+        return day.replace(year=day.year - years, day=28)
+
+
+def window(project, sales=None, project_dir: Path | None = None) -> tuple[dt.date, dt.date, dt.date]:
+    """(start, end, proposed start). The end: the day before the valuation date. The proposed start: the year before
+    it (the IAAO's window), reaching back a year at a time (up to five) until there are enough sales."""
+    s: RatioState = project.ratio
+    val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
+    end = s.end or (val - dt.timedelta(days=1))
+    proposed = _years_back(val, 1)
+    if sales is None and project_dir is not None:
+        sales = _sales(project_dir)
+    if sales is not None and len(sales):
+        field = s.fields[0] if s.fields else "assr_market_value"
+        ok = _studied(sales, field) if field in sales else None
+        for years in range(1, 6):
+            start = _years_back(val, years)
+            proposed = start
+            if ok is not None and int((ok & _in(sales, start, end)).sum()) >= MIN_PROPOSED:
+                break
+    return s.start or proposed, end, proposed
+
+
+def setup(project, project_dir: Path) -> RatioSetup:
+    import pandas as pd
+
+    s: RatioState = project.ratio
+    sales = _sales(project_dir)
+    if sales is None:
+        raise LookupError("Check sales first: this starts from its hand-off.")
+    universe_path = project_dir / "out" / "look" / "2-clean-universe.parquet"
+    universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
+    start, end, proposed = window(project, sales)
+    val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
+    field = s.fields[0] if s.fields else "assr_market_value"
+    fields = []
+    for f, name in VALUE_FIELDS.items():
+        if f not in universe:
+            continue
+        note = None
+        if f == "assr_impr_value":
+            note = "A building isn't sold apart from its land: not checked against sales."
+        elif f == "assr_land_value":
+            note = "Checked on vacant land sales only (it's land, not the whole parcel)."
+        fields.append(
+            FieldChoice(
+                field=f,
+                name=name,
+                parcels=int(clean._numbers(universe, f).gt(0).sum()),
+                chosen=f in s.fields,
+                note=note,
+            )
+        )
+    studied = _studied(sales, field) if field in sales else pd.Series(False, index=sales.index)
+    inside = _in(sales, start, end)
+    year_before = int((studied & _in(sales, _years_back(val, 1), val - dt.timedelta(days=1))).sum())
+    group_of = clean._groups(sales)
+    cls = classes(project)
+    groups = [
+        GroupSetup(
+            id=g.id,
+            name=g.name,
+            color=g.color,
+            cls=cls[g.id],
+            proposed=g.id not in s.classes,
+            sales=int((studied & inside & (group_of == g.id)).sum()),
+        )
+        for g in project.groups
+    ]
+    dates = sales["sale_date"].dropna()
+    n_all = len(sales)
+    n_window = int(inside.sum())
+    funnel = [
+        SalesLine(sign="", count=n_all, text="for modeling, from Check sales"),
+        SalesLine(sign="-", count=n_all - n_window, text=f"outside the window ({start} to {end})"),
+        SalesLine(
+            sign="-",
+            count=int((inside & ~studied).sum()),
+            text="the parcel changed since (sold vacant, built on now, or the reverse), or no value",
+        ),
+        SalesLine(sign="=", count=int((studied & inside).sum()), text="sales the values answer to"),
+    ]
+    return RatioSetup(
+        fields=fields,
+        valuation_date=val,
+        start=start,
+        end=end,
+        proposed_start=proposed,
+        window_proposed=s.start is None,
+        first_sale=dates.min().date() if len(dates) else None,
+        last_sale=dates.max().date() if len(dates) else None,
+        year_before=year_before,
+        price=s.price,
+        time_adjusted=project.clean.time_adjust and "sale_price_time_adj" in sales,
+        targets=s.targets,
+        groups=groups,
+        funnel=funnel,
+        trim=s.trim,
+    )
+
+
+# ---------- The run ----------
+
+
+class Verdict(BaseModel):
+    judged: bool
+    level: bool | None = None
+    cod: bool | None = None
+    cod_target: float | None = None
+    prd: bool | None = None
+    prb: bool | None = None
+    vei: bool | None = None
+
+
+class Stratum(BaseModel):
+    n: int
+    median: float | None
+    low: float | None
+    high: float | None
+
+
+class Fifth(BaseModel):
+    low: float
+    high: float
+    sales: int
+    median: float
+
+
+class Study(BaseModel):
+    """One model group's (or all groups') study of one value field."""
+
+    id: str = Field(description='The model group; "" for all groups.')
+    name: str
+    color: str
+    cls: PropertyClass | None
+    sales: int = Field(description="Sales in the statistics (after trimming).")
+    trimmed: int
+    parcels: int
+    median: float | None
+    low: float | None = Field(description="The median's interval (90%, the IAAO's order statistics).")
+    high: float | None
+    cod: float | None
+    prd: float | None
+    prb: float | None
+    vei: float | None
+    vei_significance: float | None
+    vei_verdict: str | None = Field(description="compliant, inconclusive, regressive, progressive or insufficient.")
+    strata: list[Stratum] = Field(default_factory=list, description="The VEI's percentile groups, low to high.")
+    fifths: list[Fifth] = Field(default_factory=list, description="Median ratio by fifths of sales, by price.")
+    clusters: int | None = Field(default=None, description="Groups of similar parcels (equity clusters).")
+    median_chd: float | None = Field(default=None, description="Their median spread of values (CHD).")
+    verdict: Verdict | None = None
+
+
+class Trimmed(BaseModel):
+    key_sale: str
+    group: str
+    group_name: str
+    address: str | None
+    sale_date: str | None
+    price: float
+    value: float
+    ratio: float
+    nominal: bool = Field(description=f"A price under {NOMINAL:,}: likely a nominal deed, not a sale.")
+
+
+class FieldResult(BaseModel):
+    field: str
+    name: str
+    groups: list[Study]
+    overall: Study
+    trimmed: list[Trimmed] = Field(description="Furthest from the rest first.")
+
+
+class RatioReceipt(BaseModel):
+    ran_at: str
+    seconds: float
+    engine: str
+    start: dt.date
+    end: dt.date
+    price: Literal["sold", "time_adjusted"]
+    trim: bool
+    results: list[FieldResult]
+    notes: list[str] = Field(default_factory=list)
+
+
+def settings_key(project, project_dir: Path) -> dict:
+    """What a run depends on: the Check sales run it starts from, and the calls."""
+    r, _ = clean._ran(project_dir)
+    start, end, _ = window(project, project_dir=project_dir)
+    s: RatioState = project.ratio
+    return {
+        "clean": r.ran_at if r else None,
+        "fields": s.fields,
+        "window": [str(start), str(end)],
+        "price": s.price,
+        "trim": s.trim,
+        "targets": s.targets.model_dump(),
+        "classes": classes(project),
+        "groups": [(g.id, g.name) for g in project.groups],
+    }
+
+
+def settings_hash(project, project_dir: Path) -> str:
+    text = json.dumps(settings_key(project, project_dir), sort_keys=True, default=str)
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def _fifths(table, group: str | None) -> list[Fifth]:
+    import pandas as pd
+
+    t = table[~table["trimmed"].astype(bool)]
+    if group is not None:
+        t = t[t["model_group"].astype(str) == group]
+    if len(t) < 10:
+        return []
+    bins = pd.qcut(t["sale_price"].rank(method="first"), 5, labels=False)
+    out = []
+    for _, part in t.groupby(bins):
+        out.append(
+            Fifth(
+                low=float(part["sale_price"].min()),
+                high=float(part["sale_price"].max()),
+                sales=len(part),
+                median=float(part["ratio"].median()),
+            )
+        )
+    return out
+
+
+def _study(gid: str, name: str, color: str, cls, data: dict, table) -> Study:
+    r = data.get("ratio") or {}
+    v = data.get("vertical") or {}
+    h = data.get("horizontal") or {}
+    med = r.get("median_ratio") or {}
+    verdict = data.get("verdict")
+    return Study(
+        id=gid,
+        name=name,
+        color=color,
+        cls=cls,
+        sales=int(r.get("count") or 0),
+        trimmed=len(data.get("trimmed") or []) if gid else int(data.get("count_trimmed") or 0),
+        parcels=int(data.get("count_parcels") or 0),
+        median=med.get("value"),
+        low=med.get("low"),
+        high=med.get("high"),
+        cod=(r.get("cod") or {}).get("value"),
+        prd=(v.get("prd") or {}).get("value"),
+        prb=(v.get("prb") or {}).get("value"),
+        vei=v.get("vei"),
+        vei_significance=v.get("vei_significance"),
+        vei_verdict=v.get("vei_verdict"),
+        strata=[Stratum.model_validate(x) for x in v.get("vei_strata") or []],
+        fifths=_fifths(table, gid or None),
+        clusters=h.get("clusters"),
+        median_chd=h.get("median_chd"),
+        verdict=Verdict.model_validate(verdict) if verdict else None,
+    )
+
+
+def run(project_id: str) -> None:
+    import warnings
+    from importlib.metadata import version
+
+    import pandas as pd
+
+    from oakbox import projects
+
+    project = projects.load(project_id)
+    pdir = projects.project_dir(project_id)
+    src = pdir / "out" / "2-clean-sup.pickle"
+    if not src.is_file():
+        raise RuntimeError("Check sales first: this starts from its hand-off.")
+    s: RatioState = project.ratio
+    start, end, _ = window(project, project_dir=pdir)
+    tmp = out_dir(pdir).with_suffix(".tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    os.chdir(pdir)
+    from openavmkit import pipeline as pl
+    from openavmkit.data import SalesUniversePair
+    from openavmkit.value_studies import run_value_field_studies
+
+    t0 = time.time()
+    cls = classes(project)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        bring_in._emit(step="load", fraction=0.0, message="Reading Check sales' hand-off")
+        sup = cast(SalesUniversePair, pd.read_pickle(src))
+        settings = pl.load_settings()
+        bring_in._emit(step="study", fraction=0.2, message="Checking the values against the sales")
+        studies = run_value_field_studies(
+            sup,
+            settings,
+            [f for f in s.fields if f in sup.universe],
+            start_date=str(start),
+            end_date=str(end),
+            sale_field="sale_price" if s.price == "sold" else "sale_price_time_adj",
+            trim_outliers=s.trim,
+            median_ci="iaao",
+            standards=s.targets.standards(),
+            classes={g: (None if c == "none" else c) for g, c in cls.items()},
+            outpath=str(tmp / "studies"),
+        )
+    bring_in._emit(step="receipt", fraction=0.9, message="Counting")
+    hydrated = _sales(pdir)
+    address = (
+        dict(zip(hydrated["key_sale"].astype(str), hydrated["address"], strict=False))
+        if hydrated is not None and "address" in hydrated
+        else {}
+    )
+    names = {g.id: g.name for g in project.groups}
+    results = []
+    for field, study in studies.items():
+        table = pd.read_parquet(tmp / "studies" / f"{field}.sales.parquet") if s.trim else None
+        if table is None:
+            table = pd.DataFrame({c: [] for c in ("model_group", "sale_price", "ratio", "trimmed")})
+        groups = [
+            _study(g.id, g.name, g.color, cls[g.id], study["groups"][g.id], table)
+            for g in project.groups
+            if g.id in study["groups"]
+        ]
+        trimmed = []
+        for gid, g in study["groups"].items():
+            for t in g.get("trimmed") or []:
+                trimmed.append(
+                    Trimmed(
+                        key_sale=str(t["key_sale"]),
+                        group=gid,
+                        group_name=names.get(gid) or gid,
+                        address=clean._text(address.get(str(t["key_sale"]))),
+                        sale_date=t.get("sale_date"),
+                        price=float(t["sale_price"]),
+                        value=float(t["value"]),
+                        ratio=float(t["ratio"]),
+                        nominal=float(t["sale_price"]) < NOMINAL,
+                    )
+                )
+        trimmed.sort(key=lambda x: -abs(clean._log(x.ratio)))
+        results.append(
+            FieldResult(
+                field=field,
+                name=VALUE_FIELDS.get(field) or field,
+                groups=groups,
+                overall=_study("", "All model groups", "#888888", None, study["overall"], table),
+                trimmed=trimmed,
+            )
+        )
+    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    receipt = RatioReceipt(
+        ran_at=dt.datetime.now().isoformat(timespec="seconds"),
+        seconds=round(time.time() - t0, 1),
+        engine=version("openavmkit"),
+        start=start,
+        end=end,
+        price=s.price,
+        trim=s.trim,
+        results=results,
+        notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
+    )
+    (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
+    (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(project, pdir)}), encoding="utf-8")
+    final = out_dir(pdir)
+    shutil.rmtree(final, ignore_errors=True)
+    tmp.rename(final)
+    bring_in._emit(step="done", fraction=1.0, message=f"{sum(r.overall.sales for r in results):,} sales studied")
+
+
+# ---------- The step's state ----------
+
+
+class RatioView(BaseModel):
+    status: Literal["never", "running", "failed", "stopped", "done"]
+    job: bring_in.Job | None
+    receipt: RatioReceipt | None
+    stale: bool = Field(description="Check sales ran again, or a call changed, since it ran.")
+    blocked: list[str]
+    accepted: bool
+
+
+def _ran(project_dir: Path) -> tuple[RatioReceipt | None, dict | None]:
+    base = out_dir(project_dir)
+    if not (base / "receipt.json").is_file():
+        return None, None
+    ran = (
+        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
+    )
+    return RatioReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+
+
+def view(project, project_dir: Path) -> RatioView:
+    r, ran = _ran(project_dir)
+    j = bring_in.job(project.id, MODULE)
+    blocked = []
+    c = clean.view(project, project_dir)
+    if (
+        not c.accepted
+        or not (project_dir / "out" / "2-clean-sup.pickle").is_file()
+        or not _hydrated(project_dir).is_file()
+    ):
+        blocked.append("Press Looks right on Check sales first: this starts from the sales it kept.")
+    now = settings_hash(project, project_dir) if not blocked else None
+    stale = bool(r and ran and now and ran.get("hash") != now)
+    return RatioView(
+        status=j.status if j else ("done" if r else "never"),
+        job=j,
+        receipt=r,
+        stale=stale,
+        blocked=blocked,
+        accepted=bool(r and not stale and now and project.accepted.get(MODULE) == now),
+    )
+
+
+def start(project, project_dir: Path) -> None:
+    v = view(project, project_dir)
+    if v.blocked:
+        raise ValueError(v.blocked[0])
+    if not project.ratio.fields:
+        raise ValueError("Choose a value to check first.")
+    bring_in.start(project.id, project_dir, MODULE)
+
+
+def accept(project, project_dir: Path) -> None:
+    v = view(project, project_dir)
+    if v.receipt is None or v.stale:
+        raise ValueError("Check the values again first: something changed since they were checked.")
+    project.accepted[MODULE] = settings_hash(project, project_dir)
+
+
+class RatioPatch(BaseModel):
+    fields: list[str] | None = None
+    start: dt.date | None = None
+    end: dt.date | None = None
+    reset_window: bool | None = Field(default=None, description="True: back to the proposed window.")
+    price: Literal["sold", "time_adjusted"] | None = None
+    targets: Targets | None = None
+    classes: dict[str, PropertyClass] | None = Field(default=None, description="Merged into the groups' classes.")
+    trim: bool | None = None
+
+
+def change(project, body: RatioPatch) -> None:
+    s: RatioState = project.ratio
+    if body.fields is not None:
+        unknown = [f for f in body.fields if f not in VALUE_FIELDS]
+        if unknown:
+            raise ValueError(f"Not a value field: {', '.join(unknown)}.")
+        s.fields = body.fields
+    if body.reset_window:
+        s.start = s.end = None
+    if body.start is not None:
+        s.start = body.start
+    if body.end is not None:
+        s.end = body.end
+    if s.start and s.end and s.start > s.end:
+        raise ValueError("The window starts after it ends.")
+    if body.price is not None:
+        s.price = body.price
+    if body.targets is not None:
+        s.targets = body.targets
+    if body.classes is not None:
+        s.classes = {**s.classes, **body.classes}
+    if body.trim is not None:
+        s.trim = body.trim
+
+
+def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:
+    """Each sale studied: (price, ratio, trimmed), for the chart."""
+    import pandas as pd
+
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not path.is_file():
+        return []
+    t = pd.read_parquet(path)
+    if group:
+        t = t[t["model_group"].astype(str) == group]
+    return [(float(p), float(r), bool(x)) for p, r, x in zip(t["sale_price"], t["ratio"], t["trimmed"], strict=True)]
+
+
+if __name__ == "__main__":
+    from oakbox.net import use_system_certificates
+
+    use_system_certificates()
+    try:
+        run(sys.argv[1])
+    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
+        import traceback
+
+        traceback.print_exc()
+        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        sys.exit(1)

@@ -46,6 +46,7 @@ def brought_in(tmp_path_factory):
             "BLDGTYPE": TYPES,
             "AREA": AREAS,
             "SUBDIV": ["OAKS", "PINES"] * 20,
+            "VALUE": [180_000 + 2_500 * i for i in range(40)],
         },
         geometry=[box(-79.8 + i * 0.001, 36.0, -79.8 + i * 0.001 + 0.0005, 36.0005) for i in range(40)],
         crs="EPSG:4326",
@@ -69,6 +70,7 @@ def brought_in(tmp_path_factory):
     for key in ("valid_sale", "vacant_sale"):
         client.put(f"{field}/{key}", json={"assume": True})
     client.put(f"{field}/bldg_area_finished_sqft", json={"file": "geo_parcels", "column": "AREA", "area_unit": "sqft"})
+    client.put(f"{field}/assr_market_value", json={"file": "geo_parcels", "column": "VALUE"})
     # The Property type step guesses land use and building type from the column names.
     w = client.post(f"/api/projects/{pid}/wizard/steps/property_type/visit").json()
     used = {f["key"]: f for f in w["fields"]}

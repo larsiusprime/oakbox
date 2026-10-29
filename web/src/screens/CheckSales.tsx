@@ -43,7 +43,7 @@ export function useSalesAccepted(projectId: string): boolean {
   return useClean(projectId).data?.accepted ?? false;
 }
 
-function money(v: number | null | undefined, currency: string): string {
+export function money(v: number | null | undefined, currency: string): string {
   if (v === null || v === undefined) return "—";
   if (v !== 0 && Math.abs(v) < 1) {
     // A cent a square foot: two significant figures, not "$0.00".
@@ -62,7 +62,7 @@ function money(v: number | null | undefined, currency: string): string {
   }).format(v);
 }
 
-function num(v: number | null | undefined, digits = 0): string {
+export function num(v: number | null | undefined, digits = 0): string {
   return v === null || v === undefined
     ? "—"
     : v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -74,7 +74,7 @@ function rel(r: number, of: string): string {
   return `1/${num(Math.round(1 / r))} of ${of}`;
 }
 
-function day(text: string | null | undefined): string {
+export function day(text: string | null | undefined): string {
   return text ? text.slice(0, 10) : "—";
 }
 

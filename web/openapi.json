@@ -4569,6 +4569,326 @@
     }
    }
   },
+  "/api/projects/{project_id}/ratio": {
+   "get": {
+    "summary": "Ratio State",
+    "operationId": "ratio_state_api_projects__project_id__ratio_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/setup": {
+   "get": {
+    "summary": "Ratio Setup",
+    "description": "The values to check, the window (proposed), the price, the targets and each group's class.",
+    "operationId": "ratio_setup_api_projects__project_id__ratio_setup_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "summary": "Ratio Change",
+    "operationId": "ratio_change_api_projects__project_id__ratio_setup_patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RatioPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/run": {
+   "post": {
+    "summary": "Ratio Run",
+    "description": "Check the values: OpenAVMKit's value-field studies on the sales Check sales kept.",
+    "operationId": "ratio_run_api_projects__project_id__ratio_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/stop": {
+   "post": {
+    "summary": "Ratio Stop",
+    "operationId": "ratio_stop_api_projects__project_id__ratio_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/accept": {
+   "post": {
+    "summary": "Ratio Accept",
+    "operationId": "ratio_accept_api_projects__project_id__ratio_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/points": {
+   "get": {
+    "summary": "Ratio Points",
+    "description": "Each sale studied: its price, its ratio, and whether it was trimmed.",
+    "operationId": "ratio_points_api_projects__project_id__ratio_points_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "type": "array",
+          "prefixItems": [
+           {
+            "type": "number"
+           },
+           {
+            "type": "number"
+           },
+           {
+            "type": "boolean"
+           }
+          ],
+          "minItems": 3,
+          "maxItems": 3
+         },
+         "title": "Response Ratio Points Api Projects  Project Id  Ratio Points Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -5512,7 +5832,7 @@
      },
      "groups": {
       "items": {
-       "$ref": "#/components/schemas/GroupSetup"
+       "$ref": "#/components/schemas/oakbox__clean__GroupSetup"
       },
       "type": "array",
       "title": "Groups"
@@ -7527,6 +7847,48 @@
     ],
     "title": "FeatureSpec"
    },
+   "FieldChoice": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels",
+      "description": "Parcels with a value above zero."
+     },
+     "chosen": {
+      "type": "boolean",
+      "title": "Chosen"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note",
+      "description": "Why it can't be checked against sales, if it can't."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "parcels",
+     "chosen",
+     "note"
+    ],
+    "title": "FieldChoice"
+   },
    "FieldFold": {
     "properties": {
      "field": {
@@ -7635,6 +7997,45 @@
     "title": "FieldProfile",
     "description": "One field of the parcel universe or sales record in detail: notebook 1's \"examine in ridiculous detail\"."
    },
+   "FieldResult": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/Study"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "overall": {
+      "$ref": "#/components/schemas/Study"
+     },
+     "trimmed": {
+      "items": {
+       "$ref": "#/components/schemas/Trimmed"
+      },
+      "type": "array",
+      "title": "Trimmed",
+      "description": "Furthest from the rest first."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "groups",
+     "overall",
+     "trimmed"
+    ],
+    "title": "FieldResult"
+   },
    "FieldRow": {
     "properties": {
      "field": {
@@ -7690,6 +8091,34 @@
      "note"
     ],
     "title": "FieldRow"
+   },
+   "Fifth": {
+    "properties": {
+     "low": {
+      "type": "number",
+      "title": "Low"
+     },
+     "high": {
+      "type": "number",
+      "title": "High"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "median": {
+      "type": "number",
+      "title": "Median"
+     }
+    },
+    "type": "object",
+    "required": [
+     "low",
+     "high",
+     "sales",
+     "median"
+    ],
+    "title": "Fifth"
    },
    "FileCheck": {
     "properties": {
@@ -8352,73 +8781,6 @@
      "curve"
     ],
     "title": "GroupResult"
-   },
-   "GroupSetup": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "color": {
-      "type": "string",
-      "title": "Color"
-     },
-     "sales": {
-      "type": "integer",
-      "title": "Sales",
-      "description": "Valid sales in the window."
-     },
-     "per_year": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Per Year",
-      "description": "Price change a year found last run, percent; None: none or not run."
-     },
-     "borrow": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Borrow",
-      "description": "The group whose time adjustment it uses."
-     },
-     "file": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/TimeFile"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "Its own time adjustment file."
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "name",
-     "color",
-     "sales",
-     "per_year",
-     "borrow",
-     "file"
-    ],
-    "title": "GroupSetup"
    },
    "GroupStats": {
     "properties": {
@@ -11322,6 +11684,10 @@
       "$ref": "#/components/schemas/CleanState",
       "description": "Step 3, Check sales: its calls (F6)."
      },
+     "ratio": {
+      "$ref": "#/components/schemas/RatioState",
+      "description": "Step 4, Check my values: its calls (F8)."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -11353,6 +11719,7 @@
      "groups_start",
      "enrich",
      "clean",
+     "ratio",
      "accepted"
     ],
     "title": "Project"
@@ -11381,6 +11748,444 @@
      "files"
     ],
     "title": "ProjectDetail"
+   },
+   "RatioPatch": {
+    "properties": {
+     "fields": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fields"
+     },
+     "start": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start"
+     },
+     "end": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End"
+     },
+     "reset_window": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reset Window",
+      "description": "True: back to the proposed window."
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "sold",
+         "time_adjusted"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "targets": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Targets-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "classes": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string",
+         "enum": [
+          "residential",
+          "income",
+          "vacant",
+          "none"
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Classes",
+      "description": "Merged into the groups' classes."
+     },
+     "trim": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trim"
+     }
+    },
+    "type": "object",
+    "title": "RatioPatch"
+   },
+   "RatioReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "start": {
+      "type": "string",
+      "format": "date",
+      "title": "Start"
+     },
+     "end": {
+      "type": "string",
+      "format": "date",
+      "title": "End"
+     },
+     "price": {
+      "type": "string",
+      "enum": [
+       "sold",
+       "time_adjusted"
+      ],
+      "title": "Price"
+     },
+     "trim": {
+      "type": "boolean",
+      "title": "Trim"
+     },
+     "results": {
+      "items": {
+       "$ref": "#/components/schemas/FieldResult"
+      },
+      "type": "array",
+      "title": "Results"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "start",
+     "end",
+     "price",
+     "trim",
+     "results",
+     "notes"
+    ],
+    "title": "RatioReceipt"
+   },
+   "RatioSetup": {
+    "properties": {
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/FieldChoice"
+      },
+      "type": "array",
+      "title": "Fields"
+     },
+     "valuation_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Valuation Date"
+     },
+     "start": {
+      "type": "string",
+      "format": "date",
+      "title": "Start"
+     },
+     "end": {
+      "type": "string",
+      "format": "date",
+      "title": "End"
+     },
+     "proposed_start": {
+      "type": "string",
+      "format": "date",
+      "title": "Proposed Start"
+     },
+     "window_proposed": {
+      "type": "boolean",
+      "title": "Window Proposed",
+      "description": "The window is the one proposed (not chosen)."
+     },
+     "first_sale": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First Sale"
+     },
+     "last_sale": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Sale"
+     },
+     "year_before": {
+      "type": "integer",
+      "title": "Year Before",
+      "description": "Sales studied in the year before the valuation date (the IAAO's window)."
+     },
+     "price": {
+      "type": "string",
+      "enum": [
+       "sold",
+       "time_adjusted"
+      ],
+      "title": "Price"
+     },
+     "time_adjusted": {
+      "type": "boolean",
+      "title": "Time Adjusted",
+      "description": "Check sales brought prices to the valuation date (time adjustment on)."
+     },
+     "targets": {
+      "$ref": "#/components/schemas/Targets-Output"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/oakbox__ratio__GroupSetup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "funnel": {
+      "items": {
+       "$ref": "#/components/schemas/SalesLine"
+      },
+      "type": "array",
+      "title": "Funnel"
+     },
+     "trim": {
+      "type": "boolean",
+      "title": "Trim"
+     }
+    },
+    "type": "object",
+    "required": [
+     "fields",
+     "valuation_date",
+     "start",
+     "end",
+     "proposed_start",
+     "window_proposed",
+     "first_sale",
+     "last_sale",
+     "year_before",
+     "price",
+     "time_adjusted",
+     "targets",
+     "groups",
+     "funnel",
+     "trim"
+    ],
+    "title": "RatioSetup"
+   },
+   "RatioState": {
+    "properties": {
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "Value fields checked."
+     },
+     "start": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start",
+      "description": "First sale date; None: proposed."
+     },
+     "end": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End",
+      "description": "Last sale date; None: the day before valuation."
+     },
+     "price": {
+      "type": "string",
+      "enum": [
+       "sold",
+       "time_adjusted"
+      ],
+      "title": "Price",
+      "default": "sold"
+     },
+     "targets": {
+      "$ref": "#/components/schemas/Targets-Output"
+     },
+     "classes": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "residential",
+        "income",
+        "vacant",
+        "none"
+       ]
+      },
+      "type": "object",
+      "title": "Classes",
+      "description": "Group -> class; missing: proposed."
+     },
+     "trim": {
+      "type": "boolean",
+      "title": "Trim",
+      "description": "Leave outlying ratios (1.5 x IQR) out of the statistics, listed.",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "fields",
+     "start",
+     "end",
+     "price",
+     "targets",
+     "classes",
+     "trim"
+    ],
+    "title": "RatioState"
+   },
+   "RatioView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RatioReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Check sales ran again, or a call changed, since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked"
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "blocked",
+     "accepted"
+    ],
+    "title": "RatioView"
    },
    "Receipt": {
     "properties": {
@@ -12708,6 +13513,34 @@
     ],
     "title": "SaleMark"
    },
+   "SalesLine": {
+    "properties": {
+     "sign": {
+      "type": "string",
+      "enum": [
+       "",
+       "-",
+       "="
+      ],
+      "title": "Sign"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sign",
+     "count",
+     "text"
+    ],
+    "title": "SalesLine"
+   },
    "Sample": {
     "properties": {
      "raw": {
@@ -13256,6 +14089,279 @@
     "type": "object",
     "title": "StorageLocation"
    },
+   "Stratum": {
+    "properties": {
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low"
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High"
+     }
+    },
+    "type": "object",
+    "required": [
+     "n",
+     "median",
+     "low",
+     "high"
+    ],
+    "title": "Stratum"
+   },
+   "Study": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "The model group; \"\" for all groups."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "cls": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "residential",
+         "income",
+         "vacant",
+         "none"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cls"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales in the statistics (after trimming)."
+     },
+     "trimmed": {
+      "type": "integer",
+      "title": "Trimmed"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low",
+      "description": "The median's interval (90%, the IAAO's order statistics)."
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High"
+     },
+     "cod": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod"
+     },
+     "prd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prd"
+     },
+     "prb": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prb"
+     },
+     "vei": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei"
+     },
+     "vei_significance": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei Significance"
+     },
+     "vei_verdict": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei Verdict",
+      "description": "compliant, inconclusive, regressive, progressive or insufficient."
+     },
+     "strata": {
+      "items": {
+       "$ref": "#/components/schemas/Stratum"
+      },
+      "type": "array",
+      "title": "Strata",
+      "description": "The VEI's percentile groups, low to high."
+     },
+     "fifths": {
+      "items": {
+       "$ref": "#/components/schemas/Fifth"
+      },
+      "type": "array",
+      "title": "Fifths",
+      "description": "Median ratio by fifths of sales, by price."
+     },
+     "clusters": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clusters",
+      "description": "Groups of similar parcels (equity clusters)."
+     },
+     "median_chd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median Chd",
+      "description": "Their median spread of values (CHD)."
+     },
+     "verdict": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Verdict"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "cls",
+     "sales",
+     "trimmed",
+     "parcels",
+     "median",
+     "low",
+     "high",
+     "cod",
+     "prd",
+     "prb",
+     "vei",
+     "vei_significance",
+     "vei_verdict",
+     "strata",
+     "fifths",
+     "clusters",
+     "median_chd",
+     "verdict"
+    ],
+    "title": "Study",
+    "description": "One model group's (or all groups') study of one value field."
+   },
    "Suggestion": {
     "properties": {
      "text": {
@@ -13290,6 +14396,147 @@
      "share"
     ],
     "title": "Suggestion"
+   },
+   "Targets-Input": {
+    "properties": {
+     "level_low": {
+      "type": "number",
+      "title": "Level Low",
+      "default": 0.9
+     },
+     "level_high": {
+      "type": "number",
+      "title": "Level High",
+      "default": 1.1
+     },
+     "prd_low": {
+      "type": "number",
+      "title": "Prd Low",
+      "default": 0.98
+     },
+     "prd_high": {
+      "type": "number",
+      "title": "Prd High",
+      "default": 1.03
+     },
+     "prb_low": {
+      "type": "number",
+      "title": "Prb Low",
+      "default": -0.05
+     },
+     "prb_high": {
+      "type": "number",
+      "title": "Prb High",
+      "default": 0.05
+     },
+     "vei": {
+      "type": "number",
+      "title": "Vei",
+      "description": "The most a VEI may stray, percent, before it can be a finding.",
+      "default": 10.0
+     },
+     "min_sales": {
+      "type": "integer",
+      "title": "Min Sales",
+      "description": "Fewer sales (after trimming): shown, not judged.",
+      "default": 5
+     },
+     "cod_residential": {
+      "type": "number",
+      "title": "Cod Residential",
+      "default": 15.0
+     },
+     "cod_income": {
+      "type": "number",
+      "title": "Cod Income",
+      "default": 20.0
+     },
+     "cod_vacant": {
+      "type": "number",
+      "title": "Cod Vacant",
+      "default": 25.0
+     }
+    },
+    "type": "object",
+    "title": "Targets",
+    "description": "What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the\nMay 2026 exposure draft), each editable."
+   },
+   "Targets-Output": {
+    "properties": {
+     "level_low": {
+      "type": "number",
+      "title": "Level Low",
+      "default": 0.9
+     },
+     "level_high": {
+      "type": "number",
+      "title": "Level High",
+      "default": 1.1
+     },
+     "prd_low": {
+      "type": "number",
+      "title": "Prd Low",
+      "default": 0.98
+     },
+     "prd_high": {
+      "type": "number",
+      "title": "Prd High",
+      "default": 1.03
+     },
+     "prb_low": {
+      "type": "number",
+      "title": "Prb Low",
+      "default": -0.05
+     },
+     "prb_high": {
+      "type": "number",
+      "title": "Prb High",
+      "default": 0.05
+     },
+     "vei": {
+      "type": "number",
+      "title": "Vei",
+      "description": "The most a VEI may stray, percent, before it can be a finding.",
+      "default": 10.0
+     },
+     "min_sales": {
+      "type": "integer",
+      "title": "Min Sales",
+      "description": "Fewer sales (after trimming): shown, not judged.",
+      "default": 5
+     },
+     "cod_residential": {
+      "type": "number",
+      "title": "Cod Residential",
+      "default": 15.0
+     },
+     "cod_income": {
+      "type": "number",
+      "title": "Cod Income",
+      "default": 20.0
+     },
+     "cod_vacant": {
+      "type": "number",
+      "title": "Cod Vacant",
+      "default": 25.0
+     }
+    },
+    "type": "object",
+    "required": [
+     "level_low",
+     "level_high",
+     "prd_low",
+     "prd_high",
+     "prb_low",
+     "prb_high",
+     "vei",
+     "min_sales",
+     "cod_residential",
+     "cod_income",
+     "cod_vacant"
+    ],
+    "title": "Targets",
+    "description": "What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the\nMay 2026 exposure draft), each editable."
    },
    "Tier": {
     "properties": {
@@ -13663,6 +14910,74 @@
      "groups"
     ],
     "title": "TimeResult"
+   },
+   "Trimmed": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "group_name": {
+      "type": "string",
+      "title": "Group Name"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "sale_date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale Date"
+     },
+     "price": {
+      "type": "number",
+      "title": "Price"
+     },
+     "value": {
+      "type": "number",
+      "title": "Value"
+     },
+     "ratio": {
+      "type": "number",
+      "title": "Ratio"
+     },
+     "nominal": {
+      "type": "boolean",
+      "title": "Nominal",
+      "description": "A price under 1,000: likely a nominal deed, not a sale."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "group",
+     "group_name",
+     "address",
+     "sale_date",
+     "price",
+     "value",
+     "ratio",
+     "nominal"
+    ],
+    "title": "Trimmed"
    },
    "UnitExample": {
     "properties": {
@@ -14129,6 +15444,91 @@
      "count"
     ],
     "title": "ValueN"
+   },
+   "Verdict": {
+    "properties": {
+     "judged": {
+      "type": "boolean",
+      "title": "Judged"
+     },
+     "level": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Level"
+     },
+     "cod": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod"
+     },
+     "cod_target": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod Target"
+     },
+     "prd": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prd"
+     },
+     "prb": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prb"
+     },
+     "vei": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei"
+     }
+    },
+    "type": "object",
+    "required": [
+     "judged",
+     "level",
+     "cod",
+     "cod_target",
+     "prd",
+     "prb",
+     "vei"
+    ],
+    "title": "Verdict"
    },
    "Versions": {
     "properties": {
@@ -15321,6 +16721,119 @@
      "vacant"
     ],
     "title": "YearCount"
+   },
+   "oakbox__clean__GroupSetup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Valid sales in the window."
+     },
+     "per_year": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Year",
+      "description": "Price change a year found last run, percent; None: none or not run."
+     },
+     "borrow": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Borrow",
+      "description": "The group whose time adjustment it uses."
+     },
+     "file": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TimeFile"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Its own time adjustment file."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "sales",
+     "per_year",
+     "borrow",
+     "file"
+    ],
+    "title": "GroupSetup"
+   },
+   "oakbox__ratio__GroupSetup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "cls": {
+      "type": "string",
+      "enum": [
+       "residential",
+       "income",
+       "vacant",
+       "none"
+      ],
+      "title": "Cls"
+     },
+     "proposed": {
+      "type": "boolean",
+      "title": "Proposed",
+      "description": "The class is proposed from the group's name, not chosen."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales studied in the window."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "cls",
+     "proposed",
+     "sales"
+    ],
+    "title": "GroupSetup"
    }
   }
  }

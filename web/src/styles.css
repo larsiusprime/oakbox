@@ -4749,3 +4749,73 @@ tr.bi-kept > td {
   font-weight: 600;
   border-top: 2px solid var(--rule);
 }
+/* ---------- Step 4, Check my values (F8) ---------- */
+.rv-cards {
+  display: grid;
+  gap: 0.6rem;
+}
+.rv-choices {
+  display: grid;
+  gap: 0.35rem;
+}
+.rv-choice {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.rv-pill {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.rv-ok {
+  background: #e7f5ec;
+  border-color: #a6d8b8;
+  color: #1d6b3a;
+}
+.rv-bad {
+  background: #fde8e8;
+  border-color: #f3b4b4;
+  color: #9b1c1c;
+}
+.rv-few {
+  background: #f4f4f4;
+  border-color: #d0d0d0;
+  color: #555;
+}
+.rv-head {
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.rv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+  gap: 0.6rem;
+}
+.rv-card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  align-content: start;
+}
+.rv-chart {
+  width: 100%;
+  display: block;
+}
+.rv-pair {
+  align-items: end;
+  flex-wrap: nowrap;
+}
+.rv-num .field {
+  min-width: 0;
+}
+table.bi-tbl.cs-tbl > * > tr.rv-total > td {
+  font-weight: 600;
+}

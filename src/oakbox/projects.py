@@ -37,6 +37,7 @@ from oakbox.clean import CleanState
 from oakbox.datafiles import DataFile, Rule, clean_calc, data_load, overlay_distance, rule_fields, rule_filter
 from oakbox.enrichments import Enrichments
 from oakbox.enrichments import settings as enrich_settings
+from oakbox.ratio import RatioState
 
 
 class BaseModel(_PydanticBase):
@@ -170,6 +171,7 @@ class Project(BaseModel):
     )
     enrich: Enrichments | None = Field(default=None, description="Enrichments (F3e); None: the step not shown yet.")
     clean: CleanState = Field(default_factory=CleanState, description="Step 3, Check sales: its calls (F6).")
+    ratio: RatioState = Field(default_factory=RatioState, description="Step 4, Check my values: its calls (F8).")
 
     @model_validator(mode="before")
     @classmethod
