@@ -1178,14 +1178,7 @@ function TimePreviewPanel({ projectId }: { projectId: string }) {
     onSuccess: (data) => queryClient.setQueryData(["clean-time", projectId], data),
   });
   const v = q.data;
-  const needed = !!v && v.status !== "running" && v.status !== "failed" && (!v.result || v.stale);
-  const asked = useRef(false);
-  useEffect(() => {
-    if (needed && !asked.current) {
-      asked.current = true;
-      run.mutate();
-    }
-  }, [needed, run]);
+  // Run when asked, as Check sales is: opening the step starts nothing.
   if (!v) return null;
   const result = v.result;
   const flat = result?.groups.filter((g) => g.per_year === null && g.sales > 0) ?? [];
@@ -1196,7 +1189,10 @@ function TimePreviewPanel({ projectId }: { projectId: string }) {
         <RunProgress job={v.job} lastSeconds={result?.seconds ?? null} />
       ) : v.status === "failed" ? (
         <p className="error" role="alert">
-          {t.bringIn.failed} <span className="mono">{v.job?.error}</span>
+          {t.bringIn.failed} <span className="mono">{v.job?.error}</span>{" "}
+          <Button className="wiz-link" isDisabled={run.isPending} onPress={() => run.mutate()}>
+            {s.time.previewAgain}
+          </Button>
         </p>
       ) : result ? (
         <>
@@ -1209,7 +1205,14 @@ function TimePreviewPanel({ projectId }: { projectId: string }) {
           <Charts groups={result.groups} />
           {flat.length > 0 && <p className="wiz-from">{s.groups.few(flat.map((g) => g.name).join(", "))}</p>}
         </>
-      ) : null}
+      ) : (
+        <p className="wiz-from cs-text">
+          {s.time.previewFirst}{" "}
+          <Button className="button" isDisabled={run.isPending} onPress={() => run.mutate()}>
+            {s.time.previewRun}
+          </Button>
+        </p>
+      )}
       {run.error && (
         <p className="error" role="alert">
           {run.error.message}

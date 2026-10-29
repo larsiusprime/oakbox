@@ -1555,6 +1555,9 @@ export const t = {
         `Worked out with the calls as they are (${sec} s), before running: Check sales does the same.`,
       previewStale: "The calls changed since this was worked out.",
       previewAgain: "Work it out again",
+      previewFirst:
+        "See how prices moved with these calls: it runs OpenAVMKit's time adjustment (a few seconds to a minute).",
+      previewRun: "Work it out",
       schedule: "Show schedule",
     },
     fill: {

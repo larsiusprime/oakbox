@@ -3268,7 +3268,7 @@ a.row-title:hover {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.mg-checks {
+ul.mg-checks {
   display: grid;
   gap: 0.2rem;
   margin: 0;
