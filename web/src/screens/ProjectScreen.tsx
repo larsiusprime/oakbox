@@ -141,7 +141,11 @@ function ProjectView({
           <ModelGroupsTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="sales" className="folder-panel">
-          <SalesTab projectId={projectId} currency={project.currency} />
+          <SalesTab
+            projectId={projectId}
+            currency={project.currency}
+            place={`${project.jurisdiction}, ${project.region}`}
+          />
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
           <ValuesTab projectId={projectId} />

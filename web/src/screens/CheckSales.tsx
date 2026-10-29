@@ -10,6 +10,8 @@ import {
   type CleanSetup,
   type CleanView,
   type FillRow,
+  type PatternTable,
+  type RelatedSale,
   type ReviewItem,
   type SaleDetail,
   unwrap,
@@ -111,7 +113,15 @@ const CS_STEPS: CsStep[] = ["window", "time", "scrutiny", "run", "sales", "aside
 
 /** Step 3, Check sales (SPEC F6), one task at a time: a step per call (each with what it did last run), the run,
  * the sales it kept, and the sales set aside to keep or exclude. */
-export function SalesTab({ projectId, currency }: { projectId: string; currency: string }) {
+export function SalesTab({
+  projectId,
+  currency,
+  place,
+}: {
+  projectId: string;
+  currency: string;
+  place: string;
+}) {
   const queryClient = useQueryClient();
   const state = useClean(projectId);
   const v = state.data;
@@ -300,6 +310,7 @@ export function SalesTab({ projectId, currency }: { projectId: string; currency:
             <Review
               projectId={projectId}
               currency={currency}
+              place={place}
               check={check}
               setCheck={setCheck}
               view={v}
@@ -735,8 +746,21 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
     ["cluster", s.scrutiny.checks.cluster, s.scrutiny.checks.clusterWhy],
     ["dupe_deed_date", s.scrutiny.checks.deed, v.deed ? s.scrutiny.checks.deedWhy : s.scrutiny.checks.noDeed],
     ["dupe_date_price", s.scrutiny.checks.datePrice, ""],
-    ["false_vacant", s.scrutiny.checks.vacant, ""],
+    ["false_vacant", s.scrutiny.checks.vacant, v.year_built ? "" : s.scrutiny.checks.noYear],
+    ["built_after_sale", s.scrutiny.checks.builtAfter, v.year_built ? "" : s.scrutiny.checks.noYear],
+    ["vacant_priced_improved", s.scrutiny.checks.vacantPriced, s.scrutiny.checks.vacantPricedWhy],
+    [
+      "same_surname",
+      s.scrutiny.checks.surname,
+      v.names ? s.scrutiny.checks.surnameWhy : s.scrutiny.checks.noNames,
+    ],
   ];
+  const can = (key: string) =>
+    !(
+      (key === "dupe_deed_date" && !v.deed) ||
+      (key === "same_surname" && !v.names) ||
+      ((key === "false_vacant" || key === "built_after_sale") && !v.year_built)
+    );
   return (
     <Card title={s.scrutiny.title} sub={s.scrutiny.sub}>
       <p className="cs-text wiz-from">{s.scrutiny.what}</p>
@@ -767,8 +791,8 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
         {checks.map(([key, label, why]) => (
           <div key={key} className="cs-check">
             <Tick
-              isSelected={(v.checks[key] ?? true) && (key !== "dupe_deed_date" || v.deed)}
-              isDisabled={key === "dupe_deed_date" && !v.deed}
+              isSelected={(v.checks[key] ?? true) && can(key)}
+              isDisabled={!can(key)}
               onChange={(on) => set({ checks: { [key]: on } })}
             >
               {label}
@@ -932,7 +956,16 @@ function SalesResult({
           ))}
         </div>
         <p className="wiz-from cs-text">{s.funnel.once}</p>
+        {r.flagged_in > 0 && (
+          <p className="cs-text">
+            {s.funnel.flaggedIn(r.flagged_in)}{" "}
+            <Button className="wiz-link" onPress={() => look("pattern:other")}>
+              {s.funnel.see}
+            </Button>
+          </p>
+        )}
       </section>
+      {r.patterns.length > 0 && <Patterns tables={r.patterns} look={look} />}
       <section className="cs-step">
         <h3 className="wiz-group">{s.groups.title}</h3>
         <table className="bi-tbl cs-tbl">
@@ -998,6 +1031,72 @@ function SalesResult({
         </div>
       </section>
     </div>
+  );
+}
+
+/** The sales flagged far from their group, by pattern: likely cause and what to check (the five-pattern table). */
+function Patterns({ tables, look }: { tables: PatternTable[]; look: (check: string) => void }) {
+  const [group, setGroup] = useState("");
+  const table = tables.find((x) => x.group === group) ?? tables[0];
+  if (!table) return null;
+  const p = s.patterns;
+  const flagged = Object.values(table.counts).reduce((a, b) => a + b, 0);
+  const share = (n: number) => (table.sales ? `${((100 * n) / table.sales).toFixed(2)}%` : "—");
+  return (
+    <section className="cs-step">
+      <h3 className="wiz-group">{p.title}</h3>
+      <div className="cs-row">
+        <Choice
+          label={s.group}
+          hideLabel
+          value={group}
+          options={tables.map((x) => [x.group, x.name] as [string, string])}
+          onChange={setGroup}
+        />
+        <span className="wiz-from">{p.lede(flagged, table.sales, table.name)}</span>
+      </div>
+      <table className="bi-tbl cs-tbl cs-patterns">
+        <thead>
+          <tr>
+            <th>{p.pattern}</th>
+            <th className="cs-n">{p.sales}</th>
+            <th className="cs-n">{p.share}</th>
+            <th>{p.cause}</th>
+            <th>{p.action}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(table.counts).map(([key, n]) => {
+            const d = s.review.diagnosis[key];
+            return (
+              <tr key={key}>
+                <td>{d?.title ?? key}</td>
+                <td className="cs-n">{num(n)}</td>
+                <td className="cs-n">{share(n)}</td>
+                <td>{d?.cause}</td>
+                <td>{d?.actions[0]}</td>
+                <td>
+                  {n > 0 && (
+                    <Button className="wiz-link" onPress={() => look(`pattern:${key}`)}>
+                      {s.funnel.see}
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+          <tr className="cs-fl tot">
+            <td>
+              <b>{p.flagged}</b>
+            </td>
+            <td className="cs-n">{num(flagged)}</td>
+            <td className="cs-n">{share(flagged)}</td>
+            <td colSpan={3} />
+          </tr>
+        </tbody>
+      </table>
+    </section>
   );
 }
 
@@ -1145,6 +1244,7 @@ type Status = "" | "undecided" | "kept" | "excluded";
 function Review({
   projectId,
   currency,
+  place,
   check,
   setCheck,
   view,
@@ -1152,6 +1252,7 @@ function Review({
 }: {
   projectId: string;
   currency: string;
+  place: string;
   check: string;
   setCheck: (c: string) => void;
   view: CleanView;
@@ -1165,7 +1266,15 @@ function Review({
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/clean/review", {
-          params: { path: { project_id: projectId }, query: { group, check, status, limit: 500 } },
+          params: {
+            path: { project_id: projectId },
+            query: {
+              group,
+              status,
+              limit: 500,
+              ...(check.startsWith("pattern:") ? { pattern: check.slice(8) } : { check }),
+            },
+          },
         }),
       ),
     placeholderData: keepPreviousData,
@@ -1178,7 +1287,11 @@ function Review({
     const n = items[i + 1];
     if (n) setPicked(n.key_sale);
   };
-  const checks: [string, string][] = [["", s.review.everyCheck], ...Object.entries(s.review.checkNames)];
+  const checks: [string, string][] = [
+    ["", s.review.everyCheck],
+    ...Object.entries(s.review.checkNames),
+    ...Object.entries(s.review.patternNames).map(([k, v]) => [`pattern:${k}`, v] as [string, string]),
+  ];
   return (
     <div className="cs-review">
       <div className="cs-filters">
@@ -1259,6 +1372,7 @@ function Review({
               item={current}
               unit={(page?.unit ?? "sqft") as Unit}
               currency={currency}
+              place={place}
               next={next}
             />
           )}
@@ -1284,7 +1398,13 @@ function pills(i: ReviewItem) {
       </span>,
     );
   }
-  if (i.pattern?.split(",").includes("1"))
+  if (i.flag_only)
+    out.push(
+      <span key="only" className="cs-pill">
+        {s.review.flagOnly}
+      </span>,
+    );
+  else if (i.pattern?.split(",").includes("1"))
     out.push(
       <span key="size" className="cs-pill">
         {s.review.oddSize}
@@ -1316,19 +1436,16 @@ function why(i: ReviewItem, d: SaleDetail | undefined, currency: string, unit: U
       s.review.sold(money(i.price, currency), area, money(i.price_per_area, currency), u) +
         s.review.vs(rel(i.ratio, s.review.theMedian), (i.count ?? 1) - 1, money(i.median, currency)),
     );
-    const p = new Set((i.pattern ?? "").split(","));
-    if (p.has("1")) out.push(s.review.patterns.size);
-    else if (p.has("2")) out.push(s.review.patterns.low);
-    else if (p.has("3")) out.push(s.review.patterns.high);
-    else if (p.has("4")) out.push(s.review.patterns.areaSmall);
-    else if (p.has("5")) out.push(s.review.patterns.areaBig);
   } else if (i.price !== null && i.price !== undefined) {
     out.push(s.review.soldFor(money(i.price, currency)));
   }
   for (const c of i.checks) {
-    const text = s.review.checkWhy[c as keyof typeof s.review.checkWhy];
+    const found = i.details[c];
+    const said = found && s.review.details[c];
+    const text = said ? said(found) : s.review.checkWhy[c];
     if (text) out.push(text);
   }
+  if (i.seller && i.buyer) out.push(s.review.sellerBuyer(i.seller, i.buyer));
   if (i.second_look) out.push(s.review.second);
   return out;
 }
@@ -1338,12 +1455,14 @@ function SaleView({
   item: i,
   unit,
   currency,
+  place,
   next,
 }: {
   projectId: string;
   item: ReviewItem;
   unit: Unit;
   currency: string;
+  place: string;
   next: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -1385,6 +1504,9 @@ function SaleView({
           {line}
         </p>
       ))}
+      <Readings i={i} unit={unit} currency={currency} />
+      <Diagnosis i={i} />
+      {d && <Look address={i.address} place={place} latitude={d.latitude} longitude={d.longitude} />}
       {d && d.members.length > 1 && (
         <>
           <Dots members={d.members} self={i.key_sale} median={i.median} currency={currency} />
@@ -1419,6 +1541,7 @@ function SaleView({
           </table>
         </>
       )}
+      {d && <Related related={d.related} currency={currency} unit={unit} />}
       {d && (
         <p className="wiz-from cs-text">
           {s.review.data(num(d.area), u, i.vacant, d.year_built, money(d.raw_price, currency))}
@@ -1459,6 +1582,168 @@ function SaleView({
         <p className="error" role="alert">
           {mark.error.message}
         </p>
+      )}
+    </section>
+  );
+}
+
+/** Price, price per area and size against its group, as the five-pattern table reads them. */
+function Readings({ i, unit, currency }: { i: ReviewItem; unit: Unit; currency: string }) {
+  if (!i.per_area_rating) return null;
+  const r = s.review.readings;
+  const u = s.unit[unit];
+  const rows: [string, string, string, number | null | undefined, string | null | undefined][] = [
+    [r.price, money(i.price, currency), money(i.price_median, currency), i.price_dist, i.price_rating],
+    [
+      r.perArea(u),
+      money(i.price_per_area, currency),
+      money(i.median, currency),
+      i.per_area_dist,
+      i.per_area_rating,
+    ],
+    [r.size(u, i.vacant), num(i.size), num(i.size_median), i.size_dist, i.size_rating],
+  ];
+  return (
+    <>
+      <table className="bi-tbl cs-tbl cs-readings">
+        <thead>
+          <tr>
+            <th>{r.title}</th>
+            <th className="cs-n">{r.thisSale}</th>
+            <th className="cs-n">{r.median}</th>
+            <th className="cs-n">{r.sd}</th>
+            <th>{r.reading}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([label, mine, median, dist, rating]) => (
+            <tr key={label}>
+              <td>{label}</td>
+              <td className="cs-n">{mine}</td>
+              <td className="cs-n">{median}</td>
+              <td className="cs-n">{dist === null || dist === undefined ? "" : dist.toFixed(2)}</td>
+              <td>
+                <span
+                  className={rating === "in" ? "cs-pill" : rating === "high" ? "cs-pill hi" : "cs-pill lo"}
+                >
+                  {r[(rating ?? "in") as "low" | "in" | "high"]}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="wiz-from cs-text">{r.note}</p>
+    </>
+  );
+}
+
+/** Its pattern: the likely causes, and what to check (the five-pattern table). */
+function Diagnosis({ i }: { i: ReviewItem }) {
+  const key = i.flag_only ? "other" : (i.pattern ?? "").split(",").find((p) => p in s.review.diagnosis);
+  const d = key ? s.review.diagnosis[key] : undefined;
+  if (!d) return null;
+  return (
+    <div className={i.flag_only ? "cs-diag bi-warn" : "cs-diag"}>
+      <b>{d.title}</b>
+      <p className="cs-text">{d.cause}</p>
+      <b className="cs-small">{s.review.checkFor}</b>
+      <ul className="cs-todo">
+        {d.actions.map((a) => (
+          <li key={a}>{a}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Street View, the aerial, Zillow and Redfin, in a viewer window beside the app (a browser tab outside it). */
+function Look({
+  address,
+  place,
+  latitude,
+  longitude,
+}: {
+  address: string | null | undefined;
+  place: string;
+  latitude: number | null | undefined;
+  longitude: number | null | undefined;
+}) {
+  const l = s.review.look;
+  const where = address ? `${address}, ${place}` : "";
+  const at = latitude != null && longitude != null ? `${latitude},${longitude}` : "";
+  const links: [string, string][] = [];
+  if (at) {
+    links.push([l.streetView, `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${at}`]);
+    links.push([
+      l.aerial,
+      `https://www.google.com/maps/@?api=1&map_action=map&center=${at}&zoom=19&basemap=satellite`,
+    ]);
+  }
+  if (where) {
+    links.push([l.zillow, `https://www.zillow.com/homes/${encodeURIComponent(where)}_rb/`]);
+    // Redfin has no address link: the search's first Redfin result.
+    links.push([
+      l.redfin,
+      `https://duckduckgo.com/?q=${encodeURIComponent(`!ducky site:redfin.com ${where}`)}`,
+    ]);
+  }
+  if (!links.length) return null;
+  return (
+    <div className="cs-row cs-look">
+      <b className="cs-small">{l.title}</b>
+      {links.map(([label, url]) => (
+        <Button
+          key={label}
+          className="button"
+          onPress={() => desktop.view(url, `${label}: ${address ?? at}`)}
+        >
+          {label}
+        </Button>
+      ))}
+      <span className="wiz-from">{l.note}</span>
+    </div>
+  );
+}
+
+/** Sales that may be the same transaction, or the same buyer's. */
+function Related({ related, currency, unit }: { related: RelatedSale[]; currency: string; unit: Unit }) {
+  const r = s.review.related;
+  return (
+    <section className="cs-step">
+      <h4 className="wiz-group">{r.title}</h4>
+      {related.length === 0 ? (
+        <p className="wiz-from">{r.none}</p>
+      ) : (
+        <table className="bi-tbl cs-tbl">
+          <thead>
+            <tr>
+              <th>{r.address}</th>
+              <th>{r.sold}</th>
+              <th className="cs-n">{r.price}</th>
+              <th className="cs-n">{r.away}</th>
+              <th>{r.buyer}</th>
+              <th>{r.how}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {related.map((x) => (
+              <tr key={x.key_sale}>
+                <td>
+                  {x.address ?? x.key_sale}
+                  {x.set_aside && <span className="cs-pill"> {s.review.setAside}</span>}
+                </td>
+                <td>{day(x.sale_date)}</td>
+                <td className="cs-n">{money(x.price, currency)}</td>
+                <td className="cs-n">
+                  {x.distance == null ? "" : unit === "sqft" ? r.feet(x.distance) : r.metres(x.distance)}
+                </td>
+                <td>{x.buyer ?? ""}</td>
+                <td>{x.why.map((w) => r.why[w] ?? w).join(", ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
   );

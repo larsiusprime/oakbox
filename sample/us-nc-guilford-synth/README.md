@@ -42,7 +42,7 @@ it against.
 | `in/geo/parcels.parquet` | 7,999 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `TOTAL_ACRES` (land, in acres), `LOCATION_ADDR`, `PHYADDR_CITY`, `PHYADDR_ZIP`, `NEIGHBORHOOD`, `LAND_CLASS`, `ZONING`, 2022 assessed `TOTAL_LAND_VALUE_ASSESSED` / `TOTAL_BLDG_VALUE_ASSESSED` / `TOTAL_PROP_VALUE` |
 | `in/condo_units.csv` | 1,360 condo units | The units without a shape of their own: the parcel file's columns (`REID` the plain parcel ID, `PIN_PLUS_EXT` with the unit's extension, `-001` and on), no geometry. Their building's parcel (`-000`) is in `parcels.parquet`. |
 | `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE`; and as other systems combine them: `QC_RATING` (`Q3C2`, `Q3/C2`: UAD-style quality and condition in one value, 1 best) and `CDU` (EX … PR) |
-| `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), and `PRICE_*`: the same prices in other formats (below) |
+| `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), `GRANTOR` and `GRANTEE` (made up, below), and `PRICE_*`: the same prices in other formats (below) |
 | `in/permits.csv` | 2,140 permits | Made up: `PERMIT_NO`, `REID` (the plain parcel ID), `ISSUE_DATE` (2011–2025, year-month-day), `WORK_CLASS` (ALTERATION, REROOF, ADDITION, ELECTRICAL, NEW CONSTRUCTION, DEMOLITION, POOL), `VALUATION` |
 | `in/time_adjustment_index.csv` | 40 quarters | Made up: `period` (`2015-Q1` … `2024-Q4`), `index` (100 in 2015-Q1). A price index as a county might publish one, for trying a model group's own time adjustment (Check sales › Time adjustment › **My own file**). Not Guilford's. |
 | `in/time_adjustment_index_broken.csv` | 6 rows | The same, with problems planted: a period that isn't one (`spring 2015`), a quarter twice, a negative and a missing level. OAK box should refuse it and say each. |
@@ -108,3 +108,8 @@ it against.
 16. **Sales of several parcels on one deed.** 123 deeds (`DEED_BOOK`/`DEED_PAGE`) record two or more sales on the same
     day, Guilford's own: one transaction of several parcels, each given the whole price or a share. Sales scrutiny
     sets them aside once the Deeds step names the deed.
+17. **Buyers and sellers, made up.** `GRANTOR` (seller) and `GRANTEE` (buyer), as a recorder writes them: SURNAME
+    GIVEN in capitals, couples joined with `&` (`SMITH JOHN A & MARY`), companies, banks, the city and family trusts.
+    About 4% are between family, the same surname on both sides (196 sales share one, some by chance); five builders
+    and investors buy dozens of parcels each. `deed_names.py` makes them (`python deed_names.py` adds them to
+    `in/sales.csv` as it is).

@@ -762,6 +762,132 @@
     }
    }
   },
+  "/api/projects/{project_id}/names": {
+   "get": {
+    "summary": "Get Names",
+    "description": "The deed names read with the saved format, or with one being tried (a live preview: nothing is saved).",
+    "operationId": "get_names_api_projects__project_id__names_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "format",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "first_word",
+          "before_comma",
+          "last_word",
+          "custom"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Format"
+      }
+     },
+     {
+      "name": "pattern",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Pattern"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NamesView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Set Names",
+    "description": "How the deed names are written: one of the formats, or a regular expression with a surname group.",
+    "operationId": "set_names_api_projects__project_id__names_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/NamesBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/NamesView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard": {
    "get": {
     "summary": "Get Wizard",
@@ -3886,7 +4012,7 @@
   "/api/projects/{project_id}/clean/review": {
    "get": {
     "summary": "Clean Review",
-    "description": "The sales set aside, furthest from their group first; filtered by model group, check and status.",
+    "description": "The sales set aside, furthest from their group first; filtered by model group, check, status and pattern\n(1 to 5, other).",
     "operationId": "clean_review_api_projects__project_id__clean_review_get",
     "parameters": [
      {
@@ -3952,6 +4078,16 @@
        "type": "integer",
        "default": 100,
        "title": "Limit"
+      }
+     },
+     {
+      "name": "pattern",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Pattern"
       }
      }
     ],
@@ -4090,7 +4226,7 @@
   "/api/projects/{project_id}/clean/time/borrow": {
    "put": {
     "summary": "Clean Time Borrow",
-    "description": "A model group uses another group's time adjustment (null: its own).",
+    "description": "A model group uses another group's time adjustment (null: works it out from its own sales). Either way its\nown file, if it had one, is set aside.",
     "operationId": "clean_time_borrow_api_projects__project_id__clean_time_borrow_put",
     "parameters": [
      {
@@ -4179,53 +4315,6 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/TimeFileCheck"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   },
-   "delete": {
-    "summary": "Clean Time File Off",
-    "description": "The group works its time adjustment out from its sales again.",
-    "operationId": "clean_time_file_off_api_projects__project_id__clean_time_file__group__delete",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     },
-     {
-      "name": "group",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Group"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/CleanSetup"
         }
        }
       }
@@ -5307,6 +5396,20 @@
       "title": "Set Aside",
       "description": "Sales scrutiny set aside, kept or not: to look at."
      },
+     "flagged_in": {
+      "type": "integer",
+      "title": "Flagged In",
+      "description": "Flagged but left in: no pattern fits them; the user decides.",
+      "default": 0
+     },
+     "patterns": {
+      "items": {
+       "$ref": "#/components/schemas/PatternTable"
+      },
+      "type": "array",
+      "title": "Patterns",
+      "description": "All groups first, then each."
+     },
      "funnel": {
       "items": {
        "$ref": "#/components/schemas/FunnelLine"
@@ -5351,6 +5454,8 @@
      "start",
      "used",
      "set_aside",
+     "flagged_in",
+     "patterns",
      "funnel",
      "groups",
      "filled",
@@ -5470,6 +5575,18 @@
       "title": "Deed",
       "description": "A deed ID is loaded (the same-deed check needs one)."
      },
+     "names": {
+      "type": "boolean",
+      "title": "Names",
+      "description": "Buyer and seller names are loaded (the same-surname check).",
+      "default": false
+     },
+     "year_built": {
+      "type": "boolean",
+      "title": "Year Built",
+      "description": "Year built is loaded (the vacant / built checks).",
+      "default": false
+     },
      "collapse": {
       "type": "boolean",
       "title": "Collapse"
@@ -5525,6 +5642,8 @@
      "similar",
      "checks",
      "deed",
+     "names",
+     "year_built",
      "collapse",
      "collapse_sales_min",
      "collapse_univ_min",
@@ -5649,6 +5768,30 @@
       "type": "object",
       "title": "Marks",
       "description": "key_sale -> kept or excluded by the user."
+     },
+     "name_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name Format",
+      "description": "How deed names are written (names.FORMATS, or custom); None: not decided."
+     },
+     "name_pattern": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name Pattern",
+      "description": "The custom format: a regex with a surname group."
      }
     },
     "type": "object",
@@ -5666,7 +5809,9 @@
      "collapse_fields",
      "collapse_sales_min",
      "collapse_univ_min",
-     "marks"
+     "marks",
+     "name_format",
+     "name_pattern"
     ],
     "title": "CleanState"
    },
@@ -9484,6 +9629,263 @@
     "title": "ModelGroup",
     "description": "Parcels valued together (SPEC \u00a73.5): OpenAVMKit's modeling.model_groups entry. First match wins."
    },
+   "NameFormat": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "enum": [
+       "first_word",
+       "before_comma",
+       "last_word",
+       "custom"
+      ],
+      "title": "Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "example": {
+      "type": "string",
+      "title": "Example"
+     },
+     "pattern": {
+      "type": "string",
+      "title": "Pattern"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "label",
+     "example",
+     "pattern"
+    ],
+    "title": "NameFormat"
+   },
+   "NameRow": {
+    "properties": {
+     "seller": {
+      "type": "string",
+      "title": "Seller"
+     },
+     "buyer": {
+      "type": "string",
+      "title": "Buyer"
+     },
+     "seller_surnames": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Seller Surnames"
+     },
+     "buyer_surnames": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Buyer Surnames"
+     },
+     "shared": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Shared"
+     }
+    },
+    "type": "object",
+    "required": [
+     "seller",
+     "buyer",
+     "seller_surnames",
+     "buyer_surnames",
+     "shared"
+    ],
+    "title": "NameRow"
+   },
+   "NamesBody": {
+    "properties": {
+     "format": {
+      "type": "string",
+      "enum": [
+       "first_word",
+       "before_comma",
+       "last_word",
+       "custom"
+      ],
+      "title": "Format"
+     },
+     "pattern": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pattern",
+      "description": "For custom: a regular expression with a surname group."
+     }
+    },
+    "type": "object",
+    "required": [
+     "format"
+    ],
+    "title": "NamesBody"
+   },
+   "NamesView": {
+    "properties": {
+     "available": {
+      "type": "boolean",
+      "title": "Available",
+      "description": "Seller and buyer names (or surnames) are loaded from one sales file."
+     },
+     "file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     },
+     "surname_fields": {
+      "type": "boolean",
+      "title": "Surname Fields",
+      "description": "Seller and buyer surnames are loaded as fields: used as given."
+     },
+     "formats": {
+      "items": {
+       "$ref": "#/components/schemas/NameFormat"
+      },
+      "type": "array",
+      "title": "Formats"
+     },
+     "guess": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "first_word",
+         "before_comma",
+         "last_word",
+         "custom"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Guess",
+      "description": "What the names look like."
+     },
+     "why": {
+      "type": "string",
+      "title": "Why",
+      "description": "Why that guess, in words."
+     },
+     "format": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "first_word",
+         "before_comma",
+         "last_word",
+         "custom"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Format",
+      "description": "Saved; None: not confirmed yet (the guess is used)."
+     },
+     "pattern": {
+      "type": "string",
+      "title": "Pattern",
+      "description": "The pattern read with (saved, tried or the guess's)."
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error",
+      "description": "What's wrong with a pattern being tried."
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/NameRow"
+      },
+      "type": "array",
+      "title": "Rows",
+      "description": "Up to 6 sales sharing a surname, then up to 6 that don't."
+     },
+     "read": {
+      "type": "integer",
+      "title": "Read",
+      "description": "Names read as people, with a surname."
+     },
+     "companies": {
+      "type": "integer",
+      "title": "Companies",
+      "description": "Names skipped: companies, trusts, banks, governments."
+     },
+     "unread": {
+      "type": "integer",
+      "title": "Unread",
+      "description": "Names the pattern found no surname in."
+     },
+     "shared": {
+      "type": "integer",
+      "title": "Shared",
+      "description": "Sales whose buyer and seller share a surname."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales with both names, in the sample."
+     },
+     "sampled": {
+      "type": "boolean",
+      "title": "Sampled",
+      "description": "Only the first 5,000 sales were read.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "available",
+     "file",
+     "surname_fields",
+     "formats",
+     "guess",
+     "why",
+     "format",
+     "pattern",
+     "error",
+     "rows",
+     "read",
+     "companies",
+     "unread",
+     "shared",
+     "sales",
+     "sampled"
+    ],
+    "title": "NamesView",
+    "description": "What the deed names say, read with a format: the saved one, or one being tried."
+   },
    "NewProject": {
     "properties": {
      "name": {
@@ -10260,6 +10662,40 @@
      "vacant"
     ],
     "title": "ParcelSale"
+   },
+   "PatternTable": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales checked: in the window and valid."
+     },
+     "counts": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Counts",
+      "description": "Pattern (1 to 5, other) -> sales."
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "name",
+     "sales",
+     "counts"
+    ],
+    "title": "PatternTable",
+    "description": "The sales scrutiny flagged far from their group, by pattern: the five-pattern table, for one model group or\nall (\"\")."
    },
    "PermitKind": {
     "properties": {
@@ -11201,6 +11637,113 @@
     "title": "Regions",
     "description": "ISO 3166-1 countries and, where OAK box lists them, ISO 3166-2 subdivisions; each country's\ncurrency, number style and units, and the currencies to choose from (SPEC F1)."
    },
+   "RelatedSale": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "sale_date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale Date"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "seller": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Seller"
+     },
+     "buyer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Buyer"
+     },
+     "distance": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distance",
+      "description": "Metres from the sale set aside."
+     },
+     "why": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "deed",
+        "day_near",
+        "day_buyer",
+        "buyer_year"
+       ]
+      },
+      "type": "array",
+      "title": "Why",
+      "description": "Same deed; same day, nearby; same day, same buyer; same buyer within a year."
+     },
+     "set_aside": {
+      "type": "boolean",
+      "title": "Set Aside",
+      "description": "Set aside too."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "address",
+     "sale_date",
+     "price",
+     "seller",
+     "buyer",
+     "distance",
+     "why",
+     "set_aside"
+    ],
+    "title": "RelatedSale"
+   },
    "RepeatRows": {
     "properties": {
      "columns": {
@@ -11460,6 +12003,144 @@
       ],
       "title": "Rules"
      },
+     "flag_only": {
+      "type": "boolean",
+      "title": "Flag Only",
+      "description": "Flagged, left in: no pattern fits it. The user decides.",
+      "default": false
+     },
+     "price_rating": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Rating",
+      "description": "low, in (range) or high against its group."
+     },
+     "per_area_rating": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Area Rating"
+     },
+     "size_rating": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Rating"
+     },
+     "price_median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Median"
+     },
+     "price_dist": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Dist",
+      "description": "Standard deviations from its group's median."
+     },
+     "per_area_dist": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Area Dist"
+     },
+     "size": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size",
+      "description": "Finished area (improved) or land area (vacant)."
+     },
+     "size_median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Median"
+     },
+     "size_dist": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Size Dist"
+     },
+     "details": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Details",
+      "description": "Check -> what it found (e.g. built 2023)."
+     },
+     "seller": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Seller"
+     },
+     "buyer": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Buyer"
+     },
      "second_look": {
       "type": "boolean",
       "title": "Second Look",
@@ -11496,6 +12177,19 @@
      "count",
      "pattern",
      "rules",
+     "flag_only",
+     "price_rating",
+     "per_area_rating",
+     "size_rating",
+     "price_median",
+     "price_dist",
+     "per_area_dist",
+     "size",
+     "size_median",
+     "size_dist",
+     "details",
+     "seller",
+     "buyer",
      "second_look",
      "status",
      "note"
@@ -11917,6 +12611,14 @@
        }
       ],
       "title": "Longitude"
+     },
+     "related": {
+      "items": {
+       "$ref": "#/components/schemas/RelatedSale"
+      },
+      "type": "array",
+      "title": "Related",
+      "description": "Up to 30: deed first, then by date."
      }
     },
     "type": "object",
@@ -11927,7 +12629,8 @@
      "raw_price",
      "members",
      "latitude",
-     "longitude"
+     "longitude",
+     "related"
     ],
     "title": "SaleDetail"
    },

@@ -4,6 +4,8 @@ import type { components, paths } from "./schema";
 export const api = createClient<paths>({ baseUrl: "" });
 
 export type Project = components["schemas"]["Project"];
+export type NamesView = components["schemas"]["NamesView"];
+export type NameRow = components["schemas"]["NameRow"];
 export type ProjectDetail = components["schemas"]["ProjectDetail"];
 export type InputFile = components["schemas"]["InputFile"];
 export type NewProject = components["schemas"]["NewProject"];
@@ -74,5 +76,7 @@ export type CleanReceipt = components["schemas"]["CleanReceipt"];
 export type FillRow = components["schemas"]["FillRow"];
 export type ReviewItem = components["schemas"]["ReviewItem"];
 export type SaleDetail = components["schemas"]["SaleDetail"];
+export type RelatedSale = components["schemas"]["RelatedSale"];
+export type PatternTable = components["schemas"]["PatternTable"];
 export type CleanPatch = components["schemas"]["CleanPatch"];
 export type PrepareView = components["schemas"]["PrepareView"];

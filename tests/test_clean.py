@@ -103,12 +103,21 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     assert r["funnel"][0]["count"] == 47 and r["funnel"][-1]["count"] == r["used"] == total
     assert sum(g["used"] for g in r["groups"]) == r["used"]
     assert any(w["path"] == "out/2-clean-sup.pickle" for w in r["written"])
+    # The five-pattern table: all groups first; each sale far from its group counted once, by its pattern.
+    assert r["patterns"][0]["group"] == "" and set(r["patterns"][0]["counts"]) == {"1", "2", "3", "4", "5", "other"}
+    assert _settings(pid)["analysis"]["sales_scrutiny"]["patterns"] == "strict"
 
     page = client.get(f"{url}/review").json()
     assert page["all"] == r["set_aside"] and page["undecided"] == page["all"]
     if page["items"]:
         key = page["items"][0]["key_sale"]
-        assert client.get(f"{url}/review/{key}").json()["item"]["key_sale"] == key
+        sale = client.get(f"{url}/review/{key}").json()
+        assert sale["item"]["key_sale"] == key and isinstance(sale["related"], list)
+        first = page["items"][0]
+        if "cluster" in first["checks"]:
+            assert first["per_area_rating"] in ("low", "in", "high") and first["pattern"]
+            only = client.get(f"{url}/review", params={"pattern": first["pattern"].split(",")[0]}).json()
+            assert only["total"] >= 1
         # Keeping needs a note: why it's a market sale.
         assert client.put(f"{url}/marks/{key}", json={"action": "keep", "note": " "}).status_code == 422
         view = client.put(f"{url}/marks/{key}", json={"action": "keep", "note": "Arm's length"}).json()

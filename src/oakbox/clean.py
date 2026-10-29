@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import Field
 
-from oakbox import assemble, bring_in
+from oakbox import assemble, bring_in, names
 from oakbox.datafiles import BaseModel
 
 if TYPE_CHECKING:
@@ -37,7 +37,14 @@ NO_PARCEL = "(none)"  # the model group of a sale whose parcel isn't in the parc
 NO_PARCEL_NAME = "No parcel (not in the parcel universe)"
 KEEP_FILE = "in/oakbox/keep.csv"
 EXCLUDE_FILE = "in/oakbox/exclude.csv"
-HEURISTICS = ("dupe_deed_date", "dupe_date_price", "false_vacant")
+HEURISTICS = (
+    "dupe_deed_date",
+    "dupe_date_price",
+    "false_vacant",
+    "built_after_sale",
+    "vacant_priced_improved",
+    "same_surname",
+)
 CHECKS = ("cluster", *HEURISTICS)
 YEARS_BEFORE = 5  # OpenAVMKit's default sales window: sales from 5 years before the valuation date
 # Fields OpenAVMKit always tidies itself (0 = no building / no year), never offered a fill.
@@ -121,6 +128,10 @@ class CleanState(BaseModel):
     collapse_sales_min: int = 5
     collapse_univ_min: int = 20
     marks: dict[str, SaleMark] = Field(default_factory=dict, description="key_sale -> kept or excluded by the user.")
+    name_format: str | None = Field(
+        default=None, description="How deed names are written (names.FORMATS, or custom); None: not decided."
+    )
+    name_pattern: str | None = Field(default=None, description="The custom format: a regex with a surname group.")
 
 
 def valuation_year(project) -> int:
@@ -168,7 +179,12 @@ def settings(project) -> dict:
         "passes": 2,
         "clusters_enabled": c.checks.get("cluster", True),
         "heuristics": {h: c.checks.get(h, True) for h in HEURISTICS},
+        # Each sale set aside diagnosed as the five-pattern table reads; one fitting none is flagged, left in.
+        "patterns": "strict",
     }
+    pattern = names.pattern(project)
+    if pattern:
+        scrutiny["same_surname"] = {"pattern": pattern}
     analysis: dict[str, Any] = {"sales_scrutiny": scrutiny, "report": {"formats": ["md"]}}
     scrutiny |= {"keep_file": KEEP_FILE, "invalid_key_file": EXCLUDE_FILE}
     loc = c.location or None
@@ -360,6 +376,8 @@ class CleanSetup(BaseModel):
     similar: list[str] = Field(description="The numbers sales are compared on, by name.")
     checks: dict[str, bool]
     deed: bool = Field(description="A deed ID is loaded (the same-deed check needs one).")
+    names: bool = Field(default=False, description="Buyer and seller names are loaded (the same-surname check).")
+    year_built: bool = Field(default=False, description="Year built is loaded (the vacant / built checks).")
     collapse: bool
     collapse_sales_min: int
     collapse_univ_min: int
@@ -694,6 +712,9 @@ def setup(project, project_dir: Path) -> CleanSetup:
         similar=similar,
         checks={k: c.checks.get(k, True) for k in CHECKS},
         deed=bool(_settings(project_dir).get("analysis", {}).get("sales_scrutiny", {}).get("deed_id")),
+        names=any(c in sales for c in ("deed_grantor", "deed_grantor_surname"))
+        and any(c in sales for c in ("deed_grantee", "deed_grantee_surname")),
+        year_built="bldg_year_built" in sales or "bldg_year_built" in universe,
         collapse=c.collapse,
         collapse_sales_min=c.collapse_sales_min,
         collapse_univ_min=c.collapse_univ_min,
@@ -715,6 +736,8 @@ def decide(project, project_dir: Path) -> None:
     collapsible = _collapsible(project_dir, universe, locations)
     # Kept to what can fold now (dates and IDs never do).
     c.collapse_fields = [f for f in c.collapse_fields if f in collapsible] or collapsible
+    if c.name_format is None:
+        c.name_format = names.view(project, project_dir / "in").guess
 
 
 # ---------- The run ----------
@@ -741,6 +764,16 @@ class GroupResult(BaseModel):
     curve: list[float] = Field(description="The price index over time (first = 1), about 40 points.")
 
 
+class PatternTable(BaseModel):
+    """The sales scrutiny flagged far from their group, by pattern: the five-pattern table, for one model group or
+    all ("")."""
+
+    group: str
+    name: str
+    sales: int = Field(description="Sales checked: in the window and valid.")
+    counts: dict[str, int] = Field(description="Pattern (1 to 5, other) -> sales.")
+
+
 class Filled(BaseModel):
     field: str
     name: str
@@ -755,6 +788,8 @@ class CleanReceipt(BaseModel):
     start: int
     used: int
     set_aside: int = Field(description="Sales scrutiny set aside, kept or not: to look at.")
+    flagged_in: int = Field(default=0, description="Flagged but left in: no pattern fits them; the user decides.")
+    patterns: list[PatternTable] = Field(default_factory=list, description="All groups first, then each.")
     funnel: list[FunnelLine]
     groups: list[GroupResult]
     filled: list[Filled]
@@ -773,8 +808,12 @@ CHECK_WORDS = {
     "dupe_deed_date": "same deed, same day (a sale of several parcels)",
     "dupe_date_price": "same day, same price",
     "false_vacant": "sold as vacant, but the building is older than the sale",
+    "built_after_sale": "sold as improved, but the building was built after the sale",
+    "vacant_priced_improved": "sold as vacant, but priced like the improved sales near it",
+    "same_surname": "buyer and seller share a surname",
     "cluster": "far from their group's price per area",
 }
+PATTERNS = ("1", "2", "3", "4", "5", "other")
 ORDER = ["excluded", *HEURISTICS, "cluster"]
 
 
@@ -885,6 +924,7 @@ def run(project_id: str) -> None:
     receipt = _receipt(project, pdir, before, start_sales, processed, used, flags, hydrated, sup.sales, t0, caught)
     receipt.engine = version("openavmkit")
     _review_tables(tmp, hydrated, sup.sales, flags, project.units)
+    _related_table(tmp, before, settings)
     # Step 5 prepares the fields from this (the user's fills, rare categories) and writes 2-clean again.
     pd.to_pickle(sup, tmp / "sup.pickle")
     pd.DataFrame({"key_sale": sorted(used)}).to_parquet(tmp / "used.parquet", index=False)
@@ -951,9 +991,11 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
     dropped = set() if empty else set(flags.loc[flags["dropped"].astype(bool), "key_sale"])
     kept = set() if empty else set(flags.loc[flags["kept"].astype(bool), "key_sale"])
     excluded = set() if empty else set(flags.loc[flags["check"] == "excluded", "key_sale"]) & dropped
+    only = _flag_only(flags)
     counted: set[str] = set()
     for check in ORDER[1:]:
-        ks = set() if empty else set(flags.loc[flags["check"] == check, "key_sale"]) & (dropped | kept)
+        rows = flags[(flags["check"] == check) & ~only] if not empty else flags
+        ks = set() if empty else set(rows["key_sale"]) & (dropped | kept)
         ks -= counted | excluded
         counted |= ks
         funnel.append(FunnelLine(sign="-", count=len(ks), text=CHECK_WORDS[check], check=check))
@@ -1033,6 +1075,7 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
             )
     mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
     aside = len(counted)
+    flagged_in = set() if empty else set(flags.loc[only, "key_sale"]) & used
     return CleanReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
         seconds=round(time.time() - t0, 1),
@@ -1040,12 +1083,44 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
         start=len(start),
         used=len(used),
         set_aside=aside,
+        flagged_in=len(flagged_in),
+        patterns=_pattern_tables(project, flags, h, excluded),
         funnel=funnel,
         groups=groups,
         filled=filled,
         written=written,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
+
+
+def _flag_only(flags) -> pd.Series:
+    import pandas as pd
+
+    if "flag_only" not in flags:
+        return pd.Series(False, index=flags.index)
+    return flags["flag_only"].astype("boolean").fillna(False).astype(bool)
+
+
+def _pattern_tables(project, flags, h, excluded: set[str]) -> list[PatternTable]:
+    """Each pattern's sales among those checked, all groups and per group (the article's Results table)."""
+    names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned"}
+    groups = _groups(h)
+    cluster = flags[flags["check"] == "cluster"] if len(flags) else flags
+    cluster = cluster[~cluster["key_sale"].isin(list(excluded))] if len(cluster) else cluster
+    out = []
+    for gid in ["", *[g.id for g in project.groups], UNKNOWN]:
+        sales = int(len(h)) if gid == "" else int((groups == gid).sum())
+        mine = cluster if gid == "" or not len(cluster) else cluster[cluster["model_group"].astype(str) == gid]
+        if gid and sales == 0:
+            continue
+        counts = {p: 0 for p in PATTERNS}
+        if len(mine):
+            for pattern, n in mine.drop_duplicates("key_sale")["pattern"].astype(str).value_counts().items():
+                for one in str(pattern).split(","):
+                    if one in counts:
+                        counts[one] += int(n)
+        out.append(PatternTable(group=gid, name=names.get(gid, "All model groups"), sales=sales, counts=counts))
+    return out
 
 
 # ---------- The review: the sales set aside, and each one's group ----------
@@ -1071,6 +1146,8 @@ def _review_tables(out: Path, hydrated, sales, flags, units: str) -> None:
             "vacant_sale",
             "latitude",
             "longitude",
+            "deed_grantor",
+            "deed_grantee",
         ]
         if c in h
     ]
@@ -1100,6 +1177,22 @@ def _review_tables(out: Path, hydrated, sales, flags, units: str) -> None:
     members.to_parquet(out / "members.parquet", index=False)
 
 
+RELATED_COLUMNS = ["key_sale", "address", "sale_date", "sale_price", "latitude", "longitude", "deed_grantor"]
+RELATED_COLUMNS += ["deed_grantee"]
+
+
+def _related_table(out: Path, before, settings: dict) -> None:
+    """related.parquet: every sale as it came in (out of the window too), for the sales related to one set aside:
+    the same deed, the same day nearby, the same buyer."""
+    deed = settings.get("analysis", {}).get("sales_scrutiny", {}).get("deed_id")
+    cols = [c for c in RELATED_COLUMNS if c in before]
+    r = before[cols].copy()
+    r["key_sale"] = r["key_sale"].astype(str)
+    if deed and deed in before:
+        r["deed"] = before[deed].astype("string")
+    r.drop_duplicates("key_sale").to_parquet(out / "related.parquet", index=False)
+
+
 class ReviewItem(BaseModel):
     key_sale: str
     key: str
@@ -1116,6 +1209,19 @@ class ReviewItem(BaseModel):
     count: int | None = Field(description="Sales in the group it was compared with.")
     pattern: str | None
     rules: str | None
+    flag_only: bool = Field(default=False, description="Flagged, left in: no pattern fits it. The user decides.")
+    price_rating: str | None = Field(default=None, description="low, in (range) or high against its group.")
+    per_area_rating: str | None = None
+    size_rating: str | None = None
+    price_median: float | None = None
+    price_dist: float | None = Field(default=None, description="Standard deviations from its group's median.")
+    per_area_dist: float | None = None
+    size: float | None = Field(default=None, description="Finished area (improved) or land area (vacant).")
+    size_median: float | None = None
+    size_dist: float | None = None
+    details: dict[str, str] = Field(default_factory=dict, description="Check -> what it found (e.g. built 2023).")
+    seller: str | None = None
+    buyer: str | None = None
     second_look: bool = Field(description="Found once the sale that hid it was set aside.")
     status: Literal["undecided", "kept", "excluded"]
     note: str
@@ -1144,6 +1250,24 @@ class Member(BaseModel):
     longitude: float | None
 
 
+class RelatedSale(BaseModel):
+    key_sale: str
+    address: str | None
+    sale_date: str | None
+    price: float | None
+    seller: str | None
+    buyer: str | None
+    distance: float | None = Field(description="Metres from the sale set aside.")
+    why: list[Literal["deed", "day_near", "day_buyer", "buyer_year"]] = Field(
+        description="Same deed; same day, nearby; same day, same buyer; same buyer within a year."
+    )
+    set_aside: bool = Field(description="Set aside too.")
+
+
+NEAR_M = 152.4  # "nearby": within 500 ft
+BUYER_DAYS = 365
+
+
 class SaleDetail(BaseModel):
     item: ReviewItem
     area: float | None = Field(description="Finished area (improved) or land area (vacant) it's priced per.")
@@ -1152,6 +1276,7 @@ class SaleDetail(BaseModel):
     members: list[Member]
     latitude: float | None
     longitude: float | None
+    related: list[RelatedSale] = Field(default_factory=list, description="Up to 30: deed first, then by date.")
 
 
 def _num(v) -> float | None:
@@ -1214,6 +1339,23 @@ def _items(project, project_dir: Path) -> list[ReviewItem]:
                 count=int(c["count"]) if len(cluster) and _num(c.get("count")) is not None else None,
                 pattern=_text(c.get("pattern")) if len(cluster) else None,
                 rules=_text(c.get("rules")) if len(cluster) else None,
+                flag_only=bool(len(cluster) and bool(c.get("flag_only")) and len(rows) == len(cluster)),
+                price_rating=_text(c.get("price_rating")) if len(cluster) else None,
+                per_area_rating=_text(c.get("per_area_rating")) if len(cluster) else None,
+                size_rating=_text(c.get("size_rating")) if len(cluster) else None,
+                price_median=_num(c.get("price_median")) if len(cluster) else None,
+                price_dist=_num(c.get("price_dist")) if len(cluster) else None,
+                per_area_dist=_num(c.get("med_dist_stdevs")) if len(cluster) else None,
+                size=_num(c.get("size")) if len(cluster) else None,
+                size_median=_num(c.get("size_median")) if len(cluster) else None,
+                size_dist=_num(c.get("size_dist")) if len(cluster) else None,
+                details={
+                    str(x["check"]): str(x["detail"])
+                    for _, x in rows.iterrows()
+                    if "detail" in rows and _text(x.get("detail"))
+                },
+                seller=_text(first.get("deed_grantor")),
+                buyer=_text(first.get("deed_grantee")),
                 second_look=bool(len(cluster) and _num(c.get("scrutiny_pass")) == 2),
                 status="kept" if mark and mark.action == "keep" else "excluded" if mark else "undecided",
                 note=mark.note if mark else "",
@@ -1238,6 +1380,7 @@ def review(
     status: str | None = None,
     offset: int = 0,
     limit: int = 100,
+    pattern: str | None = None,
 ) -> ReviewPage:
     items = _items(project, project_dir)
     groups = sorted({(i.model_group, i.group_name) for i in items}, key=lambda x: x[1])
@@ -1247,6 +1390,7 @@ def review(
         if (not group or i.model_group == group)
         and (not check or check in i.checks)
         and (not status or i.status == status)
+        and (not pattern or pattern in (i.pattern or "").split(","))
     ]
     v = view(project, project_dir)
     return ReviewPage(
@@ -1294,7 +1438,9 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
             )
         members.sort(key=lambda x: (x.price_per_area is None, x.price_per_area or 0))
     year = _num(row.get("bldg_year_built"))
+    aside = {i.key_sale for i in _items(project, project_dir)}
     return SaleDetail(
+        related=_related(project_dir, key_sale, aside),
         item=item,
         area=area,
         year_built=int(year) if year else None,
@@ -1303,6 +1449,71 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
         latitude=_num(row.get("latitude")),
         longitude=_num(row.get("longitude")),
     )
+
+
+def _buyer(v) -> str:
+    import re
+
+    text = _text(v) or ""
+    return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9& ]", " ", text.upper())).strip()
+
+
+def _related(project_dir: Path, key_sale: str, aside: set[str]) -> list[RelatedSale]:
+    """Sales that may be part of the same transaction, or the same buyer's: the same deed, the same day within 500 ft,
+    the same day to the same buyer, the same buyer within a year."""
+    import numpy as np
+    import pandas as pd
+
+    path = out_dir(project_dir) / "related.parquet"
+    if not path.is_file():
+        return []
+    r = pd.read_parquet(path)
+    me = r[r["key_sale"] == key_sale]
+    if not len(me):
+        return []
+    m = me.iloc[0]
+    others = r[r["key_sale"] != key_sale].copy()
+    when = cast("pd.Series", pd.to_datetime(others["sale_date"], errors="coerce")) if "sale_date" in others else None
+    mine_when = pd.to_datetime(m.get("sale_date"), errors="coerce")
+    day = (when.dt.normalize() == mine_when.normalize()) if when is not None and pd.notna(mine_when) else None
+    why: dict[str, pd.Series] = {}
+    if "deed" in others and _text(m.get("deed")) and str(m["deed"]).strip().lower() not in ("", "nan", "none"):
+        why["deed"] = others["deed"].astype(str) == str(m["deed"])
+    distance = pd.Series(np.nan, index=others.index)
+    if {"latitude", "longitude"} <= set(others.columns) and _num(m.get("latitude")) and _num(m.get("longitude")):
+        lat1, lon1 = np.radians(float(m["latitude"])), np.radians(float(m["longitude"]))
+        lat2, lon2 = np.radians(_numbers(others, "latitude")), np.radians(_numbers(others, "longitude"))
+        a = np.sin((lat2 - lat1) / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin((lon2 - lon1) / 2) ** 2
+        distance = cast("pd.Series", 2 * 6_371_000 * np.arcsin(np.sqrt(a)))
+        if day is not None:
+            why["day_near"] = day & distance.le(NEAR_M)
+    buyer = _buyer(m.get("deed_grantee"))
+    if buyer and "deed_grantee" in others and when is not None and pd.notna(mine_when):
+        same = cast("pd.Series", others["deed_grantee"]).map(_buyer) == buyer
+        why["day_buyer"] = same & day if day is not None else same & False
+        gap = (when - mine_when).abs().dt.days
+        why["buyer_year"] = same & gap.le(BUYER_DAYS) & ~why["day_buyer"]
+    if not why:
+        return []
+    hit = cast("pd.Series", pd.concat(list(why.values()), axis=1).fillna(False).any(axis=1))
+    out = []
+    for idx in [i for i, yes in zip(others.index, hit.tolist(), strict=True) if yes]:
+        x = others.loc[idx]
+        out.append(
+            RelatedSale(
+                key_sale=str(x["key_sale"]),
+                address=_text(x.get("address")),
+                sale_date=_text(x.get("sale_date")),
+                price=_num(x.get("sale_price")),
+                seller=_text(x.get("deed_grantor")),
+                buyer=_text(x.get("deed_grantee")),
+                distance=_num(distance.get(idx)),
+                why=[cast(Any, k) for k, v in why.items() if bool(v.get(idx, False))],
+                set_aside=str(x["key_sale"]) in aside,
+            )
+        )
+    out.sort(key=lambda x: ("deed" not in x.why, x.sale_date or ""))
+    return out[:30]
 
 
 def mark(project, key_sale: str, action: Literal["keep", "exclude"] | None, note: str) -> None:

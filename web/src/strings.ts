@@ -175,6 +175,40 @@ export const t = {
   },
 
   wizard: {
+    names: {
+      title: "Buyers and sellers: their surnames",
+      lede: "Sales scrutiny sets aside a sale whose buyer and seller share a surname: possibly between family, not a market sale. How are the names written?",
+      none: "Load the seller and buyer names (above) to check for sales between family.",
+      surnameFields:
+        "Seller and buyer surnames are loaded: they're used as given. The format below reads the names that have none.",
+      how: "How the names are written",
+      looks: (why: string) => `looks like this: ${why}`,
+      custom: "My own pattern (a regular expression)",
+      patternLabel: "Pattern",
+      patternPlaceholder: "^\\s*(?P<surname>[^,]+),",
+      patternHelp:
+        "A regular expression with a group named surname around the surname: (?P<surname>…). Case doesn't matter. Each person in a name joined by & ; / or AND is read on their own.",
+      counts: (
+        sales: number,
+        read: number,
+        companies: number,
+        unread: number,
+        shared: number,
+        sampled: boolean,
+      ) =>
+        `Of ${sales.toLocaleString()} sales with both names${sampled ? " (the first 5,000)" : ""}: ${read.toLocaleString()} names read as people, ${companies.toLocaleString()} skipped as companies, trusts, banks or governments, ${unread.toLocaleString()} with no surname found. ${shared.toLocaleString()} ${shared === 1 ? "sale shares" : "sales share"} a surname.`,
+      seller: "Seller (grantor)",
+      buyer: "Buyer (grantee)",
+      surname: "Surname read",
+      shared: "Shared",
+      noSurname: "none",
+      inUse: "✓ In use",
+      confirm: "That's right",
+      use: "Use this",
+      cancel: "Cancel",
+      outside:
+        "Names too irregular for any pattern are better split before they come in: give the sales file clear seller and buyer surname columns, and load them as Seller surname and Buyer surname (above). They're used as given.",
+    },
     loading: "Reading the files…",
     stepOf: (n: number, of: number) => `Step ${n} of ${of}`,
     back: "‹ Back",
@@ -1557,15 +1591,22 @@ export const t = {
       checks: {
         cluster: "Far from its group's price per area",
         clusterWhy:
-          "outside the median ± 2 deviations, or 4× / 0.35× the median, with a high or low price or an odd size; looked at twice, so one far-off sale can't hide another",
+          "outside the median ± 2 deviations, or 4× / 0.35× the median; each diagnosed as one of five patterns (one fitting none is flagged but left in); looked at twice, so one far-off sale can't hide another",
         deed: "Same deed, same day",
         deedWhy: "one sale of several parcels",
         noDeed: "needs a deed ID: Data › Deeds",
         datePrice: "Same day, same price",
         vacant: "Sold as vacant, but the building is older than the sale",
+        builtAfter: "Sold as improved, but the building was built after the sale",
+        noYear: "needs year built: Data",
+        vacantPriced: "Sold as vacant, but priced like the improved sales near it",
+        vacantPricedWhy: "at least half the median improved sale in its model group and location",
+        surname: "Buyer and seller share a surname",
+        surnameWhy: "possibly between family; how names are read: Data › Deeds",
+        noNames: "needs buyer and seller names: Data › Deeds",
       },
       always:
-        "Every sale a check sets aside is left out of modeling until you keep it: none is dropped without being listed.",
+        "Every sale a check sets aside is left out of modeling until you keep it: none is dropped without being listed. A sale far from its group that fits none of the five patterns is flagged but left in: you decide.",
     },
     collapse: {
       title: "Rare categories",
@@ -1591,10 +1632,23 @@ export const t = {
     changeCalls: "Change the calls…",
     looksRight: "Looks right",
     accepted: "✓ Looks right",
+    patterns: {
+      title: "Far from their group, by pattern",
+      lede: (flagged: number, sales: number, name: string) =>
+        `${flagged.toLocaleString()} of ${sales.toLocaleString()} sales flagged (${name}). Each pattern says what's likely wrong and what to check first.`,
+      pattern: "Pattern",
+      sales: "Sales",
+      share: "% of sales",
+      cause: "Likely cause",
+      action: "Check first",
+      flagged: "Flagged",
+    },
     funnel: {
       title: "The sales",
       sub: "from Data to modeling",
       see: "See them",
+      flaggedIn: (n: number) =>
+        `${n.toLocaleString()} more ${n === 1 ? "sale is" : "sales are"} flagged but left in: far from ${n === 1 ? "its" : "their"} group, fitting none of the five patterns. ${n === 1 ? "It counts" : "They count"} unless you exclude ${n === 1 ? "it" : "them"}.`,
       once: "A sale set aside by more than one check is counted once, at the first.",
     },
     groups: {
@@ -1630,6 +1684,17 @@ export const t = {
         dupe_deed_date: "same deed, same day",
         dupe_date_price: "same day, same price",
         false_vacant: "vacant, building older",
+        built_after_sale: "built after the sale",
+        vacant_priced_improved: "vacant, priced like improved",
+        same_surname: "same surname",
+      } as Record<string, string>,
+      patternNames: {
+        "1": "pattern 1: odd size",
+        "2": "pattern 2: low price",
+        "3": "pattern 3: high price",
+        "4": "pattern 4: high per area",
+        "5": "pattern 5: low per area",
+        other: "flagged, still in",
       } as Record<string, string>,
       apply: "Your keeps and exclusions apply when you check sales again (seconds).",
       applyLater: "Keeps and exclusions apply on the next Check sales.",
@@ -1652,12 +1717,111 @@ export const t = {
       vs: (ratio: string, n: number, median: string) =>
         `${ratio} of the ${n} similar ${n === 1 ? "sale" : "sales"} it was compared with (${median}).`,
       soldFor: (price: string) => `Sold for ${price}.`,
-      patterns: {
-        size: "Both the price per area and the size stand out: the size may be wrong, or it may not be a market sale.",
-        low: "A low price, and low for its size: it may not be a market sale (between family, a foreclosure, a share of a property), or the price may be wrong.",
-        high: "A high price, and high for its size: it may include more than this parcel, or the size may be wrong.",
-        areaSmall: "The price is ordinary, but high for its size: the area recorded may be too small.",
-        areaBig: "The price is ordinary, but low for its size: the area recorded may be too big.",
+      diagnosis: {
+        "1": {
+          title: "Pattern 1: odd price per area, odd size",
+          cause:
+            "The size recorded is likely wrong: too small makes the price per area look high, too big makes it look low.",
+          actions: [
+            "Check the size and the characteristics as they were when it sold.",
+            "If the size is right, look for what else sets it apart: better materials, a better spot.",
+          ],
+        },
+        "2": {
+          title: "Pattern 2: low price, low price per area",
+          cause:
+            "Likely not a market sale: a foreclosure, a short sale, between family, a share of a property sold as the whole; or its condition is worse than recorded.",
+          actions: [
+            "Check the building's age and condition.",
+            "Look at it in Street View beside its group: do the recorded characteristics match?",
+            "Check the deed for a foreclosure, a related party or a partial interest.",
+          ],
+        },
+        "3": {
+          title: "Pattern 3: high price, high price per area",
+          cause:
+            "Likely more than this parcel: several parcels on one deed, business assets or personal property in the price, a related party, or a partial interest's price scaled to the whole.",
+          actions: [
+            "Check the deed for business assets or personal property, and the buyer and seller for a related party.",
+            "Check it wasn't a sale of several parcels with this one's size only (the related sales below).",
+            "For a partial interest: look for a control premium, which inflates a share's price scaled to the whole.",
+          ],
+        },
+        "4": {
+          title: "Pattern 4: ordinary price, high price per area",
+          cause:
+            "The finished area may be under-recorded, or there are upgrades not on record (a renovation, an addition).",
+          actions: [
+            "Check the finished area.",
+            "Check the quality and condition.",
+            "If they're right, it may be ordinary variation: keep it.",
+          ],
+        },
+        "5": {
+          title: "Pattern 5: ordinary price, low price per area",
+          cause:
+            "The finished area may be over-recorded, or the area includes another parcel's (a sale of several parcels, the other way round).",
+          actions: [
+            "Check the finished area.",
+            "Check it wasn't a sale of several parcels whose areas were added together (the related sales below).",
+          ],
+        },
+        other: {
+          title: "Flagged, still in: no pattern fits",
+          cause:
+            "Far from its group by the ratio rules, but its price, price per area and size don't fit any of the five patterns. It counts unless you exclude it.",
+          actions: ["Check its characteristics and the sale's terms; exclude it if they're wrong."],
+        },
+      } as Record<string, { title: string; cause: string; actions: string[] }>,
+      checkFor: "What to check",
+      readings: {
+        title: "Against its group",
+        what: "",
+        thisSale: "This sale",
+        median: "Group median",
+        sd: "Std devs from median",
+        reading: "Reading",
+        price: "Price",
+        perArea: (unit: string) => `Price per ${unit}`,
+        size: (unit: string, vacant: boolean) => (vacant ? `Land ${unit}` : `Finished ${unit}`),
+        low: "low",
+        in: "in range",
+        high: "high",
+        note: "Low or high: more than 2 standard deviations from its group's median, or 0.35× / 4× the median (in a small group, a far-off sale stretches the spread itself).",
+      },
+      flagOnly: "flagged, still in",
+      sellerBuyer: (seller: string, buyer: string) => `Seller ${seller} → buyer ${buyer}.`,
+      details: {
+        built_after_sale: (d: string) =>
+          `Sold as improved, but the building was ${d}, after the sale: likely land when it sold.`,
+        vacant_priced_improved: (d: string) => `Sold as vacant for ${d} nearby: likely there was a building.`,
+        same_surname: (d: string) => `Buyer and seller share a surname (${d}): possibly between family.`,
+      } as Record<string, (d: string) => string>,
+      related: {
+        title: "Related sales",
+        none: "No sales on the same deed, the same day nearby, or to the same buyer within a year.",
+        why: {
+          deed: "same deed",
+          day_near: "same day, nearby",
+          day_buyer: "same day, same buyer",
+          buyer_year: "same buyer, within a year",
+        } as Record<string, string>,
+        address: "Sale",
+        sold: "Sold",
+        price: "Price",
+        away: "Away",
+        buyer: "Buyer",
+        how: "Related by",
+        feet: (m: number) => `${Math.round(m * 3.28084).toLocaleString()} ft`,
+        metres: (m: number) => `${Math.round(m).toLocaleString()} m`,
+      },
+      look: {
+        title: "Look at it",
+        streetView: "Street View",
+        aerial: "Aerial",
+        zillow: "Zillow",
+        redfin: "Redfin",
+        note: "Opens in a viewer window beside this one; the next sale's opens in the same window.",
       },
       checkWhy: {
         dupe_deed_date:

@@ -6,6 +6,7 @@ type DesktopApi = {
   pick_file?: () => Promise<string | null>;
   set_context?: (title: string, projectId: string | null) => Promise<void>;
   menu_key?: (key: string) => Promise<void>;
+  view_url?: (url: string, title: string) => Promise<void>;
 };
 
 declare global {
@@ -27,6 +28,16 @@ export const desktop = {
   /** Alt (+ a letter) opens the Windows menu bar; the web view keeps those keys otherwise. */
   hasMenuBar: () => Boolean(window.pywebview?.api?.menu_key),
   menuKey: (key: string) => void window.pywebview?.api?.menu_key?.(key),
+  /** A page from elsewhere (Street View, Zillow…) in one viewer window beside the app, reused; in a browser, one
+   * tab reused. */
+  view: (url: string, title: string) => {
+    const api = window.pywebview?.api;
+    if (api?.view_url) void api.view_url(url, title);
+    else {
+      const w = window.open(url, "oakbox-viewer");
+      if (w) w.opener = null;
+    }
+  },
 };
 
 /** Whether the file picker is there. pywebview injects its API after the page loads. */

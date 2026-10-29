@@ -4669,3 +4669,50 @@ tr.bi-kept > td {
   font-size: 0.82rem;
   justify-self: start;
 }
+.dn {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  max-width: 62rem;
+}
+.dn-formats {
+  display: grid;
+  gap: 0.3rem;
+}
+.radio.dn-format {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.bi-tbl.dn-tbl > tbody > tr > td {
+  white-space: normal;
+}
+.bi-tbl.dn-tbl > tbody > tr.dn-hit > td {
+  background: #fff7ea;
+}
+.cs-diag {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.cs-todo {
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+.cs-small {
+  font-size: 0.85rem;
+}
+.cs-look {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cs-readings,
+.cs-patterns {
+  max-width: 60rem;
+}
+.bi-tbl.cs-tbl.cs-patterns > tbody > tr > td {
+  white-space: normal;
+  vertical-align: top;
+}

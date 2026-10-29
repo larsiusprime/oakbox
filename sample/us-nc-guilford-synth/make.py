@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import box
 
+import deed_names
+
 HERE = Path(__file__).parent
 IN = HERE / "in"
 CACHE = HERE / ".cache"
@@ -330,7 +332,7 @@ parks.to_file(IN / "geo" / "parks.shp")
 (IN / "geo" / "parks.prj").unlink()  # 8. a shapefile that lost its .prj: no coordinate system
 buildings.to_csv(IN / "building.csv", index=False)
 units.to_csv(IN / "condo_units.csv", index=False)
-sales.to_csv(IN / "sales.csv", index=False)
+deed_names.add(sales).to_csv(IN / "sales.csv", index=False)  # 16. buyers and sellers (GRANTOR, GRANTEE)
 permits.to_csv(IN / "permits.csv", index=False)
 
 

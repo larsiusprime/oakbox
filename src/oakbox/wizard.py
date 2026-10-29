@@ -125,7 +125,12 @@ STEPS: list[Step] = [
     Step(key="condo_location", parent="condos"),
     Step(key="condo_summary", parent="condos"),
     # The deed each sale was recorded under: several sales on one deed are one sale of several parcels (F3f).
-    Step(key="deeds", fields=["deed_id", "deed_book", "deed_page"], more=["deed_grantor", "deed_grantee"], sales=True),
+    Step(
+        key="deeds",
+        fields=["deed_id", "deed_book", "deed_page"],
+        more=["deed_grantor", "deed_grantee", "deed_grantor_surname", "deed_grantee_surname"],
+        sales=True,
+    ),
     # Public data about each parcel, downloaded as Bring in data runs (F3e).
     Step(key="enrich"),
     # Building permits: teardowns make a sale a land sale; major renovations reset the effective year (F3g).
@@ -246,6 +251,8 @@ ALIASES: dict[str, list[str]] = {
     "deed_page": ["page", "deedpage"],
     "deed_grantor": ["grantor", "seller"],
     "deed_grantee": ["grantee", "buyer"],
+    "deed_grantor_surname": ["grantorsurname", "grantorlast", "grantorlastname", "sellersurname", "sellerlastname"],
+    "deed_grantee_surname": ["granteesurname", "granteelast", "granteelastname", "buyersurname", "buyerlastname"],
     "mail_address": ["mailaddr", "mailaddress", "mailingaddress"],
     "mail_city": ["mailcity"],
     "mail_state": ["mailstate"],
@@ -4086,6 +4093,30 @@ def _deeds_check(project: Project, files: _Files) -> DeedsCheck | None:
     if n_blank:
         words += f" {n_blank:,} {'sale has' if n_blank == 1 else 'sales have'} no deed ID."
     return DeedsCheck(ok=True, text=words, deeds=len(shared), sales=int(shared.sum()), blank=n_blank)
+
+
+NAME_FIELDS = {
+    "seller": "deed_grantor",
+    "buyer": "deed_grantee",
+    "seller_surname": "deed_grantor_surname",
+    "buyer_surname": "deed_grantee_surname",
+}
+
+
+def deed_names(project: Project, in_dir: Path) -> dict:
+    """The buyers' and sellers' names (and surnames, where loaded) as written, from the sales file that has the most
+    of them; {} without any."""
+    files = _Files(project, in_dir)
+    sales = [f for f in project.files if f.holds == "sales" and f.name in files.preview]
+    f = max(sales, key=lambda f: sum(k in f.load for k in NAME_FIELDS.values()), default=None)
+    if f is None or not any(k in f.load for k in NAME_FIELDS.values()):
+        return {}
+    stamp = _stamp(files.in_dir / f.filename)
+    out: dict = {"file": f.name}
+    for key, field in NAME_FIELDS.items():
+        if field in f.load:
+            out[key] = list(_values(stamp, f.layer, f.load[field][0]))
+    return out
 
 
 # ---------- Permits (F3g) ----------

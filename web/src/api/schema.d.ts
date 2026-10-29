@@ -325,6 +325,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Names
+         * @description The deed names read with the saved format, or with one being tried (a live preview: nothing is saved).
+         */
+        get: operations["get_names_api_projects__project_id__names_get"];
+        /**
+         * Set Names
+         * @description How the deed names are written: one of the formats, or a regular expression with a surname group.
+         */
+        put: operations["set_names_api_projects__project_id__names_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard": {
         parameters: {
             query?: never;
@@ -1473,7 +1497,8 @@ export interface paths {
         };
         /**
          * Clean Review
-         * @description The sales set aside, furthest from their group first; filtered by model group, check and status.
+         * @description The sales set aside, furthest from their group first; filtered by model group, check, status and pattern
+         *     (1 to 5, other).
          */
         get: operations["clean_review_api_projects__project_id__clean_review_get"];
         put?: never;
@@ -1534,7 +1559,8 @@ export interface paths {
         get?: never;
         /**
          * Clean Time Borrow
-         * @description A model group uses another group's time adjustment (null: its own).
+         * @description A model group uses another group's time adjustment (null: works it out from its own sales). Either way its
+         *     own file, if it had one, is set aside.
          */
         put: operations["clean_time_borrow_api_projects__project_id__clean_time_borrow_put"];
         post?: never;
@@ -1558,11 +1584,7 @@ export interface paths {
          * @description Check a model group's own time adjustment file (OpenAVMKit reads it); if it can be used, keep it.
          */
         post: operations["clean_time_file_api_projects__project_id__clean_time_file__group__post"];
-        /**
-         * Clean Time File Off
-         * @description The group works its time adjustment out from its sales again.
-         */
-        delete: operations["clean_time_file_off_api_projects__project_id__clean_time_file__group__delete"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1998,6 +2020,17 @@ export interface components {
              * @description Sales scrutiny set aside, kept or not: to look at.
              */
             set_aside: number;
+            /**
+             * Flagged In
+             * @description Flagged but left in: no pattern fits them; the user decides.
+             * @default 0
+             */
+            flagged_in: number;
+            /**
+             * Patterns
+             * @description All groups first, then each.
+             */
+            patterns: components["schemas"]["PatternTable"][];
             /** Funnel */
             funnel: components["schemas"]["FunnelLine"][];
             /** Groups */
@@ -2067,6 +2100,18 @@ export interface components {
              * @description A deed ID is loaded (the same-deed check needs one).
              */
             deed: boolean;
+            /**
+             * Names
+             * @description Buyer and seller names are loaded (the same-surname check).
+             * @default false
+             */
+            names: boolean;
+            /**
+             * Year Built
+             * @description Year built is loaded (the vacant / built checks).
+             * @default false
+             */
+            year_built: boolean;
             /** Collapse */
             collapse: boolean;
             /** Collapse Sales Min */
@@ -2167,6 +2212,16 @@ export interface components {
             marks: {
                 [key: string]: components["schemas"]["SaleMark"];
             };
+            /**
+             * Name Format
+             * @description How deed names are written (names.FORMATS, or custom); None: not decided.
+             */
+            name_format: string | null;
+            /**
+             * Name Pattern
+             * @description The custom format: a regex with a surname group.
+             */
+            name_pattern: string | null;
         };
         /**
          * CleanStep
@@ -3943,6 +3998,127 @@ export interface components {
              */
             numeric: string[];
         };
+        /** NameFormat */
+        NameFormat: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "first_word" | "before_comma" | "last_word" | "custom";
+            /** Label */
+            label: string;
+            /** Example */
+            example: string;
+            /** Pattern */
+            pattern: string;
+        };
+        /** NameRow */
+        NameRow: {
+            /** Seller */
+            seller: string;
+            /** Buyer */
+            buyer: string;
+            /** Seller Surnames */
+            seller_surnames: string[];
+            /** Buyer Surnames */
+            buyer_surnames: string[];
+            /** Shared */
+            shared: string[];
+        };
+        /** NamesBody */
+        NamesBody: {
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "first_word" | "before_comma" | "last_word" | "custom";
+            /**
+             * Pattern
+             * @description For custom: a regular expression with a surname group.
+             */
+            pattern?: string | null;
+        };
+        /**
+         * NamesView
+         * @description What the deed names say, read with a format: the saved one, or one being tried.
+         */
+        NamesView: {
+            /**
+             * Available
+             * @description Seller and buyer names (or surnames) are loaded from one sales file.
+             */
+            available: boolean;
+            /** File */
+            file: string | null;
+            /**
+             * Surname Fields
+             * @description Seller and buyer surnames are loaded as fields: used as given.
+             */
+            surname_fields: boolean;
+            /** Formats */
+            formats: components["schemas"]["NameFormat"][];
+            /**
+             * Guess
+             * @description What the names look like.
+             */
+            guess: ("first_word" | "before_comma" | "last_word" | "custom") | null;
+            /**
+             * Why
+             * @description Why that guess, in words.
+             */
+            why: string;
+            /**
+             * Format
+             * @description Saved; None: not confirmed yet (the guess is used).
+             */
+            format: ("first_word" | "before_comma" | "last_word" | "custom") | null;
+            /**
+             * Pattern
+             * @description The pattern read with (saved, tried or the guess's).
+             */
+            pattern: string;
+            /**
+             * Error
+             * @description What's wrong with a pattern being tried.
+             */
+            error: string | null;
+            /**
+             * Rows
+             * @description Up to 6 sales sharing a surname, then up to 6 that don't.
+             */
+            rows: components["schemas"]["NameRow"][];
+            /**
+             * Read
+             * @description Names read as people, with a surname.
+             */
+            read: number;
+            /**
+             * Companies
+             * @description Names skipped: companies, trusts, banks, governments.
+             */
+            companies: number;
+            /**
+             * Unread
+             * @description Names the pattern found no surname in.
+             */
+            unread: number;
+            /**
+             * Shared
+             * @description Sales whose buyer and seller share a surname.
+             */
+            shared: number;
+            /**
+             * Sales
+             * @description Sales with both names, in the sample.
+             */
+            sales: number;
+            /**
+             * Sampled
+             * @description Only the first 5,000 sales were read.
+             * @default false
+             */
+            sampled: boolean;
+        };
         /**
          * NewProject
          * @description What the user enters to create a project (SPEC §3.0 F1).
@@ -4322,6 +4498,29 @@ export interface components {
             price: number | null;
             /** Vacant */
             vacant: boolean;
+        };
+        /**
+         * PatternTable
+         * @description The sales scrutiny flagged far from their group, by pattern: the five-pattern table, for one model group or
+         *     all ("").
+         */
+        PatternTable: {
+            /** Group */
+            group: string;
+            /** Name */
+            name: string;
+            /**
+             * Sales
+             * @description Sales checked: in the window and valid.
+             */
+            sales: number;
+            /**
+             * Counts
+             * @description Pattern (1 to 5, other) -> sales.
+             */
+            counts: {
+                [key: string]: number;
+            };
         };
         /** PermitKind */
         PermitKind: {
@@ -4733,6 +4932,36 @@ export interface components {
             /** Currencies */
             currencies: components["schemas"]["Currency"][];
         };
+        /** RelatedSale */
+        RelatedSale: {
+            /** Key Sale */
+            key_sale: string;
+            /** Address */
+            address: string | null;
+            /** Sale Date */
+            sale_date: string | null;
+            /** Price */
+            price: number | null;
+            /** Seller */
+            seller: string | null;
+            /** Buyer */
+            buyer: string | null;
+            /**
+             * Distance
+             * @description Metres from the sale set aside.
+             */
+            distance: number | null;
+            /**
+             * Why
+             * @description Same deed; same day, nearby; same day, same buyer; same buyer within a year.
+             */
+            why: ("deed" | "day_near" | "day_buyer" | "buyer_year")[];
+            /**
+             * Set Aside
+             * @description Set aside too.
+             */
+            set_aside: boolean;
+        };
         /**
          * RepeatRows
          * @description Examples of repeated IDs, every row of each, for the duplicates dialog.
@@ -4844,6 +5073,50 @@ export interface components {
             pattern: string | null;
             /** Rules */
             rules: string | null;
+            /**
+             * Flag Only
+             * @description Flagged, left in: no pattern fits it. The user decides.
+             * @default false
+             */
+            flag_only: boolean;
+            /**
+             * Price Rating
+             * @description low, in (range) or high against its group.
+             */
+            price_rating: string | null;
+            /** Per Area Rating */
+            per_area_rating: string | null;
+            /** Size Rating */
+            size_rating: string | null;
+            /** Price Median */
+            price_median: number | null;
+            /**
+             * Price Dist
+             * @description Standard deviations from its group's median.
+             */
+            price_dist: number | null;
+            /** Per Area Dist */
+            per_area_dist: number | null;
+            /**
+             * Size
+             * @description Finished area (improved) or land area (vacant).
+             */
+            size: number | null;
+            /** Size Median */
+            size_median: number | null;
+            /** Size Dist */
+            size_dist: number | null;
+            /**
+             * Details
+             * @description Check -> what it found (e.g. built 2023).
+             */
+            details: {
+                [key: string]: string;
+            };
+            /** Seller */
+            seller: string | null;
+            /** Buyer */
+            buyer: string | null;
             /**
              * Second Look
              * @description Found once the sale that hid it was set aside.
@@ -5035,6 +5308,11 @@ export interface components {
             latitude: number | null;
             /** Longitude */
             longitude: number | null;
+            /**
+             * Related
+             * @description Up to 30: deed first, then by date.
+             */
+            related: components["schemas"]["RelatedSale"][];
         };
         /** SaleId */
         SaleId: {
@@ -6770,6 +7048,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_names_api_projects__project_id__names_get: {
+        parameters: {
+            query?: {
+                format?: ("first_word" | "before_comma" | "last_word" | "custom") | null;
+                pattern?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NamesView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_names_api_projects__project_id__names_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NamesBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NamesView"];
                 };
             };
             /** @description Validation Error */
@@ -8838,6 +9185,7 @@ export interface operations {
                 status?: "" | "undecided" | "kept" | "excluded";
                 offset?: number;
                 limit?: number;
+                pattern?: string;
             };
             header?: never;
             path: {
@@ -8993,38 +9341,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimeFileCheck"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    clean_time_file_off_api_projects__project_id__clean_time_file__group__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: string;
-                group: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CleanSetup"];
                 };
             };
             /** @description Validation Error */

@@ -30,6 +30,7 @@ from oakbox import (
     enrichments,
     fields,
     groups,
+    names,
     prepare,
     projects,
     time_preview,
@@ -167,6 +168,11 @@ class WizardCustom(BaseModel):
 class BorrowBody(BaseModel):
     group: str
     source: str | None = Field(description="The group whose time adjustment it uses; null: its own.")
+
+
+class NamesBody(BaseModel):
+    format: names.FormatId
+    pattern: str | None = Field(default=None, description="For custom: a regular expression with a surname group.")
 
 
 class TimeFileBody(BaseModel):
@@ -589,6 +595,24 @@ def create_app() -> FastAPI:
         projects.write_settings(project)
 
     # ---------- F3d: the Fields wizard ----------
+
+    @app.get("/api/projects/{project_id}/names")
+    def get_names(project_id: str, format: names.FormatId | None = None, pattern: str | None = None) -> names.NamesView:
+        """The deed names read with the saved format, or with one being tried (a live preview: nothing is saved)."""
+        project = _load(project_id)
+        return names.view(project, projects.project_dir(project_id) / "in", format, pattern)
+
+    @app.put("/api/projects/{project_id}/names")
+    def set_names(project_id: str, body: NamesBody) -> names.NamesView:
+        """How the deed names are written: one of the formats, or a regular expression with a surname group."""
+        project = _load(project_id)
+        try:
+            names.save(project, body.format, body.pattern)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        projects.write_settings(project)
+        return names.view(project, projects.project_dir(project_id) / "in")
 
     def _wizard(project: projects.Project) -> wizard.Wizard:
         return wizard.view(project, projects.project_dir(project.id) / "in")
@@ -1226,11 +1250,20 @@ def create_app() -> FastAPI:
         status: Literal["", "undecided", "kept", "excluded"] = "",
         offset: int = 0,
         limit: int = 100,
+        pattern: str = "",
     ) -> clean.ReviewPage:
-        """The sales set aside, furthest from their group first; filtered by model group, check and status."""
+        """The sales set aside, furthest from their group first; filtered by model group, check, status and pattern
+        (1 to 5, other)."""
         project = _load(project_id)
         return clean.review(
-            project, projects.project_dir(project_id), group or None, check or None, status or None, offset, limit
+            project,
+            projects.project_dir(project_id),
+            group or None,
+            check or None,
+            status or None,
+            offset,
+            limit,
+            pattern or None,
         )
 
     @app.get("/api/projects/{project_id}/clean/review/{key_sale}")

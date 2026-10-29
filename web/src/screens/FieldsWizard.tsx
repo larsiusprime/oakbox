@@ -45,6 +45,7 @@ import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { band } from "./BringIn";
 import { type CustomChange, CustomFields } from "./CustomFields";
+import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { AddFile } from "./InputFiles";
@@ -172,6 +173,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "deeds" && data.deeds && (
             <p className={data.deeds.ok ? "wiz-note" : "wiz-note wiz-warn"}>{data.deeds.text}</p>
           )}
+          {current.key === "deeds" && <DeedNames projectId={projectId} />}
           {current.key === "enrich" && <EnrichStep projectId={projectId} />}
           {current.key === "permits" && <PermitsStep project={project} data={data} change={change.mutate} />}
           {current.parent === "condos" && (

@@ -166,6 +166,7 @@ class _Picker:
         self._window: Any = None
         self._controller: Any = None
         self._menu: Any = None
+        self._viewer: Any = None
 
     def set_context(self, title: str, project_id: str | None) -> None:
         """Where the page is: the title bar says so (SPEC D44), and the menus follow (§3.14)."""
@@ -176,6 +177,25 @@ class _Picker:
         """Alt (+ a letter) typed in the page opens the menu bar (the web view keeps those keys)."""
         if self._menu is not None:
             self._menu.menu_key(key)
+
+    def view_url(self, url: str, title: str) -> None:
+        """A page from elsewhere (Street View, the aerial, Zillow, Redfin) in one viewer window beside the app,
+        reused from sale to sale; opened again if it was closed. Only web addresses."""
+        import webview
+
+        if not url.startswith("https://"):
+            return
+        if self._viewer is not None:
+            try:
+                self._viewer.load_url(url)
+                self._viewer.set_title(title)
+                return
+            except Exception:  # noqa: BLE001 - closed since: open a new one
+                self._viewer = None
+        viewer = webview.create_window(title, url, width=1100, height=800)
+        if viewer is not None:
+            viewer.events.closed += lambda: setattr(self, "_viewer", None)
+        self._viewer = viewer
 
     def pick_folder(self) -> str | None:
         import webview
