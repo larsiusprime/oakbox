@@ -83,6 +83,9 @@ class RatioState(BaseModel):
     targets: Targets = Field(default_factory=Targets)
     classes: dict[str, PropertyClass] = Field(default_factory=dict, description="Group -> class; missing: proposed.")
     trim: bool = Field(default=True, description="Leave outlying ratios (1.5 x IQR) out of the statistics, listed.")
+    region: str | None = Field(
+        default=None, description='The location for neighbourhood price levels; "" none; None: Check sales\' location.'
+    )
 
 
 def proposed_class(group_id: str, name: str) -> PropertyClass:
@@ -131,6 +134,12 @@ class SalesLine(BaseModel):
     text: str
 
 
+def region(project) -> str:
+    """The location field for neighbourhood price levels: chosen, else where Check sales compares sales."""
+    s: RatioState = project.ratio
+    return s.region if s.region is not None else (project.clean.location or "")
+
+
 class RatioSetup(BaseModel):
     fields: list[FieldChoice]
     valuation_date: dt.date
@@ -147,6 +156,8 @@ class RatioSetup(BaseModel):
     groups: list[GroupSetup]
     funnel: list[SalesLine]
     trim: bool
+    region: str = Field(description='The location for neighbourhood price levels; "" none.')
+    regions: list[clean.Choice] = Field(description="The location fields there are.")
 
 
 def _sales(project_dir: Path):
@@ -276,6 +287,12 @@ def setup(project, project_dir: Path) -> RatioSetup:
         groups=groups,
         funnel=funnel,
         trim=s.trim,
+        region=region(project),
+        regions=[
+            clean.Choice(value=f, label=clean._names().get(f) or f)
+            for f in clean._locations(project_dir, universe)
+            if f in sales
+        ],
     )
 
 
@@ -306,6 +323,28 @@ class Fifth(BaseModel):
     median: float
 
 
+class RegionStratum(BaseModel):
+    n: int
+    regions: int
+    level: float | None = Field(description="The regions' median price level (market value proxy).")
+    median: float | None
+    low: float | None
+    high: float | None
+
+
+class RegionStats(BaseModel):
+    """The median ratio by the price level of the region each sale is in (openratiostudy.com's neighbourhood price
+    levels; not an IAAO test)."""
+
+    field: str
+    regions: int
+    sales: int
+    strata: list[RegionStratum]
+    vei: float | None
+    vei_significance: float | None
+    vei_verdict: str
+
+
 class Study(BaseModel):
     """One model group's (or all groups') study of one value field."""
 
@@ -330,6 +369,7 @@ class Study(BaseModel):
     clusters: int | None = Field(default=None, description="Groups of similar parcels (equity clusters).")
     median_chd: float | None = Field(default=None, description="Their median spread of values (CHD).")
     verdict: Verdict | None = None
+    regions: RegionStats | None = None
 
 
 class Trimmed(BaseModel):
@@ -378,6 +418,7 @@ def settings_key(project, project_dir: Path) -> dict:
         "targets": s.targets.model_dump(),
         "classes": classes(project),
         "groups": [(g.id, g.name) for g in project.groups],
+        "region": region(project),
     }
 
 
@@ -436,6 +477,7 @@ def _study(gid: str, name: str, color: str, cls, data: dict, table) -> Study:
         clusters=h.get("clusters"),
         median_chd=h.get("median_chd"),
         verdict=Verdict.model_validate(verdict) if verdict else None,
+        regions=RegionStats.model_validate(data["regions"]) if data.get("regions") else None,
     )
 
 
@@ -480,6 +522,7 @@ def run(project_id: str) -> None:
             trim_outliers=s.trim,
             median_ci="iaao",
             standards=s.targets.standards(),
+            region=region(project) or None,
             classes={g: (None if c == "none" else c) for g, c in cls.items()},
             outpath=str(tmp / "studies"),
         )
@@ -617,6 +660,7 @@ class RatioPatch(BaseModel):
     targets: Targets | None = None
     classes: dict[str, PropertyClass] | None = Field(default=None, description="Merged into the groups' classes.")
     trim: bool | None = None
+    region: str | None = Field(default=None, description='A location field; "" for none.')
 
 
 def change(project, body: RatioPatch) -> None:
@@ -642,6 +686,8 @@ def change(project, body: RatioPatch) -> None:
         s.classes = {**s.classes, **body.classes}
     if body.trim is not None:
         s.trim = body.trim
+    if body.region is not None:
+        s.region = body.region
 
 
 def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:
@@ -655,6 +701,37 @@ def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float
     if group:
         t = t[t["model_group"].astype(str) == group]
     return [(float(p), float(r), bool(x)) for p, r, x in zip(t["sale_price"], t["ratio"], t["trimmed"], strict=True)]
+
+
+class MapPoint(BaseModel):
+    lat: float
+    lon: float
+    ratio: float
+    price: float
+    value: float
+    trimmed: bool
+
+
+def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoint]:
+    """Each sale studied that has coordinates, for the ratio map."""
+    import pandas as pd
+
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not path.is_file():
+        return []
+    t = pd.read_parquet(path)
+    if "latitude" not in t or "longitude" not in t:
+        return []
+    if group:
+        t = t[t["model_group"].astype(str) == group]
+    lat, lon = clean._numbers(t, "latitude"), clean._numbers(t, "longitude")
+    t = t[lat.notna() & lon.notna()]
+    return [
+        MapPoint(lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(v), trimmed=bool(x))
+        for a, b, r, p, v, x in zip(
+            t["latitude"], t["longitude"], t["ratio"], t["sale_price"], t["value"], t["trimmed"], strict=True
+        )
+    ]
 
 
 if __name__ == "__main__":

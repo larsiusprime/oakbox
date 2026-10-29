@@ -187,6 +187,9 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
         result = view["receipt"]["results"][0]
         assert {g["id"] for g in result["groups"]} == {g["id"] for g in groups}
         assert result["overall"]["sales"] == sum(g["sales"] for g in result["groups"])
+        points = client.get(f"{rv}/map", params={"field": "assr_market_value"}).json()
+        assert len(points) == result["overall"]["sales"] + result["overall"]["trimmed"]
+        assert all({"lat", "lon", "ratio"} <= set(x) for x in points)
         assert client.post(f"{rv}/accept").json()["accepted"]
         client.patch(f"{rv}/setup", json={"price": "sold", "targets": {**setup["targets"], "level_low": 0.5}})
         assert client.get(rv).json()["stale"]

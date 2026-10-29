@@ -4819,3 +4819,32 @@ tr.bi-kept > td {
 table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   font-weight: 600;
 }
+.rv-map {
+  height: 520px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.rv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.rv-swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  border: 1px solid;
+  margin-right: 0.3rem;
+  vertical-align: -1px;
+}
+.rv-advanced {
+  justify-self: start;
+  padding: 0.2rem 0.6rem;
+  border: 1px dashed #c9a24a;
+  border-radius: var(--radius);
+  background: #fffaf0;
+  font-size: 0.84rem;
+}

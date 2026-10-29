@@ -1869,6 +1869,8 @@ export const t = {
       summary: "Summary",
       groups: "By model group",
       prices: "Across prices",
+      map: "On the map",
+      regions: "Neighbourhood price levels",
       similar: "Similar parcels",
       extreme: "Extreme ratios",
     },
@@ -2051,6 +2053,43 @@ export const t = {
       note: (price: string) => `Nominal price (${price}): not a market sale`,
       untrimmed:
         "Untrimmed, these would swing the statistics: a $10 deed makes a ratio in the tens of thousands.",
+    },
+    advanced:
+      "Not an IAAO test: openratiostudy.com's further analysis, to tell real inequity from invalid sales.",
+    map: {
+      lede: "Each sale where its parcel is, coloured by its ratio. Clusters of red or blue show where values are off; scattered colour is noise or invalid sales.",
+      label: "Map of sales by ratio",
+      none: "The sales have no coordinates: the parcel universe needs shapes or latitude and longitude.",
+      ratio: "Ratio",
+      price: "price",
+      value: "value",
+      trimmed: "trimmed",
+      legend: [
+        [0.5, "0.5 or less: value far under the price"],
+        [0.8, "0.8"],
+        [1, "1.0: value at the price"],
+        [1.3, "1.3"],
+        [2, "2 or more: value far over the price"],
+      ] as [number, string][],
+    },
+    regions: {
+      lede: "Comparing ratios across sale prices can't tell an over-assessed house in a poor neighbourhood from a sale at a low price that wasn't a market sale. Here sales are grouped by how dear their whole neighbourhood is (its median price level), not by their own price. If low-priced neighbourhoods have higher ratios too, the inequity is real; if this is flat while the VEI by sale isn't, invalid sales are the likelier cause.",
+      field: "Neighbourhoods by",
+      noField: "none",
+      choose: "Choose a location field to group sales by neighbourhood.",
+      noLocations:
+        "There's no location field yet: add one on Data › Location (a neighbourhood, a school district, a census block group), then check again.",
+      notRun: "Check again to see it.",
+      few: (sales: number, regions: number) =>
+        `Too few to compare: ${sales.toLocaleString()} sales in ${regions.toLocaleString()} neighbourhoods (it needs 20 sales in 2 or more).`,
+      reading: (regions: number, sales: number, vei: string, verdict: string) =>
+        `${sales.toLocaleString()} sales in ${regions.toLocaleString()} neighbourhoods. From the cheapest neighbourhoods to the dearest, the median ratio moves ${vei}: ${verdict}.`,
+      compare: (vei: string) => `By each sale's own price, the VEI is ${vei}.`,
+      group: "Neighbourhoods",
+      regionsCol: "Neighbourhoods",
+      level: "Price level",
+      lowest: "Cheapest",
+      highest: "Dearest",
     },
     accepted: "✓ Accepted",
     looksRight: "Looks right",

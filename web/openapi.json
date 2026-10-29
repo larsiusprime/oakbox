@@ -4813,6 +4813,69 @@
     }
    }
   },
+  "/api/projects/{project_id}/ratio/map": {
+   "get": {
+    "summary": "Ratio Map",
+    "description": "Each sale studied with its place and ratio, for the map.",
+    "operationId": "ratio_map_api_projects__project_id__ratio_map_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MapPoint"
+         },
+         "title": "Response Ratio Map Api Projects  Project Id  Ratio Map Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/ratio/points": {
    "get": {
     "summary": "Ratio Points",
@@ -9667,6 +9730,44 @@
     ],
     "title": "LocationField"
    },
+   "MapPoint": {
+    "properties": {
+     "lat": {
+      "type": "number",
+      "title": "Lat"
+     },
+     "lon": {
+      "type": "number",
+      "title": "Lon"
+     },
+     "ratio": {
+      "type": "number",
+      "title": "Ratio"
+     },
+     "price": {
+      "type": "number",
+      "title": "Price"
+     },
+     "value": {
+      "type": "number",
+      "title": "Value"
+     },
+     "trimmed": {
+      "type": "boolean",
+      "title": "Trimmed"
+     }
+    },
+    "type": "object",
+    "required": [
+     "lat",
+     "lon",
+     "ratio",
+     "price",
+     "value",
+     "trimmed"
+    ],
+    "title": "MapPoint"
+   },
    "MapView": {
     "properties": {
      "points": {
@@ -11857,6 +11958,18 @@
        }
       ],
       "title": "Trim"
+     },
+     "region": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region",
+      "description": "A location field; \"\" for none."
      }
     },
     "type": "object",
@@ -12023,6 +12136,19 @@
      "trim": {
       "type": "boolean",
       "title": "Trim"
+     },
+     "region": {
+      "type": "string",
+      "title": "Region",
+      "description": "The location for neighbourhood price levels; \"\" none."
+     },
+     "regions": {
+      "items": {
+       "$ref": "#/components/schemas/Choice"
+      },
+      "type": "array",
+      "title": "Regions",
+      "description": "The location fields there are."
      }
     },
     "type": "object",
@@ -12041,7 +12167,9 @@
      "targets",
      "groups",
      "funnel",
-     "trim"
+     "trim",
+     "region",
+     "regions"
     ],
     "title": "RatioSetup"
    },
@@ -12112,6 +12240,18 @@
       "title": "Trim",
       "description": "Leave outlying ratios (1.5 x IQR) out of the statistics, listed.",
       "default": true
+     },
+     "region": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region",
+      "description": "The location for neighbourhood price levels; \"\" none; None: Check sales' location."
      }
     },
     "type": "object",
@@ -12122,7 +12262,8 @@
      "price",
      "targets",
      "classes",
-     "trim"
+     "trim",
+     "region"
     ],
     "title": "RatioState"
    },
@@ -12397,6 +12538,134 @@
      "name"
     ],
     "title": "Region"
+   },
+   "RegionStats": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "regions": {
+      "type": "integer",
+      "title": "Regions"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "strata": {
+      "items": {
+       "$ref": "#/components/schemas/RegionStratum"
+      },
+      "type": "array",
+      "title": "Strata"
+     },
+     "vei": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei"
+     },
+     "vei_significance": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei Significance"
+     },
+     "vei_verdict": {
+      "type": "string",
+      "title": "Vei Verdict"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "regions",
+     "sales",
+     "strata",
+     "vei",
+     "vei_significance",
+     "vei_verdict"
+    ],
+    "title": "RegionStats",
+    "description": "The median ratio by the price level of the region each sale is in (openratiostudy.com's neighbourhood price\nlevels; not an IAAO test)."
+   },
+   "RegionStratum": {
+    "properties": {
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "regions": {
+      "type": "integer",
+      "title": "Regions"
+     },
+     "level": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Level",
+      "description": "The regions' median price level (market value proxy)."
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low"
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High"
+     }
+    },
+    "type": "object",
+    "required": [
+     "n",
+     "regions",
+     "level",
+     "median",
+     "low",
+     "high"
+    ],
+    "title": "RegionStratum"
    },
    "Regions": {
     "properties": {
@@ -14333,6 +14602,16 @@
         "type": "null"
        }
       ]
+     },
+     "regions": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RegionStats"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -14357,7 +14636,8 @@
      "fifths",
      "clusters",
      "median_chd",
-     "verdict"
+     "verdict",
+     "regions"
     ],
     "title": "Study",
     "description": "One model group's (or all groups') study of one value field."

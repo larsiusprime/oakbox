@@ -1436,6 +1436,12 @@ def create_app() -> FastAPI:
         projects.save(project)
         return _ratio_view(project)
 
+    @app.get("/api/projects/{project_id}/ratio/map")
+    def ratio_map(project_id: str, field: str, group: str = "") -> list[ratio.MapPoint]:
+        """Each sale studied with its place and ratio, for the map."""
+        _load(project_id)
+        return ratio.map_points(projects.project_dir(project_id), field, group or None)
+
     @app.get("/api/projects/{project_id}/ratio/points")
     def ratio_points(project_id: str, field: str, group: str = "") -> list[tuple[float, float, bool]]:
         """Each sale studied: its price, its ratio, and whether it was trimmed."""

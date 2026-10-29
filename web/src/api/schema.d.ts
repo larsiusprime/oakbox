@@ -1793,6 +1793,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Map
+         * @description Each sale studied with its place and ratio, for the map.
+         */
+        get: operations["ratio_map_api_projects__project_id__ratio_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio/points": {
         parameters: {
             query?: never;
@@ -3984,6 +4004,21 @@ export interface components {
             /** Distinct */
             distinct: number | null;
         };
+        /** MapPoint */
+        MapPoint: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Ratio */
+            ratio: number;
+            /** Price */
+            price: number;
+            /** Value */
+            value: number;
+            /** Trimmed */
+            trimmed: boolean;
+        };
         /**
          * MapView
          * @description Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre.
@@ -4969,6 +5004,11 @@ export interface components {
             } | null;
             /** Trim */
             trim?: boolean | null;
+            /**
+             * Region
+             * @description A location field; "" for none.
+             */
+            region?: string | null;
         };
         /** RatioReceipt */
         RatioReceipt: {
@@ -5055,6 +5095,16 @@ export interface components {
             funnel: components["schemas"]["SalesLine"][];
             /** Trim */
             trim: boolean;
+            /**
+             * Region
+             * @description The location for neighbourhood price levels; "" none.
+             */
+            region: string;
+            /**
+             * Regions
+             * @description The location fields there are.
+             */
+            regions: components["schemas"]["Choice"][];
         };
         /** RatioState */
         RatioState: {
@@ -5093,6 +5143,11 @@ export interface components {
              * @default true
              */
             trim: boolean;
+            /**
+             * Region
+             * @description The location for neighbourhood price levels; "" none; None: Check sales' location.
+             */
+            region: string | null;
         };
         /** RatioView */
         RatioView: {
@@ -5214,6 +5269,45 @@ export interface components {
             code: string;
             /** Name */
             name: string;
+        };
+        /**
+         * RegionStats
+         * @description The median ratio by the price level of the region each sale is in (openratiostudy.com's neighbourhood price
+         *     levels; not an IAAO test).
+         */
+        RegionStats: {
+            /** Field */
+            field: string;
+            /** Regions */
+            regions: number;
+            /** Sales */
+            sales: number;
+            /** Strata */
+            strata: components["schemas"]["RegionStratum"][];
+            /** Vei */
+            vei: number | null;
+            /** Vei Significance */
+            vei_significance: number | null;
+            /** Vei Verdict */
+            vei_verdict: string;
+        };
+        /** RegionStratum */
+        RegionStratum: {
+            /** N */
+            n: number;
+            /** Regions */
+            regions: number;
+            /**
+             * Level
+             * @description The regions' median price level (market value proxy).
+             */
+            level: number | null;
+            /** Median */
+            median: number | null;
+            /** Low */
+            low: number | null;
+            /** High */
+            high: number | null;
         };
         /**
          * Regions
@@ -5999,6 +6093,7 @@ export interface components {
              */
             median_chd: number | null;
             verdict: components["schemas"]["Verdict"] | null;
+            regions: components["schemas"]["RegionStats"] | null;
         };
         /** Suggestion */
         Suggestion: {
@@ -10332,6 +10427,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RatioView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_map_api_projects__project_id__ratio_map_get: {
+        parameters: {
+            query: {
+                field: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapPoint"][];
                 };
             };
             /** @description Validation Error */
