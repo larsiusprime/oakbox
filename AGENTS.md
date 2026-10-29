@@ -28,6 +28,14 @@ encode character…`). Every time you touch I/O:
   cp1252). Do the same before pushing:
   `PYTHONUTF8=0 PYTHONCOERCECLOCALE=0 LC_ALL=C LANG=C uv run pytest -q tests`
 
+## Engine or app?
+
+OAK box is a front end to OpenAVMKit, and the engine is ours to change (the fork's branch, pinned in
+`pyproject.toml`, then upstream). Anything generally useful (a check, a statistic, a file of results, progress)
+is built in the engine, so notebook users get it too, without changing what the engine already does by default
+(a new setting, off unless asked for). OAK box keeps what only an app needs: screens, wording, the user's
+choices turned into settings.
+
 ## Going online
 
 - Downloads check certificates as the computer does: every process OAK box starts calls
