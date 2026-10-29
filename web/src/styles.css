@@ -4635,3 +4635,7 @@ tr.bi-kept > td {
 .cs-step .cs-head .tick {
   font-weight: 600;
 }
+.cs-step + .bi-warn {
+  max-width: 62rem;
+  box-sizing: border-box;
+}

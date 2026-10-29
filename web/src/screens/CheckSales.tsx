@@ -217,8 +217,8 @@ export function SalesTab({ projectId, currency }: { projectId: string; currency:
         callStep(
           u && (
             <>
-              <Notices projectId={projectId} v={u} />
               <WindowCard v={u} set={set} />
+              <Notices projectId={projectId} v={u} />
             </>
           ),
           s.window.sub,

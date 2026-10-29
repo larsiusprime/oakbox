@@ -468,8 +468,12 @@ def setup(project, project_dir: Path) -> CleanSetup:
         if n:
             notices.append(
                 Notice(
-                    text=f"{n:,} sales in the window were sold as {sold} on parcels that are {now} now: they're "
-                    "left out of ratio studies (the parcel isn't the same as when it sold). If vacant at sale is "
+                    text=(
+                        f"1 sale in the window was sold as {sold} on a parcel that is {now} now: it's"
+                        if n == 1
+                        else f"{n:,} sales in the window were sold as {sold} on parcels that are {now} now: they're"
+                    )
+                    + " left out of ratio studies (the parcel isn't the same as when it sold). If vacant at sale is "
                     "assumed on Data › Sales, check that fits.",
                     link="fields:sales",
                 )
@@ -478,8 +482,13 @@ def setup(project, project_dir: Path) -> CleanSetup:
     if outside:
         notices.append(
             Notice(
-                text=f"{outside:,} sales in the window are for parcels not in the parcel universe: no model can use "
-                "them. If they're condo units, set them up on Data › Condo units.",
+                text=(
+                    "1 sale in the window is for a parcel not in the parcel universe: no model can use it. If it's a "
+                    "condo unit, set it up on Data › Condo units."
+                    if outside == 1
+                    else f"{outside:,} sales in the window are for parcels not in the parcel universe: no model can "
+                    "use them. If they're condo units, set them up on Data › Condo units."
+                ),
                 link="fields:condos",
             )
         )
