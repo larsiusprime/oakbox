@@ -115,6 +115,9 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
         key = page["items"][0]["key_sale"]
         sale = client.get(f"{url}/review/{key}").json()
         assert sale["item"]["key_sale"] == key and isinstance(sale["related"], list)
+        # The sales recorded with it (its deed or, without one, the same day at the same price), itself first.
+        if sale["together"]:
+            assert sale["together"][0]["this"] and sale["together"][0]["key_sale"] == key
         first = page["items"][0]
         if "cluster" in first["checks"]:
             assert first["per_area_rating"] in ("low", "in", "high") and first["pattern"]

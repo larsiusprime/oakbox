@@ -1297,6 +1297,15 @@ function Review({
     const n = items[i + 1];
     if (n) setPicked(n.key_sale);
   };
+  // Another sale set aside (one on the same deed, say): open it, widening the filters if they hide it.
+  const pick = (key: string) => {
+    if (!items.some((x) => x.key_sale === key)) {
+      setGroup("");
+      setStatus("");
+      setCheck("");
+    }
+    setPicked(key);
+  };
   const checks: [string, string][] = [
     ["", s.review.everyCheck],
     ...Object.entries(s.review.checkNames),
@@ -1384,6 +1393,7 @@ function Review({
               currency={currency}
               place={place}
               next={next}
+              pick={pick}
             />
           )}
         </div>
@@ -1450,7 +1460,9 @@ function why(i: ReviewItem, d: SaleDetail | undefined, currency: string, unit: U
     out.push(s.review.soldFor(money(i.price, currency)));
   }
   for (const c of i.checks) {
-    const found = i.details[c];
+    const raw = i.details[c];
+    // A nominal price comes as a number: said as money.
+    const found = c === "nominal_price" && raw ? money(Number(raw.replace(/,/g, "")), currency) : raw;
     const said = found && s.review.details[c];
     const text = said ? said(found) : s.review.checkWhy[c];
     if (text) out.push(text);
@@ -1467,6 +1479,7 @@ function SaleView({
   currency,
   place,
   next,
+  pick,
 }: {
   projectId: string;
   item: ReviewItem;
@@ -1474,6 +1487,7 @@ function SaleView({
   currency: string;
   place: string;
   next: () => void;
+  pick: (key: string) => void;
 }) {
   const queryClient = useQueryClient();
   const [note, setNote] = useState(i.note);
@@ -1514,6 +1528,7 @@ function SaleView({
           {line}
         </p>
       ))}
+      {d && d.together.length > 1 && <Together d={d} unit={unit} currency={currency} pick={pick} />}
       <Readings i={i} unit={unit} currency={currency} />
       <Diagnosis i={i} />
       {d && <Look address={i.address} place={place} latitude={d.latitude} longitude={d.longitude} />}
@@ -1551,7 +1566,13 @@ function SaleView({
           </table>
         </>
       )}
-      {d && <Related related={d.related} currency={currency} unit={unit} />}
+      {d && (
+        <Related
+          related={d.related.filter((x) => !d.together.some((y) => y.key_sale === x.key_sale))}
+          currency={currency}
+          unit={unit}
+        />
+      )}
       {d && (
         <p className="wiz-from cs-text">
           {s.review.data(num(d.area), u, i.vacant, d.year_built, money(d.raw_price, currency))}
@@ -1593,6 +1614,75 @@ function SaleView({
           {mark.error.message}
         </p>
       )}
+    </section>
+  );
+}
+
+/** The sales recorded with this one (its deed, the same day; or the same day at the same price): likely one sale of
+ * several parcels, each given the whole price or a share. */
+function Together({
+  d,
+  unit,
+  currency,
+  pick,
+}: {
+  d: SaleDetail;
+  unit: Unit;
+  currency: string;
+  pick: (key: string) => void;
+}) {
+  const tg = s.review.together;
+  const u = s.unit[unit];
+  const rows = d.together;
+  const prices = rows.map((x) => x.price ?? 0);
+  const same = prices.every((x) => x === prices[0]);
+  const total = prices.reduce((a, b) => a + b, 0);
+  return (
+    <section className="cs-step">
+      <h4 className="wiz-group">
+        {d.together_by === "deed" && d.deed
+          ? tg.onDeed(d.deed, day(d.item.sale_date), rows.length)
+          : tg.samePrice(day(d.item.sale_date), rows.length)}
+      </h4>
+      <table className="bi-tbl cs-tbl">
+        <thead>
+          <tr>
+            <th>{tg.sale}</th>
+            <th>{s.group}</th>
+            <th className="cs-n">{tg.price}</th>
+            <th className="cs-n">{s.review.finished(u)}</th>
+            <th className="cs-n">{s.review.land(u)}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((x) => (
+            <tr key={x.key_sale} className={x.this ? "cs-self" : undefined}>
+              <td>{x.address ?? x.key_sale}</td>
+              <td>{x.group_name}</td>
+              <td className="cs-n">{money(x.price, currency)}</td>
+              <td className="cs-n">{num(x.finished)}</td>
+              <td className="cs-n">{num(x.land)}</td>
+              <td>
+                {x.this ? (
+                  <span className="cs-pill hi">{s.review.thisSale}</span>
+                ) : x.set_aside ? (
+                  <Button className="wiz-link" onPress={() => pick(x.key_sale)}>
+                    {tg.open}
+                  </Button>
+                ) : (
+                  <span className="wiz-from">{tg.kept}</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="wiz-from">
+        {same
+          ? tg.each(money(prices[0], currency), rows.length)
+          : tg.sum(money(total, currency), rows.length)}
+      </p>
     </section>
   );
 }

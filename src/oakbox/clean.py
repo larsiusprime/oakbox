@@ -1185,7 +1185,8 @@ def _review_tables(out: Path, hydrated, sales, flags, units: str) -> None:
 
 
 RELATED_COLUMNS = ["key_sale", "address", "sale_date", "sale_price", "latitude", "longitude", "deed_grantor"]
-RELATED_COLUMNS += ["deed_grantee"]
+RELATED_COLUMNS += ["deed_grantee", "model_group", "bldg_area_finished_sqft", "bldg_area_finished_sqm"]
+RELATED_COLUMNS += ["land_area_sqft", "land_area_sqm"]
 
 
 def _related_table(out: Path, before, settings: dict) -> None:
@@ -1275,6 +1276,17 @@ NEAR_M = 152.4  # "nearby": within 500 ft
 BUYER_DAYS = 365
 
 
+class TogetherSale(BaseModel):
+    key_sale: str
+    address: str | None
+    group_name: str
+    price: float | None
+    finished: float | None
+    land: float | None
+    this: bool = Field(description="The sale being looked at.")
+    set_aside: bool
+
+
 class SaleDetail(BaseModel):
     item: ReviewItem
     area: float | None = Field(description="Finished area (improved) or land area (vacant) it's priced per.")
@@ -1284,6 +1296,13 @@ class SaleDetail(BaseModel):
     latitude: float | None
     longitude: float | None
     related: list[RelatedSale] = Field(default_factory=list, description="Up to 30: deed first, then by date.")
+    together: list[TogetherSale] = Field(
+        default_factory=list,
+        description="The sales on its deed the same day (or, without a deed, the same day at the same price), itself "
+        "included: likely one sale of several parcels.",
+    )
+    together_by: Literal["deed", "price"] | None = Field(default=None, description="How they were found.")
+    deed: str | None = Field(default=None, description="Its deed ID (or book and page).")
 
 
 def _num(v) -> float | None:
@@ -1446,7 +1465,11 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
         members.sort(key=lambda x: (x.price_per_area is None, x.price_per_area or 0))
     year = _num(row.get("bldg_year_built"))
     aside = {i.key_sale for i in _items(project, project_dir)}
+    together, by, deed = _together(project, project_dir, key_sale, item, aside)
     return SaleDetail(
+        together=together,
+        together_by=by,
+        deed=deed,
         related=_related(project_dir, key_sale, aside),
         item=item,
         area=area,
@@ -1456,6 +1479,48 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
         latitude=_num(row.get("latitude")),
         longitude=_num(row.get("longitude")),
     )
+
+
+def _together(project, project_dir: Path, key_sale: str, item, aside: set[str]):
+    """The sales recorded with this one: on its deed the same day when it was flagged for that, else the same day at
+    the same price; itself first."""
+    import pandas as pd
+
+    path = out_dir(project_dir) / "related.parquet"
+    by = "deed" if "dupe_deed_date" in item.checks else "price" if "dupe_date_price" in item.checks else None
+    if by is None or not path.is_file():
+        return [], None, None
+    r = pd.read_parquet(path)
+    me = r[r["key_sale"] == key_sale]
+    if not len(me):
+        return [], None, None
+    m = me.iloc[0]
+    day = pd.to_datetime(r["sale_date"], errors="coerce").dt.normalize()
+    same_day = day == pd.to_datetime(m.get("sale_date"), errors="coerce").normalize()
+    deed = _text(m.get("deed")) if "deed" in r else None
+    if by == "deed" and deed:
+        hit = same_day & (r["deed"].astype(str) == str(m["deed"]))
+    else:
+        by = "price"
+        hit = same_day & (_numbers(r, "sale_price") == _num(m.get("sale_price")))
+    unit = "sqft" if project.units == "imperial" else "sqm"
+    names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned", NO_PARCEL: NO_PARCEL_NAME}
+    rows = r[hit].head(60)
+    out = [
+        TogetherSale(
+            key_sale=str(x["key_sale"]),
+            address=_text(x.get("address")),
+            group_name=names.get(_group(x.get("model_group")), _group(x.get("model_group"))),
+            price=_num(x.get("sale_price")),
+            finished=_num(x.get(f"bldg_area_finished_{unit}")),
+            land=_num(x.get(f"land_area_{unit}")),
+            this=str(x["key_sale"]) == key_sale,
+            set_aside=str(x["key_sale"]) in aside,
+        )
+        for _, x in rows.iterrows()
+    ]
+    out.sort(key=lambda x: (not x.this, x.address or ""))
+    return out, by, deed
 
 
 def _buyer(v) -> str:

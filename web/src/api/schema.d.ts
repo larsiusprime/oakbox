@@ -5771,6 +5771,21 @@ export interface components {
              * @description Up to 30: deed first, then by date.
              */
             related: components["schemas"]["RelatedSale"][];
+            /**
+             * Together
+             * @description The sales on its deed the same day (or, without a deed, the same day at the same price), itself included: likely one sale of several parcels.
+             */
+            together: components["schemas"]["TogetherSale"][];
+            /**
+             * Together By
+             * @description How they were found.
+             */
+            together_by: ("deed" | "price") | null;
+            /**
+             * Deed
+             * @description Its deed ID (or book and page).
+             */
+            deed: string | null;
         };
         /** SaleId */
         SaleId: {
@@ -6425,6 +6440,28 @@ export interface components {
             seconds: number;
             /** Groups */
             groups: components["schemas"]["TimeGroup"][];
+        };
+        /** TogetherSale */
+        TogetherSale: {
+            /** Key Sale */
+            key_sale: string;
+            /** Address */
+            address: string | null;
+            /** Group Name */
+            group_name: string;
+            /** Price */
+            price: number | null;
+            /** Finished */
+            finished: number | null;
+            /** Land */
+            land: number | null;
+            /**
+             * This
+             * @description The sale being looked at.
+             */
+            this: boolean;
+            /** Set Aside */
+            set_aside: boolean;
         };
         /** Trimmed */
         Trimmed: {

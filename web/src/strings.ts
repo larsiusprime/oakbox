@@ -1802,6 +1802,18 @@ export const t = {
         vacant_priced_improved: (d: string) => `Sold as vacant for ${d} nearby: likely there was a building.`,
         same_surname: (d: string) => `Buyer and seller share a surname (${d}): possibly between family.`,
       } as Record<string, (d: string) => string>,
+      together: {
+        onDeed: (deed: string, date: string, n: number) => `On deed ${deed}, ${date}: ${n} sales`,
+        samePrice: (date: string, n: number) => `Sold ${date} at the same price: ${n} sales`,
+        sale: "Sale",
+        price: "Price",
+        open: "Open it",
+        kept: "not set aside",
+        each: (price: string, n: number) =>
+          `Each recorded at ${price}: likely the price of all ${n} parcels together, not of each.`,
+        sum: (total: string, n: number) =>
+          `Together ${total}: if the prices are shares of one sale, the ${n} parcels sold for that.`,
+      },
       related: {
         title: "Related sales",
         none: "No sales on the same deed, the same day nearby, or to the same buyer within a year.",

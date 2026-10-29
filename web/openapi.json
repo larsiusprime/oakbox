@@ -13894,6 +13894,42 @@
       "type": "array",
       "title": "Related",
       "description": "Up to 30: deed first, then by date."
+     },
+     "together": {
+      "items": {
+       "$ref": "#/components/schemas/TogetherSale"
+      },
+      "type": "array",
+      "title": "Together",
+      "description": "The sales on its deed the same day (or, without a deed, the same day at the same price), itself included: likely one sale of several parcels."
+     },
+     "together_by": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "deed",
+         "price"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Together By",
+      "description": "How they were found."
+     },
+     "deed": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deed",
+      "description": "Its deed ID (or book and page)."
      }
     },
     "type": "object",
@@ -13905,7 +13941,10 @@
      "members",
      "latitude",
      "longitude",
-     "related"
+     "related",
+     "together",
+     "together_by",
+     "deed"
     ],
     "title": "SaleDetail"
    },
@@ -15417,6 +15456,83 @@
      "groups"
     ],
     "title": "TimeResult"
+   },
+   "TogetherSale": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "group_name": {
+      "type": "string",
+      "title": "Group Name"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "finished": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished"
+     },
+     "land": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Land"
+     },
+     "this": {
+      "type": "boolean",
+      "title": "This",
+      "description": "The sale being looked at."
+     },
+     "set_aside": {
+      "type": "boolean",
+      "title": "Set Aside"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "address",
+     "group_name",
+     "price",
+     "finished",
+     "land",
+     "this",
+     "set_aside"
+    ],
+    "title": "TogetherSale"
    },
    "Trimmed": {
     "properties": {
