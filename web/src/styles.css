@@ -2985,13 +2985,10 @@ a.row-title:hover {
   color: var(--muted);
   font-size: 0.9rem;
 }
-.mg-wrap {
-  margin: calc(-1 * var(--pad));
-}
 .mg {
   display: grid;
   grid-template-columns: 17rem minmax(24rem, 1fr) minmax(26rem, 42%);
-  height: calc(100vh - 11rem);
+  height: calc(100vh - 13.5rem);
   min-height: 34rem;
 }
 .mg-full {
@@ -4576,4 +4573,56 @@ tr.bi-kept > td {
 .cs > .bi-warn {
   max-width: 62rem;
   box-sizing: border-box;
+}
+
+/* Tabs as steps (SPEC §3.2): the Data wizard's frame */
+.wiz-wide {
+  grid-template-columns: 11rem 1fr;
+}
+.wiz-flush {
+  padding: 0;
+}
+.wiz-foot-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.ab-formats-inline {
+  border: 0;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.ab-results {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+.mg-checks .mg-check {
+  font-size: 0.82rem;
+}
+.wiz-step button:disabled {
+  color: #9a9ea3;
+  cursor: default;
+}
+.mg-checks {
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: 0.88rem;
+  margin: 0.4rem 0;
+}
+.mg-checks .rc-td,
+.mg-checks .rc-th {
+  padding: 0.25rem 0.6rem;
+  white-space: normal;
+  vertical-align: top;
+}
+.mg-checks .rc-td:first-child {
+  white-space: nowrap;
+}
+.ab-results .ab-tbl {
+  font-family: var(--font);
+}
+.mg-replace {
+  margin-top: 0.6rem;
 }

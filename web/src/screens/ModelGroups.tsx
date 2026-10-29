@@ -13,6 +13,7 @@ import {
   TextField,
   ToggleButton,
 } from "react-aria-components";
+import { navigate } from "../App";
 import {
   api,
   type Condition,
@@ -26,8 +27,9 @@ import {
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { t } from "../strings";
-import { RunBar } from "./Assemble";
+import { AssembleResults, Formats, useAssemble, useAssembleAct, when } from "./Assemble";
 import { useSettled } from "./FieldRules";
 
 const g = t.groups;
@@ -49,10 +51,35 @@ function useGroups(projectId: string) {
   });
 }
 
-/** Step 2, Model groups (SPEC §3.5): choose how to start, then the builder. */
+type MgStep = "start" | "build" | "check" | "write" | "results";
+const STEPS: MgStep[] = ["start", "build", "check", "write", "results"];
+
+function usePreview(projectId: string, groups: ModelGroup[], enabled = true) {
+  return useQuery({
+    queryKey: ["groups-preview", projectId, groups],
+    queryFn: async () =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/groups/preview", {
+          params: { path: { project_id: projectId } },
+          body: { groups },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+/** Step 2, Model groups (SPEC §3.5), one task at a time: how to start, the builder, the checks, tag and write
+ * (notebook 1's end), and what each group got; Looks right moves on to Check sales. */
 export function ModelGroupsTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const state = useGroups(projectId);
+  const run = useAssemble(projectId);
+  const act = useAssembleAct(projectId);
+  // The step shown; after: a run was started from here, so its results open when it's done.
+  const [at, setAt] = useState<{ step: MgStep | null; after: boolean }>({ step: null, after: false });
+  // Starting again replaces the groups: asked first.
+  const [replace, setReplace] = useState<"scratch" | "suggested" | null>(null);
   const start = useMutation({
     mutationFn: async (how: "scratch" | "suggested") =>
       unwrap(
@@ -61,44 +88,287 @@ export function ModelGroupsTab({ projectId }: { projectId: string }) {
           body: { how },
         }),
       ),
-    onSuccess: (data) => queryClient.setQueryData(["groups", projectId], data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["groups", projectId], data);
+      void queryClient.invalidateQueries({ queryKey: ["assemble", projectId] });
+      setReplace(null);
+      setAt({ step: "build", after: false });
+    },
   });
   const v = state.data;
-  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  const a = run.data;
+  const saved = v?.groups ?? [];
+  const preview = usePreview(projectId, saved, !!v?.start && saved.length > 0);
+  if (!v || !a) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   if (!v.ready) return <p className="bi-lede mg-pad">{g.notReady}</p>;
-  if (!v.start)
-    return (
-      <div className="mg-start">
-        <div className="bi-kicker">{g.kicker}</div>
-        <h2 className="bi-title">{g.title}</h2>
-        <p className="bi-lede">{g.lede}</p>
-        <h3 className="mg-start-q">{g.startTitle}</h3>
-        <div className="mg-start-cards">
-          <Button
-            className="mg-start-card"
-            isDisabled={!v.can_suggest || start.isPending}
-            onPress={() => start.mutate("suggested")}
-          >
-            <b>{g.suggested}</b>
-            <span>{v.can_suggest ? g.suggestedHelp : g.noSuggest}</span>
-          </Button>
-          <Button
-            className="mg-start-card"
-            isDisabled={start.isPending}
-            onPress={() => start.mutate("scratch")}
-          >
-            <b>{g.scratch}</b>
-            <span>{g.scratchHelp}</span>
-          </Button>
-        </div>
-        {start.error && (
-          <p className="error" role="alert">
-            {start.error.message}
-          </p>
-        )}
-      </div>
+
+  const running = a.status === "running";
+  const fresh = !!a.receipt && !a.stale;
+  const p = preview.data;
+  const worst = (p?.stats ?? [])
+    .flatMap((x) => x.checks)
+    .reduce(
+      (w, c) => (c.level === "bad" ? "bad" : c.level === "warn" && w !== "bad" ? "warn" : w),
+      "ok" as "ok" | "warn" | "bad",
     );
-  return <Builder projectId={projectId} view={v} />;
+  const fallback: MgStep = !v.start
+    ? "start"
+    : running
+      ? "write"
+      : fresh
+        ? "results"
+        : saved.length
+          ? "write"
+          : "build";
+  const current: MgStep = at.after && a.status === "done" ? "results" : (at.step ?? fallback);
+  const go = (step: string) => setAt({ step: step as MgStep, after: false });
+  const steps: Step[] = STEPS.map((key) => ({
+    key,
+    title: g.steps[key],
+    status:
+      key === "start"
+        ? v.start
+          ? "done"
+          : "blank"
+        : key === "build"
+          ? saved.length
+            ? "done"
+            : "blank"
+          : key === "check"
+            ? !saved.length
+              ? "blank"
+              : worst === "ok"
+                ? "done"
+                : "attention" // nothing here stops the run: ❌ is for what does
+            : key === "write"
+              ? a.receipt
+                ? a.stale
+                  ? "attention"
+                  : "done"
+                : "blank"
+              : a.accepted
+                ? "done"
+                : "blank",
+    disabled:
+      (key !== "start" && !v.start) ||
+      ((key === "check" || key === "write") && !saved.length) ||
+      (key === "results" && !a.receipt),
+  }));
+  const kicker = g.kicker;
+  const prev = STEPS[STEPS.indexOf(current) - 1];
+  const back = prev ? () => go(prev) : null;
+  const toSales = () => navigate({ name: "project", id: projectId, tab: "sales" });
+  // Run, and open the results when it's done.
+  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "write", after: true }) });
+
+  return (
+    <StepFrame steps={steps} current={current} go={go} wide={current === "build"}>
+      {current === "start" && (
+        <>
+          <StepBody kicker={kicker} title={g.startTitle} lede={g.lede}>
+            {v.start && <p className="wiz-note">{g.startedWith(v.start)}</p>}
+            <div className="mg-start-cards">
+              <Button
+                className="mg-start-card"
+                isDisabled={!v.can_suggest || start.isPending}
+                onPress={() => (saved.length ? setReplace("suggested") : start.mutate("suggested"))}
+              >
+                <b>{g.suggested}</b>
+                <span>{v.can_suggest ? g.suggestedHelp : g.noSuggest}</span>
+              </Button>
+              <Button
+                className="mg-start-card"
+                isDisabled={start.isPending}
+                onPress={() => (saved.length ? setReplace("scratch") : start.mutate("scratch"))}
+              >
+                <b>{g.scratch}</b>
+                <span>{g.scratchHelp}</span>
+              </Button>
+            </div>
+            {replace && (
+              <div className="bi-warn mg-replace" role="alert">
+                {g.replaceWarn(saved.length)}{" "}
+                <Button className="button" onPress={() => start.mutate(replace)}>
+                  {g.replaceYes}
+                </Button>{" "}
+                <Button className="button" onPress={() => setReplace(null)}>
+                  {g.replaceNo}
+                </Button>
+              </div>
+            )}
+            {start.error && (
+              <p className="error" role="alert">
+                {start.error.message}
+              </p>
+            )}
+          </StepBody>
+          <StepFoot
+            next={v.start ? { label: t.wizard.next, onPress: () => go("build") } : null}
+            note={v.start ? null : g.pickStart}
+          />
+        </>
+      )}
+      {current === "build" && (
+        <Builder projectId={projectId} view={v} back={back} onward={() => go("check")} />
+      )}
+      {current === "check" && (
+        <>
+          <StepBody kicker={kicker} title={g.checkTitle} lede={g.checkLede}>
+            <Checks
+              groups={saved}
+              preview={p}
+              unassignedColor={v.unassigned_color}
+              edit={() => go("build")}
+            />
+          </StepBody>
+          <StepFoot back={back} next={{ label: t.wizard.next, onPress: () => go("write") }} />
+        </>
+      )}
+      {current === "write" && (
+        <>
+          <StepBody kicker={kicker} title={g.writeTitle} lede={g.run.what}>
+            {running ? (
+              <RunProgress job={a.job} lastSeconds={a.receipt?.seconds ?? null} />
+            ) : (
+              <>
+                {a.status === "failed" && (
+                  <p className="error" role="alert">
+                    {g.run.failed(a.job?.error ?? "")}
+                  </p>
+                )}
+                {a.blocked.map((b) => (
+                  <p key={b} className="wiz-warn">
+                    {b}
+                  </p>
+                ))}
+                {a.receipt && (
+                  <p className={a.stale ? "wiz-warn" : "wiz-ok"}>
+                    {a.stale
+                      ? g.run.stale
+                      : g.run.written(
+                          when(a.receipt.ran_at),
+                          a.receipt.parcels,
+                          a.receipt.groups.filter((x) => x.id !== "UNKNOWN" && x.parcels > 0).length,
+                        )}
+                  </p>
+                )}
+                <Formats projectId={projectId} view={a} />
+              </>
+            )}
+            {act.error && (
+              <p className="error" role="alert">
+                {act.error.message}
+              </p>
+            )}
+          </StepBody>
+          <StepFoot
+            back={running ? null : back}
+            extra={fresh && !running ? [{ label: g.run.again, onPress: runIt }] : []}
+            next={
+              running
+                ? { label: g.run.stop, onPress: () => act.mutate("stop"), primary: false }
+                : fresh
+                  ? { label: t.wizard.next, onPress: () => go("results") }
+                  : {
+                      label: a.receipt ? g.run.runAgain : g.run.run,
+                      disabled: a.blocked.length > 0 || act.isPending,
+                      onPress: runIt,
+                    }
+            }
+          />
+        </>
+      )}
+      {current === "results" && (
+        <>
+          <StepBody kicker={kicker} title={g.run.title}>
+            <AssembleResults projectId={projectId} view={a} groups={saved} />
+          </StepBody>
+          <StepFoot
+            back={back}
+            next={
+              a.accepted
+                ? { label: g.toSales, onPress: toSales }
+                : {
+                    label: g.looksRightNext,
+                    disabled: a.stale || act.isPending,
+                    onPress: () => act.mutate("accept", { onSuccess: toSales }),
+                  }
+            }
+            note={a.stale ? g.run.stale : null}
+          />
+        </>
+      )}
+    </StepFrame>
+  );
+}
+
+/** Each saved group's parcels and sales, with what needs a look; Unassigned last. */
+function Checks({
+  groups,
+  preview: p,
+  unassignedColor,
+  edit,
+}: {
+  groups: ModelGroup[];
+  preview: GroupsPreview | undefined;
+  unassignedColor: string;
+  edit: () => void;
+}) {
+  if (!p) return <p className="empty">{t.project.loading}</p>;
+  const rows = [
+    ...groups.map((x) => [x.id, x.name, x.color] as const),
+    ["", g.unassigned, unassignedColor] as const,
+  ];
+  return (
+    <>
+      <table className="rc-tbl ab-tbl mg-checks">
+        <thead>
+          <tr>
+            <th className="rc-th">{g.run.group}</th>
+            <th className="rc-th ab-n">{g.run.parcels}</th>
+            <th className="rc-th ab-n">{g.run.sales}</th>
+            <th className="rc-th ab-n">{g.run.vacantSales}</th>
+            <th className="rc-th">{g.checksCol}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([id, name, color]) => {
+            const x = p.stats.find((s) => s.id === id);
+            if (!x) return null;
+            const look = x.checks.filter((c) => c.level !== "ok");
+            return (
+              <tr key={id || "unassigned"}>
+                <td className="rc-td">
+                  <span className="mg-sw ab-sw" style={{ background: color }} />
+                  {name}
+                </td>
+                <td className="rc-td ab-n">{x.parcels.toLocaleString()}</td>
+                <td className="rc-td ab-n">{x.sales.toLocaleString()}</td>
+                <td className="rc-td ab-n">{x.vacant_sales.toLocaleString()}</td>
+                <td className="rc-td">
+                  {look.length === 0 ? (
+                    <span className="wiz-ok">✓</span>
+                  ) : (
+                    look.map((c) => (
+                      <div key={c.text} className={`mg-check ${c.level}`}>
+                        {c.text}
+                      </div>
+                    ))
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="wiz-from">
+        {g.checkFix}{" "}
+        <Button className="wiz-link" onPress={edit}>
+          {g.backToBuild}
+        </Button>
+      </p>
+    </>
+  );
 }
 
 function same(a: ModelGroup[], b: ModelGroup[]): boolean {
@@ -121,7 +391,17 @@ function money(v: number | null | undefined): string {
   return v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString()}k`;
 }
 
-function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
+function Builder({
+  projectId,
+  view,
+  back,
+  onward,
+}: {
+  projectId: string;
+  view: GroupsView;
+  back: (() => void) | null;
+  onward: () => void;
+}) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<ModelGroup[]>(view.groups);
   const [selected, setSelected] = useState<string | null>(view.groups[0]?.id ?? null);
@@ -135,17 +415,7 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
   const dirty = !same(draft, view.groups);
 
   const asked = useSettled(draft, 200);
-  const preview = useQuery({
-    queryKey: ["groups-preview", projectId, asked],
-    queryFn: async () =>
-      unwrap(
-        await api.POST("/api/projects/{project_id}/groups/preview", {
-          params: { path: { project_id: projectId } },
-          body: { groups: asked },
-        }),
-      ),
-    placeholderData: keepPreviousData,
-  });
+  const preview = usePreview(projectId, asked);
   const save = useMutation({
     mutationFn: async (groups: ModelGroup[]) =>
       unwrap(
@@ -215,8 +485,7 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
 
   const mapShown = mapMode !== "hidden";
   return (
-    <div className="mg-wrap">
-      <RunBar projectId={projectId} groups={view.groups} dirty={dirty} />
+    <>
       <div className={`mg mg-${mapMode}`}>
         <div className="mg-list">
           <h3 className="mg-h">{g.listTitle}</h3>
@@ -409,7 +678,16 @@ function Builder({ projectId, view }: { projectId: string; view: GroupsView }) {
           />
         )}
       </div>
-    </div>
+      <StepFoot
+        back={back}
+        note={dirty ? g.unsavedNote : null}
+        next={{
+          label: dirty ? g.saveNext : t.wizard.next,
+          disabled: draft.length === 0 || save.isPending,
+          onPress: () => (dirty ? save.mutate(draft, { onSuccess: onward }) : onward()),
+        }}
+      />
+    </>
   );
 }
 
