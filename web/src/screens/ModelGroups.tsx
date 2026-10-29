@@ -24,6 +24,7 @@ import {
   type ParcelInspect,
   unwrap,
 } from "../api/client";
+import { addBasemap } from "../components/basemap";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
@@ -1089,10 +1090,7 @@ function ParcelMap({
   useEffect(() => {
     if (!el.current || !shapes.data) return;
     const m = L.map(el.current, { preferCanvas: true, zoomSnap: 0.25 });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(m);
+    addBasemap(m);
     const renderer = L.canvas({ padding: 0.3 });
     const gj = L.geoJSON(shapes.data, {
       renderer,

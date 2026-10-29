@@ -5,6 +5,7 @@ import { ChevronUp, Map as MapIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
+import { addBasemap } from "../components/basemap";
 import { Choice } from "../components/Form";
 import { ValuesButton } from "../components/ValuesButton";
 import { t } from "../strings";
@@ -142,10 +143,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = L.map(el.current, { preferCanvas: true, scrollWheelZoom: false });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(m);
+    addBasemap(m);
     const renderer = L.canvas();
     for (const [lat, lon] of view.points) {
       L.circleMarker([lat, lon], {

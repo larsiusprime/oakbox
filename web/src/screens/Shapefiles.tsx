@@ -17,6 +17,7 @@ import {
 import { api, type LayerView, type Overlay, type Project, unwrap, type Wizard } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
+import { addBasemap } from "../components/basemap";
 import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { t } from "../strings";
@@ -415,10 +416,7 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
   useEffect(() => {
     if (!el.current || !v) return;
     const m = L.map(el.current, { preferCanvas: true, scrollWheelZoom: false });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(m);
+    addBasemap(m);
     const renderer = L.canvas();
     const points = v.points as [number, number][];
     for (const [lat, lon] of points) {

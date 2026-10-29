@@ -1284,6 +1284,10 @@ export const t = {
     close: "Close",
   },
 
+  map: {
+    basemap: "Street map",
+  },
+
   multiPick: {
     choose: "Choose values…",
     none: "none chosen",

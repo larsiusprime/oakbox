@@ -14,6 +14,7 @@ import {
   type RatioView,
   unwrap,
 } from "../api/client";
+import { addBasemap } from "../components/basemap";
 import { Choice, Field, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
@@ -1265,10 +1266,7 @@ function RatioMap({
     const data = pts.data;
     if (!el.current || !data || data.length === 0) return;
     const m = L.map(el.current, { preferCanvas: true, zoomSnap: 0.25 });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(m);
+    addBasemap(m);
     const renderer = L.canvas({ padding: 0.3 });
     const fmt = (v: number) => money(v, currency);
     for (const p of data) {

@@ -44,7 +44,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D28 | Ratio study | IAAO statistics with pass/fail against editable standards profiles (§4.2). |
 | D29 | Enrichment | A dedicated Enrichment screen exposing OpenAVMKit's real options, with cost estimates, small-area trial runs and coverage results (§3.12). v1 covers map-layer joins, footprints, census (configurable variables), distances (OpenAVMKit's defaults plus the user's own layers), elevation, permits and missing-value estimation. The street network is deferred. |
 | D30 | Variables | "Plow forward" or "Test variables first" (§3.10). |
-| D31 | Map background | Offline: parcels only. Online: an OpenStreetMap-based background. The user's own imagery comes later (§3.11). |
+| D31 | Map background | Offline: parcels only. Online: an OpenStreetMap-based background. Every map has a **Street map** box in its corner to take the background away (a plain one, to see only the colours); the choice carries to every map and is remembered on the computer. The user's own imagery comes later (§3.11). |
 | D32 | Custom reports | Sections and branding for everyone; editable Typst templates for power users (§4.3). |
 | D33 | Staleness | Oakbox tracks which settings feed which step and re-runs exactly what changed. OpenAVMKit's checkpoints don't self-invalidate (§6.4). |
 | D34 | Derived fields | Typed "transforms" in Match columns, plus an Advanced formula builder, compile to OpenAVMKit `calc`. Per-parcel corrections compile to `tweak` (§3.13). |

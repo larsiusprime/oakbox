@@ -4917,3 +4917,21 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
 .fd-tbl > tbody > tr:not(.bi-grp):hover .fd-icon {
   opacity: 1;
 }
+
+/* Every map: a plain background under the shapes when the street map is off, and its box small and quiet. */
+.leaflet-container {
+  background: #fafafa;
+}
+.leaflet-control-layers-expanded {
+  padding: 0.15rem 0.45rem;
+  font: inherit;
+  font-size: 0.8rem;
+}
+.leaflet-control-layers-overlays label {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.leaflet-control-layers-overlays input {
+  margin: 0;
+}
