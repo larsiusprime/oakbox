@@ -4648,3 +4648,24 @@ tr.bi-kept > td {
   font-size: 0.82rem;
   max-width: 30rem;
 }
+.cs-ta-note {
+  font-size: 0.82rem;
+  max-width: 22rem;
+  white-space: normal;
+}
+.cs-import {
+  max-width: 62rem;
+}
+.cs-format {
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+.cs-example {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  justify-self: start;
+}

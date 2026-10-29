@@ -91,11 +91,26 @@ class SaleMark(BaseModel):
     note: str = ""
 
 
+class TimeFile(BaseModel):
+    """A model group's own time adjustment, as the user gave it (a copy in in/oakbox/time_adjustment/)."""
+
+    path: str = Field(description="Relative to the project folder.")
+    name: str = Field(description="The file's name, as chosen.")
+    digest: str = Field(description="Of its contents: a new file puts the step out of date.")
+    first: str
+    last: str
+    periods: int
+
+
 class CleanState(BaseModel):
     sales_from: int | None = Field(default=None, description="Improved sales from this year on; None: the default.")
     vacant_from: int | None = Field(default=None, description="Vacant sales from this year on; None: the default.")
     time_adjust: bool = True
     period: Period = Field(default="Q", description="Months or quarters to start from (OpenAVMKit goes coarser).")
+    borrow: dict[str, str] = Field(
+        default_factory=dict, description="Group -> the group whose time adjustment it uses."
+    )
+    time_files: dict[str, TimeFile] = Field(default_factory=dict, description="Group -> its own time adjustment.")
     fills: dict[str, Fill] = Field(default_factory=dict, description="Per field with blanks; written once proposed.")
     location: str | None = Field(
         default=None, description='Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.'
@@ -133,7 +148,14 @@ def settings(project) -> dict:
             fill.setdefault("+" + f.method + {"all": "", "impr": "_impr", "vacant": "_vacant"}[f.scope], []).append(
                 field
             )
-    process: dict[str, Any] = {"time_adjustment": {"use": c.time_adjust, "period": c.period}}
+    ta: dict[str, Any] = {"use": c.time_adjust, "period": c.period}
+    if c.borrow:
+        ta["borrow"] = dict(sorted(c.borrow.items()))
+    if c.time_files:
+        ta["from_file"] = {g: f.path for g, f in sorted(c.time_files.items())}
+        # A comment to OpenAVMKit ("__"), but part of what the steps' hashes see: a new file with the same name.
+        ta["__file_digests"] = {g: f.digest for g, f in sorted(c.time_files.items())}
+    process: dict[str, Any] = {"time_adjustment": ta}
     if fill:
         process["fill"] = fill
     if c.collapse and c.collapse_fields:
@@ -158,6 +180,48 @@ def settings(project) -> dict:
         "data": {"process": process},
         "analysis": analysis,
     }
+
+
+TIME_DIR = "in/oakbox/time_adjustment"
+
+
+class TimeFileCheck(BaseModel):
+    ok: bool
+    problems: list[str] = Field(description="Every problem found, in words; empty when it can be used.")
+    file: TimeFile | None = None
+
+
+def time_file(project, project_dir: Path, group: str, source: Path) -> TimeFileCheck:
+    """Check a time adjustment file with OpenAVMKit's own reader; if it can be used, keep a copy for the group."""
+    from openavmkit.time_adjustment import read_schedule
+
+    if group not in {g.id for g in project.groups}:
+        raise LookupError(group)
+    if not source.is_file():
+        return TimeFileCheck(ok=False, problems=[f"There's no file at {source}."])
+    schedule, problems = read_schedule(str(source))
+    if schedule is None:
+        return TimeFileCheck(ok=False, problems=problems)
+    data = source.read_bytes()
+    rel = f"{TIME_DIR}/{group}.csv"
+    target = project_dir / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    import pandas as pd
+
+    raw = pd.read_csv(source, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    periods = raw[next(c for c in raw.columns if c.strip().lower() == "period")].str.strip()
+    f = TimeFile(
+        path=rel,
+        name=source.name,
+        digest=hashlib.sha256(data).hexdigest()[:16],
+        first=str(periods.iloc[0]),  # as the file writes them
+        last=str(periods.iloc[-1]),
+        periods=len(raw),
+    )
+    project.clean.time_files[group] = f
+    project.clean.borrow.pop(group, None)
+    return TimeFileCheck(ok=True, problems=[], file=f)
 
 
 def merge(base: dict, more: dict) -> dict:
@@ -244,6 +308,8 @@ class GroupSetup(BaseModel):
     color: str
     sales: int = Field(description="Valid sales in the window.")
     per_year: float | None = Field(description="Price change a year found last run, percent; None: none or not run.")
+    borrow: str | None = Field(default=None, description="The group whose time adjustment it uses.")
+    file: TimeFile | None = Field(default=None, description="Its own time adjustment file.")
 
 
 class FillRow(BaseModel):
@@ -541,7 +607,17 @@ def setup(project, project_dir: Path) -> CleanSetup:
     groups = []
     for g in [*project.groups]:
         n = int((inside & (valid["model_group"] == g.id)).sum()) if "model_group" in valid else 0
-        groups.append(GroupSetup(id=g.id, name=g.name, color=g.color, sales=n, per_year=last.get(g.id)))
+        groups.append(
+            GroupSetup(
+                id=g.id,
+                name=g.name,
+                color=g.color,
+                sales=n,
+                per_year=last.get(g.id),
+                borrow=project.clean.borrow.get(g.id),
+                file=project.clean.time_files.get(g.id),
+            )
+        )
     unknown = int((inside & (valid["model_group"] == UNKNOWN)).sum()) if "model_group" in valid else 0
     if unknown:
         groups.append(GroupSetup(id=UNKNOWN, name="Unassigned", color="#9a9a9a", sales=unknown, per_year=None))

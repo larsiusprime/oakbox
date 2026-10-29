@@ -107,6 +107,9 @@ def run(project_id: str) -> None:
         bring_in._emit(step="load", fraction=0.0, message="Reading step 2's hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
         settings = pl.load_settings(str(settings_path))
+        # The groups' own files are named from the project folder; this runs in a scratch folder.
+        ta = settings.get("data", {}).get("process", {}).get("time_adjustment", {})
+        ta["from_file"] = {g: str(pdir / f) for g, f in ta.get("from_file", {}).items()}
         bring_in._emit(step="time", fraction=0.2, message=base_message)
         progress.report("time", 0.2, base_message)
         sup = pl.process_sales(sup=sup, settings=settings)

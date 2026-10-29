@@ -332,6 +332,25 @@ buildings.to_csv(IN / "building.csv", index=False)
 units.to_csv(IN / "condo_units.csv", index=False)
 sales.to_csv(IN / "sales.csv", index=False)
 permits.to_csv(IN / "permits.csv", index=False)
+
+
+def time_index() -> pd.DataFrame:
+    """A made-up quarterly price index, as a county's own time adjustment might be published: slow growth to 2019,
+    a run-up through 2022, then flat. For trying a model group's own time adjustment file; not Guilford's."""
+    rows, level = [], 100.0
+    for year in range(2015, 2025):
+        for q in range(1, 5):
+            rows.append({"period": f"{year}-Q{q}", "index": round(level, 1)})
+            level *= 1.008 if year < 2020 else 1.025 if year < 2023 else 1.0
+    return pd.DataFrame(rows)
+
+
+time_index().to_csv(IN / "time_adjustment_index.csv", index=False)
+# The same with problems planted: a period that isn't one, a quarter twice, a negative and a missing level.
+(IN / "time_adjustment_index_broken.csv").write_text(
+    "period,index\n2015-Q1,100\n2015-Q2,100.8\nspring 2015,101.2\n2015-Q3,-4\n2015-Q3,102\n2015-Q4,n/a\n",
+    encoding="utf-8",
+)
 print(
     f"{len(parcels):,} parcel shapes, {len(units):,} condo units without one, {len(buildings):,} building cards, "
     f"{len(sales):,} sales, {len(permits):,} permits"

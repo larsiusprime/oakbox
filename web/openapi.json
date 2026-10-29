@@ -4087,6 +4087,162 @@
     }
    }
   },
+  "/api/projects/{project_id}/clean/time/borrow": {
+   "put": {
+    "summary": "Clean Time Borrow",
+    "description": "A model group uses another group's time adjustment (null: its own).",
+    "operationId": "clean_time_borrow_api_projects__project_id__clean_time_borrow_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BorrowBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/time/file/{group}": {
+   "post": {
+    "summary": "Clean Time File",
+    "description": "Check a model group's own time adjustment file (OpenAVMKit reads it); if it can be used, keep it.",
+    "operationId": "clean_time_file_api_projects__project_id__clean_time_file__group__post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TimeFileBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TimeFileCheck"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Clean Time File Off",
+    "description": "The group works its time adjustment out from its sales again.",
+    "operationId": "clean_time_file_off_api_projects__project_id__clean_time_file__group__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/clean/time": {
    "get": {
     "summary": "Clean Time",
@@ -4772,6 +4928,32 @@
     ],
     "title": "Band"
    },
+   "BorrowBody": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "source": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source",
+      "description": "The group whose time adjustment it uses; null: its own."
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "source"
+    ],
+    "title": "BorrowBody"
+   },
    "Candidate": {
     "properties": {
      "file": {
@@ -5393,6 +5575,22 @@
       "description": "Months or quarters to start from (OpenAVMKit goes coarser).",
       "default": "Q"
      },
+     "borrow": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Borrow",
+      "description": "Group -> the group whose time adjustment it uses."
+     },
+     "time_files": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/TimeFile"
+      },
+      "type": "object",
+      "title": "Time Files",
+      "description": "Group -> its own time adjustment."
+     },
      "fills": {
       "additionalProperties": {
        "$ref": "#/components/schemas/Fill"
@@ -5459,6 +5657,8 @@
      "vacant_from",
      "time_adjust",
      "period",
+     "borrow",
+     "time_files",
      "fills",
      "location",
      "checks",
@@ -8038,6 +8238,29 @@
       ],
       "title": "Per Year",
       "description": "Price change a year found last run, percent; None: none or not run."
+     },
+     "borrow": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Borrow",
+      "description": "The group whose time adjustment it uses."
+     },
+     "file": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TimeFile"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Its own time adjustment file."
      }
     },
     "type": "object",
@@ -8046,7 +8269,9 @@
      "name",
      "color",
      "sales",
-     "per_year"
+     "per_year",
+     "borrow",
+     "file"
     ],
     "title": "GroupSetup"
    },
@@ -12498,6 +12723,95 @@
      "few"
     ],
     "title": "TiersPreview"
+   },
+   "TimeFile": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path",
+      "description": "Relative to the project folder."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "The file's name, as chosen."
+     },
+     "digest": {
+      "type": "string",
+      "title": "Digest",
+      "description": "Of its contents: a new file puts the step out of date."
+     },
+     "first": {
+      "type": "string",
+      "title": "First"
+     },
+     "last": {
+      "type": "string",
+      "title": "Last"
+     },
+     "periods": {
+      "type": "integer",
+      "title": "Periods"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "name",
+     "digest",
+     "first",
+     "last",
+     "periods"
+    ],
+    "title": "TimeFile",
+    "description": "A model group's own time adjustment, as the user gave it (a copy in in/oakbox/time_adjustment/)."
+   },
+   "TimeFileBody": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path",
+      "description": "The CSV file on this computer."
+     }
+    },
+    "type": "object",
+    "required": [
+     "path"
+    ],
+    "title": "TimeFileBody"
+   },
+   "TimeFileCheck": {
+    "properties": {
+     "ok": {
+      "type": "boolean",
+      "title": "Ok"
+     },
+     "problems": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Problems",
+      "description": "Every problem found, in words; empty when it can be used."
+     },
+     "file": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TimeFile"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "ok",
+     "problems",
+     "file"
+    ],
+    "title": "TimeFileCheck"
    },
    "TimeGroup": {
     "properties": {

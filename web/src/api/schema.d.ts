@@ -1524,6 +1524,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/clean/time/borrow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Clean Time Borrow
+         * @description A model group uses another group's time adjustment (null: its own).
+         */
+        put: operations["clean_time_borrow_api_projects__project_id__clean_time_borrow_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/time/file/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clean Time File
+         * @description Check a model group's own time adjustment file (OpenAVMKit reads it); if it can be used, keep it.
+         */
+        post: operations["clean_time_file_api_projects__project_id__clean_time_file__group__post"];
+        /**
+         * Clean Time File Off
+         * @description The group works its time adjustment out from its sales again.
+         */
+        delete: operations["clean_time_file_off_api_projects__project_id__clean_time_file__group__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/clean/time": {
         parameters: {
             query?: never;
@@ -1821,6 +1865,16 @@ export interface components {
              */
             value: number | null;
         };
+        /** BorrowBody */
+        BorrowBody: {
+            /** Group */
+            group: string;
+            /**
+             * Source
+             * @description The group whose time adjustment it uses; null: its own.
+             */
+            source: string | null;
+        };
         /** Candidate */
         Candidate: {
             /** File */
@@ -2053,6 +2107,20 @@ export interface components {
              * @enum {string}
              */
             period: "M" | "Q";
+            /**
+             * Borrow
+             * @description Group -> the group whose time adjustment it uses.
+             */
+            borrow: {
+                [key: string]: string;
+            };
+            /**
+             * Time Files
+             * @description Group -> its own time adjustment.
+             */
+            time_files: {
+                [key: string]: components["schemas"]["TimeFile"];
+            };
             /**
              * Fills
              * @description Per field with blanks; written once proposed.
@@ -3319,6 +3387,13 @@ export interface components {
              * @description Price change a year found last run, percent; None: none or not run.
              */
             per_year: number | null;
+            /**
+             * Borrow
+             * @description The group whose time adjustment it uses.
+             */
+            borrow: string | null;
+            /** @description Its own time adjustment file. */
+            file: components["schemas"]["TimeFile"] | null;
         };
         /** GroupStats */
         GroupStats: {
@@ -5324,6 +5399,52 @@ export interface components {
              * @default 10
              */
             few: number;
+        };
+        /**
+         * TimeFile
+         * @description A model group's own time adjustment, as the user gave it (a copy in in/oakbox/time_adjustment/).
+         */
+        TimeFile: {
+            /**
+             * Path
+             * @description Relative to the project folder.
+             */
+            path: string;
+            /**
+             * Name
+             * @description The file's name, as chosen.
+             */
+            name: string;
+            /**
+             * Digest
+             * @description Of its contents: a new file puts the step out of date.
+             */
+            digest: string;
+            /** First */
+            first: string;
+            /** Last */
+            last: string;
+            /** Periods */
+            periods: number;
+        };
+        /** TimeFileBody */
+        TimeFileBody: {
+            /**
+             * Path
+             * @description The CSV file on this computer.
+             */
+            path: string;
+        };
+        /** TimeFileCheck */
+        TimeFileCheck: {
+            /** Ok */
+            ok: boolean;
+            /**
+             * Problems
+             * @description Every problem found, in words; empty when it can be used.
+             */
+            problems: string[];
+            file: components["schemas"]["TimeFile"] | null;
         };
         /** TimeGroup */
         TimeGroup: {
@@ -8801,6 +8922,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CleanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_time_borrow_api_projects__project_id__clean_time_borrow_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BorrowBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_time_file_api_projects__project_id__clean_time_file__group__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeFileBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeFileCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_time_file_off_api_projects__project_id__clean_time_file__group__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanSetup"];
                 };
             };
             /** @description Validation Error */

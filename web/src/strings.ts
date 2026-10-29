@@ -1488,6 +1488,28 @@ export const t = {
       perYear: (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}% a year`,
       chartSub: "How prices moved, per model group (first period = 1).",
       lastRun: "Last run",
+      from: "Time adjustment from",
+      ownSales: "its own sales",
+      borrowFrom: (name: string) => `same as ${name}`,
+      ownFile: "my own file…",
+      borrowing: "Uses that group's index, held level outside its dates.",
+      fewSales: "Few sales: its own index may be rough. Another group's, or your own file, may do better.",
+      fileSays: (name: string, periods: number, first: string, last: string) =>
+        `${name}: ${periods} periods, ${first} to ${last}.`,
+      replace: "Replace…",
+      importTitle: (name: string) => `${name}: your own time adjustment`,
+      formatLede: "A CSV file with these two columns (more columns are ignored):",
+      formatPeriod:
+        "the date each price level is for: a day (2023-04-15), a month (2023-04), a quarter (2023-Q2) or a year (2023). One row each, at least two.",
+      formatIndex: "the price level then, at any base (100 in the first period, or 1.0). Positive numbers.",
+      formatMore:
+        "Between periods the level is interpolated day by day; each sale is brought to the last period. Sales before the first period get its level, sales after the last get the last one's. A schedule OpenAVMKit wrote (period, start_indexed, end_indexed, correction_factor) works too.",
+      chooseFile: "Choose the file…",
+      pathLabel: "The file's path",
+      pathPlaceholder: "C:\\Data\\time_index.csv",
+      checkFile: "Check it",
+      cancel: "Cancel",
+      cantUse: "It can't be used as it is:",
       preview: "How prices moved",
       previewNote: (sec: number) =>
         `Worked out with the calls as they are (${sec} s), before running: Check sales does the same.`,

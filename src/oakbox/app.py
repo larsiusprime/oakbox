@@ -164,6 +164,15 @@ class WizardCustom(BaseModel):
     type: Literal["category", "number"] = "category"
 
 
+class BorrowBody(BaseModel):
+    group: str
+    source: str | None = Field(description="The group whose time adjustment it uses; null: its own.")
+
+
+class TimeFileBody(BaseModel):
+    path: str = Field(description="The CSV file on this computer.")
+
+
 class FillChange(BaseModel):
     field: str
     method: clean.FillMethod
@@ -1244,6 +1253,40 @@ def create_app() -> FastAPI:
         projects.save(project)
         projects.write_settings(project)
         return _clean_view(project)
+
+    @app.put("/api/projects/{project_id}/clean/time/borrow")
+    def clean_time_borrow(project_id: str, body: BorrowBody) -> clean.CleanSetup:
+        """A model group uses another group's time adjustment (null: works it out from its own sales). Either way its
+        own file, if it had one, is set aside."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        ids = {g.id for g in project.groups}
+        if body.group not in ids or (body.source is not None and (body.source not in ids or body.source == body.group)):
+            raise HTTPException(422, "Pick two different model groups.")
+        clean.decide(project, pdir)
+        project.clean.time_files.pop(body.group, None)
+        if body.source is None:
+            project.clean.borrow.pop(body.group, None)
+        else:
+            project.clean.borrow[body.group] = body.source
+        projects.save(project)
+        projects.write_settings(project)
+        return clean.setup(project, pdir)
+
+    @app.post("/api/projects/{project_id}/clean/time/file/{group}")
+    def clean_time_file(project_id: str, group: str, body: TimeFileBody) -> clean.TimeFileCheck:
+        """Check a model group's own time adjustment file (OpenAVMKit reads it); if it can be used, keep it."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            clean.decide(project, pdir)
+            check = clean.time_file(project, pdir, group, Path(body.path).expanduser())
+        except LookupError as e:
+            raise HTTPException(404, f"No model group {group}.") from e
+        if check.ok:
+            projects.save(project)
+            projects.write_settings(project)
+        return check
 
     @app.get("/api/projects/{project_id}/clean/time")
     def clean_time(project_id: str) -> time_preview.TimePreview:

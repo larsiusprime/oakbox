@@ -3,6 +3,7 @@ sales set aside."""
 
 import json
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -124,6 +125,46 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     time_view = _wait(client, f"{url}/time")
     assert time_view["status"] == "done", time_view["job"]
     assert {g["id"] for g in time_view["result"]["groups"]} == {g["id"] for g in groups}
+
+    # A group's own time adjustment file: OpenAVMKit reads it, and every problem is said.
+    sample = Path(__file__).parents[1] / "sample" / "us-nc-guilford-synth" / "in"
+    a, b = groups[0]["id"], groups[1]["id"]
+    check = client.post(f"{url}/time/file/{a}", json={"path": str(sample / "time_adjustment_index_broken.csv")}).json()
+    assert not check["ok"] and len(check["problems"]) >= 3
+    assert "spring 2015" in " ".join(check["problems"])
+    check = client.post(f"{url}/time/file/{a}", json={"path": str(sample / "time_adjustment_index.csv")}).json()
+    assert check["ok"] and check["file"]["periods"] == 40, check
+    assert client.post(f"{url}/time/file/nope", json={"path": "x.csv"}).status_code == 404
+    ta = _settings(pid)["data"]["process"]["time_adjustment"]
+    assert ta["from_file"] == {a: f"in/oakbox/time_adjustment/{a}.csv"} and a in ta["__file_digests"]
+    assert (projects.project_dir(pid) / ta["from_file"][a]).is_file()
+    # Another group borrows it; a group can't borrow from itself.
+    assert client.put(f"{url}/time/borrow", json={"group": b, "source": b}).status_code == 422
+    setup = client.put(f"{url}/time/borrow", json={"group": b, "source": a}).json()
+    mine = {g["id"]: g for g in setup["groups"]}
+    assert mine[a]["file"]["name"] == "time_adjustment_index.csv" and mine[b]["borrow"] == a
+    assert _settings(pid)["data"]["process"]["time_adjustment"]["borrow"] == {b: a}
+    assert client.get(url).json()["stale"]  # the time adjustment changed since Check sales ran
+    assert client.get(f"{url}/time").json()["stale"]
+    client.post(f"{url}/time/run")
+    time_view = _wait(client, f"{url}/time")
+    assert time_view["status"] == "done", time_view["job"]
+    curves = {g["id"]: g for g in time_view["result"]["groups"]}
+    assert curves[a]["per_year"] == curves[b]["per_year"] and curves[a]["per_year"] > 0
+    client.post(f"{url}/run")  # and Check sales itself, which runs in the project folder
+    view = _wait(client, url)
+    assert view["status"] == "done", view["job"]
+    ran = {g["id"]: g for g in view["receipt"]["groups"]}
+    assert ran[a]["per_year"] == ran[b]["per_year"] == curves[a]["per_year"]
+    # Back to their own sales: the file is set aside, the borrowing undone.
+    client.put(f"{url}/time/borrow", json={"group": a, "source": None})
+    setup = client.put(f"{url}/time/borrow", json={"group": b, "source": None}).json()
+    assert all(g["file"] is None and g["borrow"] is None for g in setup["groups"])
+    ta = _settings(pid)["data"]["process"]["time_adjustment"]
+    assert "borrow" not in ta and not ta.get("from_file")
+    client.post(f"{url}/run")
+    assert _wait(client, url)["status"] == "done"
+    assert client.post(f"{url}/accept").json()["accepted"]
 
     # Step 5 begins: the fills and folding Check sales left out, on what it wrote.
     client.patch(f"{url}/setup", json={"collapse": True, "collapse_sales_min": 2, "collapse_univ_min": 2})
