@@ -36,6 +36,17 @@ is built in the engine, so notebook users get it too, without changing what the 
 (a new setting, off unless asked for). OAK box keeps what only an app needs: screens, wording, the user's
 choices turned into settings.
 
+## Screens
+
+- **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,
+  never a maximum). Only running text is capped for readability (`.project p`, `.cs-text`, `.wiz-lede`…).
+- **Tables:** every table has faint cell lines and alternate gray rows (the `:where(table)` rules at the end of
+  `styles.css`); a numbers column's header has the column's class (`th.cs-n`) so it lines up with its numbers.
+  A chart is drawn at its own width in pixels (a `ResizeObserver`), not scaled, so its text stays its size.
+- **Short labels, the rest on demand:** a table cell says a short phrase; the fuller explanation goes in a tooltip
+  (`components/Tip.tsx`: `InfoTip` shows an ⓘ beside the phrase), not in the cell. A column's header isn't repeated
+  in its cells ("Pattern" over "Low price", not "Pattern 2: low price").
+
 ## Going online
 
 - Downloads check certificates as the computer does: every process OAK box starts calls

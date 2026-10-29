@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import type { ReactElement } from "react";
 import { Focusable, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-components";
 
@@ -32,6 +33,21 @@ export function TipOn({
     <Tip text={text}>
       <Focusable>
         <span className={className ?? "tip-target"}>{children}</span>
+      </Focusable>
+    </Tip>
+  );
+}
+
+/** A short phrase with an ⓘ: the fuller explanation on hover or keyboard focus (AGENTS.md: short labels, the rest
+ * on demand). */
+export function InfoTip({ label, text }: { label: string; text: string }) {
+  return (
+    <Tip text={text}>
+      <Focusable>
+        <span className="info-tip">
+          {label}
+          <Info aria-hidden="true" size="0.85em" className="info-tip-icon" />
+        </span>
       </Focusable>
     </Tip>
   );

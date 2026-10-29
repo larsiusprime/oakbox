@@ -78,7 +78,7 @@ function ProjectView({
   ];
 
   return (
-    <div className={selected === "groups" || selected === "sales" ? "project project-wide" : "project"}>
+    <div className="project">
       <header className="page-head">
         <a className="back-link" href="#/">
           <ChevronLeft aria-hidden="true" size="1.1em" />

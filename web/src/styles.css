@@ -18,6 +18,8 @@
   --text: #1c1e20;
   --muted: #565b61;
   --rule: #d9d9d9;
+  --cell-line: #e2e4e6; /* every table's cell lines */
+  --zebra: #f5f6f7; /* every table's alternate rows */
 
   --btn-top: #ffffff;
   --btn-bottom: #dadada;
@@ -74,6 +76,8 @@
   --muted: #222222;
   --btn-edge: #000000;
   --rule: #000000;
+  --cell-line: #000000;
+  --zebra: #ffffff;
 }
 
 * {
@@ -278,7 +282,6 @@ a {
 /* ---------- Layout ---------- */
 
 .content {
-  max-width: 1680px;
   margin: 0 auto;
   padding: 0.6rem 0.9rem 1.5rem;
 }
@@ -1081,7 +1084,10 @@ a.row-title:hover {
 .project {
   display: grid;
   gap: 0.5rem;
-  max-width: 76rem; /* room for the field view's table (F3c) */
+}
+/* Tables and other elements use all the width; running text is capped for reading. */
+.project p {
+  max-width: 62rem;
 }
 
 .folder-tab-list {
@@ -2841,7 +2847,6 @@ a.row-title:hover {
   font-size: 0.86rem;
 }
 .bi-tbl th {
-  text-align: left;
   font-weight: 600;
   color: var(--muted);
   font-size: 0.78rem;
@@ -2939,9 +2944,6 @@ a.row-title:hover {
 }
 
 /* ---------- Step 2, Model groups (SPEC §3.5) ---------- */
-.project-wide {
-  max-width: none;
-}
 .mg-pad {
   padding: 0.8rem;
 }
@@ -4296,7 +4298,7 @@ tr.bi-kept > td {
 
 /* Step 3, Check sales (SPEC F6) */
 .cs-card {
-  max-width: 62rem;
+  min-width: 0;
 }
 .cs-head {
   display: flex;
@@ -4401,7 +4403,6 @@ tr.bi-kept > td {
   background: #f3f8f4;
   border-radius: var(--radius);
   padding: 0.5rem 0.7rem;
-  max-width: 62rem;
   box-sizing: border-box;
 }
 .cs-meter .wiz-ok {
@@ -4545,7 +4546,7 @@ tr.bi-kept > td {
 }
 .cs-dots {
   width: 100%;
-  height: auto;
+  height: 92px;
   display: block;
 }
 .cs-note-field {
@@ -4568,7 +4569,7 @@ tr.bi-kept > td {
   flex-wrap: wrap;
 }
 .cs-receipt > .cs-row {
-  max-width: 62rem;
+  min-width: 0;
 }
 .cs > .bi-warn {
   max-width: 62rem;
@@ -4630,7 +4631,6 @@ tr.bi-kept > td {
   display: grid;
   gap: 0.5rem;
   margin: 0 0 1rem;
-  max-width: 62rem;
 }
 .cs-step .cs-head .tick {
   font-weight: 600;
@@ -4650,11 +4650,11 @@ tr.bi-kept > td {
 }
 .cs-ta-note {
   font-size: 0.82rem;
-  max-width: 22rem;
+  min-width: 14rem;
   white-space: normal;
 }
 .cs-import {
-  max-width: 62rem;
+  min-width: 0;
 }
 .cs-format {
   margin: 0 0 0 1.1rem;
@@ -4673,7 +4673,6 @@ tr.bi-kept > td {
   display: grid;
   gap: 0.5rem;
   margin-top: 1rem;
-  max-width: 62rem;
 }
 .dn-formats {
   display: grid;
@@ -4708,11 +4707,45 @@ tr.bi-kept > td {
   align-items: center;
   flex-wrap: wrap;
 }
-.cs-readings,
-.cs-patterns {
-  max-width: 60rem;
+.cs-patterns .wiz-link,
+.cs-patterns .cs-n {
+  white-space: nowrap;
 }
 .bi-tbl.cs-tbl.cs-patterns > tbody > tr > td {
   white-space: normal;
   vertical-align: top;
+}
+.info-tip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  cursor: help;
+}
+.info-tip-icon {
+  color: var(--muted);
+  align-self: center;
+  flex: none;
+}
+
+/* ---------- Every table: cell lines, alternate rows, headers aligned with their columns (AGENTS.md) ---------- */
+/* :where keeps these at no specificity: a table's own colours and highlights (a selected row, this sale) win. */
+:where(table) {
+  border-collapse: collapse;
+}
+:where(table) :where(th, td) {
+  border: 1px solid var(--cell-line);
+}
+:where(table) :where(th) {
+  text-align: left;
+}
+:where(tbody > tr:nth-child(even) > td) {
+  background: var(--zebra);
+}
+/* A numbers column: its header lines up with its numbers. */
+:where(table) :where(th.cs-n, th.num, th.mg-num, th.ab-n, th.pm-n) {
+  text-align: right;
+}
+.bi-tbl.cs-tbl > tfoot > tr.cs-total > td {
+  font-weight: 600;
+  border-top: 2px solid var(--rule);
 }

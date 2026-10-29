@@ -1641,6 +1641,7 @@ export const t = {
       share: "% of sales",
       cause: "Likely cause",
       action: "Check first",
+      more: "More",
       flagged: "Flagged",
     },
     funnel: {
@@ -1688,14 +1689,6 @@ export const t = {
         vacant_priced_improved: "vacant, priced like improved",
         same_surname: "same surname",
       } as Record<string, string>,
-      patternNames: {
-        "1": "pattern 1: odd size",
-        "2": "pattern 2: low price",
-        "3": "pattern 3: high price",
-        "4": "pattern 4: high per area",
-        "5": "pattern 5: low per area",
-        other: "flagged, still in",
-      } as Record<string, string>,
       apply: "Your keeps and exclusions apply when you check sales again (seconds).",
       applyLater: "Keeps and exclusions apply on the next Check sales.",
       empty: "No sales match.",
@@ -1719,18 +1712,20 @@ export const t = {
       soldFor: (price: string) => `Sold for ${price}.`,
       diagnosis: {
         "1": {
-          title: "Pattern 1: odd price per area, odd size",
-          cause:
-            "The size recorded is likely wrong: too small makes the price per area look high, too big makes it look low.",
+          name: "Odd price per area, odd size",
+          short: "Size recorded wrong",
+          check: "The size",
+          why: "The size recorded is likely wrong: too small makes the price per area look high, too big makes it look low.",
           actions: [
             "Check the size and the characteristics as they were when it sold.",
             "If the size is right, look for what else sets it apart: better materials, a better spot.",
           ],
         },
         "2": {
-          title: "Pattern 2: low price, low price per area",
-          cause:
-            "Likely not a market sale: a foreclosure, a short sale, between family, a share of a property sold as the whole; or its condition is worse than recorded.",
+          name: "Low price, low per area",
+          short: "Not a market sale, or worse condition",
+          check: "Age, condition, the deed",
+          why: "Likely not a market sale: a foreclosure, a short sale, between family, a share of a property sold as the whole; or its condition is worse than recorded.",
           actions: [
             "Check the building's age and condition.",
             "Look at it in Street View beside its group: do the recorded characteristics match?",
@@ -1738,9 +1733,10 @@ export const t = {
           ],
         },
         "3": {
-          title: "Pattern 3: high price, high price per area",
-          cause:
-            "Likely more than this parcel: several parcels on one deed, business assets or personal property in the price, a related party, or a partial interest's price scaled to the whole.",
+          name: "High price, high per area",
+          short: "More than this parcel sold",
+          check: "The deed, related sales",
+          why: "Likely more than this parcel: several parcels on one deed, business assets or personal property in the price, a related party, or a partial interest's price scaled to the whole.",
           actions: [
             "Check the deed for business assets or personal property, and the buyer and seller for a related party.",
             "Check it wasn't a sale of several parcels with this one's size only (the related sales below).",
@@ -1748,9 +1744,10 @@ export const t = {
           ],
         },
         "4": {
-          title: "Pattern 4: ordinary price, high price per area",
-          cause:
-            "The finished area may be under-recorded, or there are upgrades not on record (a renovation, an addition).",
+          name: "Ordinary price, high per area",
+          short: "Area under-recorded, or upgrades",
+          check: "Finished area, quality",
+          why: "The finished area may be under-recorded, or there are upgrades not on record (a renovation, an addition).",
           actions: [
             "Check the finished area.",
             "Check the quality and condition.",
@@ -1758,21 +1755,23 @@ export const t = {
           ],
         },
         "5": {
-          title: "Pattern 5: ordinary price, low price per area",
-          cause:
-            "The finished area may be over-recorded, or the area includes another parcel's (a sale of several parcels, the other way round).",
+          name: "Ordinary price, low per area",
+          short: "Area over-recorded",
+          check: "Finished area, related sales",
+          why: "The finished area may be over-recorded, or the area includes another parcel's (a sale of several parcels, the other way round).",
           actions: [
             "Check the finished area.",
             "Check it wasn't a sale of several parcels whose areas were added together (the related sales below).",
           ],
         },
         other: {
-          title: "Flagged, still in: no pattern fits",
-          cause:
-            "Far from its group by the ratio rules, but its price, price per area and size don't fit any of the five patterns. It counts unless you exclude it.",
+          name: "No pattern fits (left in)",
+          short: "Unclear",
+          check: "Characteristics, the sale’s terms",
+          why: "Far from its group by the ratio rules, but its price, price per area and size don't fit any of the five patterns. It counts unless you exclude it.",
           actions: ["Check its characteristics and the sale's terms; exclude it if they're wrong."],
         },
-      } as Record<string, { title: string; cause: string; actions: string[] }>,
+      } as Record<string, { name: string; short: string; check: string; why: string; actions: string[] }>,
       checkFor: "What to check",
       readings: {
         title: "Against its group",

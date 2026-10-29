@@ -18,6 +18,7 @@ import {
 } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { InfoTip } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { t } from "../strings";
 import { when } from "./BringIn";
@@ -1071,11 +1072,11 @@ function Patterns({ tables, look }: { tables: PatternTable[]; look: (check: stri
             const d = s.review.diagnosis[key];
             return (
               <tr key={key}>
-                <td>{d?.title ?? key}</td>
+                <td>{d?.name ?? key}</td>
                 <td className="cs-n">{num(n)}</td>
                 <td className="cs-n">{share(n)}</td>
-                <td>{d?.cause}</td>
-                <td>{d?.actions[0]}</td>
+                <td>{d && <InfoTip label={d.short} text={d.why} />}</td>
+                <td>{d && <InfoTip label={d.check} text={d.actions.join(" ")} />}</td>
                 <td>
                   {n > 0 && (
                     <Button className="wiz-link" onPress={() => look(`pattern:${key}`)}>
@@ -1086,15 +1087,15 @@ function Patterns({ tables, look }: { tables: PatternTable[]; look: (check: stri
               </tr>
             );
           })}
-          <tr className="cs-fl tot">
-            <td>
-              <b>{p.flagged}</b>
-            </td>
+        </tbody>
+        <tfoot>
+          <tr className="cs-total">
+            <td>{p.flagged}</td>
             <td className="cs-n">{num(flagged)}</td>
             <td className="cs-n">{share(flagged)}</td>
             <td colSpan={3} />
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     </section>
   );
@@ -1290,7 +1291,7 @@ function Review({
   const checks: [string, string][] = [
     ["", s.review.everyCheck],
     ...Object.entries(s.review.checkNames),
-    ...Object.entries(s.review.patternNames).map(([k, v]) => [`pattern:${k}`, v] as [string, string]),
+    ...Object.entries(s.review.diagnosis).map(([k, v]) => [`pattern:${k}`, v.name] as [string, string]),
   ];
   return (
     <div className="cs-review">
@@ -1645,8 +1646,8 @@ function Diagnosis({ i }: { i: ReviewItem }) {
   if (!d) return null;
   return (
     <div className={i.flag_only ? "cs-diag bi-warn" : "cs-diag"}>
-      <b>{d.title}</b>
-      <p className="cs-text">{d.cause}</p>
+      <b>{d.name}</b>
+      <p className="cs-text">{d.why}</p>
       <b className="cs-small">{s.review.checkFor}</b>
       <ul className="cs-todo">
         {d.actions.map((a) => (
@@ -1761,16 +1762,33 @@ function Dots({
   median: number | null | undefined;
   currency: string;
 }) {
+  // Drawn at its own width in pixels: all the width there is, the text staying its size.
+  const ref = useRef<SVGSVGElement>(null);
+  const [w, setW] = useState(600);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const seen = new ResizeObserver(([e]) => e && setW(Math.max(300, Math.round(e.contentRect.width))));
+    seen.observe(el);
+    return () => seen.disconnect();
+  }, []);
   const xs = members.map((m) => m.price_per_area).filter((x): x is number => !!x && x > 0);
   if (xs.length < 2) return null;
   const lo = Math.floor(Math.log10(Math.min(...xs)));
   const hi = Math.ceil(Math.log10(Math.max(...xs)));
   const span = Math.max(1, hi - lo);
-  const x = (v: number) => 40 + (520 * (Math.log10(v) - lo)) / span;
+  const x = (v: number) => 40 + ((w - 80) * (Math.log10(v) - lo)) / span;
   const ticks = Array.from({ length: span + 1 }, (_, k) => 10 ** (lo + k));
   return (
-    <svg viewBox="0 0 600 92" className="cs-dots" role="img" aria-label={s.review.dotsLabel}>
-      <line x1="40" x2="560" y1="62" y2="62" stroke="#888" />
+    <svg
+      ref={ref}
+      viewBox={`0 0 ${w} 92`}
+      height="92"
+      className="cs-dots"
+      role="img"
+      aria-label={s.review.dotsLabel}
+    >
+      <line x1="40" x2={w - 40} y1="62" y2="62" stroke="#888" />
       {ticks.map((v) => (
         <g key={v}>
           <line x1={x(v)} x2={x(v)} y1="58" y2="66" stroke="#888" />
