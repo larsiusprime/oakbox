@@ -585,6 +585,56 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
   - **Left out of notebook 1:** cloud sync (a desktop app's files are on the desktop), and street frontages (`enrich_sup_streets`: the street network is deferred, D29). Its "examine" cells are Bring in data's receipt; "examine in ridiculous detail" is each field's **details**.
 - **Not yet:** common areas (deferred), hand edits (map lasso), nested AND/OR, undo/redo, export/import, and a map for very large counties (the shapes are sent whole: fine at 10k parcels, too much at 500k; vector tiles then).
 
+#### F6. Step 3, Check sales (its own tab, **3 Check sales**; notebook 2, clean) (spec, not built)
+Notebook 2 makes the data ready to model, and it's where subjective calls go in: which sales count, how prices are brought to one date, what stands in for blanks. So the step shows each call before it runs, and every sale it sets aside with the reason. It starts from the 1-assemble hand-off (F5) and writes the 2-clean hand-off that step 4 (Check my values) and step 5 (model values) read.
+
+**What runs, in OpenAVMKit's order** (`openavmkit.headless` stage `clean`, in its own process like F4 and F5; about 10 s on the Guilford sample, minutes at 500k parcels):
+1. **Fill blanks** (`data.process.fill`, per model group).
+2. **Equity clusters** (`analysis.horizontal_equity`, `land_equity`, `impr_equity`): groups of similar parcels, `he_id`, `land_he_id`, `impr_he_id`, used later by the equity studies and the models' CHD. Nothing to decide here beyond the location (below).
+3. **Sales:** the sales window (`modeling.metadata.use_sales_from`), the user's own invalid-sale rules (`data.process.invalid_sales`, the Advanced rule templates of §3.6), then **time adjustment** (`data.process.time_adjustment`).
+4. **Sales scrutiny** (`analysis.sales_scrutiny`): heuristics, the user's exclusions (`invalid_key_file`), then outliers within clusters of similar sales.
+5. **Rare categories** (`data.process.collapse_sparse_categories`), then the hand-off: `out/2-clean-sup.pickle` and `out/look/2-clean-*.parquet`.
+
+**Before running: one panel, a card per call, each with its default already chosen and what it does in numbers.** Nothing needs an answer to run; each card says what it will do.
+- **Sales window.** "Sales from 2021 on (5 years before the valuation date, 2026): 1,901 of 3,804." A bar per year of sales, the years outside it greyed. One year for improved sales and one for vacant (vacant land sells less often: often a longer window); **by model group** under Advanced. Writes `use_sales_from` (`{improved, vacant}` or `{default, by_model_group}`).
+- **Time adjustment** (on by default; `time_adjustment.use`). Plain words: "Prices change over time. Each sale's price is brought forward to [the latest sale] by how much prices of similar property moved since it sold, per model group." After a run, a line per model group: the index over time with its sales per period, the change per year ("+7.5% a year": the sample's single-family sales, 2021 to late 2024), and the granularity OpenAVMKit settled on (months, quarters or years: it needs 5 sales in most periods). Choices: start from months or quarters (`period`, default quarters); **Use my own schedule** for a group (`from_file.<group>`, a CSV with `period, start_indexed, end_indexed, correction_factor`, checked on load). Said plainly: prices are brought to the latest sale in the group, not past it (OpenAVMKit doesn't extrapolate); a group with too few sales gets no adjustment, and says so. Groups with no listed model group (Unassigned) get none.
+- **Fill blanks** (§3.12.2, Default fills). A table of every field the models can use that still has blanks after step 1, per model group: blanks, the proposed fill and what it puts in ("median 1,640", "UNKNOWN", "0"), changeable to zero, median, mean, mode, min, max, a fixed value or none, and **only improved / only vacant parcels** (`<method>_impr`, `<method>_vacant`). Proposed: median for numbers, UNKNOWN for categories; finished area and year built are never proposed (0 means no building / no year: decided in the Field profile). OpenAVMKit's automatic tidy-ups are listed read-only: year built ↔ age, blank categories → UNKNOWN, blank yes/no → no, year and age → 0. Filled values are marked as filled everywhere they're shown (needs engine B9), never exported as data.
+- **Sales scrutiny.** What it does, in plain words: "Similar properties sold near each other should sell for similar prices per square foot. Sales that stand far apart from their group are set aside for you to look at: they may be non-market sales, or the property's data may be wrong."
+  - **Where "near" is** (`analysis.sales_scrutiny.location`): one of the user's location fields (Data › Location, map layers stamped onto parcels, census tract or block group, `condo_group`). Proposed: the user's first location field; else census block group when census is on; else **none**, said as a warning: "Sales are compared across the whole county, by size only." (Without a location field OpenAVMKit silently skips the location split; the sample has none, so its single-family sales were compared county-wide.) The same location is proposed for the equity clusters (`horizontal_equity`, `land_equity`, `impr_equity`), where OpenAVMKit's template has none for land and improvement.
+  - **What "similar" is:** the numbers (default: land size, finished area, quality, age, condition, whichever are loaded) and, optionally, categories (`fields_numeric`, `fields_categorical`); clusters keep at least 5 sales.
+  - **Checks, each on or off with its rule:** sales on the same deed on the same day (needs a deed ID: Data › Deeds; off without one, saying why); sales on the same day at the same price; sold as vacant but the building is older than the sale. And the cluster outliers: outside median ± 2 standard deviations of price per area, 4× the median or more, or 0.35× or less and more than one deviation below; kept only when one of five patterns holds (high/low price with high/low price per area, odd size, price in range but price per area not).
+  - **Always flag, then decide** (below): OAK box never lets OpenAVMKit drop a sale the user hasn't seen.
+- **Rare categories** (Advanced; off by default): per category field used for modeling, values with fewer than N sales or M parcels become "Other" (`collapse_sparse_categories`, `sales_min`, `univ_min`, `replacement_value`), with a preview of which values fold. Location fields aren't offered (folding neighbourhoods silently changes what they mean).
+- **Checks before running,** on the card they concern:
+  - **Vacant at sale vs now.** Sales whose vacant-at-sale doesn't match the parcel now are left out of ratio studies (`valid_for_ratio_study`). On the sample, 742 of 1,901 sales: "no sales vacant" was *assumed* on Data, while 2,366 parcels have no building now. The card says how many and points to Data › Sales, where the assumption should be "vacant at sale = vacant now" (§3.2's default; the wizard's assumption is changed to that).
+  - A model group with no sales in the window; a time-adjusted group with under 5 sales per period anywhere; fields the models will use that are still blank and not filled.
+
+**Run:** **Check sales** (like Bring in data: progress per part with what it's doing, heartbeat, Stop; per model group inside each part, which needs engine progress events in clustering, time adjustment and scrutiny). No part can be skipped: each one's output is needed downstream.
+
+**Receipt:**
+- **The sales funnel,** continuing from Bring in data's: valid sales from Data → outside the sales window (improved, vacant) → invalid by your rules → set aside by scrutiny, by check and by pattern (each **See them**) → kept by you (+) → excluded by you (−) → **= sales for modeling**, per model group in a table beside it (sales, set aside, used, time adjustment per year, clusters).
+- **Time adjustment:** the chart per model group (above), with **Show schedule** (the daily factors).
+- **Filled:** per field, how many values in each model group were filled, and how.
+- **Equity clusters:** per model group, how many, their typical size; ones under 15 parcels said.
+- **Rare categories folded,** per field.
+- OpenAVMKit's own notes, folded; the files written (and the per-group scrutiny reports OpenAVMKit writes, `out/sales_scrutiny/<group>/`, for the record), **Show in folder**.
+
+**Review: the sales set aside (the sales register of §3.6, first used here).** A list and a map of every sale set aside, filterable by model group, check, pattern and status, each in plain words with its numbers, e.g. "Sold for $41 per sq ft; the 23 similar sales nearby went for $118 (median). 2,400 sq ft, built 1978, Elm St." The cluster's other sales on the map and in a small table beside it, the sale's own data (to spot a wrong size or year), and its deed and dates.
+- **Keep** (a note required): it counts after all. **Exclude** any sale, set aside or not (a note optional). Each says that it applies on the next **Check sales** run (seconds).
+- **What it writes:** kept sales go in a keep-list (engine A6: `analysis.sales_scrutiny.keep_file`, a CSV of `key_sale`), exclusions in `invalid_key_file`; both in `in/`, so notebook users get the same sales. Overrides survive re-runs; a kept sale stays kept only while the same check still sets it aside (otherwise it's just counted).
+- **Looks right** marks step 3 done, as F5.
+
+**Out of date when** model groups, the data or anything on this tab changes; it says which. Step 4 and 5 then go out of date too.
+
+**Engine changes** (to `engine/enrich-fixes`, then upstream):
+- **A6, scrutiny for review:** drop behaviour as settings (`analysis.sales_scrutiny.drop.clusters`, `.drop.heuristics`); a `keep_file` exempting sales from drops; every sale a check or pattern set aside, with its reason and numbers (cluster, median, relative ratio, deviations, pattern), written to `out/sales_scrutiny/flags.parquet`, kept or dropped alike. Today, with drops off, a flagged sale stays valid and reaches modeling, and the heuristics' flags exist only in Excel files; with drops on, nothing says which sales went and why except per-group spreadsheets. OAK box runs with drops on, the keep-list holding the user's keeps, so a sale set aside never reaches modeling unless kept (§3.6's rule).
+- **Template key:** `analysis.sales_scrutiny.fields_categorical_improved` in the template is never read (the code reads `fields_categorical`): fix the template.
+- **Progress events** per model group in clustering, time adjustment and scrutiny (`do_per_model_group`, `make_clusters`), as F4's.
+- **B9, provenance flags** for default fills (which values were filled).
+- **Reports:** scrutiny's PDF reports need wkhtmltopdf (they warn without it); OAK box asks for Markdown only (`analysis.report.formats`) until Typst (A5).
+
+**Not in this step:** street frontages, spatial lag and area statistics (step 5), the ratio study (step 4), model outliers (step 5's review, in the same register).
+
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
 
@@ -667,7 +717,7 @@ Before running, a step shows what's stale and why ("Model groups changed: steps 
 |------|------------------------------------------|-----------|
 | 1. Bring in data | Load, merge, condo handling, enrichment (§3.12). The street enrichment is explicitly off. Ends before model group tagging. Then Data health and Field profile (§3.9) | Only for online enrichments |
 | 2. Define model groups | Model group tagging (§3.5). Writes the 1-assemble hand-off | No |
-| 3. Check sales | Clean, in OpenAVMKit's order: default fills (§3.12.2), equity clusters, sale processing (validity rules, **time adjustment**, sales window), scrutiny in flag-only mode, overrides (§3.6), collapse of rare categories. Writes the 2-clean hand-off | No |
+| 3. Check sales | Clean, in OpenAVMKit's order: default fills (§3.12.2), equity clusters, sale processing (sales window, validity rules, **time adjustment**), scrutiny (sales set aside, minus the user's keeps, plus their exclusions: §3.6, F6), collapse of rare categories. Writes the 2-clean hand-off | No |
 | 4. Check my values | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per model group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
 | 5. Build model values | Splits, spatial lag, area stats, optional variable testing (§3.10), **Try** models (repeatable) → outlier review → **Finalize** → ratio study on model values. Main models only (`run_vacant=False`) | No |
 | 6. Reports and export | PDF reports; Parquet, GeoPackage, Shapefile, CSV, Excel (§4) | No |
