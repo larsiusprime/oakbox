@@ -1125,6 +1125,20 @@ export const t = {
   // Step 1, Bring in data: OpenAVMKit loads and joins the files into the parcel universe and the sales record.
   bringIn: {
     kicker: "Step 1 of 5 · after Data",
+    steps: {
+      plan: "What runs",
+      run: "Bring in data",
+      universe: "The parcel universe",
+      sales: "The sales",
+      more: "Public data and checks",
+    },
+    runTitle: "Bring in data",
+    runLede:
+      "OpenAVMKit loads your files, joins them and adds what it works out. It runs in a process of its own: you can leave this tab while it runs.",
+    runAgainNext: "Bring in data again ›",
+    noEnrich: "No public data was asked for (Data › Enrichments).",
+    looksRightNext: "Looks right › Model groups",
+    toGroups: "Model groups ›",
     title: "Bring in data",
     lede: "OpenAVMKit loads your files as Data set them up, joins them into the parcel universe and the sales record, and adds what it works out itself: coordinates, ages, distances and the map layers. Model groups come next.",
     blocked: (n: number) => `${n === 1 ? "1 thing" : `${n} things`} to fix on Data first:`,
@@ -1135,7 +1149,7 @@ export const t = {
     fields: (n: number) =>
       `${n.toLocaleString()} fields from Data, and what OpenAVMKit works out: coordinates, ages, distances, shape measures`,
     notRun: "Not run yet",
-    run: "Bring in data",
+    run: "Bring in data ›",
     runAgain: "Run again",
     running: (elapsed: string, left: string | null) =>
       `Running · ${elapsed} so far${left ? `, about ${left} left` : ""}`,
@@ -1409,7 +1423,19 @@ export const t = {
 
   // Step 3, Check sales: notebook 2 (clean), each call shown before it runs and every sale set aside listed after.
   sales: {
-    kicker: (part: string) => `Step 3 of 5 · ${part}`,
+    kicker: "Step 3 of 5",
+    steps: {
+      window: "Sales window",
+      time: "Time adjustment",
+      fill: "Fill blanks",
+      scrutiny: "Sales scrutiny",
+      rare: "Rare categories",
+      run: "Check sales",
+      sales: "The sales",
+      aside: "Sales set aside",
+    },
+    runNext: "Check sales ›",
+    runAgainNext: "Check sales again ›",
     parts: {
       before: "before running",
       running: "running",
@@ -1458,7 +1484,8 @@ export const t = {
       last: "Found last time",
       notYet: "—",
       perYear: (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}% a year`,
-      chartSub: "how prices moved, per model group (first period = 1)",
+      chartSub: "How prices moved, per model group (first period = 1).",
+      lastRun: "Last run",
       schedule: "Show schedule",
     },
     fill: {

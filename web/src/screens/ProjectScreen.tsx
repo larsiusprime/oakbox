@@ -69,7 +69,7 @@ function ProjectView({
   const locked = [...PLACEHOLDERS, ...(accepted ? [] : ["groups"]), ...(grouped ? [] : ["sales"])];
 
   return (
-    <div className={selected === "groups" ? "project project-wide" : "project"}>
+    <div className={selected === "groups" || selected === "sales" ? "project project-wide" : "project"}>
       <header className="page-head">
         <a className="back-link" href="#/">
           <ChevronLeft aria-hidden="true" size="1.1em" />

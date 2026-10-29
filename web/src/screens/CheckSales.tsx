@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, FolderOpen } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, TextArea, TextField } from "react-aria-components";
 import { navigate } from "../App";
@@ -15,8 +15,9 @@ import {
   unwrap,
 } from "../api/client";
 import { Choice, Tick } from "../components/Form";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { t } from "../strings";
-import { Busy, clock, when } from "./BringIn";
+import { when } from "./BringIn";
 
 const s = t.sales;
 type Patch = CleanPatch;
@@ -73,163 +74,15 @@ function day(text: string | null | undefined): string {
   return text ? text.slice(0, 10) : "—";
 }
 
-/** Step 3, Check sales (SPEC F6): the calls before running, the run, its receipt, and the sales set aside. */
+type CsStep = "window" | "time" | "fill" | "scrutiny" | "rare" | "run" | "sales" | "aside";
+const CS_STEPS: CsStep[] = ["window", "time", "fill", "scrutiny", "rare", "run", "sales", "aside"];
+
+/** Step 3, Check sales (SPEC F6), one task at a time: a step per call (each with what it did last run), the run,
+ * the sales it kept, and the sales set aside to keep or exclude. */
 export function SalesTab({ projectId, currency }: { projectId: string; currency: string }) {
   const queryClient = useQueryClient();
   const state = useClean(projectId);
-  const [review, setReview] = useState<{ check: string } | null>(null);
-  const [calls, setCalls] = useState(false);
-  const act = useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept") => {
-      const path = `/api/projects/{project_id}/clean/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data, what) => {
-      queryClient.setQueryData(["clean", projectId], data);
-      if (what === "run") {
-        setCalls(false);
-        setReview(null);
-      }
-      queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
-    },
-  });
   const v = state.data;
-  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
-  const running = v.status === "running";
-  const r = v.receipt;
-  const part = running
-    ? s.parts.running
-    : review
-      ? s.parts.review
-      : r && !calls
-        ? s.parts.after
-        : s.parts.before;
-  const run = () => act.mutate("run");
-  return (
-    <div className="bi cs">
-      <div className="bi-kicker">{s.kicker(part)}</div>
-      <h2 className="bi-title">{s.title}</h2>
-      <p className="bi-lede">{s.lede}</p>
-      {v.blocked.length > 0 && (
-        <div className="bi-warn">
-          <b>{s.blocked}</b> {v.blocked[0]}{" "}
-          <Button
-            className="wiz-link"
-            onPress={() => navigate({ name: "project", id: projectId, tab: "groups" })}
-          >
-            {s.toGroups}
-          </Button>
-        </div>
-      )}
-      {v.status === "failed" && v.job?.error && (
-        <div className="bi-warn" role="alert">
-          <b>{t.bringIn.failed}</b> <span className="mono">{v.job.error}</span>
-          <div className="wiz-from">{s.failedLog}</div>
-        </div>
-      )}
-      {v.status === "stopped" && <p className="wiz-from">{t.bringIn.stopped}</p>}
-      {act.error && (
-        <p className="error" role="alert">
-          {act.error.message}
-        </p>
-      )}
-
-      {running ? (
-        <Running view={v} />
-      ) : review && r ? (
-        <Review
-          projectId={projectId}
-          currency={currency}
-          check={review.check}
-          setCheck={(check) => setReview({ check })}
-          back={() => setReview(null)}
-          view={v}
-          rerun={run}
-        />
-      ) : r && !calls ? (
-        <ReceiptView
-          projectId={projectId}
-          view={v}
-          receipt={r}
-          look={(check) => setReview({ check })}
-          calls={() => setCalls(true)}
-          rerun={run}
-          accept={() => act.mutate("accept")}
-          busy={act.isPending}
-        />
-      ) : v.blocked.length === 0 ? (
-        <Setup
-          projectId={projectId}
-          ran={!!r}
-          back={r ? () => setCalls(false) : null}
-          run={run}
-          busy={act.isPending}
-        />
-      ) : null}
-      {running && (
-        <div className="bi-foot">
-          <Button className="button" onPress={() => act.mutate("stop")}>
-            {t.bringIn.stop}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- While it runs ----------
-
-function Running({ view }: { view: CleanView }) {
-  const job = view.job;
-  const steps = job?.steps ?? [];
-  const fraction = steps.at(-1)?.fraction ?? 0.02;
-  const elapsed = job?.elapsed ?? 0;
-  const left = view.receipt && elapsed < view.receipt.seconds ? view.receipt.seconds - elapsed : null;
-  return (
-    <div className="bi-card">
-      <h3>{t.bringIn.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
-      <div className="bi-prog">
-        <i style={{ width: `${Math.round(100 * fraction)}%` }} />
-      </div>
-      <ul className="bi-steps">
-        {steps.length === 0 && (
-          <li className="now">
-            <span className="bi-pulse" aria-hidden="true" />
-            {t.bringIn.starting}
-          </li>
-        )}
-        {steps.map((x, i) => {
-          const now = i === steps.length - 1;
-          return (
-            <li key={x.step} className={now ? "now" : "done"}>
-              {now ? <span className="bi-pulse" aria-hidden="true" /> : "✓ "}
-              {x.message}
-              {now && job && <Busy job={job} since={x.at} skip={() => {}} />}
-            </li>
-          );
-        })}
-      </ul>
-      <p className="wiz-from">{s.noSkip}</p>
-    </div>
-  );
-}
-
-// ---------- Before running: a card per call ----------
-
-function Setup({
-  projectId,
-  ran,
-  back,
-  run,
-  busy,
-}: {
-  projectId: string;
-  ran: boolean;
-  back: (() => void) | null;
-  run: () => void;
-  busy: boolean;
-}) {
-  const queryClient = useQueryClient();
   const setup = useQuery({
     queryKey: ["clean-setup", projectId],
     queryFn: async () =>
@@ -238,6 +91,7 @@ function Setup({
           params: { path: { project_id: projectId } },
         }),
       ),
+    enabled: !!v && v.blocked.length === 0,
   });
   const change = useMutation({
     mutationFn: async (body: Patch) =>
@@ -252,73 +106,270 @@ function Setup({
       queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
     },
   });
-  const v = setup.data;
-  if (!v) return <p className="empty">{setup.error?.message ?? t.project.loading}</p>;
-  const set = (body: Patch) => change.mutate(body);
-  return (
-    <>
-      {back && (
-        <Button className="wiz-link cs-back" onPress={back}>
-          <ChevronLeft aria-hidden="true" size="1em" />
-          {s.backToReceipt}
-        </Button>
-      )}
-      {v.notices.length > 0 && (
+  const act = useMutation({
+    mutationFn: async (what: "run" | "stop" | "accept") => {
+      const path = `/api/projects/{project_id}/clean/${what}` as const;
+      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["clean", projectId], data);
+      queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["clean-setup", projectId] });
+    },
+  });
+  const counts = useReviewCounts(projectId);
+  // The step shown; after: a run was started here, so its results open when it's done.
+  const [at, setAt] = useState<{ step: CsStep | null; after: boolean }>({ step: null, after: false });
+  const [check, setCheck] = useState("");
+  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  if (v.blocked.length > 0)
+    return (
+      <div className="bi">
         <div className="bi-warn">
-          <b>{s.notices(v.notices.length)}</b>
-          <ul className="cs-notices">
-            {v.notices.map((n) => (
-              <li key={n.text}>
-                {n.text}{" "}
-                {n.link && (
-                  <Button
-                    className="wiz-link"
-                    onPress={() =>
-                      navigate({
-                        name: "project",
-                        id: projectId,
-                        tab: "fields",
-                        step: n.link?.split(":")[1] ?? null,
-                      })
-                    }
-                  >
-                    {s.links[n.link?.split(":")[1] ?? ""] ?? s.toData}
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
+          <b>{s.blocked}</b> {v.blocked[0]}{" "}
+          <Button
+            className="wiz-link"
+            onPress={() => navigate({ name: "project", id: projectId, tab: "groups" })}
+          >
+            {s.toGroups}
+          </Button>
         </div>
-      )}
-      <WindowCard v={v} set={set} />
-      <TimeCard v={v} set={set} />
-      <FillCard v={v} set={set} />
-      <ScrutinyCard v={v} set={set} projectId={projectId} />
-      <CollapseCard v={v} set={set} />
+      </div>
+    );
+  const running = v.status === "running";
+  const r = v.receipt;
+  const fresh = !!r && !v.stale;
+  const fallback: CsStep = running ? "run" : !r ? "window" : v.stale ? "run" : "sales";
+  const current: CsStep = at.after && v.status === "done" ? "sales" : (at.step ?? fallback);
+  const go = (step: string) => setAt({ step: step as CsStep, after: false });
+  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
+  const look = (c: string) => {
+    setCheck(c);
+    go("aside");
+  };
+  const u = setup.data;
+  const set = (body: Patch) => change.mutate(body);
+  const called = r ? (v.stale ? "attention" : "done") : "blank";
+  const steps: Step[] = CS_STEPS.map((key) => ({
+    key,
+    title: s.steps[key],
+    status:
+      key === "window"
+        ? u?.notices.length
+          ? "attention"
+          : called
+        : key === "scrutiny"
+          ? u && !u.location
+            ? "attention"
+            : called
+          : key === "sales"
+            ? r
+              ? "done"
+              : "blank"
+            : key === "aside"
+              ? v.accepted
+                ? "done"
+                : r && (counts?.undecided ?? 0) > 0
+                  ? "attention"
+                  : r
+                    ? "done"
+                    : "blank"
+              : called,
+    disabled: (key === "sales" || key === "aside") && !r,
+  }));
+  const i = CS_STEPS.indexOf(current);
+  const prev = CS_STEPS[i - 1];
+  const back = prev ? () => go(prev) : null;
+  const onward = { label: t.wizard.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
+  const kicker = s.kicker;
+  const loading = <p className="empty">{setup.error?.message ?? t.project.loading}</p>;
+  const errors = (
+    <>
       {change.error && (
         <p className="error" role="alert">
           {change.error.message}
         </p>
       )}
-      <div className="bi-foot">
-        <Button className="button button-primary" isDisabled={busy || change.isPending} onPress={run}>
-          {ran ? s.runAgain : s.run}
-        </Button>
-        <span className="wiz-from">{s.runNote}</span>
-      </div>
+      {act.error && (
+        <p className="error" role="alert">
+          {act.error.message}
+        </p>
+      )}
     </>
+  );
+  const callStep = (body: React.ReactNode, lede?: string) => (
+    <>
+      <StepBody
+        kicker={kicker}
+        title={s.steps[current]}
+        {...(lede ? { lede: lede.charAt(0).toUpperCase() + lede.slice(1) } : {})}
+      >
+        {u ? body : loading}
+        {errors}
+      </StepBody>
+      <StepFoot back={back} next={onward} />
+    </>
+  );
+
+  return (
+    <StepFrame steps={steps} current={current} go={go} wide={current === "aside"}>
+      {current === "window" &&
+        callStep(
+          u && (
+            <>
+              <Notices projectId={projectId} v={u} />
+              <WindowCard v={u} set={set} />
+            </>
+          ),
+          s.window.sub,
+        )}
+      {current === "time" &&
+        callStep(
+          u && (
+            <>
+              <TimeCard v={u} set={set} />
+              {r && <TimeResult projectId={projectId} receipt={r} />}
+            </>
+          ),
+        )}
+      {current === "fill" &&
+        callStep(
+          u && (
+            <>
+              <FillCard v={u} set={set} />
+              {r && <FillResult receipt={r} />}
+            </>
+          ),
+          s.fill.sub,
+        )}
+      {current === "scrutiny" &&
+        callStep(u && <ScrutinyCard v={u} set={set} projectId={projectId} />, s.scrutiny.sub)}
+      {current === "rare" && callStep(u && <CollapseCard v={u} set={set} />)}
+      {current === "run" && (
+        <>
+          <StepBody kicker={kicker} title={s.steps.run} lede={s.runNote}>
+            {running ? (
+              <>
+                <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} />
+                <p className="wiz-from">{s.noSkip}</p>
+              </>
+            ) : (
+              <>
+                {v.status === "failed" && v.job?.error && (
+                  <div className="bi-warn" role="alert">
+                    <b>{t.bringIn.failed}</b> <span className="mono">{v.job.error}</span>
+                    <div className="wiz-from">{s.failedLog}</div>
+                  </div>
+                )}
+                {v.status === "stopped" && <p className="wiz-from">{t.bringIn.stopped}</p>}
+                {v.stale && <p className="wiz-warn">{s.stale}</p>}
+                {fresh && r && (
+                  <p className="wiz-ok">
+                    {s.meter(r.used, r.set_aside)}{" "}
+                    <span className="wiz-from">{t.bringIn.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+                  </p>
+                )}
+                {!r && <p className="wiz-from">{t.bringIn.notRun}</p>}
+              </>
+            )}
+            {errors}
+          </StepBody>
+          <StepFoot
+            back={running ? null : back}
+            extra={fresh && !running ? [{ label: s.runAgain, onPress: runIt }] : []}
+            next={
+              running
+                ? { label: t.bringIn.stop, onPress: () => act.mutate("stop"), primary: false }
+                : fresh
+                  ? onward
+                  : { label: r ? s.runAgainNext : s.runNext, disabled: act.isPending, onPress: runIt }
+            }
+          />
+        </>
+      )}
+      {current === "sales" && r && (
+        <>
+          <StepBody kicker={kicker} title={s.steps.sales}>
+            <SalesResult projectId={projectId} view={v} receipt={r} look={look} />
+          </StepBody>
+          <StepFoot back={back} next={onward} note={v.stale ? s.stale : null} />
+        </>
+      )}
+      {current === "aside" && r && (
+        <>
+          <StepBody kicker={kicker} title={s.steps.aside}>
+            <Review
+              projectId={projectId}
+              currency={currency}
+              check={check}
+              setCheck={setCheck}
+              view={v}
+              rerun={() => go("run")}
+            />
+          </StepBody>
+          <StepFoot
+            back={back}
+            note={v.stale ? s.review.apply : null}
+            next={
+              v.accepted
+                ? { label: s.accepted, onPress: () => {}, disabled: true }
+                : {
+                    label: s.looksRight,
+                    disabled: v.stale || act.isPending,
+                    onPress: () => act.mutate("accept"),
+                  }
+            }
+          />
+        </>
+      )}
+    </StepFrame>
+  );
+}
+
+/** What to look at before running: on the step it concerns (the sales). */
+function Notices({ projectId, v }: { projectId: string; v: CleanSetup }) {
+  if (v.notices.length === 0) return null;
+  return (
+    <div className="bi-warn">
+      <b>{s.notices(v.notices.length)}</b>
+      <ul className="cs-notices">
+        {v.notices.map((n) => (
+          <li key={n.text}>
+            {n.text}{" "}
+            {n.link && (
+              <Button
+                className="wiz-link"
+                onPress={() =>
+                  navigate({
+                    name: "project",
+                    id: projectId,
+                    tab: "fields",
+                    step: n.link?.split(":")[1] ?? null,
+                  })
+                }
+              >
+                {s.links[n.link?.split(":")[1] ?? ""] ?? s.toData}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
 type CardProps = { v: CleanSetup; set: (body: Patch) => void };
 
 function Card({ title, sub, children }: { title: React.ReactNode; sub: string; children: React.ReactNode }) {
+  // In a step, the step says what it is: a card only shows its on/off control (a tick) and how it stands.
   return (
-    <section className="bi-card cs-card">
-      <div className="cs-head">
-        <h3>{title}</h3>
-        <span className="wiz-from">{sub}</span>
-      </div>
+    <section className="cs-step">
+      {typeof title !== "string" && (
+        <div className="cs-head">
+          <h3>{title}</h3>
+          <span className="wiz-from">{sub}</span>
+        </div>
+      )}
       {children}
     </section>
   );
@@ -628,28 +679,10 @@ function NumberBox({
   );
 }
 
-// ---------- After running: the receipt ----------
+// ---------- After running ----------
 
-function ReceiptView({
-  projectId,
-  view,
-  receipt: r,
-  look,
-  calls,
-  rerun,
-  accept,
-  busy,
-}: {
-  projectId: string;
-  view: CleanView;
-  receipt: CleanReceipt;
-  look: (check: string) => void;
-  calls: () => void;
-  rerun: () => void;
-  accept: () => void;
-  busy: boolean;
-}) {
-  const show = useMutation({
+function useShow(projectId: string) {
+  return useMutation({
     mutationFn: async (q: { what: "output" | "schedule" | "scrutiny"; group?: string }) =>
       unwrap(
         await api.POST("/api/projects/{project_id}/clean/show", {
@@ -657,45 +690,32 @@ function ReceiptView({
         }),
       ),
   });
-  const page = useReviewCounts(projectId);
-  const undecided = page?.undecided ?? r.set_aside;
-  const curves = r.groups.filter((g) => g.curve.length > 1);
+}
+
+/** The sales from Data to modeling, per model group, and the files written. */
+function SalesResult({
+  projectId,
+  view,
+  receipt: r,
+  look,
+}: {
+  projectId: string;
+  view: CleanView;
+  receipt: CleanReceipt;
+  look: (check: string) => void;
+}) {
+  const show = useShow(projectId);
   const few = r.groups.filter((g) => g.id !== "(none)" && g.per_year === null && g.in_window > 0);
   const orphans = r.groups.find((g) => g.id === "(none)");
   return (
     <div className={view.stale ? "cs-receipt cs-stale" : "cs-receipt"}>
-      {view.stale && (
-        <div className="bi-warn">
-          <b>{s.stale}</b>{" "}
-          <Button className="button" onPress={rerun} isDisabled={busy}>
-            {s.runAgain}
-          </Button>
-        </div>
-      )}
+      {view.stale && <p className="wiz-warn">{s.stale}</p>}
       <div className="cs-meter">
         <span className="wiz-ok">{s.meter(r.used, r.set_aside)}</span>
         <span className="wiz-from">{t.bringIn.ran(when(r.ran_at), r.seconds, r.engine)}</span>
       </div>
-      <div className="cs-row">
-        {r.set_aside > 0 && (
-          <Button className={undecided ? "button button-primary" : "button"} onPress={() => look("")}>
-            {s.lookAt(r.set_aside)}
-          </Button>
-        )}
-        <Button className="button" onPress={calls}>
-          {s.changeCalls}
-        </Button>
-        <span className="bi-grow" />
-        {view.accepted ? (
-          <span className="wiz-ok">{s.accepted}</span>
-        ) : (
-          <Button className="button button-primary" isDisabled={view.stale || busy} onPress={accept}>
-            {s.looksRight}
-          </Button>
-        )}
-      </div>
-
-      <Card title={s.funnel.title} sub={s.funnel.sub}>
+      <section className="cs-step">
+        <h3 className="wiz-group">{s.funnel.title}</h3>
         <div className="cs-funnel">
           {r.funnel.map((l) => (
             <div key={`${l.sign}${l.text}`} className={l.sign === "=" ? "cs-fl tot" : "cs-fl"}>
@@ -713,9 +733,9 @@ function ReceiptView({
           ))}
         </div>
         <p className="wiz-from cs-text">{s.funnel.once}</p>
-      </Card>
-
-      <Card title={s.groups.title} sub="">
+      </section>
+      <section className="cs-step">
+        <h3 className="wiz-group">{s.groups.title}</h3>
         <table className="bi-tbl cs-tbl">
           <thead>
             <tr>
@@ -747,48 +767,9 @@ function ReceiptView({
         </table>
         {few.length > 0 && <div className="bi-warn">{s.groups.few(few.map((g) => g.name).join(", "))}</div>}
         {orphans && <p className="wiz-from cs-text">{s.groups.orphans(orphans.used)}</p>}
-      </Card>
-
-      {curves.length > 0 && (
-        <Card title={s.time.title} sub={s.time.chartSub}>
-          <div className="cs-charts">
-            {curves.map((g) => (
-              <figure key={g.id} className="cs-chart">
-                <figcaption>
-                  <span className="mg-sw ab-sw" style={{ background: g.color }} />
-                  <b>{g.name}</b>{" "}
-                  {g.per_year !== null && g.per_year !== undefined && s.time.perYear(g.per_year)}
-                </figcaption>
-                <Curve points={g.curve} color={g.color} />
-                <div className="cs-chart-foot">
-                  <span>{g.first?.slice(0, 7)}</span>
-                  <span>×{num(g.curve.at(-1) ?? 1, 2)}</span>
-                  <span>{g.last?.slice(0, 7)}</span>
-                </div>
-                <Button className="wiz-link" onPress={() => show.mutate({ what: "schedule", group: g.id })}>
-                  {s.time.schedule}
-                </Button>
-              </figure>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <Card title={s.filled.title} sub="">
-        {r.filled.length ? (
-          <ul className="cs-list-plain">
-            {r.filled.map((f) => (
-              <li key={f.field}>
-                {s.filled.line(f.name, f.count, f.how)} <span className="mono wiz-from">{f.field}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="wiz-from">{s.filled.none}</p>
-        )}
-      </Card>
-
-      <Card title={s.written} sub="">
+      </section>
+      <section className="cs-step">
+        <h3 className="wiz-group">{s.written}</h3>
         <ul className="ab-files">
           {r.written.map((w) => (
             <li key={w.path}>
@@ -816,8 +797,60 @@ function ReceiptView({
             {s.showScrutiny}
           </Button>
         </div>
-      </Card>
+      </section>
     </div>
+  );
+}
+
+/** How prices moved last run, per model group. */
+function TimeResult({ projectId, receipt: r }: { projectId: string; receipt: CleanReceipt }) {
+  const show = useShow(projectId);
+  const curves = r.groups.filter((g) => g.curve.length > 1);
+  if (!curves.length) return null;
+  return (
+    <section className="cs-step">
+      <h3 className="wiz-group">{s.time.lastRun}</h3>
+      <p className="wiz-from cs-text">{s.time.chartSub}</p>
+      <div className="cs-charts">
+        {curves.map((g) => (
+          <figure key={g.id} className="cs-chart">
+            <figcaption>
+              <span className="mg-sw ab-sw" style={{ background: g.color }} />
+              <b>{g.name}</b> {g.per_year !== null && g.per_year !== undefined && s.time.perYear(g.per_year)}
+            </figcaption>
+            <Curve points={g.curve} color={g.color} />
+            <div className="cs-chart-foot">
+              <span>{g.first?.slice(0, 7)}</span>
+              <span>×{num(g.curve.at(-1) ?? 1, 2)}</span>
+              <span>{g.last?.slice(0, 7)}</span>
+            </div>
+            <Button className="wiz-link" onPress={() => show.mutate({ what: "schedule", group: g.id })}>
+              {s.time.schedule}
+            </Button>
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** What was filled last run. */
+function FillResult({ receipt: r }: { receipt: CleanReceipt }) {
+  return (
+    <section className="cs-step">
+      <h3 className="wiz-group">{s.filled.title}</h3>
+      {r.filled.length ? (
+        <ul className="cs-list-plain">
+          {r.filled.map((f) => (
+            <li key={f.field}>
+              {s.filled.line(f.name, f.count, f.how)} <span className="mono wiz-from">{f.field}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="wiz-from">{s.filled.none}</p>
+      )}
+    </section>
   );
 }
 
@@ -859,7 +892,6 @@ function Review({
   currency,
   check,
   setCheck,
-  back,
   view,
   rerun,
 }: {
@@ -867,7 +899,6 @@ function Review({
   currency: string;
   check: string;
   setCheck: (c: string) => void;
-  back: () => void;
   view: CleanView;
   rerun: () => void;
 }) {
@@ -896,10 +927,6 @@ function Review({
   return (
     <div className="cs-review">
       <div className="cs-filters">
-        <Button className="wiz-link cs-back" onPress={back}>
-          <ChevronLeft aria-hidden="true" size="1em" />
-          {s.backToReceipt}
-        </Button>
         <b>{s.review.title(page?.all ?? 0)}</b>
         <Choice
           label={s.group}

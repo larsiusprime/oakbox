@@ -138,9 +138,11 @@ export function StepFoot({
 export function RunProgress({
   job,
   lastSeconds,
+  skip = () => {},
 }: {
   job: Job | null | undefined;
   lastSeconds?: number | null;
+  skip?: (part: string) => void;
 }) {
   const steps = job?.steps ?? [];
   const fraction = [...steps].reverse().find((x) => x.fraction !== null)?.fraction ?? 0.02;
@@ -165,7 +167,7 @@ export function RunProgress({
             <li key={x.step} className={now ? "now" : "done"}>
               {now ? <span className="bi-pulse" aria-hidden="true" /> : "✓ "}
               {x.message}
-              {now && job && <Busy job={job} since={x.at} skip={() => {}} />}
+              {now && job && <Busy job={job} since={x.at} skip={skip} />}
             </li>
           );
         })}

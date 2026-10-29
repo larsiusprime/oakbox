@@ -4626,3 +4626,12 @@ tr.bi-kept > td {
 .mg-replace {
   margin-top: 0.6rem;
 }
+.cs-step {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  max-width: 62rem;
+}
+.cs-step .cs-head .tick {
+  font-weight: 600;
+}

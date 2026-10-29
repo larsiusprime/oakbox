@@ -12,6 +12,7 @@ import {
   unwrap,
 } from "../api/client";
 import { FieldDetail } from "../components/FieldDetail";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { t } from "../strings";
 
 const b = t.bringIn;
@@ -45,7 +46,10 @@ export function when(iso: string): string {
   return today ? `today at ${time}` : `${d.toLocaleDateString()} at ${time}`;
 }
 
-/** Step 1, Bring in data: ready, running, or the receipt of the last run (SPEC §3.3). */
+type BiStep = "plan" | "run" | "universe" | "sales" | "more";
+const BI_STEPS: BiStep[] = ["plan", "run", "universe", "sales", "more"];
+
+/** Step 1, Bring in data (SPEC §3.3), one task at a time: what runs, the run, then what it brought in. */
 export function BringInTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const state = useBringIn(projectId);
@@ -64,201 +68,219 @@ export function BringInTab({ projectId }: { projectId: string }) {
     onSuccess: (data) => queryClient.setQueryData(["bring-in", projectId], data),
   });
   const [rows, setRows] = useState<{ set: string; title: string } | null>(null);
+  // The step shown; after: a run was started here, so the results open when it's done.
+  const [at, setAt] = useState<{ step: BiStep | null; after: boolean }>({ step: null, after: false });
   const v = state.data;
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   const running = v.status === "running";
   const r = v.receipt;
-  const last = v.job?.steps.at(-1);
-  // Enrichments say when they start, without a share of the run.
-  const fraction = [...(v.job?.steps ?? [])].reverse().find((s) => s.fraction !== null)?.fraction ?? 0.05;
-  // The server's clock, every answer: it moves while a step is busy (it didn't, before).
-  const elapsed = v.job?.elapsed ?? (last ? last.at : 0);
-  const left = r && running && elapsed < r.seconds ? r.seconds - elapsed : null;
+  const fresh = !!r && !v.stale;
+  const fallback: BiStep = running || !r || v.stale ? (r || running ? "run" : "plan") : "universe";
+  const current: BiStep = at.after && v.status === "done" ? "universe" : (at.step ?? fallback);
+  const go = (step: string) => setAt({ step: step as BiStep, after: false });
+  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
+  const toGroups = () => navigate({ name: "project", id: projectId, tab: "groups" });
+  const steps: Step[] = BI_STEPS.map((key) => ({
+    key,
+    title: b.steps[key],
+    status:
+      key === "plan"
+        ? v.blocked.length
+          ? "blocked"
+          : "done"
+        : key === "run"
+          ? r
+            ? v.stale
+              ? "attention"
+              : "done"
+            : "blank"
+          : key === "more" &&
+              r &&
+              (r.enrichments.some((x) => x.status !== "ok") || r.checks.some((c) => !c.ok))
+            ? "attention"
+            : v.accepted
+              ? "done"
+              : "blank",
+    disabled: key !== "plan" && key !== "run" && !r,
+  }));
+  const prev = BI_STEPS[BI_STEPS.indexOf(current) - 1];
+  const back = prev ? () => go(prev) : null;
+  const nextOf = (key: BiStep) => ({ label: t.wizard.next, onPress: () => go(key) });
+  const staleNote = v.stale && r ? <p className="wiz-warn">{b.staleNote}</p> : null;
+
   return (
-    <div className="bi">
-      <div className="bi-kicker">{b.kicker}</div>
-      <h2 className="bi-title">{b.title}</h2>
-      <p className="bi-lede">{b.lede}</p>
-
-      {v.blocked.length > 0 && (
-        <div className="bi-warn">
-          <b>{b.blocked(v.blocked.length)}</b> {v.blocked[0]}{" "}
-          <Button
-            className="wiz-link"
-            onPress={() => navigate({ name: "project", id: projectId, tab: "fields" })}
-          >
-            {b.toData}
-          </Button>
-        </div>
-      )}
-      {v.stale && !running && (
-        <div className="bi-warn">
-          <b>{b.stale}</b> {v.changed.join(", ")}.{" "}
-          <Button className="button" isDisabled={v.blocked.length > 0} onPress={() => act.mutate("run")}>
-            {b.runAgain}
-          </Button>
-        </div>
-      )}
-      {v.status === "failed" && v.job?.error && (
-        <div className="bi-warn" role="alert">
-          <b>{b.failed}</b> <span className="mono">{v.job.error}</span>
-          <div className="wiz-from">{b.failedLog}</div>
-        </div>
-      )}
-      {v.status === "stopped" && <p className="wiz-from">{b.stopped}</p>}
-
-      {running ? (
-        <div className="bi-card">
-          <h3>{b.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
-          <div className="bi-prog">
-            <i style={{ width: `${Math.round(100 * fraction)}%` }} />
-          </div>
-          <ul className="bi-steps">
-            {(v.job?.steps.length ?? 0) === 0 && (
-              <li className="now">
-                <span className="bi-pulse" aria-hidden="true" />
-                {b.starting}
-              </li>
+    <StepFrame steps={steps} current={current} go={go}>
+      {current === "plan" && (
+        <>
+          <StepBody kicker={b.kicker} title={b.title} lede={b.lede}>
+            {v.blocked.length > 0 && (
+              <div className="bi-warn">
+                <b>{b.blocked(v.blocked.length)}</b> {v.blocked[0]}{" "}
+                <Button
+                  className="wiz-link"
+                  onPress={() => navigate({ name: "project", id: projectId, tab: "fields" })}
+                >
+                  {b.toData}
+                </Button>
+              </div>
             )}
-            {v.job?.steps.map((s, i) => {
-              const now = i === (v.job?.steps.length ?? 0) - 1;
-              return (
-                <li key={s.step} className={now ? "now" : "done"}>
-                  {now ? <span className="bi-pulse" aria-hidden="true" /> : "✓ "}
-                  {s.message}
-                  {now && v.job && (
-                    <Busy job={v.job} since={s.at} skip={(part) => act.mutate(`skip:${part}`)} />
-                  )}
+            {v.stale && (
+              <div className="bi-warn">
+                <b>{b.stale}</b> {v.changed.join(", ")}.
+              </div>
+            )}
+            <h3 className="wiz-group">{b.whatRuns}</h3>
+            <ul className="bi-plan">
+              {v.plan.files.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+              {v.plan.layers.length > 0 && (
+                <li>
+                  <b>{b.layers}:</b> {v.plan.layers.join("; ")}
                 </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : !r ? (
-        <div className="bi-card">
-          <h3>{b.whatRuns}</h3>
-          <ul className="bi-plan">
-            {v.plan.files.map((f) => (
-              <li key={f}>{f}</li>
-            ))}
-            {v.plan.layers.length > 0 && (
-              <li>
-                <b>{b.layers}:</b> {v.plan.layers.join("; ")}
-              </li>
-            )}
-            {v.plan.enrichments.length > 0 && (
-              <li>
-                <b>{b.enrich.title}:</b> {v.plan.enrichments.join("; ")}
-              </li>
-            )}
-            <li>{b.fields(v.plan.fields)}</li>
-          </ul>
-        </div>
-      ) : (
-        <ReceiptView
-          projectId={projectId}
-          receipt={r}
-          stale={v.stale}
-          open={(set, title) => setRows({ set, title })}
-          rerun={running || v.blocked.length > 0 ? null : () => act.mutate("run")}
-        />
+              )}
+              {v.plan.enrichments.length > 0 && (
+                <li>
+                  <b>{b.enrich.title}:</b> {v.plan.enrichments.join("; ")}
+                </li>
+              )}
+              <li>{b.fields(v.plan.fields)}</li>
+            </ul>
+          </StepBody>
+          <StepFoot next={nextOf("run")} />
+        </>
       )}
-
-      {act.error && (
-        <p className="error" role="alert">
-          {act.error.message}
-        </p>
-      )}
-      <div className="bi-foot">
-        {running ? (
-          <Button className="button" onPress={() => act.mutate("stop")}>
-            {b.stop}
-          </Button>
-        ) : (
-          <>
-            {!r && <span className="wiz-warn">{b.notRun}</span>}
-            <Button
-              className={r ? "button" : "button button-primary"}
-              isDisabled={v.blocked.length > 0 || act.isPending}
-              onPress={() => act.mutate("run")}
-            >
-              {r ? b.runAgain : b.run}
-            </Button>
-          </>
-        )}
-        <span className="bi-grow" />
-        {r && !running && (
-          <>
-            <span className="wiz-from">{b.next}</span>
-            {v.accepted ? (
-              <Button
-                className="button button-primary"
-                onPress={() => navigate({ name: "project", id: projectId, tab: "groups" })}
-              >
-                {b.accepted}
-              </Button>
+      {current === "run" && (
+        <>
+          <StepBody kicker={b.kicker} title={b.runTitle} lede={b.runLede}>
+            {running ? (
+              <RunProgress
+                job={v.job}
+                lastSeconds={r?.seconds ?? null}
+                skip={(part) => act.mutate(`skip:${part}`)}
+              />
             ) : (
-              <Button
-                className="button button-primary"
-                isDisabled={v.stale || act.isPending}
-                onPress={() =>
-                  act.mutate("accept", {
-                    onSuccess: () => navigate({ name: "project", id: projectId, tab: "groups" }),
-                  })
-                }
-              >
-                {b.looksRight}
-              </Button>
+              <>
+                {v.status === "failed" && v.job?.error && (
+                  <div className="bi-warn" role="alert">
+                    <b>{b.failed}</b> <span className="mono">{v.job.error}</span>
+                    <div className="wiz-from">{b.failedLog}</div>
+                  </div>
+                )}
+                {v.status === "stopped" && <p className="wiz-from">{b.stopped}</p>}
+                {v.blocked.map((x) => (
+                  <p key={x} className="wiz-warn">
+                    {x}
+                  </p>
+                ))}
+                {v.stale && r && (
+                  <p className="wiz-warn">
+                    {b.stale} {v.changed.join(", ")}.
+                  </p>
+                )}
+                {fresh && r && (
+                  <p className="wiz-ok">
+                    {b.meter(r.universe.rows, r.sales.rows)}{" "}
+                    <span className="wiz-from">{b.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+                  </p>
+                )}
+                {!r && <p className="wiz-from">{b.notRun}</p>}
+              </>
             )}
-          </>
-        )}
-      </div>
+            {act.error && (
+              <p className="error" role="alert">
+                {act.error.message}
+              </p>
+            )}
+          </StepBody>
+          <StepFoot
+            back={running ? null : back}
+            extra={fresh && !running ? [{ label: b.runAgain, onPress: runIt }] : []}
+            next={
+              running
+                ? { label: b.stop, onPress: () => act.mutate("stop"), primary: false }
+                : fresh
+                  ? nextOf("universe")
+                  : {
+                      label: r ? b.runAgainNext : b.run,
+                      disabled: v.blocked.length > 0 || act.isPending,
+                      onPress: runIt,
+                    }
+            }
+          />
+        </>
+      )}
+      {current === "universe" && r && (
+        <>
+          <StepBody kicker={b.kicker} title={b.universe}>
+            {staleNote}
+            <Section
+              title={b.universe}
+              funnels={r.universe.funnels}
+              fields={r.universe.fields}
+              rows={r.universe.rows}
+              set="universe"
+              open={(set, title) => setRows({ set, title })}
+              projectId={projectId}
+            />
+          </StepBody>
+          <StepFoot back={back} next={nextOf("sales")} />
+        </>
+      )}
+      {current === "sales" && r && (
+        <>
+          <StepBody kicker={b.kicker} title={b.sales}>
+            {staleNote}
+            <Section
+              title={b.sales}
+              funnels={r.sales.funnels}
+              fields={r.sales.fields}
+              rows={r.sales.rows}
+              set="sales"
+              open={(set, title) => setRows({ set, title })}
+              projectId={projectId}
+            />
+          </StepBody>
+          <StepFoot back={back} next={nextOf("more")} />
+        </>
+      )}
+      {current === "more" && r && (
+        <>
+          <StepBody kicker={b.kicker} title={b.steps.more}>
+            {staleNote}
+            <MoreView receipt={r} rerun={running || v.blocked.length > 0 ? null : runIt} />
+          </StepBody>
+          <StepFoot
+            back={back}
+            note={v.stale ? b.stale : null}
+            next={
+              v.accepted
+                ? { label: b.toGroups, onPress: toGroups }
+                : {
+                    label: b.looksRightNext,
+                    disabled: v.stale || act.isPending,
+                    onPress: () => act.mutate("accept", { onSuccess: toGroups }),
+                  }
+            }
+          />
+        </>
+      )}
       {rows && (
         <RowsDialog projectId={projectId} set={rows.set} title={rows.title} close={() => setRows(null)} />
       )}
-    </div>
+    </StepFrame>
   );
 }
 
-function ReceiptView({
-  projectId,
-  receipt: r,
-  stale,
-  open,
-  rerun,
-}: {
-  projectId: string;
-  receipt: Receipt;
-  stale: boolean;
-  open: (set: string, title: string) => void;
-  rerun: (() => void) | null;
-}) {
+/** Public data, the checks against Data, OpenAVMKit's notes and what ran. */
+function MoreView({ receipt: r, rerun }: { receipt: Receipt; rerun: (() => void) | null }) {
   return (
-    <div className={stale ? "bi-receipt bi-stale" : "bi-receipt"}>
-      {stale && <p className="wiz-from">{b.staleNote}</p>}
-      <div className="rc-meter ok">
-        <b>{b.meter(r.universe.rows, r.sales.rows)}</b>
-        <span className="rc-was">{b.ran(when(r.ran_at), r.seconds, r.engine)}</span>
-      </div>
-      {r.enrichments.length > 0 && <EnrichCard results={r.enrichments} rerun={rerun} />}
-      <Section
-        title={b.universe}
-        funnels={r.universe.funnels}
-        fields={r.universe.fields}
-        rows={r.universe.rows}
-        set="universe"
-        open={open}
-        projectId={projectId}
-      />
-      <Section
-        title={b.sales}
-        funnels={r.sales.funnels}
-        fields={r.sales.fields}
-        rows={r.sales.rows}
-        set="sales"
-        open={open}
-        projectId={projectId}
-      />
+    <div className="bi-receipt">
+      {r.enrichments.length > 0 ? (
+        <EnrichCard results={r.enrichments} rerun={rerun} />
+      ) : (
+        <p className="wiz-from">{b.noEnrich}</p>
+      )}
       {r.checks.length > 0 && (
         <div className="bi-card">
           <h3>{b.checks}</h3>
@@ -396,7 +418,8 @@ function Section({
   return (
     <section className="bi-card">
       <div className="bi-head">
-        <h3>{title}</h3>
+        <h3 className="visually-hidden">{title}</h3>
+        <span className="bi-grow" />
         <Button className="button" onPress={() => open(set, title)}>
           {b.viewRows(rows)}
         </Button>
