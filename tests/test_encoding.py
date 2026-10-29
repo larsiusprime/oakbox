@@ -55,3 +55,30 @@ def test_processes_oak_box_starts_run_in_utf8_mode():
 
     env = bring_in.child_env()
     assert env["PYTHONUTF8"] == "1" and env["PYTHONIOENCODING"] == "utf-8"
+
+
+def test_saves_at_the_same_time_dont_trip_over_each_other(tmp_path):
+    """Two saves of one file at once each use a temporary file of their own (they shared one: the second save found
+    it gone, as CI's menu test did when it made a project while the app saved its settings)."""
+    import threading
+
+    from oakbox import atomic
+
+    path = tmp_path / "settings.json"
+    errors: list[Exception] = []
+
+    def save(i: int) -> None:
+        try:
+            for _ in range(30):
+                atomic.save_text(path, f'{{"n": {i}, "é": "−"}}')
+        except Exception as e:  # noqa: BLE001 - collected for the assert
+            errors.append(e)
+
+    threads = [threading.Thread(target=save, args=(i,)) for i in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors
+    assert path.read_text(encoding="utf-8").startswith('{"n": ')
+    assert [p.name for p in tmp_path.iterdir()] == ["settings.json"]  # no temporary files left behind

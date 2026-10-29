@@ -102,11 +102,9 @@ def load() -> AppSettings:
 
 
 def save(s: AppSettings) -> None:
-    path = _path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(s.model_dump_json(indent=2), encoding="utf-8")
-    tmp.replace(path)
+    from oakbox import atomic
+
+    atomic.save_text(_path(), s.model_dump_json(indent=2))
 
 
 def storage_location() -> Path:

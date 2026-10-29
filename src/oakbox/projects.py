@@ -241,12 +241,10 @@ def load(project_id: str) -> Project:
 
 
 def save(project: Project, folder: Path | None = None) -> None:
+    from oakbox import atomic
+
     folder = folder or project_dir(project.id)
-    path = folder / "oakbox.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(project.model_dump_json(indent=2), encoding="utf-8")
-    tmp.replace(path)
+    atomic.save_text(folder / "oakbox.json", project.model_dump_json(indent=2))
 
 
 # ---------- Creating ----------
