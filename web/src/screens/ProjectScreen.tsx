@@ -9,11 +9,13 @@ import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { desktop } from "../desktop";
 import { t } from "../strings";
+import { useAssemble } from "./Assemble";
 import { BringInTab, useAccepted } from "./BringIn";
+import { SalesTab } from "./CheckSales";
 import { FieldsTab } from "./FieldsWizard";
 import { ModelGroupsTab } from "./ModelGroups";
 
-export const TABS = ["metadata", "files", "fields", "bring", "groups"] as const;
+export const TABS = ["metadata", "files", "fields", "bring", "groups", "sales"] as const;
 export type TabId = (typeof TABS)[number];
 const PLACEHOLDERS = ["later-1"] as const;
 
@@ -53,7 +55,18 @@ function ProjectView({
   useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
   // The Input files tab (and each file's own fields) is out of the flow for now: its links open the Data wizard.
   const accepted = useAccepted(projectId);
-  const selected = tab === "files" || !tab ? "fields" : tab === "groups" && !accepted ? "bring" : tab;
+  const grouped = useAssemble(projectId).data?.accepted ?? false;
+  const selected =
+    tab === "files" || !tab
+      ? "fields"
+      : tab === "groups" && !accepted
+        ? "bring"
+        : tab === "sales" && !grouped
+          ? accepted
+            ? "groups"
+            : "bring"
+          : tab;
+  const locked = [...PLACEHOLDERS, ...(accepted ? [] : ["groups"]), ...(grouped ? [] : ["sales"])];
 
   return (
     <div className={selected === "groups" ? "project project-wide" : "project"}>
@@ -69,7 +82,7 @@ function ProjectView({
         className="folder-tabs"
         selectedKey={selected}
         onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
-        disabledKeys={accepted ? PLACEHOLDERS : [...PLACEHOLDERS, "groups"]}
+        disabledKeys={locked}
       >
         <TabList className="folder-tab-list" aria-label={project.name}>
           <Tab id="metadata" className="folder-tab">
@@ -90,6 +103,9 @@ function ProjectView({
           >
             {t.tabs.groups}
           </Tab>
+          <Tab id="sales" className="folder-tab" aria-description={grouped ? undefined : t.tabs.salesLocked}>
+            {t.tabs.sales}
+          </Tab>
           {PLACEHOLDERS.map((id) => (
             <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>
               <span aria-hidden="true">· · ·</span>
@@ -107,6 +123,9 @@ function ProjectView({
         </TabPanel>
         <TabPanel id="groups" className="folder-panel">
           <ModelGroupsTab projectId={projectId} />
+        </TabPanel>
+        <TabPanel id="sales" className="folder-panel">
+          <SalesTab projectId={projectId} currency={project.currency} />
         </TabPanel>
       </Tabs>
     </div>

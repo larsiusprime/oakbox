@@ -1342,6 +1342,188 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/clean": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clean State
+         * @description Ready, running, or the receipt of the last run, and whether it's out of date.
+         */
+        get: operations["clean_state_api_projects__project_id__clean_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clean Setup
+         * @description The calls before running, each with its default and what it does in numbers.
+         */
+        get: operations["clean_setup_api_projects__project_id__clean_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Clean Change
+         * @description Change a call. Proposals are written down at the first change, so the settings say them all.
+         */
+        patch: operations["clean_change_api_projects__project_id__clean_setup_patch"];
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clean Run
+         * @description Check sales: notebook 2's clean stage, in a process of its own.
+         */
+        post: operations["clean_run_api_projects__project_id__clean_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clean Stop */
+        post: operations["clean_stop_api_projects__project_id__clean_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clean Accept
+         * @description Looks right: step 3 is done.
+         */
+        post: operations["clean_accept_api_projects__project_id__clean_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clean Show
+         * @description Show what it wrote in the file manager: notebook 2's output, a group's time adjustment schedule, or the
+         *     sales scrutiny reports.
+         */
+        post: operations["clean_show_api_projects__project_id__clean_show_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clean Review
+         * @description The sales set aside, furthest from their group first; filtered by model group, check and status.
+         */
+        get: operations["clean_review_api_projects__project_id__clean_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/review/{key_sale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clean Sale
+         * @description One sale set aside: its numbers, and the sales it was compared with.
+         */
+        get: operations["clean_sale_api_projects__project_id__clean_review__key_sale__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/clean/marks/{key_sale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Clean Mark
+         * @description Keep a sale set aside (with a note), exclude a sale, or undo either: it applies on the next run.
+         */
+        put: operations["clean_mark_api_projects__project_id__clean_marks__key_sale__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dictionary": {
         parameters: {
             query?: never;
@@ -1600,6 +1782,208 @@ export interface components {
              */
             share: number | null;
         };
+        /** Choice */
+        Choice: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * CleanPatch
+         * @description Only the calls named change; null resets a year to the default.
+         */
+        CleanPatch: {
+            /** Sales From */
+            sales_from?: number | null;
+            /** Vacant From */
+            vacant_from?: number | null;
+            /** Time Adjust */
+            time_adjust?: boolean | null;
+            /** Period */
+            period?: ("M" | "Q") | null;
+            /** Location */
+            location?: string | null;
+            /** Checks */
+            checks?: {
+                [key: string]: boolean;
+            } | null;
+            /** Collapse */
+            collapse?: boolean | null;
+            /** Collapse Sales Min */
+            collapse_sales_min?: number | null;
+            /** Collapse Univ Min */
+            collapse_univ_min?: number | null;
+            fill?: components["schemas"]["FillChange"] | null;
+        };
+        /** CleanReceipt */
+        CleanReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /** Start */
+            start: number;
+            /** Used */
+            used: number;
+            /**
+             * Set Aside
+             * @description Sales scrutiny set aside, kept or not: to look at.
+             */
+            set_aside: number;
+            /** Funnel */
+            funnel: components["schemas"]["FunnelLine"][];
+            /** Groups */
+            groups: components["schemas"]["GroupResult"][];
+            /** Filled */
+            filled: components["schemas"]["Filled"][];
+            /** Written */
+            written: components["schemas"]["Written"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** CleanSetup */
+        CleanSetup: {
+            /** Valuation Year */
+            valuation_year: number;
+            /** Default From */
+            default_from: number;
+            /** Sales From */
+            sales_from: number;
+            /** Vacant From */
+            vacant_from: number;
+            /** Years */
+            years: components["schemas"]["YearCount"][];
+            /**
+             * Total
+             * @description Valid sales from Data.
+             */
+            total: number;
+            /** In Window */
+            in_window: number;
+            /** Time Adjust */
+            time_adjust: boolean;
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "M" | "Q";
+            /** Groups */
+            groups: components["schemas"]["GroupSetup"][];
+            /** Fills */
+            fills: components["schemas"]["FillRow"][];
+            /**
+             * Auto
+             * @description What OpenAVMKit always fills itself, with how many.
+             */
+            auto: string[];
+            /**
+             * Location
+             * @description The location in use; "" none.
+             */
+            location: string | null;
+            /** Location Proposed */
+            location_proposed: string;
+            /** Locations */
+            locations: components["schemas"]["Choice"][];
+            /**
+             * Similar
+             * @description The numbers sales are compared on, by name.
+             */
+            similar: string[];
+            /** Checks */
+            checks: {
+                [key: string]: boolean;
+            };
+            /**
+             * Deed
+             * @description A deed ID is loaded (the same-deed check needs one).
+             */
+            deed: boolean;
+            /** Collapse */
+            collapse: boolean;
+            /** Collapse Sales Min */
+            collapse_sales_min: number;
+            /** Collapse Univ Min */
+            collapse_univ_min: number;
+            /** Collapse Fields */
+            collapse_fields: string[];
+            /** Notices */
+            notices: components["schemas"]["Notice"][];
+        };
+        /** CleanState */
+        CleanState: {
+            /**
+             * Sales From
+             * @description Improved sales from this year on; None: the default.
+             */
+            sales_from: number | null;
+            /**
+             * Vacant From
+             * @description Vacant sales from this year on; None: the default.
+             */
+            vacant_from: number | null;
+            /**
+             * Time Adjust
+             * @default true
+             */
+            time_adjust: boolean;
+            /**
+             * Period
+             * @description Months or quarters to start from (OpenAVMKit goes coarser).
+             * @default Q
+             * @enum {string}
+             */
+            period: "M" | "Q";
+            /**
+             * Fills
+             * @description Per field with blanks; written once proposed.
+             */
+            fills: {
+                [key: string]: components["schemas"]["Fill"];
+            };
+            /**
+             * Location
+             * @description Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.
+             */
+            location: string | null;
+            /**
+             * Checks
+             * @description cluster and the heuristics; missing: on.
+             */
+            checks: {
+                [key: string]: boolean;
+            };
+            /**
+             * Collapse
+             * @default false
+             */
+            collapse: boolean;
+            /**
+             * Collapse Fields
+             * @description Categories folded when collapse is on.
+             */
+            collapse_fields: string[];
+            /**
+             * Collapse Sales Min
+             * @default 5
+             */
+            collapse_sales_min: number;
+            /**
+             * Collapse Univ Min
+             * @default 20
+             */
+            collapse_univ_min: number;
+            /**
+             * Marks
+             * @description key_sale -> kept or excluded by the user.
+             */
+            marks: {
+                [key: string]: components["schemas"]["SaleMark"];
+            };
+        };
         /**
          * CleanStep
          * @description One clean-up step on an ID, so IDs written differently in two files match (F3d reconcile).
@@ -1653,6 +2037,28 @@ export interface components {
              * @default 0
              */
             n: number;
+        };
+        /** CleanView */
+        CleanView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["CleanReceipt"] | null;
+            /**
+             * Stale
+             * @description Something changed since it ran: the data, model groups, a call or a mark.
+             */
+            stale: boolean;
+            /**
+             * Blocked
+             * @description What stops it running.
+             */
+            blocked: string[];
+            /** Accepted */
+            accepted: boolean;
         };
         /** Column */
         Column: {
@@ -2536,6 +2942,69 @@ export interface components {
             /** Path */
             path: string;
         };
+        /** Fill */
+        Fill: {
+            /**
+             * Method
+             * @description leave: no fill (the field stays blank).
+             * @enum {string}
+             */
+            method: "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
+            /**
+             * Scope
+             * @description Every parcel, or only improved / only vacant ones.
+             * @default all
+             * @enum {string}
+             */
+            scope: "all" | "impr" | "vacant";
+        };
+        /** FillChange */
+        FillChange: {
+            /** Field */
+            field: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope: "all" | "impr" | "vacant";
+        };
+        /** FillRow */
+        FillRow: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Blanks */
+            blanks: number;
+            /** Parcels */
+            parcels: number;
+            fill: components["schemas"]["Fill"];
+            proposed: components["schemas"]["Fill"];
+            /**
+             * Stats
+             * @description median, mean, mode, min, max of the values there are.
+             */
+            stats: {
+                [key: string]: number;
+            };
+        };
+        /** Filled */
+        Filled: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Count */
+            count: number;
+            /** How */
+            how: string;
+        };
         /** Funnel */
         Funnel: {
             /**
@@ -2553,6 +3022,23 @@ export interface components {
             lines: components["schemas"]["Line"][];
             /** Note */
             note: string | null;
+        };
+        /** FunnelLine */
+        FunnelLine: {
+            /**
+             * Sign
+             * @enum {string}
+             */
+            sign: "" | "-" | "+" | "=";
+            /** Count */
+            count: number;
+            /** Text */
+            text: string;
+            /**
+             * Check
+             * @description The check whose sales See them shows.
+             */
+            check: string | null;
         };
         /** GroupCheck */
         GroupCheck: {
@@ -2626,6 +3112,56 @@ export interface components {
              * @description Of them, parcels with a valid sale.
              */
             sold: number;
+        };
+        /** GroupResult */
+        GroupResult: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** In Window */
+            in_window: number;
+            /** Set Aside */
+            set_aside: number;
+            /** Used */
+            used: number;
+            /** Clusters */
+            clusters: number;
+            /**
+             * Per Year
+             * @description Price change a year, percent; None: no time adjustment.
+             */
+            per_year: number | null;
+            /** First */
+            first: string | null;
+            /** Last */
+            last: string | null;
+            /**
+             * Curve
+             * @description The price index over time (first = 1), about 40 points.
+             */
+            curve: number[];
+        };
+        /** GroupSetup */
+        GroupSetup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /**
+             * Sales
+             * @description Valid sales in the window.
+             */
+            sales: number;
+            /**
+             * Per Year
+             * @description Price change a year found last run, percent; None: none or not run.
+             */
+            per_year: number | null;
         };
         /** GroupStats */
         GroupStats: {
@@ -3062,6 +3598,38 @@ export interface components {
             /** Parcels */
             parcels: number;
         };
+        /** MarkBody */
+        MarkBody: {
+            /**
+             * Action
+             * @description null: undo.
+             */
+            action: ("keep" | "exclude") | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** Member */
+        Member: {
+            /** Key Sale */
+            key_sale: string;
+            /** Address */
+            address: string | null;
+            /** Price Per Area */
+            price_per_area: number | null;
+            /** Area */
+            area: number | null;
+            /** Sale Date */
+            sale_date: string | null;
+            /** Flagged */
+            flagged: boolean;
+            /** Latitude */
+            latitude: number | null;
+            /** Longitude */
+            longitude: number | null;
+        };
         /** MissingParcels */
         MissingParcels: {
             /**
@@ -3197,6 +3765,16 @@ export interface components {
             file: string;
             /** Columns */
             columns: string[];
+        };
+        /** Notice */
+        Notice: {
+            /** Text */
+            text: string;
+            /**
+             * Link
+             * @description Where it's fixed: a tab and step, 'fields:sales'.
+             */
+            link: string | null;
         };
         /**
          * NumberFormat
@@ -3748,6 +4326,8 @@ export interface components {
             groups_start: ("scratch" | "suggested") | null;
             /** @description Enrichments (F3e); None: the step not shown yet. */
             enrich: components["schemas"]["Enrichments-Output"] | null;
+            /** @description Step 3, Check sales: its calls (F6). */
+            clean: components["schemas"]["CleanState"];
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -3949,6 +4529,100 @@ export interface components {
              */
             blank_ok: boolean;
         };
+        /** ReviewItem */
+        ReviewItem: {
+            /** Key Sale */
+            key_sale: string;
+            /** Key */
+            key: string;
+            /** Address */
+            address: string | null;
+            /** Model Group */
+            model_group: string;
+            /** Group Name */
+            group_name: string;
+            /** Sale Date */
+            sale_date: string | null;
+            /** Vacant */
+            vacant: boolean;
+            /**
+             * Checks
+             * @description Every check that flagged it.
+             */
+            checks: string[];
+            /**
+             * Price
+             * @description Time-adjusted where time adjustment ran.
+             */
+            price: number | null;
+            /** Price Per Area */
+            price_per_area: number | null;
+            /**
+             * Median
+             * @description Its group's median price per area.
+             */
+            median: number | null;
+            /**
+             * Ratio
+             * @description Price per area over the group's median.
+             */
+            ratio: number | null;
+            /**
+             * Count
+             * @description Sales in the group it was compared with.
+             */
+            count: number | null;
+            /** Pattern */
+            pattern: string | null;
+            /** Rules */
+            rules: string | null;
+            /**
+             * Second Look
+             * @description Found once the sale that hid it was set aside.
+             */
+            second_look: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "undecided" | "kept" | "excluded";
+            /** Note */
+            note: string;
+        };
+        /** ReviewPage */
+        ReviewPage: {
+            /** Items */
+            items: components["schemas"]["ReviewItem"][];
+            /**
+             * Total
+             * @description Matching the filters.
+             */
+            total: number;
+            /**
+             * All
+             * @description Every sale set aside.
+             */
+            all: number;
+            /** Undecided */
+            undecided: number;
+            /** Kept */
+            kept: number;
+            /** Excluded */
+            excluded: number;
+            /** Groups */
+            groups: components["schemas"]["Choice"][];
+            /**
+             * Stale
+             * @description Marks changed since the run: they apply on the next Check sales.
+             */
+            stale: boolean;
+            /**
+             * Unit
+             * @description What prices are per: square feet or square metres.
+             * @enum {string}
+             */
+            unit: "sqft" | "sqm";
+        };
         /** Rows */
         Rows: {
             /** Set */
@@ -4075,6 +4749,25 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** SaleDetail */
+        SaleDetail: {
+            item: components["schemas"]["ReviewItem"];
+            /**
+             * Area
+             * @description Finished area (improved) or land area (vacant) it's priced per.
+             */
+            area: number | null;
+            /** Year Built */
+            year_built: number | null;
+            /** Raw Price */
+            raw_price: number | null;
+            /** Members */
+            members: components["schemas"]["Member"][];
+            /** Latitude */
+            latitude: number | null;
+            /** Longitude */
+            longitude: number | null;
+        };
         /** SaleId */
         SaleId: {
             /**
@@ -4093,6 +4786,19 @@ export interface components {
              */
             made: boolean;
             check: components["schemas"]["Check"] | null;
+        };
+        /** SaleMark */
+        SaleMark: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "keep" | "exclude";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** Sample */
         Sample: {
@@ -5117,6 +5823,15 @@ export interface components {
             what: string;
             /** Bytes */
             bytes: number;
+        };
+        /** YearCount */
+        YearCount: {
+            /** Year */
+            year: number;
+            /** Improved */
+            improved: number;
+            /** Vacant */
+            vacant: number;
         };
     };
     responses: never;
@@ -7515,6 +8230,335 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_state_api_projects__project_id__clean_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_setup_api_projects__project_id__clean_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_change_api_projects__project_id__clean_setup_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CleanPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_run_api_projects__project_id__clean_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_stop_api_projects__project_id__clean_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_accept_api_projects__project_id__clean_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_show_api_projects__project_id__clean_show_post: {
+        parameters: {
+            query?: {
+                what?: "output" | "schedule" | "scrutiny";
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_review_api_projects__project_id__clean_review_get: {
+        parameters: {
+            query?: {
+                group?: string;
+                check?: string;
+                status?: "" | "undecided" | "kept" | "excluded";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_sale_api_projects__project_id__clean_review__key_sale__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_mark_api_projects__project_id__clean_marks__key_sale__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanView"];
                 };
             };
             /** @description Validation Error */

@@ -1,0 +1,1205 @@
+"""Step 3, Check sales: notebook 2 (clean), with each call shown before it runs and every sale set aside listed after
+(SPEC F6).
+
+The calls (the sales window, time adjustment, fills, where "near" is for sales scrutiny, which checks run, rare
+categories) are the project's `clean` state, written into settings.json with the rest. The run starts from step 2's
+hand-off (out/1-assemble-sup.pickle) and runs OpenAVMKit's own clean stage in a process of its own,
+`python -m oakbox.clean <project id>`: fills, equity clusters, sales processing (window, validity, time adjustment),
+sales scrutiny, rare categories, then out/2-clean-sup.pickle and out/look/2-clean-*. Scrutiny drops what it sets aside
+except the sales the user kept (in/oakbox/keep.csv); the user's exclusions are in/oakbox/exclude.csv. The receipt,
+and the sales set aside with their groups for the review, are in out/oakbox/clean/.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+import os
+import shutil
+import sys
+import threading
+import time
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal, cast
+
+from pydantic import Field
+
+from oakbox import assemble, bring_in
+from oakbox.datafiles import BaseModel
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+MODULE = "clean"
+UNKNOWN = assemble.UNKNOWN
+NO_PARCEL = "(none)"  # the model group of a sale whose parcel isn't in the parcel universe
+NO_PARCEL_NAME = "No parcel (not in the parcel universe)"
+KEEP_FILE = "in/oakbox/keep.csv"
+EXCLUDE_FILE = "in/oakbox/exclude.csv"
+HEURISTICS = ("dupe_deed_date", "dupe_date_price", "false_vacant")
+CHECKS = ("cluster", *HEURISTICS)
+YEARS_BEFORE = 5  # OpenAVMKit's default sales window: sales from 5 years before the valuation date
+# Fields OpenAVMKit always tidies itself (0 = no building / no year), never offered a fill.
+YEAR_AGE = ("bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "bldg_effective_age_years")
+NEVER_PROPOSED = ("bldg_area_finished_sqft", "bldg_area_finished_sqm", *YEAR_AGE)
+
+FillMethod = Literal["median", "mean", "mode", "zero", "min", "max", "leave"]
+FillScope = Literal["all", "impr", "vacant"]
+Period = Literal["M", "Q"]
+
+
+def _group(v) -> str:
+    """A model_group value as text: a sale with no parcel has none."""
+    text = "" if v is None else str(v)
+    return NO_PARCEL if text in ("", "None", "nan", "<NA>") else text
+
+
+def _groups(df) -> pd.Series:
+    return df["model_group"].map(_group) if "model_group" in df else df.index.to_series().map(lambda _: NO_PARCEL)
+
+
+def _numbers(df, column: str) -> pd.Series:
+    """A column as numbers (blank where it isn't one); all blank when there's no such column."""
+    import pandas as pd
+
+    if column not in df:
+        return pd.Series(float("nan"), index=df.index, dtype=float)
+    return cast("pd.Series", pd.to_numeric(df[column], errors="coerce")).astype(float)
+
+
+def _frame(*columns: str) -> pd.DataFrame:
+    import pandas as pd
+
+    return pd.DataFrame({c: pd.Series(dtype=object) for c in columns})
+
+
+def out_dir(project_dir: Path) -> Path:
+    return project_dir / "out" / "oakbox" / "clean"
+
+
+# ---------- The calls: the project's state, and the settings it writes ----------
+
+
+class Fill(BaseModel):
+    method: FillMethod = Field(description="leave: no fill (the field stays blank).")
+    scope: FillScope = Field(default="all", description="Every parcel, or only improved / only vacant ones.")
+
+
+class SaleMark(BaseModel):
+    action: Literal["keep", "exclude"]
+    note: str = ""
+
+
+class CleanState(BaseModel):
+    sales_from: int | None = Field(default=None, description="Improved sales from this year on; None: the default.")
+    vacant_from: int | None = Field(default=None, description="Vacant sales from this year on; None: the default.")
+    time_adjust: bool = True
+    period: Period = Field(default="Q", description="Months or quarters to start from (OpenAVMKit goes coarser).")
+    fills: dict[str, Fill] = Field(default_factory=dict, description="Per field with blanks; written once proposed.")
+    location: str | None = Field(
+        default=None, description='Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.'
+    )
+    checks: dict[str, bool] = Field(default_factory=dict, description="cluster and the heuristics; missing: on.")
+    collapse: bool = False
+    collapse_fields: list[str] = Field(default_factory=list, description="Categories folded when collapse is on.")
+    collapse_sales_min: int = 5
+    collapse_univ_min: int = 20
+    marks: dict[str, SaleMark] = Field(default_factory=dict, description="key_sale -> kept or excluded by the user.")
+
+
+def valuation_year(project) -> int:
+    return project.valuation_date.year if project.valuation_date else int(project.tax_year)
+
+
+def window(project) -> tuple[int, int]:
+    """(improved, vacant): the first year sales count from."""
+    c: CleanState = project.clean
+    default = valuation_year(project) - YEARS_BEFORE
+    return c.sales_from or default, c.vacant_from or default
+
+
+def settings(project) -> dict:
+    """The parts of settings.json this step writes, merged into the rest (projects.base_settings); nothing until
+    the step is used (its proposals are written down then: decide)."""
+    c: CleanState = project.clean
+    if c.location is None:
+        return {}
+    impr, vacant = window(project)
+    fill: dict[str, list[str]] = {}
+    for field, f in sorted(c.fills.items()):
+        if f.method != "leave":
+            # "+": added to OpenAVMKit's own fill lists, not replacing them.
+            fill.setdefault("+" + f.method + {"all": "", "impr": "_impr", "vacant": "_vacant"}[f.scope], []).append(
+                field
+            )
+    process: dict[str, Any] = {"time_adjustment": {"use": c.time_adjust, "period": c.period}}
+    if fill:
+        process["fill"] = fill
+    if c.collapse and c.collapse_fields:
+        process["collapse_sparse_categories"] = {
+            f: {"sales_min": c.collapse_sales_min, "univ_min": c.collapse_univ_min} for f in c.collapse_fields
+        }
+    scrutiny: dict[str, Any] = {
+        # OAK box drops what scrutiny sets aside, except what the user kept: nothing reaches modeling unseen.
+        "drop": {"clusters": True, "heuristics": True},
+        "passes": 2,
+        "clusters_enabled": c.checks.get("cluster", True),
+        "heuristics": {h: c.checks.get(h, True) for h in HEURISTICS},
+    }
+    analysis: dict[str, Any] = {"sales_scrutiny": scrutiny, "report": {"formats": ["md"]}}
+    scrutiny |= {"keep_file": KEEP_FILE, "invalid_key_file": EXCLUDE_FILE}
+    loc = c.location or None
+    scrutiny["location"] = loc
+    for study in ("horizontal_equity", "land_equity", "impr_equity"):
+        analysis[study] = {"location": loc}
+    return {
+        "modeling": {"metadata": {"use_sales_from": {"improved": impr, "vacant": vacant}}},
+        "data": {"process": process},
+        "analysis": analysis,
+    }
+
+
+def merge(base: dict, more: dict) -> dict:
+    """base with more's keys added, dicts merged all the way down."""
+    out = dict(base)
+    for k, v in more.items():
+        out[k] = merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def write_marks(project, project_dir: Path) -> None:
+    """The user's keeps and exclusions, as OpenAVMKit reads them (a key_sale column), with their notes."""
+    import csv
+    import io
+
+    from oakbox import atomic
+
+    c: CleanState = project.clean
+    if c.location is None:
+        return  # the step wasn't used yet: nothing to write
+    for path, action in ((KEEP_FILE, "keep"), (EXCLUDE_FILE, "exclude")):
+        buf = io.StringIO()
+        w = csv.writer(buf, lineterminator="\n")
+        w.writerow(["key_sale", "note"])
+        for key, m in sorted(c.marks.items()):
+            if m.action == action:
+                w.writerow([key, m.note])
+        atomic.save_text(project_dir / path, buf.getvalue())
+
+
+def settings_key(settings: dict, project) -> dict:
+    """What this run depends on: what step 2's does, and this step's calls and the user's keeps and exclusions."""
+    process = settings.get("data", {}).get("process", {})
+    return {
+        **bring_in.settings_key(settings),
+        "model_groups": settings.get("modeling", {}).get("model_groups"),
+        "process": {k: process.get(k) for k in bring_in.CLEAN_PROCESS},
+        "use_sales_from": settings.get("modeling", {}).get("metadata", {}).get("use_sales_from"),
+        "analysis": {k: v for k, v in settings.get("analysis", {}).items() if k != "report"},
+        "marks": {k: m.action for k, m in sorted(project.clean.marks.items())},
+    }
+
+
+def settings_hash(settings: dict, project) -> str:
+    text = json.dumps(settings_key(settings, project), sort_keys=True, default=str)
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def _settings(project_dir: Path) -> dict:
+    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
+
+
+# ---------- Before running: the calls, with their defaults and what they do in numbers ----------
+
+
+class YearCount(BaseModel):
+    year: int
+    improved: int
+    vacant: int
+
+
+class GroupSetup(BaseModel):
+    id: str
+    name: str
+    color: str
+    sales: int = Field(description="Valid sales in the window.")
+    per_year: float | None = Field(description="Price change a year found last run, percent; None: none or not run.")
+
+
+class FillRow(BaseModel):
+    field: str
+    name: str
+    blanks: int
+    parcels: int
+    fill: Fill
+    proposed: Fill
+    stats: dict[str, float] = Field(description="median, mean, mode, min, max of the values there are.")
+
+
+class Choice(BaseModel):
+    value: str
+    label: str
+
+
+class Notice(BaseModel):
+    text: str
+    link: str | None = Field(default=None, description="Where it's fixed: a tab and step, 'fields:sales'.")
+
+
+class CleanSetup(BaseModel):
+    valuation_year: int
+    default_from: int
+    sales_from: int
+    vacant_from: int
+    years: list[YearCount]
+    total: int = Field(description="Valid sales from Data.")
+    in_window: int
+    time_adjust: bool
+    period: Period
+    groups: list[GroupSetup]
+    fills: list[FillRow]
+    auto: list[str] = Field(description="What OpenAVMKit always fills itself, with how many.")
+    location: str | None = Field(description='The location in use; "" none.')
+    location_proposed: str
+    locations: list[Choice]
+    similar: list[str] = Field(description="The numbers sales are compared on, by name.")
+    checks: dict[str, bool]
+    deed: bool = Field(description="A deed ID is loaded (the same-deed check needs one).")
+    collapse: bool
+    collapse_sales_min: int
+    collapse_univ_min: int
+    collapse_fields: list[str]
+    notices: list[Notice]
+
+
+_setup_cache: dict[str, tuple[tuple, Any]] = {}
+
+
+def _look(project_dir: Path, name: str) -> Path:
+    return project_dir / "out" / "look" / f"1-assemble-{name}.parquet"
+
+
+def _data(project_dir: Path):
+    """Step 2's hand-off as tables (the universe and the hydrated sales), cached while the files don't change."""
+    import pandas as pd
+
+    paths = [_look(project_dir, "universe"), _look(project_dir, "sales-hydrated")]
+    stamp = tuple(p.stat().st_mtime_ns for p in paths)
+    hit = _setup_cache.get(str(project_dir))
+    if hit and hit[0] == stamp:
+        return hit[1]
+    universe = pd.read_parquet(paths[0])
+    if "geometry" in universe:
+        universe = universe.drop(columns="geometry")
+    sales = pd.read_parquet(paths[1])
+    if "geometry" in sales:
+        sales = sales.drop(columns="geometry")
+    _setup_cache[str(project_dir)] = (stamp, (universe, sales))
+    return universe, sales
+
+
+def _yes(df, column: str) -> pd.Series:
+    """A yes/no column as True/False (no where blank or missing)."""
+    return _numbers(df, column).fillna(0).astype(bool)
+
+
+def _years(df) -> pd.Series:
+    import pandas as pd
+
+    return cast("pd.Series", pd.to_datetime(df["sale_date"], errors="coerce").dt.year)
+
+
+def _valid(sales) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
+    valid = sales[_yes(sales, "valid_sale")] if "valid_sale" in sales else sales
+    return valid, _years(valid), _yes(valid, "vacant_sale")
+
+
+def _names() -> dict[str, str]:
+    from oakbox import fields
+
+    return {f.key: f.name for f in fields.dictionary()}
+
+
+def _engine_settings(project_dir: Path) -> dict:
+    from openavmkit.utilities.settings import load_settings
+
+    return cast(dict, load_settings(str(project_dir / "in" / "settings.json"), warning=False))
+
+
+def _fill_rows(project, project_dir: Path, universe) -> list[FillRow]:
+    """Every number the models can use that's still blank somewhere after step 1, with its fill."""
+    from openavmkit.utilities.settings import get_fields_numeric
+
+    s = _engine_settings(project_dir)
+    template = {f for fs in s.get("data", {}).get("process", {}).get("fill", {}).values() for f in fs}
+    mine = {f for f, x in project.clean.fills.items()}
+    numeric = [
+        f
+        for f in get_fields_numeric(s, universe, include_boolean=False) or []
+        if f in universe and f not in YEAR_AGE and (f not in template or f in mine)
+    ]
+    names = _names()
+    rows = []
+    for f in numeric:
+        x = _numbers(universe, f)
+        blanks = int(x.isna().sum())
+        if not blanks:
+            continue
+        there = x.dropna()
+        stats = {}
+        if len(there):
+            mode = there.mode()
+            stats = {
+                "median": float(there.median()),
+                "mean": float(there.mean()),
+                "mode": float(mode.iloc[0]) if len(mode) else float("nan"),
+                "min": float(there.min()),
+                "max": float(there.max()),
+            }
+        proposed = Fill(method="leave") if f in NEVER_PROPOSED else Fill(method="median")
+        rows.append(
+            FillRow(
+                field=f,
+                name=names.get(f, f),
+                blanks=blanks,
+                parcels=len(x),
+                fill=project.clean.fills.get(f, proposed),
+                proposed=proposed,
+                stats=stats,
+            )
+        )
+    return rows
+
+
+def _auto(project_dir: Path, universe) -> list[str]:
+    from openavmkit.utilities.settings import get_fields_boolean, get_fields_categorical
+
+    s = _engine_settings(project_dir)
+    out = []
+    zero = sum(int(universe[f].isna().sum()) for f in YEAR_AGE if f in universe)
+    cats = [f for f in get_fields_categorical(s, universe, include_boolean=False) or [] if f in universe]
+    cat_blanks = sum(int(universe[f].isna().sum()) for f in cats)
+    bools = [f for f in get_fields_boolean(s, universe) or [] if f in universe]
+    bool_blanks = sum(int(universe[f].isna().sum()) for f in bools)
+    out.append(f"Year built and age: worked out from each other; still blank, 0 (no building): {zero:,} values.")
+    out.append(f'Categories: blanks become "UNKNOWN": {cat_blanks:,} values in {len(cats)} fields.')
+    out.append(f"Yes/no fields: blanks become no: {bool_blanks:,} values in {len(bools)} fields.")
+    return out
+
+
+def _locations(project_dir: Path, universe) -> list[str]:
+    from openavmkit.utilities.settings import get_locations
+
+    s = _engine_settings(project_dir)
+    found = [f for f in get_locations(s, universe) or [] if f in universe]
+    for f in ("census_block_group", "census_tract"):
+        if f in universe and f not in found:
+            found.append(f)
+    return found
+
+
+def _proposed_location(locations: list[str]) -> str:
+    """The user's first location field; else census block group; else none."""
+    own = [f for f in locations if not f.startswith("census_")]
+    if own:
+        return own[0]
+    return "census_block_group" if "census_block_group" in locations else ""
+
+
+def _collapsible(project_dir: Path, universe, locations: list[str]) -> list[str]:
+    """Categories the models use, not locations (folding neighbourhoods would change what they mean)."""
+    from openavmkit.utilities.settings import get_fields_categorical
+
+    s = _engine_settings(project_dir)
+    cats = get_fields_categorical(s, universe, include_boolean=False) or []
+    n = max(len(universe), 1)
+    return [
+        f
+        for f in cats
+        if f in universe
+        and f not in locations
+        and f != "model_group"
+        and not f.startswith(("key", "address"))
+        and universe[f].nunique() < 0.5 * n  # an ID or an address, not a category
+    ]
+
+
+def _last_run(project_dir: Path) -> dict[str, float | None]:
+    r, _ = _ran(project_dir)
+    return {g.id: g.per_year for g in r.groups} if r else {}
+
+
+def setup(project, project_dir: Path) -> CleanSetup:
+    universe, sales = _data(project_dir)
+    valid, year, vacant = _valid(sales)
+    impr_from, vacant_from = window(project)
+    years = sorted(set(int(y) for y in year.dropna()))
+    counts = [
+        YearCount(
+            year=y,
+            improved=int(((year == y) & ~vacant).sum()),
+            vacant=int(((year == y) & vacant).sum()),
+        )
+        for y in years
+    ]
+    inside = (~vacant & (year >= impr_from)) | (vacant & (year >= vacant_from))
+    last = _last_run(project_dir)
+    groups = []
+    for g in [*project.groups]:
+        n = int((inside & (valid["model_group"] == g.id)).sum()) if "model_group" in valid else 0
+        groups.append(GroupSetup(id=g.id, name=g.name, color=g.color, sales=n, per_year=last.get(g.id)))
+    unknown = int((inside & (valid["model_group"] == UNKNOWN)).sum()) if "model_group" in valid else 0
+    if unknown:
+        groups.append(GroupSetup(id=UNKNOWN, name="Unassigned", color="#9a9a9a", sales=unknown, per_year=None))
+    locations = _locations(project_dir, universe)
+    proposed = _proposed_location(locations)
+    location = project.clean.location if project.clean.location is not None else proposed
+    names = _names()
+    notices = []
+    # Sales whose vacant-at-sale doesn't match the parcel now are left out of ratio studies.
+    keys = set(universe["key"].astype(str))
+    in_univ = valid["key"].astype(str).isin(list(keys))
+    is_vacant = _yes(valid, "is_vacant") if "is_vacant" in valid else vacant
+    for sold, now, n in (
+        ("improved", "vacant", int((inside & in_univ & ~vacant & is_vacant).sum())),
+        ("vacant", "improved", int((inside & in_univ & vacant & ~is_vacant).sum())),
+    ):
+        if n:
+            notices.append(
+                Notice(
+                    text=f"{n:,} sales in the window were sold as {sold} on parcels that are {now} now: they're "
+                    "left out of ratio studies (the parcel isn't the same as when it sold). If vacant at sale is "
+                    "assumed on Data › Sales, check that fits.",
+                    link="fields:sales",
+                )
+            )
+    outside = int((inside & ~in_univ).sum())
+    if outside:
+        notices.append(
+            Notice(
+                text=f"{outside:,} sales in the window are for parcels not in the parcel universe: no model can use "
+                "them. If they're condo units, set them up on Data › Condo units.",
+                link="fields:condos",
+            )
+        )
+    for g in groups:
+        if g.sales == 0 and g.id != UNKNOWN:
+            notices.append(Notice(text=f"{g.name}: no sales in the window."))
+    unit = "sqft" if project.units == "imperial" else "sqm"
+    similar = [
+        names.get(f, f)
+        for f in (f"land_area_{unit}", f"bldg_area_finished_{unit}", "bldg_quality_num", "bldg_age_years")
+        if f in universe
+    ]
+    if "bldg_condition_num" in universe:
+        similar.append(names.get("bldg_condition_num", "condition"))
+    c: CleanState = project.clean
+    return CleanSetup(
+        valuation_year=valuation_year(project),
+        default_from=valuation_year(project) - YEARS_BEFORE,
+        sales_from=impr_from,
+        vacant_from=vacant_from,
+        years=counts,
+        total=len(valid),
+        in_window=int(inside.sum()),
+        time_adjust=c.time_adjust,
+        period=c.period,
+        groups=groups,
+        fills=_fill_rows(project, project_dir, universe),
+        auto=_auto(project_dir, universe),
+        location=location,
+        location_proposed=proposed,
+        locations=[Choice(value=f, label=names.get(f, f)) for f in locations],
+        similar=similar,
+        checks={k: c.checks.get(k, True) for k in CHECKS},
+        deed=bool(_settings(project_dir).get("analysis", {}).get("sales_scrutiny", {}).get("deed_id")),
+        collapse=c.collapse,
+        collapse_sales_min=c.collapse_sales_min,
+        collapse_univ_min=c.collapse_univ_min,
+        collapse_fields=c.collapse_fields or _collapsible(project_dir, universe, locations),
+        notices=notices,
+    )
+
+
+def decide(project, project_dir: Path) -> None:
+    """Write down what was proposed (fills, the location, the categories to fold), so the settings say it all."""
+    universe, _ = _data(project_dir)
+    c: CleanState = project.clean
+    for row in _fill_rows(project, project_dir, universe):
+        c.fills.setdefault(row.field, row.proposed)
+    locations = _locations(project_dir, universe)
+    if c.location is None:
+        c.location = _proposed_location(locations)
+    if not c.collapse_fields:
+        c.collapse_fields = _collapsible(project_dir, universe, locations)
+
+
+# ---------- The run ----------
+
+
+class FunnelLine(BaseModel):
+    sign: Literal["", "-", "+", "="]
+    count: int
+    text: str
+    check: str | None = Field(default=None, description="The check whose sales See them shows.")
+
+
+class GroupResult(BaseModel):
+    id: str
+    name: str
+    color: str
+    in_window: int
+    set_aside: int
+    used: int
+    clusters: int
+    per_year: float | None = Field(description="Price change a year, percent; None: no time adjustment.")
+    first: str | None
+    last: str | None
+    curve: list[float] = Field(description="The price index over time (first = 1), about 40 points.")
+
+
+class Filled(BaseModel):
+    field: str
+    name: str
+    count: int
+    how: str
+
+
+class CleanReceipt(BaseModel):
+    ran_at: str
+    seconds: float
+    engine: str
+    start: int
+    used: int
+    set_aside: int = Field(description="Sales scrutiny set aside, kept or not: to look at.")
+    funnel: list[FunnelLine]
+    groups: list[GroupResult]
+    filled: list[Filled]
+    written: list[assemble.Written]
+    notes: list[str] = Field(default_factory=list)
+
+
+WHAT = {
+    "2-clean-sup.pickle": "the parcels and the sales for modeling: what notebook 3 (model) starts from",
+    "2-clean-universe": "the parcel universe, filled and clustered",
+    "2-clean-sales-hydrated": "the sales for modeling, each with its parcel's fields",
+    "2-clean-sales": "the sales record",
+}
+CHECK_WORDS = {
+    "excluded": "excluded by you",
+    "dupe_deed_date": "same deed, same day (a sale of several parcels)",
+    "dupe_date_price": "same day, same price",
+    "false_vacant": "sold as vacant, but the building is older than the sale",
+    "cluster": "far from their group's price per area",
+}
+ORDER = ["excluded", *HEURISTICS, "cluster"]
+
+
+def _what(name: str) -> str:
+    for prefix, what in WHAT.items():
+        if name.startswith(prefix):
+            return what
+    return ""
+
+
+def _curve(path: Path) -> tuple[float | None, str | None, str | None, list[float]]:
+    import pandas as pd
+
+    if not path.is_file():
+        return None, None, None, []
+    s = pd.read_csv(path)
+    if len(s) < 2:
+        return None, None, None, []
+    first, last = pd.to_datetime(s["period"].iloc[0]), pd.to_datetime(s["period"].iloc[-1])
+    years = max((last - first).days / 365.25, 0.1)
+    index = _numbers(s, "start_indexed").dropna()
+    if len(index) < 2:
+        return None, None, None, []  # too few sales: no adjustment
+    a, b = float(index.iloc[0]), float(index.iloc[-1])
+    per_year = round(((b / a) ** (1 / years) - 1) * 100, 1) if a > 0 and b > 0 else None
+    step = max(1, len(s) // 40)
+    curve = [round(float(v), 4) for v in index.iloc[::step].tolist()]
+    if per_year is not None and abs(per_year) < 0.05 and len(set(curve)) <= 1:
+        per_year = None  # flat: no adjustment (too few sales)
+    return per_year, str(first.date()), str(last.date()), curve
+
+
+def _emit(**kw) -> None:
+    bring_in._emit(**kw)
+
+
+def run(project_id: str) -> None:
+    """Notebook 2's clean stage, with a count at each part; then the receipt and the review's tables."""
+    import warnings
+    from importlib.metadata import version
+
+    import pandas as pd
+
+    from oakbox import projects
+
+    project = projects.load(project_id)
+    pdir = projects.project_dir(project_id)
+    src = pdir / "out" / "1-assemble-sup.pickle"
+    if not src.is_file():
+        raise RuntimeError("Write step 2 first (Model groups): this starts from its hand-off.")
+    tmp = out_dir(pdir).with_suffix(".tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
+    os.chdir(pdir)
+    from openavmkit import pipeline as pl
+    from openavmkit import progress
+    from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
+
+    names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned"}
+    beating = threading.Event()
+    threading.Thread(target=bring_in._heartbeat, args=(beating,), daemon=True).start()
+    said: dict[str, str] = {}
+
+    def step(name: str, fraction: float, message: str) -> None:
+        said["base"] = message
+        _emit(step=name, fraction=fraction, message=message)
+        progress.report(name, fraction, message)
+
+    def inside(e) -> None:
+        # Which model group a part is on: "single_family (6 of 6)", said with the group's name.
+        if e.message == said.get("base"):
+            return
+        detail = e.message.removeprefix(said.get("base", "") + ": ")
+        for gid, name in names.items():
+            if detail.startswith(gid + " ("):
+                detail = name + detail[len(gid) :]
+        _emit(detail=detail, sub=e.sub)
+
+    t0 = time.time()
+    pl.delete_checkpoints("2-clean")
+    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside, stage="clean"):
+        warnings.simplefilter("always")
+        step("load", 0.0, "Reading step 2's hand-off")
+        sup = cast(SalesUniversePair, pd.read_pickle(src))
+        settings = pl.load_settings()
+        start_sales = _valid_keys(get_hydrated_sales_from_sup(sup))
+        before = get_hydrated_sales_from_sup(sup)
+        step("fill", 0.05, "Filling blanks")
+        sup = pl.fill_unknown_values_sup(sup, settings)
+        step("clusters", 0.1, "Grouping similar parcels (equity clusters)")
+        sup = pl.mark_horizontal_equity_clusters_per_model_group_sup(
+            sup=sup, settings=settings, do_land_clusters=True, do_impr_clusters=True
+        )
+        step("sales", 0.45, "The sales window, validity and time adjustment")
+        sup = pl.process_sales(sup=sup, settings=settings)
+        processed = _valid_keys(sup.sales)
+        hydrated = get_hydrated_sales_from_sup(sup)
+        step("scrutiny", 0.6, "Checking sales against similar sales nearby")
+        sup = pl.run_sales_scrutiny(sup=sup, settings=settings)
+        step("collapse", 0.9, "Folding rare categories")
+        sup = pl.collapse_sparse_categories_sup(sup, settings)
+        step("write", 0.93, "Writing notebook 2's output")
+        pl.write_notebook_output_sup(sup, "2-clean")
+    beating.set()
+    _emit(step="receipt", fraction=0.97, message="Counting")
+
+    used = _valid_keys(sup.sales)
+    flags = _flags(pdir)
+    receipt = _receipt(project, pdir, before, start_sales, processed, used, flags, hydrated, sup.sales, t0, caught)
+    receipt.engine = version("openavmkit")
+    _review_tables(tmp, hydrated, sup.sales, flags, project.units)
+    (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
+    (tmp / "settings.json").write_text(
+        json.dumps({"settings": json.loads(settings_text), "hash": settings_hash(json.loads(settings_text), project)}),
+        encoding="utf-8",
+    )
+    final = out_dir(pdir)
+    shutil.rmtree(final, ignore_errors=True)
+    tmp.rename(final)
+    _emit(step="done", fraction=1.0, message=f"{receipt.used:,} sales for modeling, {receipt.set_aside:,} set aside")
+
+
+def _valid_keys(sales) -> set[str]:
+    v = sales[sales["valid_sale"].fillna(False).astype(bool)] if "valid_sale" in sales else sales
+    return set(v["key_sale"].astype(str))
+
+
+def _flags(project_dir: Path):
+    import pandas as pd
+
+    path = project_dir / "out" / "sales_scrutiny" / "flags.parquet"
+    if not path.is_file():
+        return _frame("key_sale", "key", "check", "kept", "dropped")
+    f = pd.read_parquet(path)
+    f["key_sale"] = f["key_sale"].astype(str)
+    return f
+
+
+def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sales, t0, caught) -> CleanReceipt:
+    import pandas as pd
+
+    impr_from, vacant_from = window(project)
+    b = before.copy()
+    b["key_sale"] = b["key_sale"].astype(str)
+    b = b[b["key_sale"].isin(list(start))].drop_duplicates("key_sale").set_index("key_sale")
+    year = _years(b)
+    vacant = _yes(b, "vacant_sale")
+    gone = start - processed
+    early = {k for k in gone if k in b.index and year[k] < (vacant_from if bool(vacant[k]) else impr_from)}
+    price = _numbers(b, "sale_price")
+    no_price = {k for k in gone - early if k in b.index and not (price[k] > 0)}
+    keys = set(sales["key"].astype(str)) if "key" in sales else set()
+    in_univ = b["key"].astype(str).isin(list(keys)) if "key" in b else pd.Series(True, index=b.index)
+    no_parcel = {k for k in gone - early - no_price if k in b.index and not bool(in_univ[k])}
+    other = gone - early - no_price - no_parcel
+    funnel = [FunnelLine(sign="", count=len(start), text="valid sales from Data")]
+    window_text = (
+        f"before {impr_from} (the sales window)"
+        if impr_from == vacant_from
+        else f"before {impr_from} (improved) or {vacant_from} (vacant): the sales window"
+    )
+    funnel.append(FunnelLine(sign="-", count=len(early), text=window_text))
+    for n, text in (
+        (no_price, "with no price"),
+        (no_parcel, "for parcels not in the parcel universe"),
+        (other, "invalid by your rules or OpenAVMKit's own"),
+    ):
+        if n:
+            funnel.append(FunnelLine(sign="-", count=len(n), text=text))
+    # Scrutiny: each sale set aside counted once, at the first check; the ones kept come back after.
+    empty = len(flags) == 0
+    dropped = set() if empty else set(flags.loc[flags["dropped"].astype(bool), "key_sale"])
+    kept = set() if empty else set(flags.loc[flags["kept"].astype(bool), "key_sale"])
+    excluded = set() if empty else set(flags.loc[flags["check"] == "excluded", "key_sale"]) & dropped
+    counted: set[str] = set()
+    for check in ORDER[1:]:
+        ks = set() if empty else set(flags.loc[flags["check"] == check, "key_sale"]) & (dropped | kept)
+        ks -= counted | excluded
+        counted |= ks
+        funnel.append(FunnelLine(sign="-", count=len(ks), text=CHECK_WORDS[check], check=check))
+    funnel.append(FunnelLine(sign="+", count=len(kept & counted), text="kept by you"))
+    funnel.append(FunnelLine(sign="-", count=len(excluded), text="excluded by you"))
+    unexplained = processed - used - dropped
+    if unexplained:
+        funnel.append(FunnelLine(sign="-", count=len(unexplained), text="other"))
+    funnel.append(FunnelLine(sign="=", count=len(used), text="sales for modeling"))
+
+    # Per model group.
+    h = hydrated.copy()
+    h["key_sale"] = h["key_sale"].astype(str)
+    h = h[h["key_sale"].isin(processed)]
+    final = sales[sales["key_sale"].astype(str).isin(used)]
+    group_of = dict(zip(h["key_sale"], _groups(h), strict=False))
+    groups = []
+    ids = [(g.id, g.name, g.color) for g in project.groups]
+    ids += [(UNKNOWN, "Unassigned", "#9a9a9a"), (NO_PARCEL, NO_PARCEL_NAME, "#cfcfcf")]
+    for gid, name, color in ids:
+        n = int((_groups(h) == gid).sum())
+        if gid in (UNKNOWN, NO_PARCEL) and n == 0:
+            continue
+        aside = sum(1 for k in dropped if group_of.get(k) == gid)
+        used_n = sum(1 for k in final["key_sale"].astype(str) if group_of.get(k) == gid)
+        clusters = (
+            int(flags.loc[(flags["check"] == "cluster") & (flags["model_group"] == gid), "ss_id"].nunique())
+            if len(flags) and "model_group" in flags
+            else 0
+        )
+        if "ss_id" in final and "model_group" in h:
+            mine = final[final["key_sale"].astype(str).map(group_of) == gid]
+            clusters = max(clusters, int(mine["ss_id"].dropna().nunique()))
+        per_year, first, last, curve = _curve(pdir / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv")
+        if not project.clean.time_adjust or gid == NO_PARCEL:
+            per_year, curve = None, []
+        groups.append(
+            GroupResult(
+                id=gid,
+                name=name,
+                color=color,
+                in_window=n,
+                set_aside=aside,
+                used=used_n,
+                clusters=clusters,
+                per_year=per_year,
+                first=first,
+                last=last,
+                curve=curve,
+            )
+        )
+    filled = []
+    fp = pdir / "out" / "filled.parquet"
+    if fp.is_file():
+        f = pd.read_parquet(fp)
+        names = _names()
+        for col in f.columns:
+            if col == "key":
+                continue
+            n = int(f[col].sum())
+            how = project.clean.fills.get(col)
+            words = (
+                f"{how.method}{'' if how.scope == 'all' else ' (' + how.scope + ' only)'}"
+                if how
+                else "0"
+                if col in YEAR_AGE
+                else "OpenAVMKit's own"
+            )
+            filled.append(Filled(field=col, name=names.get(col, col), count=n, how=words))
+    written = []
+    for path in [pdir / "out" / "2-clean-sup.pickle", *sorted((pdir / "out" / "look").glob("2-clean-*"))]:
+        if path.is_file():
+            written.append(
+                assemble.Written(
+                    path=path.relative_to(pdir).as_posix(), what=_what(path.name), bytes=path.stat().st_size
+                )
+            )
+    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    aside = len(counted)
+    return CleanReceipt(
+        ran_at=dt.datetime.now().isoformat(timespec="seconds"),
+        seconds=round(time.time() - t0, 1),
+        engine="",
+        start=len(start),
+        used=len(used),
+        set_aside=aside,
+        funnel=funnel,
+        groups=groups,
+        filled=filled,
+        written=written,
+        notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
+    )
+
+
+# ---------- The review: the sales set aside, and each one's group ----------
+
+SALE_COLUMNS = ["key_sale", "key", "address", "sale_date", "sale_price", "sale_price_time_adj", "model_group"]
+
+
+def _review_tables(out: Path, hydrated, sales, flags, units: str) -> None:
+    """review.parquet: one row per sale set aside (a check flagged it), with its own data; members.parquet: every
+    sale in the clusters those were compared in, with its price per area."""
+    import pandas as pd
+
+    unit = "sqft" if units == "imperial" else "sqm"
+    h = hydrated.copy()
+    h["key_sale"] = h["key_sale"].astype(str)
+    cols = [
+        c
+        for c in [
+            *SALE_COLUMNS,
+            f"bldg_area_finished_{unit}",
+            f"land_area_{unit}",
+            "bldg_year_built",
+            "vacant_sale",
+            "latitude",
+            "longitude",
+        ]
+        if c in h
+    ]
+    h = h[cols].drop_duplicates("key_sale")
+    if len(flags) == 0:
+        _frame("key_sale", "check").to_parquet(out / "review.parquet", index=False)
+        _frame("key_sale", "ss_id").to_parquet(out / "members.parquet", index=False)
+        return
+    f = flags.drop(columns=[c for c in ("key", "model_group") if c in flags and c in h.columns])
+    review = f.merge(h, on="key_sale", how="left")
+    review.to_parquet(out / "review.parquet", index=False)
+    # Each flagged cluster's sales: the ones still in (their ss_id) and the flagged ones (theirs).
+    clusters = set(flags.loc[flags["check"] == "cluster", "ss_id"].dropna().astype(str))
+    s = sales[["key_sale", "ss_id"]].copy() if "ss_id" in sales else _frame("key_sale", "ss_id")
+    s["key_sale"] = s["key_sale"].astype(str)
+    s = s[s["ss_id"].astype(str).isin(list(clusters))]
+    fl = flags.loc[flags["check"] == "cluster", ["key_sale", "ss_id"]].astype(str)
+    members = cast("pd.DataFrame", pd.concat([s.astype({"ss_id": str}), fl], ignore_index=True))
+    members = members[~members["key_sale"].duplicated()]
+    members = members.merge(h, on="key_sale", how="left")
+    price = _numbers(members, "sale_price_time_adj").fillna(_numbers(members, "sale_price"))
+    vacant = _numbers(members, "vacant_sale").fillna(0).astype(bool)
+    area = _numbers(members, f"bldg_area_finished_{unit}").where(~vacant, _numbers(members, f"land_area_{unit}"))
+    members["price"] = price
+    members["price_per_area"] = price / area.where(area > 0)
+    members["flagged"] = members["key_sale"].isin(list(fl["key_sale"]))
+    members.to_parquet(out / "members.parquet", index=False)
+
+
+class ReviewItem(BaseModel):
+    key_sale: str
+    key: str
+    address: str | None
+    model_group: str
+    group_name: str
+    sale_date: str | None
+    vacant: bool
+    checks: list[str] = Field(description="Every check that flagged it.")
+    price: float | None = Field(description="Time-adjusted where time adjustment ran.")
+    price_per_area: float | None
+    median: float | None = Field(description="Its group's median price per area.")
+    ratio: float | None = Field(description="Price per area over the group's median.")
+    count: int | None = Field(description="Sales in the group it was compared with.")
+    pattern: str | None
+    rules: str | None
+    second_look: bool = Field(description="Found once the sale that hid it was set aside.")
+    status: Literal["undecided", "kept", "excluded"]
+    note: str
+
+
+class ReviewPage(BaseModel):
+    items: list[ReviewItem]
+    total: int = Field(description="Matching the filters.")
+    all: int = Field(description="Every sale set aside.")
+    undecided: int
+    kept: int
+    excluded: int
+    groups: list[Choice]
+    stale: bool = Field(description="Marks changed since the run: they apply on the next Check sales.")
+    unit: Literal["sqft", "sqm"] = Field(description="What prices are per: square feet or square metres.")
+
+
+class Member(BaseModel):
+    key_sale: str
+    address: str | None
+    price_per_area: float | None
+    area: float | None
+    sale_date: str | None
+    flagged: bool
+    latitude: float | None
+    longitude: float | None
+
+
+class SaleDetail(BaseModel):
+    item: ReviewItem
+    area: float | None = Field(description="Finished area (improved) or land area (vacant) it's priced per.")
+    year_built: int | None
+    raw_price: float | None
+    members: list[Member]
+    latitude: float | None
+    longitude: float | None
+
+
+def _num(v) -> float | None:
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if f != f else f
+
+
+def _text(v) -> str | None:
+    import pandas as pd
+
+    if v is None or (not isinstance(v, str) and pd.isna(v)):
+        return None
+    if isinstance(v, pd.Timestamp):
+        return str(v.date())
+    return str(v)
+
+
+def _review(project_dir: Path):
+    import pandas as pd
+
+    path = out_dir(project_dir) / "review.parquet"
+    return pd.read_parquet(path) if path.is_file() else _frame("key_sale", "check")
+
+
+def _items(project, project_dir: Path) -> list[ReviewItem]:
+    r = _review(project_dir)
+    if len(r) == 0:
+        return []
+    names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned", NO_PARCEL: NO_PARCEL_NAME}
+    marks: dict[str, SaleMark] = project.clean.marks
+    out: list[ReviewItem] = []
+    for key, rows in r.groupby("key_sale", sort=False):
+        key = str(key)
+        if set(rows["check"]) == {"excluded"} and key not in marks:
+            continue
+        cluster = rows[rows["check"] == "cluster"]
+        c = cluster.iloc[0] if len(cluster) else rows.iloc[0]
+        first = rows.iloc[0]
+        mark = marks.get(key)
+        price = _num(c.get("price")) if len(cluster) else None
+        if price is None:
+            price = _num(first.get("sale_price_time_adj")) or _num(first.get("sale_price"))
+        out.append(
+            ReviewItem(
+                key_sale=key,
+                key=str(first.get("key", "")),
+                address=_text(first.get("address")),
+                model_group=_group(first.get("model_group")),
+                group_name=names.get(_group(first.get("model_group")), _group(first.get("model_group"))),
+                sale_date=_text(first.get("sale_date")),
+                vacant=bool(first.get("vacant_sale") or False),
+                checks=[str(x) for x in rows["check"] if x != "excluded"],
+                price=price,
+                price_per_area=_num(c.get("price_per_area")) if len(cluster) else None,
+                median=_num(c.get("median")) if len(cluster) else None,
+                ratio=_num(c.get("relative_ratio")) if len(cluster) else None,
+                count=int(c["count"]) if len(cluster) and _num(c.get("count")) is not None else None,
+                pattern=_text(c.get("pattern")) if len(cluster) else None,
+                rules=_text(c.get("rules")) if len(cluster) else None,
+                second_look=bool(len(cluster) and _num(c.get("scrutiny_pass")) == 2),
+                status="kept" if mark and mark.action == "keep" else "excluded" if mark else "undecided",
+                note=mark.note if mark else "",
+            )
+        )
+    # Furthest from their group first; then the rest.
+    out.sort(key=lambda i: (i.ratio is None, -abs(_log(i.ratio)) if i.ratio else 0, i.key_sale))
+    return out
+
+
+def _log(x: float) -> float:
+    import math
+
+    return math.log(x) if x > 0 else -50.0
+
+
+def review(
+    project,
+    project_dir: Path,
+    group: str | None = None,
+    check: str | None = None,
+    status: str | None = None,
+    offset: int = 0,
+    limit: int = 100,
+) -> ReviewPage:
+    items = _items(project, project_dir)
+    groups = sorted({(i.model_group, i.group_name) for i in items}, key=lambda x: x[1])
+    picked = [
+        i
+        for i in items
+        if (not group or i.model_group == group)
+        and (not check or check in i.checks)
+        and (not status or i.status == status)
+    ]
+    v = view(project, project_dir)
+    return ReviewPage(
+        items=picked[offset : offset + limit],
+        total=len(picked),
+        all=len(items),
+        undecided=sum(1 for i in items if i.status == "undecided"),
+        kept=sum(1 for i in items if i.status == "kept"),
+        excluded=sum(1 for i in items if i.status == "excluded"),
+        groups=[Choice(value=g, label=n) for g, n in groups],
+        stale=v.stale,
+        unit="sqft" if project.units == "imperial" else "sqm",
+    )
+
+
+def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
+    import pandas as pd
+
+    item = next((i for i in _items(project, project_dir) if i.key_sale == key_sale), None)
+    if item is None:
+        raise LookupError(key_sale)
+    r = _review(project_dir)
+    row = r[r["key_sale"] == key_sale].iloc[0]
+    unit = "sqft" if project.units == "imperial" else "sqm"
+    area = _num(row.get(f"land_area_{unit}" if item.vacant else f"bldg_area_finished_{unit}"))
+    members: list[Member] = []
+    path = out_dir(project_dir) / "members.parquet"
+    ss = r.loc[(r["key_sale"] == key_sale) & (r["check"] == "cluster"), "ss_id"]
+    if path.is_file() and len(ss):
+        m = pd.read_parquet(path)
+        m = m[m["ss_id"].astype(str) == str(ss.iloc[0])]
+        for _, x in m.iterrows():
+            a = x.get(f"land_area_{unit}" if item.vacant else f"bldg_area_finished_{unit}")
+            members.append(
+                Member(
+                    key_sale=str(x["key_sale"]),
+                    address=_text(x.get("address")),
+                    price_per_area=_num(x.get("price_per_area")),
+                    area=_num(a),
+                    sale_date=_text(x.get("sale_date")),
+                    flagged=bool(x.get("flagged")),
+                    latitude=_num(x.get("latitude")),
+                    longitude=_num(x.get("longitude")),
+                )
+            )
+        members.sort(key=lambda x: (x.price_per_area is None, x.price_per_area or 0))
+    year = _num(row.get("bldg_year_built"))
+    return SaleDetail(
+        item=item,
+        area=area,
+        year_built=int(year) if year else None,
+        raw_price=_num(row.get("sale_price")),
+        members=members,
+        latitude=_num(row.get("latitude")),
+        longitude=_num(row.get("longitude")),
+    )
+
+
+def mark(project, key_sale: str, action: Literal["keep", "exclude"] | None, note: str) -> None:
+    """Keep a sale set aside (a note says why it's a market sale), exclude a sale, or undo either."""
+    if action is None:
+        project.clean.marks.pop(key_sale, None)
+        return
+    if action == "keep" and not note.strip():
+        raise ValueError("Say why it's a market sale: a note is needed to keep it.")
+    project.clean.marks[key_sale] = SaleMark(action=action, note=note.strip())
+
+
+# ---------- The step's state ----------
+
+
+class CleanView(BaseModel):
+    status: Literal["never", "running", "failed", "stopped", "done"]
+    job: bring_in.Job | None
+    receipt: CleanReceipt | None
+    stale: bool = Field(description="Something changed since it ran: the data, model groups, a call or a mark.")
+    blocked: list[str] = Field(description="What stops it running.")
+    accepted: bool
+
+
+def _ran(project_dir: Path) -> tuple[CleanReceipt | None, dict | None]:
+    base = out_dir(project_dir)
+    if not (base / "receipt.json").is_file():
+        return None, None
+    ran = (
+        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
+    )
+    return CleanReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+
+
+def current_hash(project, project_dir: Path) -> str:
+    return settings_hash(_settings(project_dir), project)
+
+
+def view(project, project_dir: Path) -> CleanView:
+    r, ran = _ran(project_dir)
+    j = bring_in.job(project.id, MODULE)
+    now = current_hash(project, project_dir)
+    stale = bool(r and ran and ran.get("hash") != now)
+    blocked = []
+    a = assemble.view(project, project_dir)
+    if a.receipt is None or a.stale or not _look(project_dir, "sales-hydrated").is_file():
+        blocked.append("Write step 2 first (Model groups): this starts from its hand-off.")
+    return CleanView(
+        status=j.status if j else ("done" if r else "never"),
+        job=j,
+        receipt=r,
+        stale=stale,
+        blocked=blocked,
+        accepted=bool(r and not stale and project.accepted.get(MODULE) == now),
+    )
+
+
+def start(project, project_dir: Path) -> None:
+    v = view(project, project_dir)
+    if v.blocked:
+        raise ValueError(v.blocked[0])
+    bring_in.start(project.id, project_dir, MODULE)
+
+
+def accept(project, project_dir: Path) -> None:
+    v = view(project, project_dir)
+    if v.receipt is None or v.stale:
+        raise ValueError("Check sales again first: something changed since it ran.")
+    project.accepted[MODULE] = current_hash(project, project_dir)
+
+
+if __name__ == "__main__":
+    from oakbox.net import use_system_certificates
+
+    use_system_certificates()
+    try:
+        run(sys.argv[1])
+    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
+        import traceback
+
+        traceback.print_exc()
+        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        sys.exit(1)

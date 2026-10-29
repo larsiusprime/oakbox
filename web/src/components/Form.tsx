@@ -132,12 +132,14 @@ export function CheckList<V extends string>(props: {
 export function Tick(props: {
   value?: string;
   isSelected?: boolean;
+  isDisabled?: boolean;
   onChange?: (v: boolean) => void;
   children: React.ReactNode;
 }) {
   return (
     <Checkbox
       className="tick"
+      {...(props.isDisabled ? { isDisabled: true } : {})}
       {...(props.value !== undefined ? { value: props.value } : {})}
       {...(props.isSelected !== undefined ? { isSelected: props.isSelected } : {})}
       {...(props.onChange ? { onChange: props.onChange } : {})}

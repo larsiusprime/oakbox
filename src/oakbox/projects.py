@@ -32,6 +32,8 @@ from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
+from oakbox import clean as clean_settings
+from oakbox.clean import CleanState
 from oakbox.datafiles import DataFile, Rule, clean_calc, data_load, overlay_distance, rule_fields, rule_filter
 from oakbox.enrichments import Enrichments
 from oakbox.enrichments import settings as enrich_settings
@@ -167,6 +169,7 @@ class Project(BaseModel):
         default=None, description="How model groups were started; None: not yet."
     )
     enrich: Enrichments | None = Field(default=None, description="Enrichments (F3e); None: the step not shown yet.")
+    clean: CleanState = Field(default_factory=CleanState, description="Step 3, Check sales: its calls (F6).")
 
     @model_validator(mode="before")
     @classmethod
@@ -332,7 +335,12 @@ def _classification(project: Project) -> dict:
 
 
 def base_settings(project: Project) -> dict:
-    """What a project writes so far: the locality, the valuation date, and each data file's data.load entry."""
+    """What a project writes: the locality, the valuation date, each data file's data.load entry, model groups,
+    and step 3's calls."""
+    return clean_settings.merge(_base(project), clean_settings.settings(project))
+
+
+def _base(project: Project) -> dict:
     return {
         "__generated_by": "OAK box. Edit the project in OAK box rather than this file.",
         "locality": {
@@ -551,6 +559,7 @@ def write_settings(project: Project) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     settings = base_settings(project)
     path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+    clean_settings.write_marks(project, project_dir(project.id))
     return path
 
 

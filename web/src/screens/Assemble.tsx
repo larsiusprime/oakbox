@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay, Popover } from "react-aria-components";
+import { navigate } from "../App";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { Tick } from "../components/Form";
 import { t } from "../strings";
@@ -22,7 +23,7 @@ function size(bytes: number): string {
   return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1e3))} KB`;
 }
 
-function useAssemble(projectId: string) {
+export function useAssemble(projectId: string) {
   return useQuery({
     queryKey: ["assemble", projectId],
     queryFn: async () =>
@@ -53,7 +54,10 @@ export function RunBar({
     },
     onSuccess: (data, what) => {
       queryClient.setQueryData(["assemble", projectId], data);
-      if (what === "accept") setOpen(false);
+      if (what === "accept") {
+        setOpen(false);
+        navigate({ name: "project", id: projectId, tab: "sales" });
+      }
     },
   });
   const formats = useMutation({

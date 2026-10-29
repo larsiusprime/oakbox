@@ -33,12 +33,12 @@ export function useAccepted(projectId: string): boolean {
   return useBringIn(projectId).data?.accepted ?? false;
 }
 
-function clock(seconds: number): string {
+export function clock(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-function when(iso: string): string {
+export function when(iso: string): string {
   const d = new Date(iso);
   const today = new Date().toDateString() === d.toDateString();
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -490,7 +490,7 @@ export function band(bands: number[] | null | undefined, i: number): string {
 
 /** The step that's running, in detail: what it's doing, how far through, how long it's taken, that the run is
  * still alive (it says so every 2 seconds), and Skip for a step that can be left out. */
-function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
+export function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
   const skipping = job.part !== null && job.skipping.includes(job.part);
   // Two missed heartbeats and more: it may be stuck (a frozen process says nothing at all).
   const silent = job.quiet > 10;

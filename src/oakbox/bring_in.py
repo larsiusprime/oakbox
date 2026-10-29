@@ -95,9 +95,18 @@ class Receipt(BaseModel):
     enrichments: list[EnrichResult] = Field(default_factory=list, description="Public data (F3e), as it went.")
 
 
+# Parts of data.process the clean stage reads (step 3): they don't change what Bring in data does.
+CLEAN_PROCESS = ("fill", "time_adjustment", "collapse_sparse_categories")
+
+
 def settings_key(settings: dict) -> dict:
     """The parts of the settings this step depends on."""
-    return {k: settings.get(k) for k in ("data", "field_classification", "locality")}
+    key = {k: settings.get(k) for k in ("data", "field_classification", "locality")}
+    data = key["data"]
+    if isinstance(data, dict) and isinstance(data.get("process"), dict):
+        process = {k: v for k, v in data["process"].items() if k not in CLEAN_PROCESS}
+        key["data"] = {**data, "process": process}
+    return key
 
 
 def settings_hash(settings: dict) -> str:

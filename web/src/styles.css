@@ -4296,3 +4296,284 @@ tr.bi-kept > td {
 .vals-tbl tbody tr:nth-child(even) > td {
   background: #f4f4f4;
 }
+
+/* Step 3, Check sales (SPEC F6) */
+.cs-card {
+  max-width: 62rem;
+}
+.cs-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.cs-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.cs-head .tick {
+  font-weight: 600;
+}
+.cs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+  align-items: end;
+}
+.cs-row.bi-warn {
+  align-items: center;
+}
+.cs-text {
+  margin: 0;
+  max-width: 58rem;
+}
+.cs-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.cs-notices {
+  margin: 0.3rem 0 0 1.1rem;
+  padding: 0;
+}
+.cs-bars {
+  display: flex;
+  gap: 3px;
+  height: 5rem;
+  align-items: stretch;
+}
+.cs-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+}
+.cs-bar i {
+  display: block;
+  background: #7fa3d9;
+  border-radius: 2px 2px 0 0;
+  min-height: 1px;
+}
+.cs-bar i.out {
+  background: #d9dde3;
+}
+.cs-tbl {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.86rem;
+}
+.cs-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.bi .cs-tbl tbody tr:nth-child(even) :where(td) {
+  background: #f6f6f6;
+}
+.bi .cs-tbl tbody tr.cs-self :where(td) {
+  background: #fdeaea;
+}
+.bi .cs-tbl tbody tr.cs-muted :where(td) {
+  color: var(--muted);
+}
+.cs-checks {
+  display: grid;
+  gap: 0.2rem;
+}
+.cs-check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+.cs-receipt {
+  display: grid;
+  gap: 0.85rem;
+}
+.cs-stale .cs-card {
+  opacity: 0.6;
+}
+.cs-meter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  align-items: baseline;
+  border: 1px solid var(--rule);
+  background: #f3f8f4;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  max-width: 62rem;
+  box-sizing: border-box;
+}
+.cs-meter .wiz-ok {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.cs-funnel {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.9rem;
+}
+.cs-fl {
+  display: grid;
+  grid-template-columns: 1.2rem 5rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+.cs-fl .cs-op {
+  color: var(--muted);
+  text-align: center;
+}
+.cs-fl .cs-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cs-fl.tot {
+  font-weight: 700;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.15rem;
+}
+.cs-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.6rem;
+}
+.cs-chart {
+  margin: 0;
+  border: 1px solid #e3e3e3;
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  display: grid;
+  gap: 0.2rem;
+}
+.cs-curve {
+  width: 100%;
+  height: 4.5rem;
+  display: block;
+}
+.cs-chart-foot {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+.cs-chart .wiz-link {
+  justify-self: start;
+}
+.cs-list-plain {
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+.cs-review {
+  display: grid;
+  gap: 0.6rem;
+}
+.cs-filters {
+  display: flex;
+  gap: 0.4rem 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cs-split {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  gap: 0.8rem;
+  align-items: start;
+}
+.cs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  max-height: 70vh;
+  overflow: auto;
+}
+.cs-item {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-bottom: 1px solid #eee;
+  background: transparent;
+  cursor: pointer;
+}
+.cs-item:hover {
+  background: #f4f7fc;
+}
+.cs-item.sel {
+  background: #e3ecfa;
+}
+.cs-more {
+  padding: 0.4rem 0.55rem;
+}
+.cs-pill {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  border: 1px solid var(--rule);
+  background: #f4f4f4;
+  margin-right: 0.25rem;
+}
+.cs-pill.hi {
+  background: #fde8e8;
+  border-color: #f3b4b4;
+}
+.cs-pill.lo {
+  background: #e8f0fd;
+  border-color: #b4c9f3;
+}
+.cs-pill.kept {
+  background: #e7f5ec;
+  border-color: #a6d8b8;
+}
+.cs-pill.excluded {
+  background: #eee;
+  border-color: #bbb;
+}
+.cs-detail h3 {
+  font-size: 1rem;
+}
+.cs-why {
+  margin: 0;
+  line-height: 1.45;
+}
+.cs-dots {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.cs-note-field {
+  display: block;
+}
+.cs-note {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.6rem;
+  border: 1px solid var(--well-edge);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.45rem;
+  font: inherit;
+  font-size: 0.86rem;
+}
+.cs-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cs-receipt > .cs-row {
+  max-width: 62rem;
+}
+.cs > .bi-warn {
+  max-width: 62rem;
+  box-sizing: border-box;
+}

@@ -3573,6 +3573,520 @@
     }
    }
   },
+  "/api/projects/{project_id}/clean": {
+   "get": {
+    "summary": "Clean State",
+    "description": "Ready, running, or the receipt of the last run, and whether it's out of date.",
+    "operationId": "clean_state_api_projects__project_id__clean_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/setup": {
+   "get": {
+    "summary": "Clean Setup",
+    "description": "The calls before running, each with its default and what it does in numbers.",
+    "operationId": "clean_setup_api_projects__project_id__clean_setup_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "summary": "Clean Change",
+    "description": "Change a call. Proposals are written down at the first change, so the settings say them all.",
+    "operationId": "clean_change_api_projects__project_id__clean_setup_patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CleanPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/run": {
+   "post": {
+    "summary": "Clean Run",
+    "description": "Check sales: notebook 2's clean stage, in a process of its own.",
+    "operationId": "clean_run_api_projects__project_id__clean_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/stop": {
+   "post": {
+    "summary": "Clean Stop",
+    "operationId": "clean_stop_api_projects__project_id__clean_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/accept": {
+   "post": {
+    "summary": "Clean Accept",
+    "description": "Looks right: step 3 is done.",
+    "operationId": "clean_accept_api_projects__project_id__clean_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/show": {
+   "post": {
+    "summary": "Clean Show",
+    "description": "Show what it wrote in the file manager: notebook 2's output, a group's time adjustment schedule, or the\nsales scrutiny reports.",
+    "operationId": "clean_show_api_projects__project_id__clean_show_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "what",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "output",
+        "schedule",
+        "scrutiny"
+       ],
+       "type": "string",
+       "default": "output",
+       "title": "What"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/review": {
+   "get": {
+    "summary": "Clean Review",
+    "description": "The sales set aside, furthest from their group first; filtered by model group, check and status.",
+    "operationId": "clean_review_api_projects__project_id__clean_review_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     },
+     {
+      "name": "check",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Check"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "",
+        "undecided",
+        "kept",
+        "excluded"
+       ],
+       "type": "string",
+       "default": "",
+       "title": "Status"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 0,
+       "title": "Offset"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 100,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReviewPage"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/review/{key_sale}": {
+   "get": {
+    "summary": "Clean Sale",
+    "description": "One sale set aside: its numbers, and the sales it was compared with.",
+    "operationId": "clean_sale_api_projects__project_id__clean_review__key_sale__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key_sale",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key Sale"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SaleDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/marks/{key_sale}": {
+   "put": {
+    "summary": "Clean Mark",
+    "description": "Keep a sale set aside (with a note), exclude a sale, or undo either: it applies on the next run.",
+    "operationId": "clean_mark_api_projects__project_id__clean_marks__key_sale__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key_sale",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key Sale"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MarkBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/dictionary": {
    "get": {
     "summary": "Dictionary",
@@ -4204,6 +4718,512 @@
     ],
     "title": "Check"
    },
+   "Choice": {
+    "properties": {
+     "value": {
+      "type": "string",
+      "title": "Value"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     }
+    },
+    "type": "object",
+    "required": [
+     "value",
+     "label"
+    ],
+    "title": "Choice"
+   },
+   "CleanPatch": {
+    "properties": {
+     "sales_from": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sales From"
+     },
+     "vacant_from": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vacant From"
+     },
+     "time_adjust": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Time Adjust"
+     },
+     "period": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "M",
+         "Q"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "checks": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "boolean"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Checks"
+     },
+     "collapse": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Collapse"
+     },
+     "collapse_sales_min": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Collapse Sales Min"
+     },
+     "collapse_univ_min": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Collapse Univ Min"
+     },
+     "fill": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FillChange"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "title": "CleanPatch",
+    "description": "Only the calls named change; null resets a year to the default."
+   },
+   "CleanReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "start": {
+      "type": "integer",
+      "title": "Start"
+     },
+     "used": {
+      "type": "integer",
+      "title": "Used"
+     },
+     "set_aside": {
+      "type": "integer",
+      "title": "Set Aside",
+      "description": "Sales scrutiny set aside, kept or not: to look at."
+     },
+     "funnel": {
+      "items": {
+       "$ref": "#/components/schemas/FunnelLine"
+      },
+      "type": "array",
+      "title": "Funnel"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/GroupResult"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "filled": {
+      "items": {
+       "$ref": "#/components/schemas/Filled"
+      },
+      "type": "array",
+      "title": "Filled"
+     },
+     "written": {
+      "items": {
+       "$ref": "#/components/schemas/Written"
+      },
+      "type": "array",
+      "title": "Written"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "start",
+     "used",
+     "set_aside",
+     "funnel",
+     "groups",
+     "filled",
+     "written",
+     "notes"
+    ],
+    "title": "CleanReceipt"
+   },
+   "CleanSetup": {
+    "properties": {
+     "valuation_year": {
+      "type": "integer",
+      "title": "Valuation Year"
+     },
+     "default_from": {
+      "type": "integer",
+      "title": "Default From"
+     },
+     "sales_from": {
+      "type": "integer",
+      "title": "Sales From"
+     },
+     "vacant_from": {
+      "type": "integer",
+      "title": "Vacant From"
+     },
+     "years": {
+      "items": {
+       "$ref": "#/components/schemas/YearCount"
+      },
+      "type": "array",
+      "title": "Years"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "description": "Valid sales from Data."
+     },
+     "in_window": {
+      "type": "integer",
+      "title": "In Window"
+     },
+     "time_adjust": {
+      "type": "boolean",
+      "title": "Time Adjust"
+     },
+     "period": {
+      "type": "string",
+      "enum": [
+       "M",
+       "Q"
+      ],
+      "title": "Period"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/GroupSetup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "fills": {
+      "items": {
+       "$ref": "#/components/schemas/FillRow"
+      },
+      "type": "array",
+      "title": "Fills"
+     },
+     "auto": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Auto",
+      "description": "What OpenAVMKit always fills itself, with how many."
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location",
+      "description": "The location in use; \"\" none."
+     },
+     "location_proposed": {
+      "type": "string",
+      "title": "Location Proposed"
+     },
+     "locations": {
+      "items": {
+       "$ref": "#/components/schemas/Choice"
+      },
+      "type": "array",
+      "title": "Locations"
+     },
+     "similar": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Similar",
+      "description": "The numbers sales are compared on, by name."
+     },
+     "checks": {
+      "additionalProperties": {
+       "type": "boolean"
+      },
+      "type": "object",
+      "title": "Checks"
+     },
+     "deed": {
+      "type": "boolean",
+      "title": "Deed",
+      "description": "A deed ID is loaded (the same-deed check needs one)."
+     },
+     "collapse": {
+      "type": "boolean",
+      "title": "Collapse"
+     },
+     "collapse_sales_min": {
+      "type": "integer",
+      "title": "Collapse Sales Min"
+     },
+     "collapse_univ_min": {
+      "type": "integer",
+      "title": "Collapse Univ Min"
+     },
+     "collapse_fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Collapse Fields"
+     },
+     "notices": {
+      "items": {
+       "$ref": "#/components/schemas/Notice"
+      },
+      "type": "array",
+      "title": "Notices"
+     }
+    },
+    "type": "object",
+    "required": [
+     "valuation_year",
+     "default_from",
+     "sales_from",
+     "vacant_from",
+     "years",
+     "total",
+     "in_window",
+     "time_adjust",
+     "period",
+     "groups",
+     "fills",
+     "auto",
+     "location",
+     "location_proposed",
+     "locations",
+     "similar",
+     "checks",
+     "deed",
+     "collapse",
+     "collapse_sales_min",
+     "collapse_univ_min",
+     "collapse_fields",
+     "notices"
+    ],
+    "title": "CleanSetup"
+   },
+   "CleanState": {
+    "properties": {
+     "sales_from": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sales From",
+      "description": "Improved sales from this year on; None: the default."
+     },
+     "vacant_from": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vacant From",
+      "description": "Vacant sales from this year on; None: the default."
+     },
+     "time_adjust": {
+      "type": "boolean",
+      "title": "Time Adjust",
+      "default": true
+     },
+     "period": {
+      "type": "string",
+      "enum": [
+       "M",
+       "Q"
+      ],
+      "title": "Period",
+      "description": "Months or quarters to start from (OpenAVMKit goes coarser).",
+      "default": "Q"
+     },
+     "fills": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/Fill"
+      },
+      "type": "object",
+      "title": "Fills",
+      "description": "Per field with blanks; written once proposed."
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location",
+      "description": "Where \"near\" is for scrutiny and the equity clusters; \"\" none; None: not decided."
+     },
+     "checks": {
+      "additionalProperties": {
+       "type": "boolean"
+      },
+      "type": "object",
+      "title": "Checks",
+      "description": "cluster and the heuristics; missing: on."
+     },
+     "collapse": {
+      "type": "boolean",
+      "title": "Collapse",
+      "default": false
+     },
+     "collapse_fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Collapse Fields",
+      "description": "Categories folded when collapse is on."
+     },
+     "collapse_sales_min": {
+      "type": "integer",
+      "title": "Collapse Sales Min",
+      "default": 5
+     },
+     "collapse_univ_min": {
+      "type": "integer",
+      "title": "Collapse Univ Min",
+      "default": 20
+     },
+     "marks": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/SaleMark"
+      },
+      "type": "object",
+      "title": "Marks",
+      "description": "key_sale -> kept or excluded by the user."
+     }
+    },
+    "type": "object",
+    "required": [
+     "sales_from",
+     "vacant_from",
+     "time_adjust",
+     "period",
+     "fills",
+     "location",
+     "checks",
+     "collapse",
+     "collapse_fields",
+     "collapse_sales_min",
+     "collapse_univ_min",
+     "marks"
+    ],
+    "title": "CleanState"
+   },
    "CleanStep-Input": {
     "properties": {
      "kind": {
@@ -4290,6 +5310,68 @@
     ],
     "title": "CleanStep",
     "description": "One clean-up step on an ID, so IDs written differently in two files match (F3d reconcile)."
+   },
+   "CleanView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CleanReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something changed since it ran: the data, model groups, a call or a mark."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "blocked",
+     "accepted"
+    ],
+    "title": "CleanView"
    },
    "Column": {
     "properties": {
@@ -6146,6 +7228,151 @@
     ],
     "title": "FilePath"
    },
+   "Fill": {
+    "properties": {
+     "method": {
+      "type": "string",
+      "enum": [
+       "median",
+       "mean",
+       "mode",
+       "zero",
+       "min",
+       "max",
+       "leave"
+      ],
+      "title": "Method",
+      "description": "leave: no fill (the field stays blank)."
+     },
+     "scope": {
+      "type": "string",
+      "enum": [
+       "all",
+       "impr",
+       "vacant"
+      ],
+      "title": "Scope",
+      "description": "Every parcel, or only improved / only vacant ones.",
+      "default": "all"
+     }
+    },
+    "type": "object",
+    "required": [
+     "method",
+     "scope"
+    ],
+    "title": "Fill"
+   },
+   "FillChange": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "method": {
+      "type": "string",
+      "enum": [
+       "median",
+       "mean",
+       "mode",
+       "zero",
+       "min",
+       "max",
+       "leave"
+      ],
+      "title": "Method"
+     },
+     "scope": {
+      "type": "string",
+      "enum": [
+       "all",
+       "impr",
+       "vacant"
+      ],
+      "title": "Scope",
+      "default": "all"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "method"
+    ],
+    "title": "FillChange"
+   },
+   "FillRow": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "blanks": {
+      "type": "integer",
+      "title": "Blanks"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "fill": {
+      "$ref": "#/components/schemas/Fill"
+     },
+     "proposed": {
+      "$ref": "#/components/schemas/Fill"
+     },
+     "stats": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Stats",
+      "description": "median, mean, mode, min, max of the values there are."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "blanks",
+     "parcels",
+     "fill",
+     "proposed",
+     "stats"
+    ],
+    "title": "FillRow"
+   },
+   "Filled": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "how": {
+      "type": "string",
+      "title": "How"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "count",
+     "how"
+    ],
+    "title": "Filled"
+   },
    "Funnel": {
     "properties": {
      "file": {
@@ -6186,6 +7413,48 @@
      "note"
     ],
     "title": "Funnel"
+   },
+   "FunnelLine": {
+    "properties": {
+     "sign": {
+      "type": "string",
+      "enum": [
+       "",
+       "-",
+       "+",
+       "="
+      ],
+      "title": "Sign"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "check": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check",
+      "description": "The check whose sales See them shows."
+     }
+    },
+    "type": "object",
+    "required": [
+     "sign",
+     "count",
+     "text",
+     "check"
+    ],
+    "title": "FunnelLine"
    },
    "GroupCheck": {
     "properties": {
@@ -6326,6 +7595,137 @@
      "sold"
     ],
     "title": "GroupMove"
+   },
+   "GroupResult": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "in_window": {
+      "type": "integer",
+      "title": "In Window"
+     },
+     "set_aside": {
+      "type": "integer",
+      "title": "Set Aside"
+     },
+     "used": {
+      "type": "integer",
+      "title": "Used"
+     },
+     "clusters": {
+      "type": "integer",
+      "title": "Clusters"
+     },
+     "per_year": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Year",
+      "description": "Price change a year, percent; None: no time adjustment."
+     },
+     "first": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First"
+     },
+     "last": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last"
+     },
+     "curve": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Curve",
+      "description": "The price index over time (first = 1), about 40 points."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "in_window",
+     "set_aside",
+     "used",
+     "clusters",
+     "per_year",
+     "first",
+     "last",
+     "curve"
+    ],
+    "title": "GroupResult"
+   },
+   "GroupSetup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Valid sales in the window."
+     },
+     "per_year": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Year",
+      "description": "Price change a year found last run, percent; None: none or not run."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "sales",
+     "per_year"
+    ],
+    "title": "GroupSetup"
    },
    "GroupStats": {
     "properties": {
@@ -7291,6 +8691,126 @@
     "title": "MapView",
     "description": "Where the parcels are, for the map: a sample of their centres, and the polar coordinates' centre."
    },
+   "MarkBody": {
+    "properties": {
+     "action": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "keep",
+         "exclude"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Action",
+      "description": "null: undo."
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "MarkBody"
+   },
+   "Member": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "price_per_area": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per Area"
+     },
+     "area": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area"
+     },
+     "sale_date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale Date"
+     },
+     "flagged": {
+      "type": "boolean",
+      "title": "Flagged"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "address",
+     "price_per_area",
+     "area",
+     "sale_date",
+     "flagged",
+     "latitude",
+     "longitude"
+    ],
+    "title": "Member"
+   },
    "MissingParcels": {
     "properties": {
      "kind": {
@@ -7527,6 +9047,32 @@
      "columns"
     ],
     "title": "NotLoaded"
+   },
+   "Notice": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "link": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Link",
+      "description": "Where it's fixed: a tab and step, 'fields:sales'."
+     }
+    },
+    "type": "object",
+    "required": [
+     "text",
+     "link"
+    ],
+    "title": "Notice"
    },
    "NumberFormat-Input": {
     "properties": {
@@ -8672,6 +10218,10 @@
       ],
       "description": "Enrichments (F3e); None: the step not shown yet."
      },
+     "clean": {
+      "$ref": "#/components/schemas/CleanState",
+      "description": "Step 3, Check sales: its calls (F6)."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -8702,6 +10252,7 @@
      "assemble_exports",
      "groups_start",
      "enrich",
+     "clean",
      "accepted"
     ],
     "title": "Project"
@@ -9112,6 +10663,248 @@
     "title": "Repeats",
     "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
    },
+   "ReviewItem": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "model_group": {
+      "type": "string",
+      "title": "Model Group"
+     },
+     "group_name": {
+      "type": "string",
+      "title": "Group Name"
+     },
+     "sale_date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale Date"
+     },
+     "vacant": {
+      "type": "boolean",
+      "title": "Vacant"
+     },
+     "checks": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Checks",
+      "description": "Every check that flagged it."
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price",
+      "description": "Time-adjusted where time adjustment ran."
+     },
+     "price_per_area": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per Area"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median",
+      "description": "Its group's median price per area."
+     },
+     "ratio": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ratio",
+      "description": "Price per area over the group's median."
+     },
+     "count": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Count",
+      "description": "Sales in the group it was compared with."
+     },
+     "pattern": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pattern"
+     },
+     "rules": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rules"
+     },
+     "second_look": {
+      "type": "boolean",
+      "title": "Second Look",
+      "description": "Found once the sale that hid it was set aside."
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "undecided",
+       "kept",
+       "excluded"
+      ],
+      "title": "Status"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "key",
+     "address",
+     "model_group",
+     "group_name",
+     "sale_date",
+     "vacant",
+     "checks",
+     "price",
+     "price_per_area",
+     "median",
+     "ratio",
+     "count",
+     "pattern",
+     "rules",
+     "second_look",
+     "status",
+     "note"
+    ],
+    "title": "ReviewItem"
+   },
+   "ReviewPage": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/ReviewItem"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "description": "Matching the filters."
+     },
+     "all": {
+      "type": "integer",
+      "title": "All",
+      "description": "Every sale set aside."
+     },
+     "undecided": {
+      "type": "integer",
+      "title": "Undecided"
+     },
+     "kept": {
+      "type": "integer",
+      "title": "Kept"
+     },
+     "excluded": {
+      "type": "integer",
+      "title": "Excluded"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/Choice"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Marks changed since the run: they apply on the next Check sales."
+     },
+     "unit": {
+      "type": "string",
+      "enum": [
+       "sqft",
+       "sqm"
+      ],
+      "title": "Unit",
+      "description": "What prices are per: square feet or square metres."
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "all",
+     "undecided",
+     "kept",
+     "excluded",
+     "groups",
+     "stale",
+     "unit"
+    ],
+    "title": "ReviewPage"
+   },
    "Rows": {
     "properties": {
      "set": {
@@ -9393,6 +11186,87 @@
     ],
     "title": "Said"
    },
+   "SaleDetail": {
+    "properties": {
+     "item": {
+      "$ref": "#/components/schemas/ReviewItem"
+     },
+     "area": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Area",
+      "description": "Finished area (improved) or land area (vacant) it's priced per."
+     },
+     "year_built": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Year Built"
+     },
+     "raw_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Raw Price"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/Member"
+      },
+      "type": "array",
+      "title": "Members"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item",
+     "area",
+     "year_built",
+     "raw_price",
+     "members",
+     "latitude",
+     "longitude"
+    ],
+    "title": "SaleDetail"
+   },
    "SaleId": {
     "properties": {
      "file": {
@@ -9443,6 +11317,29 @@
      "check"
     ],
     "title": "SaleId"
+   },
+   "SaleMark": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "enum": [
+       "keep",
+       "exclude"
+      ],
+      "title": "Action"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "note"
+    ],
+    "title": "SaleMark"
    },
    "Sample": {
     "properties": {
@@ -11797,6 +13694,29 @@
      "bytes"
     ],
     "title": "Written"
+   },
+   "YearCount": {
+    "properties": {
+     "year": {
+      "type": "integer",
+      "title": "Year"
+     },
+     "improved": {
+      "type": "integer",
+      "title": "Improved"
+     },
+     "vacant": {
+      "type": "integer",
+      "title": "Vacant"
+     }
+    },
+    "type": "object",
+    "required": [
+     "year",
+     "improved",
+     "vacant"
+    ],
+    "title": "YearCount"
    }
   }
  }

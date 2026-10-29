@@ -25,6 +25,7 @@ from oakbox import (
     appsettings,
     assemble,
     bring_in,
+    clean,
     datafiles,
     enrichments,
     fields,
@@ -159,6 +160,32 @@ class WizardCustom(BaseModel):
     column: str | None = Field(default=None, description="None removes the field.")
     group: Literal["land", "building", "other"] = "other"
     type: Literal["category", "number"] = "category"
+
+
+class FillChange(BaseModel):
+    field: str
+    method: clean.FillMethod
+    scope: clean.FillScope = "all"
+
+
+class CleanPatch(BaseModel):
+    """Only the calls named change; null resets a year to the default."""
+
+    sales_from: int | None = None
+    vacant_from: int | None = None
+    time_adjust: bool | None = None
+    period: clean.Period | None = None
+    location: str | None = None
+    checks: dict[str, bool] | None = None
+    collapse: bool | None = None
+    collapse_sales_min: int | None = Field(default=None, ge=1)
+    collapse_univ_min: int | None = Field(default=None, ge=1)
+    fill: FillChange | None = None
+
+
+class MarkBody(BaseModel):
+    action: Literal["keep", "exclude"] | None = Field(description="null: undo.")
+    note: str = ""
 
 
 class AssembleExports(BaseModel):
@@ -1082,6 +1109,139 @@ def create_app() -> FastAPI:
         look = projects.project_dir(project_id) / "out" / "look"
         first = next(iter(sorted(look.glob("1-assemble-universe*"))), None)
         projects.show_file(first or look)
+
+    # ---------- Step 3, Check sales: notebook 2 (clean) ----------
+
+    def _clean_view(project: projects.Project) -> clean.CleanView:
+        return clean.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/clean")
+    def clean_state(project_id: str) -> clean.CleanView:
+        """Ready, running, or the receipt of the last run, and whether it's out of date."""
+        return _clean_view(_load(project_id))
+
+    @app.get("/api/projects/{project_id}/clean/setup")
+    def clean_setup(project_id: str) -> clean.CleanSetup:
+        """The calls before running, each with its default and what it does in numbers."""
+        project = _load(project_id)
+        blocked = _clean_view(project).blocked
+        if blocked:
+            raise HTTPException(409, blocked[0])
+        try:
+            return clean.setup(project, projects.project_dir(project_id))
+        except FileNotFoundError as e:
+            raise HTTPException(409, "Write step 2 first (Model groups): this starts from its hand-off.") from e
+
+    @app.patch("/api/projects/{project_id}/clean/setup")
+    def clean_change(project_id: str, body: CleanPatch) -> clean.CleanSetup:
+        """Change a call. Proposals are written down at the first change, so the settings say them all."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        c = project.clean
+        blocked = _clean_view(project).blocked
+        if blocked:
+            raise HTTPException(409, blocked[0])
+        try:
+            clean.decide(project, pdir)
+        except FileNotFoundError as e:
+            raise HTTPException(409, "Write step 2 first (Model groups): this starts from its hand-off.") from e
+        for name in body.model_fields_set:
+            value = getattr(body, name)
+            if name == "checks":
+                c.checks |= value or {}
+            elif name == "fill":
+                if value is not None:
+                    c.fills[value.field] = clean.Fill(method=value.method, scope=value.scope)
+            else:
+                setattr(c, name, value)
+        projects.save(project)
+        projects.write_settings(project)
+        return clean.setup(project, pdir)
+
+    @app.post("/api/projects/{project_id}/clean/run")
+    def clean_run(project_id: str) -> clean.CleanView:
+        """Check sales: notebook 2's clean stage, in a process of its own."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            clean.decide(project, pdir)
+        except FileNotFoundError as e:
+            raise HTTPException(409, "Write step 2 first (Model groups): this starts from its hand-off.") from e
+        projects.save(project)
+        projects.write_settings(project)
+        try:
+            clean.start(project, pdir)
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        return _clean_view(project)
+
+    @app.post("/api/projects/{project_id}/clean/stop")
+    def clean_stop(project_id: str) -> clean.CleanView:
+        bring_in.stop(project_id, clean.MODULE)
+        return _clean_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/clean/accept")
+    def clean_accept(project_id: str) -> clean.CleanView:
+        """Looks right: step 3 is done."""
+        project = _load(project_id)
+        try:
+            clean.accept(project, projects.project_dir(project_id))
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
+        projects.save(project)
+        return _clean_view(project)
+
+    @app.post("/api/projects/{project_id}/clean/show")
+    def clean_show(
+        project_id: str, what: Literal["output", "schedule", "scrutiny"] = "output", group: str = ""
+    ) -> None:
+        """Show what it wrote in the file manager: notebook 2's output, a group's time adjustment schedule, or the
+        sales scrutiny reports."""
+        _load(project_id)
+        out = projects.project_dir(project_id) / "out"
+        if what == "schedule":
+            projects.show_file(out / "time_adjustment" / group / "time_adjustment_schedule.csv")
+        elif what == "scrutiny":
+            projects.show_file(out / "sales_scrutiny" / "flags.parquet")
+        else:
+            first = next(iter(sorted((out / "look").glob("2-clean-universe*"))), None)
+            projects.show_file(first or out / "look")
+
+    @app.get("/api/projects/{project_id}/clean/review")
+    def clean_review(
+        project_id: str,
+        group: str = "",
+        check: str = "",
+        status: Literal["", "undecided", "kept", "excluded"] = "",
+        offset: int = 0,
+        limit: int = 100,
+    ) -> clean.ReviewPage:
+        """The sales set aside, furthest from their group first; filtered by model group, check and status."""
+        project = _load(project_id)
+        return clean.review(
+            project, projects.project_dir(project_id), group or None, check or None, status or None, offset, limit
+        )
+
+    @app.get("/api/projects/{project_id}/clean/review/{key_sale}")
+    def clean_sale(project_id: str, key_sale: str) -> clean.SaleDetail:
+        """One sale set aside: its numbers, and the sales it was compared with."""
+        project = _load(project_id)
+        try:
+            return clean.detail(project, projects.project_dir(project_id), key_sale)
+        except LookupError as e:
+            raise HTTPException(404, f"No sale {key_sale} was set aside.") from e
+
+    @app.put("/api/projects/{project_id}/clean/marks/{key_sale}")
+    def clean_mark(project_id: str, key_sale: str, body: MarkBody) -> clean.CleanView:
+        """Keep a sale set aside (with a note), exclude a sale, or undo either: it applies on the next run."""
+        project = _load(project_id)
+        try:
+            clean.mark(project, key_sale, body.action, body.note)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        projects.write_settings(project)
+        return _clean_view(project)
 
     @app.get("/api/dictionary")
     def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
