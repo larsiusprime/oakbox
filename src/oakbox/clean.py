@@ -38,6 +38,7 @@ NO_PARCEL_NAME = "No parcel (not in the parcel universe)"
 KEEP_FILE = "in/oakbox/keep.csv"
 EXCLUDE_FILE = "in/oakbox/exclude.csv"
 HEURISTICS = (
+    "nominal_price",
     "dupe_deed_date",
     "dupe_date_price",
     "false_vacant",
@@ -126,6 +127,7 @@ class CleanState(BaseModel):
     collapse: bool = False
     collapse_fields: list[str] = Field(default_factory=list, description="Categories folded when collapse is on.")
     collapse_sales_min: int = 5
+    nominal_below: int = Field(default=1_000, description="A price under this is a nominal deed, not a price.")
     collapse_univ_min: int = 20
     marks: dict[str, SaleMark] = Field(default_factory=dict, description="key_sale -> kept or excluded by the user.")
     name_format: str | None = Field(
@@ -181,6 +183,7 @@ def settings(project) -> dict:
         "heuristics": {h: c.checks.get(h, True) for h in HEURISTICS},
         # Each sale set aside diagnosed as the five-pattern table reads; one fitting none is flagged, left in.
         "patterns": "strict",
+        "nominal_price": {"below": c.nominal_below},
     }
     pattern = names.pattern(project)
     if pattern:
@@ -380,6 +383,7 @@ class CleanSetup(BaseModel):
     year_built: bool = Field(default=False, description="Year built is loaded (the vacant / built checks).")
     collapse: bool
     collapse_sales_min: int
+    nominal_below: int = Field(default=1_000, description="A price under this is a nominal deed.")
     collapse_univ_min: int
     collapse_fields: list[str]
     folds: list[Fold] = Field(description="What would fold at the thresholds set, per field (when it's on).")
@@ -717,6 +721,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
         year_built="bldg_year_built" in sales or "bldg_year_built" in universe,
         collapse=c.collapse,
         collapse_sales_min=c.collapse_sales_min,
+        nominal_below=c.nominal_below,
         collapse_univ_min=c.collapse_univ_min,
         collapse_fields=collapse_fields,
         folds=folds(project, project_dir) if c.collapse else [],
@@ -805,6 +810,7 @@ WHAT = {
 }
 CHECK_WORDS = {
     "excluded": "excluded by you",
+    "nominal_price": "a nominal price (a $10 deed), not a price",
     "dupe_deed_date": "same deed, same day (a sale of several parcels)",
     "dupe_date_price": "same day, same price",
     "false_vacant": "sold as vacant, but the building is older than the sale",

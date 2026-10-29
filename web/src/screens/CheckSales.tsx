@@ -744,6 +744,7 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
     ...v.locations.map((l) => [l.value, l.label] as [string, string]),
   ];
   const checks: [string, string, string][] = [
+    ["nominal_price", s.scrutiny.checks.nominal, ""],
     ["cluster", s.scrutiny.checks.cluster, s.scrutiny.checks.clusterWhy],
     ["dupe_deed_date", s.scrutiny.checks.deed, v.deed ? s.scrutiny.checks.deedWhy : s.scrutiny.checks.noDeed],
     ["dupe_date_price", s.scrutiny.checks.datePrice, ""],
@@ -799,6 +800,14 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
               {label}
             </Tick>
             {why && <span className="wiz-from">{why}</span>}
+            {key === "nominal_price" && (
+              <NumberBox
+                key={`n${v.nominal_below}`}
+                label={s.scrutiny.checks.nominalBelow}
+                value={v.nominal_below}
+                onChange={(n) => set({ nominal_below: n })}
+              />
+            )}
           </div>
         ))}
       </div>

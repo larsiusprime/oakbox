@@ -1598,6 +1598,8 @@ export const t = {
         noDeed: "needs a deed ID: Data › Deeds",
         datePrice: "Same day, same price",
         vacant: "Sold as vacant, but the building is older than the sale",
+        nominal: "A nominal price (a $10 deed), not a price",
+        nominalBelow: "Under",
         builtAfter: "Sold as improved, but the building was built after the sale",
         noYear: "needs year built: Data",
         vacantPriced: "Sold as vacant, but priced like the improved sales near it",
@@ -1686,6 +1688,7 @@ export const t = {
         dupe_deed_date: "same deed, same day",
         dupe_date_price: "same day, same price",
         false_vacant: "vacant, building older",
+        nominal_price: "nominal price",
         built_after_sale: "built after the sale",
         vacant_priced_improved: "vacant, priced like improved",
         same_surname: "same surname",
@@ -1792,6 +1795,8 @@ export const t = {
       flagOnly: "flagged, still in",
       sellerBuyer: (seller: string, buyer: string) => `Seller ${seller} → buyer ${buyer}.`,
       details: {
+        nominal_price: (d: string) =>
+          `Sold for ${d}: a nominal price (a deed of gift, a transfer), not a market price.`,
         built_after_sale: (d: string) =>
           `Sold as improved, but the building was ${d}, after the sale: likely land when it sold.`,
         vacant_priced_improved: (d: string) => `Sold as vacant for ${d} nearby: likely there was a building.`,

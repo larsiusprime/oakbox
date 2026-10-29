@@ -2131,6 +2131,8 @@ export interface components {
             collapse?: boolean | null;
             /** Collapse Sales Min */
             collapse_sales_min?: number | null;
+            /** Nominal Below */
+            nominal_below?: number | null;
             /** Collapse Univ Min */
             collapse_univ_min?: number | null;
             fill?: components["schemas"]["FillChange"] | null;
@@ -2248,6 +2250,12 @@ export interface components {
             collapse: boolean;
             /** Collapse Sales Min */
             collapse_sales_min: number;
+            /**
+             * Nominal Below
+             * @description A price under this is a nominal deed.
+             * @default 1000
+             */
+            nominal_below: number;
             /** Collapse Univ Min */
             collapse_univ_min: number;
             /** Collapse Fields */
@@ -2332,6 +2340,12 @@ export interface components {
              * @default 5
              */
             collapse_sales_min: number;
+            /**
+             * Nominal Below
+             * @description A price under this is a nominal deed, not a price.
+             * @default 1000
+             */
+            nominal_below: number;
             /**
              * Collapse Univ Min
              * @default 20

@@ -197,6 +197,7 @@ class CleanPatch(BaseModel):
     checks: dict[str, bool] | None = None
     collapse: bool | None = None
     collapse_sales_min: int | None = Field(default=None, ge=1)
+    nominal_below: int | None = Field(default=None, ge=1)
     collapse_univ_min: int | None = Field(default=None, ge=1)
     fill: FillChange | None = None
 

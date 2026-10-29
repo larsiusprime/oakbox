@@ -5725,6 +5725,18 @@
       ],
       "title": "Collapse Sales Min"
      },
+     "nominal_below": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nominal Below"
+     },
      "collapse_univ_min": {
       "anyOf": [
        {
@@ -5978,6 +5990,12 @@
       "type": "integer",
       "title": "Collapse Sales Min"
      },
+     "nominal_below": {
+      "type": "integer",
+      "title": "Nominal Below",
+      "description": "A price under this is a nominal deed.",
+      "default": 1000
+     },
      "collapse_univ_min": {
       "type": "integer",
       "title": "Collapse Univ Min"
@@ -6029,6 +6047,7 @@
      "year_built",
      "collapse",
      "collapse_sales_min",
+     "nominal_below",
      "collapse_univ_min",
      "collapse_fields",
      "folds",
@@ -6139,6 +6158,12 @@
       "title": "Collapse Sales Min",
       "default": 5
      },
+     "nominal_below": {
+      "type": "integer",
+      "title": "Nominal Below",
+      "description": "A price under this is a nominal deed, not a price.",
+      "default": 1000
+     },
      "collapse_univ_min": {
       "type": "integer",
       "title": "Collapse Univ Min",
@@ -6191,6 +6216,7 @@
      "collapse",
      "collapse_fields",
      "collapse_sales_min",
+     "nominal_below",
      "collapse_univ_min",
      "marks",
      "name_format",

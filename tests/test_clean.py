@@ -39,6 +39,8 @@ def test_the_calls_are_openavmkit_settings():
     ss = s["analysis"]["sales_scrutiny"]
     # Nothing reaches modeling unseen: drops on, the user's keeps exempt, a second pass for hidden outliers.
     assert ss["drop"] == {"clusters": True, "heuristics": True} and ss["passes"] == 2
+    # Nominal prices (a $10 deed) are set aside, under 1,000 unless changed.
+    assert ss["heuristics"]["nominal_price"] and ss["nominal_price"] == {"below": 1000}
     assert (ss["keep_file"], ss["invalid_key_file"], ss["location"]) == (
         clean.KEEP_FILE,
         clean.EXCLUDE_FILE,
