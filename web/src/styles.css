@@ -2804,10 +2804,18 @@ a.row-title:hover {
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
   gap: 0.4rem 1.2rem;
 }
+/* A funnel: its lines share one grid (subgrid), the text column only as wide as the longest line, so "see them"
+   sits beside it, not at the far edge. */
 .bi-fn {
   display: grid;
-  gap: 0.1rem;
+  grid-template-columns: 1.2rem auto auto auto;
+  justify-content: start;
+  column-gap: 0.4rem;
+  row-gap: 0.1rem;
   align-content: start;
+}
+.bi-fn > * {
+  grid-column: 1 / -1;
 }
 .bi-file {
   color: var(--muted);
@@ -4411,11 +4419,15 @@ tr.bi-kept > td {
 }
 .cs-funnel {
   display: grid;
-  gap: 0.1rem;
+  grid-template-columns: 1.2rem auto auto auto;
+  justify-content: start;
+  column-gap: 0.5rem;
+  row-gap: 0.1rem;
   font-size: 0.9rem;
 }
 .cs-fl {
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: 1.2rem 5rem 1fr auto;
   gap: 0.5rem;
   align-items: baseline;
@@ -4852,4 +4864,11 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   display: block;
   font-size: 0.74rem;
   color: var(--muted);
+}
+/* The funnels' lines on their funnel's columns, where the web view can (an older one keeps each line's own). */
+@supports (grid-template-columns: subgrid) {
+  .bi-line,
+  .cs-fl {
+    grid-template-columns: subgrid;
+  }
 }
