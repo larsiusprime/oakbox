@@ -1214,6 +1214,8 @@ export const t = {
     viewRows: (n: number) => `View all ${n.toLocaleString()} rows`,
     fieldsTitle: "Fields",
     field: "Field",
+    fieldTip:
+      "Click a field, or anywhere on its row, for its values: how numbers spread, or every category with its count.",
     has: "Has it",
     summary: "Summary",
     from: "From",
@@ -1272,7 +1274,6 @@ export const t = {
         `${(below + above).toLocaleString()} outside the range shown (the lowest and highest 1%)`,
       zeros: (n: number) => `${n.toLocaleString()} zeros not shown`,
       log: "log scale",
-      button: "details",
       label: (field: string) => `Details of ${field}`,
       universe: "parcel universe",
       sales: "sales record",

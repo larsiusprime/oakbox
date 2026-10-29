@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, type Histogram, unwrap } from "../api/client";
@@ -8,8 +8,9 @@ import { type ValueSort, ValueTable } from "./ValueTable";
 
 const d = t.bringIn.detail;
 
-/** "details ▾" beside a field of the parcel universe or the sales record: a number's statistics, or every value
- * with its count (searchable). Notebook 1's "examine in ridiculous detail", one field at a time. */
+/** A field of the parcel universe or the sales record, as its own name: pressing it shows a number's statistics, or
+ * every value with its count (searchable). Notebook 1's "examine in ridiculous detail", one field at a time. Its row
+ * opens it too (see `openRow`), so one motif marks every field as inspectable. */
 export function FieldDetail({
   projectId,
   set,
@@ -22,9 +23,9 @@ export function FieldDetail({
   const [open, setOpen] = useState(false);
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button className="vals-button" aria-label={d.label(field)}>
-        {d.button}
-        <ChevronDown aria-hidden="true" size="0.85em" />
+      <Button className="fd-name" aria-label={d.label(field)}>
+        {field}
+        <Search aria-hidden="true" size="0.85em" className="fd-icon" />
       </Button>
       <Popover className="popover vals-popover" placement="bottom start">
         <Dialog className="vals-body" aria-label={d.label(field)}>
@@ -33,6 +34,13 @@ export function FieldDetail({
       </Popover>
     </DialogTrigger>
   );
+}
+
+/** A click anywhere on a field's row opens its details (not one inside the popover, whose clicks bubble through React). */
+export function openRow(e: React.MouseEvent<HTMLElement>) {
+  const target = e.target as HTMLElement;
+  if (!e.currentTarget.contains(target) || target.closest("button, a, input")) return;
+  e.currentTarget.querySelector<HTMLButtonElement>(".fd-name")?.click();
 }
 
 function Detail({ projectId, set, field }: { projectId: string; set: "universe" | "sales"; field: string }) {

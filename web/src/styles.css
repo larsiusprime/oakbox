@@ -3492,6 +3492,27 @@ a.row-title:hover {
 }
 
 /* ---------- A column's values, behind "N values ▾" ---------- */
+/* A field as its own name: the way into its details, on every row the same. */
+.fd-name {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.fd-name[data-hovered],
+.fd-name[data-focus-visible] {
+  text-decoration: underline;
+}
+.fd-icon {
+  flex: none;
+  opacity: 0.45;
+}
 .vals-button {
   display: inline-flex;
   margin-left: 0.4rem;
@@ -4884,4 +4905,15 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   .cs-fl {
     grid-template-columns: subgrid;
   }
+}
+
+/* Field rows open their details: after the zebra rules, so the hover wins. */
+.fd-tbl > tbody > tr:not(.bi-grp) {
+  cursor: pointer;
+}
+.fd-tbl > tbody > tr:not(.bi-grp):hover > td {
+  background: #eef3fb;
+}
+.fd-tbl > tbody > tr:not(.bi-grp):hover .fd-icon {
+  opacity: 1;
 }

@@ -11,8 +11,9 @@ import {
   type ReceiptField,
   unwrap,
 } from "../api/client";
-import { FieldDetail } from "../components/FieldDetail";
+import { FieldDetail, openRow } from "../components/FieldDetail";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { InfoTip } from "../components/Tip";
 import { t } from "../strings";
 
 const b = t.bringIn;
@@ -451,10 +452,12 @@ function Section({
           </div>
         ))}
       </div>
-      <table className="bi-tbl">
+      <table className="bi-tbl fd-tbl">
         <thead>
           <tr>
-            <th>{b.field}</th>
+            <th>
+              <InfoTip label={b.field} text={b.fieldTip} />
+            </th>
             <th>{b.has}</th>
             <th>{b.summary}</th>
             <th>{b.from}</th>
@@ -468,22 +471,21 @@ function Section({
                 <td colSpan={5}>{b.groups[g]}</td>
               </tr>
               {list.map((f) => (
-                <tr key={f.field}>
-                  <td className="mono">{f.field}</td>
-                  <td className="bi-has">
-                    <span className="bi-bar">
-                      <i style={{ width: `${Math.round(100 * f.share)}%` }} />
-                    </span>
-                    {f.filled.toLocaleString()} · {pct(f.share)}
-                  </td>
-                  <td>
-                    {f.summary}
+                <tr key={f.field} onClick={openRow}>
+                  <td className="mono">
                     <FieldDetail
                       projectId={projectId}
                       set={set === "sales" ? "sales" : "universe"}
                       field={f.field}
                     />
                   </td>
+                  <td className="bi-has">
+                    <span className="bi-bar">
+                      <i style={{ width: `${Math.round(100 * f.share)}%` }} />
+                    </span>
+                    {f.filled.toLocaleString()} · {pct(f.share)}
+                  </td>
+                  <td>{f.summary}</td>
                   <td className="mono bi-src">{f.source}</td>
                   <td>{f.note}</td>
                 </tr>
