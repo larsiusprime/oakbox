@@ -32,7 +32,25 @@ VALUE_FIELDS = {
     "assr_land_value": "Assessed land value",
     "assr_impr_value": "Assessed improvement value",
 }
-PropertyClass = Literal["residential", "income", "vacant", "none"]
+PropertyClass = Literal[
+    "residential",
+    "residential_homogeneous",
+    "residential_rural",
+    "apartments",
+    "commercial",
+    "vacant",
+    "agricultural",
+    "none",
+]
+CATEGORIES: tuple[PropertyClass, ...] = (
+    "residential",
+    "residential_homogeneous",
+    "residential_rural",
+    "apartments",
+    "commercial",
+    "vacant",
+    "agricultural",
+)
 MIN_PROPOSED = 30  # the proposed window reaches back until it holds this many sales
 NOMINAL = 1_000  # prices under this are nominal deeds, not prices (as Data's sale price check)
 
@@ -48,30 +66,44 @@ def _hydrated(project_dir: Path) -> Path:
 # ---------- The calls ----------
 
 
+class CodRange(BaseModel):
+    low: float = Field(description="Below it, suspect: possibly sales chasing.")
+    high: float
+
+
+def _cod(low: float, high: float):
+    return Field(default_factory=lambda: CodRange(low=low, high=high))
+
+
 class Targets(BaseModel):
-    """What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the
-    May 2026 exposure draft), each editable."""
+    """What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets
+    them, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance."""
 
     level_low: float = 0.90
     level_high: float = 1.10
-    prd_low: float = 0.98
-    prd_high: float = 1.03
-    prb_low: float = -0.05
-    prb_high: float = 0.05
+    prb_good: float = Field(default=0.05, description="Within ±: good.")
+    prb_bad: float = Field(default=0.10, description="Outside ±: unacceptable.")
     vei: float = Field(default=10.0, description="The most a VEI may stray, percent, before it can be a finding.")
-    min_sales: int = Field(default=5, description="Fewer sales (after trimming): shown, not judged.")
-    cod_residential: float = 15.0
-    cod_income: float = 20.0
-    cod_vacant: float = 25.0
+    min_sales: int = Field(default=5, description="Fewer sales: shown, not judged.")
+    residential: CodRange = _cod(5.0, 15.0)
+    residential_homogeneous: CodRange = _cod(4.0, 10.0)
+    residential_rural: CodRange = _cod(10.0, 20.0)
+    apartments: CodRange = _cod(7.0, 20.0)
+    commercial: CodRange = _cod(10.0, 25.0)
+    vacant: CodRange = _cod(10.0, 20.0)
+    agricultural: CodRange = _cod(10.0, 25.0)
+
+    def cod(self, cls: str) -> CodRange | None:
+        return getattr(self, cls, None) if cls in CATEGORIES else None
 
     def standards(self) -> dict:
         return {
             "level": [self.level_low, self.level_high],
-            "prd": [self.prd_low, self.prd_high],
-            "prb": [self.prb_low, self.prb_high],
+            "prb": [-self.prb_good, self.prb_good],
+            "prb_unacceptable": [-self.prb_bad, self.prb_bad],
             "vei": self.vei,
             "min_sales": self.min_sales,
-            "cod": {"residential": self.cod_residential, "income": self.cod_income, "vacant": self.cod_vacant},
+            "cod": {c: [self.cod(c).low, self.cod(c).high] for c in CATEGORIES},  # type: ignore[union-attr]
         }
 
 
@@ -89,17 +121,26 @@ class RatioState(BaseModel):
 
 
 def proposed_class(group_id: str, name: str) -> PropertyClass:
-    """From the model group's name: land is vacant, exempt or public land isn't judged, commercial and larger
-    multi-family are income property, the rest residential."""
+    """From the model group's name, the exposure draft's property category (Table 7): exempt and public land isn't
+    judged; condos and townhomes are a homogeneous residential market; apartments are multi-unit; commercial,
+    industrial and retail are commercial; the rest residential."""
     text = f"{group_id} {name}".lower()
     if re.search(r"exempt|public|government|institution|church|school", text):
         return "none"
+    if re.search(r"agri|farm|ranch|timber", text):
+        return "agricultural"
     if re.search(r"vacant|land\b|lots?\b", text):
         return "vacant"
-    if re.search(r"small|duplex|townho|condo", text):
+    if re.search(r"condo|townho", text):
+        return "residential_homogeneous"
+    if re.search(r"manufactured|mobile|rural|seasonal", text):
+        return "residential_rural"
+    if re.search(r"small|duplex|triplex", text):
         return "residential"
-    if re.search(r"commercial|industrial|apartment|multi|office|retail|income|hotel|warehouse", text):
-        return "income"
+    if re.search(r"apartment|multi", text):
+        return "apartments"
+    if re.search(r"commercial|industrial|office|retail|hotel|warehouse|income", text):
+        return "commercial"
     return "residential"
 
 
@@ -300,13 +341,32 @@ def setup(project, project_dir: Path) -> RatioSetup:
 
 
 class Verdict(BaseModel):
+    """True met, False missed, None neither (or not judged)."""
+
     judged: bool
-    level: bool | None = None
+    level: bool | None = Field(default=None, description="Missed only when its whole confidence interval is outside.")
     cod: bool | None = None
-    cod_target: float | None = None
-    prd: bool | None = None
-    prb: bool | None = None
-    vei: bool | None = None
+    cod_low: bool | None = Field(default=None, description="Under the range: suspect, possibly sales chasing.")
+    cod_target: list[float] | None = None
+    prb: bool | None = Field(default=None, description="Met within the good range, missed outside the unacceptable.")
+    vei: bool | None = Field(default=None, description="Missed only when significantly outside.")
+
+
+class Figures(BaseModel):
+    """A study's statistics: of the sales kept after trimming, or of every sale."""
+
+    sales: int
+    median: float | None
+    low: float | None = Field(description="The median's interval (90%, the IAAO's order statistics).")
+    high: float | None
+    cod: float | None
+    prd: float | None
+    prb: float | None
+    mki: float | None = Field(default=None, description="Modified Kakwani Index: 1 is equitable.")
+    vei: float | None
+    vei_significance: float | None
+    vei_verdict: str | None = Field(description="compliant, not_significant, regressive, progressive, insufficient.")
+    verdict: Verdict | None = None
 
 
 class Stratum(BaseModel):
@@ -361,9 +421,13 @@ class Study(BaseModel):
     cod: float | None
     prd: float | None
     prb: float | None
+    mki: float | None = None
     vei: float | None
     vei_significance: float | None
-    vei_verdict: str | None = Field(description="compliant, inconclusive, regressive, progressive or insufficient.")
+    vei_verdict: str | None = Field(description="compliant, not_significant, regressive, progressive, insufficient.")
+    every: Figures | None = Field(
+        default=None, description="The same statistics on every sale, untrimmed: beside, never compared."
+    )
     strata: list[Stratum] = Field(default_factory=list, description="The VEI's percentile groups, low to high.")
     fifths: list[Fifth] = Field(default_factory=list, description="Median ratio by fifths of sales, by price.")
     clusters: int | None = Field(default=None, description="Groups of similar parcels (equity clusters).")
@@ -449,35 +513,58 @@ def _fifths(table, group: str | None) -> list[Fifth]:
     return out
 
 
-def _study(gid: str, name: str, color: str, cls, data: dict, table) -> Study:
+def _figures(data: dict) -> Figures:
     r = data.get("ratio") or {}
     v = data.get("vertical") or {}
-    h = data.get("horizontal") or {}
     med = r.get("median_ratio") or {}
     verdict = data.get("verdict")
-    return Study(
-        id=gid,
-        name=name,
-        color=color,
-        cls=cls,
+    return Figures(
         sales=int(r.get("count") or 0),
-        trimmed=len(data.get("trimmed") or []) if gid else int(data.get("count_trimmed") or 0),
-        parcels=int(data.get("count_parcels") or 0),
         median=med.get("value"),
         low=med.get("low"),
         high=med.get("high"),
         cod=(r.get("cod") or {}).get("value"),
         prd=(v.get("prd") or {}).get("value"),
         prb=(v.get("prb") or {}).get("value"),
+        mki=v.get("mki"),
         vei=v.get("vei"),
         vei_significance=v.get("vei_significance"),
         vei_verdict=v.get("vei_verdict"),
+        verdict=Verdict.model_validate(verdict) if verdict else None,
+    )
+
+
+def _study(gid: str, name: str, color: str, cls, data: dict, table) -> Study:
+    """The statistics shown and judged: without the trimmed sales when trimming is on (every sale's beside them)."""
+    main = data.get("trimmed_study") or data
+    f = _figures(main)
+    v = main.get("vertical") or {}
+    h = data.get("horizontal") or {}
+    return Study(
+        id=gid,
+        name=name,
+        color=color,
+        cls=cls,
+        sales=f.sales,
+        trimmed=len(data.get("trimmed") or []) if gid else int(data.get("count_trimmed") or 0),
+        parcels=int(data.get("count_parcels") or 0),
+        median=f.median,
+        low=f.low,
+        high=f.high,
+        cod=f.cod,
+        prd=f.prd,
+        prb=f.prb,
+        mki=f.mki,
+        vei=f.vei,
+        vei_significance=f.vei_significance,
+        vei_verdict=f.vei_verdict,
+        every=_figures(data) if "trimmed_study" in data else None,
         strata=[Stratum.model_validate(x) for x in v.get("vei_strata") or []],
         fifths=_fifths(table, gid or None),
         clusters=h.get("clusters"),
         median_chd=h.get("median_chd"),
-        verdict=Verdict.model_validate(verdict) if verdict else None,
-        regions=RegionStats.model_validate(data["regions"]) if data.get("regions") else None,
+        verdict=f.verdict,
+        regions=RegionStats.model_validate(main["regions"]) if main.get("regions") else None,
     )
 
 
@@ -609,7 +696,10 @@ def _ran(project_dir: Path) -> tuple[RatioReceipt | None, dict | None]:
     ran = (
         json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
     )
-    return RatioReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+    try:
+        return RatioReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+    except ValueError:  # written by an earlier OAK box: check the values again
+        return None, None
 
 
 def view(project, project_dir: Path) -> RatioView:

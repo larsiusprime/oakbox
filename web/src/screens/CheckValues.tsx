@@ -47,7 +47,7 @@ const STEPS: RStep[] = [
   "extreme",
 ];
 const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
-type Class = "residential" | "income" | "vacant" | "none";
+type Class = RatioSetup["groups"][number]["cls"];
 
 function useRatio(projectId: string) {
   return useQuery({
@@ -458,51 +458,45 @@ function NumberBox({
   );
 }
 
+const CATS = [
+  "residential",
+  "residential_homogeneous",
+  "residential_rural",
+  "apartments",
+  "commercial",
+  "vacant",
+  "agricultural",
+] as const;
+type Cat = (typeof CATS)[number];
+const range = (low: number, high: number) => ({ low, high });
 const IAAO: RatioTargets = {
   level_low: 0.9,
   level_high: 1.1,
-  prd_low: 0.98,
-  prd_high: 1.03,
-  prb_low: -0.05,
-  prb_high: 0.05,
+  prb_good: 0.05,
+  prb_bad: 0.1,
   vei: 10,
   min_sales: 5,
-  cod_residential: 15,
-  cod_income: 20,
-  cod_vacant: 25,
+  residential: range(5, 15),
+  residential_homogeneous: range(4, 10),
+  residential_rural: range(10, 20),
+  apartments: range(7, 20),
+  commercial: range(10, 25),
+  vacant: range(10, 20),
+  agricultural: range(10, 25),
 };
+
+function codRange(g: RatioTargets, c: string) {
+  return (CATS as readonly string[]).includes(c) ? g[c as Cat] : null;
+}
 
 function StandardsCard({ v, set }: CardProps) {
   const g = v.targets;
   const put = (patch: Partial<RatioTargets>) => set({ targets: { ...g, ...patch } });
   const s = r.standards;
-  const pair = (lo: keyof RatioTargets, hi: keyof RatioTargets, label: string) => (
-    <span className="cs-row rv-pair">
-      <NumberEdit
-        label={`${s.from} (${label})`}
-        short={s.from}
-        value={g[lo]}
-        onCommit={(n) => put({ [lo]: n })}
-      />
-      <NumberEdit
-        label={`${s.to} (${label})`}
-        short={s.to}
-        value={g[hi]}
-        onCommit={(n) => put({ [hi]: n })}
-      />
-    </span>
-  );
   const changed = JSON.stringify(g) !== JSON.stringify(IAAO);
-  const codOf = (c: string) =>
-    c === "residential"
-      ? g.cod_residential
-      : c === "income"
-        ? g.cod_income
-        : c === "vacant"
-          ? g.cod_vacant
-          : null;
   return (
     <div className="rv-cards">
+      <p className="wiz-from">{s.source}</p>
       <table className="bi-tbl cs-tbl rv-targets">
         <thead>
           <tr>
@@ -514,34 +508,23 @@ function StandardsCard({ v, set }: CardProps) {
         <tbody>
           <tr>
             <td>{s.level}</td>
-            <td>{pair("level_low", "level_high", s.level)}</td>
-            <td>{s.levelWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.cod}</td>
             <td>
               <span className="cs-row rv-pair">
-                {(["residential", "income", "vacant"] as const).map((c) => (
-                  <NumberEdit
-                    key={c}
-                    label={`${s.cls[c]} ≤`}
-                    value={codOf(c) ?? 0}
-                    onCommit={(n) => put({ [`cod_${c}`]: n } as Partial<RatioTargets>)}
-                  />
-                ))}
+                <NumberEdit
+                  label={`${s.from} (${s.level})`}
+                  short={s.from}
+                  value={g.level_low}
+                  onCommit={(n) => put({ level_low: n })}
+                />
+                <NumberEdit
+                  label={`${s.to} (${s.level})`}
+                  short={s.to}
+                  value={g.level_high}
+                  onCommit={(n) => put({ level_high: n })}
+                />
               </span>
             </td>
-            <td>{s.codWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.prd}</td>
-            <td>{pair("prd_low", "prd_high", s.prd)}</td>
-            <td>{s.prdWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.prb}</td>
-            <td>{pair("prb_low", "prb_high", s.prb)}</td>
-            <td>{s.prbWhy}</td>
+            <td>{s.levelWhy}</td>
           </tr>
           <tr>
             <td>{s.vei}</td>
@@ -549,6 +532,31 @@ function StandardsCard({ v, set }: CardProps) {
               <NumberEdit label={s.vei} short="± %" value={g.vei} onCommit={(n) => put({ vei: n })} />
             </td>
             <td>{s.veiWhy}</td>
+          </tr>
+          <tr>
+            <td>{s.prb}</td>
+            <td>
+              <span className="cs-row rv-pair">
+                <NumberEdit
+                  label={`${s.prbGood} (${s.prb})`}
+                  short={s.prbGood}
+                  value={g.prb_good}
+                  onCommit={(n) => put({ prb_good: n })}
+                />
+                <NumberEdit
+                  label={`${s.prbBad} (${s.prb})`}
+                  short={s.prbBad}
+                  value={g.prb_bad}
+                  onCommit={(n) => put({ prb_bad: n })}
+                />
+              </span>
+            </td>
+            <td>{s.prbWhy}</td>
+          </tr>
+          <tr>
+            <td>{s.prd}</td>
+            <td className="wiz-from">{s.prdNot}</td>
+            <td>{s.prdWhy}</td>
           </tr>
           <tr>
             <td>{s.minSales}</td>
@@ -564,6 +572,41 @@ function StandardsCard({ v, set }: CardProps) {
           </tr>
         </tbody>
       </table>
+      <section className="cs-step">
+        <h3 className="wiz-group">{s.cod}</h3>
+        <p className="wiz-from">{s.codWhy}</p>
+        <table className="bi-tbl cs-tbl">
+          <thead>
+            <tr>
+              <th>{s.category}</th>
+              <th>{s.codRange}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CATS.map((c) => (
+              <tr key={c}>
+                <td>{s.cls[c]}</td>
+                <td>
+                  <span className="cs-row rv-pair">
+                    <NumberEdit
+                      label={`${s.from} (${s.cls[c]})`}
+                      short={s.from}
+                      value={g[c].low}
+                      onCommit={(n) => put({ [c]: { ...g[c], low: n } } as Partial<RatioTargets>)}
+                    />
+                    <NumberEdit
+                      label={`${s.to} (${s.cls[c]})`}
+                      short={s.to}
+                      value={g[c].high}
+                      onCommit={(n) => put({ [c]: { ...g[c], high: n } } as Partial<RatioTargets>)}
+                    />
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
       {changed && (
         <Button className="wiz-link" onPress={() => set({ targets: IAAO })}>
           {s.reset}
@@ -579,32 +622,33 @@ function StandardsCard({ v, set }: CardProps) {
           <thead>
             <tr>
               <th>{r.table.group}</th>
-              <th>{s.cls.label}</th>
-              <th className="cs-n">{s.codTarget}</th>
+              <th>{s.category}</th>
+              <th className="cs-n">{s.codRange}</th>
             </tr>
           </thead>
           <tbody>
-            {v.groups.map((x) => (
-              <tr key={x.id}>
-                <td>
-                  <span className="mg-sw ab-sw" style={{ background: x.color }} />
-                  {x.name}
-                </td>
-                <td>
-                  <Choice
-                    label={`${s.classes}: ${x.name}`}
-                    hideLabel
-                    value={x.cls}
-                    options={(["residential", "income", "vacant", "none"] as const).map(
-                      (c) => [c, s.cls[c] ?? c] as [string, string],
-                    )}
-                    onChange={(c) => set({ classes: { [x.id]: c as Class } })}
-                  />{" "}
-                  {x.proposed && <span className="wiz-from">{s.proposed}</span>}
-                </td>
-                <td className="cs-n">{codOf(x.cls) === null ? "—" : `≤ ${codOf(x.cls)}`}</td>
-              </tr>
-            ))}
+            {v.groups.map((x) => {
+              const cr = codRange(g, x.cls);
+              return (
+                <tr key={x.id}>
+                  <td>
+                    <span className="mg-sw ab-sw" style={{ background: x.color }} />
+                    {x.name}
+                  </td>
+                  <td>
+                    <Choice
+                      label={`${s.category}: ${x.name}`}
+                      hideLabel
+                      value={x.cls}
+                      options={[...CATS, "none" as const].map((c) => [c, s.cls[c] ?? c] as [string, string])}
+                      onChange={(c) => set({ classes: { [x.id]: c as Class } })}
+                    />{" "}
+                    {x.proposed && <span className="wiz-from">{s.proposed}</span>}
+                  </td>
+                  <td className="cs-n">{cr ? `${cr.low} to ${cr.high}` : "—"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </section>
@@ -612,9 +656,9 @@ function StandardsCard({ v, set }: CardProps) {
   );
 }
 
-/** The VEI's badge: met when compliant, missed when significantly regressive or progressive, neither otherwise. */
-function veiOk(g: RatioStudy): boolean | null {
-  if (g.vei_verdict === "compliant") return true;
+/** The VEI's badge: met unless significantly outside (the exposure draft's Appendix E). */
+function veiOk(g: { vei_verdict?: string | null; verdict?: { judged: boolean } | null }): boolean | null {
+  if (g.vei_verdict === "compliant" || g.vei_verdict === "not_significant") return true;
   if (g.vei_verdict === "regressive" || g.vei_verdict === "progressive")
     return g.verdict?.judged ? false : null;
   return null;
@@ -651,6 +695,8 @@ function Summary({
           : r.summary.levelSome(levelOk.length, js.length, lo, hi);
   const loose = js.filter((g) => g.verdict?.cod === false).map((g) => `${g.name} (COD ${num(g.cod, 1)})`);
   if (js.length) text += loose.length ? r.summary.notUniform(loose.join(", ")) : r.summary.uniform;
+  const tight = js.filter((g) => g.verdict?.cod_low).map((g) => `${g.name} (COD ${num(g.cod, 1)})`);
+  if (tight.length) text += r.summary.suspect(tight.join(", "));
   const tilted = js
     .filter((g) => g.vei_verdict === "regressive" || g.vei_verdict === "progressive")
     .map((g) => `${g.name} (${r.table.verdicts[g.vei_verdict ?? ""]})`);
@@ -712,8 +758,11 @@ function GroupCard({ g }: { g: RatioStudy }) {
         <span className="wiz-from">{r.summary.notJudged(ratioText(g.median), g.sales)}</span>
       </div>
     );
-  const vertical =
-    v.prd && v.prb ? r.summary.alike : (g.prb ?? 0) > 0 ? r.summary.dearerHigher : r.summary.dearerLower;
+  // The VEI decides; with too few sales for it, the PRB.
+  const byVei = g.vei_verdict && g.vei_verdict !== "insufficient";
+  const tilted = byVei ? g.vei_verdict === "regressive" || g.vei_verdict === "progressive" : v.prb === false;
+  const lower = byVei ? g.vei_verdict === "regressive" : (g.prb ?? 0) < 0;
+  const vertical = tilted ? (lower ? r.summary.dearerLower : r.summary.dearerHigher) : r.summary.alike;
   return (
     <div className="rv-card">
       {head}
@@ -722,15 +771,20 @@ function GroupCard({ g }: { g: RatioStudy }) {
         <Badge ok={v.level} label={`${r.table.median} ${num(g.median, 2)}`} />
       </span>
       <span>
-        {v.cod ? r.summary.uniformLine : r.summary.notUniformLine}{" "}
+        {v.cod_low
+          ? r.summary.suspectLine
+          : v.cod === false
+            ? r.summary.notUniformLine
+            : r.summary.uniformLine}{" "}
         <Badge ok={v.cod} label={`COD ${num(g.cod, 1)}`} />
+        {v.cod_low && <span className="rv-pill rv-bad"> {r.table.low}</span>}
       </span>
       <span>
-        {vertical} <Badge ok={v.prd} label={`PRD ${num(g.prd, 2)}`} />{" "}
-        <Badge ok={v.prb} label={`PRB ${g.prb === null || g.prb === undefined ? "—" : signed(g.prb, 3)}`} />{" "}
+        {vertical}{" "}
         {g.vei_verdict && g.vei_verdict !== "insufficient" && (
-          <Badge ok={veiOk(g)} label={`VEI ${r.table.verdicts[g.vei_verdict]}`} />
-        )}
+          <Badge ok={veiOk(g)} label={`VEI ${r.table.verdicts[g.vei_verdict] ?? g.vei_verdict}`} />
+        )}{" "}
+        <Badge ok={v.prb} label={`PRB ${g.prb == null ? "—" : signed(g.prb, 3)}`} />
       </span>
     </div>
   );
@@ -740,10 +794,12 @@ function signed(v: number, digits: number) {
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(digits)}`;
 }
 
-function cell(ok: boolean | null | undefined, text: string) {
+function cell(ok: boolean | null | undefined, text: string, every?: string | null, low?: boolean | null) {
   return (
     <>
       {text} <Badge ok={ok} />
+      {low && <span className="rv-pill rv-bad">{r.table.low}</span>}
+      {every != null && <span className="rv-every">{r.table.every(every)}</span>}
     </>
   );
 }
@@ -752,6 +808,7 @@ function GroupsTable({ result }: { result: FieldResult }) {
   const tb = r.table;
   const row = (g: RatioStudy, total = false) => {
     const v = g.verdict;
+    const e = g.every;
     if (!g.sales && !g.trimmed)
       return (
         <tr key={g.id || "all"}>
@@ -760,36 +817,39 @@ function GroupsTable({ result }: { result: FieldResult }) {
             {g.name}
           </td>
           <td className="cs-n">0</td>
-          <td colSpan={7} className="wiz-from">
+          <td colSpan={8} className="wiz-from">
             {tb.noSales}
           </td>
         </tr>
       );
+    const pm = (x: number | null | undefined, d: number) => (x == null ? "—" : signed(x, d));
     return (
       <tr key={g.id || "all"} className={total ? "rv-total" : undefined}>
         <td>
           {!total && <span className="mg-sw ab-sw" style={{ background: g.color }} />}
           {g.name}
         </td>
-        <td className="cs-n">{num(g.sales)}</td>
+        <td className="cs-n">{cell(null, num(g.sales), e ? num(e.sales) : null)}</td>
         <td className="cs-n">{num(g.trimmed)}</td>
-        <td className="cs-n">{cell(v?.level, ratioText(g.median))}</td>
+        <td className="cs-n">{cell(v?.level, ratioText(g.median), e ? ratioText(e.median) : null)}</td>
         <td className="cs-n wiz-from">
           {g.low != null && g.high != null ? `${ratioText(g.low)} to ${ratioText(g.high)}` : "—"}
         </td>
-        <td className="cs-n">{cell(v?.cod, num(g.cod, 1))}</td>
-        <td className="cs-n">{cell(v?.prd, num(g.prd, 3))}</td>
-        <td className="cs-n">{cell(v?.prb, g.prb == null ? "—" : signed(g.prb, 3))}</td>
+        <td className="cs-n">{cell(v?.cod, num(g.cod, 1), e ? num(e.cod, 1) : null, v?.cod_low)}</td>
         <td>
           {g.vei_verdict ? (
             <>
               {g.vei != null ? `${signed(g.vei, 1)}% ` : ""}
               <Badge ok={veiOk(g)} label={tb.verdicts[g.vei_verdict] ?? g.vei_verdict} />
+              {e?.vei != null && <span className="rv-every">{tb.every(`${signed(e.vei, 1)}%`)}</span>}
             </>
           ) : (
             "—"
           )}
         </td>
+        <td className="cs-n">{cell(v?.prb, pm(g.prb, 3), e ? pm(e.prb, 3) : null)}</td>
+        <td className="cs-n">{cell(null, num(g.prd, 3), e ? num(e.prd, 3) : null)}</td>
+        <td className="cs-n">{cell(null, num(g.mki, 3), e ? num(e.mki, 3) : null)}</td>
       </tr>
     );
   };
@@ -812,14 +872,17 @@ function GroupsTable({ result }: { result: FieldResult }) {
             <th className="cs-n">
               <InfoTip label={tb.cod} text={tb.codWhy} />
             </th>
-            <th className="cs-n">
-              <InfoTip label={tb.prd} text={tb.prdWhy} />
+            <th>
+              <InfoTip label={tb.vei} text={tb.veiWhy} />
             </th>
             <th className="cs-n">
               <InfoTip label={tb.prb} text={tb.prbWhy} />
             </th>
-            <th>
-              <InfoTip label={tb.vei} text={tb.veiWhy} />
+            <th className="cs-n">
+              <InfoTip label={tb.prd} text={tb.prdWhy} />
+            </th>
+            <th className="cs-n">
+              <InfoTip label={tb.mki} text={tb.mkiWhy} />
             </th>
           </tr>
         </thead>

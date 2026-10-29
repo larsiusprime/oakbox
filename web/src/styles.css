@@ -4848,3 +4848,8 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   background: #fffaf0;
   font-size: 0.84rem;
 }
+.rv-every {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--muted);
+}

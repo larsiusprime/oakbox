@@ -6347,6 +6347,25 @@
     ],
     "title": "CleanView"
    },
+   "CodRange": {
+    "properties": {
+     "low": {
+      "type": "number",
+      "title": "Low",
+      "description": "Below it, suspect: possibly sales chasing."
+     },
+     "high": {
+      "type": "number",
+      "title": "High"
+     }
+    },
+    "type": "object",
+    "required": [
+     "low",
+     "high"
+    ],
+    "title": "CodRange"
+   },
    "Column": {
     "properties": {
      "name": {
@@ -8182,6 +8201,154 @@
      "median"
     ],
     "title": "Fifth"
+   },
+   "Figures": {
+    "properties": {
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "low": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Low",
+      "description": "The median's interval (90%, the IAAO's order statistics)."
+     },
+     "high": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "High"
+     },
+     "cod": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod"
+     },
+     "prd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prd"
+     },
+     "prb": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prb"
+     },
+     "mki": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mki",
+      "description": "Modified Kakwani Index: 1 is equitable."
+     },
+     "vei": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei"
+     },
+     "vei_significance": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei Significance"
+     },
+     "vei_verdict": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei Verdict",
+      "description": "compliant, not_significant, regressive, progressive, insufficient."
+     },
+     "verdict": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Verdict"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "sales",
+     "median",
+     "low",
+     "high",
+     "cod",
+     "prd",
+     "prb",
+     "mki",
+     "vei",
+     "vei_significance",
+     "vei_verdict",
+     "verdict"
+    ],
+    "title": "Figures",
+    "description": "A study's statistics: of the sales kept after trimming, or of every sale."
    },
    "FileCheck": {
     "properties": {
@@ -11934,8 +12101,12 @@
          "type": "string",
          "enum": [
           "residential",
-          "income",
+          "residential_homogeneous",
+          "residential_rural",
+          "apartments",
+          "commercial",
           "vacant",
+          "agricultural",
           "none"
          ]
         },
@@ -12226,8 +12397,12 @@
        "type": "string",
        "enum": [
         "residential",
-        "income",
+        "residential_homogeneous",
+        "residential_rural",
+        "apartments",
+        "commercial",
         "vacant",
+        "agricultural",
         "none"
        ]
       },
@@ -14428,8 +14603,12 @@
         "type": "string",
         "enum": [
          "residential",
-         "income",
+         "residential_homogeneous",
+         "residential_rural",
+         "apartments",
+         "commercial",
          "vacant",
+         "agricultural",
          "none"
         ]
        },
@@ -14519,6 +14698,17 @@
       ],
       "title": "Prb"
      },
+     "mki": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mki"
+     },
      "vei": {
       "anyOf": [
        {
@@ -14551,7 +14741,18 @@
        }
       ],
       "title": "Vei Verdict",
-      "description": "compliant, inconclusive, regressive, progressive or insufficient."
+      "description": "compliant, not_significant, regressive, progressive, insufficient."
+     },
+     "every": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Figures"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The same statistics on every sale, untrimmed: beside, never compared."
      },
      "strata": {
       "items": {
@@ -14629,9 +14830,11 @@
      "cod",
      "prd",
      "prb",
+     "mki",
      "vei",
      "vei_significance",
      "vei_verdict",
+     "every",
      "strata",
      "fifths",
      "clusters",
@@ -14689,25 +14892,17 @@
       "title": "Level High",
       "default": 1.1
      },
-     "prd_low": {
+     "prb_good": {
       "type": "number",
-      "title": "Prd Low",
-      "default": 0.98
-     },
-     "prd_high": {
-      "type": "number",
-      "title": "Prd High",
-      "default": 1.03
-     },
-     "prb_low": {
-      "type": "number",
-      "title": "Prb Low",
-      "default": -0.05
-     },
-     "prb_high": {
-      "type": "number",
-      "title": "Prb High",
+      "title": "Prb Good",
+      "description": "Within \u00b1: good.",
       "default": 0.05
+     },
+     "prb_bad": {
+      "type": "number",
+      "title": "Prb Bad",
+      "description": "Outside \u00b1: unacceptable.",
+      "default": 0.1
      },
      "vei": {
       "type": "number",
@@ -14718,28 +14913,34 @@
      "min_sales": {
       "type": "integer",
       "title": "Min Sales",
-      "description": "Fewer sales (after trimming): shown, not judged.",
+      "description": "Fewer sales: shown, not judged.",
       "default": 5
      },
-     "cod_residential": {
-      "type": "number",
-      "title": "Cod Residential",
-      "default": 15.0
+     "residential": {
+      "$ref": "#/components/schemas/CodRange"
      },
-     "cod_income": {
-      "type": "number",
-      "title": "Cod Income",
-      "default": 20.0
+     "residential_homogeneous": {
+      "$ref": "#/components/schemas/CodRange"
      },
-     "cod_vacant": {
-      "type": "number",
-      "title": "Cod Vacant",
-      "default": 25.0
+     "residential_rural": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "apartments": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "commercial": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "vacant": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "agricultural": {
+      "$ref": "#/components/schemas/CodRange"
      }
     },
     "type": "object",
     "title": "Targets",
-    "description": "What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the\nMay 2026 exposure draft), each editable."
+    "description": "What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets\nthem, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance."
    },
    "Targets-Output": {
     "properties": {
@@ -14753,25 +14954,17 @@
       "title": "Level High",
       "default": 1.1
      },
-     "prd_low": {
+     "prb_good": {
       "type": "number",
-      "title": "Prd Low",
-      "default": 0.98
-     },
-     "prd_high": {
-      "type": "number",
-      "title": "Prd High",
-      "default": 1.03
-     },
-     "prb_low": {
-      "type": "number",
-      "title": "Prb Low",
-      "default": -0.05
-     },
-     "prb_high": {
-      "type": "number",
-      "title": "Prb High",
+      "title": "Prb Good",
+      "description": "Within \u00b1: good.",
       "default": 0.05
+     },
+     "prb_bad": {
+      "type": "number",
+      "title": "Prb Bad",
+      "description": "Outside \u00b1: unacceptable.",
+      "default": 0.1
      },
      "vei": {
       "type": "number",
@@ -14782,41 +14975,49 @@
      "min_sales": {
       "type": "integer",
       "title": "Min Sales",
-      "description": "Fewer sales (after trimming): shown, not judged.",
+      "description": "Fewer sales: shown, not judged.",
       "default": 5
      },
-     "cod_residential": {
-      "type": "number",
-      "title": "Cod Residential",
-      "default": 15.0
+     "residential": {
+      "$ref": "#/components/schemas/CodRange"
      },
-     "cod_income": {
-      "type": "number",
-      "title": "Cod Income",
-      "default": 20.0
+     "residential_homogeneous": {
+      "$ref": "#/components/schemas/CodRange"
      },
-     "cod_vacant": {
-      "type": "number",
-      "title": "Cod Vacant",
-      "default": 25.0
+     "residential_rural": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "apartments": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "commercial": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "vacant": {
+      "$ref": "#/components/schemas/CodRange"
+     },
+     "agricultural": {
+      "$ref": "#/components/schemas/CodRange"
      }
     },
     "type": "object",
     "required": [
      "level_low",
      "level_high",
-     "prd_low",
-     "prd_high",
-     "prb_low",
-     "prb_high",
+     "prb_good",
+     "prb_bad",
      "vei",
      "min_sales",
-     "cod_residential",
-     "cod_income",
-     "cod_vacant"
+     "residential",
+     "residential_homogeneous",
+     "residential_rural",
+     "apartments",
+     "commercial",
+     "vacant",
+     "agricultural"
     ],
     "title": "Targets",
-    "description": "What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the\nMay 2026 exposure draft), each editable."
+    "description": "What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets\nthem, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance."
    },
    "Tier": {
     "properties": {
@@ -15740,7 +15941,8 @@
         "type": "null"
        }
       ],
-      "title": "Level"
+      "title": "Level",
+      "description": "Missed only when its whole confidence interval is outside."
      },
      "cod": {
       "anyOf": [
@@ -15753,18 +15955,7 @@
       ],
       "title": "Cod"
      },
-     "cod_target": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Cod Target"
-     },
-     "prd": {
+     "cod_low": {
       "anyOf": [
        {
         "type": "boolean"
@@ -15773,7 +15964,22 @@
         "type": "null"
        }
       ],
-      "title": "Prd"
+      "title": "Cod Low",
+      "description": "Under the range: suspect, possibly sales chasing."
+     },
+     "cod_target": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod Target"
      },
      "prb": {
       "anyOf": [
@@ -15784,7 +15990,8 @@
         "type": "null"
        }
       ],
-      "title": "Prb"
+      "title": "Prb",
+      "description": "Met within the good range, missed outside the unacceptable."
      },
      "vei": {
       "anyOf": [
@@ -15795,7 +16002,8 @@
         "type": "null"
        }
       ],
-      "title": "Vei"
+      "title": "Vei",
+      "description": "Missed only when significantly outside."
      }
     },
     "type": "object",
@@ -15803,12 +16011,13 @@
      "judged",
      "level",
      "cod",
+     "cod_low",
      "cod_target",
-     "prd",
      "prb",
      "vei"
     ],
-    "title": "Verdict"
+    "title": "Verdict",
+    "description": "True met, False missed, None neither (or not judged)."
    },
    "Versions": {
     "properties": {
@@ -17087,8 +17296,12 @@
       "type": "string",
       "enum": [
        "residential",
-       "income",
+       "residential_homogeneous",
+       "residential_rural",
+       "apartments",
+       "commercial",
        "vacant",
+       "agricultural",
        "none"
       ],
       "title": "Cls"

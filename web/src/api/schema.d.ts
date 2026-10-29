@@ -2431,6 +2431,16 @@ export interface components {
             /** Accepted */
             accepted: boolean;
         };
+        /** CodRange */
+        CodRange: {
+            /**
+             * Low
+             * @description Below it, suspect: possibly sales chasing.
+             */
+            low: number;
+            /** High */
+            high: number;
+        };
         /** Column */
         Column: {
             /** Name */
@@ -3284,6 +3294,44 @@ export interface components {
             sales: number;
             /** Median */
             median: number;
+        };
+        /**
+         * Figures
+         * @description A study's statistics: of the sales kept after trimming, or of every sale.
+         */
+        Figures: {
+            /** Sales */
+            sales: number;
+            /** Median */
+            median: number | null;
+            /**
+             * Low
+             * @description The median's interval (90%, the IAAO's order statistics).
+             */
+            low: number | null;
+            /** High */
+            high: number | null;
+            /** Cod */
+            cod: number | null;
+            /** Prd */
+            prd: number | null;
+            /** Prb */
+            prb: number | null;
+            /**
+             * Mki
+             * @description Modified Kakwani Index: 1 is equitable.
+             */
+            mki: number | null;
+            /** Vei */
+            vei: number | null;
+            /** Vei Significance */
+            vei_significance: number | null;
+            /**
+             * Vei Verdict
+             * @description compliant, not_significant, regressive, progressive, insufficient.
+             */
+            vei_verdict: string | null;
+            verdict: components["schemas"]["Verdict"] | null;
         };
         /**
          * FileCheck
@@ -5000,7 +5048,7 @@ export interface components {
              * @description Merged into the groups' classes.
              */
             classes?: {
-                [key: string]: "residential" | "income" | "vacant" | "none";
+                [key: string]: "residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none";
             } | null;
             /** Trim */
             trim?: boolean | null;
@@ -5135,7 +5183,7 @@ export interface components {
              * @description Group -> class; missing: proposed.
              */
             classes: {
-                [key: string]: "residential" | "income" | "vacant" | "none";
+                [key: string]: "residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none";
             };
             /**
              * Trim
@@ -6038,7 +6086,7 @@ export interface components {
             /** Color */
             color: string;
             /** Cls */
-            cls: ("residential" | "income" | "vacant" | "none") | null;
+            cls: ("residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none") | null;
             /**
              * Sales
              * @description Sales in the statistics (after trimming).
@@ -6063,15 +6111,19 @@ export interface components {
             prd: number | null;
             /** Prb */
             prb: number | null;
+            /** Mki */
+            mki: number | null;
             /** Vei */
             vei: number | null;
             /** Vei Significance */
             vei_significance: number | null;
             /**
              * Vei Verdict
-             * @description compliant, inconclusive, regressive, progressive or insufficient.
+             * @description compliant, not_significant, regressive, progressive, insufficient.
              */
             vei_verdict: string | null;
+            /** @description The same statistics on every sale, untrimmed: beside, never compared. */
+            every: components["schemas"]["Figures"] | null;
             /**
              * Strata
              * @description The VEI's percentile groups, low to high.
@@ -6111,8 +6163,8 @@ export interface components {
         };
         /**
          * Targets
-         * @description What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the
-         *     May 2026 exposure draft), each editable.
+         * @description What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets
+         *     them, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance.
          */
         "Targets-Input": {
             /**
@@ -6126,25 +6178,17 @@ export interface components {
              */
             level_high: number;
             /**
-             * Prd Low
-             * @default 0.98
-             */
-            prd_low: number;
-            /**
-             * Prd High
-             * @default 1.03
-             */
-            prd_high: number;
-            /**
-             * Prb Low
-             * @default -0.05
-             */
-            prb_low: number;
-            /**
-             * Prb High
+             * Prb Good
+             * @description Within ±: good.
              * @default 0.05
              */
-            prb_high: number;
+            prb_good: number;
+            /**
+             * Prb Bad
+             * @description Outside ±: unacceptable.
+             * @default 0.1
+             */
+            prb_bad: number;
             /**
              * Vei
              * @description The most a VEI may stray, percent, before it can be a finding.
@@ -6153,30 +6197,22 @@ export interface components {
             vei: number;
             /**
              * Min Sales
-             * @description Fewer sales (after trimming): shown, not judged.
+             * @description Fewer sales: shown, not judged.
              * @default 5
              */
             min_sales: number;
-            /**
-             * Cod Residential
-             * @default 15
-             */
-            cod_residential: number;
-            /**
-             * Cod Income
-             * @default 20
-             */
-            cod_income: number;
-            /**
-             * Cod Vacant
-             * @default 25
-             */
-            cod_vacant: number;
+            residential?: components["schemas"]["CodRange"];
+            residential_homogeneous?: components["schemas"]["CodRange"];
+            residential_rural?: components["schemas"]["CodRange"];
+            apartments?: components["schemas"]["CodRange"];
+            commercial?: components["schemas"]["CodRange"];
+            vacant?: components["schemas"]["CodRange"];
+            agricultural?: components["schemas"]["CodRange"];
         };
         /**
          * Targets
-         * @description What counts as good enough: the IAAO's targets as shipped (Standard on Ratio Studies, 2013; the VEI from the
-         *     May 2026 exposure draft), each editable.
+         * @description What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets
+         *     them, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance.
          */
         "Targets-Output": {
             /**
@@ -6190,25 +6226,17 @@ export interface components {
              */
             level_high: number;
             /**
-             * Prd Low
-             * @default 0.98
-             */
-            prd_low: number;
-            /**
-             * Prd High
-             * @default 1.03
-             */
-            prd_high: number;
-            /**
-             * Prb Low
-             * @default -0.05
-             */
-            prb_low: number;
-            /**
-             * Prb High
+             * Prb Good
+             * @description Within ±: good.
              * @default 0.05
              */
-            prb_high: number;
+            prb_good: number;
+            /**
+             * Prb Bad
+             * @description Outside ±: unacceptable.
+             * @default 0.1
+             */
+            prb_bad: number;
             /**
              * Vei
              * @description The most a VEI may stray, percent, before it can be a finding.
@@ -6217,25 +6245,17 @@ export interface components {
             vei: number;
             /**
              * Min Sales
-             * @description Fewer sales (after trimming): shown, not judged.
+             * @description Fewer sales: shown, not judged.
              * @default 5
              */
             min_sales: number;
-            /**
-             * Cod Residential
-             * @default 15
-             */
-            cod_residential: number;
-            /**
-             * Cod Income
-             * @default 20
-             */
-            cod_income: number;
-            /**
-             * Cod Vacant
-             * @default 25
-             */
-            cod_vacant: number;
+            residential: components["schemas"]["CodRange"];
+            residential_homogeneous: components["schemas"]["CodRange"];
+            residential_rural: components["schemas"]["CodRange"];
+            apartments: components["schemas"]["CodRange"];
+            commercial: components["schemas"]["CodRange"];
+            vacant: components["schemas"]["CodRange"];
+            agricultural: components["schemas"]["CodRange"];
         };
         /** Tier */
         Tier: {
@@ -6644,21 +6664,36 @@ export interface components {
             /** Count */
             count: number;
         };
-        /** Verdict */
+        /**
+         * Verdict
+         * @description True met, False missed, None neither (or not judged).
+         */
         Verdict: {
             /** Judged */
             judged: boolean;
-            /** Level */
+            /**
+             * Level
+             * @description Missed only when its whole confidence interval is outside.
+             */
             level: boolean | null;
             /** Cod */
             cod: boolean | null;
+            /**
+             * Cod Low
+             * @description Under the range: suspect, possibly sales chasing.
+             */
+            cod_low: boolean | null;
             /** Cod Target */
-            cod_target: number | null;
-            /** Prd */
-            prd: boolean | null;
-            /** Prb */
+            cod_target: number[] | null;
+            /**
+             * Prb
+             * @description Met within the good range, missed outside the unacceptable.
+             */
             prb: boolean | null;
-            /** Vei */
+            /**
+             * Vei
+             * @description Missed only when significantly outside.
+             */
             vei: boolean | null;
         };
         /** Versions */
@@ -7172,7 +7207,7 @@ export interface components {
              * Cls
              * @enum {string}
              */
-            cls: "residential" | "income" | "vacant" | "none";
+            cls: "residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none";
             /**
              * Proposed
              * @description The class is proposed from the group's name, not chosen.

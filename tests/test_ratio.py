@@ -11,10 +11,12 @@ from oakbox import projects, ratio
     "gid, name, cls",
     [
         ("single_family", "Single-family", "residential"),
-        ("condos_townhomes", "Condos & townhomes", "residential"),
+        ("condos_townhomes", "Condos & townhomes", "residential_homogeneous"),
         ("small_multi_family", "Small multi-family", "residential"),
-        ("apartments", "Apartments", "income"),
-        ("commercial_industrial", "Commercial & industrial", "income"),
+        ("apartments", "Apartments", "apartments"),
+        ("commercial_industrial", "Commercial & industrial", "commercial"),
+        ("farms", "Agricultural land", "agricultural"),
+        ("mh", "Manufactured homes", "residential_rural"),
         ("public_exempt", "Public & exempt", "none"),
         ("vacant_land", "Vacant land", "vacant"),
     ],
@@ -61,7 +63,9 @@ def test_changes_are_checked():
         ratio.change(p, ratio.RatioPatch(fields=["nope"]))
     with pytest.raises(ValueError):
         ratio.change(p, ratio.RatioPatch(start=dt.date(2025, 1, 1), end=dt.date(2024, 1, 1)))
-    ratio.change(p, ratio.RatioPatch(reset_window=True, classes={"sf": "income"}))
-    assert p.ratio.start is None and ratio.classes(p) == {"sf": "income"}
+    ratio.change(p, ratio.RatioPatch(reset_window=True, classes={"sf": "commercial"}))
+    assert p.ratio.start is None and ratio.classes(p) == {"sf": "commercial"}
+    # The exposure draft's targets: COD ranges per category (Table 7), the PRB's good and unacceptable ranges.
     t = ratio.Targets().standards()
-    assert t["level"] == [0.9, 1.1] and t["cod"]["residential"] == 15.0
+    assert t["level"] == [0.9, 1.1] and t["cod"]["residential"] == [5.0, 15.0] and t["cod"]["apartments"] == [7.0, 20.0]
+    assert t["prb"] == [-0.05, 0.05] and t["prb_unacceptable"] == [-0.10, 0.10] and "prd" not in t
