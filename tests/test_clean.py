@@ -228,3 +228,16 @@ def test_a_sale_with_no_parcel_has_no_group(value):
 def test_fills_proposed_from_what_a_blank_means(field, method):
     fill, why = clean.propose(field)
     assert fill.method == method and why
+
+
+def test_a_failed_write_fails_the_run():
+    import warnings
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        warnings.warn("Failed to output sup: Conversion failed for column demo_date with type object", stacklevel=1)
+    with pytest.raises(
+        RuntimeError, match="couldn't write notebook 2's output: Conversion failed for column demo_date"
+    ):
+        bring_in.written(caught, "notebook 2's output")
+    bring_in.written([], "notebook 2's output")  # nothing said: written

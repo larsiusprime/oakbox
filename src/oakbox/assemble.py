@@ -132,6 +132,7 @@ def run(project_id: str) -> None:
         pl.write_notebook_output_sup(
             sup, "1-assemble", parquet=True, gpkg="gpkg" in exports, shp="shp" in exports, csv="csv" in exports
         )
+    bring_in.written(caught, "notebook 1's output")
     _emit(step="receipt", fraction=0.9, message="Counting")
 
     universe = sup.universe

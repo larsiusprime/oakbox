@@ -463,6 +463,16 @@ def csv_chunks(project_dir: Path, name: str):
 _emit_lock = threading.Lock()
 
 
+def written(caught, what: str) -> None:
+    """OpenAVMKit's write_notebook_output_sup catches its own errors and only warns ("Failed to output sup"), which
+    leaves a step's hand-off half written: here it fails the run, saying why."""
+    for w in caught:
+        text = str(w.message)
+        if text.startswith("Failed to output sup"):
+            reason = text.removeprefix("Failed to output sup:").strip()
+            raise RuntimeError(f"OpenAVMKit couldn't write {what}: {reason}")
+
+
 def _emit(**kw) -> None:
     """One line of progress for the app, on the real stdout: enrichments capture what OpenAVMKit prints, and the
     heartbeat writes from its own thread."""

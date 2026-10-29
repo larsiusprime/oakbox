@@ -102,6 +102,7 @@ def run(project_id: str) -> None:
         sup = pl.collapse_sparse_categories_sup(sup, settings)
         bring_in._emit(step="write", fraction=0.7, message="Writing notebook 2's output")
         pl.write_notebook_output_sup(sup, "2-clean")
+    bring_in.written(caught, "notebook 2's output")
     bring_in._emit(step="receipt", fraction=0.95, message="Counting")
 
     names = clean._names()

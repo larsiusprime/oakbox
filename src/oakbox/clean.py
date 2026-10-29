@@ -923,6 +923,7 @@ def run(project_id: str) -> None:
         step("write", 0.93, "Writing notebook 2's output")
         pl.write_notebook_output_sup(sup, "2-clean")
     beating.set()
+    bring_in.written(caught, "notebook 2's output")
     _emit(step="receipt", fraction=0.97, message="Counting")
 
     used = _valid_keys(sup.sales)
