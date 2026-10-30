@@ -4856,6 +4856,11 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
+.rv-figure {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+}
 .rv-legend {
   display: flex;
   flex-wrap: wrap;
@@ -4871,6 +4876,17 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   border: 1px solid;
   margin-right: 0.3rem;
   vertical-align: -1px;
+}
+/* A figure and its pill: the pill at the left edge, the figure at the right, whatever the pill says. */
+.rv-cell {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.rv-cell-pill {
+  display: inline-flex;
+  gap: 0.2rem;
 }
 .rv-every {
   display: block;

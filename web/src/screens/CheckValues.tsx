@@ -819,11 +819,24 @@ export function signed(v: number, digits: number) {
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(digits)}`;
 }
 
-function cell(ok: boolean | null | undefined, text: string, every?: string | null, low?: boolean | null) {
+/** A figure with its pill: the pill at the cell's left edge, the figure at its right, so a pill never moves the
+ * figure; every sale's figure under it. */
+function cell(
+  ok: boolean | null | undefined,
+  text: string,
+  every?: string | null,
+  low?: boolean | null,
+  label?: string,
+) {
   return (
     <>
-      {text} <Badge ok={ok} />
-      {low && <span className="rv-pill rv-bad">{r.table.low}</span>}
+      <span className="rv-cell">
+        <span className="rv-cell-pill">
+          <Badge ok={ok} {...(label ? { label } : {})} />
+          {low && <span className="rv-pill rv-bad">{r.table.low}</span>}
+        </span>
+        <span>{text}</span>
+      </span>
       {every != null && <span className="rv-every">{r.table.every(every)}</span>}
     </>
   );
@@ -861,16 +874,16 @@ function GroupsTable({ result }: { result: FieldResult }) {
           {g.low != null && g.high != null ? `${ratioText(g.low)} to ${ratioText(g.high)}` : "—"}
         </td>
         <td className="cs-n">{cell(v?.cod, num(g.cod, 1), e ? num(e.cod, 1) : null, v?.cod_low)}</td>
-        <td>
-          {g.vei_verdict ? (
-            <>
-              {g.vei != null ? `${signed(g.vei, 1)}% ` : ""}
-              <Badge ok={veiOk(g)} label={tb.verdicts[g.vei_verdict] ?? g.vei_verdict} />
-              {e?.vei != null && <span className="rv-every">{tb.every(`${signed(e.vei, 1)}%`)}</span>}
-            </>
-          ) : (
-            "—"
-          )}
+        <td className="cs-n">
+          {g.vei_verdict
+            ? cell(
+                veiOk(g),
+                g.vei != null ? `${signed(g.vei, 1)}%` : "—",
+                e?.vei != null ? `${signed(e.vei, 1)}%` : null,
+                null,
+                tb.verdicts[g.vei_verdict] ?? g.vei_verdict,
+              )
+            : "—"}
         </td>
         <td className="cs-n">{cell(v?.prb, pm(g.prb, 3), e ? pm(e.prb, 3) : null)}</td>
         <td className="cs-n">{cell(null, num(g.prd, 3), e ? num(e.prd, 3) : null)}</td>
@@ -897,7 +910,7 @@ function GroupsTable({ result }: { result: FieldResult }) {
             <th className="cs-n">
               <InfoTip label={tb.cod} text={tb.codWhy} />
             </th>
-            <th>
+            <th className="cs-n">
               <InfoTip label={tb.vei} text={tb.veiWhy} />
             </th>
             <th className="cs-n">
@@ -1011,6 +1024,7 @@ function Prices({
                 r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
               )}
             </p>
+            <BandChart series={[{ label: p.bySale, color: "#d4566f", bands: g.strata }]} />
             <table className="bi-tbl cs-tbl">
               <thead>
                 <tr>
@@ -1039,6 +1053,85 @@ function Prices({
         )}
       </section>
     </div>
+  );
+}
+
+type Band = { median?: number | null; low?: number | null; high?: number | null };
+
+/** Groups of sales from the cheapest to the dearest, each its median ratio with its 90% range as a bar (the VEI's
+ * chart, as openratiostudy.com draws it); several series side by side in each group, the standard's level in green. */
+function BandChart({ series }: { series: { label: string; color: string; bands: Band[] }[] }) {
+  const [ref, W] = useWidth<SVGSVGElement>();
+  const H = 260;
+  const L = 52;
+  const R = 16;
+  const T = 12;
+  const B = 34;
+  const n = Math.max(...series.map((x) => x.bands.length), 1);
+  const vals = series
+    .flatMap((x) => x.bands.flatMap((b) => [b.low, b.high, b.median]))
+    .filter((v) => v != null);
+  const rlo = Math.min(0.85, ...(vals as number[])) - 0.05;
+  const rhi = Math.max(1.15, ...(vals as number[])) + 0.05;
+  const slot = (W - L - R) / n;
+  const y = (v: number) => T + (H - T - B) * (1 - (v - rlo) / (rhi - rlo));
+  const off = (k: number) =>
+    series.length === 1 ? 0 : (k - (series.length - 1) / 2) * Math.min(18, slot / 4);
+  const rticks: number[] = [];
+  for (let v = Math.ceil(rlo * 10) / 10; v <= rhi; v += 0.1) rticks.push(Math.round(v * 10) / 10);
+  const name = (k: number) => (k === 0 ? r.regions.lowest : k === n - 1 ? r.regions.highest : String(k + 1));
+  return (
+    <figure className="rv-figure">
+      <svg
+        ref={ref}
+        viewBox={`0 0 ${W} ${H}`}
+        height={H}
+        className="rv-chart"
+        role="img"
+        aria-label={series.map((x) => x.label).join("; ")}
+      >
+        <rect x={L} y={y(1.1)} width={W - L - R} height={y(0.9) - y(1.1)} fill="#e7f5ec" />
+        {rticks.map((v) => (
+          <g key={v}>
+            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e2e4e6" />
+            <text x={L - 6} y={y(v) + 4} fontSize="11" textAnchor="end" fill="#555">
+              {v.toFixed(1)}
+            </text>
+          </g>
+        ))}
+        <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke="#888" />
+        {Array.from({ length: n }, (_, k) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the groups are positions
+          <text key={k} x={L + slot * (k + 0.5)} y={H - B + 16} fontSize="11" textAnchor="middle" fill="#555">
+            {name(k)}
+          </text>
+        ))}
+        {series.map((sr, j) =>
+          sr.bands.map((b, k) => {
+            const cx = L + slot * (k + 0.5) + off(j);
+            return b.median == null ? null : (
+              // biome-ignore lint/suspicious/noArrayIndexKey: the groups are positions
+              <g key={`${sr.label}-${k}`}>
+                {b.low != null && b.high != null && (
+                  <line x1={cx} x2={cx} y1={y(b.low)} y2={y(b.high)} stroke={sr.color} strokeWidth="2" />
+                )}
+                <circle cx={cx} cy={y(b.median)} r="4.5" fill={sr.color} />
+              </g>
+            );
+          }),
+        )}
+      </svg>
+      {series.length > 1 && (
+        <figcaption className="rv-legend">
+          {series.map((sr) => (
+            <span key={sr.label}>
+              <span className="rv-swatch" style={{ background: sr.color, borderColor: sr.color }} />
+              {sr.label}
+            </span>
+          ))}
+        </figcaption>
+      )}
+    </figure>
   );
 }
 
@@ -1410,6 +1503,12 @@ function Regions({
               r.table.verdicts[rg.vei_verdict] ?? rg.vei_verdict,
             )}
           </p>
+          <BandChart
+            series={[
+              { label: rr.byLevel, color: "#2f5d9b", bands: rg.strata },
+              ...(g.strata.length ? [{ label: rr.bySale, color: "#d4566f", bands: g.strata }] : []),
+            ]}
+          />
           <table className="bi-tbl cs-tbl">
             <thead>
               <tr>
