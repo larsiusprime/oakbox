@@ -4501,6 +4501,11 @@ export interface components {
              * @description True: back to Choose for me.
              */
             choose_for_me?: boolean | null;
+            /**
+             * Tests
+             * @description The variable tests to run, besides Represented.
+             */
+            tests?: string[] | null;
         };
         /** ModelReceipt */
         ModelReceipt: {
@@ -4534,6 +4539,11 @@ export interface components {
             choose_for_me: boolean;
             /** Groups */
             groups: components["schemas"]["ModelGroupCount"][];
+            /**
+             * Tests
+             * @description The variable tests to run, besides Represented.
+             */
+            tests: string[];
         };
         /** ModelState */
         ModelState: {
@@ -4547,6 +4557,11 @@ export interface components {
              * @description The engines chosen; None: Choose for me.
              */
             models: string[] | null;
+            /**
+             * Tests
+             * @description The variable tests to run (besides Represented); None: all of TESTS.
+             */
+            tests: string[] | null;
         };
         /** ModelView */
         ModelView: {
@@ -7157,6 +7172,11 @@ export interface components {
              * @description The variables tested.
              */
             variables: string[];
+            /**
+             * Tests
+             * @description The tests run, besides Represented.
+             */
+            tests: string[];
             /** Thresholds */
             thresholds: {
                 [key: string]: number;
@@ -7177,7 +7197,7 @@ export interface components {
             receipt: components["schemas"]["VarTestReceipt"] | null;
             /**
              * Stale
-             * @description The fields were prepared again, or a variable was ticked that wasn't tested.
+             * @description The fields were prepared again, a variable was ticked that wasn't tested, or the tests changed.
              */
             stale: boolean;
             /** Blocked */

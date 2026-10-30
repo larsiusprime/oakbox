@@ -6,11 +6,10 @@ import { t } from "../strings";
 import { when } from "./BringIn";
 import { CollapseCard, FillCard, useCleanSetup } from "./CheckSales";
 import { HowTheyDid, ModelsCard, useModel, useModelSetup, VariablesCard } from "./Models";
-import { MoreTests, TestStep, useVarTest, Verdict } from "./VarTests";
+import { TestPicker, TestStep, useVarTest, Verdict } from "./VarTests";
 
 const m = t.values;
-// The variable tests (SPEC F9): Test the variables is a major step; the tests that each answer a question of their
-// own are its parts, the rest (which repeat one of them) together under More tests.
+// The variable tests (SPEC F9): Test the variables is a major step, the tests the user picked its parts.
 const TESTS = ["represented", "corr", "p_value", "vif"] as const;
 type Test = (typeof TESTS)[number];
 type MvStep =
@@ -21,7 +20,6 @@ type MvStep =
   | "variables"
   | "test"
   | Test
-  | "more"
   | "verdict"
   | "models"
   | "try"
@@ -34,14 +32,13 @@ const MV_STEPS: MvStep[] = [
   "variables",
   "test",
   ...TESTS,
-  "more",
   "verdict",
   "models",
   "try",
   "how",
 ];
-const MODEL_STEPS: MvStep[] = ["variables", "test", ...TESTS, "more", "verdict", "models", "try", "how"];
-const TESTED: MvStep[] = [...TESTS, "more", "verdict"];
+const MODEL_STEPS: MvStep[] = ["variables", "test", ...TESTS, "verdict", "models", "try", "how"];
+const TESTED: MvStep[] = [...TESTS, "verdict"];
 
 function usePrepare(projectId: string) {
   return useQuery({
@@ -132,7 +129,10 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const tests = vr ? (vv.stale ? "attention" : "done") : "blank";
   const called = r ? (v.stale ? "attention" : "done") : "blank";
   const tried = mr ? (mv.stale ? "attention" : "done") : "blank";
-  const steps: Step[] = MV_STEPS.map((key) => ({
+  // The tests listed: those run, or before a run, those picked (Represented always runs).
+  const picked: string[] = ["represented", ...(vr?.tests.length ? vr.tests : (mSetup.data?.tests ?? TESTS))];
+  const shown = MV_STEPS.filter((key) => !(TESTS as readonly string[]).includes(key) || picked.includes(key));
+  const steps: Step[] = shown.map((key) => ({
     key,
     title: m.steps[key],
     ...(TESTED.includes(key) ? { parent: "test" } : {}),
@@ -166,10 +166,10 @@ export function ValuesTab({ projectId }: { projectId: string }) {
       (key === "how" && !mr) ||
       (TESTED.includes(key) && !vr),
   }));
-  const i = MV_STEPS.indexOf(current);
-  const prev = MV_STEPS[i - 1];
+  const i = shown.indexOf(current);
+  const prev = shown[i - 1];
   const back = prev ? () => go(prev) : null;
-  const onward = { label: t.wizard.next, onPress: () => go(MV_STEPS[i + 1] ?? current) };
+  const onward = { label: t.wizard.next, onPress: () => go(shown[i + 1] ?? current) };
   const u = setup.data;
   const set = (body: Parameters<typeof change.mutate>[0]) => change.mutate(body);
   const mu = mSetup.data;
@@ -294,6 +294,7 @@ export function ValuesTab({ projectId }: { projectId: string }) {
                 <b>{m.blocked}</b> {vv.blocked[0]}
               </div>
             )}
+            {mu && <TestPicker setup={mu} set={mSet} disabled={testing} />}
             {testing ? (
               <RunProgress job={vv.job} lastSeconds={vr?.seconds ?? null} />
             ) : (
@@ -340,20 +341,6 @@ export function ValuesTab({ projectId }: { projectId: string }) {
                 set={mSet}
                 fill={() => go("fill")}
               />
-            ) : (
-              <p className="empty">{t.project.loading}</p>
-            )}
-            {errors}
-          </StepBody>
-          <StepFoot back={back} next={onward} />
-        </>
-      )}
-      {current === "more" && vr && (
-        <>
-          <StepBody kicker={m.kicker} title={m.steps.more}>
-            {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
-            {mu ? (
-              <MoreTests view={vv} setup={mu} set={mSet} fill={() => go("fill")} />
             ) : (
               <p className="empty">{t.project.loading}</p>
             )}

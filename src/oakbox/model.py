@@ -65,6 +65,19 @@ Kind = Literal["big_five", "building", "land", "location", "other", "category"]
 class ModelState(BaseModel):
     variables: list[str] | None = Field(default=None, description="The variables chosen; None: every one found.")
     models: list[str] | None = Field(default=None, description="The engines chosen; None: Choose for me.")
+    tests: list[str] | None = Field(
+        default=None, description="The variable tests to run (besides Represented); None: all of TESTS."
+    )
+
+
+# The variable tests offered (OpenAVMKit's names), each answering a question of its own; Represented always runs. The
+# engine's other tests (elastic net, R², t-value, signs agree) mostly repeat one of these and aren't run.
+TESTS = ("corr", "p_value", "vif")
+
+
+def tests(project) -> list[str]:
+    chosen = project.model.tests
+    return list(TESTS) if chosen is None else [x for x in TESTS if x in chosen]
 
 
 def out_dir(project_dir: Path) -> Path:
@@ -271,6 +284,7 @@ class ModelSetup(BaseModel):
     engines: list[Engine]
     choose_for_me: bool
     groups: list[ModelGroupCount]
+    tests: list[str] = Field(description="The variable tests to run, besides Represented.")
 
 
 def setup(project, project_dir: Path) -> ModelSetup:
@@ -298,6 +312,7 @@ def setup(project, project_dir: Path) -> ModelSetup:
         engines=[Engine(key=k, name=n, note=note, chosen=k in chosen) for k, (n, note) in ENGINES.items()],
         choose_for_me=project.model.models is None,
         groups=groups,
+        tests=tests(project),
     )
 
 
@@ -306,6 +321,7 @@ class ModelPatch(BaseModel):
     every_variable: bool | None = Field(default=None, description="True: back to every variable found.")
     models: list[str] | None = None
     choose_for_me: bool | None = Field(default=None, description="True: back to Choose for me.")
+    tests: list[str] | None = Field(default=None, description="The variable tests to run, besides Represented.")
 
 
 def change(project, body: ModelPatch) -> None:
@@ -323,6 +339,13 @@ def change(project, body: ModelPatch) -> None:
         if not body.models:
             raise ValueError("Choose at least one model.")
         s.models = [m for m in ENGINES if m in body.models]
+    if body.tests is not None:
+        unknown = [x for x in body.tests if x not in TESTS]
+        if unknown:
+            raise ValueError(f"Not a test OAK box offers: {', '.join(unknown)}.")
+        if not body.tests:
+            raise ValueError("Choose at least one test.")
+        s.tests = [x for x in TESTS if x in body.tests]
 
 
 # ---------- The receipt ----------

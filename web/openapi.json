@@ -11036,6 +11036,21 @@
       ],
       "title": "Choose For Me",
       "description": "True: back to Choose for me."
+     },
+     "tests": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tests",
+      "description": "The variable tests to run, besides Represented."
      }
     },
     "type": "object",
@@ -11130,6 +11145,14 @@
       },
       "type": "array",
       "title": "Groups"
+     },
+     "tests": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tests",
+      "description": "The variable tests to run, besides Represented."
      }
     },
     "type": "object",
@@ -11138,7 +11161,8 @@
      "missing",
      "engines",
      "choose_for_me",
-     "groups"
+     "groups",
+     "tests"
     ],
     "title": "ModelSetup"
    },
@@ -11173,12 +11197,28 @@
       ],
       "title": "Models",
       "description": "The engines chosen; None: Choose for me."
+     },
+     "tests": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tests",
+      "description": "The variable tests to run (besides Represented); None: all of TESTS."
      }
     },
     "type": "object",
     "required": [
      "variables",
-     "models"
+     "models",
+     "tests"
     ],
     "title": "ModelState"
    },
@@ -17238,6 +17278,14 @@
       "title": "Variables",
       "description": "The variables tested."
      },
+     "tests": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tests",
+      "description": "The tests run, besides Represented."
+     },
      "thresholds": {
       "additionalProperties": {
        "type": "number"
@@ -17266,6 +17314,7 @@
      "seconds",
      "engine",
      "variables",
+     "tests",
      "thresholds",
      "groups",
      "notes"
@@ -17308,7 +17357,7 @@
      "stale": {
       "type": "boolean",
       "title": "Stale",
-      "description": "The fields were prepared again, or a variable was ticked that wasn't tested."
+      "description": "The fields were prepared again, a variable was ticked that wasn't tested, or the tests changed."
      },
      "blocked": {
       "items": {

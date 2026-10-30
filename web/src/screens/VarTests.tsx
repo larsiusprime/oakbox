@@ -32,22 +32,13 @@ export function useVarTest(projectId: string) {
 
 /** How each test's figure reads: as a share, a score, a coefficient, a p-value; and which way is better. */
 const LOWER_BETTER = new Set(["p_value", "vif"]);
-const ABSOLUTE = new Set(["enr", "t_value"]);
 
 function figure(test: string, v: number | null | undefined): string {
   if (v == null) return "—";
   if (test === "represented") return `${Math.round(100 * v)}%`;
-  if (test === "enr")
-    return Math.abs(v) >= 1000
-      ? new Intl.NumberFormat(undefined, { notation: "compact" }).format(v)
-      : num(v, 2);
   if (test === "p_value") return v < 0.001 ? "< 0.001" : num(v, 3);
-  if (test === "corr" || test === "r2") return num(v, 3);
+  if (test === "corr") return num(v, 3);
   return num(v, 2);
-}
-
-function sign(v: number | null | undefined) {
-  return v == null || v === 0 ? "·" : v > 0 ? "+" : "−";
 }
 
 /** One test, one model group: a row per variable (a category's values each on their own row), its result as a bar
@@ -84,7 +75,7 @@ export function TestStep({
   const threshold = key ? r.thresholds[key] : undefined;
   const rule = info ? (typeof info.rule === "function" ? info.rule(threshold ?? 0) : info.rule) : "";
   const rows = [...(g?.tests[test] ?? [])];
-  const val = (x: TestRow) => (x.value == null ? null : ABSOLUTE.has(test) ? Math.abs(x.value) : x.value);
+  const val = (x: TestRow) => x.value;
   rows.sort((a, b) => {
     const va = val(a);
     const vb = val(b);
@@ -95,7 +86,7 @@ export function TestStep({
     ...rows.map((x) => val(x) ?? 0),
     test === "vif" ? 2 * (threshold ?? 10) : 0,
     threshold ?? 0,
-    test === "represented" || test === "corr" || test === "r2" || test === "p_value" ? 1 : 0,
+    test === "vif" ? 0 : 1,
     1e-9,
   );
   // VIF runs from 1 to the thousands: on a log scale, so the threshold and the ones near it can be read.
@@ -127,26 +118,20 @@ export function TestStep({
             )}
           </span>
           <span>
-            {test === "signs"
-              ? `${sign(x.more.coef_sign)} ${sign(x.more.enr_coef_sign)} ${sign(x.more.t_value_sign)}`
-              : x.reason === "no_correlation"
-                ? vt.withPrice(num(x.more.corr_strength, 3))
-                : figure(test, x.value)}
+            {x.reason === "no_correlation"
+              ? vt.withPrice(num(x.more.corr_strength, 3))
+              : figure(test, x.value)}
           </span>
         </span>
       </td>
       <td className="vt-bar-cell">
-        {test !== "signs" && (
-          <span className="vt-bar">
-            <span
-              className={passed === false ? "vt-fill vt-fill-bad" : "vt-fill"}
-              style={{ width: `${width(val(x))}%` }}
-            />
-            {threshold != null && test !== "enr" && (
-              <span className="vt-mark" style={{ left: `${width(threshold)}%` }} />
-            )}
-          </span>
-        )}
+        <span className="vt-bar">
+          <span
+            className={passed === false ? "vt-fill vt-fill-bad" : "vt-fill"}
+            style={{ width: `${width(val(x))}%` }}
+          />
+          {threshold != null && <span className="vt-mark" style={{ left: `${width(threshold)}%` }} />}
+        </span>
       </td>
     </>
   );
@@ -473,34 +458,34 @@ function CorrHow({
   );
 }
 
-/** The tests that mostly repeat one before (SPEC F9), one at a time. */
-export function MoreTests({
-  view,
+/** Which tests to run (SPEC F9): Represented always; the others as the user picks. */
+export function TestPicker({
   setup,
   set,
-  fill,
+  disabled,
 }: {
-  view: VarTestView;
   setup: ModelSetup;
   set: (body: ModelPatch) => void;
-  fill: () => void;
+  disabled: boolean;
 }) {
-  const [test, setTest] = useState("enr");
-  const which = ["enr", "r2", "t_value", "signs"];
+  const chosen = setup.tests;
   return (
-    <div className="cs-step">
-      <p className="wiz-lede">{vt.moreLede}</p>
-      <div className="cs-row">
-        <Choice
-          label={vt.moreWhich}
-          value={test}
-          options={which.map(
-            (k) => [k, t.values.steps[k as keyof typeof t.values.steps]] as [string, string],
-          )}
-          onChange={setTest}
-        />
+    <>
+      <h3 className="wiz-group">{vt.pickTitle}</h3>
+      <div className="md-engines">
+        {["represented", "corr", "p_value", "vif"].map((k) => (
+          <div key={k} className="md-engine">
+            <Tick
+              isSelected={k === "represented" || chosen.includes(k)}
+              isDisabled={disabled || k === "represented" || (chosen.includes(k) && chosen.length === 1)}
+              onChange={(on) => set({ tests: on ? [...chosen, k] : chosen.filter((x) => x !== k) })}
+            >
+              <b>{t.values.steps[k as keyof typeof t.values.steps]}</b>
+            </Tick>
+            <span className="wiz-from">{vt.pick[k]}</span>
+          </div>
+        ))}
       </div>
-      <TestStep key={test} test={test} view={view} setup={setup} set={set} fill={fill} />
-    </div>
+    </>
   );
 }

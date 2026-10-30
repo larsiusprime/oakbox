@@ -225,7 +225,16 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     # Each correlation failure says why, and each column's correlation is there in detail (strength, clarity, overlaps).
     assert all(row["reason"] for row in tested[0]["tests"]["corr"] if row["passed"] is False)
     assert all("to_price" in d and "overlaps" in d for d in tested[0]["corr"].values())
-    assert not tv["stale"]
+    assert not tv["stale"] and tv["receipt"]["tests"] == ["corr", "p_value", "vif"]
+    # Only the tests picked run; a change of tests makes the results out of date.
+    assert client.patch(f"{mdl}/setup", json={"tests": []}).status_code == 422
+    assert client.patch(f"{mdl}/setup", json={"tests": ["vif", "corr"]}).json()["tests"] == ["corr", "vif"]
+    assert client.get(vt).json()["stale"]
+    client.post(f"{vt}/run")
+    tv = _wait(client, vt)
+    assert tv["status"] == "done", tv["job"]
+    tested = [g for g in tv["receipt"]["groups"] if g["tests"]]
+    assert tested and set(tested[0]["tests"]) == {"represented", "corr", "vif"} and not tv["stale"]
 
     client.patch(f"{mdl}/setup", json={"models": ["lightgbm"]})
     assert client.post(f"{mdl}/run").json()["status"] == "running"

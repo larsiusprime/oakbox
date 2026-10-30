@@ -1,7 +1,7 @@
 """Step 5: test the variables before the models (SPEC F9). OpenAVMKit's own variable tests, per model group, on the
-variables ticked: are they represented, how they correlate with price and with each other, elastic net, R², p- and
-t-values, VIF, and whether their signs agree. The receipt keeps every test's result for every variable, so the step
-can show the tests one at a time and the user can untick what's a waste of time.
+variables ticked: are they represented, and those the user picked of how they correlate with price and with each
+other, their p-values together, and VIF. The receipt keeps every test's result for every variable, so the step can
+show the tests one at a time and the user can untick what's a waste of time.
 
 It runs in a process of its own (`python -m oakbox.vartest <project id>`): the prepared hand-off, the canonical
 splits, then `get_variable_recommendations(..., return_tests=True)` per model group, main models only.
@@ -29,7 +29,6 @@ MODULE = "vartest"
 # The correlation test's first pass: a correlation with price weaker than this (in absolute value) is none at all,
 # and the variable is dropped before the combined scores are worked out.
 CORR_FLOOR = 0.05
-TESTS = ["represented", "corr", "enr", "r2", "p_value", "t_value", "vif", "signs"]
 
 
 def out_dir(project_dir: Path) -> Path:
@@ -98,6 +97,7 @@ class VarTestReceipt(BaseModel):
     seconds: float
     engine: str
     variables: list[str] = Field(description="The variables tested.")
+    tests: list[str] = Field(default_factory=list, description="The tests run, besides Represented.")
     thresholds: dict[str, float]
     groups: list[VarGroup]
     notes: list[str] = Field(default_factory=list)
@@ -144,7 +144,7 @@ def _rows(frame, column: str, src: dict, passed, more: tuple[str, ...] = ()) -> 
     return out
 
 
-def _group_tests(tests: dict, df_results, variables: list[str]) -> dict[str, list[TestRow]]:
+def _group_tests(tests: dict, variables: list[str]) -> dict[str, list[TestRow]]:
     th = tests.get("thresholds") or {}
     src = _sources(variables, tests.get("one_hot") or {})
 
@@ -185,21 +185,13 @@ def _group_tests(tests: dict, df_results, variables: list[str]) -> dict[str, lis
                 )
             )
     out["corr"] = rows
-    for name, column in (("enr", "enr_coef"), ("p_value", "p_value"), ("t_value", "t_value"), ("vif", "vif")):
-        t = tests.get(name) or {}
-        keep = final(name)
-        out[name] = _rows(t.get("initial"), column, src, lambda c, _v, keep=keep: c in keep)
-    r2 = tests.get("r2")
-    floor = th.get("adj_r2", 0.0)
-    out["r2"] = _rows(r2, "adj_r2", src, lambda _c, v: None if v is None else v > floor, ("r2", "coef_sign"))
-    if df_results is not None and "signs_match" in df_results:
-        out["signs"] = _rows(
-            df_results,
-            "signs_match",
-            src,
-            lambda _c, v: None if v is None else v == 1,
-            ("coef_sign", "enr_coef_sign", "t_value_sign"),
-        )
+    if not tests.get("corr"):
+        del out["corr"]
+    for name in ("p_value", "vif"):
+        t = tests.get(name)
+        if t:
+            keep = final(name)
+            out[name] = _rows(t.get("initial"), name, src, lambda c, _v, keep=keep: c in keep)
     return out
 
 
@@ -290,6 +282,7 @@ def run(project_id: str) -> None:
     if not (pdir / "out" / "2-clean-sup.pickle").is_file():
         raise RuntimeError("Prepare the fields first: the tests start from what it writes.")
     variables = [v.field for v in model.variables(project, pdir) if v.chosen]
+    to_run = model.tests(project)
     if not variables:
         raise RuntimeError("Tick at least one variable.")
     tmp = out_dir(pdir).with_suffix(".tmp")
@@ -345,6 +338,7 @@ def run(project_id: str) -> None:
                     settings,
                     g.id,
                     variables_to_use=here,
+                    tests_to_run=to_run,
                     do_cross=True,
                     return_tests=True,
                 )
@@ -363,7 +357,7 @@ def run(project_id: str) -> None:
                 score = _f(r.get("weighted_score"))
                 if score is not None:
                     vg.scores[var] = max(vg.scores.get(var, score), score)
-            vg.tests = _group_tests(tests, df, here)
+            vg.tests = _group_tests(tests, here)
             vg.corr = _corr_detail(
                 tests.get("corr") or {},
                 here,
@@ -379,6 +373,7 @@ def run(project_id: str) -> None:
         seconds=round(time.time() - t0, 1),
         engine=version("openavmkit"),
         variables=variables,
+        tests=to_run,
         thresholds=thresholds,
         groups=groups,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
@@ -400,7 +395,9 @@ class VarTestView(BaseModel):
     status: Literal["never", "running", "failed", "stopped", "done"]
     job: bring_in.Job | None
     receipt: VarTestReceipt | None
-    stale: bool = Field(description="The fields were prepared again, or a variable was ticked that wasn't tested.")
+    stale: bool = Field(
+        description="The fields were prepared again, a variable was ticked that wasn't tested, or the tests changed."
+    )
     blocked: list[str]
 
 
@@ -423,7 +420,14 @@ def view(project, project_dir: Path) -> VarTestView:
     p, _ = prepare._ran(project_dir)
     chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
     # Unticking a tested variable doesn't need a new test; ticking one that wasn't tested does.
-    stale = bool(r and ((ran or {}).get("prepare") != (p.ran_at if p else None) or chosen - set(r.variables)))
+    stale = bool(
+        r
+        and (
+            (ran or {}).get("prepare") != (p.ran_at if p else None)
+            or chosen - set(r.variables)
+            or r.tests != model.tests(project)
+        )
+    )
     blocked = []
     if not prepare.view(project, project_dir).accepted:
         blocked.append("Press Looks right on What changed first: the tests start from the prepared fields.")
