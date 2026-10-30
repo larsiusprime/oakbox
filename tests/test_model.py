@@ -77,6 +77,8 @@ def test_choose_for_me_settings(prepared):
     assert "slope_mean_deg" not in entries["default"]["ind_vars"]
     assert "slope_mean_deg" in entries["lightgbm"]["ind_vars"]
     assert entries["mra"] == {"log": True} and entries["local_area"] == {}
+    # The study set judges the models by their holdout predictions, like for like with the roll.
+    assert model.settings(_project(), prepared)["analysis"] == {"ratio_study": {"study_set_predictions": "holdout"}}
 
 
 def test_choices(prepared):

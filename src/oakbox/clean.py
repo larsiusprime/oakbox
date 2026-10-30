@@ -271,6 +271,17 @@ def write_marks(project, project_dir: Path) -> None:
         atomic.save_text(project_dir / path, buf.getvalue())
 
 
+# The ratio study's settings that only the models' figures read: a change there leaves Check sales as it was.
+MODEL_ONLY = ("study_set_predictions",)
+
+
+def _analysis_key(settings: dict) -> dict:
+    out = {k: v for k, v in settings.get("analysis", {}).items() if k != "report"}
+    if isinstance(out.get("ratio_study"), dict):
+        out["ratio_study"] = {k: v for k, v in out["ratio_study"].items() if k not in MODEL_ONLY}
+    return out
+
+
 def settings_key(settings: dict, project) -> dict:
     """What this run depends on: what step 2's does, and this step's calls and the user's keeps and exclusions."""
     process = settings.get("data", {}).get("process", {})
@@ -279,7 +290,7 @@ def settings_key(settings: dict, project) -> dict:
         "model_groups": settings.get("modeling", {}).get("model_groups"),
         "process": {k: process.get(k) for k in bring_in.CLEAN_PROCESS if k not in FIELD_PROCESS},
         "use_sales_from": settings.get("modeling", {}).get("metadata", {}).get("use_sales_from"),
-        "analysis": {k: v for k, v in settings.get("analysis", {}).items() if k != "report"},
+        "analysis": _analysis_key(settings),
         "marks": {k: m.action for k, m in sorted(project.clean.marks.items())},
     }
 

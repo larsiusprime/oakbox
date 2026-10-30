@@ -289,3 +289,14 @@ def test_a_failed_write_fails_the_run():
     ):
         bring_in.written(caught, "notebook 2's output")
     bring_in.written([], "notebook 2's output")  # nothing said: written
+
+
+def test_the_models_study_set_setting_leaves_check_sales_as_it_was():
+    project = projects.Project.model_validate(
+        {"id": "x", "name": "x", "created_at": "2026-01-01T00:00:00", "tax_year": 2026, "valuation_date": "2026-01-01"}
+    )
+    base = {"analysis": {"ratio_study": {"look_back_years": 1}}}
+    more = {"analysis": {"ratio_study": {"look_back_years": 1, "study_set_predictions": "holdout"}}}
+    assert clean.settings_key(base, project) == clean.settings_key(more, project)
+    other = {"analysis": {"ratio_study": {"look_back_years": 2}}}
+    assert clean.settings_key(base, project) != clean.settings_key(other, project)

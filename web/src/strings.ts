@@ -2342,7 +2342,7 @@ export const t = {
             "Each sale valued by a model that never saw it (5-fold cross-validation). The roll isn't here: this holdout is OpenAVMKit's own draw, and the roll's values may have been made with these very sales.",
           post_val: "Sales after the valuation date: no model saw them.",
           study:
-            "Sales in the year before the valuation date: the IAAO frame for auditing a roll. The roll is here, beside the models.",
+            "Sales in the year before the valuation date: the IAAO frame for auditing a roll. The roll is here, beside the models; each model is judged by its holdout predictions, on sales it never saw, so like for like.",
         },
         empty: {
           holdout: "No sales to hold out.",

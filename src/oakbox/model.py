@@ -268,7 +268,10 @@ def settings(project, project_dir: Path) -> dict:
         "modeling": {
             "instructions": {"main": {"run": chosen + roll, "ensemble": {"type": "median"}}},
             "models": {"main": entries},
-        }
+        },
+        # On the study set, each model is judged by its holdout predictions, as the roll is beside it: on its
+        # predictions on every sale, it would be judged on sales it trained on.
+        "analysis": {"ratio_study": {"study_set_predictions": "holdout"}},
     }
 
 
@@ -599,6 +602,20 @@ def run(project_id: str) -> None:
                 )
             )
             continue
+        sets = _sets(r, cls[g.id], targets)
+        if not any(x.sales for x in sets):
+            # Modeled, but no sale to judge it by: as good as unmodeled here.
+            out.append(
+                ModelGroupResult(
+                    id=g.id,
+                    name=g.name,
+                    color=g.color,
+                    parcels=per.get(g.id, 0),
+                    sales=n,
+                    skipped=f"{n:,} {'sale' if n == 1 else 'sales'}, none held out to judge the models by",
+                )
+            )
+            continue
         untrimmed, trimmed = academic_metrics(r, _get_max_ratio_study_trim(settings, g.id))
         out.append(
             ModelGroupResult(
@@ -607,7 +624,7 @@ def run(project_id: str) -> None:
                 color=g.color,
                 parcels=per.get(g.id, 0),
                 sales=n,
-                sets=_sets(r, cls[g.id], targets),
+                sets=sets,
                 academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor",)),
                 academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor",)),
                 timings=_rows(
@@ -649,6 +666,7 @@ def settings_key(settings: dict, project_dir: Path) -> dict:
         "prepare": r.ran_at if r else None,
         "models": m.get("models", {}).get("main"),
         "run": m.get("instructions", {}).get("main"),
+        "study": settings.get("analysis", {}).get("ratio_study", {}).get("study_set_predictions"),
     }
 
 
