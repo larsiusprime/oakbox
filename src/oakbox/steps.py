@@ -301,7 +301,7 @@ def read(base: Path, model: type[R]) -> tuple[R | None, dict | None]:
         return None, None
 
 
-class StepView(BaseModel):
+class RunView(BaseModel):
     """What every step's screen is told: where it is, and whether its last run still holds."""
 
     status: Status

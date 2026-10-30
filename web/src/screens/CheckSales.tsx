@@ -16,6 +16,16 @@ import {
   type SaleDetail,
   unwrap,
 } from "../api/client";
+import {
+  POLL,
+  setupKey,
+  stepChanged,
+  stepKey,
+  useStep,
+  useStepAct,
+  useStepNav,
+  useStepSetup,
+} from "../api/steps";
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
@@ -27,20 +37,9 @@ const s = t.sales;
 type Patch = CleanPatch;
 type Unit = "sqft" | "sqm";
 
-function useClean(projectId: string) {
-  return useQuery({
-    queryKey: ["clean", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/clean", { params: { path: { project_id: projectId } } }),
-      ),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 600 : false),
-  });
-}
-
 /** Whether Looks right was pressed on an up-to-date Check sales: step 4 can start. */
 export function useSalesAccepted(projectId: string): boolean {
-  return useClean(projectId).data?.accepted ?? false;
+  return useStep("clean", projectId).data?.accepted ?? false;
 }
 
 export function money(v: number | null | undefined, currency: string): string {
@@ -78,39 +77,6 @@ export function day(text: string | null | undefined): string {
   return text ? text.slice(0, 10) : "—";
 }
 
-/** The calls before running (Check sales, and step 5's fills and folding), and changing one. */
-export function useCleanSetup(projectId: string, enabled: boolean) {
-  const queryClient = useQueryClient();
-  const setup = useQuery({
-    queryKey: ["clean-setup", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/clean/setup", {
-          params: { path: { project_id: projectId } },
-        }),
-      ),
-    enabled,
-  });
-  const change = useMutation({
-    mutationFn: async (body: Patch) =>
-      unwrap(
-        await api.PATCH("/api/projects/{project_id}/clean/setup", {
-          params: { path: { project_id: projectId } },
-          body,
-        }),
-      ),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["clean-setup", projectId], data);
-      queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["clean-time", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["prepare", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["vartest", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["model", projectId] });
-    },
-  });
-  return { setup, change };
-}
-
 type CsStep = "window" | "time" | "scrutiny" | "run" | "sales" | "aside";
 const CS_STEPS: CsStep[] = ["window", "time", "scrutiny", "run", "sales", "aside"];
 
@@ -125,24 +91,13 @@ export function SalesTab({
   currency: string;
   place: string;
 }) {
-  const queryClient = useQueryClient();
-  const state = useClean(projectId);
+  const state = useStep("clean", projectId);
   const v = state.data;
-  const { setup, change } = useCleanSetup(projectId, !!v && v.blocked.length === 0);
-  const act = useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept") => {
-      const path = `/api/projects/{project_id}/clean/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["clean", projectId], data);
-      queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["clean-setup", projectId] });
-    },
-  });
+  const { setup, change } = useStepSetup("clean", projectId, !!v && v.blocked.length === 0);
+  const act = useStepAct("clean", projectId);
   const counts = useReviewCounts(projectId);
   // The step shown; after: a run was started here, so its results open when it's done.
-  const [at, setAt] = useState<{ step: CsStep | null; after: boolean }>({ step: null, after: false });
+  const nav = useStepNav<CsStep>();
   const [check, setCheck] = useState("");
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   if (v.blocked.length > 0)
@@ -163,9 +118,9 @@ export function SalesTab({
   const r = v.receipt;
   const fresh = !!r && !v.stale;
   const fallback: CsStep = running ? "run" : !r ? "window" : v.stale ? "run" : "sales";
-  const current: CsStep = at.after && v.status === "done" ? "sales" : (at.step ?? fallback);
-  const go = (step: string) => setAt({ step: step as CsStep, after: false });
-  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
+  const current = nav.current(v.status, fallback, "sales");
+  const go = nav.go;
+  const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
   const look = (c: string) => {
     setCheck(c);
     go("aside");
@@ -451,9 +406,8 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
         }),
       ),
     onSuccess: (data) => {
-      queryClient.setQueryData(["clean-setup", projectId], data);
-      queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["clean-time", projectId] });
+      queryClient.setQueryData(setupKey("clean", projectId), data);
+      stepChanged(queryClient, projectId, "clean");
     },
   });
   const choose = (gid: string, from: string, now: string) => {
@@ -587,9 +541,8 @@ function TimeFileImport({
       ),
     onSuccess: (data) => {
       if (data.ok) {
-        queryClient.invalidateQueries({ queryKey: ["clean-setup", projectId] });
-        queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
-        queryClient.invalidateQueries({ queryKey: ["clean-time", projectId] });
+        void queryClient.invalidateQueries({ queryKey: setupKey("clean", projectId) });
+        stepChanged(queryClient, projectId, "clean");
         close();
       }
     },
@@ -1168,7 +1121,7 @@ function TimePreviewPanel({ projectId }: { projectId: string }) {
           params: { path: { project_id: projectId } },
         }),
       ),
-    refetchInterval: (x) => (x.state.data?.status === "running" ? 600 : false),
+    refetchInterval: (x) => (x.state.data?.status === "running" ? POLL : false),
   });
   const run = useMutation({
     mutationFn: async () =>
@@ -1520,9 +1473,10 @@ function SaleView({
           body: { action: m.action, note: m.note },
         }),
       ),
+    // A mark puts Check sales out of date, and so the steps after it.
     onSuccess: (data) => {
-      queryClient.setQueryData(["clean", projectId], data);
-      queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
+      queryClient.setQueryData(stepKey("clean", projectId), data);
+      stepChanged(queryClient, projectId, "clean", false);
     },
   });
   const d = detail.data;

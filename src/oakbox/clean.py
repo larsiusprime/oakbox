@@ -1599,7 +1599,7 @@ def mark(project, key_sale: str, action: Literal["keep", "exclude"] | None, note
 # ---------- The step's state ----------
 
 
-class CleanView(steps.StepView):
+class CleanView(steps.RunView):
     receipt: CleanReceipt | None
     accepted: bool
 

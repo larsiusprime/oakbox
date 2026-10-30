@@ -183,7 +183,7 @@ def run(project_id: str) -> None:
 # ---------- The step's state ----------
 
 
-class AssembleView(steps.StepView):
+class AssembleView(steps.RunView):
     receipt: AssembleReceipt | None
     exports: list[Literal["gpkg", "shp", "csv"]]
     accepted: bool

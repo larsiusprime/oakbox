@@ -1,12 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { api, type PrepareView, unwrap } from "../api/client";
+import type { PrepareView } from "../api/client";
+import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { t } from "../strings";
 import { when } from "./BringIn";
-import { CollapseCard, FillCard, useCleanSetup } from "./CheckSales";
-import { HowTheyDid, ModelsCard, useModel, useModelSetup, VariablesCard } from "./Models";
-import { TestPicker, TestStep, useVarTest, Verdict } from "./VarTests";
+import { CollapseCard, FillCard } from "./CheckSales";
+import { HowTheyDid, ModelsCard, VariablesCard } from "./Models";
+import { TestPicker, TestStep, Verdict } from "./VarTests";
 
 const m = t.values;
 // The variable tests (SPEC F9): Test the variables is a major step, the tests the user picked its parts.
@@ -40,57 +39,24 @@ const MV_STEPS: MvStep[] = [
 const MODEL_STEPS: MvStep[] = ["variables", "test", ...TESTS, "verdict", "models", "try", "how"];
 const TESTED: MvStep[] = [...TESTS, "verdict"];
 
-function usePrepare(projectId: string) {
-  return useQuery({
-    queryKey: ["prepare", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/prepare", { params: { path: { project_id: projectId } } }),
-      ),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 600 : false),
-  });
-}
-
 /** Step 5, Build model values (SPEC F7, F9). It begins by preparing the fields for the models: fills for blanks they
  * can't take, and folding rare categories; then the variables and models, a try, and how they did. */
 export function ValuesTab({ projectId }: { projectId: string }) {
-  const queryClient = useQueryClient();
-  const state = usePrepare(projectId);
+  const state = useStep("prepare", projectId);
   const v = state.data;
-  const { setup, change } = useCleanSetup(projectId, true);
-  const act = useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept") => {
-      const path = `/api/projects/{project_id}/prepare/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["prepare", projectId], data);
-      // The tests and the models start from the prepared fields: what they may do changes with it.
-      void queryClient.invalidateQueries({ queryKey: ["vartest", projectId] });
-      void queryClient.invalidateQueries({ queryKey: ["model", projectId] });
-    },
-  });
-  const ms = useModel(projectId);
+  // The fills and the folding are Check sales' calls, made here.
+  const { setup, change } = useStepSetup("clean", projectId);
+  const act = useStepAct("prepare", projectId);
+  const ms = useStep("model", projectId);
   const mv = ms.data;
   const prepared = !!v?.accepted;
-  const { setup: mSetup, change: mChange } = useModelSetup(projectId, prepared);
-  const mAct = useMutation({
-    mutationFn: async (what: "run" | "stop") => {
-      const path = `/api/projects/{project_id}/model/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => queryClient.setQueryData(["model", projectId], data),
-  });
-  const vs = useVarTest(projectId);
+  const { setup: mSetup, change: mChange } = useStepSetup("model", projectId, prepared);
+  const mAct = useStepAct("model", projectId);
+  const vs = useStep("vartest", projectId);
   const vv = vs.data;
-  const vAct = useMutation({
-    mutationFn: async (what: "run" | "stop") => {
-      const path = `/api/projects/{project_id}/vartest/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => queryClient.setQueryData(["vartest", projectId], data),
-  });
-  const [at, setAt] = useState<{ step: MvStep | null; after: boolean }>({ step: null, after: false });
+  const vAct = useStepAct("vartest", projectId);
+  const nav = useStepNav<MvStep>();
+  const at = nav.at;
   if (!v || !mv || !vv)
     return <p className="empty">{(state.error ?? ms.error ?? vs.error)?.message ?? t.project.loading}</p>;
   const testing = vv.status === "running";
@@ -127,10 +93,10 @@ export function ValuesTab({ projectId }: { projectId: string }) {
         : at.after && vv.status === "done" && at.step === "test"
           ? "represented"
           : (at.step ?? fallback);
-  const go = (step: string) => setAt({ step: step as MvStep, after: false });
-  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
-  const tryIt = () => mAct.mutate("run", { onSuccess: () => setAt({ step: "try", after: true }) });
-  const testIt = () => vAct.mutate("run", { onSuccess: () => setAt({ step: "test", after: true }) });
+  const go = nav.go;
+  const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
+  const tryIt = () => mAct.mutate("run", { onSuccess: () => nav.ran("try") });
+  const testIt = () => vAct.mutate("run", { onSuccess: () => nav.ran("test") });
   const tests = vr ? (vv.stale ? "attention" : "done") : "blank";
   const called = r ? (v.stale ? "attention" : "done") : "blank";
   const tried = mr ? (mv.stale ? "attention" : "done") : "blank";

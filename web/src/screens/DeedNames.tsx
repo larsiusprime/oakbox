@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDeferredValue, useState } from "react";
 import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
 import { api, type NamesView, unwrap } from "../api/client";
+import { setupKey, stepChanged } from "../api/steps";
 import { t } from "../strings";
 
 const n = t.wizard.names;
@@ -49,7 +50,8 @@ export function DeedNames({ projectId }: { projectId: string }) {
       ),
     onSuccess: (data) => {
       queryClient.setQueryData(["names", projectId], data);
-      queryClient.invalidateQueries({ queryKey: ["clean-setup", projectId] });
+      void queryClient.invalidateQueries({ queryKey: setupKey("clean", projectId) });
+      stepChanged(queryClient, projectId, "clean");
       setTried(null);
       setPattern(null);
     },

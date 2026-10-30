@@ -662,7 +662,7 @@ def settings_hash(settings: dict, project_dir: Path) -> str:
     return steps.key_hash(settings_key(settings, project_dir))
 
 
-class ModelView(steps.StepView):
+class ModelView(steps.RunView):
     receipt: ModelReceipt | None
 
 

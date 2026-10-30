@@ -31,7 +31,7 @@ from typing import Literal
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field, model_validator
 
-from oakbox import appsettings
+from oakbox import appsettings, atomic
 from oakbox import clean as clean_settings
 from oakbox import model as model_calls
 from oakbox.clean import CleanState
@@ -562,9 +562,9 @@ def _permits(project: Project, out: dict) -> None:
 
 def write_settings(project: Project) -> Path:
     path = project_dir(project.id) / "in" / "settings.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
     settings = base_settings(project)
-    path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+    # In one step: the app reads it while a run is being started.
+    atomic.save_text(path, json.dumps(settings, indent=2))
     clean_settings.write_marks(project, project_dir(project.id))
     return path
 

@@ -44,6 +44,10 @@ tests, the models) is built on `steps.py`, not on another step's module: a `step
 `steps.heartbeat()`, `steps.engine_notes`, `steps.main`. Its routes come from `_step_routes` in `app.py`. A step
 that needs an earlier one done asks `<earlier>.STEP.accepted(...)` (cheap), never builds the earlier step's view.
 
+On screen, a step's state, run and calls come from `web/src/api/steps.ts` (`useStep`, `useStepAct`,
+`useStepSetup`, `useStepNav`); after anything that changes a step, `stepChanged` asks it and every step after it
+again (`NEXT`: the one table of which step starts from which).
+
 ## Screens
 
 - **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,
@@ -72,7 +76,7 @@ Run all of it, not only the tests; CI fails on any of these.
 ```sh
 uv run ruff check src tests && uv run ruff format --check src tests && uv run pyright && uv run pytest -q tests
 PYTHONUTF8=0 PYTHONCOERCECLOCALE=0 LC_ALL=C LANG=C uv run pytest -q tests
-(cd web && npx biome check src && npx eslint src && npx tsc --noEmit)
+(cd web && npx biome check src && npx eslint src && npx tsc --noEmit && npm test)
 # API types: regenerate and check nothing changed
 uv run python -c "import json; from oakbox.app import create_app; print(json.dumps(create_app().openapi(), indent=1))" > web/openapi.json
 (cd web && npm run -s api) && git diff --exit-code web/openapi.json web/src/api/schema.d.ts

@@ -381,7 +381,7 @@ def run(project_id: str) -> None:
 # ---------- The step's state ----------
 
 
-class VarTestView(steps.StepView):
+class VarTestView(steps.RunView):
     receipt: VarTestReceipt | None
 
 

@@ -341,6 +341,7 @@ function CensusKey({ view }: { view: EnrichView }) {
     mutationFn: async (k: string) => unwrap(await api.PUT("/api/census-key", { body: { key: k } })),
     onSuccess: async () => {
       setKey("");
+      // The key is this computer's, not a project's: every project's census card and marks change.
       await queryClient.invalidateQueries({ queryKey: ["enrich"] });
       await queryClient.invalidateQueries({ queryKey: ["wizard"] });
     },

@@ -24,13 +24,14 @@ import {
   type ParcelInspect,
   unwrap,
 } from "../api/client";
+import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { addBasemap } from "../components/basemap";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { t } from "../strings";
-import { AssembleResults, Formats, useAssemble, useAssembleAct, when } from "./Assemble";
+import { AssembleResults, Formats, when } from "./Assemble";
 import { useSettled } from "./FieldRules";
 
 const g = t.groups;
@@ -75,10 +76,10 @@ function usePreview(projectId: string, groups: ModelGroup[], enabled = true) {
 export function ModelGroupsTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const state = useGroups(projectId);
-  const run = useAssemble(projectId);
-  const act = useAssembleAct(projectId);
+  const run = useStep("assemble", projectId);
+  const act = useStepAct("assemble", projectId);
   // The step shown; after: a run was started from here, so its results open when it's done.
-  const [at, setAt] = useState<{ step: MgStep | null; after: boolean }>({ step: null, after: false });
+  const nav = useStepNav<MgStep>();
   // Starting again replaces the groups: asked first.
   const [replace, setReplace] = useState<"scratch" | "suggested" | null>(null);
   const start = useMutation({
@@ -91,9 +92,9 @@ export function ModelGroupsTab({ projectId }: { projectId: string }) {
       ),
     onSuccess: (data) => {
       queryClient.setQueryData(["groups", projectId], data);
-      void queryClient.invalidateQueries({ queryKey: ["assemble", projectId] });
+      stepChanged(queryClient, projectId, "assemble");
       setReplace(null);
-      setAt({ step: "build", after: false });
+      nav.go("build");
     },
   });
   const v = state.data;
@@ -121,8 +122,8 @@ export function ModelGroupsTab({ projectId }: { projectId: string }) {
         : saved.length
           ? "write"
           : "build";
-  const current: MgStep = at.after && a.status === "done" ? "results" : (at.step ?? fallback);
-  const go = (step: string) => setAt({ step: step as MgStep, after: false });
+  const current = nav.current(a.status, fallback, "results");
+  const go = nav.go;
   const steps: Step[] = STEPS.map((key) => ({
     key,
     title: g.steps[key],
@@ -160,7 +161,7 @@ export function ModelGroupsTab({ projectId }: { projectId: string }) {
   const back = prev ? () => go(prev) : null;
   const toSales = () => navigate({ name: "project", id: projectId, tab: "sales" });
   // Run, and open the results when it's done.
-  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "write", after: true }) });
+  const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("write") });
 
   return (
     <StepFrame steps={steps} current={current} go={go} wide={current === "build"}>
@@ -428,8 +429,8 @@ function Builder({
     onSuccess: (data) => {
       queryClient.setQueryData(["groups", projectId], data);
       setDraft(data.groups);
-      // Saved groups can put notebook 1's output out of date.
-      void queryClient.invalidateQueries({ queryKey: ["assemble", projectId] });
+      // Saved groups can put notebook 1's output out of date, and so every step after it.
+      stepChanged(queryClient, projectId, "assemble");
     },
   });
   const p = preview.data;

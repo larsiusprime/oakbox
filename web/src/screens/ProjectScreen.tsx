@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
+import { useStep } from "../api/steps";
 import clipboard from "../assets/noto/emoji_u1f4cb.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { desktop } from "../desktop";
 import { t } from "../strings";
-import { useAssemble } from "./Assemble";
 import { BringInTab, useAccepted } from "./BringIn";
 import { SalesTab, useSalesAccepted } from "./CheckSales";
 import { CheckValuesTab } from "./CheckValues";
@@ -57,7 +57,7 @@ function ProjectView({
   useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
   // The Input files tab (and each file's own fields) is out of the flow for now: its links open the Data wizard.
   const accepted = useAccepted(projectId);
-  const grouped = useAssemble(projectId).data?.accepted ?? false;
+  const grouped = useStep("assemble", projectId).data?.accepted ?? false;
   const checked = useSalesAccepted(projectId);
   const selected =
     tab === "files" || !tab

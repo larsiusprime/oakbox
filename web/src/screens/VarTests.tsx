@@ -1,34 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
-import {
-  api,
-  type CorrDetail,
-  type ModelPatch,
-  type ModelSetup,
-  type TestRow,
-  unwrap,
-  type VarTestView,
-} from "../api/client";
+import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { t } from "../strings";
 import { num } from "./CheckSales";
 import { ColumnsNote } from "./Models";
 
 const vt = t.values.vartest;
-
-/** The variable tests' run (SPEC F9), polled while it runs. */
-export function useVarTest(projectId: string) {
-  return useQuery({
-    queryKey: ["vartest", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/vartest", { params: { path: { project_id: projectId } } }),
-      ),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 800 : false),
-  });
-}
 
 /** How each test's figure reads: as a share, a score, a coefficient, a p-value; and which way is better. */
 const LOWER_BETTER = new Set(["p_value", "vif"]);

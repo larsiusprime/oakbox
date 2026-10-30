@@ -905,7 +905,7 @@ class Plan(BaseModel):
     fields: int
 
 
-class View(steps.StepView):
+class View(steps.RunView):
     receipt: Receipt | None
     changed: list[str] = Field(description="What changed in the settings since it ran, in words.")
     accepted: bool = Field(description="Looks right was pressed on this receipt, and nothing changed since.")

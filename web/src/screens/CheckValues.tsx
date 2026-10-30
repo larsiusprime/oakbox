@@ -14,6 +14,7 @@ import {
   type RatioView,
   unwrap,
 } from "../api/client";
+import { stepKey, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { addBasemap } from "../components/basemap";
 import { Choice, Field, Tick } from "../components/Form";
 import { Pill, type Verdict, verdictOf } from "../components/Pill";
@@ -50,48 +51,9 @@ const STEPS: RStep[] = [
 const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
 type Class = RatioSetup["groups"][number]["cls"];
 
-function useRatio(projectId: string) {
-  return useQuery({
-    queryKey: ["ratio", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/ratio", { params: { path: { project_id: projectId } } }),
-      ),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 600 : false),
-  });
-}
-
 /** Whether Looks right was pressed on an up-to-date Check my values. */
 export function useValuesChecked(projectId: string): boolean {
-  return useRatio(projectId).data?.accepted ?? false;
-}
-
-function useRatioSetup(projectId: string, enabled: boolean) {
-  const queryClient = useQueryClient();
-  const setup = useQuery({
-    queryKey: ["ratio-setup", projectId],
-    enabled,
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/ratio/setup", {
-          params: { path: { project_id: projectId } },
-        }),
-      ),
-  });
-  const change = useMutation({
-    mutationFn: async (body: RatioPatch) =>
-      unwrap(
-        await api.PATCH("/api/projects/{project_id}/ratio/setup", {
-          params: { path: { project_id: projectId } },
-          body,
-        }),
-      ),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["ratio-setup", projectId], data);
-      queryClient.invalidateQueries({ queryKey: ["ratio", projectId] });
-    },
-  });
-  return { setup, change };
+  return useStep("ratio", projectId).data?.accepted ?? false;
 }
 
 const ratioText = (v: number | null | undefined) => num(v, 3);
@@ -107,26 +69,19 @@ function prbVerdict(g: RatioStudy): Verdict | null {
 /** Step 4, Check my values (SPEC F8): the values on the roll against what parcels sold for, judged against the
  * IAAO's targets (or the user's), one task at a time. */
 export function CheckValuesTab({ projectId, currency }: { projectId: string; currency: string }) {
-  const queryClient = useQueryClient();
-  const state = useRatio(projectId);
+  const state = useStep("ratio", projectId);
   const v = state.data;
-  const { setup, change } = useRatioSetup(projectId, !!v && v.blocked.length === 0);
-  const act = useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept") => {
-      const path = `/api/projects/{project_id}/ratio/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => queryClient.setQueryData(["ratio", projectId], data),
-  });
-  const [at, setAt] = useState<{ step: RStep | null; after: boolean }>({ step: null, after: false });
+  const { setup, change } = useStepSetup("ratio", projectId, !!v && v.blocked.length === 0);
+  const act = useStepAct("ratio", projectId);
+  const nav = useStepNav<RStep>();
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   const running = v.status === "running";
   const rc = v.receipt;
   const fresh = !!rc && !v.stale;
   const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "sales";
-  const current: RStep = at.after && v.status === "done" ? "summary" : (at.step ?? fallback);
-  const go = (step: string) => setAt({ step: step as RStep, after: false });
-  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
+  const current = nav.current(v.status, fallback, "summary");
+  const go = nav.go;
+  const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
   // Only the market value is checked (one result).
   const result: FieldResult | undefined = rc?.results[0];
   const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
@@ -1276,8 +1231,9 @@ function Extreme({
       ),
     onSuccess: (_, m) => {
       setDone((d) => new Set(d).add(m.key));
-      queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
-      queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
+      // Check sales is now out of date; this step's results are left on screen, so several can be marked.
+      void queryClient.invalidateQueries({ queryKey: stepKey("clean", projectId) });
+      void queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
     },
   });
   const e = r.extreme;

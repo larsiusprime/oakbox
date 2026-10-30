@@ -158,7 +158,7 @@ def run(project_id: str) -> None:
 # ---------- The step's state ----------
 
 
-class PrepareView(steps.StepView):
+class PrepareView(steps.RunView):
     receipt: PrepareReceipt | None
     accepted: bool
 

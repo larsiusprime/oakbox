@@ -642,7 +642,7 @@ def run(project_id: str) -> None:
 # ---------- The step's state ----------
 
 
-class RatioView(steps.StepView):
+class RatioView(steps.RunView):
     receipt: RatioReceipt | None
     accepted: bool
 

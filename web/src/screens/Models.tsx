@@ -1,16 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
-import {
-  api,
-  type ModelPatch,
-  type ModelRow,
-  type ModelSetup,
-  type ModelView,
-  type SalesSet,
-  unwrap,
-} from "../api/client";
+import type { ModelPatch, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { Choice, Tick } from "../components/Form";
 import { Pill } from "../components/Pill";
@@ -21,48 +12,6 @@ import { day, num } from "./CheckSales";
 import { signed } from "./CheckValues";
 
 const m = t.values.model;
-
-/** Step 5's models (SPEC F9): the run's state, polled while it runs. */
-export function useModel(projectId: string) {
-  return useQuery({
-    queryKey: ["model", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/model", { params: { path: { project_id: projectId } } }),
-      ),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 800 : false),
-  });
-}
-
-/** The variables there are and the models offered; a change saves at once and puts the try out of date. */
-export function useModelSetup(projectId: string, enabled: boolean) {
-  const queryClient = useQueryClient();
-  const setup = useQuery({
-    queryKey: ["model-setup", projectId],
-    enabled,
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/model/setup", {
-          params: { path: { project_id: projectId } },
-        }),
-      ),
-  });
-  const change = useMutation({
-    mutationFn: async (body: ModelPatch) =>
-      unwrap(
-        await api.PATCH("/api/projects/{project_id}/model/setup", {
-          params: { path: { project_id: projectId } },
-          body,
-        }),
-      ),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["model-setup", projectId], data);
-      void queryClient.invalidateQueries({ queryKey: ["model", projectId] });
-      void queryClient.invalidateQueries({ queryKey: ["vartest", projectId] });
-    },
-  });
-  return { setup, change };
-}
 
 type CardProps = { v: ModelSetup; set: (body: ModelPatch) => void };
 

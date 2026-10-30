@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen } from "lucide-react";
 import { Button } from "react-aria-components";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
+import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
 import { t } from "../strings";
 
@@ -21,29 +22,6 @@ function size(bytes: number): string {
   return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1e3))} KB`;
 }
 
-export function useAssemble(projectId: string) {
-  return useQuery({
-    queryKey: ["assemble", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/assemble", { params: { path: { project_id: projectId } } }),
-      ),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 600 : false),
-  });
-}
-
-/** The end of notebook 1: run (tag and write), stop, and Looks right. */
-export function useAssembleAct(projectId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept") => {
-      const path = `/api/projects/{project_id}/assemble/${what}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => queryClient.setQueryData(["assemble", projectId], data),
-  });
-}
-
 /** The formats notebook 1's output is also written in, beside Parquet. */
 export function Formats({ projectId, view }: { projectId: string; view: AssembleView }) {
   const queryClient = useQueryClient();
@@ -55,7 +33,10 @@ export function Formats({ projectId, view }: { projectId: string; view: Assemble
           body: { exports },
         }),
       ),
-    onSuccess: (data) => queryClient.setQueryData(["assemble", projectId], data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(stepKey("assemble", projectId), data);
+      stepChanged(queryClient, projectId, "assemble", false);
+    },
   });
   return (
     <fieldset className="ab-formats-inline">

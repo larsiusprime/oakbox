@@ -11,6 +11,7 @@ import {
   type ReceiptField,
   unwrap,
 } from "../api/client";
+import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
@@ -18,21 +19,9 @@ import { t } from "../strings";
 
 const b = t.bringIn;
 
-function useBringIn(projectId: string) {
-  return useQuery({
-    queryKey: ["bring-in", projectId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/projects/{project_id}/bring-in", { params: { path: { project_id: projectId } } }),
-      ),
-    // While it runs, ask often; otherwise only when something changes.
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 600 : false),
-  });
-}
-
 /** Whether Looks right was pressed on an up-to-date receipt: model groups can start. */
 export function useAccepted(projectId: string): boolean {
-  return useBringIn(projectId).data?.accepted ?? false;
+  return useStep("bring-in", projectId).data?.accepted ?? false;
 }
 
 export function clock(seconds: number): string {
@@ -53,33 +42,29 @@ const BI_STEPS: BiStep[] = ["plan", "run", "universe", "sales", "more"];
 /** Step 1, Bring in data (SPEC §3.3), one task at a time: what runs, the run, then what it brought in. */
 export function BringInTab({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
-  const state = useBringIn(projectId);
-  const act = useMutation({
-    mutationFn: async (what: "run" | "stop" | "accept" | `skip:${string}`) => {
-      if (what.startsWith("skip:")) {
-        return unwrap(
-          await api.POST("/api/projects/{project_id}/bring-in/skip/{part}", {
-            params: { path: { project_id: projectId, part: what.slice(5) } },
-          }),
-        );
-      }
-      const path = `/api/projects/{project_id}/bring-in/${what as "run" | "stop" | "accept"}` as const;
-      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
-    },
-    onSuccess: (data) => queryClient.setQueryData(["bring-in", projectId], data),
+  const state = useStep("bring-in", projectId);
+  const act = useStepAct("bring-in", projectId);
+  // Skip one part of a running run (an enrichment).
+  const skip = useMutation({
+    mutationFn: async (part: string) =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/bring-in/skip/{part}", {
+          params: { path: { project_id: projectId, part } },
+        }),
+      ),
+    onSuccess: (data) => queryClient.setQueryData(stepKey("bring-in", projectId), data),
   });
   const [rows, setRows] = useState<{ set: string; title: string } | null>(null);
-  // The step shown; after: a run was started here, so the results open when it's done.
-  const [at, setAt] = useState<{ step: BiStep | null; after: boolean }>({ step: null, after: false });
+  const nav = useStepNav<BiStep>();
   const v = state.data;
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   const running = v.status === "running";
   const r = v.receipt;
   const fresh = !!r && !v.stale;
   const fallback: BiStep = running || !r || v.stale ? (r || running ? "run" : "plan") : "universe";
-  const current: BiStep = at.after && v.status === "done" ? "universe" : (at.step ?? fallback);
-  const go = (step: string) => setAt({ step: step as BiStep, after: false });
-  const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
+  const current = nav.current(v.status, fallback, "universe");
+  const go = nav.go;
+  const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
   const toGroups = () => navigate({ name: "project", id: projectId, tab: "groups" });
   const steps: Step[] = BI_STEPS.map((key) => ({
     key,
@@ -155,11 +140,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
         <>
           <StepBody kicker={b.kicker} title={b.runTitle} lede={b.runLede}>
             {running ? (
-              <RunProgress
-                job={v.job}
-                lastSeconds={r?.seconds ?? null}
-                skip={(part) => act.mutate(`skip:${part}`)}
-              />
+              <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} skip={(part) => skip.mutate(part)} />
             ) : (
               <>
                 {v.status === "failed" && v.job?.error && (
@@ -188,9 +169,9 @@ export function BringInTab({ projectId }: { projectId: string }) {
                 {!r && <p className="wiz-from">{b.notRun}</p>}
               </>
             )}
-            {act.error && (
+            {(act.error ?? skip.error) && (
               <p className="error" role="alert">
-                {act.error.message}
+                {(act.error ?? skip.error)?.message}
               </p>
             )}
           </StepBody>

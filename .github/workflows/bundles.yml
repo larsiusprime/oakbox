@@ -44,13 +44,14 @@ jobs:
           LC_ALL: C
           LANG: C
         run: uv run python -c "import locale; assert locale.getpreferredencoding(False).lower() != 'utf-8'" && uv run pytest -q tests
-      - name: Web lint, types
+      - name: Web lint, types, tests
         working-directory: web
         run: |
           npm ci
           npx biome check src
           npx eslint src
           npx tsc --noEmit
+          npm test
       - name: Generated API types are up to date
         run: |
           uv run python -c "import json; from oakbox.app import create_app; print(json.dumps(create_app().openapi(), indent=1))" > web/openapi.json
