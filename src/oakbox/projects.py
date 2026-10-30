@@ -28,25 +28,26 @@ from importlib import resources
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel as _PydanticBase
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import Field, model_validator
 
 from oakbox import appsettings, atomic
 from oakbox import clean as clean_settings
 from oakbox import model as model_calls
 from oakbox.clean import CleanState
-from oakbox.datafiles import DataFile, Rule, clean_calc, data_load, overlay_distance, rule_fields, rule_filter
+from oakbox.datafiles import (
+    BaseModel,
+    DataFile,
+    Rule,
+    clean_calc,
+    data_load,
+    overlay_distance,
+    rule_fields,
+    rule_filter,
+)
 from oakbox.enrichments import Enrichments
 from oakbox.enrichments import settings as enrich_settings
 from oakbox.model import ModelState
 from oakbox.ratio import RatioState
-
-
-class BaseModel(_PydanticBase):
-    # Fields with defaults are always present in responses; say so in the schema so
-    # the generated TypeScript types are exact (no spurious optionals).
-    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
-
 
 Units = Literal["imperial", "metric"]
 # How numbers are written: the thousands separator and the decimal mark (SPEC F1).
@@ -371,7 +372,7 @@ def _base(project: Project) -> dict:
 DEED_BOOK_PAGE = "deed_book_and_page"
 
 
-def _deed(project: Project) -> str | None:
+def deed_field(project: Project) -> str | None:
     """The field sales scrutiny reads as the deed ID: the deed ID, or the book and page together (F3f)."""
     sales = [f for f in project.files if f.holds == "sales"]
     loaded = {k for f in sales for k in f.load}
@@ -383,7 +384,7 @@ def _deed(project: Project) -> str | None:
 
 
 def _analysis(project: Project) -> dict:
-    deed = _deed(project)
+    deed = deed_field(project)
     return {"analysis": {"sales_scrutiny": {"deed_id": deed}}} if deed else {}
 
 
@@ -417,7 +418,7 @@ def _data(project: Project) -> dict:
         out["process"] = process
     _condos(project, out)
     _permits(project, out)
-    if _deed(project) == DEED_BOOK_PAGE:
+    if deed_field(project) == DEED_BOOK_PAGE:
         # Book and page as one deed ID, "123-45"; blank when either is (no deed is no deed).
         f = next(f for f in project.files if f.holds == "sales" and "deed_page" in f.load)
         joined = ["+", ["+", ["asstr", "deed_book"], "str:-"], ["asstr", "deed_page"]]

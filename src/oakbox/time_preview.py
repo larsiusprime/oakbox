@@ -18,7 +18,7 @@ from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import assemble, clean, steps
+from oakbox import assemble, cells, clean, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "time_preview"
@@ -108,11 +108,11 @@ def run(project_id: str) -> None:
         progress.report("time", 0.2, base_message)
         sup = pl.process_sales(sup=sup, settings=settings)
     hydrated = get_hydrated_sales_from_sup(sup)
-    valid = hydrated[clean._yes(hydrated, "valid_sale")]
+    valid = hydrated[cells.yes(hydrated, "valid_sale")]
     groups = []
     for gid, name, color in [(g.id, g.name, g.color) for g in project.groups]:
         n = int((valid["model_group"].astype(str) == gid).sum()) if "model_group" in valid else 0
-        per_year, first, last, curve = clean._curve(
+        per_year, first, last, curve = clean.time_curve(
             work / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv"
         )
         groups.append(
@@ -142,7 +142,7 @@ def view(project, project_dir: Path) -> TimePreview:
     if path.is_file():
         saved = json.loads(path.read_text(encoding="utf-8"))
         result = TimeResult.model_validate(saved["result"])
-        stale = saved.get("hash") != settings_hash(clean._settings(project_dir), project_dir)
+        stale = saved.get("hash") != settings_hash(steps.read_settings(project_dir), project_dir)
     return TimePreview(status=j.status if j else ("done" if result else "never"), job=j, result=result, stale=stale)
 
 

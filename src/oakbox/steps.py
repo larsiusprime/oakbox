@@ -262,6 +262,36 @@ def publish(tmp: Path, final: Path) -> None:
     shutil.rmtree(old, ignore_errors=True)
 
 
+def read_settings(project_dir: Path) -> dict:
+    """The project's settings as written for OpenAVMKit (in/settings.json), as they stand."""
+    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
+
+
+def engine_settings(project_dir: Path) -> dict:
+    """The same, as OpenAVMKit reads them (its defaults filled in)."""
+    from openavmkit.utilities.settings import load_settings
+
+    return cast(dict, load_settings(str(project_dir / "in" / "settings.json"), warning=False))
+
+
+# The files the runs write, in words (by the start of their name).
+WRITTEN = {
+    "1-assemble-sup.pickle": "the parcel universe and sales together: what notebook 2 (clean) starts from",
+    "1-assemble-universe": "the parcel universe, with each parcel's model group",
+    "1-assemble-sales-hydrated": "the sales, each with its parcel's fields and model group",
+    "1-assemble-sales": "the sales record",
+    "2-clean-sup.pickle": "the parcels and the sales for modeling: what notebook 3 (model) starts from",
+    "2-clean-universe": "the parcel universe, filled and clustered",
+    "2-clean-sales-hydrated": "the sales for modeling, each with its parcel's fields",
+    "2-clean-sales": "the sales record",
+}
+
+
+def what_written(name: str) -> str:
+    """What a file a run wrote holds, in words."""
+    return next((what for prefix, what in WRITTEN.items() if name.startswith(prefix)), "")
+
+
 def key_hash(key: Any) -> str:
     """A short fingerprint of what a step depends on."""
     return hashlib.sha256(json.dumps(key, sort_keys=True, default=str).encode()).hexdigest()[:16]

@@ -19,7 +19,7 @@ from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import model, prepare, steps
+from oakbox import cells, model, prepare, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "vartest"
@@ -100,14 +100,6 @@ class VarTestReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-def _f(v) -> float | None:
-    try:
-        x = float(v)
-    except (TypeError, ValueError):
-        return None
-    return None if math.isnan(x) or math.isinf(x) else x
-
-
 def _sources(variables: list[str], one_hot: dict) -> dict[str, tuple[str, str | None]]:
     """Each column tested -> (the variable, the category value it stands for)."""
     out: dict[str, tuple[str, str | None]] = {v: (v, None) for v in variables}
@@ -127,7 +119,7 @@ def _rows(frame, column: str, src: dict, passed, more: tuple[str, ...] = ()) -> 
         if c == "const" or c not in src:
             continue
         var, level = src[c]
-        value = _f(r.get(column))
+        value = cells.number(r.get(column))
         out.append(
             TestRow(
                 column=c,
@@ -135,7 +127,7 @@ def _rows(frame, column: str, src: dict, passed, more: tuple[str, ...] = ()) -> 
                 level=level,
                 value=value,
                 passed=passed(c, value),
-                more={m: _f(r.get(m)) for m in more},
+                more={m: cells.number(r.get(m)) for m in more},
             )
         )
     return out
@@ -169,7 +161,7 @@ def _group_tests(tests: dict, variables: list[str]) -> dict[str, list[TestRow]]:
     for c in corr.get("weak") or []:
         if c in src:
             var, level = src[c]
-            r = _f(matrix.iloc[:, 0].get(c)) if matrix is not None else None
+            r = cells.number(matrix.iloc[:, 0].get(c)) if matrix is not None else None
             rows.append(
                 TestRow(
                     column=c,
@@ -225,15 +217,16 @@ def _corr_detail(
     out: dict[str, CorrDetail] = {}
     others = [c for c in m.columns[1:] if c in src]
     for c in others:
-        to_price = _f(m.loc[c, target])
+        to_price = cells.number(m.loc[c, target])
         row = scores.get(c)
         near = sorted(
-            ((o, m.loc[c, o]) for o in others if o != c and _f(m.loc[c, o]) is not None), key=lambda x: -abs(x[1])
+            ((o, m.loc[c, o]) for o in others if o != c and cells.number(m.loc[c, o]) is not None),
+            key=lambda x: -abs(x[1]),
         )[:5]
         dropped_by = None
         by_price = None
         tie = None
-        if row is not None and c not in kept and (_f(row.get("corr_score")) or 0) >= threshold:
+        if row is not None and c not in kept and (cells.number(row.get("corr_score")) or 0) >= threshold:
             # As the test drops it: a variable more related to price that it's more related to than to price.
             mine = abs(to_price or 0)
             # Only a variable that was still in at its turn can push another out: one kept to the end.
@@ -242,18 +235,18 @@ def _corr_detail(
                 for o in others
                 if o != c and o in kept
                 for r in [m.loc[c, o]]
-                if _f(r) is not None and abs(_f(m.loc[o, target]) or 0) > mine and abs(r) > mine
+                if cells.number(r) is not None and abs(cells.number(m.loc[o, target]) or 0) > mine and abs(r) > mine
             ]
             stronger.sort(key=lambda x: -abs(x[1]))
             if stronger:
                 dropped_by = ov(*stronger[0])
-                by_price = _f(m.loc[stronger[0][0], target])
+                by_price = cells.number(m.loc[stronger[0][0], target])
                 z = _steiger_z(abs(by_price or 0), mine, abs(float(stronger[0][1])), sales)
                 tie = None if z is None else abs(z) < 1.96
         out[c] = CorrDetail(
             to_price=to_price,
-            clarity=_f(row.get("corr_clarity")) if row is not None else None,
-            score=_f(row.get("corr_score")) if row is not None else None,
+            clarity=cells.number(row.get("corr_clarity")) if row is not None else None,
+            score=cells.number(row.get("corr_score")) if row is not None else None,
             overlaps=[ov(o, r) for o, r in near],
             dropped_by=dropped_by,
             dropped_by_price=by_price,
@@ -341,13 +334,15 @@ def run(project_id: str) -> None:
                 groups.append(vg)
                 continue
             tests = rec["tests"]
-            thresholds = {k: float(v) for k, v in (tests.get("thresholds") or {}).items() if _f(v) is not None}
+            thresholds = {
+                k: float(v) for k, v in (tests.get("thresholds") or {}).items() if cells.number(v) is not None
+            }
             src = _sources(variables, tests.get("one_hot") or {})
             vg.recommended = list(dict.fromkeys(src.get(c, (c, None))[0] for c in rec["variables"]))
             df = rec["df_results"]
             for _, r in df.iterrows():
                 var = src.get(str(r["variable"]), (str(r["variable"]), None))[0]
-                score = _f(r.get("weighted_score"))
+                score = cells.number(r.get("weighted_score"))
                 if score is not None:
                     vg.scores[var] = max(vg.scores.get(var, score), score)
             vg.tests = _group_tests(tests, here)

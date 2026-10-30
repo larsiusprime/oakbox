@@ -27,7 +27,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox import clean, prepare, ratio, steps
+from oakbox import cells, fields, prepare, ratio, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "model"
@@ -130,14 +130,14 @@ def _candidates(settings: dict, columns: list[str], units: str | None) -> list[t
         (get_fields_land(settings, df), "land"),
         (get_fields_other(settings, df), "other"),
     ]
-    for fields, kind in buckets:
-        for f in sorted({*fields.get("numeric", []), *fields.get("boolean", [])}):
+    for found, kind in buckets:
+        for f in sorted({*found.get("numeric", []), *found.get("boolean", [])}):
             if f in seen or not _offered(f):
                 continue
             seen.add(f)
             k: Kind = "location" if f in LOCATION else kind
             out.append((f, k, True))
-        cats += [f for f in sorted(fields.get("categorical", [])) if f not in seen and _offered(f)]
+        cats += [f for f in sorted(found.get("categorical", [])) if f not in seen and _offered(f)]
     location: Kind = "location"
     for f in LOCATION:
         if f in columns and f not in seen:
@@ -186,7 +186,7 @@ def _scan(
     import pyarrow.parquet as pq
 
     columns = pq.ParquetFile(path).schema_arrow.names
-    settings = clean._engine_settings(Path(path).parents[2])
+    settings = steps.engine_settings(Path(path).parents[2])
     found = _candidates(settings, columns, units)
     df = pd.read_parquet(path, columns=[f for f, _, _ in found])
     out = []
@@ -216,7 +216,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
     path = _universe_path(project_dir)
     if not path.is_file():
         return []
-    names = clean._names() | NAMES
+    names = fields.names() | NAMES
     chosen = project.model.variables
     out = []
     settings_path = project_dir / "in" / "settings.json"
@@ -411,16 +411,6 @@ class ModelReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-def _num(v) -> float | None:
-    import math
-
-    try:
-        f = float(v)
-    except (TypeError, ValueError):
-        return None
-    return None if math.isnan(f) or math.isinf(f) else f
-
-
 def _name(model: str) -> str:
     if model == "ensemble":
         return "Ensemble"
@@ -474,7 +464,7 @@ def _rows(df, columns, rename=None, cls="none", targets=None, sales_key="count_s
         model = str(model)
         if model in drop:
             continue
-        values = {(rename or {}).get(c, c): _num(row.get(c)) for c in columns}
+        values = {(rename or {}).get(c, c): cells.number(row.get(c)) for c in columns}
         judged = _judge(values, values.get(sales_key), cls, targets) if targets else {}
         out.append(ModelRow(model=model, name=_name(model), values=values, judged=judged))
     order = ["assessor", "ensemble", *ENGINES]

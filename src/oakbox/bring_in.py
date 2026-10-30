@@ -204,7 +204,7 @@ def by_id(df, ids):
     """Rows of repeated IDs, the ID column first and the rows sorted by it (each ID's rows in file order)."""
     values = [str(v) for v in ids]
     # Numbers in an ID as numbers: 99 before 100.
-    order = sorted(range(len(values)), key=lambda i: _natural(values[i]))
+    order = sorted(range(len(values)), key=lambda i: natural(values[i]))
     out = df.iloc[order]
     column = getattr(ids, "name", None)
     if column in out.columns:
@@ -237,7 +237,7 @@ def _text(df) -> list[list[str]]:
     return [[cell(v) for v in row] for row in df.itertuples(index=False, name=None)]
 
 
-def _natural(v: str) -> list:
+def natural(v: str) -> list:
     return [(0, int(p), "") if p.isdigit() else (1, 0, p) for p in re.split(r"(\d+)", v) if p]
 
 
@@ -382,7 +382,7 @@ def profile(
     import pandas as pd
     import pyarrow.parquet as pq
 
-    from oakbox.wizard import _g, sort_counts
+    from oakbox.wizard import short_number, sort_counts
 
     if name not in ("universe", "sales"):
         raise LookupError(name)
@@ -400,7 +400,7 @@ def profile(
         kind = "number"
         x = pd.Series(filled.astype(float))
         year = "year" in field
-        g = (lambda v: f"{v:.0f}") if year else _g
+        g = (lambda v: f"{v:.0f}") if year else short_number
         if len(x):
             q = {p: float(x.quantile(p)) for p in (0.1, 0.25, 0.5, 0.75, 0.9)}
             stats = [
@@ -477,7 +477,7 @@ def _write(df, path: Path) -> None:
 def _summary(s, name: str = "") -> str:
     import pandas as pd
 
-    from oakbox.wizard import _g
+    from oakbox.wizard import short_number
 
     s = s.dropna()
     if s.empty:
@@ -488,7 +488,7 @@ def _summary(s, name: str = "") -> str:
         return f"{s.min():%Y-%m-%d} to {s.max():%Y-%m-%d}"
     if pd.api.types.is_numeric_dtype(s):
         x = s.astype(float)
-        g = (lambda v: f"{v:.0f}") if "year" in name else _g  # 1987, not 1,987
+        g = (lambda v: f"{v:.0f}") if "year" in name else short_number  # 1987, not 1,987
         return f"{g(x.min())} · median {g(x.median())} · {g(x.max())}"
     counts = s.astype(str).value_counts()
     if len(counts) == len(s):
@@ -501,11 +501,11 @@ def _raw(files, entry, columns=None):
     """A file's rows as written (no shapes), every column as text."""
     import pandas as pd
 
-    from oakbox.wizard import _stamp, _values
+    from oakbox.wizard import file_stamp, values_of
 
     cols = columns or [c.name for c in files.columns(entry.name)]
-    stamp = _stamp(files.in_dir / entry.filename)
-    return pd.DataFrame({c: _values(stamp, entry.layer, c, raw=True) for c in cols})
+    stamp = file_stamp(files.in_dir / entry.filename)
+    return pd.DataFrame({c: values_of(stamp, entry.layer, c, raw=True) for c in cols})
 
 
 def _clear_cache_if_rows_change(pdir: Path, settings: dict) -> None:
@@ -571,8 +571,8 @@ def run(project_id: str) -> None:
     t2 = time.time()
     universe, sales = sup.universe, sup.sales
     recount(enriched, universe)
-    files = wizard._Files(project, in_dir)
-    base = wizard._base(project)
+    files = wizard.Files(project, in_dir)
+    base = wizard.base_file(project)
     keys = set(universe["key"].astype(str))
     rows_dir = tmp / "rows"
 
@@ -622,7 +622,7 @@ def run(project_id: str) -> None:
         )
         if units_f is not None:
             # Condo units with no shape of their own: in the parcel universe with their building's (F3d).
-            predicted += wizard._units_view(project, files, units_f).linked
+            predicted += wizard.units_view(project, files, units_f).linked
             lines.append(Line(op="+", n=borrowed, text=f"units from {units_f.filename}, with their building's shape"))
         lines.append(Line(op="=", n=len(universe), text="parcels in the parcel universe"))
         u_funnels.append(Funnel(file=base.name, filename=base.filename, lines=lines))
@@ -680,19 +680,19 @@ def run(project_id: str) -> None:
     s_funnels: list[Funnel] = []
     # The parcels Data predicted: the parcel shapes, and the units that find their building.
     said_keys = (
-        (set(pd.Series(files.ids(base.name, "key"))) - {""}) | wizard._unit_ids(files) if base is not None else keys
+        (set(pd.Series(files.ids(base.name, "key"))) - {""}) | wizard.unit_ids(files) if base is not None else keys
     )
-    main = wizard._sales_file(project)
+    main = wizard.sales_file(project)
     said_valid = said_share = None
     if main is not None and main.name in files.preview:
         raw = _raw(files, main)
         ids = pd.Series(files.ids(main.name, main.match))
         rule = main.rules.get("valid_sale")
-        if rule is not None and wizard._complete(rule):
-            valid = pd.Series(wizard._rule_result(files, main, rule)[2].tolist())
+        if rule is not None and wizard.rule_complete(rule):
+            valid = pd.Series(wizard.rule_result(files, main, rule)[2].tolist())
             how = "not valid by your valid-sale rule: left out as they load"
         elif "valid_sale" in main.load:
-            col = wizard._values(wizard._stamp(in_dir / main.filename), main.layer, main.load["valid_sale"][0])
+            col = wizard.values_of(wizard.file_stamp(in_dir / main.filename), main.layer, main.load["valid_sale"][0])
             valid = pd.Series([v.lower() in wizard.YES for v in col])
             how = "not valid by your valid-sale column: left out as they load"
         else:
@@ -853,8 +853,11 @@ def run(project_id: str) -> None:
         entry = next(f for f in project.files if f.name == lv.name)
         if base is None or not lv.projected:
             continue
-        one, several, none = wizard._coverage(
-            wizard._stamp(in_dir / base.filename), base.layer, wizard._stamp(in_dir / entry.filename), entry.layer
+        one, several, none = wizard.coverage(
+            wizard.file_stamp(in_dir / base.filename),
+            base.layer,
+            wizard.file_stamp(in_dir / entry.filename),
+            entry.layer,
         )
         # Units take their building's shape, and its layers with it: compared over parcels with shapes of their own.
         own = (
@@ -915,8 +918,8 @@ class View(steps.RunView):
 def plan(project, in_dir: Path) -> Plan:
     from oakbox import wizard
 
-    files = wizard._Files(project, in_dir)
-    base = wizard._base(project)
+    files = wizard.Files(project, in_dir)
+    base = wizard.base_file(project)
     out, layers = [], []
     for f in project.files:
         rows = files.preview[f.name].rows if f.name in files.preview else None
@@ -947,16 +950,12 @@ def plan(project, in_dir: Path) -> Plan:
     return Plan(files=out, layers=layers, enrichments=public, fields=len(loaded) + len(project.wizard.locations))
 
 
-def _current(project_dir: Path) -> dict:
-    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
-
-
 # The run keeps the whole settings it ran with (settings.json), to say what changed since.
 STEP = steps.Step(
     MODULE,
     "Bring in data",
     Receipt,
-    key=lambda project, pdir: settings_key(_current(pdir)),
+    key=lambda project, pdir: settings_key(steps.read_settings(pdir)),
     ran_hash=settings_hash,
     again="Bring in data again first: the Data wizard changed since it ran.",
 )
@@ -969,7 +968,7 @@ def view(project, project_dir: Path, problems: list[str]) -> View:
         job=s.job,
         receipt=s.receipt,
         stale=s.stale,
-        changed=changes(s.ran, _current(project_dir)) if s.stale and s.ran else [],
+        changed=changes(s.ran, steps.read_settings(project_dir)) if s.stale and s.ran else [],
         blocked=problems,
         accepted=s.accepted,
         plan=plan(project, project_dir / "in"),

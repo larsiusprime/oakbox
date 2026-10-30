@@ -20,7 +20,7 @@ from typing import cast
 
 from pydantic import Field
 
-from oakbox import assemble, clean, steps
+from oakbox import assemble, clean, fields, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "prepare"
@@ -94,7 +94,7 @@ def run(project_id: str) -> None:
     steps.written(caught, "notebook 2's output")
     steps.emit(step="receipt", fraction=0.95, message="Counting")
 
-    names = clean._names()
+    names = fields.names()
     filled: list[clean.Filled] = []
     fp = pdir / "out" / "filled.parquet"
     if fp.is_file():
@@ -129,7 +129,9 @@ def run(project_id: str) -> None:
         if path.is_file():
             written.append(
                 assemble.Written(
-                    path=path.relative_to(pdir).as_posix(), what=clean._what(path.name), bytes=path.stat().st_size
+                    path=path.relative_to(pdir).as_posix(),
+                    what=steps.what_written(path.name),
+                    bytes=path.stat().st_size,
                 )
             )
     mine = steps.engine_notes(caught)
@@ -161,7 +163,7 @@ STEP = steps.Step(
     MODULE,
     "Prepare the fields",
     PrepareReceipt,
-    key=lambda project, pdir: settings_key(clean._settings(pdir), project, pdir),
+    key=lambda project, pdir: settings_key(steps.read_settings(pdir), project, pdir),
     after=clean.STEP,
     again="Prepare the fields again first: something changed since it ran.",
 )

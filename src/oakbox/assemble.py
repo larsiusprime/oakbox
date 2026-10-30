@@ -70,21 +70,6 @@ class AssembleReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list, description="OpenAVMKit's own warnings, if any.")
 
 
-WHAT = {
-    "1-assemble-sup.pickle": "the parcel universe and sales together: what notebook 2 (clean) starts from",
-    "1-assemble-universe": "the parcel universe, with each parcel's model group",
-    "1-assemble-sales-hydrated": "the sales, each with its parcel's fields and model group",
-    "1-assemble-sales": "the sales record",
-}
-
-
-def _what(name: str) -> str:
-    for prefix, what in WHAT.items():
-        if name.startswith(prefix):
-            return what
-    return ""
-
-
 def run(project_id: str) -> None:
     """Tag model groups and write notebook 1's output; then the receipt."""
     import warnings
@@ -154,7 +139,7 @@ def run(project_id: str) -> None:
     for path in [pdir / "out" / "1-assemble-sup.pickle", *sorted((pdir / "out" / "look").glob("1-assemble-*"))]:
         if path.is_file():
             rel = path.relative_to(pdir).as_posix()
-            written.append(Written(path=rel, what=_what(path.name), bytes=path.stat().st_size))
+            written.append(Written(path=rel, what=steps.what_written(path.name), bytes=path.stat().st_size))
     mine = steps.engine_notes(caught)
     receipt = AssembleReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
@@ -187,7 +172,7 @@ STEP = steps.Step(
     MODULE,
     "Model groups",
     AssembleReceipt,
-    key=lambda project, pdir: settings_key(bring_in._current(pdir), list(project.assemble_exports), pdir),
+    key=lambda project, pdir: settings_key(steps.read_settings(pdir), list(project.assemble_exports), pdir),
     after=bring_in.STEP,
     again="Run it again first: the data or the model groups changed since it ran.",
 )

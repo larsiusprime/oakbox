@@ -17,8 +17,7 @@ from typing import Any, Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel as _PydanticBase
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from oakbox import (
     __version__,
@@ -40,7 +39,7 @@ from oakbox import (
     vartest,
     wizard,
 )
-from oakbox.datafiles import CleanStep
+from oakbox.datafiles import BaseModel, CleanStep
 
 WEB_DIST = Path(__file__).parent / "web"
 
@@ -64,12 +63,6 @@ UI_TYPES = {
 def pin_ui_content_types() -> None:
     for ext, content_type in UI_TYPES.items():
         mimetypes.add_type(content_type, ext)
-
-
-class BaseModel(_PydanticBase):
-    # Fields with defaults are always present in responses; say so in the schema so
-    # the generated TypeScript types are exact (no spurious optionals).
-    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 
 class InputFile(BaseModel):

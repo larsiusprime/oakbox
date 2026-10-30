@@ -20,7 +20,7 @@ from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import clean, steps
+from oakbox import cells, clean, fields, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "ratio"
@@ -202,8 +202,8 @@ def _studied(sales, field: str):
     """Sales a value answers to: valid for a ratio study (the parcel looks as it did when sold), a price and a
     value."""
     ok = sales["valid_for_ratio_study"].fillna(False).astype(bool) if "valid_for_ratio_study" in sales else True
-    value = clean._numbers(sales, field)
-    return ok & clean._numbers(sales, "sale_price").gt(0) & value.notna()
+    value = cells.numbers(sales, field)
+    return ok & cells.numbers(sales, "sale_price").gt(0) & value.notna()
 
 
 def _in(sales, start: dt.date, end: dt.date):
@@ -249,11 +249,11 @@ def setup(project, project_dir: Path) -> RatioSetup:
     universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
     start, end, proposed = window(project, sales)
     val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
-    parcels = int(clean._numbers(universe, FIELD).gt(0).sum()) if FIELD in universe else 0
+    parcels = int(cells.numbers(universe, FIELD).gt(0).sum()) if FIELD in universe else 0
     studied = _studied(sales, FIELD) if FIELD in sales else pd.Series(False, index=sales.index)
     inside = _in(sales, start, end)
     year_before = int((studied & _in(sales, _years_back(val, 1), val - dt.timedelta(days=1))).sum())
-    group_of = clean._groups(sales)
+    group_of = clean.model_groups_of(sales)
     cls = classes(project)
     groups = [
         GroupSetup(
@@ -297,8 +297,8 @@ def setup(project, project_dir: Path) -> RatioSetup:
         trim=s.trim,
         region=region(project),
         regions=[
-            clean.Choice(value=f, label=clean._names().get(f) or f)
-            for f in clean._locations(project_dir, universe)
+            clean.Choice(value=f, label=fields.names().get(f) or f)
+            for f in clean.location_fields(project_dir, universe)
             if f in sales
         ],
     )
@@ -599,7 +599,7 @@ def run(project_id: str) -> None:
                         key_sale=str(t["key_sale"]),
                         group=gid,
                         group_name=names.get(gid) or gid,
-                        address=clean._text(address.get(str(t["key_sale"]))),
+                        address=cells.text(address.get(str(t["key_sale"]))),
                         sale_date=t.get("sale_date"),
                         price=float(t["sale_price"]),
                         value=float(t["value"]),
@@ -607,7 +607,7 @@ def run(project_id: str) -> None:
                         nominal=float(t["sale_price"]) < NOMINAL,
                     )
                 )
-        trimmed.sort(key=lambda x: -abs(clean._log(x.ratio)))
+        trimmed.sort(key=lambda x: -abs(cells.log_floor(x.ratio)))
         results.append(
             FieldResult(
                 field=field,
@@ -758,7 +758,7 @@ def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoin
         return []
     if group:
         t = t[t["model_group"].astype(str) == group]
-    lat, lon = clean._numbers(t, "latitude"), clean._numbers(t, "longitude")
+    lat, lon = cells.numbers(t, "latitude"), cells.numbers(t, "longitude")
     t = t[lat.notna() & lon.notna()]
     return [
         MapPoint(lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(v), trimmed=bool(x))

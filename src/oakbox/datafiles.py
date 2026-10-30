@@ -31,6 +31,9 @@ NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class BaseModel(_PydanticBase):
+    """Every model OAK box answers with: fields with defaults are always present in responses, and the schema says
+    so, so the generated TypeScript types are exact (no spurious optionals)."""
+
     model_config = ConfigDict(json_schema_serialization_defaults_required=True)
 
 

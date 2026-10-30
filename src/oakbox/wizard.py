@@ -540,7 +540,7 @@ class Wizard(BaseModel):
 # ---------- Reading the files (cached on the file's size and time) ----------
 
 
-def _stamp(path: Path) -> tuple[str, float, int]:
+def file_stamp(path: Path) -> tuple[str, float, int]:
     st = path.stat()
     return str(path), st.st_mtime, st.st_size
 
@@ -551,7 +551,7 @@ def _preview(stamp: tuple[str, float, int], layer: str | None) -> fields.FileCol
 
 
 @lru_cache(maxsize=128)
-def _values(stamp: tuple[str, float, int], layer: str | None, column: str, raw: bool = False) -> tuple[str, ...]:
+def values_of(stamp: tuple[str, float, int], layer: str | None, column: str, raw: bool = False) -> tuple[str, ...]:
     """Every value of one column, as text, blanks as ''. Trimmed, unless raw (IDs: OpenAVMKit doesn't trim them)."""
     import pandas as pd
 
@@ -572,7 +572,7 @@ def _values(stamp: tuple[str, float, int], layer: str | None, column: str, raw: 
 @lru_cache(maxsize=64)
 def _cleaned(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> tuple[str, ...]:
     """An ID column as OpenAVMKit will join on it: as written, after its clean-up steps (JSON)."""
-    values = _values(stamp, layer, column, raw=True)
+    values = values_of(stamp, layer, column, raw=True)
     parsed = [CleanStep.model_validate(x) for x in json.loads(steps)]
     return tuple(clean_value(v, parsed) for v in values) if parsed else values
 
@@ -581,7 +581,7 @@ def _steps_key(steps: list[CleanStep]) -> str:
     return json.dumps([x.model_dump() for x in steps])
 
 
-class _Files:
+class Files:
     """The project's files as read now, keyed by entry name."""
 
     def __init__(self, project: Project, in_dir: Path) -> None:
@@ -595,7 +595,7 @@ class _Files:
                 self.problem[f.name] = f"{f.filename} is missing from the project folder."
                 continue
             try:
-                self.preview[f.name] = _preview(_stamp(path), f.layer)
+                self.preview[f.name] = _preview(file_stamp(path), f.layer)
             except Exception as e:  # noqa: BLE001 - a damaged file shows on its row
                 self.problem[f.name] = f"Couldn't read {f.filename}: {e}"
 
@@ -611,7 +611,7 @@ class _Files:
 
     def values(self, name: str, column: str) -> tuple[str, ...]:
         f = self.entry(name)
-        return _values(_stamp(self.in_dir / f.filename), f.layer, column)
+        return values_of(file_stamp(self.in_dir / f.filename), f.layer, column)
 
     def ids(self, name: str, field: str, steps: list[CleanStep] | None = None) -> tuple[str, ...]:
         """A file's ID field as it joins: cleaned by its steps (or the given ones, for a preview)."""
@@ -620,7 +620,7 @@ class _Files:
         if spec is None or name not in self.preview:
             return ()
         use = f.clean.get(field, []) if steps is None else steps
-        return _cleaned(_stamp(self.in_dir / f.filename), f.layer, spec[0], _steps_key(use))
+        return _cleaned(file_stamp(self.in_dir / f.filename), f.layer, spec[0], _steps_key(use))
 
     def geometry(self, name: str) -> bool:
         p = self.preview.get(name)
@@ -678,7 +678,7 @@ FEW_SHARE, FEW_ROWS = 0.01, 10
 MATCH_MIN, MATCH_OK = 0.5, 0.95
 
 
-def _repeats_of(files: _Files, name: str, field: str) -> Repeats:
+def _repeats_of(files: Files, name: str, field: str) -> Repeats:
     entry = files.entry(name)
     values = files.ids(name, field)
     present = [v for v in values if v]
@@ -701,7 +701,7 @@ def _repeats_of(files: _Files, name: str, field: str) -> Repeats:
     )
 
 
-def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -> tuple[Check | None, Repeats | None]:
+def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) -> tuple[Check | None, Repeats | None]:
     """The result on one line ("219,381 parcels"), and anything worth a look as separate issues."""
     f = files.entry(name)
     match = "key" if name == base else f.match
@@ -732,7 +732,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     open_issues = any(not i.resolved for i in issues)
     blocked = any(i.blocking for i in issues)
     if more_sales:
-        main = _sales_file(files.project)
+        main = sales_file(files.project)
         if r.extra and not r.few and r.policy is None:
             text = f"{_n(r.repeated, 'repeated sale ID')} ({_n(r.extra, 'extra row')}): choose what to do"
             return Check(ok=False, text=text, issues=issues), flagged
@@ -751,7 +751,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
             return Check(ok=True, text=f"{r.rows:,} sales", warn=open_issues, issues=issues), flagged
         base_ids = _base_ids(files, base, match)
         if match == "key":
-            base_ids = base_ids | _unit_ids(files)  # units that find their building are parcels too
+            base_ids = base_ids | unit_ids(files)  # units that find their building are parcels too
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
         text = f"{_pct(found, r.rows)} of sales match a parcel"
@@ -760,7 +760,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds == "permits":
         # Many permits to a parcel is expected; what matters is that they find their parcel.
-        base_ids = _base_ids(files, base, match) | _unit_ids(files)
+        base_ids = _base_ids(files, base, match) | unit_ids(files)
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
         text = f"{r.rows:,} permits · {_pct(found, r.rows)} find a parcel"
@@ -772,7 +772,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     share = None
     if name != base:
         # Units that find their building are parcels too, for every other file (their building cards, say).
-        parcels = _base_ids(files, base, match) | (_unit_ids(files) if match == "key" and f.units is None else set())
+        parcels = _base_ids(files, base, match) | (unit_ids(files) if match == "key" and f.units is None else set())
         found = len(set(present) & parcels)
         share = found / len(set(present)) if present else 0.0
     if r.extra and not r.few and r.policy is None:
@@ -786,7 +786,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     share = share or 0.0
     if f.units is not None and present:
         # Units that find their building's shape join as well as rows with a shape of their own.
-        v = _units_view(files.project, files, f)
+        v = units_view(files.project, files, f)
         share = min(1.0, share + v.linked / len(set(present)))
         pct = _pct(round(share * 1000), 1000)
         text = f"{tick}one row per parcel · {pct} match a parcel (units, the parcel they're on)"
@@ -798,7 +798,7 @@ def _id_check(files: _Files, name: str, holds: Holds | None, base: str | None) -
     return Check(ok=ok, text=text, warn=warn, issues=issues, share=share), flagged
 
 
-def _base_ids(files: _Files, base: str | None, field: str = "key") -> set[str]:
+def _base_ids(files: Files, base: str | None, field: str = "key") -> set[str]:
     if base is None or base not in files.preview:
         return set()
     return {v for v in files.ids(base, field) if v}
@@ -823,7 +823,7 @@ def _names(d: DictionaryField) -> set[str]:
     return {_norm(d.key), _norm(d.name), *ALIASES.get(d.key, [])}
 
 
-def _guess_id(files: _Files, name: str, holds: Holds, base_column: str | None) -> str | None:
+def _guess_id(files: Files, name: str, holds: Holds, base_column: str | None) -> str | None:
     cols = files.columns(name)
     named = [c.name for c in cols if ID_NAMES.fullmatch(_norm(c.name))]
     if base_column and base_column in {c.name for c in cols} and base_column not in named:
@@ -847,7 +847,7 @@ def _id_rank(column: str) -> int:
     return 99
 
 
-def _guess_sale_id(files: _Files, name: str) -> str | None:
+def _guess_sale_id(files: Files, name: str) -> str | None:
     for c in files.columns(name):
         if SALE_ID_NAMES.fullmatch(_norm(c.name)):
             present = [v for v in files.values(name, c.name) if v]
@@ -856,7 +856,7 @@ def _guess_sale_id(files: _Files, name: str) -> str | None:
     return None
 
 
-def _guess_field(files: _Files, d: DictionaryField, candidates: list[str], used: dict[str, dict[str, str]]):
+def _guess_field(files: Files, d: DictionaryField, candidates: list[str], used: dict[str, dict[str, str]]):
     names = _names(d)
     for name in candidates:
         for col in files.columns(name):
@@ -877,7 +877,7 @@ def _by_key() -> dict[str, DictionaryField]:
     return {d.key: d for d in fields.dictionary()}
 
 
-def _sales_file(project: Project) -> DataFile | None:
+def sales_file(project: Project) -> DataFile | None:
     """The main sales file: the one joined to the parcels. More sales details join it on the sale ID."""
     return next((f for f in project.files if f.holds == "sales" and f.match != "key_sale"), None)
 
@@ -912,7 +912,7 @@ def update_base(project: Project, in_dir: Path, rename: bool = False) -> None:
     parcel file with shapes. With ``rename`` (wizard changes only), the base's entry is renamed
     geo_parcels, as OpenAVMKit requires, and a non-base entry of that name gets another name.
     """
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     shaped = [f for f in project.files if f.holds == "parcels" and files.geometry(f.name)]
     base = next((f for f in shaped if f.name == BASE_NAME), shaped[0] if shaped else None)
     if base is not None and rename and base.name != BASE_NAME:
@@ -931,7 +931,7 @@ def renamed(project: Project, old: str, new: str) -> None:
 
 
 def view(project: Project, in_dir: Path) -> Wizard:
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     by_key = {d.key: d for d in fields.dictionary(project.jurisdiction)}
     base = project.wizard.base
     used = _used(project)
@@ -966,11 +966,11 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 base=f.name == base,
                 clean=f.clean,
                 unshaped=_unshaped(files, f, base),
-                units=_units_view(project, files, f) if f.units is not None else None,
+                units=units_view(project, files, f) if f.units is not None else None,
             )
         )
 
-    sales = _sales_file(project)
+    sales = sales_file(project)
     sale_id = SaleId(file=None, column=None, made=False, check=None)
     if sales is not None:
         spec = sales.load.get("key_sale")
@@ -1252,7 +1252,7 @@ def confirm(project: Project, step: str) -> None:
         project.wizard.confirmed.append(step)
 
 
-def _rows(files: _Files, name: str) -> int | None:
+def _rows(files: Files, name: str) -> int | None:
     p = files.preview.get(name)
     if p is None:
         return None
@@ -1365,7 +1365,7 @@ def visit(project: Project, in_dir: Path, step: str) -> None:
 
 def _guess(project: Project, in_dir: Path, step: str) -> None:
     """Guesses for a step: once a file is there to guess from, and never over a choice."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if step == "universe":
         _guess_universe(project, files)
     if step == "sales":
@@ -1399,23 +1399,23 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
             project.wizard.decided.append(key)
 
 
-def _base(project: Project) -> DataFile | None:
+def base_file(project: Project) -> DataFile | None:
     return next((f for f in project.files if f.name == project.wizard.base), None)
 
 
-def _guess_universe(project: Project, files: _Files) -> None:
-    base = _base(project)
+def _guess_universe(project: Project, files: Files) -> None:
+    base = base_file(project)
     if base is not None and "key" not in base.load and base.name in files.preview:
         column = _guess_id(files, base.name, "parcels", None)
         if column:
             base.load["key"] = [column, "string"]
 
 
-def _guess_sales(project: Project, files: _Files) -> None:
-    sales = _sales_file(project)
+def _guess_sales(project: Project, files: Files) -> None:
+    sales = sales_file(project)
     if sales is None or sales.name not in files.preview:
         return
-    base = _base(project)
+    base = base_file(project)
     names = {c.name for c in files.columns(sales.name)}
     if not any(k in sales.load for k in ("key", *EXTRA_IDS)):
         # The universe's ID column names in the sales file decide: its parcel ID first, then its extra IDs.
@@ -1442,7 +1442,7 @@ def _loose(v: str) -> str:
     return re.sub(r"[^0-9A-Za-z]", "", v).lstrip("0").upper()
 
 
-def _best_match(files: _Files, name: str, target: DataFile, field: str) -> str | None:
+def _best_match(files: Files, name: str, target: DataFile, field: str) -> str | None:
     """The column of a file whose values best match a target's IDs, compared loosely; None under 30%."""
     want = {_loose(v) for v in files.ids(target.name, field) if v}
     want.discard("")
@@ -1462,18 +1462,18 @@ def _best_match(files: _Files, name: str, target: DataFile, field: str) -> str |
     return best[1] if best else None
 
 
-def _guess_join(project: Project, files: _Files, entry: DataFile) -> None:
+def _guess_join(project: Project, files: Files, entry: DataFile) -> None:
     """A file just said to join the parcels or the sales: the ID column with the same name as its target's,
     or one that looks like an ID."""
     names = {c.name for c in files.columns(entry.name)}
     if entry.match == "key_sale":
-        main = _sales_file(project)
+        main = sales_file(project)
         column = main.load["key_sale"][0] if main and "key_sale" in main.load else None
         found = column if column in names else None
         found = found or (_best_match(files, entry.name, main, "key_sale") if main and column else None)
         found = found or _guess_sale_id(files, entry.name)
     else:
-        base = _base(project)
+        base = base_file(project)
         column = base.load[entry.match][0] if base and entry.match in base.load else None
         found = column if column in names else None
         found = found or (_best_match(files, entry.name, base, entry.match) if base and column else None)
@@ -1485,7 +1485,7 @@ def _guess_join(project: Project, files: _Files, entry: DataFile) -> None:
 
 def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> RepeatRows:
     """Every row of a few repeated IDs, for the duplicates dialog: are they copies, or different records?"""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     entry = files.entry(name)
     field = "key" if name == project.wizard.base else entry.match
     spec = entry.load.get(field)
@@ -1497,10 +1497,10 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
         if v:
             counts[v] = counts.get(v, 0) + 1
     # A few of the most repeated, then shown sorted by the ID, each ID's rows together.
-    from oakbox.bring_in import _natural, bands
+    from oakbox.bring_in import bands, natural
 
     ids = [v for v, n in sorted(counts.items(), key=lambda kv: -kv[1]) if n > 1][:limit]
-    ids.sort(key=_natural)
+    ids.sort(key=natural)
     loaded = [s[0] for s in entry.load.values()]
     shown = [spec[0], *[c for c in loaded if c != spec[0]]][:8]
     rest = [c.name for c in files.columns(name) if c.name not in shown]
@@ -1537,7 +1537,7 @@ def set_file(
     ``extra_field`` (key2, key3) with ``extra_column`` sets one of the universe's extra IDs; with
     no column it removes it (key3 then becomes key2).
     """
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     entry = files.entry(name)
     columns = {c.name for c in files.columns(name)}
     for column in (id_column, extra_column):
@@ -1620,7 +1620,7 @@ def set_file(
             if f is not entry and f.holds == "permits":
                 f.holds, f.permits = "unused", None
         if entry.permits is None:
-            entry.permits = _guess_permits(_Files(project, in_dir), entry)
+            entry.permits = _guess_permits(Files(project, in_dir), entry)
     elif holds == "parcels":  # more parcel details: the steps already seen may find more in it
         for step in STEPS:
             if step.fields and not step.sales and step.key in project.wizard.visited:
@@ -1636,7 +1636,7 @@ def _put(entry: DataFile, field: str, spec: list[str]) -> None:
 
 
 def set_sale_id(project: Project, column: str | None, make: bool) -> None:
-    sales = _sales_file(project)
+    sales = sales_file(project)
     if sales is None:
         raise ValueError("No file holds sales.")
     sales.load.pop("key_sale", None)
@@ -1668,7 +1668,7 @@ def set_field(
     if step is None or key not in by_key:
         raise LookupError(key)
     allowed = _field_files(project, step.sales)
-    sales = _sales_file(project)
+    sales = sales_file(project)
     target: DataFile | None = None
     spec: list[str] | None = None
     reading: NumberFormat | None = None
@@ -1677,7 +1677,7 @@ def set_field(
         if target is None:
             where = "the sales record" if step.sales else "the parcel universe or a file joined to it"
             raise ValueError(f"{key} comes from {where}.")
-        col = _Files(project, in_dir).column(file, column)
+        col = Files(project, in_dir).column(file, column)
         if col is None:
             raise ValueError(f"{file} has no column {column}.")
         d = by_key[key]
@@ -1685,14 +1685,14 @@ def set_field(
         if key in SCALED:
             # Numbers, or a category to rank into tiers: either way it becomes a number (F3d).
             entry = next(f for f in allowed if f.name == file)
-            plain = _plain(_values(_stamp(in_dir / entry.filename), entry.layer, column))
+            plain = _plain(values_of(file_stamp(in_dir / entry.filename), entry.layer, column))
             spec = [column, "float"] if plain else [column, "string"]
             if not plain and scale is not None and scale.kind not in (None, "tiers"):
                 raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
         if is_money(key):
             # Money written as text ($250,000.00, N/A): read with a format, worked out from the whole column.
             entry = next(f for f in allowed if f.name == file)
-            values = _values(_stamp(in_dir / entry.filename), entry.layer, column)
+            values = values_of(file_stamp(in_dir / entry.filename), entry.layer, column)
             reading = number_format or (None if _plain(values) else detect_number_format(values, project.numbers)[0])
             if reading is not None:
                 spec = [column, "float"]
@@ -1731,7 +1731,7 @@ def set_field(
         if reading is not None:
             target.numbers[key] = reading
         if key in SCALED:
-            target.scales[key] = _new_scale(_Files(project, in_dir), target, key, spec[0], scale)
+            target.scales[key] = _new_scale(Files(project, in_dir), target, key, spec[0], scale)
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if key not in project.wizard.decided:
@@ -1801,12 +1801,12 @@ SampleView = Literal["unmatched", "random"]
 SAMPLES = 6
 
 
-def _sides(project: Project, in_dir: Path, name: str) -> tuple[_Files, DataFile, DataFile, Match]:
+def _sides(project: Project, in_dir: Path, name: str) -> tuple[Files, DataFile, DataFile, Match]:
     """A file and what it joins to: the parcel universe, or (more sales details) the main sales file."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     entry = files.entry(name)
     if _more_sales(entry):
-        main = _sales_file(project)
+        main = sales_file(project)
         if main is None or "key_sale" not in main.load:
             raise ValueError("The sales record has no sale ID column to join on.")
         target = main
@@ -1851,7 +1851,7 @@ def _describe(steps: list[CleanStep]) -> str:
 
 
 def _suggest(
-    files: _Files, entry: DataFile, base: DataFile, field: Match, now: float, kind: str = "sales"
+    files: Files, entry: DataFile, base: DataFile, field: Match, now: float, kind: str = "sales"
 ) -> Suggestion | None:
     """The simplest clean-up pair from a few common ones that matches clearly more sales. Only a suggestion."""
     total = len(files.ids(entry.name, field))
@@ -1905,8 +1905,8 @@ def reconcile(
     matched = _matched(file_ids, base_set)
     total = len(file_ids)
     rng = random.Random(seed)
-    file_raw = _values(_stamp(in_dir / entry.filename), entry.layer, entry.load[field][0], raw=True)
-    base_raw = _values(_stamp(in_dir / base.filename), base.layer, base.load[field][0], raw=True)
+    file_raw = values_of(file_stamp(in_dir / entry.filename), entry.layer, entry.load[field][0], raw=True)
+    base_raw = values_of(file_stamp(in_dir / base.filename), base.layer, base.load[field][0], raw=True)
 
     def pick(raw: tuple[str, ...], ids: tuple[str, ...], keep) -> list[tuple[str, str]]:
         seen: dict[str, str] = {}
@@ -1965,15 +1965,15 @@ class ValueCount(BaseModel):
 @lru_cache(maxsize=256)
 def _value_counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
     """A column's values (trimmed, as shown) with how many rows have each, most common first; blanks as ''."""
-    counts = Counter(_values(stamp, layer, column))
+    counts = Counter(values_of(stamp, layer, column))
     return tuple(sorted(counts.items(), key=lambda vc: (-vc[1], vc[0])))
 
 
-def _distinct(files: _Files, source: Source) -> int | None:
+def _distinct(files: Files, source: Source) -> int | None:
     if source.file not in files.preview or files.column(source.file, source.column) is None:
         return None
     f = files.entry(source.file)
-    counts = _value_counts(_stamp(files.in_dir / f.filename), f.layer, source.column)
+    counts = _value_counts(file_stamp(files.in_dir / f.filename), f.layer, source.column)
     return sum(1 for v, _ in counts if v)
 
 
@@ -2018,11 +2018,11 @@ def column_values(
 ):
     """Every value of a file's column with its row count, for the values list beside a field (most common first,
     unless sorted otherwise)."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if file not in files.preview or files.column(file, column) is None:
         raise LookupError(f"{file}.{column}")
     f = files.entry(file)
-    counts = _value_counts(_stamp(in_dir / f.filename), f.layer, column)
+    counts = _value_counts(file_stamp(in_dir / f.filename), f.layer, column)
     blank = next((n for v, n in counts if v == ""), 0)
     listed = [(v, n) for v, n in counts if v]
     q = search.strip().lower()
@@ -2064,20 +2064,20 @@ VALUES_SHOWN = 60
 
 @lru_cache(maxsize=64)
 def _counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
-    counts = Counter(_values(stamp, layer, column, raw=True))
+    counts = Counter(values_of(stamp, layer, column, raw=True))
     return tuple(sorted(counts.items(), key=lambda vc: (-vc[1], vc[0])))
 
 
-def _rule_result(files: _Files, entry: DataFile, rule: Rule):
+def rule_result(files: Files, entry: DataFile, rule: Rule):
     """The rule run by OpenAVMKit's own filter code on the file's rows, typed as OpenAVMKit loads them."""
     import pandas as pd
     from openavmkit.filters import resolve_filter
 
     names = rule_fields(entry.load, rule)
-    stamp = _stamp(files.in_dir / entry.filename)
+    stamp = file_stamp(files.in_dir / entry.filename)
     frame = {}
     for column, (field, kind) in names.items():
-        values = pd.Series(_values(stamp, entry.layer, column, raw=True))
+        values = pd.Series(values_of(stamp, entry.layer, column, raw=True))
         if field in entry.numbers and entry.load.get(field, [None])[0] == column:
             frame[field] = pd.Series(_read_numbers(stamp, entry.layer, column, entry.numbers[field].model_dump_json()))
         elif kind == "float":
@@ -2092,17 +2092,17 @@ def _rule_result(files: _Files, entry: DataFile, rule: Rule):
     return names, filt, resolve_filter(df, filt).fillna(False).astype(bool)
 
 
-def _complete(rule: Rule) -> bool:
+def rule_complete(rule: Rule) -> bool:
     return bool(rule.conditions) and all(c.values or c.op in ("isempty", "notempty") for c in rule.conditions)
 
 
-def _rule_check(files: _Files, entry: DataFile, key: str, rule: Rule) -> Check:
+def _rule_check(files: Files, entry: DataFile, key: str, rule: Rule) -> Check:
     if any(files.column(entry.name, c.column) is None for c in rule.conditions):
         return Check(ok=False, text="a column it tests isn't in the file")
-    if not _complete(rule):
+    if not rule_complete(rule):
         return Check(ok=False, text="choose which values mean yes")
     try:
-        _, _, result = _rule_result(files, entry, rule)
+        _, _, result = rule_result(files, entry, rule)
     except Exception as e:  # noqa: BLE001 - a rule OpenAVMKit can't run shows on its row
         return Check(ok=False, text=f"OpenAVMKit can't run this: {e}")
     yes, total = int(result.sum()), len(result)
@@ -2113,7 +2113,7 @@ def _rule_check(files: _Files, entry: DataFile, key: str, rule: Rule) -> Check:
 
 
 def _rule_entry(project: Project, key: str) -> DataFile:
-    sales = _sales_file(project)
+    sales = sales_file(project)
     d = _by_key().get(key)
     if sales is None:
         raise ValueError("Add the sales record first.")
@@ -2125,23 +2125,23 @@ def _rule_entry(project: Project, key: str) -> DataFile:
 def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePreview:
     """What a rule makes of the sales file: how many yes, the values of the columns it tests, a few rows."""
     entry = _rule_entry(project, key)
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     for c in rule.conditions:
         if files.column(entry.name, c.column) is None:
             raise ValueError(f"{entry.name} has no column {c.column}.")
-    stamp = _stamp(in_dir / entry.filename)
+    stamp = file_stamp(in_dir / entry.filename)
     columns = list(dict.fromkeys(c.column for c in rule.conditions))
     values, more = {}, {}
     for column in columns:
         counts = _counts(stamp, entry.layer, column)
         values[column] = [ValueCount(value="" if not v.strip() else v, count=n) for v, n in counts[:VALUES_SHOWN]]
         more[column] = max(0, len(counts) - VALUES_SHOWN)
-    names, filt, result = _rule_result(files, entry, rule) if _complete(rule) else ({}, [], None)
+    names, filt, result = rule_result(files, entry, rule) if rule_complete(rule) else ({}, [], None)
     rows: list[RuleRow] = []
     # A price is tested as read ($1,000 against 1.2 in thousands is 1,200), so the rows show it that way.
     as_read = [c for c in columns if any(entry.load.get(f, [None])[0] == c for f in entry.numbers)]
     if result is not None and columns:
-        cells = {c: _values(stamp, entry.layer, c, raw=True) for c in columns}
+        cells = {c: values_of(stamp, entry.layer, c, raw=True) for c in columns}
         for c in as_read:
             field = next(f for f in entry.numbers if entry.load.get(f, [None])[0] == c)
             read = _read_numbers(stamp, entry.layer, c, entry.numbers[field].model_dump_json())
@@ -2151,7 +2151,7 @@ def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePr
             idx = [i for i, x in enumerate(result.tolist()) if x == want]
             for i in sorted(rng.sample(idx, min(4, len(idx)))):
                 rows.append(RuleRow(cells=[cells[c][i] for c in columns], yes=want))
-    total = len(_values(stamp, entry.layer, columns[0], raw=True)) if columns else 0
+    total = len(values_of(stamp, entry.layer, columns[0], raw=True)) if columns else 0
     load = {field: [column, kind] for column, (field, kind) in names.items() if field not in entry.load}
     return RulePreview(
         key=key,
@@ -2171,7 +2171,7 @@ def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePr
 def set_rule(project: Project, in_dir: Path, key: str, rule: Rule) -> None:
     """Work a yes/no field out from the sales file's columns (OpenAVMKit's ["?", filter] calc)."""
     entry = _rule_entry(project, key)
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     for c in rule.conditions:
         if files.column(entry.name, c.column) is None:
             raise ValueError(f"{entry.name} has no column {c.column}.")
@@ -2213,27 +2213,27 @@ def _parse(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: s
     """The column read with a date format the way OpenAVMKit does (pd.to_datetime with format=)."""
     import pandas as pd
 
-    values = pd.Series(_values(stamp, layer, column, raw=True))
+    values = pd.Series(values_of(stamp, layer, column, raw=True))
     try:
         return pd.to_datetime(values.mask(values.str.strip() == ""), format=fmt)
     except (ValueError, TypeError):
         return pd.to_datetime(values.mask(values.str.strip() == ""), format=fmt, errors="coerce", exact=True)
 
 
-def _date_stats(files: _Files, name: str, column: str, fmt: str) -> tuple[int, int, int]:
+def _date_stats(files: Files, name: str, column: str, fmt: str) -> tuple[int, int, int]:
     """(rows, blank, read)."""
     entry = files.entry(name)
-    stamp = _stamp(files.in_dir / entry.filename)
-    values = _values(stamp, entry.layer, column, raw=True)
+    stamp = file_stamp(files.in_dir / entry.filename)
+    values = values_of(stamp, entry.layer, column, raw=True)
     blank = sum(1 for v in values if not v.strip())
     read = int(_parse(stamp, entry.layer, column, fmt).notna().sum())
     return len(values), blank, read
 
 
-def _also(files: _Files, name: str, column: str, fmt: str) -> list[str]:
+def _also(files: Files, name: str, column: str, fmt: str) -> list[str]:
     """Formats that also read every date but give different dates (day/month or month/day): worth a look."""
     entry = files.entry(name)
-    stamp = _stamp(files.in_dir / entry.filename)
+    stamp = file_stamp(files.in_dir / entry.filename)
     col = files.column(name, column)
     samples = col.samples if col else []
     mine = _parse(stamp, entry.layer, column, fmt)
@@ -2247,7 +2247,7 @@ def _also(files: _Files, name: str, column: str, fmt: str) -> list[str]:
     return out
 
 
-def _date_check(files: _Files, name: str, column: str, fmt: str) -> Check:
+def _date_check(files: Files, name: str, column: str, fmt: str) -> Check:
     total, blank, read = _date_stats(files, name, column, fmt)
     words = DATE_WORDS.get(fmt, fmt)
     failed = total - blank - read
@@ -2263,14 +2263,14 @@ def _date_check(files: _Files, name: str, column: str, fmt: str) -> Check:
 
 def date_preview(project: Project, in_dir: Path, name: str, column: str, fmt: str) -> DatePreview:
     """A column read with a date format: how many read, the range, samples, and look-alike formats."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if files.column(name, column) is None:
         raise ValueError(f"{name} has no column {column}.")
     entry = files.entry(name)
-    stamp = _stamp(in_dir / entry.filename)
+    stamp = file_stamp(in_dir / entry.filename)
     total, blank, read = _date_stats(files, name, column, fmt)
     parsed = _parse(stamp, entry.layer, column, fmt)
-    values = _values(stamp, entry.layer, column, raw=True)
+    values = values_of(stamp, entry.layer, column, raw=True)
     as_text = [None if p is None or p != p else p.strftime("%Y-%m-%d") for p in parsed.tolist()]
     bad = list(dict.fromkeys(v for v, p in zip(values, as_text, strict=True) if v.strip() and p is None))[:4]
     good_idx = [i for i, p in enumerate(as_text) if p is not None]
@@ -2310,14 +2310,14 @@ PLAUSIBLE_SQFT = {"land_area_sqft": (500, 5_000_000), "bldg_area_finished_sqft":
 PLAUSIBLE_SQFT["bldg_area_footprint_sqft"] = PLAUSIBLE_SQFT["bldg_area_finished_sqft"]
 
 
-def _area_check(files: _Files, entry: DataFile, key: str, column: str, unit: str, units: str) -> Check:
+def _area_check(files: Files, entry: DataFile, key: str, column: str, unit: str, units: str) -> Check:
     """'✓ 0.114 acres → 4,966 sq ft', and a warning when the typical size says the unit is wrong."""
     import statistics
 
     target = small_unit(units)
     factor = SQFT_PER[unit] / SQFT_PER[target]
     nums = []
-    for v in _values(_stamp(files.in_dir / entry.filename), entry.layer, column):
+    for v in values_of(file_stamp(files.in_dir / entry.filename), entry.layer, column):
         try:
             nums.append(float(v))
         except ValueError:
@@ -2389,7 +2389,7 @@ def _read_numbers(stamp: tuple[str, float, int], layer: str | None, column: str,
     import pandas as pd
     from openavmkit.calculations import perform_calculations
 
-    values = pd.Series(_values(stamp, layer, column, raw=True), dtype="string")
+    values = pd.Series(values_of(stamp, layer, column, raw=True), dtype="string")
     df = pd.DataFrame({number_helper("x"): values.mask(values.str.strip() == "")})
     out = perform_calculations(df, {"x": number_calc("x", NumberFormat.model_validate_json(fmt))})["x"]
     return tuple(float(v) for v in out.tolist())
@@ -2446,7 +2446,7 @@ def _amount(symbol: str, v: float) -> str:
 
 
 def _assessed_ratio(
-    project: Project, files: _Files, entry: DataFile, prices: list[float]
+    project: Project, files: Files, entry: DataFile, prices: list[float]
 ) -> tuple[float | None, str | None]:
     """Sale prices: the median of price ÷ the parcel's assessed value, over sales that find one."""
     import statistics
@@ -2459,7 +2459,7 @@ def _assessed_ratio(
         )
         if parcel is None:
             continue
-        stamp = _stamp(files.in_dir / parcel.filename)
+        stamp = file_stamp(files.in_dir / parcel.filename)
         fmt = parcel.numbers.get(key, NumberFormat()).model_dump_json()
         values = _read_numbers(stamp, parcel.layer, parcel.load[key][0], fmt)
         by_id: dict[str, float] = {}
@@ -2475,11 +2475,11 @@ def _assessed_ratio(
     return None, None
 
 
-def _number_stats(project: Project, files: _Files, entry: DataFile, key: str, column: str, fmt: NumberFormat) -> dict:
+def _number_stats(project: Project, files: Files, entry: DataFile, key: str, column: str, fmt: NumberFormat) -> dict:
     import statistics
 
-    stamp = _stamp(files.in_dir / entry.filename)
-    raw = _values(stamp, entry.layer, column, raw=True)
+    stamp = file_stamp(files.in_dir / entry.filename)
+    raw = values_of(stamp, entry.layer, column, raw=True)
     read = _read_numbers(stamp, entry.layer, column, fmt.model_dump_json())
     blank = sum(1 for v in raw if v.strip().lower() in PLACEHOLDERS)
     got = [v for v in read if v == v]
@@ -2533,7 +2533,7 @@ def _number_stats(project: Project, files: _Files, entry: DataFile, key: str, co
 
 
 def _money_check(
-    project: Project, files: _Files, entry: DataFile, key: str, column: str, fmt: NumberFormat | None
+    project: Project, files: Files, entry: DataFile, key: str, column: str, fmt: NumberFormat | None
 ) -> Check:
     """'✓ median $254K', or what's wrong: values that don't read, a scale that looks off, Excel's rounding."""
     s = _number_stats(project, files, entry, key, column, fmt or NumberFormat())
@@ -2557,14 +2557,14 @@ def number_preview(
     project: Project, in_dir: Path, name: str, key: str, column: str, fmt: NumberFormat | None
 ) -> NumberPreview:
     """A money column read with a format, as OpenAVMKit will: counts, the spread, a scale check, samples."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if not is_money(key):
         raise LookupError(key)
     if files.column(name, column) is None:
         raise ValueError(f"{name} has no column {column}.")
     entry = files.entry(name)
-    stamp = _stamp(in_dir / entry.filename)
-    detected, guessed = detect_number_format(_values(stamp, entry.layer, column), project.numbers)
+    stamp = file_stamp(in_dir / entry.filename)
+    detected, guessed = detect_number_format(values_of(stamp, entry.layer, column), project.numbers)
     use = fmt or entry.numbers.get(key) or detected
     s = _number_stats(project, files, entry, key, column, use)
     raw, values = s.pop("raw"), s.pop("values")
@@ -2679,11 +2679,11 @@ def tier_order(values: list[str]) -> tuple[list[tuple[str, float]], str | None, 
     return out, name, unknown
 
 
-def _qc_values(files: _Files, entry: DataFile, column: str) -> tuple[str, ...]:
-    return _values(_stamp(files.in_dir / entry.filename), entry.layer, column)
+def _qc_values(files: Files, entry: DataFile, column: str) -> tuple[str, ...]:
+    return values_of(file_stamp(files.in_dir / entry.filename), entry.layer, column)
 
 
-def _new_scale(files: _Files, entry: DataFile, key: str, column: str, given: Scale | None = None) -> Scale:
+def _new_scale(files: Files, entry: DataFile, key: str, column: str, given: Scale | None = None) -> Scale:
     """A scale for a column: the user's, with the column's range filled in; or a first one that says nothing yet
     (a category: tiers to rank; numbers: which way they run, and for condition whether they're 0-1 fractions)."""
     values = _qc_values(files, entry, column)
@@ -2708,11 +2708,11 @@ def _scaled(nums: list[float], s: Scale) -> list[float]:
     return list(nums)
 
 
-def _g(v: float) -> str:
+def short_number(v: float) -> str:
     return f"{v:,.2f}".rstrip("0").rstrip(".") if v != round(v) else f"{v:,.0f}"
 
 
-def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
+def _scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
     """'✓ 0.15–4.5 · 47 values', '✓ as % good: 0.12 → 88 · median 84', or what's still to say."""
     import statistics
 
@@ -2723,7 +2723,7 @@ def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale
             return Check(ok=True, warn=True, text=f"rank its {len(distinct):,} tiers")
         ranked = {k.strip() for k in s.tiers}
         numbers = sorted(set(s.tiers.values()))
-        text = f"{len(ranked & distinct):,} tiers ranked, {_g(numbers[0])}–{_g(numbers[-1])}"
+        text = f"{len(ranked & distinct):,} tiers ranked, {short_number(numbers[0])}–{short_number(numbers[-1])}"
         missing = distinct - ranked
         if missing:
             return Check(ok=True, warn=True, text=f"{text} · {len(missing):,} not ranked (read as missing)")
@@ -2739,27 +2739,28 @@ def _scale_check(files: _Files, entry: DataFile, key: str, column: str, s: Scale
         return Check(ok=True, warn=True, text="no values")
     out = _scaled(nums, s)
     if s.kind in ("pct_good", "pct_depr"):
-        text = f"as % good: {_g(nums[0])} → {_g(out[0])} · median {_g(statistics.median(out))}"
+        median = short_number(statistics.median(out))
+        text = f"as % good: {short_number(nums[0])} → {short_number(out[0])} · median {median}"
         outside = sum(1 for v in out if v < -0.5 or v > 100.5)
         if outside:
             hint = "written as 0–100, not fractions?" if s.fraction else "written as fractions, 0–1?"
             return Check(ok=True, warn=True, text=f"{text} · {outside:,} outside 0–100: {hint}")
         return Check(ok=True, text=f"✓ {text}")
     if s.kind == "life":
-        return Check(ok=True, text=f"✓ years left · median {_g(statistics.median(out))}")
-    text = f"{_g(min(nums))}–{_g(max(nums))}"  # how many values: on its "N values" button
+        return Check(ok=True, text=f"✓ years left · median {short_number(statistics.median(out))}")
+    text = f"{short_number(min(nums))}–{short_number(max(nums))}"  # how many values: on its "N values" button
     return Check(ok=True, text=f"✓ {text}" + (" · flipped, so higher is better" if s.kind == "lower" else ""))
 
 
 # Evidence: what the choices are checked against. Optional: each part says what it's based on, and what's missing.
 
 
-def _row_ids(files: _Files, entry: DataFile, match: str) -> tuple[str, ...]:
+def _row_ids(files: Files, entry: DataFile, match: str) -> tuple[str, ...]:
     return files.ids(entry.name, match)
 
 
 def _field_by_id(
-    project: Project, files: _Files, key: str, match: str, only: DataFile | None = None
+    project: Project, files: Files, key: str, match: str, only: DataFile | None = None
 ) -> dict[str, float]:
     """A loaded parcel field as numbers, by parcel ID (the first row of each): areas in the project's unit. From the
     first parcel file that loads it, or from the one file given."""
@@ -2778,12 +2779,12 @@ def _field_by_id(
     )
     if f is None:
         return {}
-    stamp = _stamp(files.in_dir / f.filename)
+    stamp = file_stamp(files.in_dir / f.filename)
     column = f.load[key][0]
     if key in f.numbers:
         nums = list(_read_numbers(stamp, f.layer, column, f.numbers[key].model_dump_json()))
     else:
-        nums = pd.Series(pd.to_numeric(pd.Series(_values(stamp, f.layer, column)), errors="coerce")).tolist()
+        nums = pd.Series(pd.to_numeric(pd.Series(values_of(stamp, f.layer, column)), errors="coerce")).tolist()
     factor = 1.0
     if key in AREA_FIELDS:
         factor = SQFT_PER[f.area_units.get(key, small_unit(project.units))] / SQFT_PER[small_unit(project.units)]
@@ -2794,7 +2795,7 @@ def _field_by_id(
     return out
 
 
-def _ages(project: Project, files: _Files, match: str) -> tuple[dict[str, float], str | None]:
+def _ages(project: Project, files: Files, match: str) -> tuple[dict[str, float], str | None]:
     """Each building's age at the valuation date, from the effective year built (or, failing that, year built)."""
     year = project.valuation_date.year if project.valuation_date else project.tax_year
     for key, basis in (("bldg_effective_year_built", "effective age"), ("bldg_year_built", "age (year built)")):
@@ -2805,28 +2806,28 @@ def _ages(project: Project, files: _Files, match: str) -> tuple[dict[str, float]
     return {}, None
 
 
-def _sales_evidence(project: Project, files: _Files, match: str) -> tuple[list[tuple[str, float]], list[str]]:
+def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tuple[str, float]], list[str]]:
     """(parcel ID, price) for each sale to compare against, and notes on what that's based on."""
     import pandas as pd
 
-    sales = _sales_file(project)
+    sales = sales_file(project)
     if sales is None or "sale_price" not in sales.load or sales.name not in files.preview:
         return [], ["No sales yet: add them to compare by price."]
     if sales.match != match:
         return [], ["The sales join the parcels on another ID: no price comparison."]
-    stamp = _stamp(files.in_dir / sales.filename)
+    stamp = file_stamp(files.in_dir / sales.filename)
     column = sales.load["sale_price"][0]
     if "sale_price" in sales.numbers:
         prices = list(_read_numbers(stamp, sales.layer, column, sales.numbers["sale_price"].model_dump_json()))
     else:
-        prices = pd.Series(pd.to_numeric(pd.Series(_values(stamp, sales.layer, column)), errors="coerce")).tolist()
+        prices = pd.Series(pd.to_numeric(pd.Series(values_of(stamp, sales.layer, column)), errors="coerce")).tolist()
     notes = []
     rule = sales.rules.get("valid_sale")
-    if rule is not None and _complete(rule):
-        valid = _rule_result(files, sales, rule)[2].tolist()
+    if rule is not None and rule_complete(rule):
+        valid = rule_result(files, sales, rule)[2].tolist()
         notes.append("valid sales")
     elif "valid_sale" in sales.load:
-        valid = [v.lower() in YES for v in _values(stamp, sales.layer, sales.load["valid_sale"][0])]
+        valid = [v.lower() in YES for v in values_of(stamp, sales.layer, sales.load["valid_sale"][0])]
         notes.append("valid sales")
     else:
         valid = [True] * len(prices)
@@ -2845,7 +2846,7 @@ class PriceGroup(BaseModel):
 
 
 def _price_by(
-    project: Project, files: _Files, match: str, group: dict[str, str]
+    project: Project, files: Files, match: str, group: dict[str, str]
 ) -> tuple[dict[str, PriceGroup], str | None, list[str]]:
     """Median price per sq ft (or sale price, without a building size) for each group of parcels."""
     import statistics
@@ -2875,7 +2876,7 @@ def _price_by(
     return out, basis, notes
 
 
-def _by_parcel(files: _Files, entry: DataFile, column: str) -> dict[str, str]:
+def _by_parcel(files: Files, entry: DataFile, column: str) -> dict[str, str]:
     """A column's value for each parcel (its first row: the main building card)."""
     values = _qc_values(files, entry, column)
     out: dict[str, str] = {}
@@ -2885,7 +2886,7 @@ def _by_parcel(files: _Files, entry: DataFile, column: str) -> dict[str, str]:
     return out
 
 
-def _trend(project: Project, files: _Files, entry: DataFile, column: str) -> tuple[float | None, str | None]:
+def _trend(project: Project, files: Files, entry: DataFile, column: str) -> tuple[float | None, str | None]:
     """The rank correlation of a numbers column with age, and which age it's against."""
     import pandas as pd
 
@@ -2925,7 +2926,7 @@ def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: s
     """A category's tiers, worst to best, with a number each and what they sell for."""
     if key not in SCALED:
         raise LookupError(key)
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if files.column(file, column) is None:
         raise ValueError(f"{file} has no column {column}.")
     entry = files.entry(file)
@@ -3014,7 +3015,7 @@ def scale_preview(
 
     if key not in SCALED:
         raise LookupError(key)
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if files.column(file, column) is None:
         raise ValueError(f"{file} has no column {column}.")
     entry = files.entry(file)
@@ -3055,7 +3056,9 @@ def scale_preview(
         else:
             ordered = sorted(set(as_read.values()))
             cuts = [ordered[int(q * (len(ordered) - 1))] for q in (0, 0.2, 0.4, 0.6, 0.8)] + [1e18]
-            bands = [(cuts[k], cuts[k + 1], f"{_g(cuts[k])} and up") for k in range(5) if cuts[k] < cuts[k + 1]]
+            bands = [
+                (cuts[k], cuts[k + 1], f"{short_number(cuts[k])} and up") for k in range(5) if cuts[k] < cuts[k + 1]
+            ]
         label_of = {}
         for i, v in as_read.items():
             for lo, hi, label in bands:
@@ -3122,7 +3125,7 @@ def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
     num = key if key in SCALED else PAIRS[key]
     txt = PAIRS[num]
     names = QUALITY_NAMES if num == "bldg_quality_num" else CONDITION_NAMES
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     out = []
     for f in project.files:
         if f.holds in ("sales", "overlay", "unused") or f.name not in files.preview:
@@ -3132,7 +3135,7 @@ def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
             looks = names.search(col.name) and not re.search(r"air|hvac", col.name, re.IGNORECASE)
             if not looks and col.name not in loaded:
                 continue
-            values = _values(_stamp(in_dir / f.filename), f.layer, col.name)
+            values = values_of(file_stamp(in_dir / f.filename), f.layer, col.name)
             filled = [v for v in values if v]
             distinct = set(filled)
             numbers = bool(filled) and _plain(values)
@@ -3205,7 +3208,7 @@ TAKEN = {"key", "key2", "key3", "key_sale", "geometry", "latitude", "longitude",
 
 
 def locations(project: Project, in_dir: Path) -> list[LocationField]:
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     out = []
     for name in project.wizard.locations:
         entry = next((f for f in _field_files(project, False) if name in f.load), None)
@@ -3252,7 +3255,7 @@ def set_location(project: Project, in_dir: Path, name: str, file: str | None, co
     entry = next((f for f in _field_files(project, False) if f.name == file), None)
     if entry is None:
         raise ValueError("Locations come from a parcel file: the universe, or one joined to it.")
-    if _Files(project, in_dir).column(entry.name, column) is None:
+    if Files(project, in_dir).column(entry.name, column) is None:
         raise ValueError(f"{entry.name} has no column {column}.")
     loaded_as = {spec[0]: field for field, spec in entry.load.items()}
     if column in loaded_as and loaded_as[column] != name:
@@ -3281,7 +3284,7 @@ class CustomFieldView(BaseModel):
 
 
 def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     out = []
     for c in project.wizard.custom:
         entry = next((f for f in _field_files(project, False) if c.name in f.load), None)
@@ -3361,7 +3364,7 @@ def set_custom(
     entry = next((f for f in _field_files(project, False) if f.name == file), None)
     if entry is None:
         raise ValueError("Your own fields come from a parcel file: the parcel universe, or one joined to it.")
-    if _Files(project, in_dir).column(entry.name, column) is None:
+    if Files(project, in_dir).column(entry.name, column) is None:
         raise ValueError(f"{entry.name} has no column {column}.")
     loaded_as = {spec[0]: field for field, spec in entry.load.items()}
     if column in loaded_as and loaded_as[column] != name:
@@ -3382,15 +3385,15 @@ def set_custom(
 # ---------- Units of a shared parcel: condos (F3d) ----------
 
 
-def _unshaped(files: _Files, f: DataFile, base: str | None) -> int:
+def _unshaped(files: Files, f: DataFile, base: str | None) -> int:
     """A parcel file's rows whose ID finds no parcel shape (its own blank IDs aside)."""
     if f.holds != "parcels" or f.name == base or base is None or f.name not in files.preview or "key" not in f.load:
         return 0
-    shaped = _base_ids(files, base) | (_unit_ids(files) if f.units is None else set())
+    shaped = _base_ids(files, base) | (unit_ids(files) if f.units is None else set())
     return sum(1 for v in files.ids(f.name, "key") if v and v not in shaped)
 
 
-def _unit_ids(files: _Files) -> set[str]:
+def unit_ids(files: Files) -> set[str]:
     """The IDs of units that find their building: parcels of the parcel universe once condos are resolved."""
     f = next((x for x in files.project.files if x.units is not None and x.holds == "parcels"), None)
     if f is None or f.name not in files.preview:
@@ -3400,14 +3403,14 @@ def _unit_ids(files: _Files) -> set[str]:
     return {ids[i] for i, b in zip(rows, _links(files, f, f.units or Units(), rows), strict=True) if b}
 
 
-def _unit_rows(files: _Files, f: DataFile, units: Units) -> list[int]:
+def _unit_rows(files: Files, f: DataFile, units: Units) -> list[int]:
     """Rows of the file without a shape that the rule says are units."""
     shaped = _base_ids(files, files.project.wizard.base)
     ids = files.ids(f.name, "key")
     rows = [i for i, v in enumerate(ids) if v and v not in shaped]
     if units.rule and units.rule.conditions:
         try:
-            _, _, yes = _rule_result(files, f, units.rule)
+            _, _, yes = rule_result(files, f, units.rule)
         except Exception:  # noqa: BLE001 - an unfinished rule selects nothing yet
             return []
         flags = yes.tolist()
@@ -3415,7 +3418,7 @@ def _unit_rows(files: _Files, f: DataFile, units: Units) -> list[int]:
     return rows
 
 
-def _links(files: _Files, f: DataFile, units: Units, rows: list[int]) -> list[str | None]:
+def _links(files: Files, f: DataFile, units: Units, rows: list[int]) -> list[str | None]:
     """Per unit row, the building it finds (the parcel universe's ID), as OpenAVMKit links them."""
     base = files.project.wizard.base
     if base is None or units.column is None or files.column(f.name, units.column) is None:
@@ -3442,7 +3445,7 @@ def _links(files: _Files, f: DataFile, units: Units, rows: list[int]) -> list[st
     ]
 
 
-def _units_view(project: Project, files: _Files, f: DataFile) -> UnitsView:
+def units_view(project: Project, files: Files, f: DataFile) -> UnitsView:
     units = f.units or Units()
     if f.name not in files.preview:
         return UnitsView(
@@ -3556,7 +3559,7 @@ def _shape_areas(stamp: tuple[str, float, int], layer: str | None, column: str, 
         return {}
     area = gdf.to_crs(gdf.estimate_utm_crs()).geometry.area * 10.7639
     cleaned = _cleaned(stamp, layer, column, steps)
-    raw = _values(stamp, layer, column)
+    raw = values_of(stamp, layer, column)
     by_raw = {r: c for r, c in zip(raw, cleaned, strict=False)}
     out: dict[str, float] = {}
     for v, a in zip(gdf[column].astype(str), area, strict=False):
@@ -3567,7 +3570,7 @@ def _shape_areas(stamp: tuple[str, float, int], layer: str | None, column: str, 
 
 
 def _unit_land(
-    project: Project, files: _Files, f: DataFile, units: Units, rows: list[int], links: list[str | None]
+    project: Project, files: Files, f: DataFile, units: Units, rows: list[int], links: list[str | None]
 ) -> tuple[Check, dict[int, str]]:
     """Whether the land setting can be worked out (else Bring in data stops), and the shares it gives, by row."""
     base = files.entry(project.wizard.base) if project.wizard.base else None
@@ -3576,7 +3579,10 @@ def _unit_land(
     area_of: dict[str, float] = {}
     if base is not None and "key" in base.load:
         area_of = _shape_areas(
-            _stamp(files.in_dir / base.filename), base.layer, base.load["key"][0], _steps_key(base.clean.get("key", []))
+            file_stamp(files.in_dir / base.filename),
+            base.layer,
+            base.load["key"][0],
+            _steps_key(base.clean.get("key", [])),
         )
 
     def acres(sqft: float) -> str:
@@ -3634,7 +3640,7 @@ def _unit_land(
     return Check(ok=True, warn=filled < len(rows), text=text), shares
 
 
-def _guess_units(project: Project, files: _Files, f: DataFile) -> Units:
+def _guess_units(project: Project, files: Files, f: DataFile) -> Units:
     """How the units find their building: a column both files have whose start matches (the longest start that
     links the most units, ending before a separator), or a column holding the building's parcel ID."""
     base = project.wizard.base
@@ -3673,7 +3679,7 @@ def set_units(project: Project, in_dir: Path, name: str, units: Units | None, gu
     """Treat a parcel file's rows without a shape as units of a shared parcel (or stop). The first time, guess how
     they find their building (said as a guess on the panel). The parcel universe's fields are offered for the
     units, never copied unasked."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     f = next((x for x in project.files if x.name == name), None)
     if f is None or f.holds != "parcels" or f.name == project.wizard.base:
         raise ValueError("Units come from a parcel file joined to the parcel universe.")
@@ -3714,7 +3720,7 @@ def set_unit_field(project: Project, in_dir: Path, name: str, field: str, column
     if column is None:
         f.load.pop(field, None)
         return
-    if _Files(project, in_dir).column(f.name, column) is None:
+    if Files(project, in_dir).column(f.name, column) is None:
         raise ValueError(f"{f.name} has no column {column}.")
     if field not in base.load:
         f.load[field] = [column, "float"]
@@ -3835,11 +3841,11 @@ def _map_points(stamp: tuple[str, float, int], layer: str | None):
 
 
 def map_view(project: Project, in_dir: Path) -> MapView:
-    base = _base(project)
+    base = base_file(project)
     center = (project.center.latitude, project.center.longitude) if project.center else None
     if base is None or not (in_dir / base.filename).is_file():
         return MapView(points=[], middle=None, center=center, parcels=0)
-    points, middle, n = _map_points(_stamp(in_dir / base.filename), base.layer)
+    points, middle, n = _map_points(file_stamp(in_dir / base.filename), base.layer)
     return MapView(points=points, middle=middle, center=center, parcels=n)
 
 
@@ -3873,11 +3879,11 @@ def _read_geo(stamp: tuple[str, float, int], layer: str | None):
 
 
 def _geo(in_dir: Path, f: DataFile):
-    return _read_geo(_stamp(in_dir / f.filename), f.layer)
+    return _read_geo(file_stamp(in_dir / f.filename), f.layer)
 
 
 @lru_cache(maxsize=16)
-def _coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple[str, float, int], layer: str | None):
+def coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple[str, float, int], layer: str | None):
     """(parcels in exactly one shape, in several, in none): their centres, as OpenAVMKit joins them."""
     import geopandas as gpd
 
@@ -3893,8 +3899,8 @@ def _coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple
 
 
 def layers(project: Project, in_dir: Path) -> list[LayerView]:
-    files = _Files(project, in_dir)
-    base = _base(project)
+    files = Files(project, in_dir)
+    base = base_file(project)
     out = []
     for f in project.files:
         if f.holds != "overlay" or not (in_dir / f.filename).is_file():
@@ -3923,8 +3929,8 @@ def layers(project: Project, in_dir: Path) -> list[LayerView]:
             elif not o.fields:
                 left.append(Left(text="pick at least one column to copy"))
             elif projected and base is not None and (in_dir / base.filename).is_file():
-                one, several, none = _coverage(
-                    _stamp(in_dir / base.filename), base.layer, _stamp(in_dir / f.filename), f.layer
+                one, several, none = coverage(
+                    file_stamp(in_dir / base.filename), base.layer, file_stamp(in_dir / f.filename), f.layer
                 )
                 # Only what isn't zero: "every parcel in one shape", or "1,252 in a shape · 8,107 in none".
                 if several == 0 and none == 0:
@@ -3988,7 +3994,7 @@ def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | No
         return
     if entry.name == project.wizard.base:
         raise ValueError("That's the parcel universe.")
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     if not files.geometry(name):
         raise ValueError(f"{name} has no shapes: a map layer needs geometry.")
     columns = {c.name for c in files.columns(name)}
@@ -4058,12 +4064,12 @@ def enrich_view(project: Project, in_dir: Path) -> enrichments.EnrichView:
 # ---------- Deeds (F3f) ----------
 
 
-def _deeds_check(project: Project, files: _Files) -> DeedsCheck | None:
+def _deeds_check(project: Project, files: Files) -> DeedsCheck | None:
     """What sales scrutiny will find (notebook 2): sales sharing a deed ID and a sale date are one sale of several
     parcels. Worked out from the sales file the deed fields and the sale date are both in."""
     import pandas as pd
 
-    deed = projects._deed(project)
+    deed = projects.deed_field(project)
     if deed is None:
         return None
     wanted = ["deed_id"] if deed == "deed_id" else ["deed_book", "deed_page"]
@@ -4071,16 +4077,16 @@ def _deeds_check(project: Project, files: _Files) -> DeedsCheck | None:
     f = next((f for f in project.files if f.holds == "sales" and all(k in f.load for k in need)), None)
     if f is None or f.name not in files.preview:
         return None
-    stamp = _stamp(files.in_dir / f.filename)
+    stamp = file_stamp(files.in_dir / f.filename)
 
     def text(key: str) -> pd.Series:
-        return pd.Series(_values(stamp, f.layer, f.load[key][0], raw=True)).astype(str).str.strip()
+        return pd.Series(values_of(stamp, f.layer, f.load[key][0], raw=True)).astype(str).str.strip()
 
     parts = [text(k) for k in wanted]
     blank = pd.concat([p.str.lower().isin(["", "nan", "none", "null"]) for p in parts], axis=1).any(axis=1)
     ids = parts[0] if len(parts) == 1 else parts[0] + "-" + parts[1]
     spec = f.load["sale_date"]
-    when = _parse(stamp, f.layer, spec[0], spec[2]) if len(spec) > 2 else pd.Series(_values(stamp, f.layer, spec[0]))
+    when = _parse(stamp, f.layer, spec[0], spec[2]) if len(spec) > 2 else pd.Series(values_of(stamp, f.layer, spec[0]))
     together = (ids + "|" + when.astype(str))[~blank]
     counts = together.value_counts()
     shared = counts[counts > 1]
@@ -4106,16 +4112,16 @@ NAME_FIELDS = {
 def deed_names(project: Project, in_dir: Path) -> dict:
     """The buyers' and sellers' names (and surnames, where loaded) as written, from the sales file that has the most
     of them; {} without any."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     sales = [f for f in project.files if f.holds == "sales" and f.name in files.preview]
     f = max(sales, key=lambda f: sum(k in f.load for k in NAME_FIELDS.values()), default=None)
     if f is None or not any(k in f.load for k in NAME_FIELDS.values()):
         return {}
-    stamp = _stamp(files.in_dir / f.filename)
+    stamp = file_stamp(files.in_dir / f.filename)
     out: dict = {"file": f.name}
     for key, field in NAME_FIELDS.items():
         if field in f.load:
-            out[key] = list(_values(stamp, f.layer, f.load[field][0]))
+            out[key] = list(values_of(stamp, f.layer, f.load[field][0]))
     return out
 
 
@@ -4134,7 +4140,7 @@ def guess_meaning(value: str) -> PermitMeaning:
     return cast(PermitMeaning, next((m for rx, m in PERMIT_WORDS if rx.search(value)), "none"))
 
 
-def _permits_view(project: Project, files: _Files) -> PermitsView | None:
+def _permits_view(project: Project, files: Files) -> PermitsView | None:
     f = projects.permits_file(project)
     if f is None or f.name not in files.preview:
         return None
@@ -4142,13 +4148,13 @@ def _permits_view(project: Project, files: _Files) -> PermitsView | None:
     date = span = None
     if p.date and p.date_format and files.column(f.name, p.date) is not None:
         date = _date_check(files, f.name, p.date, p.date_format)
-        when = _parse(_stamp(files.in_dir / f.filename), f.layer, p.date, p.date_format).dropna()
+        when = _parse(file_stamp(files.in_dir / f.filename), f.layer, p.date, p.date_format).dropna()
         if len(when):
             span = f"{when.min():%Y-%m-%d} to {when.max():%Y-%m-%d}"
     kinds: list[PermitKind] = []
     more = 0
     if p.type and files.column(f.name, p.type) is not None:
-        counts = [(v, n) for v, n in _value_counts(_stamp(files.in_dir / f.filename), f.layer, p.type) if v]
+        counts = [(v, n) for v, n in _value_counts(file_stamp(files.in_dir / f.filename), f.layer, p.type) if v]
         more = max(0, len(counts) - VALUES_SHOWN)
         for v, n in counts[:VALUES_SHOWN]:
             said = p.means.get(v)
@@ -4180,7 +4186,7 @@ def _permits_left(project: Project) -> list[str]:
     return out
 
 
-def _guess_permits(files: _Files, f: DataFile) -> Permits:
+def _guess_permits(files: Files, f: DataFile) -> Permits:
     """The date column (the first that reads as a date, issue dates first) and the type column (a few kinds,
     named like a type or class), and what each kind means from its words."""
     cols = files.columns(f.name)
@@ -4189,7 +4195,7 @@ def _guess_permits(files: _Files, f: DataFile) -> Permits:
     p = Permits()
     if dated:
         p.date, p.date_format = dated[0].name, dated[0].date_format
-    stamp = _stamp(files.in_dir / f.filename)
+    stamp = file_stamp(files.in_dir / f.filename)
     best = None
     for c in cols:
         if c.type != "text" or c.date_format or c.name in (f.load.get("key") or [None])[:1]:
@@ -4207,7 +4213,7 @@ def _guess_permits(files: _Files, f: DataFile) -> Permits:
 
 def set_permits(project: Project, in_dir: Path, name: str, permits: Permits | None, guess: bool = False) -> None:
     """A file's permits set-up; None stops using it as permits. guess: work out the columns from the file."""
-    files = _Files(project, in_dir)
+    files = Files(project, in_dir)
     entry = files.entry(name)
     if permits is None:
         entry.holds, entry.permits = "unused", None
@@ -4221,7 +4227,7 @@ def set_permits(project: Project, in_dir: Path, name: str, permits: Permits | No
             raise ValueError(f"{name} has no column {column}.")
     if permits.type and entry.permits and permits.type != entry.permits.type:
         # A new type column: its own values, guessed from their words.
-        stamp = _stamp(in_dir / entry.filename)
+        stamp = file_stamp(in_dir / entry.filename)
         permits.means = {v: guess_meaning(v) for v, _ in _value_counts(stamp, entry.layer, permits.type) if v}
     entry.permits = permits
 
@@ -4267,19 +4273,19 @@ def _column_ids(stamp: tuple[str, float, int], layer: str | None, column: str, s
     return frozenset(v for v in _cleaned(stamp, layer, column, steps) if v)
 
 
-def _unmatched(files: _Files, f: DataFile, base: DataFile) -> tuple[set[str], int]:
+def _unmatched(files: Files, f: DataFile, base: DataFile) -> tuple[set[str], int]:
     """(the parcel IDs a file's rows have that the parcel universe lacks, how many rows have one)."""
     ids = [v for v in files.ids(f.name, f.match) if v]
-    known = _base_ids(files, base.name, f.match) | (_unit_ids(files) if f.match == "key" else set())
+    known = _base_ids(files, base.name, f.match) | (unit_ids(files) if f.match == "key" else set())
     missing = [v for v in ids if v not in known]
     return set(missing), len(missing)
 
 
-def _diagnose_missing(project: Project, files: _Files, out: list[WizardFile]) -> None:
+def _diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> None:
     """Tell rows whose IDs are written differently (Reconcile cleans those up) from rows for parcels the parcel
     universe doesn't have: condo units on the roll but not the map, newer parcels, a file not added. For the
     second, say so, name a file in the project that has them, and the other files missing the same IDs."""
-    base = _base(project)
+    base = base_file(project)
     if base is None or base.name not in files.preview:
         return
     gaps: dict[str, tuple[set[str], int]] = {}
@@ -4400,7 +4406,7 @@ def _beyond(sug: Suggestion, f: DataFile, base: DataFile) -> str:
 
 
 def _holder(
-    project: Project, files: _Files, f: DataFile, missing: set[str], base: DataFile
+    project: Project, files: Files, f: DataFile, missing: set[str], base: DataFile
 ) -> tuple[str, str, int] | None:
     """The project file (not joined as parcels yet) with a column holding the most of these IDs, cleaned as this
     file's are, or as the parcel universe's (as it would be, joined to it): at least half of them, or 20."""
@@ -4414,7 +4420,7 @@ def _holder(
         # A file joined as parcel details adds no parcels, unless its rows are parcels without a shape (units).
         if g.holds == "parcels" and _unshaped(files, g, base.name) < 0.5 * (_rows(files, g.name) or 1):
             continue
-        stamp = _stamp(files.in_dir / g.filename)
+        stamp = file_stamp(files.in_dir / g.filename)
         for c in files.columns(g.name):
             for steps in tries:
                 n = len(missing & _column_ids(stamp, g.layer, c.name, steps))

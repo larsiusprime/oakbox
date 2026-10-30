@@ -235,3 +235,8 @@ def set_load(entry: DataFile, load: dict[str, list[str]]) -> None:
         if kind not in ("datetime", "bool") and len(spec) == 3:
             raise ValueError(f"{field}: only dates and yes/no fields take a third item.")
     entry.load = dict(load)
+
+
+def names() -> dict[str, str]:
+    """Each field of the dictionary's name: "sale_price" -> "Sale price"."""
+    return {f.key: f.name for f in dictionary()}

@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import Field
 
-from oakbox import assemble, bring_in, names, steps
+from oakbox import assemble, bring_in, cells, fields, names, steps
 from oakbox.datafiles import BaseModel
 
 if TYPE_CHECKING:
@@ -60,17 +60,8 @@ def _group(v) -> str:
     return NO_PARCEL if text in ("", "None", "nan", "<NA>") else text
 
 
-def _groups(df) -> pd.Series:
+def model_groups_of(df) -> pd.Series:
     return df["model_group"].map(_group) if "model_group" in df else df.index.to_series().map(lambda _: NO_PARCEL)
-
-
-def _numbers(df, column: str) -> pd.Series:
-    """A column as numbers (blank where it isn't one); all blank when there's no such column."""
-    import pandas as pd
-
-    if column not in df:
-        return pd.Series(float("nan"), index=df.index, dtype=float)
-    return cast("pd.Series", pd.to_numeric(df[column], errors="coerce")).astype(float)
 
 
 def _frame(*columns: str) -> pd.DataFrame:
@@ -311,10 +302,6 @@ def without_fields(settings: dict, project) -> dict:
     return out
 
 
-def _settings(project_dir: Path) -> dict:
-    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
-
-
 # ---------- Before running: the calls, with their defaults and what they do in numbers ----------
 
 
@@ -419,11 +406,6 @@ def _data(project_dir: Path):
     return universe, sales
 
 
-def _yes(df, column: str) -> pd.Series:
-    """A yes/no column as True/False (no where blank or missing)."""
-    return _numbers(df, column).fillna(0).astype(bool)
-
-
 def _years(df) -> pd.Series:
     import pandas as pd
 
@@ -431,27 +413,15 @@ def _years(df) -> pd.Series:
 
 
 def _valid(sales) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
-    valid = sales[_yes(sales, "valid_sale")] if "valid_sale" in sales else sales
-    return valid, _years(valid), _yes(valid, "vacant_sale")
-
-
-def _names() -> dict[str, str]:
-    from oakbox import fields
-
-    return {f.key: f.name for f in fields.dictionary()}
-
-
-def _engine_settings(project_dir: Path) -> dict:
-    from openavmkit.utilities.settings import load_settings
-
-    return cast(dict, load_settings(str(project_dir / "in" / "settings.json"), warning=False))
+    valid = sales[cells.yes(sales, "valid_sale")] if "valid_sale" in sales else sales
+    return valid, _years(valid), cells.yes(valid, "vacant_sale")
 
 
 def _fill_rows(project, project_dir: Path, universe) -> list[FillRow]:
     """Every number the models can use that's still blank somewhere after step 1, with its fill."""
     from openavmkit.utilities.settings import get_fields_numeric
 
-    s = _engine_settings(project_dir)
+    s = steps.engine_settings(project_dir)
     template = {f for fs in s.get("data", {}).get("process", {}).get("fill", {}).values() for f in fs}
     mine = {f for f, x in project.clean.fills.items()}
     numeric = [
@@ -459,10 +429,10 @@ def _fill_rows(project, project_dir: Path, universe) -> list[FillRow]:
         for f in get_fields_numeric(s, universe, include_boolean=False) or []
         if f in universe and f not in YEAR_AGE and (f not in template or f in mine)
     ]
-    names = _names()
+    names = fields.names()
     rows = []
     for f in numeric:
-        x = _numbers(universe, f)
+        x = cells.numbers(universe, f)
         blanks = int(x.isna().sum())
         if not blanks:
             continue
@@ -516,7 +486,7 @@ def propose(field: str) -> tuple[Fill, str]:
 def _auto(project_dir: Path, universe) -> list[str]:
     from openavmkit.utilities.settings import get_fields_boolean, get_fields_categorical
 
-    s = _engine_settings(project_dir)
+    s = steps.engine_settings(project_dir)
     out = []
     zero = sum(int(universe[f].isna().sum()) for f in YEAR_AGE if f in universe)
     cats = [f for f in get_fields_categorical(s, universe, include_boolean=False) or [] if f in universe]
@@ -529,10 +499,10 @@ def _auto(project_dir: Path, universe) -> list[str]:
     return out
 
 
-def _locations(project_dir: Path, universe) -> list[str]:
+def location_fields(project_dir: Path, universe) -> list[str]:
     from openavmkit.utilities.settings import get_locations
 
-    s = _engine_settings(project_dir)
+    s = steps.engine_settings(project_dir)
     found = [f for f in get_locations(s, universe) or [] if f in universe]
     for f in ("census_block_group", "census_tract"):
         if f in universe and f not in found:
@@ -552,7 +522,7 @@ def _collapsible(project_dir: Path, universe, locations: list[str]) -> list[str]
     """Categories the models use, not locations (folding neighbourhoods would change what they mean)."""
     from openavmkit.utilities.settings import get_fields_categorical
 
-    s = _engine_settings(project_dir)
+    s = steps.engine_settings(project_dir)
     cats = get_fields_categorical(s, universe, include_boolean=False) or []
     import pandas as pd
 
@@ -586,9 +556,9 @@ def folds(project, project_dir: Path) -> list[Fold]:
         impr_from, vacant_from = window(project)
         valid = valid[(~vacant & (year >= impr_from)) | (vacant & (year >= vacant_from))]
     c: CleanState = project.clean
-    names = _names()
+    names = fields.names()
     out = []
-    collapsible = _collapsible(project_dir, universe, _locations(project_dir, universe))
+    collapsible = _collapsible(project_dir, universe, location_fields(project_dir, universe))
     for f in [f for f in c.collapse_fields if f in collapsible] or collapsible:
         if f not in universe:
             continue
@@ -646,15 +616,15 @@ def setup(project, project_dir: Path) -> CleanSetup:
     unknown = int((inside & (valid["model_group"] == UNKNOWN)).sum()) if "model_group" in valid else 0
     if unknown:
         groups.append(GroupSetup(id=UNKNOWN, name="Unassigned", color="#9a9a9a", sales=unknown, per_year=None))
-    locations = _locations(project_dir, universe)
+    locations = location_fields(project_dir, universe)
     proposed = _proposed_location(locations)
     location = project.clean.location if project.clean.location is not None else proposed
-    names = _names()
+    names = fields.names()
     notices = []
     # Sales whose vacant-at-sale doesn't match the parcel now are left out of ratio studies.
     keys = set(universe["key"].astype(str))
     in_univ = valid["key"].astype(str).isin(list(keys))
-    is_vacant = _yes(valid, "is_vacant") if "is_vacant" in valid else vacant
+    is_vacant = cells.yes(valid, "is_vacant") if "is_vacant" in valid else vacant
     for sold, now, n in (
         ("improved", "vacant", int((inside & in_univ & ~vacant & is_vacant).sum())),
         ("vacant", "improved", int((inside & in_univ & vacant & ~is_vacant).sum())),
@@ -718,7 +688,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
         locations=[Choice(value=f, label=names.get(f, f)) for f in locations],
         similar=similar,
         checks={k: c.checks.get(k, True) for k in CHECKS},
-        deed=bool(_settings(project_dir).get("analysis", {}).get("sales_scrutiny", {}).get("deed_id")),
+        deed=bool(steps.read_settings(project_dir).get("analysis", {}).get("sales_scrutiny", {}).get("deed_id")),
         names=any(c in sales for c in ("deed_grantor", "deed_grantor_surname"))
         and any(c in sales for c in ("deed_grantee", "deed_grantee_surname")),
         year_built="bldg_year_built" in sales or "bldg_year_built" in universe,
@@ -738,7 +708,7 @@ def decide(project, project_dir: Path) -> None:
     c: CleanState = project.clean
     for row in _fill_rows(project, project_dir, universe):
         c.fills.setdefault(row.field, row.proposed)
-    locations = _locations(project_dir, universe)
+    locations = location_fields(project_dir, universe)
     if c.location is None:
         c.location = _proposed_location(locations)
     collapsible = _collapsible(project_dir, universe, locations)
@@ -805,12 +775,6 @@ class CleanReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-WHAT = {
-    "2-clean-sup.pickle": "the parcels and the sales for modeling: what notebook 3 (model) starts from",
-    "2-clean-universe": "the parcel universe, filled and clustered",
-    "2-clean-sales-hydrated": "the sales for modeling, each with its parcel's fields",
-    "2-clean-sales": "the sales record",
-}
 CHECK_WORDS = {
     "excluded": "excluded by you",
     "nominal_price": "a nominal price (a $10 deed), not a price",
@@ -826,14 +790,7 @@ PATTERNS = ("1", "2", "3", "4", "5", "other")
 ORDER = ["excluded", *HEURISTICS, "cluster"]
 
 
-def _what(name: str) -> str:
-    for prefix, what in WHAT.items():
-        if name.startswith(prefix):
-            return what
-    return ""
-
-
-def _curve(path: Path) -> tuple[float | None, str | None, str | None, list[float]]:
+def time_curve(path: Path) -> tuple[float | None, str | None, str | None, list[float]]:
     import pandas as pd
 
     if not path.is_file():
@@ -843,7 +800,7 @@ def _curve(path: Path) -> tuple[float | None, str | None, str | None, list[float
         return None, None, None, []
     first, last = pd.to_datetime(s["period"].iloc[0]), pd.to_datetime(s["period"].iloc[-1])
     years = max((last - first).days / 365.25, 0.1)
-    index = _numbers(s, "start_indexed").dropna()
+    index = cells.numbers(s, "start_indexed").dropna()
     if len(index) < 2:
         return None, None, None, []  # too few sales: no adjustment
     a, b = float(index.iloc[0]), float(index.iloc[-1])
@@ -965,10 +922,10 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
     b["key_sale"] = b["key_sale"].astype(str)
     b = b[b["key_sale"].isin(list(start))].drop_duplicates("key_sale").set_index("key_sale")
     year = _years(b)
-    vacant = _yes(b, "vacant_sale")
+    vacant = cells.yes(b, "vacant_sale")
     gone = start - processed
     early = {k for k in gone if k in b.index and year[k] < (vacant_from if bool(vacant[k]) else impr_from)}
-    price = _numbers(b, "sale_price")
+    price = cells.numbers(b, "sale_price")
     no_price = {k for k in gone - early if k in b.index and not (price[k] > 0)}
     keys = set(sales["key"].astype(str)) if "key" in sales else set()
     in_univ = b["key"].astype(str).isin(list(keys)) if "key" in b else pd.Series(True, index=b.index)
@@ -1013,12 +970,12 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
     h["key_sale"] = h["key_sale"].astype(str)
     h = h[h["key_sale"].isin(processed)]
     final = sales[sales["key_sale"].astype(str).isin(used)]
-    group_of = dict(zip(h["key_sale"], _groups(h), strict=False))
+    group_of = dict(zip(h["key_sale"], model_groups_of(h), strict=False))
     groups = []
     ids = [(g.id, g.name, g.color) for g in project.groups]
     ids += [(UNKNOWN, "Unassigned", "#9a9a9a"), (NO_PARCEL, NO_PARCEL_NAME, "#cfcfcf")]
     for gid, name, color in ids:
-        n = int((_groups(h) == gid).sum())
+        n = int((model_groups_of(h) == gid).sum())
         if gid in (UNKNOWN, NO_PARCEL) and n == 0:
             continue
         aside = sum(1 for k in dropped if group_of.get(k) == gid)
@@ -1031,7 +988,9 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
         if "ss_id" in final and "model_group" in h:
             mine = final[final["key_sale"].astype(str).map(group_of) == gid]
             clusters = max(clusters, int(mine["ss_id"].dropna().nunique()))
-        per_year, first, last, curve = _curve(pdir / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv")
+        per_year, first, last, curve = time_curve(
+            pdir / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv"
+        )
         if not project.clean.time_adjust or gid == NO_PARCEL:
             per_year, curve = None, []
         groups.append(
@@ -1053,7 +1012,7 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
     fp = pdir / "out" / "filled.parquet"
     if fp.is_file():
         f = pd.read_parquet(fp)
-        names = _names()
+        names = fields.names()
         for col in f.columns:
             if col == "key":
                 continue
@@ -1072,7 +1031,9 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
         if path.is_file():
             written.append(
                 assemble.Written(
-                    path=path.relative_to(pdir).as_posix(), what=_what(path.name), bytes=path.stat().st_size
+                    path=path.relative_to(pdir).as_posix(),
+                    what=steps.what_written(path.name),
+                    bytes=path.stat().st_size,
                 )
             )
     mine = steps.engine_notes(caught)
@@ -1106,7 +1067,7 @@ def _flag_only(flags) -> pd.Series:
 def _pattern_tables(project, flags, h, excluded: set[str]) -> list[PatternTable]:
     """Each pattern's sales among those checked, all groups and per group (the article's Results table)."""
     names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned"}
-    groups = _groups(h)
+    groups = model_groups_of(h)
     cluster = flags[flags["check"] == "cluster"] if len(flags) else flags
     cluster = cluster[~cluster["key_sale"].isin(list(excluded))] if len(cluster) else cluster
     out = []
@@ -1170,9 +1131,11 @@ def _review_tables(out: Path, hydrated, sales, flags, units: str) -> None:
     members = cast("pd.DataFrame", pd.concat([s.astype({"ss_id": str}), fl], ignore_index=True))
     members = members[~members["key_sale"].duplicated()]
     members = members.merge(h, on="key_sale", how="left")
-    price = _numbers(members, "sale_price_time_adj").fillna(_numbers(members, "sale_price"))
-    vacant = _numbers(members, "vacant_sale").fillna(0).astype(bool)
-    area = _numbers(members, f"bldg_area_finished_{unit}").where(~vacant, _numbers(members, f"land_area_{unit}"))
+    price = cells.numbers(members, "sale_price_time_adj").fillna(cells.numbers(members, "sale_price"))
+    vacant = cells.numbers(members, "vacant_sale").fillna(0).astype(bool)
+    area = cells.numbers(members, f"bldg_area_finished_{unit}").where(
+        ~vacant, cells.numbers(members, f"land_area_{unit}")
+    )
     members["price"] = price
     members["price_per_area"] = price / area.where(area > 0)
     members["flagged"] = members["key_sale"].isin(list(fl["key_sale"]))
@@ -1300,24 +1263,6 @@ class SaleDetail(BaseModel):
     deed: str | None = Field(default=None, description="Its deed ID (or book and page).")
 
 
-def _num(v) -> float | None:
-    try:
-        f = float(v)
-    except (TypeError, ValueError):
-        return None
-    return None if f != f else f
-
-
-def _text(v) -> str | None:
-    import pandas as pd
-
-    if v is None or (not isinstance(v, str) and pd.isna(v)):
-        return None
-    if isinstance(v, pd.Timestamp):
-        return str(v.date())
-    return str(v)
-
-
 def _review(project_dir: Path):
     import pandas as pd
 
@@ -1340,57 +1285,51 @@ def _items(project, project_dir: Path) -> list[ReviewItem]:
         c = cluster.iloc[0] if len(cluster) else rows.iloc[0]
         first = rows.iloc[0]
         mark = marks.get(key)
-        price = _num(c.get("price")) if len(cluster) else None
+        price = cells.number(c.get("price")) if len(cluster) else None
         if price is None:
-            price = _num(first.get("sale_price_time_adj")) or _num(first.get("sale_price"))
+            price = cells.number(first.get("sale_price_time_adj")) or cells.number(first.get("sale_price"))
         out.append(
             ReviewItem(
                 key_sale=key,
                 key=str(first.get("key", "")),
-                address=_text(first.get("address")),
+                address=cells.text(first.get("address")),
                 model_group=_group(first.get("model_group")),
                 group_name=names.get(_group(first.get("model_group")), _group(first.get("model_group"))),
-                sale_date=_text(first.get("sale_date")),
+                sale_date=cells.text(first.get("sale_date")),
                 vacant=bool(first.get("vacant_sale") or False),
                 checks=[str(x) for x in rows["check"] if x != "excluded"],
                 price=price,
-                price_per_area=_num(c.get("price_per_area")) if len(cluster) else None,
-                median=_num(c.get("median")) if len(cluster) else None,
-                ratio=_num(c.get("relative_ratio")) if len(cluster) else None,
-                count=int(c["count"]) if len(cluster) and _num(c.get("count")) is not None else None,
-                pattern=_text(c.get("pattern")) if len(cluster) else None,
-                rules=_text(c.get("rules")) if len(cluster) else None,
+                price_per_area=cells.number(c.get("price_per_area")) if len(cluster) else None,
+                median=cells.number(c.get("median")) if len(cluster) else None,
+                ratio=cells.number(c.get("relative_ratio")) if len(cluster) else None,
+                count=int(c["count"]) if len(cluster) and cells.number(c.get("count")) is not None else None,
+                pattern=cells.text(c.get("pattern")) if len(cluster) else None,
+                rules=cells.text(c.get("rules")) if len(cluster) else None,
                 flag_only=bool(len(cluster) and bool(c.get("flag_only")) and len(rows) == len(cluster)),
-                price_rating=_text(c.get("price_rating")) if len(cluster) else None,
-                per_area_rating=_text(c.get("per_area_rating")) if len(cluster) else None,
-                size_rating=_text(c.get("size_rating")) if len(cluster) else None,
-                price_median=_num(c.get("price_median")) if len(cluster) else None,
-                price_dist=_num(c.get("price_dist")) if len(cluster) else None,
-                per_area_dist=_num(c.get("med_dist_stdevs")) if len(cluster) else None,
-                size=_num(c.get("size")) if len(cluster) else None,
-                size_median=_num(c.get("size_median")) if len(cluster) else None,
-                size_dist=_num(c.get("size_dist")) if len(cluster) else None,
+                price_rating=cells.text(c.get("price_rating")) if len(cluster) else None,
+                per_area_rating=cells.text(c.get("per_area_rating")) if len(cluster) else None,
+                size_rating=cells.text(c.get("size_rating")) if len(cluster) else None,
+                price_median=cells.number(c.get("price_median")) if len(cluster) else None,
+                price_dist=cells.number(c.get("price_dist")) if len(cluster) else None,
+                per_area_dist=cells.number(c.get("med_dist_stdevs")) if len(cluster) else None,
+                size=cells.number(c.get("size")) if len(cluster) else None,
+                size_median=cells.number(c.get("size_median")) if len(cluster) else None,
+                size_dist=cells.number(c.get("size_dist")) if len(cluster) else None,
                 details={
                     str(x["check"]): str(x["detail"])
                     for _, x in rows.iterrows()
-                    if "detail" in rows and _text(x.get("detail"))
+                    if "detail" in rows and cells.text(x.get("detail"))
                 },
-                seller=_text(first.get("deed_grantor")),
-                buyer=_text(first.get("deed_grantee")),
-                second_look=bool(len(cluster) and _num(c.get("scrutiny_pass")) == 2),
+                seller=cells.text(first.get("deed_grantor")),
+                buyer=cells.text(first.get("deed_grantee")),
+                second_look=bool(len(cluster) and cells.number(c.get("scrutiny_pass")) == 2),
                 status="kept" if mark and mark.action == "keep" else "excluded" if mark else "undecided",
                 note=mark.note if mark else "",
             )
         )
     # Furthest from their group first; then the rest.
-    out.sort(key=lambda i: (i.ratio is None, -abs(_log(i.ratio)) if i.ratio else 0, i.key_sale))
+    out.sort(key=lambda i: (i.ratio is None, -abs(cells.log_floor(i.ratio)) if i.ratio else 0, i.key_sale))
     return out
-
-
-def _log(x: float) -> float:
-    import math
-
-    return math.log(x) if x > 0 else -50.0
 
 
 def review(
@@ -1436,7 +1375,7 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
     r = _review(project_dir)
     row = r[r["key_sale"] == key_sale].iloc[0]
     unit = "sqft" if project.units == "imperial" else "sqm"
-    area = _num(row.get(f"land_area_{unit}" if item.vacant else f"bldg_area_finished_{unit}"))
+    area = cells.number(row.get(f"land_area_{unit}" if item.vacant else f"bldg_area_finished_{unit}"))
     members: list[Member] = []
     path = out_dir(project_dir) / "members.parquet"
     ss = r.loc[(r["key_sale"] == key_sale) & (r["check"] == "cluster"), "ss_id"]
@@ -1448,17 +1387,17 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
             members.append(
                 Member(
                     key_sale=str(x["key_sale"]),
-                    address=_text(x.get("address")),
-                    price_per_area=_num(x.get("price_per_area")),
-                    area=_num(a),
-                    sale_date=_text(x.get("sale_date")),
+                    address=cells.text(x.get("address")),
+                    price_per_area=cells.number(x.get("price_per_area")),
+                    area=cells.number(a),
+                    sale_date=cells.text(x.get("sale_date")),
                     flagged=bool(x.get("flagged")),
-                    latitude=_num(x.get("latitude")),
-                    longitude=_num(x.get("longitude")),
+                    latitude=cells.number(x.get("latitude")),
+                    longitude=cells.number(x.get("longitude")),
                 )
             )
         members.sort(key=lambda x: (x.price_per_area is None, x.price_per_area or 0))
-    year = _num(row.get("bldg_year_built"))
+    year = cells.number(row.get("bldg_year_built"))
     aside = {i.key_sale for i in _items(project, project_dir)}
     together, by, deed = _together(project, project_dir, key_sale, item, aside)
     return SaleDetail(
@@ -1469,10 +1408,10 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
         item=item,
         area=area,
         year_built=int(year) if year else None,
-        raw_price=_num(row.get("sale_price")),
+        raw_price=cells.number(row.get("sale_price")),
         members=members,
-        latitude=_num(row.get("latitude")),
-        longitude=_num(row.get("longitude")),
+        latitude=cells.number(row.get("latitude")),
+        longitude=cells.number(row.get("longitude")),
     )
 
 
@@ -1492,23 +1431,23 @@ def _together(project, project_dir: Path, key_sale: str, item, aside: set[str]):
     m = me.iloc[0]
     day = pd.to_datetime(r["sale_date"], errors="coerce").dt.normalize()
     same_day = day == pd.to_datetime(m.get("sale_date"), errors="coerce").normalize()
-    deed = _text(m.get("deed")) if "deed" in r else None
+    deed = cells.text(m.get("deed")) if "deed" in r else None
     if by == "deed" and deed:
         hit = same_day & (r["deed"].astype(str) == str(m["deed"]))
     else:
         by = "price"
-        hit = same_day & (_numbers(r, "sale_price") == _num(m.get("sale_price")))
+        hit = same_day & (cells.numbers(r, "sale_price") == cells.number(m.get("sale_price")))
     unit = "sqft" if project.units == "imperial" else "sqm"
     names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned", NO_PARCEL: NO_PARCEL_NAME}
     rows = r[hit].head(60)
     out = [
         TogetherSale(
             key_sale=str(x["key_sale"]),
-            address=_text(x.get("address")),
+            address=cells.text(x.get("address")),
             group_name=names.get(_group(x.get("model_group")), _group(x.get("model_group"))),
-            price=_num(x.get("sale_price")),
-            finished=_num(x.get(f"bldg_area_finished_{unit}")),
-            land=_num(x.get(f"land_area_{unit}")),
+            price=cells.number(x.get("sale_price")),
+            finished=cells.number(x.get(f"bldg_area_finished_{unit}")),
+            land=cells.number(x.get(f"land_area_{unit}")),
             this=str(x["key_sale"]) == key_sale,
             set_aside=str(x["key_sale"]) in aside,
         )
@@ -1521,7 +1460,7 @@ def _together(project, project_dir: Path, key_sale: str, item, aside: set[str]):
 def _buyer(v) -> str:
     import re
 
-    text = _text(v) or ""
+    text = cells.text(v) or ""
     return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9& ]", " ", text.upper())).strip()
 
 
@@ -1544,12 +1483,16 @@ def _related(project_dir: Path, key_sale: str, aside: set[str]) -> list[RelatedS
     mine_when = pd.to_datetime(m.get("sale_date"), errors="coerce")
     day = (when.dt.normalize() == mine_when.normalize()) if when is not None and pd.notna(mine_when) else None
     why: dict[str, pd.Series] = {}
-    if "deed" in others and _text(m.get("deed")) and str(m["deed"]).strip().lower() not in ("", "nan", "none"):
+    if "deed" in others and cells.text(m.get("deed")) and str(m["deed"]).strip().lower() not in ("", "nan", "none"):
         why["deed"] = others["deed"].astype(str) == str(m["deed"])
     distance = pd.Series(np.nan, index=others.index)
-    if {"latitude", "longitude"} <= set(others.columns) and _num(m.get("latitude")) and _num(m.get("longitude")):
+    if (
+        {"latitude", "longitude"} <= set(others.columns)
+        and cells.number(m.get("latitude"))
+        and cells.number(m.get("longitude"))
+    ):
         lat1, lon1 = np.radians(float(m["latitude"])), np.radians(float(m["longitude"]))
-        lat2, lon2 = np.radians(_numbers(others, "latitude")), np.radians(_numbers(others, "longitude"))
+        lat2, lon2 = np.radians(cells.numbers(others, "latitude")), np.radians(cells.numbers(others, "longitude"))
         a = np.sin((lat2 - lat1) / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin((lon2 - lon1) / 2) ** 2
         distance = cast("pd.Series", 2 * 6_371_000 * np.arcsin(np.sqrt(a)))
         if day is not None:
@@ -1569,12 +1512,12 @@ def _related(project_dir: Path, key_sale: str, aside: set[str]) -> list[RelatedS
         out.append(
             RelatedSale(
                 key_sale=str(x["key_sale"]),
-                address=_text(x.get("address")),
-                sale_date=_text(x.get("sale_date")),
-                price=_num(x.get("sale_price")),
-                seller=_text(x.get("deed_grantor")),
-                buyer=_text(x.get("deed_grantee")),
-                distance=_num(distance.get(idx)),
+                address=cells.text(x.get("address")),
+                sale_date=cells.text(x.get("sale_date")),
+                price=cells.number(x.get("sale_price")),
+                seller=cells.text(x.get("deed_grantor")),
+                buyer=cells.text(x.get("deed_grantee")),
+                distance=cells.number(distance.get(idx)),
                 why=[cast(Any, k) for k, v in why.items() if bool(v.get(idx, False))],
                 set_aside=str(x["key_sale"]) in aside,
             )
@@ -1605,7 +1548,7 @@ STEP = steps.Step(
     MODULE,
     "Check sales",
     CleanReceipt,
-    key=lambda project, pdir: settings_key(_settings(pdir), project, pdir),
+    key=lambda project, pdir: settings_key(steps.read_settings(pdir), project, pdir),
     after=assemble.STEP,
     again="Check sales again first: something changed since it ran.",
 )
