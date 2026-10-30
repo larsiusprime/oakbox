@@ -16794,8 +16794,9 @@
       "enum": [
        "big_five",
        "building",
+       "land",
        "location",
-       "public",
+       "other",
        "category"
       ],
       "title": "Kind"

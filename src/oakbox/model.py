@@ -48,20 +48,18 @@ TREES = {"lightgbm", "xgboost", "catboost"}
 LINEAR = {"mra", "multi_mra", "gwr"}
 LOGGED = {"mra", "multi_mra"}
 
-BUILDING = [
-    "bldg_units",
-    "bldg_stories",
-    "bldg_rooms_bed",
-    "bldg_rooms_bath",
-    "bldg_rooms_bath_full",
-    "bldg_rooms_bath_half",
-]
 LOCATION = ["latitude_norm", "longitude_norm", "polar_radius", "polar_angle"]
-CENSUS = ["median_income", "total_population", "median_g_rent", "median_c_rent"]
+# Never offered: identifiers and the roll's own values, sale fields, raw coordinates (the normalized ones are), land
+# area as given or measured (land area is), years (ages are), Check sales' groups of similar parcels (he_id), and
+# distances (each feature's proximity is: it rises near the feature and is 0 beyond the distance that matters).
+NEVER = ("key", "assr_", "sale_", "model_group", "latitude", "longitude", "deed_", "within_", "dist_to_")
+NEVER_ENDS = ("_in_acres", "_gis_sqft", "_gis_sqm", "_given_sqft", "_given_sqm", "_year_built", "_date", "he_id")
+NEVER_HAS = ("_delta",)
+KEEP = {"latitude_norm", "longitude_norm", "dist_to_cbd"}
 # Names for fields the data dictionary doesn't name.
 NAMES = {"polar_radius": "Distance from the centre", "polar_angle": "Direction from the centre"}
 
-Kind = Literal["big_five", "building", "location", "public", "category"]
+Kind = Literal["big_five", "building", "land", "location", "other", "category"]
 
 
 class ModelState(BaseModel):
@@ -91,20 +89,48 @@ def _universe_path(project_dir: Path) -> Path:
     return project_dir / "out" / "look" / "2-clean-universe.parquet"
 
 
-def _candidates(columns: list[str], units: str | None, locations: list[str]) -> list[tuple[str, Kind]]:
+def _offered(field: str) -> bool:
+    if field in KEEP:
+        return True
+    return not (field.startswith(NEVER) or field.endswith(NEVER_ENDS) or any(x in field for x in NEVER_HAS))
+
+
+def _candidates(settings: dict, columns: list[str], units: str | None) -> list[tuple[str, Kind, bool]]:
+    """(field, kind, numeric) for every field OpenAVMKit classifies as land, building or other (the data dictionary's,
+    the user's own fields, map layers', public data's), the big five first, categories last."""
+    import pandas as pd
+    from openavmkit.utilities.settings import get_fields_impr, get_fields_land, get_fields_other
+
+    df = pd.DataFrame(columns=pd.Index(columns))
     u = "sqft" if units == "imperial" else "sqm"
-    e = "ft" if units == "imperial" else "m"
     age = "bldg_effective_age_years" if "bldg_effective_age_years" in columns else "bldg_age_years"
     big = [f"bldg_area_finished_{u}", f"land_area_{u}", age, "bldg_quality_num", "bldg_condition_num"]
-    public = [f"elevation_mean_{e}", "slope_mean_deg", *sorted(c for c in columns if c.startswith("dist_to_")), *CENSUS]
-    kinds: list[tuple[list[str], Kind]] = [
-        (big, "big_five"),
-        (BUILDING, "building"),
-        (LOCATION, "location"),
-        (public, "public"),
-        (locations, "category"),
+    big_five: Kind = "big_five"
+    out: list[tuple[str, Kind, bool]] = [(f, big_five, True) for f in big if f in columns]
+    seen = {f for f, _, _ in out}
+    cats: list[str] = []
+    buckets: list[tuple[dict, Kind]] = [
+        (get_fields_impr(settings, df), "building"),
+        (get_fields_land(settings, df), "land"),
+        (get_fields_other(settings, df), "other"),
     ]
-    return [(f, kind) for fields, kind in kinds for f in fields if f in columns]
+    for fields, kind in buckets:
+        for f in sorted({*fields.get("numeric", []), *fields.get("boolean", [])}):
+            if f in seen or not _offered(f):
+                continue
+            seen.add(f)
+            k: Kind = "location" if f in LOCATION else kind
+            out.append((f, k, True))
+        cats += [f for f in sorted(fields.get("categorical", [])) if f not in seen and _offered(f)]
+    location: Kind = "location"
+    for f in LOCATION:
+        if f in columns and f not in seen:
+            seen.add(f)
+            out.append((f, location, True))
+    category: Kind = "category"
+    out.extend((f, category, False) for f in dict.fromkeys(cats) if f not in seen)
+    order = ["big_five", "building", "land", "location", "other", "category"]
+    return sorted(out, key=lambda x: order.index(x[1]))
 
 
 def _counts(universe, sale_keys) -> tuple[dict[str, int], dict[str, int]]:
@@ -135,23 +161,30 @@ def big_five_missing(columns: list[str], units: str | None) -> list[str]:
 
 
 @lru_cache(maxsize=8)
-def _scan(path: str, mtime: float, units: str | None) -> tuple[tuple[str, str, bool, int, int], ...]:
-    """(field, kind, numeric, parcels with a value, blanks) for each candidate in the prepared universe."""
+def _scan(
+    path: str, mtime: float, settings_mtime: float, units: str | None
+) -> tuple[tuple[str, str, bool, int, int], ...]:
+    """(field, kind, numeric, parcels with a value, blanks) for each candidate in the prepared universe. A category
+    with one value, or nearly one per parcel (an ID, an address), isn't offered."""
     import pandas as pd
     import pyarrow.parquet as pq
 
     columns = pq.ParquetFile(path).schema_arrow.names
-    project_dir = Path(path).parents[2]
-    # Only the column names matter to which location fields there are.
-    locations = clean._locations(project_dir, pd.DataFrame(columns=columns))
-    found = _candidates(columns, units, locations)
-    df = pd.read_parquet(path, columns=[f for f, _ in found])
+    settings = clean._engine_settings(Path(path).parents[2])
+    found = _candidates(settings, columns, units)
+    df = pd.read_parquet(path, columns=[f for f, _, _ in found])
     out = []
-    for f, kind in found:
+    for f, kind, numeric in found:
         s = df[f]
-        numeric = kind != "category" and pd.api.types.is_numeric_dtype(s) and not pd.api.types.is_bool_dtype(s)
         blanks = int(s.isna().sum())
-        out.append((f, kind if numeric or kind == "category" else "category", numeric, len(s) - blanks, blanks))
+        if not numeric or not (pd.api.types.is_numeric_dtype(s) or pd.api.types.is_bool_dtype(s)):
+            distinct = s.nunique(dropna=True)
+            if distinct <= 1 or (distinct > len(s) / 2 and distinct > 50):
+                continue
+            kind, numeric = "category", False
+        elif s.nunique(dropna=True) <= 1:
+            continue  # the same everywhere: nothing to learn
+        out.append((f, kind, numeric, len(s) - blanks, blanks))
     return tuple(out)
 
 
@@ -162,7 +195,9 @@ def variables(project, project_dir: Path) -> list[Variable]:
     names = clean._names() | NAMES
     chosen = project.model.variables
     out = []
-    for f, kind, numeric, parcels, blanks in _scan(str(path), path.stat().st_mtime, project.units):
+    settings_path = project_dir / "in" / "settings.json"
+    stamp = settings_path.stat().st_mtime if settings_path.is_file() else 0.0
+    for f, kind, numeric, parcels, blanks in _scan(str(path), path.stat().st_mtime, stamp, project.units):
         out.append(
             Variable(
                 field=f,
@@ -172,7 +207,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
                 parcels=parcels,
                 blanks=blanks,
                 chosen=chosen is None or f in chosen,
-                trees_only=not numeric or blanks > 0,
+                trees_only=blanks > 0,
             )
         )
     return out

@@ -6965,7 +6965,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "big_five" | "building" | "location" | "public" | "category";
+            kind: "big_five" | "building" | "land" | "location" | "other" | "category";
             /** Numeric */
             numeric: boolean;
             /**

@@ -2180,20 +2180,21 @@ export const t = {
     // The models (F9): which variables, which models, a try, and how they did.
     model: {
       variablesLede:
-        "What the models learn from: every variable found is ticked. Trees use them all; linear models (MRA) only the numbers with no blanks, and OpenAVMKit drops the weak ones per model group by its own tests.",
+        "What the models learn from: every field OpenAVMKit classifies as land, building or other (your own fields too), ticked. Distances aren't offered: each feature's proximity is. Trees use them all; linear models (MRA) only those with no blanks.",
       kinds: {
         big_five: "The big five",
         building: "Building",
+        land: "Land and its surroundings",
         location: "Location",
-        public: "Public data",
-        category: "Location categories",
+        other: "Other",
+        category: "Categories",
       } as Record<string, string>,
       variable: "Variable",
       has: "Has it",
       blanks: "Blanks",
       usedBy: "Used by",
       usedByWhy:
-        "Linear models (MRA, multi-MRA, GWR) can't take a blank, or a category: they leave such a variable out. Trees (LightGBM, XGBoost, CatBoost) take both.",
+        "Linear models (MRA, multi-MRA, GWR) can't take a blank: they leave such a variable out. Trees (LightGBM, XGBoost, CatBoost) take blanks.",
       allModels: "every model",
       treesOnly: "trees only",
       fillIt: "Fill it…",

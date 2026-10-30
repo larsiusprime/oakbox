@@ -25,7 +25,9 @@ def _project(units="imperial"):
 @pytest.fixture
 def prepared(tmp_path):
     (tmp_path / "in").mkdir()
-    (tmp_path / "in" / "settings.json").write_text(json.dumps({}), encoding="utf-8")
+    # The user's own field, as OAK box writes it: a number, in OpenAVMKit's improvement fields.
+    own = {"field_classification": {"impr": {"numeric": ["bath_half"]}}}
+    (tmp_path / "in" / "settings.json").write_text(json.dumps(own), encoding="utf-8")
     look = tmp_path / "out" / "look"
     look.mkdir(parents=True)
     pd.DataFrame(
@@ -37,8 +39,12 @@ def prepared(tmp_path):
             "bldg_age_years": [30.0, 20.0, 50.0],
             "latitude_norm": [0.1, 0.5, 0.9],
             "slope_mean_deg": [1.0, None, 2.0],  # a blank left: trees only
-            "dist_to_park": [100.0, 200.0, 300.0],
-            "neighborhood": ["a", "b", "a"],  # not a location OpenAVMKit knows of here: left out
+            "dist_to_park": [100.0, 200.0, 300.0],  # a distance: its proximity is offered instead
+            "proximity_to_park": [0.9, 0.5, 0.0],
+            "bath_half": [0, 1, 1],
+            "assr_market_value": [100.0, 200.0, 300.0],  # the roll's: never a variable
+            "land_class": ["A", "B", "A"],  # a category
+            "deed_book": ["1", "2", "3"],  # a deed: never a variable
         }
     ).to_parquet(look / "2-clean-universe.parquet")
     return tmp_path
@@ -50,10 +56,13 @@ def test_the_variables_found(prepared):
         "bldg_area_finished_sqft",
         "land_area_sqft",
         "bldg_age_years",
-        "latitude_norm",
+        "bath_half",
+        "proximity_to_park",
         "slope_mean_deg",
-        "dist_to_park",
+        "latitude_norm",
+        "land_class",
     ]
+    assert vs["land_class"].kind == "category" and not vs["land_class"].numeric
     assert vs["bldg_area_finished_sqft"].kind == "big_five" and not vs["bldg_area_finished_sqft"].trees_only
     assert vs["slope_mean_deg"].blanks == 1 and vs["slope_mean_deg"].trees_only
     assert model.big_five_missing(list(vs), "imperial") == ["quality", "condition"]
