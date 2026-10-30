@@ -344,8 +344,8 @@ const MODEL: Column<Fig> = {
 const IAAO_COLUMNS = [
   MODEL,
   fig("utility_score", h.col.utility, h.tip.utility),
-  fig("count_sales", h.col.sales, h.tip.sales),
   fig("count_univ", h.col.parcels, h.tip.parcels),
+  fig("count_sales", h.col.sales, h.tip.sales),
   fig("median_ratio", h.col.median, h.tip.median),
   fig("cod", h.col.cod, h.tip.cod),
   fig("prd", h.col.prd, h.tip.prd),
@@ -358,8 +358,8 @@ const IAAO_COLUMNS = [
 const IAAO_TRIMMED = [
   MODEL,
   blank("utility_score"),
-  fig("count_sales", h.col.sales, h.tip.salesTrimmed, "count_trim"),
   blank("count_univ"),
+  fig("count_sales", h.col.sales, h.tip.salesTrimmed, "count_trim"),
   fig("median_ratio", h.col.median, h.tip.median, "median_ratio_trim"),
   fig("cod", h.col.cod, h.tip.cod, "cod_trim"),
   fig("prd", h.col.prd, h.tip.prd, "prd_trim"),
