@@ -26,7 +26,7 @@ export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }
     <div className="cs-step">
       {v.missing.length > 0 && <p className="wiz-warn">{m.missing(v.missing)}</p>}
       <ColumnsNote v={v} />
-      <table className="bi-tbl cs-tbl md-vars">
+      <table className="tbl md-vars">
         <thead>
           <tr>
             <th>{m.variable}</th>
@@ -199,7 +199,7 @@ export function ModelsCard({ v, set }: CardProps) {
       {v.groups.length > 0 && (
         <>
           <h3 className="wiz-group">{m.groupsTitle}</h3>
-          <table className="bi-tbl cs-tbl">
+          <table className="tbl">
             <thead>
               <tr>
                 <th>{m.group}</th>

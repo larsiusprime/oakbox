@@ -222,7 +222,7 @@ function DupesDialog({
           )}
           {hasRepeats && examples.data && (
             <div className="wiz-dupes-table">
-              <table className="wiz-table">
+              <table className="tbl wiz-table">
                 <thead>
                   <tr>
                     {examples.data.columns.map((c) => (

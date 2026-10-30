@@ -114,7 +114,7 @@ export function DataTable<R>({
 
   return (
     <div className="dt-wrap">
-      <table className="bi-tbl cs-tbl dt">
+      <table className="tbl dt">
         {caption && <caption className="dt-caption">{caption}</caption>}
         <colgroup>
           {columns.map((c) => {

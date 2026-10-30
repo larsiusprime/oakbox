@@ -40,6 +40,16 @@
   --warn: #8a4b00;
   --bad: #a3231b;
   --active: #1f4b8e;
+  /* The background and edge of a box, a pill or a row that says ok, warn, bad or info; a selected or hovered row. */
+  --ok-tint: #e7f5ec;
+  --ok-edge: #a6d8b8;
+  --warn-tint: #fff4e0;
+  --warn-edge: #f0c78a;
+  --bad-tint: #fde8e8;
+  --bad-edge: #f3b4b4;
+  --info-tint: #eef3fb;
+  --info-edge: #b9cdee;
+  --select: #dce9fd;
 
   --radius: 4px;
   --btn-radius: 4px;
@@ -78,6 +88,15 @@
   --rule: #000000;
   --cell-line: #000000;
   --zebra: #ffffff;
+  --ok-tint: #ffffff;
+  --ok-edge: #000000;
+  --warn-tint: #ffffff;
+  --warn-edge: #000000;
+  --bad-tint: #ffffff;
+  --bad-edge: #000000;
+  --info-tint: #ffffff;
+  --info-edge: #000000;
+  --select: #ffe97a;
 }
 
 * {
@@ -224,7 +243,7 @@ a {
 }
 
 .plate:focus-visible {
-  outline: 3px solid #fff3dc;
+  outline: 3px solid var(--warn-tint);
   outline-offset: 3px;
 }
 
@@ -452,7 +471,7 @@ a.row-title:hover {
 
 .button[data-disabled] {
   cursor: default;
-  color: #8a8c8f;
+  color: var(--muted);
   background: #ececea;
   border-color: #b9bbbe;
   box-shadow: inset 1px 1px 0 #ffffff;
@@ -777,7 +796,7 @@ a.row-title:hover {
   min-height: var(--ctl-h);
   padding: 0 0.4rem;
   color: var(--text);
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--well-edge);
   border-radius: 2px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
@@ -804,7 +823,7 @@ a.row-title:hover {
   min-height: var(--ctl-h);
   padding: 2px 2px 2px 0.5rem;
   color: var(--text);
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--well-edge);
   border-radius: 2px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
@@ -903,7 +922,7 @@ a.row-title:hover {
   height: 0.95rem;
   display: grid;
   place-items: center;
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--well-edge);
   border-radius: 3px;
   box-shadow: none;
@@ -1191,7 +1210,6 @@ a.row-title:hover {
 /* Fixed column widths, so nothing shifts when a row switches to renaming. */
 .file-table {
   width: 100%;
-  border-collapse: collapse;
   table-layout: fixed;
   border: 1px solid var(--panel-edge);
 }
@@ -1220,19 +1238,19 @@ a.row-title:hover {
   text-align: left;
   font-size: 0.85rem;
   font-weight: 400;
-  color: #222222;
+  color: var(--text);
   padding: 0.15rem 0.45rem;
   background: linear-gradient(#fefefe, #e4e4e4);
-  border-right: 1px solid #d0d0d0;
-  border-bottom: 1px solid #b5b5b5;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--panel-edge);
 }
 
 .file-table td {
   padding: var(--cell-y) 0.45rem;
-  border-top: 1px solid #e6e6e6;
+  border-top: 1px solid var(--cell-line);
   vertical-align: middle;
   white-space: nowrap;
-  border-right: 1px solid #ececec;
+  border-right: 1px solid var(--cell-line);
 }
 
 .file-table tr.rename-error td {
@@ -1246,11 +1264,11 @@ a.row-title:hover {
 }
 
 .file-table tbody tr:nth-child(even) td {
-  background: #edf3fe;
+  background: var(--info-tint);
 }
 
 .file-table tbody tr:hover td {
-  background: #dce9fd;
+  background: var(--select);
 }
 
 .file-table .num {
@@ -1389,7 +1407,6 @@ a.row-title:hover {
 
 .field-table {
   width: 100%;
-  border-collapse: collapse;
   table-layout: fixed;
   border: 1px solid var(--panel-edge);
 }
@@ -1422,19 +1439,19 @@ a.row-title:hover {
   text-align: left;
   font-size: 0.85rem;
   font-weight: 400;
-  color: #222222;
+  color: var(--text);
   padding: 0.15rem 0.45rem;
   background: linear-gradient(#fefefe, #e4e4e4);
-  border-right: 1px solid #d0d0d0;
-  border-bottom: 1px solid #b5b5b5;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--panel-edge);
 }
 
 /* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
 .field-table td {
   padding: var(--cell-y) 0.45rem;
-  border-top: 1px solid #e6e6e6;
+  border-top: 1px solid var(--cell-line);
   vertical-align: middle;
-  border-right: 1px solid #ececec;
+  border-right: 1px solid var(--cell-line);
 }
 
 .field-table tbody tr.field-problem td {
@@ -1552,11 +1569,11 @@ a.row-title:hover {
 }
 
 .field-table tbody tr:nth-child(even) td {
-  background: #edf3fe;
+  background: var(--info-tint);
 }
 
 .field-table tbody tr:hover td {
-  background: #dce9fd;
+  background: var(--select);
 }
 
 .add-file {
@@ -1594,15 +1611,41 @@ a.row-title:hover {
   gap: 0.35rem;
 }
 
+/* The one pill: a short word or mark in a rounded box, grey unless it says ok, warn, bad or info (and never by
+ * colour alone: it says so in its mark or word). */
 .pill {
-  font-size: 0.8rem;
-  line-height: 1.4;
-  padding: 0 0.55rem;
-  border: 1px solid var(--panel-edge);
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  background: var(--panel);
+  background: var(--zebra);
   color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
   white-space: nowrap;
+}
+.pill + .pill {
+  margin-left: 0.25rem;
+}
+.pill-ok {
+  background: var(--ok-tint);
+  border-color: var(--ok-edge);
+  color: var(--ok);
+}
+.pill-warn {
+  background: var(--warn-tint);
+  border-color: var(--warn-edge);
+  color: var(--warn);
+}
+.pill-bad {
+  background: var(--bad-tint);
+  border-color: var(--bad-edge);
+  color: var(--bad);
+}
+.pill-info {
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+  color: var(--link);
 }
 
 .path-box {
@@ -1737,7 +1780,7 @@ a.row-title:hover {
   width: 100%;
   padding: 0.16rem 0.75rem 0.16rem 0.6rem;
   font: inherit;
-  color: #34383c;
+  color: var(--text);
   text-align: left;
   background: none;
   border: 0;
@@ -1747,7 +1790,7 @@ a.row-title:hover {
 .wiz-step .n {
   width: 1.1rem;
   text-align: right;
-  color: #767b80;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1917,33 +1960,6 @@ a.row-title:hover {
   flex: 1;
 }
 
-.wiz-table {
-  border-collapse: collapse;
-  font-size: 0.92rem;
-}
-
-.wiz-table th {
-  padding: 0.15rem 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 400;
-  text-align: left;
-  color: #222222;
-  background: linear-gradient(#fefefe, #e4e4e4);
-  border: 1px solid #bcbcbc;
-}
-
-/* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
-.wiz-table td {
-  padding: 0.12rem 0.5rem;
-  vertical-align: middle;
-  border: 1px solid #e1e1e1;
-}
-
-.wiz-table td.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .wiz-table .choice {
   min-width: 0;
 }
@@ -1969,7 +1985,7 @@ a.row-title:hover {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-top: 1px solid #eeeeee;
+  border-top: 1px solid var(--cell-line);
 }
 
 .wiz-popover {
@@ -1992,7 +2008,7 @@ a.row-title:hover {
 }
 
 .wiz-item[data-disabled] {
-  color: #9a9ea3;
+  color: var(--muted);
   cursor: default;
 }
 
@@ -2005,19 +2021,18 @@ a.row-title:hover {
   width: 100%;
   max-width: 40rem;
   font-size: 0.92rem;
-  border-collapse: collapse;
 }
 
 .wiz-review-head th {
   padding: 0.45rem 0.4rem 0.15rem;
   text-align: left;
-  border-bottom: 1px solid #d0d0d0;
+  border-bottom: 1px solid var(--rule);
 }
 
 /* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
 .wiz-review td {
   padding: 0.1rem 0.4rem;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--cell-line);
 }
 
 .wiz-warn-title {
@@ -2069,12 +2084,12 @@ a.row-title:hover {
 .wiz-rule {
   margin: 0.8rem 0;
   border: 0;
-  border-top: 1px solid #e1e1e1;
+  border-top: 1px solid var(--cell-line);
 }
 
 .wiz-elsewhere {
   font-style: italic;
-  border-top: 1px solid #eeeeee;
+  border-top: 1px solid var(--cell-line);
 }
 
 .wiz-modal {
@@ -2175,8 +2190,8 @@ a.row-title:hover {
   display: grid;
   gap: 0.35rem;
   padding: 0.5rem 0.7rem;
-  background: #eef4fc;
-  border: 1px solid #b9cde9;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
   border-left: 4px solid var(--link);
 }
 
@@ -2323,8 +2338,8 @@ a.row-title:hover {
   align-items: center;
   padding: 0.2rem 0.45rem;
   font-size: 0.9rem;
-  background: #eef3fb;
-  border: 1px solid #c9d8ee;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
   border-radius: var(--radius);
 }
 
@@ -2381,7 +2396,6 @@ a.row-title:hover {
   width: 100%;
   font-family: var(--mono);
   font-size: 0.82rem;
-  border-collapse: collapse;
 }
 
 .rc-th {
@@ -2397,7 +2411,7 @@ a.row-title:hover {
 .rc-td {
   padding: 0.12rem 0.3rem;
   white-space: nowrap;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--cell-line);
 }
 
 .rc-arrow,
@@ -2572,7 +2586,7 @@ a.row-title:hover {
   row-gap: var(--space-2, 0.5rem);
 }
 .nm-warn {
-  color: var(--warn, #8a5300);
+  color: var(--warn, var(--warn));
 }
 .nm-raw {
   white-space: pre;
@@ -2586,34 +2600,6 @@ a.row-title:hover {
 /* F3d: quality and condition */
 .qc {
   width: min(100%, 62rem);
-}
-.qc-tbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.86rem;
-}
-.qc-tbl th {
-  text-align: left;
-  font-weight: 600;
-  color: var(--muted);
-  font-size: 0.78rem;
-  border-bottom: 1px solid var(--rule);
-  padding: 0.2rem 0.35rem;
-}
-.qc-tbl :where(td) {
-  padding: 0.22rem 0.35rem;
-  border-bottom: 1px solid #eee;
-  vertical-align: middle;
-}
-.qc-tbl :where(.mono) {
-  font-family: var(--mono);
-  font-size: 0.82rem;
-}
-.qc-tbl tr.on :where(td) {
-  background: #eef3fb;
-}
-.qc-tbl tr.qc-bad :where(td) {
-  background: #fff4e5;
 }
 .qc-num {
   width: 3.6rem;
@@ -2642,7 +2628,7 @@ a.row-title:hover {
   cursor: default;
 }
 .qc-flag {
-  color: var(--warn, #8a5300);
+  color: var(--warn, var(--warn));
   font-size: 0.8rem;
 }
 .qc-radio {
@@ -2668,12 +2654,12 @@ a.row-title:hover {
 }
 .qc-radio li.on .qc-pick {
   border-color: #7fa3d9;
-  background: #eef3fb;
+  background: var(--info-tint);
 }
 .qc-radio .dot {
   width: 0.8rem;
   height: 0.8rem;
-  border: 1px solid #777;
+  border: 1px solid var(--panel-edge);
   border-radius: 50%;
   display: inline-block;
   position: relative;
@@ -2682,7 +2668,7 @@ a.row-title:hover {
 }
 .qc-radio li.on .dot {
   background: radial-gradient(#1d5bb8 45%, #fff 50%);
-  border-color: #1d5bb8;
+  border-color: var(--link);
 }
 .qc-radio small {
   color: var(--muted);
@@ -2699,23 +2685,6 @@ a.row-title:hover {
   align-items: center;
   flex-wrap: wrap;
 }
-.qc-pill {
-  font-size: 0.78rem;
-  padding: 0.05rem 0.45rem;
-  border-radius: 999px;
-  background: #e7f2e7;
-  color: var(--ok);
-  white-space: nowrap;
-}
-.qc-pill.dim {
-  background: #eee;
-  color: var(--muted);
-}
-.qc-pill.warn {
-  background: #fff1dc;
-  color: #8a5300;
-}
-
 /* Step 1, Bring in data */
 .bi {
   display: grid;
@@ -2738,8 +2707,8 @@ a.row-title:hover {
   max-width: 52rem;
 }
 .bi-warn {
-  border: 1px solid #f0c78a;
-  background: #fff7ea;
+  border: 1px solid var(--warn-edge);
+  background: var(--warn-tint);
   border-radius: var(--radius);
   padding: 0.5rem 0.7rem;
 }
@@ -2749,7 +2718,7 @@ a.row-title:hover {
   padding: 0.6rem 0.8rem;
   display: grid;
   gap: 0.5rem;
-  background: #fff;
+  background: var(--panel);
 }
 .bi-card h3 {
   margin: 0;
@@ -2776,7 +2745,7 @@ a.row-title:hover {
 .bi-prog i {
   display: block;
   height: 100%;
-  background: #1d5bb8;
+  background: var(--link);
   transition: width 0.4s;
 }
 .bi-steps {
@@ -2849,28 +2818,36 @@ a.row-title:hover {
   color: var(--muted);
   font-size: 0.82rem;
 }
-.bi-tbl {
+/* The table every table of results is (and the lines and grey rows of :where(table) below): full width, its head
+ * quiet, its cells padded alike. A table's own class only adds what's its own. */
+.tbl {
   width: 100%;
-  border-collapse: collapse;
   font-size: 0.86rem;
 }
-.bi-tbl th {
+.tbl th {
   font-weight: 600;
   color: var(--muted);
   font-size: 0.78rem;
   border-bottom: 1px solid var(--rule);
-  padding: 0.2rem 0.35rem;
+  padding: var(--cell-y) 0.35rem;
 }
-.bi .bi-tbl tr :where(td) {
-  padding: 0.22rem 0.35rem;
-  border-bottom: 1px solid #eee;
+.tbl tr :where(td) {
+  padding: var(--cell-y) 0.35rem;
+  border-bottom: 1px solid var(--cell-line);
   vertical-align: middle;
 }
-.bi .bi-tbl tr.bi-grp :where(td) {
+/* A row chosen (on), or one to look at (Quality and condition). */
+.tbl tr.on :where(td) {
+  background: var(--info-tint);
+}
+.tbl tr.qc-bad :where(td) {
+  background: var(--warn-tint);
+}
+.tbl tr.bi-grp :where(td) {
   font-weight: 600;
   color: var(--muted);
   font-size: 0.78rem;
-  background: #f6f6f6;
+  background: var(--zebra);
 }
 .bi-has {
   white-space: nowrap;
@@ -2945,7 +2922,7 @@ a.row-title:hover {
 .bi-data th {
   position: sticky;
   top: 0;
-  background: #fff;
+  background: var(--panel);
 }
 .bi-cell {
   padding: 0.15rem 0.6rem;
@@ -2985,7 +2962,7 @@ a.row-title:hover {
 }
 .mg-start-card[data-hovered] {
   border-color: var(--focus);
-  background: #f3f7fd;
+  background: var(--info-tint);
 }
 .mg-start-card[data-disabled] {
   cursor: default;
@@ -3038,8 +3015,8 @@ a.row-title:hover {
   list-style: none;
 }
 .mg-item.sel {
-  background: #eaf1fc;
-  border-color: #b9cdee;
+  background: var(--info-tint);
+  border-color: var(--info-edge);
 }
 .mg-item-main {
   flex: 1;
@@ -3093,12 +3070,12 @@ a.row-title:hover {
   border-radius: 3px;
 }
 .mg-delta.up {
-  color: #1d6b43;
-  background: #e3f3ea;
+  color: var(--ok);
+  background: var(--ok-tint);
 }
 .mg-delta.dn {
-  color: #9b2a20;
-  background: #fbe8e6;
+  color: var(--bad);
+  background: var(--bad-tint);
 }
 .mg-order {
   display: grid;
@@ -3258,8 +3235,8 @@ a.row-title:hover {
   gap: 0.25rem;
   padding: 0.45rem 0.65rem;
   font-size: 0.88rem;
-  background: #f3f7fd;
-  border: 1px solid #b9cdee;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
   border-radius: var(--radius);
 }
 .mg-live-t {
@@ -3326,7 +3303,7 @@ ul.mg-checks {
 }
 .seg-b.on {
   font-weight: 600;
-  background: #dfe9f8;
+  background: var(--select);
 }
 .seg-b[data-disabled] {
   color: var(--muted);
@@ -3375,7 +3352,7 @@ ul.mg-checks {
   height: 0.8rem;
   margin-right: 0.3rem;
   vertical-align: -1px;
-  background: #ffffff;
+  background: var(--panel);
   border: 2px solid;
   border-radius: 2px;
 }
@@ -3408,7 +3385,7 @@ ul.mg-checks {
   overflow-y: auto;
   font-size: 0.85rem;
   background: var(--panel);
-  border: 1px solid #999;
+  border: 1px solid var(--panel-edge);
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
 }
@@ -3423,19 +3400,18 @@ ul.mg-checks {
 }
 .mg-tag {
   padding: 0 0.35rem;
-  color: #111;
+  color: var(--text);
   font-size: 0.75rem;
   border-radius: 3px;
 }
 .mg-pop-tbl {
   width: 100%;
-  border-collapse: collapse;
 }
 .mg-pop-k,
 .mg-pop-v {
   padding: 0.08rem 0.25rem;
   vertical-align: top;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--cell-line);
 }
 .mg-pop-k {
   width: 42%;
@@ -3596,7 +3572,6 @@ ul.mg-checks {
 }
 .vals-tbl {
   width: 100%;
-  border-collapse: collapse;
   font-size: 0.85rem;
 }
 .vals-th {
@@ -3611,7 +3586,7 @@ ul.mg-checks {
 }
 .vals-td {
   padding: 0.1rem 0.3rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--cell-line);
 }
 .vals-v {
   overflow-wrap: anywhere;
@@ -3629,13 +3604,12 @@ ul.mg-checks {
   bottom: 0.25rem;
   left: 0;
   z-index: -1;
-  background: #dfe9f8;
+  background: var(--select);
   border-radius: 2px;
 }
 
 /* Your own fields (Land use & building type): one table, the add row last. */
 .cf-tbl {
-  border-collapse: collapse;
   font-size: 0.9rem;
 }
 .cf-th {
@@ -3649,7 +3623,7 @@ ul.mg-checks {
 .cf-td {
   padding: 0.25rem 0.5rem 0.25rem 0;
   vertical-align: middle;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cell-line);
 }
 .cf-add-td {
   padding-top: 0.5rem;
@@ -3741,7 +3715,7 @@ ul.mg-checks {
 }
 .ly-kind[data-hovered],
 .ly-add[data-hovered] {
-  background: #eaf1fc;
+  background: var(--info-tint);
 }
 .ly-x {
   display: inline-flex;
@@ -3863,7 +3837,7 @@ ul.mg-checks {
   font: inherit;
   color: var(--text);
   text-align: left;
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--well-edge);
   border-radius: var(--radius);
   box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.08);
@@ -3878,13 +3852,6 @@ ul.mg-checks {
 }
 .mp-placeholder {
   color: var(--muted);
-}
-.mp-count {
-  padding: 0 0.35rem;
-  color: var(--link);
-  font-size: 0.75rem;
-  background: #eaf1fc;
-  border-radius: 999px;
 }
 .mp-popover {
   width: 22rem;
@@ -3933,8 +3900,8 @@ ul.mg-checks {
   align-items: center;
   padding: 0.45rem 0.6rem;
   font-size: 0.9rem;
-  background: #fff7ea;
-  border: 1px solid #f0c78a;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
   border-radius: var(--radius);
 }
 /* ---------- Condo units: one decision per part, each choice a card (F3d condos) ---------- */
@@ -3952,8 +3919,8 @@ ul.mg-checks {
 .cu-ev {
   padding: 0.5rem 0.7rem;
   font-size: 0.88rem;
-  background: #f3f7fd;
-  border: 1px solid #b9cdee;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
   border-radius: var(--radius);
 }
 .cu-ev p {
@@ -3971,7 +3938,7 @@ ul.mg-checks {
   align-items: flex-start;
   gap: 0.55rem;
   padding: 0.5rem 0.7rem;
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -3979,7 +3946,7 @@ ul.mg-checks {
   margin-top: 0.2rem;
 }
 .radio.cu-choice[data-selected] {
-  background: #f3f7fd;
+  background: var(--info-tint);
   border-color: var(--primary-edge);
 }
 .cu-text {
@@ -4001,8 +3968,8 @@ ul.mg-checks {
   margin: 0;
   padding: 0.45rem 0.7rem;
   font-size: 0.88rem;
-  background: #fff8e8;
-  border: 1px solid #f0d9a8;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
   border-radius: var(--radius);
 }
 .cu-ex {
@@ -4072,8 +4039,8 @@ ul.mg-checks {
   margin: 0;
   padding: 0.5rem 0.7rem;
   font-size: 0.88rem;
-  background: #f3f7fd;
-  border: 1px solid #b9cdee;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
   border-radius: var(--radius);
 }
 .en-card {
@@ -4166,7 +4133,6 @@ ul.mg-checks {
 /* F3g Permits: what each kind of permit means. */
 .pm-tbl {
   margin: 0.4rem 0 0.6rem;
-  border-collapse: collapse;
   font-size: 0.9rem;
 }
 .pm-head {
@@ -4179,7 +4145,7 @@ ul.mg-checks {
 }
 .pm-cell {
   padding: 0.15rem 0.8rem 0.15rem 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cell-line);
 }
 .pm-n {
   text-align: right;
@@ -4200,8 +4166,8 @@ ul.mg-checks {
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
   color: var(--text);
-  background: #fff8e8;
-  border: 1px solid #f0d9a8;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
   border-radius: var(--radius);
 }
 .wiz-missing p {
@@ -4226,8 +4192,8 @@ ul.mg-checks {
   margin: 0.2rem 0 0.5rem;
   padding: 0.4rem 0.6rem;
   font-size: 0.88rem;
-  background: #fff8e8;
-  border: 1px solid #f0d9a8;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
   border-radius: var(--radius);
 }
 .un-offer-list {
@@ -4239,11 +4205,11 @@ ul.mg-checks {
 /* Repeated IDs: the rows of one ID share a background, and IDs alternate (sorted by the ID). */
 /* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.band-a > td {
-  background: #ffffff;
+  background: var(--panel);
 }
 /* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.band-b > td {
-  background: #eeeeee;
+  background: var(--zebra);
 }
 /* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.bi-kept > td {
@@ -4281,7 +4247,7 @@ tr.bi-kept > td {
   width: 0.55rem;
   height: 0.55rem;
   margin: 0 0.45rem 0.08rem 0.1rem;
-  background: #1d5bb8;
+  background: var(--link);
   border-radius: 50%;
   animation: bi-pulse 1.2s ease-in-out infinite;
 }
@@ -4311,7 +4277,7 @@ tr.bi-kept > td {
   fill: #7a9fd6;
 }
 .fd-hist rect:hover {
-  fill: #1d5bb8;
+  fill: var(--link);
 }
 .fd-axis {
   display: flex;
@@ -4320,11 +4286,6 @@ tr.bi-kept > td {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
-/* Value lists: every other row grey, to read across to the count. */
-.vals-tbl tbody tr:nth-child(even) > td {
-  background: #f4f4f4;
-}
-
 /* Step 3, Check sales (SPEC F6) */
 .cs-card {
   min-width: 0;
@@ -4388,22 +4349,14 @@ tr.bi-kept > td {
 .cs-bar i.out {
   background: #d9dde3;
 }
-.cs-tbl {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 0.86rem;
-}
 .cs-n {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.bi .cs-tbl tbody tr:nth-child(even) :where(td) {
-  background: #f6f6f6;
+.tbl tbody tr.cs-self :where(td) {
+  background: var(--bad-tint);
 }
-.bi .cs-tbl tbody tr.cs-self :where(td) {
-  background: #fdeaea;
-}
-.bi .cs-tbl tbody tr.cs-muted :where(td) {
+.tbl tbody tr.cs-muted :where(td) {
   color: var(--muted);
 }
 .cs-checks {
@@ -4429,7 +4382,7 @@ tr.bi-kept > td {
   gap: 0.3rem 0.8rem;
   align-items: baseline;
   border: 1px solid var(--rule);
-  background: #f3f8f4;
+  background: var(--ok-tint);
   border-radius: var(--radius);
   padding: 0.5rem 0.7rem;
   box-sizing: border-box;
@@ -4473,7 +4426,7 @@ tr.bi-kept > td {
 }
 .cs-chart {
   margin: 0;
-  border: 1px solid #e3e3e3;
+  border: 1px solid var(--cell-line);
   border-radius: var(--radius);
   padding: 0.35rem 0.5rem;
   font-size: 0.8rem;
@@ -4519,7 +4472,7 @@ tr.bi-kept > td {
   padding: 0;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--panel);
   max-height: 70vh;
   overflow: auto;
 }
@@ -4532,43 +4485,18 @@ tr.bi-kept > td {
   font-size: 0.85rem;
   padding: 0.4rem 0.55rem;
   border: 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--cell-line);
   background: transparent;
   cursor: pointer;
 }
 .cs-item:hover {
-  background: #f4f7fc;
+  background: var(--info-tint);
 }
 .cs-item.sel {
-  background: #e3ecfa;
+  background: var(--select);
 }
 .cs-more {
   padding: 0.4rem 0.55rem;
-}
-.cs-pill {
-  display: inline-block;
-  padding: 0 0.4rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  border: 1px solid var(--rule);
-  background: #f4f4f4;
-  margin-right: 0.25rem;
-}
-.cs-pill.hi {
-  background: #fde8e8;
-  border-color: #f3b4b4;
-}
-.cs-pill.lo {
-  background: #e8f0fd;
-  border-color: #b4c9f3;
-}
-.cs-pill.kept {
-  background: #e7f5ec;
-  border-color: #a6d8b8;
-}
-.cs-pill.excluded {
-  background: #eee;
-  border-color: #bbb;
 }
 .cs-detail h3 {
   font-size: 1rem;
@@ -4604,7 +4532,7 @@ tr.bi-kept > td {
   margin: 0 -0.8rem -0.6rem;
   padding: 0.5rem 0.8rem 0.6rem;
   border-radius: 0 0 var(--radius) var(--radius);
-  background: #fff;
+  background: var(--panel);
   border-top: 1px solid var(--rule);
   box-shadow: 0 -4px 8px -6px rgb(0 0 0 / 0.25);
 }
@@ -4649,11 +4577,10 @@ tr.bi-kept > td {
   font-size: 0.82rem;
 }
 .wiz-step button:disabled {
-  color: #9a9ea3;
+  color: var(--muted);
   cursor: default;
 }
 .mg-checks {
-  border-collapse: collapse;
   font-family: var(--font);
   font-size: 0.88rem;
   margin: 0.4rem 0;
@@ -4729,11 +4656,11 @@ tr.bi-kept > td {
   align-items: flex-start;
   gap: 0.5rem;
 }
-.bi-tbl.dn-tbl > tbody > tr > td {
+.tbl.dn-tbl > tbody > tr > td {
   white-space: normal;
 }
-.bi-tbl.dn-tbl > tbody > tr.dn-hit > td {
-  background: #fff7ea;
+.tbl.dn-tbl > tbody > tr.dn-hit > td {
+  background: var(--warn-tint);
 }
 .cs-diag {
   display: grid;
@@ -4757,7 +4684,8 @@ tr.bi-kept > td {
 .cs-patterns .cs-n {
   white-space: nowrap;
 }
-.bi-tbl.cs-tbl.cs-patterns > tbody > tr > td {
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
+.tbl.cs-patterns > tbody > tr > td {
   white-space: normal;
   vertical-align: top;
 }
@@ -4791,7 +4719,8 @@ tr.bi-kept > td {
 :where(table) :where(th.cs-n, th.num, th.mg-num, th.ab-n, th.pm-n) {
   text-align: right;
 }
-.bi-tbl.cs-tbl > tfoot > tr.cs-total > td {
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
+.tbl > tfoot > tr.cs-total > td {
   font-weight: 600;
   border-top: 2px solid var(--rule);
 }
@@ -4810,34 +4739,6 @@ tr.bi-kept > td {
   align-items: baseline;
   flex-wrap: wrap;
 }
-.rv-pill {
-  display: inline-block;
-  padding: 0 0.4rem;
-  border-radius: 999px;
-  font-size: 0.74rem;
-  border: 1px solid;
-  white-space: nowrap;
-}
-.rv-ok {
-  background: #e7f5ec;
-  border-color: #a6d8b8;
-  color: #1d6b3a;
-}
-.rv-bad {
-  background: #fde8e8;
-  border-color: #f3b4b4;
-  color: #9b1c1c;
-}
-.rv-slight {
-  background: #fff4e0;
-  border-color: #f0c78a;
-  color: #8a5300;
-}
-.rv-few {
-  background: #f4f4f4;
-  border-color: #d0d0d0;
-  color: #555;
-}
 .rv-head {
   font-size: 1.02rem;
   line-height: 1.5;
@@ -4853,7 +4754,8 @@ tr.bi-kept > td {
 .rv-num .field {
   min-width: 0;
 }
-table.bi-tbl.cs-tbl > * > tr.rv-total > td {
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
+table.tbl > * > tr.rv-total > td {
   font-weight: 600;
 }
 .rv-map {
@@ -4911,7 +4813,7 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   cursor: pointer;
 }
 .fd-tbl > tbody > tr:not(.bi-grp):hover > td {
-  background: #eef3fb;
+  background: var(--info-tint);
 }
 .fd-tbl > tbody > tr:not(.bi-grp):hover .fd-icon {
   opacity: 1;
@@ -5001,10 +4903,10 @@ tr.vt-off {
 }
 
 /* Step 5's variables: each kind a heading that stands out and folds its rows away. */
-.bi-tbl.md-vars > tbody > tr.md-kind > td {
+.tbl.md-vars > tbody > tr.md-kind > td {
   padding: 0.5rem 0.4rem 0.35rem;
   background: #e9edf3;
-  border-top: 2px solid #c9d1dc;
+  border-top: 2px solid var(--rule);
 }
 .md-kind-row {
   display: flex;
@@ -5019,7 +4921,7 @@ tr.vt-off {
   font: inherit;
   font-size: 0.98rem;
   font-weight: 700;
-  color: var(--ink, #1f2328);
+  color: var(--ink, var(--text));
   background: none;
   border: 0;
   cursor: pointer;
@@ -5044,8 +4946,8 @@ tr.vt-off {
 tr.vt-level > td:first-child {
   padding-left: 2.2rem;
 }
-.bi-tbl.vt-tbl > tbody > tr.vt-how > td {
-  background: #f7f9fc;
+.tbl.vt-tbl > tbody > tr.vt-how > td {
+  background: var(--info-tint);
   padding: 0.5rem 0.8rem 0.6rem 2.2rem;
 }
 .vt-how-body {
@@ -5084,8 +4986,8 @@ tr.vt-level > td:first-child {
 }
 .md-empty {
   padding: 0.45rem 0.6rem;
-  background: #f7f7f7;
-  border: 1px dashed #c8c8c8;
+  background: var(--zebra);
+  border: 1px dashed var(--rule);
   border-radius: var(--radius);
 }
 .dt-wrap {
@@ -5097,7 +4999,7 @@ tr.vt-level > td:first-child {
 table.dt {
   table-layout: fixed;
 }
-table.bi-tbl.cs-tbl.dt > * > tr > :is(th, td) {
+table.tbl.dt > * > tr > :is(th, td) {
   border: 1px solid var(--rule);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5130,6 +5032,6 @@ table.bi-tbl.cs-tbl.dt > * > tr > :is(th, td) {
 .dt-grip:hover {
   background: rgba(26, 86, 184, 0.25);
 }
-.bi .cs-tbl tbody tr.md-roll :where(td) {
-  background: #f3f6fb;
+.tbl tbody tr.md-roll :where(td) {
+  background: var(--info-tint);
 }

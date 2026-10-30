@@ -60,8 +60,14 @@ name that says what it is.
 
 - **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,
   never a maximum). Only running text is capped for readability (`.project p`, `.cs-text`, `.wiz-lede`…).
-- **Tables:** every table has faint cell lines and alternate gray rows (the `:where(table)` rules at the end of
-  `styles.css`); a numbers column's header has the column's class (`th.cs-n`) so it lines up with its numbers.
+- **Tables:** a table of results is `<table className="tbl">` (its own class only adds what's its own); every
+  table has faint cell lines and alternate grey rows (the `:where(table)` rules in `styles.css`), its cells padded by
+  the density (`--cell-y`); a numbers column's header has the column's class (`th.cs-n`) so it lines up with its
+  numbers.
+- **Pills and colours:** a short status word or mark is `.pill` (`pill-ok`, `pill-warn`, `pill-bad`, `pill-info`;
+  grey without), or `components/Pill.tsx` for a verdict. Colours are the `:root` tokens (`--ok`, `--ok-tint`,
+  `--ok-edge`, the same for warn, bad and info; `--select`, `--zebra`, `--cell-line`, `--rule`), never a hex in a
+  rule, so the high-contrast view reaches them; the buttons' and titlebar's bevels are the exception.
   A chart is drawn at its own width in pixels (a `ResizeObserver`), not scaled, so its text stays its size.
 - **Funnels and other line lists** (a count, a phrase, a link): columns only as wide as their content, so a link
   sits beside its line, not at the far edge (`.cs-funnel`, `.bi-fn`: one grid, the lines on it by `subgrid`).

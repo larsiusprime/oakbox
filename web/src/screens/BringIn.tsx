@@ -247,7 +247,7 @@ function MoreView({ receipt: r, rerun }: { receipt: Receipt; rerun: (() => void)
       {r.checks.length > 0 && (
         <div className="bi-card">
           <h3>{b.checks}</h3>
-          <table className="bi-tbl">
+          <table className="tbl">
             <thead>
               <tr>
                 <th />
@@ -294,7 +294,7 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
   return (
     <section className="bi-card">
       <h3>{e.title}</h3>
-      <table className="bi-tbl">
+      <table className="tbl">
         <thead>
           <tr>
             <th>{e.what}</th>
@@ -414,7 +414,7 @@ function Section({
           </div>
         ))}
       </div>
-      <table className="bi-tbl fd-tbl">
+      <table className="tbl fd-tbl">
         <thead>
           <tr>
             <th>
@@ -527,7 +527,7 @@ function RowsDialog({
           </div>
           <div className="bi-scroll">
             {p && (
-              <table className="bi-tbl bi-data" style={{ whiteSpace: "nowrap", fontSize: "0.8rem" }}>
+              <table className="tbl bi-data" style={{ whiteSpace: "nowrap", fontSize: "0.8rem" }}>
                 <thead>
                   <tr>
                     {p.columns.map((c) => (

@@ -120,7 +120,7 @@ export function CompareDialog({
           ) : rows.length === 0 ? (
             <p className="rc-sub">{condition ? q.noneConditionLike : q.noneQualityLike}</p>
           ) : (
-            <table className="qc-tbl">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th>{q.column}</th>
@@ -143,7 +143,9 @@ export function CompareDialog({
                     <td>{c.distinct.toLocaleString()}</td>
                     <td className="mono">{c.samples.join(", ")}</td>
                     <td className={c.warn ? "qc-flag" : undefined}>{c.notes.join(" · ")}</td>
-                    <td>{c.loaded_as && <span className="qc-pill">{q.loadedAsWord[c.loaded_as]}</span>}</td>
+                    <td>
+                      {c.loaded_as && <span className="pill pill-ok">{q.loadedAsWord[c.loaded_as]}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -271,7 +273,7 @@ export function ScaleDialog({
             </div>
           )}
           {v && condition && v.by_age.length > 0 && (
-            <table className="qc-tbl">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th>{v.age_basis === "effective age" ? q.effectiveAge : q.age}</th>
@@ -302,7 +304,7 @@ export function ScaleDialog({
             </table>
           )}
           {v && v.by_value.length > 0 && (
-            <table className="qc-tbl">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th>{q.asReadBand}</th>
@@ -429,11 +431,11 @@ export function TiersDialog({
           {v && (
             <div className="qc-row">
               {v.saved ? (
-                <span className="qc-pill dim">{q.savedOrder}</span>
+                <span className="pill">{q.savedOrder}</span>
               ) : v.recognised ? (
-                <span className="qc-pill">{q.recognised(v.recognised)}</span>
+                <span className="pill pill-ok">{q.recognised(v.recognised)}</span>
               ) : (
-                <span className="qc-pill warn">{q.notRecognised}</span>
+                <span className="pill pill-warn">{q.notRecognised}</span>
               )}
               {v.unplaced.length > 0 && v.recognised && !v.saved && (
                 <span className="qc-flag">{q.unplaced(v.unplaced.join(", "))}</span>
@@ -447,7 +449,7 @@ export function TiersDialog({
             </div>
           )}
           {rows && (
-            <table className="qc-tbl">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th />

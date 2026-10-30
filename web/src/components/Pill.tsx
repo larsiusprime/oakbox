@@ -2,6 +2,7 @@
 export type Verdict = "ok" | "slight" | "bad";
 
 const GLYPH: Record<Verdict, string> = { ok: "✓", slight: "~", bad: "✗" };
+const CLASS: Record<Verdict, string> = { ok: "pill-ok", slight: "pill-warn", bad: "pill-bad" };
 
 export function verdictOf(ok: boolean | null | undefined): Verdict | null {
   return ok == null ? null : ok ? "ok" : "bad";
@@ -20,12 +21,12 @@ export function Pill({
 }) {
   if (!v)
     return label ? (
-      <span className="rv-pill rv-few" title={title}>
+      <span className="pill" title={title}>
         {label}
       </span>
     ) : null;
   return (
-    <span className={`rv-pill rv-${v}`} title={title}>
+    <span className={`pill ${CLASS[v]}`} title={title}>
       {GLYPH[v]}
       {label ? ` ${label}` : ""}
     </span>

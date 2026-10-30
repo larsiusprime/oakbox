@@ -107,7 +107,7 @@ export function DeedNames({ projectId }: { projectId: string }) {
       ) : (
         <>
           <p className="wiz-from">{n.counts(v.sales, v.read, v.companies, v.unread, v.shared, v.sampled)}</p>
-          <table className="bi-tbl dn-tbl">
+          <table className="tbl dn-tbl">
             <thead>
               <tr>
                 <th>{n.seller}</th>

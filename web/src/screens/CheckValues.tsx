@@ -289,7 +289,7 @@ function SalesCard({ v, set }: CardProps) {
           </Radio>
         </RadioGroup>
       </section>
-      <table className="bi-tbl cs-tbl">
+      <table className="tbl">
         <tbody>
           {v.funnel.map((l) => (
             <tr key={l.text} className={l.sign === "=" ? "rv-total" : undefined}>
@@ -302,7 +302,7 @@ function SalesCard({ v, set }: CardProps) {
       </table>
       <section className="cs-step">
         <h3 className="wiz-group">{r.sales.perGroup}</h3>
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{r.table.group}</th>
@@ -400,7 +400,7 @@ function StandardsCard({ v, set }: CardProps) {
   return (
     <div className="rv-cards">
       <p className="wiz-from">{s.source}</p>
-      <table className="bi-tbl cs-tbl rv-targets">
+      <table className="tbl rv-targets">
         <thead>
           <tr>
             <th>{s.what}</th>
@@ -478,7 +478,7 @@ function StandardsCard({ v, set }: CardProps) {
       <section className="cs-step">
         <h3 className="wiz-group">{s.cod}</h3>
         <p className="wiz-from">{s.codWhy}</p>
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{s.category}</th>
@@ -521,7 +521,7 @@ function StandardsCard({ v, set }: CardProps) {
       <section className="cs-step">
         <h3 className="wiz-group">{s.classes}</h3>
         <p className="wiz-from">{s.classesWhy}</p>
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{r.table.group}</th>
@@ -639,7 +639,7 @@ function Summary({
 function Scorecard({ groups }: { groups: RatioStudy[] }) {
   const c = r.card;
   return (
-    <table className="bi-tbl cs-tbl rv-score">
+    <table className="tbl rv-score">
       <thead>
         <tr>
           <th>{r.table.group}</th>
@@ -779,7 +779,7 @@ function cell(
       <span className="rv-cell">
         <span className="rv-cell-pill">
           <Pill v={v} {...(label ? { label } : {})} />
-          {low && <span className="rv-pill rv-bad">{r.table.low}</span>}
+          {low && <span className="pill pill-bad">{r.table.low}</span>}
         </span>
         <span>{text}</span>
       </span>
@@ -843,7 +843,7 @@ function GroupsTable({ result }: { result: FieldResult }) {
   };
   return (
     <>
-      <table className="bi-tbl cs-tbl">
+      <table className="tbl">
         <thead>
           <tr>
             <th>{tb.group}</th>
@@ -927,7 +927,7 @@ function Prices({
       />
       <p className="wiz-from">{p.trimmedDot}</p>
       {g.fifths.length > 0 && (
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{p.fifth}</th>
@@ -961,7 +961,7 @@ function Prices({
               )}
             </p>
             <BandChart series={[{ label: p.bySale, color: "#d4566f", bands: g.strata }]} />
-            <table className="bi-tbl cs-tbl">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th>{p.stratum}</th>
@@ -1161,7 +1161,7 @@ function Similar({ result }: { result: FieldResult }) {
   return (
     <>
       <p className="wiz-lede">{sm.lede}</p>
-      <table className="bi-tbl cs-tbl">
+      <table className="tbl">
         <thead>
           <tr>
             <th>{r.table.group}</th>
@@ -1223,7 +1223,7 @@ function Extreme({
   return (
     <>
       <p className="wiz-lede">{e.lede}</p>
-      <table className="bi-tbl cs-tbl">
+      <table className="tbl">
         <thead>
           <tr>
             <th>{e.address}</th>
@@ -1446,7 +1446,7 @@ function Regions({
               ...(g.strata.length ? [{ label: rr.bySale, color: "#d4566f", bands: g.strata }] : []),
             ]}
           />
-          <table className="bi-tbl cs-tbl">
+          <table className="tbl">
             <thead>
               <tr>
                 <th>{rr.group}</th>

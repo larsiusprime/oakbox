@@ -40,7 +40,7 @@ export function MultiPick({
         <span className={chosen.length ? "mp-text mono" : "mp-text mp-placeholder"}>
           {chosen.length ? shown : m.choose}
         </span>
-        {chosen.length > 1 && <span className="mp-count">{chosen.length}</span>}
+        {chosen.length > 1 && <span className="pill pill-info">{chosen.length}</span>}
         <ChevronDown aria-hidden="true" size="0.9em" />
       </Button>
       <Popover className="popover mp-popover" placement="bottom start">

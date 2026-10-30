@@ -91,7 +91,7 @@ export function TestStep({
         <span className="rv-cell">
           <span className="rv-cell-pill">
             {passed == null ? null : (
-              <span className={passed ? "rv-pill rv-ok" : "rv-pill rv-bad"}>
+              <span className={passed ? "pill pill-ok" : "pill pill-bad"}>
                 {passed ? `✓ ${vt.pass}` : `✗ ${x.reason ? vt.reasons[x.reason] : vt.fail}`}
               </span>
             )}
@@ -159,7 +159,7 @@ export function TestStep({
           </Button>
         )}
       </p>
-      <table className="bi-tbl cs-tbl vt-tbl">
+      <table className="tbl vt-tbl">
         <thead>
           <tr>
             <th>{vt.variable}</th>
@@ -316,7 +316,7 @@ export function Verdict({
           {vt.keepRecommended}
         </Button>
       </p>
-      <table className="bi-tbl cs-tbl">
+      <table className="tbl">
         <thead>
           <tr>
             <th>{vt.variable}</th>
@@ -346,7 +346,7 @@ export function Verdict({
                   <span className="rv-cell">
                     <span className="rv-cell-pill">
                       {g.recommended.includes(x.field) && (
-                        <span className="rv-pill rv-ok">✓ {vt.recommended}</span>
+                        <span className="pill pill-ok">✓ {vt.recommended}</span>
                       )}
                     </span>
                     <span>{g.scores[x.field] == null ? "—" : num(g.scores[x.field], 0)}</span>

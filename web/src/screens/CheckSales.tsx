@@ -395,7 +395,7 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
             />
             <span className="wiz-from">{s.time.coarser}</span>
           </div>
-          <table className="bi-tbl cs-tbl cs-ta">
+          <table className="tbl cs-ta">
             <thead>
               <tr>
                 <th>{s.group}</th>
@@ -716,7 +716,7 @@ function SalesResult({
       {r.patterns.length > 0 && <Patterns tables={r.patterns} look={look} />}
       <section className="cs-step">
         <h3 className="wiz-group">{s.groups.title}</h3>
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{s.group}</th>
@@ -803,7 +803,7 @@ function Patterns({ tables, look }: { tables: PatternTable[]; look: (check: stri
         />
         <span className="wiz-from">{p.lede(flagged, table.sales, table.name)}</span>
       </div>
-      <table className="bi-tbl cs-tbl cs-patterns">
+      <table className="tbl cs-patterns">
         <thead>
           <tr>
             <th>{p.pattern}</th>
@@ -1147,40 +1147,40 @@ function pills(i: ReviewItem) {
   const out: React.ReactNode[] = [];
   if (i.status !== "undecided") {
     out.push(
-      <span key="status" className={`cs-pill ${i.status}`}>
+      <span key="status" className={`pill ${i.status === "kept" ? "pill-ok" : ""}`}>
         {i.status === "kept" ? s.review.keptPill : s.review.excludedPill}
       </span>,
     );
   }
   if (i.ratio) {
     out.push(
-      <span key="r" className={i.ratio >= 1 ? "cs-pill hi" : "cs-pill lo"}>
+      <span key="r" className={i.ratio >= 1 ? "pill pill-bad" : "pill pill-info"}>
         {i.ratio >= 1 ? s.review.high : s.review.low}
       </span>,
     );
   }
   if (i.flag_only)
     out.push(
-      <span key="only" className="cs-pill">
+      <span key="only" className="pill">
         {s.review.flagOnly}
       </span>,
     );
   else if (i.pattern?.split(",").includes("1"))
     out.push(
-      <span key="size" className="cs-pill">
+      <span key="size" className="pill">
         {s.review.oddSize}
       </span>,
     );
   for (const c of i.checks.filter((c) => c !== "cluster")) {
     out.push(
-      <span key={c} className="cs-pill">
+      <span key={c} className="pill">
         {s.review.checkNames[c as keyof typeof s.review.checkNames] ?? c}
       </span>,
     );
   }
   if (i.second_look)
     out.push(
-      <span key="2" className="cs-pill">
+      <span key="2" className="pill">
         {s.review.secondPill}
       </span>,
     );
@@ -1284,7 +1284,7 @@ function SaleView({
         <>
           <Dots members={d.members} self={i.key_sale} median={i.median} currency={currency} />
           <p className="wiz-from cs-text">{s.review.dotsNote(u)}</p>
-          <table className="bi-tbl cs-tbl">
+          <table className="tbl">
             <thead>
               <tr>
                 <th>{s.review.itsGroup}</th>
@@ -1303,9 +1303,9 @@ function SaleView({
                   <td>{day(m.sale_date)}</td>
                   <td>
                     {m.key_sale === i.key_sale ? (
-                      <span className="cs-pill hi">{s.review.thisSale}</span>
+                      <span className="pill pill-bad">{s.review.thisSale}</span>
                     ) : m.flagged ? (
-                      <span className="cs-pill">{s.review.setAside}</span>
+                      <span className="pill">{s.review.setAside}</span>
                     ) : null}
                   </td>
                 </tr>
@@ -1395,7 +1395,7 @@ function Together({
           ? tg.onDeed(d.deed, day(d.item.sale_date), rows.length)
           : tg.samePrice(day(d.item.sale_date), rows.length)}
       </h4>
-      <table className="bi-tbl cs-tbl">
+      <table className="tbl">
         <thead>
           <tr>
             <th>{tg.sale}</th>
@@ -1416,7 +1416,7 @@ function Together({
               <td className="cs-n">{num(x.land)}</td>
               <td>
                 {x.this ? (
-                  <span className="cs-pill hi">{s.review.thisSale}</span>
+                  <span className="pill pill-bad">{s.review.thisSale}</span>
                 ) : x.set_aside ? (
                   <Button className="wiz-link" onPress={() => pick(x.key_sale)}>
                     {tg.open}
@@ -1456,7 +1456,7 @@ function Readings({ i, unit, currency }: { i: ReviewItem; unit: Unit; currency: 
   ];
   return (
     <>
-      <table className="bi-tbl cs-tbl cs-readings">
+      <table className="tbl cs-readings">
         <thead>
           <tr>
             <th>{r.title}</th>
@@ -1475,7 +1475,9 @@ function Readings({ i, unit, currency }: { i: ReviewItem; unit: Unit; currency: 
               <td className="cs-n">{dist === null || dist === undefined ? "" : dist.toFixed(2)}</td>
               <td>
                 <span
-                  className={rating === "in" ? "cs-pill" : rating === "high" ? "cs-pill hi" : "cs-pill lo"}
+                  className={
+                    rating === "in" ? "pill" : rating === "high" ? "pill pill-bad" : "pill pill-info"
+                  }
                 >
                   {r[(rating ?? "in") as "low" | "in" | "high"]}
                 </span>
@@ -1566,7 +1568,7 @@ function Related({ related, currency, unit }: { related: RelatedSale[]; currency
       {related.length === 0 ? (
         <p className="wiz-from">{r.none}</p>
       ) : (
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{r.address}</th>
@@ -1582,7 +1584,7 @@ function Related({ related, currency, unit }: { related: RelatedSale[]; currency
               <tr key={x.key_sale}>
                 <td>
                   {x.address ?? x.key_sale}
-                  {x.set_aside && <span className="cs-pill"> {s.review.setAside}</span>}
+                  {x.set_aside && <span className="pill"> {s.review.setAside}</span>}
                 </td>
                 <td>{day(x.sale_date)}</td>
                 <td className="cs-n">{money(x.price, currency)}</td>

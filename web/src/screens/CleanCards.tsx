@@ -49,7 +49,7 @@ export function FillCard({ v, set }: CardProps) {
     <Card title={s.fill.title} sub={s.fill.sub}>
       <p className="cs-text wiz-from">{s.fill.what}</p>
       {v.fills.length > 0 ? (
-        <table className="bi-tbl cs-tbl">
+        <table className="tbl">
           <thead>
             <tr>
               <th>{s.fill.field}</th>
@@ -139,7 +139,7 @@ export function CollapseCard({ v, set }: CardProps) {
             />
           </div>
           {v.folds.length ? (
-            <table className="bi-tbl cs-tbl">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th>{s.fill.field}</th>
