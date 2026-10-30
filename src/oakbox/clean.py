@@ -279,12 +279,12 @@ def _analysis_key(settings: dict) -> dict:
     return out
 
 
-def settings_key(settings: dict, project) -> dict:
-    """What this run depends on: what step 2's does, and this step's calls and the user's keeps and exclusions."""
+def settings_key(settings: dict, project, project_dir: Path) -> dict:
+    """What this run depends on: the Model groups run it starts from, and this step's calls and the user's keeps and
+    exclusions."""
     process = settings.get("data", {}).get("process", {})
     return {
-        **bring_in.settings_key(settings),
-        "model_groups": settings.get("modeling", {}).get("model_groups"),
+        "assemble": assemble.STEP.ran_at(project_dir),
         "process": {k: process.get(k) for k in bring_in.CLEAN_PROCESS if k not in FIELD_PROCESS},
         "use_sales_from": settings.get("modeling", {}).get("metadata", {}).get("use_sales_from"),
         "analysis": _analysis_key(settings),
@@ -309,10 +309,6 @@ def without_fields(settings: dict, project) -> dict:
         fill[key] = [f for f in fill[key] if (f.get("field") if isinstance(f, dict) else f) not in mine]
     process.pop("collapse_sparse_categories", None)
     return out
-
-
-def settings_hash(settings: dict, project) -> str:
-    return steps.key_hash(settings_key(settings, project))
 
 
 def _settings(project_dir: Path) -> dict:
@@ -874,6 +870,7 @@ def run(project_id: str) -> None:
     if not src.is_file():
         raise RuntimeError("Write step 2 first (Model groups): this starts from its hand-off.")
     tmp = steps.workdir(out_dir(pdir))
+    depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -935,7 +932,7 @@ def run(project_id: str) -> None:
     pd.DataFrame({"key_sale": sorted(used)}).to_parquet(tmp / "used.parquet", index=False)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(
-        json.dumps({"settings": json.loads(settings_text), "hash": settings_hash(json.loads(settings_text), project)}),
+        json.dumps({"settings": json.loads(settings_text), "hash": depends}),
         encoding="utf-8",
     )
     steps.publish(tmp, out_dir(pdir))
@@ -1606,15 +1603,19 @@ class CleanView(steps.RunView):
 
 STEP = steps.Step(
     MODULE,
+    "Check sales",
     CleanReceipt,
-    key=lambda project, pdir: settings_key(_settings(pdir), project),
+    key=lambda project, pdir: settings_key(_settings(pdir), project, pdir),
+    after=assemble.STEP,
     again="Check sales again first: something changed since it ran.",
 )
 
 
 def blocked(project, project_dir: Path) -> list[str]:
-    a = assemble.STEP.state(project, project_dir)
-    if a.receipt is None or a.stale or not _look(project_dir, "sales-hydrated").is_file():
+    waiting = STEP.waiting(project, project_dir)
+    if waiting:
+        return [waiting]
+    if not _look(project_dir, "sales-hydrated").is_file():
         return ["Write step 2 first (Model groups): this starts from its hand-off."]
     return []
 

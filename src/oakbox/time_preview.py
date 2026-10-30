@@ -18,7 +18,7 @@ from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import bring_in, clean, steps
+from oakbox import assemble, clean, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "time_preview"
@@ -28,20 +28,19 @@ def out_dir(project_dir: Path) -> Path:
     return project_dir / "out" / "oakbox" / "time_preview"
 
 
-def settings_key(settings: dict) -> dict:
+def settings_key(settings: dict, project_dir: Path) -> dict:
     """What the preview depends on: the data and model groups, the window, the time adjustment, validity rules."""
     process = settings.get("data", {}).get("process", {})
     return {
-        **bring_in.settings_key(settings),
-        "model_groups": settings.get("modeling", {}).get("model_groups"),
+        "assemble": assemble.STEP.ran_at(project_dir),
         "use_sales_from": settings.get("modeling", {}).get("metadata", {}).get("use_sales_from"),
         "time_adjustment": process.get("time_adjustment"),
         "invalid_sales": process.get("invalid_sales"),
     }
 
 
-def settings_hash(settings: dict) -> str:
-    return steps.key_hash(settings_key(settings))
+def settings_hash(settings: dict, project_dir: Path) -> str:
+    return steps.key_hash(settings_key(settings, project_dir))
 
 
 class TimeGroup(BaseModel):
@@ -123,7 +122,7 @@ def run(project_id: str) -> None:
         ran_at=dt.datetime.now().isoformat(timespec="seconds"), seconds=round(time.time() - t0, 1), groups=groups
     )
     (base / "preview.json").write_text(
-        json.dumps({"hash": settings_hash(json.loads(settings_text)), "result": result.model_dump()}),
+        json.dumps({"hash": settings_hash(json.loads(settings_text), pdir), "result": result.model_dump()}),
         encoding="utf-8",
     )
     steps.emit(step="done", fraction=1.0, message="Done")
@@ -143,7 +142,7 @@ def view(project, project_dir: Path) -> TimePreview:
     if path.is_file():
         saved = json.loads(path.read_text(encoding="utf-8"))
         result = TimeResult.model_validate(saved["result"])
-        stale = saved.get("hash") != settings_hash(clean._settings(project_dir))
+        stale = saved.get("hash") != settings_hash(clean._settings(project_dir), project_dir)
     return TimePreview(status=j.status if j else ("done" if result else "never"), job=j, result=result, stale=stale)
 
 

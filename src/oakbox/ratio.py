@@ -437,11 +437,10 @@ class RatioReceipt(BaseModel):
 
 def settings_key(project, project_dir: Path) -> dict:
     """What a run depends on: the Check sales run it starts from, and the calls."""
-    r, _ = clean.STEP.ran(project_dir)
     start, end, _ = window(project, project_dir=project_dir)
     s: RatioState = project.ratio
     return {
-        "clean": r.ran_at if r else None,
+        "clean": clean.STEP.ran_at(project_dir),
         "fields": [FIELD],
         "window": [str(start), str(end)],
         "price": s.price,
@@ -451,10 +450,6 @@ def settings_key(project, project_dir: Path) -> dict:
         "groups": [(g.id, g.name) for g in project.groups],
         "region": region(project),
     }
-
-
-def settings_hash(project, project_dir: Path) -> str:
-    return steps.key_hash(settings_key(project, project_dir))
 
 
 def _fifths(table, group: str | None) -> list[Fifth]:
@@ -550,6 +545,7 @@ def run(project_id: str) -> None:
     s: RatioState = project.ratio
     start, end, _ = window(project, project_dir=pdir)
     tmp = steps.workdir(out_dir(pdir))
+    depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import SalesUniversePair
@@ -634,7 +630,7 @@ def run(project_id: str) -> None:
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
-    (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(project, pdir)}), encoding="utf-8")
+    (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
     steps.publish(tmp, out_dir(pdir))
     steps.emit(step="done", fraction=1.0, message=f"{sum(r.overall.sales for r in results):,} sales studied")
 
@@ -649,19 +645,20 @@ class RatioView(steps.RunView):
 
 STEP = steps.Step(
     MODULE,
+    "Check my values",
     RatioReceipt,
     key=settings_key,
+    after=clean.STEP,
     again="Check the values again first: something changed since they were checked.",
 )
 
 
 def blocked(project, project_dir: Path) -> list[str]:
-    if (
-        not clean.STEP.accepted(project, project_dir)
-        or not (project_dir / "out" / "2-clean-sup.pickle").is_file()
-        or not _hydrated(project_dir).is_file()
-    ):
-        return ["Press Looks right on Check sales first: this starts from the sales it kept."]
+    waiting = STEP.waiting(project, project_dir)
+    if waiting:
+        return [waiting]
+    if not (project_dir / "out" / "2-clean-sup.pickle").is_file() or not _hydrated(project_dir).is_file():
+        return ["Run Check sales again first: this starts from the sales it kept."]
     return []
 
 

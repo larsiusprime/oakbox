@@ -370,9 +370,8 @@ def run(project_id: str) -> None:
         groups=groups,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
-    r, _ = prepare.STEP.ran(pdir)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
-    (tmp / "settings.json").write_text(json.dumps({"prepare": r.ran_at if r else None}), encoding="utf-8")
+    (tmp / "settings.json").write_text(json.dumps({"prepare": prepare.STEP.ran_at(pdir)}), encoding="utf-8")
     steps.publish(tmp, out_dir(pdir))
     tested = sum(1 for g in groups if g.tests)
     steps.emit(step="done", fraction=1.0, message=f"{tested} of {len(groups)} model groups tested")
@@ -386,15 +385,16 @@ class VarTestView(steps.RunView):
 
 
 def _key(project, project_dir: Path) -> dict:
-    p, _ = prepare.STEP.ran(project_dir)
-    return {"prepare": p.ran_at if p else None}
+    return {"prepare": prepare.STEP.ran_at(project_dir)}
 
 
 # The run keeps the Prepare run it tested (settings.json).
 STEP = steps.Step(
     MODULE,
+    "Test the variables",
     VarTestReceipt,
     key=_key,
+    after=prepare.STEP,
     ran_hash=lambda ran: steps.key_hash({"prepare": ran.get("prepare")}),
     again="Test the variables again first: something changed since.",
 )
@@ -413,8 +413,9 @@ def view(project, project_dir: Path) -> VarTestView:
 
 
 def _blocked(project, project_dir: Path, chosen: set[str]) -> list[str]:
-    if not prepare.STEP.accepted(project, project_dir):
-        return ["Press Looks right on What changed first: the tests start from the prepared fields."]
+    waiting = STEP.waiting(project, project_dir)
+    if waiting:
+        return [waiting]
     if not chosen:
         return ["Tick at least one variable."]
     return []

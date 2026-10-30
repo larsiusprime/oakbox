@@ -30,17 +30,13 @@ def out_dir(project_dir: Path) -> Path:
     return project_dir / "out" / "oakbox" / "assemble"
 
 
-def settings_key(settings: dict, exports: list[str]) -> dict:
-    """What this run depends on: what Bring in data depends on, the model groups, and the formats written."""
+def settings_key(settings: dict, exports: list[str], project_dir: Path) -> dict:
+    """What this run depends on: the Bring in data run it starts from, the model groups, and the formats written."""
     return {
-        **bring_in.settings_key(settings),
+        "bring_in": bring_in.STEP.ran_at(project_dir),
         "model_groups": settings.get("modeling", {}).get("model_groups"),
         "exports": sorted(exports),
     }
-
-
-def settings_hash(settings: dict, exports: list[str]) -> str:
-    return steps.key_hash(settings_key(settings, exports))
 
 
 # ---------- The receipt ----------
@@ -105,7 +101,7 @@ def run(project_id: str) -> None:
     if not src.is_file():
         raise RuntimeError("Bring in data first: this starts from what it loaded.")
     tmp = steps.workdir(out_dir(pdir))
-    settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
+    depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
@@ -172,9 +168,7 @@ def run(project_id: str) -> None:
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
-    (tmp / "settings.json").write_text(
-        json.dumps({"settings": json.loads(settings_text), "exports": sorted(exports)}), encoding="utf-8"
-    )
+    (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
     steps.publish(tmp, out_dir(pdir))
     n = sum(1 for c in counts if c.id != UNKNOWN and c.parcels)
     steps.emit(step="done", fraction=1.0, message=f"{len(universe):,} parcels in {n} model groups")
@@ -189,24 +183,22 @@ class AssembleView(steps.RunView):
     accepted: bool
 
 
-# The run keeps the settings it ran with and the formats it wrote (settings.json).
 STEP = steps.Step(
     MODULE,
+    "Model groups",
     AssembleReceipt,
-    key=lambda project, pdir: settings_key(bring_in._current(pdir), list(project.assemble_exports)),
-    ran_hash=lambda ran: settings_hash(ran["settings"], ran.get("exports", [])),
+    key=lambda project, pdir: settings_key(bring_in._current(pdir), list(project.assemble_exports), pdir),
+    after=bring_in.STEP,
     again="Run it again first: the data or the model groups changed since it ran.",
 )
 
 
 def blocked(project, project_dir: Path) -> list[str]:
-    out = []
-    if not project.groups:
-        out.append("Add at least one model group, and save.")
-    b = bring_in.STEP.state(project, project_dir)
-    if b.receipt is None or b.stale:
-        out.append("Bring in data again first: Data changed since it ran.")
-    return out
+    waiting = STEP.waiting(project, project_dir)
+    return [
+        *([] if project.groups else ["Add at least one model group, and save."]),
+        *([waiting] if waiting else []),
+    ]
 
 
 def view(project, project_dir: Path) -> AssembleView:

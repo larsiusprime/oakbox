@@ -590,7 +590,7 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
 - **The end of notebook 1 (assemble): Tag and write.** The **Tag and write** step runs OpenAVMKit's own `tag_model_groups_sup` and `write_notebook_output_sup("1-assemble")` on what Bring in data loaded (`out/oakbox/bring_in/sup.pickle`, so nothing is loaded again), in a process of its own (`python -m oakbox.assemble <project>`), like Bring in data. It runs on the saved groups: unsaved changes, no groups, or Bring in data out of date stop it, saying which.
   - **Written:** `out/1-assemble-sup.pickle` (what notebook 2, clean, starts from) and, in `out/look/`, the parcel universe, the sales and the hydrated sales as Parquet. **Formats** adds GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets.
   - **What each group got** (a step): per model group, parcels, vacant parcels, improved and vacant sales (the sales get their parcel's group, as OpenAVMKit hydrates them), then Unassigned (`UNKNOWN`, not valued); whether every count matches the builder's preview (the preview's column shows when one doesn't); the files written, their size and what each is; **Show in folder**; OpenAVMKit's own warnings, folded.
-  - **Looks right** marks notebook 1 done. Changing the groups, the data or the formats puts it out of date (and un-done) until it runs again.
+  - **Looks right** marks notebook 1 done. Changing the groups or the formats, or running Bring in data again, puts it out of date (and un-done) until it runs again; a change on Data makes it wait for Bring in data (§6.4).
   - **Left out of notebook 1:** cloud sync (a desktop app's files are on the desktop), and street frontages (`enrich_sup_streets`: the street network is deferred, D29). Its "examine" cells are Bring in data's receipt; "examine in ridiculous detail" is each field's details (click its name).
 - **Not yet:** common areas (deferred), hand edits (map lasso), nested AND/OR, undo/redo, export/import, and a map for very large counties (the shapes are sent whole: fine at 10k parcels, too much at 500k; vector tiles then).
 
@@ -639,7 +639,7 @@ Notebook 2 makes the data ready to model, and it's where subjective calls go in:
 - **What it writes:** kept sales go in a keep-list (engine A6: `analysis.sales_scrutiny.keep_file`, a CSV of `key_sale`), exclusions in `invalid_key_file`; both in `in/`, so notebook users get the same sales. Overrides survive re-runs; a kept sale stays kept only while the same check still sets it aside (otherwise it's just counted).
 - **Looks right** marks step 3 done, as F5.
 
-**Out of date when** model groups, the data or anything on this tab changes; it says which. Step 4 and 5 then go out of date too.
+**Out of date when** Model groups runs again or anything on this tab changes; it says which. Step 4 and 5 then wait for it (§6.4).
 
 **Engine changes** (built on `engine/enrich-fixes`, up to commit `9fc828a`; then upstream). Anything generally useful is built in the engine, not OAK box:
 - **A6, scrutiny for review (built):** drops as settings (`analysis.sales_scrutiny.drop.clusters`, `.drop.heuristics`); a `keep_file` (CSV of `key_sale`) whose sales are flagged but never dropped; every sale a check flagged, kept or dropped alike, in `out/sales_scrutiny/flags.parquet`: `check` (`dupe_deed_date`, `dupe_date_price`, `false_vacant`, `excluded`, `cluster`), and for clusters `count`, `price`, `price_per_area`, `median`, `stdev`, `relative_ratio`, `med_dist_stdevs`, `rules` (thresholds crossed), `pattern` (anomaly 1–5), `scrutiny_pass`; then `kept`, `dropped`. Before, with drops off a flagged sale stayed valid and reached modeling, and the heuristics' flags existed only in Excel files. OAK box runs with drops on, the keep-list holding the user's keeps, so a sale set aside never reaches modeling unless kept (§3.6's rule).
@@ -1304,7 +1304,7 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Since 0.7.0: nested CV by default, raw-price ratio study, `benchmark` renamed `model_runner` (shim removed in 0.8) | Benchmarks and the headless API target 0.7+ behaviour |
 
 ### 6.4 Staleness and re-runs
-Oakbox keeps a hash of the decisions, settings and inputs that feed each stage and step. When one changes, every later step is marked stale, and its OpenAVMKit checkpoints are deleted before the re-run.
+Oakbox keeps a hash of what each step depends on: its own calls, and the run of the step it starts from (settled 2026-10-30: "follow the run before"). A step is **out of date** when one of its calls changed or the step before it has run again since; nothing further back. A change further back shows only where it was made: every step after that one **waits** for it ("Run Bring in data again first: something it depends on changed since it ran"), and can't start or be accepted until each step before it is accepted (Looks right) on an up-to-date run. So a re-run with nothing changed still puts the steps after it out of date. OpenAVMKit checkpoints are deleted before the re-run.
 
 | Change | Re-runs from |
 |---|---|

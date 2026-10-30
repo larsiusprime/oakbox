@@ -87,6 +87,7 @@ def brought_in(tmp_path_factory):
             break
         time.sleep(0.5)
     assert view["status"] == "done", view["job"]
+    assert client.post(f"{url}/accept").json()["accepted"]  # Looks right: model groups start from it
     yield tmp, pid
     mp.undo()
 

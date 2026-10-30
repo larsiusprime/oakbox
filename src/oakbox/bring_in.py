@@ -954,6 +954,7 @@ def _current(project_dir: Path) -> dict:
 # The run keeps the whole settings it ran with (settings.json), to say what changed since.
 STEP = steps.Step(
     MODULE,
+    "Bring in data",
     Receipt,
     key=lambda project, pdir: settings_key(_current(pdir)),
     ran_hash=settings_hash,

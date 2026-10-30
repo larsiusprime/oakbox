@@ -40,7 +40,7 @@ def test_a_receipt_this_oak_box_cant_read_is_no_receipt(tmp_path):
 
 def test_out_of_date_and_accepted(tmp_path):
     depends = {"x": 1}
-    step = steps.Step("demo", R, key=lambda project, pdir: depends)
+    step = steps.Step("demo", "Demo", R, key=lambda project, pdir: depends)
     project = SimpleNamespace(id="p1", accepted={})
     pdir = tmp_path
     out = step.out_dir(pdir)
@@ -63,3 +63,37 @@ def test_out_of_date_and_accepted(tmp_path):
         assert str(e) == step.again
     # Blocked: what it depends on can't be worked out, so it isn't called out of date.
     assert not step.state(project, pdir, check=False).stale
+
+
+def _ran(step, pdir, ran_at, key):
+    out = step.out_dir(pdir)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "receipt.json").write_text(f'{{"ran_at": "{ran_at}"}}', encoding="utf-8")
+    (out / "settings.json").write_text(f'{{"hash": "{steps.key_hash(key)}"}}', encoding="utf-8")
+
+
+def test_a_step_follows_the_run_before_and_waits_for_any_step_before_it(tmp_path):
+    calls = {"first": 1}
+    first = steps.Step("first", "First", R, key=lambda project, pdir: dict(calls))
+    second = steps.Step("second", "Second", R, key=lambda project, pdir: {"first": first.ran_at(pdir)}, after=first)
+    third = steps.Step("third", "Third", R, key=lambda project, pdir: {"second": second.ran_at(pdir)}, after=second)
+    project = SimpleNamespace(id="p2", accepted={})
+    _ran(first, tmp_path, "t1", calls)
+    _ran(second, tmp_path, "t2", {"first": "t1"})
+    _ran(third, tmp_path, "t3", {"second": "t2"})
+    for s in (first, second, third):
+        s.accept(project, tmp_path)
+    assert third.accepted(project, tmp_path)
+
+    # A call changes on the first step: it's out of date; the ones after it aren't, but wait for it.
+    calls["first"] = 2
+    assert first.state(project, tmp_path).stale
+    s3 = third.state(project, tmp_path)
+    assert not s3.stale and not s3.accepted
+    assert s3.waiting == "Run First again first: something it depends on changed since it ran."
+
+    # The first runs again and is accepted: the second is out of date (its run is replaced), the third waits.
+    _ran(first, tmp_path, "t4", calls)
+    first.accept(project, tmp_path)
+    assert second.state(project, tmp_path).stale
+    assert (third.state(project, tmp_path).waiting or "").startswith("Run Second again first")

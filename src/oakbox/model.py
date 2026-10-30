@@ -531,6 +531,7 @@ def run(project_id: str) -> None:
     if not (pdir / "out" / "2-clean-sup.pickle").is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
     tmp = steps.workdir(out_dir(pdir))
+    depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -637,7 +638,7 @@ def run(project_id: str) -> None:
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
-    (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(s, pdir)}), encoding="utf-8")
+    (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
     steps.publish(tmp, out_dir(pdir))
     modeled = sum(1 for g in out if g.sets)
     steps.emit(step="done", fraction=1.0, message=f"{modeled} of {len(out)} model groups modeled")
@@ -648,18 +649,13 @@ def run(project_id: str) -> None:
 
 def settings_key(settings: dict, project_dir: Path) -> dict:
     """What a try depends on: the Prepare run it starts from, and the variables and models."""
-    r, _ = prepare.STEP.ran(project_dir)
     m = settings.get("modeling", {})
     return {
-        "prepare": r.ran_at if r else None,
+        "prepare": prepare.STEP.ran_at(project_dir),
         "models": m.get("models", {}).get("main"),
         "run": m.get("instructions", {}).get("main"),
         "study": settings.get("analysis", {}).get("ratio_study", {}).get("study_set_predictions"),
     }
-
-
-def settings_hash(settings: dict, project_dir: Path) -> str:
-    return steps.key_hash(settings_key(settings, project_dir))
 
 
 class ModelView(steps.RunView):
@@ -672,12 +668,20 @@ def _key(project, project_dir: Path) -> dict:
     return settings_key(projects.base_settings(project), project_dir)
 
 
-STEP = steps.Step(MODULE, ModelReceipt, key=_key, again="Try the models again first: something changed since.")
+STEP = steps.Step(
+    MODULE,
+    "Try the models",
+    ModelReceipt,
+    key=_key,
+    after=prepare.STEP,
+    again="Try the models again first: something changed since.",
+)
 
 
 def blocked(project, project_dir: Path) -> list[str]:
-    if not prepare.STEP.accepted(project, project_dir):
-        return ["Press Looks right on What changed first: the models start from the prepared fields."]
+    waiting = STEP.waiting(project, project_dir)
+    if waiting:
+        return [waiting]
     if not [v for v in variables(project, project_dir) if v.chosen]:
         return ["Choose at least one variable."]
     return []

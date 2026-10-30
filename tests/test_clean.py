@@ -80,6 +80,7 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     client.put(f"/api/projects/{pid}/groups", json={"groups": groups})
     assert client.post(f"/api/projects/{pid}/assemble/run").status_code == 200
     assert _wait(client, f"/api/projects/{pid}/assemble")["status"] == "done"
+    assert client.post(f"/api/projects/{pid}/assemble/accept").json()["accepted"]
 
     setup = client.get(f"{url}/setup").json()
     assert (setup["valuation_year"], setup["sales_from"], setup["total"]) == (2026, 2021, 47)
@@ -292,12 +293,12 @@ def test_a_failed_write_fails_the_run():
     steps.written([], "notebook 2's output")  # nothing said: written
 
 
-def test_the_models_study_set_setting_leaves_check_sales_as_it_was():
+def test_the_models_study_set_setting_leaves_check_sales_as_it_was(tmp_path):
     project = projects.Project.model_validate(
         {"id": "x", "name": "x", "created_at": "2026-01-01T00:00:00", "tax_year": 2026, "valuation_date": "2026-01-01"}
     )
     base = {"analysis": {"ratio_study": {"look_back_years": 1}}}
     more = {"analysis": {"ratio_study": {"look_back_years": 1, "study_set_predictions": "holdout"}}}
-    assert clean.settings_key(base, project) == clean.settings_key(more, project)
+    assert clean.settings_key(base, project, tmp_path) == clean.settings_key(more, project, tmp_path)
     other = {"analysis": {"ratio_study": {"look_back_years": 2}}}
-    assert clean.settings_key(base, project) != clean.settings_key(other, project)
+    assert clean.settings_key(base, project, tmp_path) != clean.settings_key(other, project, tmp_path)

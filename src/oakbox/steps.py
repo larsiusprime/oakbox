@@ -318,6 +318,7 @@ class State(Generic[R]):
     ran: dict | None
     stale: bool
     accepted: bool
+    waiting: str | None = None
     now: str | None = field(default=None, repr=False)
 
 
@@ -328,11 +329,18 @@ def _hash_field(ran: dict) -> str | None:
 @dataclass(frozen=True)
 class Step(Generic[R]):
     """One step: its module, its receipt, what it depends on now (`key`), and the fingerprint its last run left
-    (`ran_hash`, from what the run wrote to settings.json: by default its "hash")."""
+    (`ran_hash`, from what the run wrote to settings.json: by default its "hash").
+
+    A step is out of date when its own calls change or the step it starts from (`after`) has run again since
+    (its key holds that step's `ran_at`); nothing further back. A change further back shows where it was made, and
+    every step after that one waits for it: a step can start, and be accepted, only once each step before it is
+    accepted on an up-to-date run."""
 
     module: str
+    title: str
     receipt: type[R]
     key: Callable[[Any, Path], Any]
+    after: Step | None = None
     ran_hash: Callable[[dict], str | None] = _hash_field
     again: str = "Run it again first: something changed since it ran."
 
@@ -342,12 +350,40 @@ class Step(Generic[R]):
     def ran(self, project_dir: Path) -> tuple[R | None, dict | None]:
         return read(self.out_dir(project_dir), self.receipt)
 
+    def ran_at(self, project_dir: Path) -> str | None:
+        """When its last run finished: what a step after it follows. A new run puts every step after it out of
+        date."""
+        r, _ = self.ran(project_dir)
+        return cast(str | None, getattr(r, "ran_at", None)) if r else None
+
     def now(self, project, project_dir: Path) -> str:
         return key_hash(self.key(project, project_dir))
 
     def state(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
-        """Its job, receipt and whether the receipt still holds. `check=False` when what it depends on can't be
-        worked out yet (it's blocked): then it isn't called out of date."""
+        """Its job, receipt and whether the receipt still holds; and what an earlier step needs first, if anything.
+        `check=False` when what it depends on can't be worked out yet (it's blocked): then it isn't called out of
+        date."""
+        s = self._own(project, project_dir, now, check)
+        s.waiting = self.waiting(project, project_dir)
+        s.accepted = s.accepted and s.waiting is None
+        return s
+
+    def waiting(self, project, project_dir: Path) -> str | None:
+        """What the earliest step before this one that isn't accepted on an up-to-date run needs, in words; None
+        when each is."""
+        if self.after is None:
+            return None
+        up = self.after.waiting(project, project_dir)
+        if up:
+            return up
+        s = self.after._own(project, project_dir)
+        if s.accepted:
+            return None
+        if s.receipt is not None and s.stale:
+            return f"Run {self.after.title} again first: something it depends on changed since it ran."
+        return f"Press Looks right on {self.after.title} first: this starts from what it wrote."
+
+    def _own(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
         r, ran = self.ran(project_dir)
         j = job(project.id, self.module)
         if check and now is None:
@@ -369,6 +405,8 @@ class Step(Generic[R]):
 
     def accept(self, project, project_dir: Path) -> None:
         s = self.state(project, project_dir)
+        if s.waiting:
+            raise ValueError(s.waiting)
         if s.receipt is None or s.stale or s.now is None:
             raise ValueError(self.again)
         project.accepted[self.module] = s.now

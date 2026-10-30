@@ -33,15 +33,10 @@ def out_dir(project_dir: Path) -> Path:
 def settings_key(settings: dict, project, project_dir: Path) -> dict:
     """What this run depends on: the Check sales run it starts from, and the fills and folding."""
     process = settings.get("data", {}).get("process", {})
-    r, _ = clean.STEP.ran(project_dir)
     return {
-        "clean": r.ran_at if r else None,
+        "clean": clean.STEP.ran_at(project_dir),
         "fields": {k: process.get(k) for k in clean.FIELD_PROCESS},
     }
-
-
-def settings_hash(settings: dict, project, project_dir: Path) -> str:
-    return steps.key_hash(settings_key(settings, project, project_dir))
 
 
 # ---------- The receipt ----------
@@ -78,7 +73,7 @@ def run(project_id: str) -> None:
     if not src.is_file():
         raise RuntimeError("Check sales first: this starts from what it wrote.")
     tmp = steps.workdir(out_dir(pdir))
-    settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
+    depends = STEP.now(project, pdir)  # what it starts from, before anything can change
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import SalesUniversePair
@@ -147,9 +142,8 @@ def run(project_id: str) -> None:
         written=written,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
-    s = json.loads(settings_text)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
-    (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(s, project, pdir)}), encoding="utf-8")
+    (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
     steps.publish(tmp, out_dir(pdir))
     n = sum(x.count for x in filled)
     steps.emit(step="done", fraction=1.0, message=f"{n:,} values filled, {len(folded)} fields folded")
@@ -165,15 +159,20 @@ class PrepareView(steps.RunView):
 
 STEP = steps.Step(
     MODULE,
+    "Prepare the fields",
     PrepareReceipt,
     key=lambda project, pdir: settings_key(clean._settings(pdir), project, pdir),
+    after=clean.STEP,
     again="Prepare the fields again first: something changed since it ran.",
 )
 
 
 def blocked(project, project_dir: Path) -> list[str]:
-    if not clean.STEP.accepted(project, project_dir) or not (clean.out_dir(project_dir) / "sup.pickle").is_file():
-        return ["Press Looks right on Check sales first: this starts from what it wrote."]
+    waiting = STEP.waiting(project, project_dir)
+    if waiting:
+        return [waiting]
+    if not (clean.out_dir(project_dir) / "sup.pickle").is_file():
+        return ["Run Check sales again first: this starts from what it wrote."]
     return []
 
 
