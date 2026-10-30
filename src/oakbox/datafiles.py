@@ -499,13 +499,14 @@ class FileCheck(BaseModel):
     filename_taken: bool = Field(default=False, description="in/ already has a different file of this name.")
 
 
-def _ext(path: Path) -> str:
+def file_ext(path: Path) -> str:
+    """A file's extension, lower case, without the dot: "csv", "gpkg"."""
     return path.suffix.lower().lstrip(".")
 
 
 def companions(path: Path) -> list[Path]:
     """The file plus, for a shapefile, every file beside it with the same name (.shx, .dbf, .prj, .cpg, ...)."""
-    if _ext(path) != "shp":
+    if file_ext(path) != "shp":
         return [path]
     prefix = path.stem.lower() + "."
     found = [p for p in path.parent.iterdir() if p.is_file() and p.name.lower().startswith(prefix)]
@@ -528,7 +529,7 @@ def check(in_dir: Path, path_text: str, files: list[DataFile]) -> FileCheck:
     if not path.is_file():
         out.problem = "There's no file at that path."
         return out
-    ext = _ext(path)
+    ext = file_ext(path)
     if ext not in FORMATS:
         listed = ", ".join(dict.fromkeys(FORMATS.values()))
         out.problem = f"OpenAVMKit can't read .{ext or '?'} files yet. It reads {listed}."
@@ -536,7 +537,7 @@ def check(in_dir: Path, path_text: str, files: list[DataFile]) -> FileCheck:
     out.format = FORMATS[ext]
     group = companions(path)
     if ext == "shp":
-        have = {_ext(p) for p in group}
+        have = {file_ext(p) for p in group}
         missing = [x for x in SHAPEFILE_REQUIRED if x not in have]
         if missing:
             out.problem = "This shapefile is missing its " + " and ".join(f".{m}" for m in missing) + " file."

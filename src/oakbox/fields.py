@@ -16,7 +16,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox.datafiles import NAME, BaseModel, DataFile, _ext
+from oakbox.datafiles import NAME, BaseModel, DataFile, file_ext
 
 SAMPLE_ROWS = 1000
 SAMPLES = 5
@@ -109,7 +109,7 @@ def _head(path: Path, layer: str | None):
     """The first rows (without geometry), and the row count when it's cheap to know."""
     import pandas as pd
 
-    ext = _ext(path)
+    ext = file_ext(path)
     if ext in ("parquet", "geoparquet"):
         import pyarrow.parquet as pq
 
@@ -150,7 +150,7 @@ def columns(path: Path, layer: str | None) -> FileColumns:
     from oakbox.datafiles import has_geometry
 
     df, rows = _head(path, layer)
-    text = _csv_text(path) if _ext(path) == "csv" else df
+    text = _csv_text(path) if file_ext(path) == "csv" else df
     out = []
     for name in df.columns:
         kind = _kind(df[name].dtype)
