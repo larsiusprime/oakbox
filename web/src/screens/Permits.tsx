@@ -3,8 +3,8 @@ import { Button, Input, TextField } from "react-aria-components";
 import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { t } from "../strings";
-import type { Mutate } from "./FieldsWizard";
 import { FileHeader, FilePicker, IdRow } from "./WizardFiles";
+import type { Mutate } from "./wizardChange";
 
 const w = t.wizard;
 const p = t.wizard.permits;

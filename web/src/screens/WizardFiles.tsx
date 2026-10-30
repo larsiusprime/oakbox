@@ -29,10 +29,10 @@ import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { band } from "../lib/format";
 import { t } from "../strings";
-import type { Mutate } from "./FieldsWizard";
 import { AddFile } from "./InputFiles";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { CondosLink } from "./Units";
+import type { Mutate } from "./wizardChange";
 
 const w = t.wizard;
 
