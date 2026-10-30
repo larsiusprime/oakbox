@@ -32,7 +32,7 @@ const NEXT: Record<StepId, StepId[]> = {
 };
 
 /** Every step after this one, however far down. */
-export function after(id: StepId): StepId[] {
+export function stepsAfter(id: StepId): StepId[] {
   const out: StepId[] = [];
   const visit = (x: StepId) => {
     for (const n of NEXT[x]) {
@@ -55,7 +55,7 @@ const ALSO: Partial<Record<StepId, string[]>> = { clean: ["clean-time", "clean-r
 /** Something about a step changed (a call, a mark, a run): ask it again (unless `self` is false: the caller has
  * its new state), what else its screen shows, and every step after it. */
 export function stepChanged(queryClient: QueryClient, projectId: string, id: StepId, self = true): void {
-  const keys = [...(self ? [id] : []), ...(ALSO[id] ?? []), ...after(id)];
+  const keys = [...(self ? [id] : []), ...(ALSO[id] ?? []), ...stepsAfter(id)];
   for (const k of keys) void queryClient.invalidateQueries({ queryKey: [k, projectId] });
 }
 

@@ -1,12 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
-import { after, stepChanged } from "./steps";
+import { stepChanged, stepsAfter } from "./steps";
 
 describe("the steps after a step", () => {
   it("follows the pipeline down, however far", () => {
-    expect(after("bring-in")).toEqual(["assemble", "clean", "prepare", "vartest", "model", "ratio"]);
-    expect(after("clean").sort()).toEqual(["model", "prepare", "ratio", "vartest"]);
-    expect(after("model")).toEqual([]);
+    expect(stepsAfter("bring-in")).toEqual(["assemble", "clean", "prepare", "vartest", "model", "ratio"]);
+    expect(stepsAfter("clean").sort()).toEqual(["model", "prepare", "ratio", "vartest"]);
+    expect(stepsAfter("model")).toEqual([]);
   });
 });
 
