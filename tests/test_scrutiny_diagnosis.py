@@ -6,21 +6,13 @@ import json
 import geopandas as gpd
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
+from helpers import NEW
 from shapely.geometry import box
-from test_data_files import NEW
 
 from oakbox import clean, names, projects
-from oakbox.app import create_app
 
 SELLERS = ["SMITH JOHN A", "LEE ANN & BOB", "ACME HOLDINGS LLC", "PARK JO", "", "GARCIA MARIA"]
 BUYERS = ["SMITH MARY", "KIM DAE & LEE SU", "JONES TOM", "PARK JO", "WHITE AL", "TRIAD HOMES LLC"]
-
-
-@pytest.fixture
-def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("OAKBOX_HOME", str(tmp_path / "home"))
-    return TestClient(create_app())
 
 
 @pytest.fixture

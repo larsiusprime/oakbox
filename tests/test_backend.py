@@ -9,6 +9,7 @@ from oakbox.app import create_app
 
 @pytest.fixture(autouse=True)
 def oakbox_home(tmp_path, monkeypatch):
+    """The projects straight in tmp_path (not conftest's tmp_path/home), and the desktop trash beside them."""
     monkeypatch.setenv("OAKBOX_HOME", str(tmp_path))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))  # the desktop trash, for Delete
     return tmp_path

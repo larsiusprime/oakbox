@@ -1,36 +1,12 @@
 """F2 Add a data file (SPEC §3.0): files go into in/ and become data.load entries."""
 
-import json
-
 import geopandas as gpd
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
+from helpers import NEW, read_settings
 from shapely.geometry import box
 
 from oakbox import projects
-from oakbox.app import create_app
-
-NEW = {
-    "name": "Test County 2026",
-    "country": "US",
-    "region": "TX",
-    "jurisdiction": "Test County",
-    "tax_year": 2026,
-    "valuation_date": "2026-01-01",
-    "units": "imperial",
-}
-
-
-@pytest.fixture(autouse=True)
-def oakbox_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("OAKBOX_HOME", str(tmp_path / "home"))
-    return tmp_path
-
-
-@pytest.fixture
-def client():
-    return TestClient(create_app())
 
 
 @pytest.fixture
@@ -44,10 +20,6 @@ def _map(n=3):
     )
 
 
-def _settings(pid):
-    return json.loads((projects.project_dir(pid) / "in" / "settings.json").read_text(encoding="utf-8"))
-
-
 def test_copy_a_csv_keeps_the_original(client, pid, tmp_path):
     src = tmp_path / "Sales 2025.csv"
     src.write_text("PIN,PRICE\n1,100\n", encoding="utf-8")
@@ -59,7 +31,7 @@ def test_copy_a_csv_keeps_the_original(client, pid, tmp_path):
     assert (projects.project_dir(pid) / "in" / "Sales 2025.csv").read_text(encoding="utf-8") == src.read_text(
         encoding="utf-8"
     )
-    assert _settings(pid)["data"]["load"] == {"sales_2025": {"filename": "Sales 2025.csv"}}
+    assert read_settings(pid)["data"]["load"] == {"sales_2025": {"filename": "Sales 2025.csv"}}
 
 
 def test_move_a_shapefile_with_its_sidecars(client, pid, tmp_path):
@@ -77,7 +49,7 @@ def test_move_a_shapefile_with_its_sidecars(client, pid, tmp_path):
     assert list(src_dir.iterdir()) == []  # moved, sidecars and all
     in_dir = projects.project_dir(pid) / "in"
     assert sorted(p.name for p in in_dir.iterdir() if p.name != "settings.json") == sidecars
-    assert _settings(pid)["data"]["load"]["parcels"] == {"filename": "parcels.2026.shp", "dupes": "allow"}
+    assert read_settings(pid)["data"]["load"]["parcels"] == {"filename": "parcels.2026.shp", "dupes": "allow"}
 
 
 def test_a_shapefile_without_its_dbf_is_refused(client, pid, tmp_path):
@@ -96,7 +68,11 @@ def test_geopackage_layer_is_chosen_and_written(client, pid, tmp_path):
     body = {"path": str(gpkg), "mode": "copy", "name": "county"}
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 422  # which layer?
     assert client.post(f"/api/projects/{pid}/files", json=body | {"layer": "zoning"}).status_code == 200
-    assert _settings(pid)["data"]["load"]["county"] == {"filename": "county.gpkg", "layer": "zoning", "dupes": "allow"}
+    assert read_settings(pid)["data"]["load"]["county"] == {
+        "filename": "county.gpkg",
+        "layer": "zoning",
+        "dupes": "allow",
+    }
 
 
 def test_a_taken_file_name_needs_a_new_name(client, pid, tmp_path):
@@ -111,7 +87,7 @@ def test_a_taken_file_name_needs_a_new_name(client, pid, tmp_path):
     body = {"path": str(b / "data.csv"), "mode": "copy", "name": "data_2"}
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 422
     assert client.post(f"/api/projects/{pid}/files", json=body | {"filename": "data_b"}).status_code == 200
-    assert _settings(pid)["data"]["load"]["data_2"] == {"filename": "data_b.csv"}
+    assert read_settings(pid)["data"]["load"]["data_2"] == {"filename": "data_b.csv"}
     # And the entry names stay unique.
     dup = {"path": str(b / "data.csv"), "mode": "copy", "name": "data", "filename": "data_c"}
     assert client.post(f"/api/projects/{pid}/files", json=dup).status_code == 422
@@ -145,7 +121,7 @@ def test_openavmkit_loads_what_was_written(client, pid, tmp_path, monkeypatch):
     client.post(
         f"/api/projects/{pid}/files", json={"path": str(tmp_path / "parcels.gpkg"), "mode": "copy", "name": "parcels"}
     )
-    entry = _settings(pid)["data"]["load"]["parcels"] | {"load": {"key": ["PIN", "string"]}}
+    entry = read_settings(pid)["data"]["load"]["parcels"] | {"load": {"key": ["PIN", "string"]}}
     monkeypatch.chdir(projects.project_dir(pid))
     df = load_dataframe(entry, {})
     assert df is not None

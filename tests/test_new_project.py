@@ -3,10 +3,8 @@
 import json
 
 import pytest
-from fastapi.testclient import TestClient
 
 from oakbox import appsettings, projects
-from oakbox.app import create_app
 
 TRAVIS = {
     "name": "Travis County 2026",
@@ -21,13 +19,9 @@ TRAVIS = {
 
 @pytest.fixture(autouse=True)
 def oakbox_home(tmp_path, monkeypatch):
+    """The projects straight in tmp_path (not conftest's tmp_path/home): the trash and other folders sit beside them."""
     monkeypatch.setenv("OAKBOX_HOME", str(tmp_path))
     return tmp_path
-
-
-@pytest.fixture
-def client():
-    return TestClient(create_app())
 
 
 def test_new_project_writes_only_the_locality_and_valuation_date(client, oakbox_home):

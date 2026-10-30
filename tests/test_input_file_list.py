@@ -3,23 +3,10 @@
 import geopandas as gpd
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
+from helpers import NEW, read_settings
 from shapely.geometry import box
-from test_data_files import NEW, _settings
 
 from oakbox import projects
-from oakbox.app import create_app
-
-
-@pytest.fixture(autouse=True)
-def oakbox_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("OAKBOX_HOME", str(tmp_path / "home"))
-    return tmp_path
-
-
-@pytest.fixture
-def client():
-    return TestClient(create_app())
 
 
 @pytest.fixture
@@ -65,7 +52,7 @@ def test_a_missing_file_is_shown_as_missing(client, pid):
 def test_rename_changes_the_entry_not_the_file(client, pid):
     r = client.put(f"/api/projects/{pid}/files/cama/name", json={"name": "cama_2026"})
     assert r.status_code == 200, r.text
-    load = _settings(pid)["data"]["load"]
+    load = read_settings(pid)["data"]["load"]
     assert "cama" not in load and load["cama_2026"] == {"filename": "cama.csv"}
     assert (projects.project_dir(pid) / "in" / "cama.csv").is_file()
     assert list(_files(client, pid)) == ["cama_2026", "parcels", "plain", "roads"]  # keeps its place
@@ -76,13 +63,13 @@ def test_rename_checks_the_new_name(client, pid):
     taken = client.put(f"/api/projects/{pid}/files/cama/name", json={"name": "parcels"})
     assert bad.status_code == taken.status_code == 422
     assert client.put(f"/api/projects/{pid}/files/nope/name", json={"name": "x"}).status_code == 404
-    assert "cama" in _settings(pid)["data"]["load"]
+    assert "cama" in read_settings(pid)["data"]["load"]
 
 
 def test_remove_leaves_the_file_unless_asked(client, pid):
     in_dir = projects.project_dir(pid) / "in"
     assert client.delete(f"/api/projects/{pid}/files/cama").status_code == 200
-    assert "cama" not in _settings(pid)["data"]["load"] and (in_dir / "cama.csv").is_file()
+    assert "cama" not in read_settings(pid)["data"]["load"] and (in_dir / "cama.csv").is_file()
     # It can be added back from in/, with no copy or move.
     check = client.post(f"/api/projects/{pid}/files/check", json={"path": str(in_dir / "cama.csv")}).json()
     assert check["already_in_project"]
@@ -94,7 +81,7 @@ def test_remove_with_trash_sends_the_file_and_sidecars_to_the_trash(client, pid,
     assert not list(in_dir.glob("roads.*"))
     trashed = sorted(p.name for p in (tmp_path / "xdg" / "Trash" / "files").iterdir())
     assert "roads.shp" in trashed and "roads.dbf" in trashed and "roads.shx" in trashed
-    assert "roads" not in _settings(pid)["data"]["load"]
+    assert "roads" not in read_settings(pid)["data"]["load"]
 
 
 def test_a_file_two_entries_use_is_not_trashed(client, pid):
@@ -102,7 +89,7 @@ def test_a_file_two_entries_use_is_not_trashed(client, pid):
     body = {"path": str(in_dir / "cama.csv"), "mode": "copy", "name": "cama_again"}
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
     assert client.delete(f"/api/projects/{pid}/files/cama", params={"trash": True}).status_code == 422
-    assert (in_dir / "cama.csv").is_file() and "cama" in _settings(pid)["data"]["load"]
+    assert (in_dir / "cama.csv").is_file() and "cama" in read_settings(pid)["data"]["load"]
 
 
 def test_show_file_selects_it_in_the_file_manager(client, pid, monkeypatch):

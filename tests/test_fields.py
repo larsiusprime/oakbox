@@ -2,21 +2,9 @@
 
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
-from test_data_files import NEW, _settings
+from helpers import NEW, read_settings
 
 from oakbox import projects
-from oakbox.app import create_app
-
-
-@pytest.fixture(autouse=True)
-def oakbox_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("OAKBOX_HOME", str(tmp_path / "home"))
-
-
-@pytest.fixture
-def client():
-    return TestClient(create_app())
 
 
 @pytest.fixture
@@ -56,7 +44,7 @@ def test_columns_preview_types_samples_and_date_formats(client, pid):
 
 def test_load_is_written_as_openavmkit_reads_it(client, pid, monkeypatch):
     assert client.put(f"/api/projects/{pid}/files/cama/load", json={"load": LOAD}).status_code == 200
-    entry = _settings(pid)["data"]["load"]["cama"]
+    entry = read_settings(pid)["data"]["load"]["cama"]
     assert entry["load"] == LOAD
     files = {f["name"]: f for f in client.get(f"/api/projects/{pid}").json()["files"]}
     assert files["cama"]["fields_loaded"] == 4 and files["cama"]["columns"] == 5
@@ -73,7 +61,7 @@ def test_load_is_written_as_openavmkit_reads_it(client, pid, monkeypatch):
 
 def test_a_bare_column_is_written_as_a_string(client, pid):
     assert client.put(f"/api/projects/{pid}/files/cama/load", json={"load": {"key": ["PIN"]}}).status_code == 200
-    assert _settings(pid)["data"]["load"]["cama"]["load"] == {"key": "PIN"}
+    assert read_settings(pid)["data"]["load"]["cama"]["load"] == {"key": "PIN"}
 
 
 @pytest.mark.parametrize(
@@ -90,7 +78,7 @@ def test_a_bare_column_is_written_as_a_string(client, pid):
 )
 def test_incomplete_or_unreadable_loads_are_refused(client, pid, load):
     assert client.put(f"/api/projects/{pid}/files/cama/load", json={"load": load}).status_code == 422
-    assert "load" not in _settings(pid)["data"]["load"]["cama"]
+    assert "load" not in read_settings(pid)["data"]["load"]["cama"]
 
 
 def test_date_format_check_reads_like_openavmkit(client):
@@ -111,7 +99,7 @@ def test_dictionary_offers_openavmkit_fields(client):
 def test_rename_and_remove_keep_the_load(client, pid):
     client.put(f"/api/projects/{pid}/files/cama/load", json={"load": LOAD})
     client.put(f"/api/projects/{pid}/files/cama/name", json={"name": "cama_2026"})
-    assert _settings(pid)["data"]["load"]["cama_2026"]["load"] == LOAD
+    assert read_settings(pid)["data"]["load"]["cama_2026"]["load"] == LOAD
 
 
 def test_columns_preview_a_geopackage_layer(client, tmp_path):

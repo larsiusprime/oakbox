@@ -4,30 +4,17 @@ skipped rather than stopping Bring in data."""
 import geopandas as gpd
 import pandas as pd
 import pytest
-from fastapi.testclient import TestClient
+from helpers import NEW, put_file, read_settings, start_wizard, wizard_files, wizard_step
 from shapely.geometry import box
-from test_data_files import NEW
-from test_wizard import _files, _put_file, _settings, _start, _step
 
 from oakbox import enrichments, projects
-from oakbox.app import create_app
-
-
-@pytest.fixture(autouse=True)
-def oakbox_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("OAKBOX_HOME", str(tmp_path / "home"))
-
-
-@pytest.fixture
-def client():
-    return TestClient(create_app())
 
 
 @pytest.fixture
 def pid(client, tmp_path):
     """test_wizard's project: a parcel file with shapes, CAMA, sales and more."""
     pid = client.post("/api/projects", json=NEW).json()["id"]
-    _files(tmp_path)
+    wizard_files(tmp_path)
     for name in ("shapes", "cama", "sales"):
         ext = "parquet" if name == "shapes" else "csv"
         body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
@@ -43,8 +30,8 @@ def _visit(client, pid, step):
 
 
 def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
-    _start(client, pid)
-    before = _settings(pid)["data"].get("process", {}).get("enrich", {})
+    start_wizard(client, pid)
+    before = read_settings(pid)["data"].get("process", {}).get("enrich", {})
     assert "overture" not in before and "dem" not in before  # nothing until the step is shown
     _visit(client, pid, "enrich")
     v = client.get(f"/api/projects/{pid}/wizard/enrich").json()
@@ -54,7 +41,7 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
     assert s["features"]["coastline"]["on"] is False
     # The fixture's parcels are degree-sized: a big area, so coarse elevation tiles.
     assert v["area"]["km2"] > 8_000 and v["resolution"] == 60 and s["resolution_m"] == 60
-    enrich = _settings(pid)["data"]["process"]["enrich"]
+    enrich = read_settings(pid)["data"]["process"]["enrich"]
     assert enrich["overture"]["footprint"] == {"units": "sqft", "field": "bldg_area_footprint_sqft"}
     assert enrich["dem"] == {"enabled": True, "resolution_m": 60}
     assert enrich["distances"]["parks"] == {
@@ -69,8 +56,8 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
     # Census: needs the county and the user's key, kept on this computer, never in the project.
     s |= {"census": True, "fips": "48453", "census_year": 2021}
     v = client.put(f"/api/projects/{pid}/wizard/enrich", json=s).json()
-    assert _settings(pid)["data"]["process"]["enrich"]["census"] == {"enabled": True, "fips": "48453", "year": 2021}
-    left = _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
+    assert read_settings(pid)["data"]["process"]["enrich"]["census"] == {"enabled": True, "fips": "48453", "year": 2021}
+    left = wizard_step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
     # The fixture's parcels are nowhere near Travis County: their census figures would all be blank.
     off = "Census: the parcels aren't in Travis County, TX"
     assert [x["text"] for x in left] == [off, "Census: add your API key"]
@@ -79,17 +66,17 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
     assert v["key_saved"] and v["key_end"] == "3456"
     assert "abcdef" not in client.get("/api/app-settings").text
     assert "abcdef" not in (projects.project_dir(pid) / "in" / "settings.json").read_text(encoding="utf-8")
-    assert [x["text"] for x in _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]] == [off]
+    assert [x["text"] for x in wizard_step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]] == [off]
 
     bad = client.put(f"/api/projects/{pid}/wizard/enrich", json=s | {"fips": "99999"})
     assert bad.status_code == 422
-    assert "drop_fields" not in _settings(pid)["data"]["process"]["enrich"]  # every field, to start with
+    assert "drop_fields" not in read_settings(pid)["data"]["process"]["enrich"]  # every field, to start with
 
 
 def test_the_fields_each_enrichment_adds_can_be_chosen(client, pid):
     """Each field ticked or not: unticked ones are dropped as the run ends (the largest features' distances by a
     pattern); an enrichment with none ticked isn't downloaded."""
-    _start(client, pid)
+    start_wizard(client, pid)
     _visit(client, pid, "enrich")
     v = client.get(f"/api/projects/{pid}/wizard/enrich").json()
     adds = {a["enrichment"]: a["fields"] for a in v["adds"]}
@@ -103,7 +90,7 @@ def test_the_fields_each_enrichment_adds_can_be_chosen(client, pid):
     adds = {a["enrichment"]: {f["key"]: f["on"] for f in a["fields"]} for a in v["adds"]}
     assert adds["distances"] == {"dist_to": True, "within": False, "proximity_to": False}
     assert not adds["footprints"]["bldg_height_ft"] and adds["footprints"]["bldg_area_footprint_sqft"]
-    enrich = _settings(pid)["data"]["process"]["enrich"]
+    enrich = read_settings(pid)["data"]["process"]["enrich"]
     drop = enrich["drop_fields"]["universe"]
     assert {"bldg_height_ft", "elevation_stdev_ft", "within_osm_parks", "within_osm_parks_*"} <= set(drop)
     assert "dist_to_osm_parks" not in drop and enrich["drop_fields"]["sales"] == drop
@@ -112,9 +99,9 @@ def test_the_fields_each_enrichment_adds_can_be_chosen(client, pid):
     # Every field of one unticked: not downloaded at all, and the step says so.
     s |= {"off": ["elevation_mean_ft", "elevation_stdev_ft", "slope_mean_deg"]}
     client.put(f"/api/projects/{pid}/wizard/enrich", json=s)
-    enrich = _settings(pid)["data"]["process"]["enrich"]
+    enrich = read_settings(pid)["data"]["process"]["enrich"]
     assert "dem" not in enrich and not any(f.startswith("elevation") for f in enrich["drop_fields"]["universe"])
-    left = _step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
+    left = wizard_step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
     assert "Elevation: every field is unticked, so nothing is downloaded" in [x["text"] for x in left]
     assert client.put(f"/api/projects/{pid}/wizard/enrich", json=s | {"off": ["nope"]}).status_code == 422
 
@@ -301,14 +288,14 @@ def test_deed_book_and_page_become_the_deed_id_sales_scrutiny_reads(client, tmp_
     for name, ext in (("shapes", "parquet"), ("sales", "csv")):
         body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
         assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
-    _start(client, pid)
+    start_wizard(client, pid)
     w = _visit(client, pid, "deeds")
     assert {f["key"]: f["sources"] for f in w["fields"] if f["step"] == "deeds" and f["sources"]} == {
         "deed_book": [{"file": "sales", "column": "BOOK"}],
         "deed_page": [{"file": "sales", "column": "PAGE"}],
     }
     assert (w["deeds"]["deeds"], w["deeds"]["sales"], w["deeds"]["blank"]) == (1, 2, 1)
-    s = _settings(pid)
+    s = read_settings(pid)
     assert s["analysis"]["sales_scrutiny"]["deed_id"] == "deed_book_and_page"
 
     from openavmkit.pipeline import load_dataframes, load_settings
@@ -320,7 +307,7 @@ def test_deed_book_and_page_become_the_deed_id_sales_scrutiny_reads(client, tmp_
 
     # A deed ID column wins over book and page; "I don't have these" leaves the heuristic off.
     assert client.post(f"/api/projects/{pid}/wizard/steps/deeds/skip").status_code == 200
-    assert "analysis" not in _settings(pid)
+    assert "analysis" not in read_settings(pid)
 
 
 # ---------- Permits ----------
@@ -345,8 +332,8 @@ def test_permits_are_guessed_and_written_for_openavmkit(client, tmp_path, monkey
     for name, ext in (("shapes", "parquet"), ("sales", "csv"), ("permits", "csv")):
         body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
         assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
-    _start(client, pid)
-    w = _put_file(client, pid, "permits", holds="permits").json()
+    start_wizard(client, pid)
+    w = put_file(client, pid, "permits", holds="permits").json()
     p = w["permits"]
     assert (p["settings"]["date"], p["settings"]["date_format"], p["settings"]["type"]) == (
         "ISSUED",
@@ -361,7 +348,7 @@ def test_permits_are_guessed_and_written_for_openavmkit(client, tmp_path, monkey
     }
     permits = next(f for f in w["files"] if f["name"] == "permits")
     assert permits["id_check"]["text"] == "4 permits · 75% find a parcel"
-    s = _settings(pid)["data"]
+    s = read_settings(pid)["data"]
     assert s["process"]["enrich"]["permits"] == {
         "sources": ["permits"],
         "max_days_to_demo": 365,
@@ -384,7 +371,7 @@ def test_permits_are_guessed_and_written_for_openavmkit(client, tmp_path, monkey
     assert pd.api.types.is_datetime64_any_dtype(df["date"])
 
     r = client.put(f"/api/projects/{pid}/wizard/files/permits/permits", json={"permits": None})
-    assert "permits" not in _settings(pid)["data"]["process"].get("enrich", {})
+    assert "permits" not in read_settings(pid)["data"]["process"].get("enrich", {})
 
 
 def test_the_app_asks_a_running_run_to_skip_a_part(tmp_path, monkeypatch):

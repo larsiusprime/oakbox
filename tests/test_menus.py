@@ -6,12 +6,9 @@ The Windows menu bar itself is checked on Windows by `python -m oakbox --selftes
 import re
 from pathlib import Path
 
-import pytest
-from fastapi.testclient import TestClient
 from webview.menu import Menu, MenuAction
 
 from oakbox import appsettings, menus
-from oakbox.app import create_app
 
 NEW = {
     "name": "Travis County 2026",
@@ -22,16 +19,6 @@ NEW = {
     "valuation_date": "2026-01-01",
     "units": "imperial",
 }
-
-
-@pytest.fixture(autouse=True)
-def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("OAKBOX_HOME", str(tmp_path))
-
-
-@pytest.fixture
-def client():
-    return TestClient(create_app())
 
 
 class Recorder:
