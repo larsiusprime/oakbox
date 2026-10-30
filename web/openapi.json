@@ -62,24 +62,6 @@
     }
    }
   },
-  "/api/regions": {
-   "get": {
-    "summary": "Regions",
-    "operationId": "regions_api_regions_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Regions"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/app-settings": {
    "get": {
     "summary": "Get App Settings",
@@ -130,6 +112,61 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/census-key": {
+   "put": {
+    "summary": "Put Census Key",
+    "description": "Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it.",
+    "operationId": "put_census_key_api_census_key_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CensusKey"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/regions": {
+   "get": {
+    "summary": "Regions",
+    "operationId": "regions_api_regions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Regions"
         }
        }
       }
@@ -746,6 +783,90 @@
       "content": {
        "application/json": {
         "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/dictionary": {
+   "get": {
+    "summary": "Dictionary",
+    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC \u00a73.0 F3c).\n\nWith the project's jurisdiction, names say it where OpenAVMKit writes \"{jurisdiction}\".",
+    "operationId": "dictionary_api_dictionary_get",
+    "parameters": [
+     {
+      "name": "jurisdiction",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Jurisdiction"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DictionaryField"
+         },
+         "title": "Response Dictionary Api Dictionary Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/date-format": {
+   "post": {
+    "summary": "Date Format",
+    "description": "Read sample values with a date format, as OpenAVMKit would (SPEC \u00a73.0 F3c).",
+    "operationId": "date_format_api_date_format_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DateFormatCheck"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DateCheck"
+        }
        }
       }
      },
@@ -2217,43 +2338,6 @@
         "schema": {
          "$ref": "#/components/schemas/EnrichView"
         }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/census-key": {
-   "put": {
-    "summary": "Put Census Key",
-    "description": "Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it.",
-    "operationId": "put_census_key_api_census_key_put",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CensusKey"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
        }
       }
      },
@@ -5252,90 +5336,6 @@
           "maxItems": 3
          },
          "title": "Response Ratio Points Api Projects  Project Id  Ratio Points Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/dictionary": {
-   "get": {
-    "summary": "Dictionary",
-    "description": "OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC \u00a73.0 F3c).\n\nWith the project's jurisdiction, names say it where OpenAVMKit writes \"{jurisdiction}\".",
-    "operationId": "dictionary_api_dictionary_get",
-    "parameters": [
-     {
-      "name": "jurisdiction",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "string",
-       "default": "",
-       "title": "Jurisdiction"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/DictionaryField"
-         },
-         "title": "Response Dictionary Api Dictionary Get"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/date-format": {
-   "post": {
-    "summary": "Date Format",
-    "description": "Read sample values with a date format, as OpenAVMKit would (SPEC \u00a73.0 F3c).",
-    "operationId": "date_format_api_date_format_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/DateFormatCheck"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DateCheck"
         }
        }
       }

@@ -40,9 +40,10 @@ choices turned into settings.
 
 Every step that runs OpenAVMKit (Bring in data, Model groups, Check sales, Check my values, Prepare, the variable
 tests, the models) is built on `steps.py`, not on another step's module: a `steps.Step` (its module, its receipt,
-`key`: what it depends on now), and in its run `steps.workdir` / `steps.publish`, `steps.emit`,
-`steps.heartbeat()`, `steps.engine_notes`, `steps.main`. Its routes come from `_step_routes` in `app.py`. A step
-that needs an earlier one done asks `<earlier>.STEP.accepted(...)` (cheap), never builds the earlier step's view.
+`key`: what it depends on now), and in its run `steps.workdir` / `steps.publish`, `steps.emit`, `steps.heartbeat()`,
+`steps.engine_notes`, `steps.main`. Its routes come from `_step_routes` in `routes/steps.py` (each area of the API
+is a router in `routes/`). A step that needs an earlier one done asks `<earlier>.STEP.accepted(...)` (cheap), never
+builds the earlier step's view.
 
 On screen, a step's state, run and calls come from `web/src/api/steps.ts` (`useStep`, `useStepAct`,
 `useStepSetup`, `useStepNav`); after anything that changes a step, `stepChanged` asks it and every step after it

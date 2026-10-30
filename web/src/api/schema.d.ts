@@ -41,23 +41,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/regions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Regions */
-        get: operations["regions_api_regions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/app-settings": {
         parameters: {
             query?: never;
@@ -88,6 +71,43 @@ export interface paths {
          * @description Where new projects are kept. Existing projects stay where they are.
          */
         put: operations["put_storage_location_api_app_settings_storage_location_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/census-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Census Key
+         * @description Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it.
+         */
+        put: operations["put_census_key_api_census_key_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Regions */
+        get: operations["regions_api_regions_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -319,6 +339,48 @@ export interface paths {
          */
         put: operations["set_load_api_projects__project_id__files__name__load_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dictionary
+         * @description OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).
+         *
+         *     With the project's jurisdiction, names say it where OpenAVMKit writes "{jurisdiction}".
+         */
+        get: operations["dictionary_api_dictionary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Date Format
+         * @description Read sample values with a date format, as OpenAVMKit would (SPEC §3.0 F3c).
+         */
+        post: operations["date_format_api_date_format_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -778,26 +840,6 @@ export interface paths {
          * @description Choose the enrichments and their options (F3e).
          */
         put: operations["set_wizard_enrich_api_projects__project_id__wizard_enrich_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/census-key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Put Census Key
-         * @description Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it.
-         */
-        put: operations["put_census_key_api_census_key_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1938,48 +1980,6 @@ export interface paths {
         get: operations["ratio_points_api_projects__project_id__ratio_points_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Dictionary
-         * @description OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).
-         *
-         *     With the project's jurisdiction, names say it where OpenAVMKit writes "{jurisdiction}".
-         */
-        get: operations["dictionary_api_dictionary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/date-format": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Date Format
-         * @description Read sample values with a date format, as OpenAVMKit would (SPEC §3.0 F3c).
-         */
-        post: operations["date_format_api_date_format_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7854,26 +7854,6 @@ export interface operations {
             };
         };
     };
-    regions_api_regions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Regions"];
-                };
-            };
-        };
-    };
     get_app_settings_api_app_settings_get: {
         parameters: {
             query?: never;
@@ -7923,6 +7903,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_census_key_api_census_key_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CensusKey"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regions_api_regions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Regions"];
                 };
             };
         };
@@ -8366,6 +8399,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dictionary_api_dictionary_get: {
+        parameters: {
+            query?: {
+                jurisdiction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryField"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    date_format_api_date_format_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DateFormatCheck"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DateCheck"];
                 };
             };
             /** @description Validation Error */
@@ -9267,39 +9364,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnrichView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    put_census_key_api_census_key_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CensusKey"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11359,70 +11423,6 @@ export interface operations {
                         number,
                         boolean
                     ][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    dictionary_api_dictionary_get: {
-        parameters: {
-            query?: {
-                jurisdiction?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryField"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    date_format_api_date_format_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DateFormatCheck"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DateCheck"];
                 };
             };
             /** @description Validation Error */
