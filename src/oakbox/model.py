@@ -3,9 +3,12 @@
 A try is OpenAVMKit's notebook 3 up to `try_models`: the prepared hand-off (out/2-clean-sup.pickle, written by
 Prepare the fields), the canonical splits, then every model on every model group, main models only (no vacant
 models: OAK box values the whole parcel). It runs in a process of its own (`python -m oakbox.model <project id>`)
-and keeps each group's benchmark as the receipt (out/oakbox/model/): the holdout figures (each sale predicted by a
-model that never saw it, by 5-fold nested cross-validation) for each model and the ensemble, and the roll's own
-value on the same sales beside them.
+and keeps each group's benchmark as the receipt (out/oakbox/model/), as OpenAVMKit's benchmark has it: the IAAO
+figures on the holdout (each sale predicted by a model that never saw it, by 5-fold nested cross-validation), on
+sales after the valuation date if there are any, and on the study set (the look-back before the valuation date),
+each untrimmed and trimmed; the academic figures on the holdout; and the timings. The roll runs as OpenAVMKit's
+`assessor` model, and is shown on the study set only: the holdout is OpenAVMKit's own draw, and the roll's values
+may have been made with those very sales.
 
 The variables and models are written as OpenAVMKit's settings (`modeling.models.main`,
 `modeling.instructions.main`): the default list is the linear-safe one (numbers with no blanks left), which
@@ -206,6 +209,13 @@ def _scan(
     return tuple(out)
 
 
+def _has_roll(project_dir: Path) -> bool:
+    import pyarrow.parquet as pq
+
+    path = _universe_path(project_dir)
+    return path.is_file() and ratio.FIELD in pq.ParquetFile(path).schema_arrow.names
+
+
 def variables(project, project_dir: Path) -> list[Variable]:
     path = _universe_path(project_dir)
     if not path.is_file():
@@ -244,6 +254,8 @@ def settings(project, project_dir: Path) -> dict:
     every = [v.field for v in vs]
     linear = [v.field for v in vs if not v.trees_only]
     chosen = models(project)
+    # The roll, valued as a model: OpenAVMKit then audits it on the study set, beside the models.
+    roll = ["assessor"] if _has_roll(project_dir) else []
     entries: dict = {"default": {"ind_vars": linear or every}}
     for m in chosen:
         entry: dict = {}
@@ -254,7 +266,7 @@ def settings(project, project_dir: Path) -> dict:
         entries[m] = entry
     return {
         "modeling": {
-            "instructions": {"main": {"run": chosen, "ensemble": {"type": "median"}}},
+            "instructions": {"main": {"run": chosen + roll, "ensemble": {"type": "median"}}},
             "models": {"main": entries},
         }
     }
@@ -351,24 +363,30 @@ def change(project, body: ModelPatch) -> None:
 # ---------- The receipt ----------
 
 
-class ModelFigures(BaseModel):
+Verdict = Literal["ok", "slight", "bad"]
+SetKey = Literal["holdout", "post_val", "study"]
+
+
+class ModelRow(BaseModel):
+    """One row of a table: a model (or the roll) and its figures, by OpenAVMKit's names for them."""
+
     model: str
     name: str
+    values: dict[str, float | None]
+    judged: dict[str, Verdict] = Field(
+        default_factory=dict, description="Against this project's IAAO targets: the figures that are judged."
+    )
+
+
+class SalesSet(BaseModel):
+    """A set of sales the figures are on, as OpenAVMKit's benchmark has them."""
+
+    key: SetKey
     sales: int
-    median: float | None
-    cod: float | None
-    prd: float | None
-    prb: float | None
-    vei: float | None
-    vei_significance: float | None
-    trimmed_sales: int | None
-    cod_trimmed: float | None
-    prb_trimmed: float | None
-    level_ok: bool | None = Field(default=None, description="The median within the level range.")
-    cod_ok: bool | None = Field(default=None, description="The COD within its category's range.")
-    cod_low: bool = Field(default=False, description="Under its category's range: suspiciously even.")
-    prb_ok: bool | None = Field(default=None, description="The PRB within its good range (None: in between).")
-    prb_bad: bool = Field(default=False, description="The PRB outside its unacceptable range.")
+    first: str | None
+    last: str | None
+    rows: list[ModelRow] = Field(description="IAAO figures: a row per model; the roll's first on the study set.")
+    trimmed: list[ModelRow] = Field(description="The same, without the outlying ratios.")
 
 
 class ModelGroupResult(BaseModel):
@@ -377,10 +395,10 @@ class ModelGroupResult(BaseModel):
     color: str
     parcels: int
     sales: int
-    models: list[ModelFigures] = Field(description="Each model and the ensemble, on the holdout.")
-    roll: ModelFigures | None = Field(
-        description="The roll's own value on the same holdout sales (it may have seen them: the models didn't)."
-    )
+    sets: list[SalesSet] = Field(default_factory=list)
+    academic: list[ModelRow] = Field(default_factory=list, description="On the holdout: errors as a statistician's.")
+    academic_trimmed: list[ModelRow] = Field(default_factory=list)
+    timings: list[ModelRow] = Field(default_factory=list, description="Seconds each model took, by stage.")
     skipped: str | None = Field(default=None, description="Why it has no models, if it hasn't.")
 
 
@@ -404,70 +422,104 @@ def _num(v) -> float | None:
     return None if math.isnan(f) or math.isinf(f) else f
 
 
-def _figures(model: str, row, cls: str, targets: ratio.Targets) -> ModelFigures:
-    median, cod, prb = _num(row.get("median_ratio")), _num(row.get("cod")), _num(row.get("prb"))
-    sales = int(_num(row.get("count_sales")) or 0)
-    judged = sales >= targets.min_sales and cls != "none"
-    rng = targets.cod(cls)
-    trimmed = _num(row.get("count_trim"))
-    name = (
-        "Ensemble"
-        if model == "ensemble"
-        else "The roll's value"
-        if model == "assessor"
-        else ENGINES.get(model, (model,))[0]
-    )
-    return ModelFigures(
-        model=model,
-        name=name,
-        sales=sales,
-        median=median,
-        cod=cod,
-        prd=_num(row.get("prd")),
-        prb=prb,
-        vei=_num(row.get("vei")),
-        vei_significance=_num(row.get("vei_sig")),
-        trimmed_sales=int(trimmed) if trimmed is not None else None,
-        cod_trimmed=_num(row.get("cod_trim")),
-        prb_trimmed=_num(row.get("prb_trim")),
-        level_ok=(targets.level_low <= median <= targets.level_high) if judged and median is not None else None,
-        cod_ok=(rng.low <= cod <= rng.high) if judged and rng and cod is not None else None,
-        cod_low=bool(judged and rng and cod is not None and 0 <= cod < rng.low),
-        prb_ok=(True if abs(prb) <= targets.prb_good else False if abs(prb) > targets.prb_bad else None)
-        if judged and prb is not None
-        else None,
-        prb_bad=bool(judged and prb is not None and abs(prb) > targets.prb_bad),
-    )
+def _name(model: str) -> str:
+    if model == "ensemble":
+        return "Ensemble"
+    if model == "assessor":
+        return "The roll"
+    return ENGINES.get(model, (model,))[0]
 
 
-def _rows(df) -> dict[str, dict]:
-    if df is None or len(df) == 0:
+# OpenAVMKit's benchmark columns, as each table shows them.
+IAAO = ("utility_score", "count_sales", "count_univ", "median_ratio", "cod", "prd", "prb", "vei", "vei_sig", "chd")
+IAAO_TRIMMED = ("count_trim", "cod_trim", "prd_trim", "prb_trim")
+TIMINGS = ("total", "param", "train", "test", "univ", "chd")
+ACADEMIC = {
+    "count": "count",
+    "MAPE": "mape",
+    "MSE": "mse",
+    "RMSE": "rmse",
+    "m.ratio": "median_ratio",
+    "avg.ratio": "mean_ratio",
+    "VEI": "vei",
+    "VEI_sig": "vei_sig",
+    "Slope": "slope",
+}
+
+
+def _judge(values: dict[str, float | None], sales: float | None, cls: str, targets: ratio.Targets) -> dict:
+    """The figures IAAO's standard judges, against this project's targets: the level, the COD, the PRB."""
+    if (sales or 0) < targets.min_sales or cls == "none":
         return {}
-    return {str(k): dict(r) for k, r in df.to_dict(orient="index").items()}
+    out: dict[str, Verdict] = {}
+    m = values.get("median_ratio")
+    if m is not None:
+        out["median_ratio"] = "ok" if targets.level_low <= m <= targets.level_high else "bad"
+    rng = targets.cod(cls)
+    for k in ("cod", "cod_trim"):
+        c = values.get(k)
+        if c is not None and rng:
+            out[k] = "ok" if rng.low <= c <= rng.high else "bad"
+    for k in ("prb", "prb_trim"):
+        b = values.get(k)
+        if b is not None:
+            out[k] = "ok" if abs(b) <= targets.prb_good else "bad" if abs(b) > targets.prb_bad else "slight"
+    return out
 
 
-def _roll(r, group: str, settings: dict, values: dict[str, float]) -> dict | None:
-    """The roll's value on the sales the models were judged on, as OpenAVMKit's ratio study figures them."""
-    from openavmkit.model_runner import _get_max_ratio_study_trim
-    from openavmkit.modeling import PredictionResults
+def _rows(df, columns, rename=None, cls="none", targets=None, sales_key="count_sales", drop=()) -> list[ModelRow]:
+    """A row per model from one of OpenAVMKit's tables, the ensemble first, then the models in OAK box's order."""
+    if df is None or len(df) == 0:
+        return []
+    out = []
+    for model, row in df.to_dict(orient="index").items():
+        model = str(model)
+        if model in drop:
+            continue
+        values = {(rename or {}).get(c, c): _num(row.get(c)) for c in columns}
+        judged = _judge(values, values.get(sales_key), cls, targets) if targets else {}
+        out.append(ModelRow(model=model, name=_name(model), values=values, judged=judged))
+    order = ["assessor", "ensemble", *ENGINES]
+    return sorted(out, key=lambda f: order.index(f.model) if f.model in order else 99)
 
-    mr = r.model_results.get("ensemble") or next(iter(r.model_results.values()), None)
-    pt = getattr(mr, "pred_test", None)
-    if pt is None or getattr(pt, "df", None) is None or "key" not in pt.df:
-        return None
-    df = pt.df.copy()
-    df["__roll"] = df["key"].astype(str).map(values)
-    rs = PredictionResults(pt.dep_var, [], "__roll", df, _get_max_ratio_study_trim(settings, group)).ratio_study
-    return {
-        "count_sales": rs.count,
-        "median_ratio": rs.median_ratio,
-        "cod": rs.cod,
-        "prd": rs.prd,
-        "prb": rs.prb,
-        "count_trim": rs.count_trim,
-        "cod_trim": rs.cod_trim,
-        "prb_trim": rs.prb_trim,
-    }
+
+def _dates(df) -> tuple[str | None, str | None]:
+    import pandas as pd
+
+    if df is None or "sale_date" not in df or len(df) == 0:
+        return None, None
+    d = pd.to_datetime(df["sale_date"], errors="coerce").dropna()
+    return (d.min().date().isoformat(), d.max().date().isoformat()) if len(d) else (None, None)
+
+
+def _sets(r, cls: str, targets: ratio.Targets) -> list[SalesSet]:
+    """OpenAVMKit's sets of sales: the holdout, the sales after the valuation date when there are any, and the
+    study set (the look-back before the valuation date). The roll is only on the study set: the holdout is
+    OpenAVMKit's own, and the roll's values may have been made with those very sales."""
+    b = r.benchmark
+    first = next(iter(r.model_results.values()))
+    out = []
+    frames: list[tuple[SetKey, object, object, tuple[str, ...]]] = [
+        ("holdout", b.df_stats_test, first.df_test, ("assessor",))
+    ]
+    if b.df_stats_test_post_val is not None and not b.test_post_val_empty:
+        frames.append(("post_val", b.df_stats_test_post_val, None, ("assessor",)))
+    frames.append(("study", b.df_stats_full, first.df_sales_lookback, ()))
+    for key, df, sales_df, drop in frames:
+        rows = _rows(df, IAAO, cls=cls, targets=targets, drop=drop)
+        n = int(rows[0].values.get("count_sales") or 0) if rows else 0
+        f, last = _dates(sales_df) if sales_df is not None else (None, None)
+        out.append(
+            SalesSet(
+                key=key,
+                sales=n,
+                first=f,
+                last=last,
+                rows=rows,
+                trimmed=_rows(df, IAAO_TRIMMED, cls=cls, targets=targets, sales_key="count_trim", drop=drop),
+            )
+        )
+    return out
 
 
 def run(project_id: str) -> None:
@@ -524,10 +576,9 @@ def run(project_id: str) -> None:
         )
     beating.set()
     bring_in._emit(step="receipt", fraction=0.97, message="Counting")
+    from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
 
     per, sold = _counts(sup.universe, sup.sales["key"].tolist())
-    u = sup.universe
-    values = dict(zip(u["key"].astype(str), u[ratio.FIELD], strict=False)) if ratio.FIELD in u else dict[str, float]()
     cls = ratio.classes(project)
     targets = project.ratio.targets
     out: list[ModelGroupResult] = []
@@ -542,22 +593,26 @@ def run(project_id: str) -> None:
                     color=g.color,
                     parcels=per.get(g.id, 0),
                     sales=n,
-                    models=[],
-                    roll=None,
                     skipped=f"{n:,} {'sale' if n == 1 else 'sales'}: too few to model"
                     if n < 15
                     else "No model produced values for it",
                 )
             )
             continue
-        test = _rows(r.benchmark.df_stats_test)
-        figs = [_figures(m, row, cls[g.id], targets) for m, row in test.items() if m != "assessor"]
-        figs.sort(key=lambda f: (f.model != "ensemble", list(ENGINES).index(f.model) if f.model in ENGINES else 99))
-        held = _roll(r, g.id, settings, values) if values else None
-        roll = _figures("assessor", held, cls[g.id], targets) if held else None
+        untrimmed, trimmed = academic_metrics(r, _get_max_ratio_study_trim(settings, g.id))
         out.append(
             ModelGroupResult(
-                id=g.id, name=g.name, color=g.color, parcels=per.get(g.id, 0), sales=n, models=figs, roll=roll
+                id=g.id,
+                name=g.name,
+                color=g.color,
+                parcels=per.get(g.id, 0),
+                sales=n,
+                sets=_sets(r, cls[g.id], targets),
+                academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor",)),
+                academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor",)),
+                timings=_rows(
+                    r.benchmark.df_time, ("total", "param", "train", "test", "univ", "chd"), drop=("assessor",)
+                ),
             )
         )
     mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
@@ -579,7 +634,7 @@ def run(project_id: str) -> None:
     final = out_dir(pdir)
     shutil.rmtree(final, ignore_errors=True)
     tmp.rename(final)
-    modeled = sum(1 for g in out if g.models)
+    modeled = sum(1 for g in out if g.sets)
     bring_in._emit(step="done", fraction=1.0, message=f"{modeled} of {len(out)} model groups modeled")
 
 

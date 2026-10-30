@@ -10620,190 +10620,6 @@
     ],
     "title": "MissingParcels"
    },
-   "ModelFigures": {
-    "properties": {
-     "model": {
-      "type": "string",
-      "title": "Model"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "sales": {
-      "type": "integer",
-      "title": "Sales"
-     },
-     "median": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Median"
-     },
-     "cod": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Cod"
-     },
-     "prd": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Prd"
-     },
-     "prb": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Prb"
-     },
-     "vei": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Vei"
-     },
-     "vei_significance": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Vei Significance"
-     },
-     "trimmed_sales": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Trimmed Sales"
-     },
-     "cod_trimmed": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Cod Trimmed"
-     },
-     "prb_trimmed": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Prb Trimmed"
-     },
-     "level_ok": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Level Ok",
-      "description": "The median within the level range."
-     },
-     "cod_ok": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Cod Ok",
-      "description": "The COD within its category's range."
-     },
-     "cod_low": {
-      "type": "boolean",
-      "title": "Cod Low",
-      "description": "Under its category's range: suspiciously even.",
-      "default": false
-     },
-     "prb_ok": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Prb Ok",
-      "description": "The PRB within its good range (None: in between)."
-     },
-     "prb_bad": {
-      "type": "boolean",
-      "title": "Prb Bad",
-      "description": "The PRB outside its unacceptable range.",
-      "default": false
-     }
-    },
-    "type": "object",
-    "required": [
-     "model",
-     "name",
-     "sales",
-     "median",
-     "cod",
-     "prd",
-     "prb",
-     "vei",
-     "vei_significance",
-     "trimmed_sales",
-     "cod_trimmed",
-     "prb_trimmed",
-     "level_ok",
-     "cod_ok",
-     "cod_low",
-     "prb_ok",
-     "prb_bad"
-    ],
-    "title": "ModelFigures"
-   },
    "ModelGroup-Input": {
     "properties": {
      "id": {
@@ -10938,24 +10754,35 @@
       "type": "integer",
       "title": "Sales"
      },
-     "models": {
+     "sets": {
       "items": {
-       "$ref": "#/components/schemas/ModelFigures"
+       "$ref": "#/components/schemas/SalesSet"
       },
       "type": "array",
-      "title": "Models",
-      "description": "Each model and the ensemble, on the holdout."
+      "title": "Sets"
      },
-     "roll": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/ModelFigures"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "The roll's own value on the same holdout sales (it may have seen them: the models didn't)."
+     "academic": {
+      "items": {
+       "$ref": "#/components/schemas/ModelRow"
+      },
+      "type": "array",
+      "title": "Academic",
+      "description": "On the holdout: errors as a statistician's."
+     },
+     "academic_trimmed": {
+      "items": {
+       "$ref": "#/components/schemas/ModelRow"
+      },
+      "type": "array",
+      "title": "Academic Trimmed"
+     },
+     "timings": {
+      "items": {
+       "$ref": "#/components/schemas/ModelRow"
+      },
+      "type": "array",
+      "title": "Timings",
+      "description": "Seconds each model took, by stage."
      },
      "skipped": {
       "anyOf": [
@@ -10977,8 +10804,10 @@
      "color",
      "parcels",
      "sales",
-     "models",
-     "roll",
+     "sets",
+     "academic",
+     "academic_trimmed",
+     "timings",
      "skipped"
     ],
     "title": "ModelGroupResult"
@@ -11110,6 +10939,54 @@
      "notes"
     ],
     "title": "ModelReceipt"
+   },
+   "ModelRow": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "values": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Values"
+     },
+     "judged": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "ok",
+        "slight",
+        "bad"
+       ]
+      },
+      "type": "object",
+      "title": "Judged",
+      "description": "Against this project's IAAO targets: the figures that are judged."
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "name",
+     "values",
+     "judged"
+    ],
+    "title": "ModelRow",
+    "description": "One row of a table: a model (or the roll) and its figures, by OpenAVMKit's names for them."
    },
    "ModelSetup": {
     "properties": {
@@ -15058,6 +14935,72 @@
      "text"
     ],
     "title": "SalesLine"
+   },
+   "SalesSet": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "enum": [
+       "holdout",
+       "post_val",
+       "study"
+      ],
+      "title": "Key"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "first": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "First"
+     },
+     "last": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/ModelRow"
+      },
+      "type": "array",
+      "title": "Rows",
+      "description": "IAAO figures: a row per model; the roll's first on the study set."
+     },
+     "trimmed": {
+      "items": {
+       "$ref": "#/components/schemas/ModelRow"
+      },
+      "type": "array",
+      "title": "Trimmed",
+      "description": "The same, without the outlying ratios."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "sales",
+     "first",
+     "last",
+     "rows",
+     "trimmed"
+    ],
+    "title": "SalesSet",
+    "description": "A set of sales the figures are on, as OpenAVMKit's benchmark has them."
    },
    "Sample": {
     "properties": {

@@ -70,7 +70,8 @@ def test_the_variables_found(prepared):
 
 def test_choose_for_me_settings(prepared):
     main = model.settings(_project(), prepared)["modeling"]
-    assert main["instructions"]["main"]["run"] == ["lightgbm", "mra", "local_area"]
+    # The roll runs too, as OpenAVMKit's assessor model: it's audited on the study set, beside the models.
+    assert main["instructions"]["main"]["run"] == ["lightgbm", "mra", "local_area", "assessor"]
     entries = main["models"]["main"]
     # The default list is the linear-safe one; trees get every variable; MRA fits log price.
     assert "slope_mean_deg" not in entries["default"]["ind_vars"]
@@ -82,7 +83,7 @@ def test_choices(prepared):
     p = _project()
     model.change(p, model.ModelPatch(variables=["land_area_sqft"], models=["mra", "xgboost"]))
     main = model.settings(p, prepared)["modeling"]
-    assert main["instructions"]["main"]["run"] == ["xgboost", "mra"]  # in the order offered
+    assert main["instructions"]["main"]["run"] == ["xgboost", "mra", "assessor"]  # in the order offered
     assert main["models"]["main"]["xgboost"]["ind_vars"] == ["land_area_sqft"]
     with pytest.raises(ValueError):
         model.change(p, model.ModelPatch(models=[]))
@@ -94,3 +95,59 @@ def test_choices(prepared):
 
 def test_nothing_before_the_fields_are_prepared(tmp_path):
     assert model.settings(_project(), tmp_path) == {}
+
+
+def test_how_they_did_tables():
+    from types import SimpleNamespace
+
+    def stats(models, sales):
+        rows = {
+            m: {
+                "utility_score": 20.0,
+                "count_sales": sales,
+                "count_univ": 5408,
+                "median_ratio": 1.0 if m != "mra" else 0.8,
+                "cod": 12.345678,
+                "prd": 1.01,
+                "prb": 0.07,
+                "vei": -3.0,
+                "vei_sig": 0.4,
+                "chd": None,
+                "count_trim": sales - 2,
+                "cod_trim": 30.0,
+                "prd_trim": 1.0,
+                "prb_trim": 0.01,
+            }
+            for m in models
+        }
+        return pd.DataFrame.from_dict(rows, orient="index")
+
+    dates = pd.DataFrame({"sale_date": pd.to_datetime(["2024-03-01", "2024-11-30"])})
+    bench = SimpleNamespace(
+        df_stats_test=stats(["lightgbm", "mra", "ensemble"], 1234),
+        df_stats_test_post_val=stats(["mra"], 0),
+        test_post_val_empty=True,
+        df_stats_full=stats(["lightgbm", "mra", "ensemble", "assessor"], 300),
+    )
+    first = SimpleNamespace(df_test=dates, df_sales_lookback=dates)
+    r = SimpleNamespace(benchmark=bench, model_results={"lightgbm": first})
+    holdout, study = model._sets(r, "residential", _project_targets())
+    assert holdout.key == "holdout" and study.key == "study"  # no sales after the valuation date: no such set
+    # The roll is on the study set only, first; the ensemble before the models.
+    assert [f.model for f in holdout.rows] == ["ensemble", "lightgbm", "mra"]
+    assert [f.model for f in study.rows] == ["assessor", "ensemble", "lightgbm", "mra"]
+    assert study.rows[0].name == "The roll"
+    # The engine's numbers as they are: not rounded, and counts in the thousands kept.
+    assert holdout.sales == 1234 and holdout.rows[1].values["cod"] == 12.345678
+    assert (holdout.first, holdout.last) == ("2024-03-01", "2024-11-30")
+    # Judged: the level, the COD and the PRB, untrimmed and trimmed; the PRD only reported.
+    mra = holdout.rows[2]
+    assert mra.judged == {"median_ratio": "bad", "cod": "ok", "prb": "slight"}
+    assert holdout.trimmed[2].judged == {"cod_trim": "bad", "prb_trim": "ok"}
+    assert set(holdout.trimmed[0].values) == {"count_trim", "cod_trim", "prd_trim", "prb_trim"}
+
+
+def _project_targets():
+    from oakbox import ratio
+
+    return ratio.Targets()

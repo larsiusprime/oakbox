@@ -242,9 +242,14 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     assert view["status"] == "done", view["job"]
     r = view["receipt"]
     assert r["models"] == ["lightgbm"]
-    modeled = [g for g in r["groups"] if g["models"]]
-    assert modeled and all(g["skipped"] for g in r["groups"] if not g["models"])
-    assert {f["model"] for g in modeled for f in g["models"]} <= {"lightgbm", "ensemble"}
+    modeled = [g for g in r["groups"] if g["sets"]]
+    assert modeled and all(g["skipped"] for g in r["groups"] if not g["sets"])
+    sets = {s["key"]: s for s in modeled[0]["sets"]}
+    assert {f["model"] for f in sets["holdout"]["rows"]} <= {"lightgbm", "ensemble"}
+    # The roll ran too, as OpenAVMKit's assessor model: on the study set only, never in the academic figures.
+    assert "assessor" in {f["model"] for f in sets["study"]["rows"]}
+    assert "assessor" not in {f["model"] for f in modeled[0]["academic"]}
+    assert modeled[0]["timings"] and modeled[0]["academic_trimmed"]
     assert not client.get(mdl).json()["stale"]
     client.patch(f"{mdl}/setup", json={"choose_for_me": True})
     assert client.get(mdl).json()["stale"]

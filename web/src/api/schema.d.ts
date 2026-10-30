@@ -4340,60 +4340,6 @@ export interface components {
              */
             units: boolean;
         };
-        /** ModelFigures */
-        ModelFigures: {
-            /** Model */
-            model: string;
-            /** Name */
-            name: string;
-            /** Sales */
-            sales: number;
-            /** Median */
-            median: number | null;
-            /** Cod */
-            cod: number | null;
-            /** Prd */
-            prd: number | null;
-            /** Prb */
-            prb: number | null;
-            /** Vei */
-            vei: number | null;
-            /** Vei Significance */
-            vei_significance: number | null;
-            /** Trimmed Sales */
-            trimmed_sales: number | null;
-            /** Cod Trimmed */
-            cod_trimmed: number | null;
-            /** Prb Trimmed */
-            prb_trimmed: number | null;
-            /**
-             * Level Ok
-             * @description The median within the level range.
-             */
-            level_ok: boolean | null;
-            /**
-             * Cod Ok
-             * @description The COD within its category's range.
-             */
-            cod_ok: boolean | null;
-            /**
-             * Cod Low
-             * @description Under its category's range: suspiciously even.
-             * @default false
-             */
-            cod_low: boolean;
-            /**
-             * Prb Ok
-             * @description The PRB within its good range (None: in between).
-             */
-            prb_ok: boolean | null;
-            /**
-             * Prb Bad
-             * @description The PRB outside its unacceptable range.
-             * @default false
-             */
-            prb_bad: boolean;
-        };
         /**
          * ModelGroup
          * @description Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins.
@@ -4472,13 +4418,20 @@ export interface components {
             parcels: number;
             /** Sales */
             sales: number;
+            /** Sets */
+            sets: components["schemas"]["SalesSet"][];
             /**
-             * Models
-             * @description Each model and the ensemble, on the holdout.
+             * Academic
+             * @description On the holdout: errors as a statistician's.
              */
-            models: components["schemas"]["ModelFigures"][];
-            /** @description The roll's own value on the same holdout sales (it may have seen them: the models didn't). */
-            roll: components["schemas"]["ModelFigures"] | null;
+            academic: components["schemas"]["ModelRow"][];
+            /** Academic Trimmed */
+            academic_trimmed: components["schemas"]["ModelRow"][];
+            /**
+             * Timings
+             * @description Seconds each model took, by stage.
+             */
+            timings: components["schemas"]["ModelRow"][];
             /**
              * Skipped
              * @description Why it has no models, if it hasn't.
@@ -4523,6 +4476,27 @@ export interface components {
             groups: components["schemas"]["ModelGroupResult"][];
             /** Notes */
             notes: string[];
+        };
+        /**
+         * ModelRow
+         * @description One row of a table: a model (or the roll) and its figures, by OpenAVMKit's names for them.
+         */
+        ModelRow: {
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /** Values */
+            values: {
+                [key: string]: number | null;
+            };
+            /**
+             * Judged
+             * @description Against this project's IAAO targets: the figures that are judged.
+             */
+            judged: {
+                [key: string]: "ok" | "slight" | "bad";
+            };
         };
         /** ModelSetup */
         ModelSetup: {
@@ -6196,6 +6170,33 @@ export interface components {
             count: number;
             /** Text */
             text: string;
+        };
+        /**
+         * SalesSet
+         * @description A set of sales the figures are on, as OpenAVMKit's benchmark has them.
+         */
+        SalesSet: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "holdout" | "post_val" | "study";
+            /** Sales */
+            sales: number;
+            /** First */
+            first: string | null;
+            /** Last */
+            last: string | null;
+            /**
+             * Rows
+             * @description IAAO figures: a row per model; the roll's first on the study set.
+             */
+            rows: components["schemas"]["ModelRow"][];
+            /**
+             * Trimmed
+             * @description The same, without the outlying ratios.
+             */
+            trimmed: components["schemas"]["ModelRow"][];
         };
         /** Sample */
         Sample: {

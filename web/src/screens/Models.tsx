@@ -4,21 +4,22 @@ import { useState } from "react";
 import { Button } from "react-aria-components";
 import {
   api,
-  type ModelFigures,
-  type ModelGroupResult,
   type ModelPatch,
+  type ModelRow,
   type ModelSetup,
   type ModelView,
+  type SalesSet,
   unwrap,
 } from "../api/client";
-import { Tick } from "../components/Form";
+import { type Column, DataTable } from "../components/DataTable";
+import { Choice, Tick } from "../components/Form";
+import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
 import { t } from "../strings";
-import { num } from "./CheckSales";
-import { Score, signed } from "./CheckValues";
+import { day, num } from "./CheckSales";
+import { signed } from "./CheckValues";
 
 const m = t.values.model;
-const card = t.ratio.card;
 
 /** Step 5's models (SPEC F9): the run's state, polled while it runs. */
 export function useModel(projectId: string) {
@@ -279,37 +280,222 @@ export function ModelsCard({ v, set }: CardProps) {
 }
 
 /** Each model group: its models on the holdout, the ensemble first, the roll's value above them on the same sales. */
+type How = "iaao" | "academic";
+type Fig = ModelRow;
+
+const h = m.how;
+
+/** A figure as the engine reports it: two decimals, counts whole, a share as %, a big number shortened. */
+function fmt(key: string, v: number | null | undefined): string {
+  if (v == null) return "—";
+  if (key.startsWith("count")) return num(v);
+  if (key === "mape") return `${num(100 * v, 1)}%`;
+  if (key === "mse")
+    return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(v);
+  if (key === "rmse") return num(v);
+  if (key === "prb" || key === "prb_trim") return signed(v, 3);
+  if (key === "utility_score" || key === "vei" || key === "vei_sig") return num(v, 1);
+  return num(v, 2);
+}
+
+/** A column of one of OpenAVMKit's figures; judged ones get their pill, pinned left. */
+function fig(key: string, label: string, tip?: string): Column<Fig> {
+  return {
+    key,
+    label,
+    ...(tip ? { tip } : {}),
+    numeric: true,
+    value: (r) => r.values[key] ?? null,
+    cell: (r) => {
+      const v = r.values[key];
+      const j = r.judged[key];
+      return (
+        <span className="dt-fig">
+          {j && (
+            <span className={`dt-pill dt-${j}`} title={h.verdict[j]}>
+              {j === "ok" ? "✓" : j === "slight" ? "~" : "✗"}
+            </span>
+          )}
+          <span className="dt-num">{fmt(key, v)}</span>
+        </span>
+      );
+    },
+  };
+}
+
+const MODEL: Column<Fig> = {
+  key: "model",
+  label: m.model,
+  width: 200,
+  value: (r) => r.name,
+  cell: (r) => (
+    <>
+      {r.name}
+      {r.model === "ensemble" && <span className="wiz-from"> · {m.shipped}</span>}
+    </>
+  ),
+};
+
+const IAAO_COLUMNS = [
+  MODEL,
+  fig("utility_score", h.col.utility, h.tip.utility),
+  fig("count_sales", h.col.sales, h.tip.sales),
+  fig("count_univ", h.col.parcels, h.tip.parcels),
+  fig("median_ratio", h.col.median, h.tip.median),
+  fig("cod", h.col.cod, h.tip.cod),
+  fig("prd", h.col.prd, h.tip.prd),
+  fig("prb", h.col.prb, h.tip.prb),
+  fig("vei", h.col.vei, h.tip.vei),
+  fig("vei_sig", h.col.veiSig, h.tip.veiSig),
+  fig("chd", h.col.chd, h.tip.chd),
+];
+const IAAO_TRIMMED = [
+  MODEL,
+  fig("count_trim", h.col.sales, h.tip.salesTrimmed),
+  fig("cod_trim", h.col.cod, h.tip.cod),
+  fig("prd_trim", h.col.prd, h.tip.prd),
+  fig("prb_trim", h.col.prb, h.tip.prb),
+];
+const ACADEMIC = [
+  MODEL,
+  fig("count", h.col.sales, h.tip.sales),
+  fig("mape", h.col.mape, h.tip.mape),
+  fig("mse", h.col.mse, h.tip.mse),
+  fig("rmse", h.col.rmse, h.tip.rmse),
+  fig("median_ratio", h.col.median, h.tip.median),
+  fig("mean_ratio", h.col.mean, h.tip.mean),
+  fig("vei", h.col.vei, h.tip.vei),
+  fig("vei_sig", h.col.veiSig, h.tip.veiSig),
+  fig("slope", h.col.slope, h.tip.slope),
+];
+const TIMINGS = [
+  MODEL,
+  fig("total", h.col.total),
+  fig("param", h.col.param, h.tip.param),
+  fig("train", h.col.train),
+  fig("test", h.col.test, h.tip.test),
+  fig("univ", h.col.univ, h.tip.univ),
+  fig("chd", h.col.chd, h.tip.chdTime),
+];
+
+/** The columns any row has a figure in: CHD, say, is only figured on the study set. */
+function present(columns: Column<Fig>[], rows: Fig[]) {
+  return columns.filter((c) => c.key === "model" || rows.some((r) => r.values[c.key] != null));
+}
+
+/** One collapsible table: its title, a line on what it is, the table. */
+function Section({
+  id,
+  title,
+  sub,
+  open = true,
+  children,
+}: {
+  id: string;
+  title: string;
+  sub?: string;
+  open?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="md-sec" open={open} data-sec={id}>
+      <summary>
+        <span className="md-sec-title">{title}</span>
+        {sub && <span className="wiz-from"> · {sub}</span>}
+      </summary>
+      {children}
+    </details>
+  );
+}
+
+function Table({ id, columns, rows }: { id: string; columns: Column<Fig>[]; rows: Fig[] }) {
+  return (
+    <DataTable
+      id={id}
+      columns={present(columns, rows)}
+      rows={rows}
+      rowKey={(r) => r.model}
+      rowClass={(r) => (r.model === "assessor" ? "md-roll" : r.model === "ensemble" ? "md-ship" : undefined)}
+    />
+  );
+}
+
+function span(s: SalesSet) {
+  const n = m.salesCount2(s.sales);
+  return s.first && s.last ? `${n}, ${day(s.first)} – ${day(s.last)}` : n;
+}
+
+/** How they did, as OpenAVMKit's benchmark has it, a model group at a time: the IAAO figures on each set of
+ * sales (the roll only on the study set), or the academic ones; each untrimmed, then trimmed; and the timings. */
 export function HowTheyDid({ view }: { view: ModelView }) {
   const r = view.receipt;
+  const [gid, setGid] = useState<string | null>(null);
+  const [how, setHow] = useState<How>("iaao");
   if (!r) return null;
+  const g = r.groups.find((x) => x.id === gid) ?? r.groups.find((x) => !x.skipped) ?? r.groups[0];
+  if (!g) return null;
   return (
     <div className="cs-receipt">
       {view.stale && <p className="wiz-warn">{m.stale}</p>}
-      <table className="bi-tbl cs-tbl rv-score md-how">
-        <thead>
-          <tr>
-            <th>{m.model}</th>
-            <th className="cs-n">
-              <InfoTip label={m.judgedOn} text={m.judgedOnWhy} />
-            </th>
-            <th>
-              <InfoTip label={card.level} text={card.levelWhy} />
-            </th>
-            <th>
-              <InfoTip label={card.uniform} text={card.uniformWhy} />
-            </th>
-            <th>
-              <InfoTip label={card.vertical} text={t.ratio.table.prbWhy} />
-            </th>
-            <th className="cs-n">
-              <InfoTip label={m.codTrimmed} text={m.codTrimmedWhy} />
-            </th>
-          </tr>
-        </thead>
-        {r.groups.map((g) => (
-          <Group key={g.id} g={g} />
-        ))}
-      </table>
+      <div className="md-how-bar">
+        <Choice
+          label={m.group}
+          value={g.id}
+          options={r.groups.map(
+            (x) =>
+              [x.id, x.skipped ? `${x.name} · ${h.notModeled}` : `${x.name} · ${m.salesCount2(x.sales)}`] as [
+                string,
+                string,
+              ],
+          )}
+          onChange={setGid}
+        />
+        <Seg
+          label={h.which}
+          value={how}
+          options={[
+            ["iaao", h.iaao],
+            ["academic", h.academic],
+          ]}
+          onChange={setHow}
+        />
+      </div>
+      {g.skipped ? (
+        <p className="wiz-warn">{m.skipped(g.skipped)}</p>
+      ) : how === "iaao" ? (
+        g.sets.map((s) => (
+          <div key={s.key}>
+            <Section id={s.key} title={h.set[s.key]} sub={span(s)}>
+              <p className="wiz-from md-sec-note">{h.setWhy[s.key]}</p>
+              {s.rows.length && s.sales ? (
+                <Table id={`how-iaao-${s.key}`} columns={IAAO_COLUMNS} rows={s.rows} />
+              ) : (
+                <p className="md-empty">{h.empty[s.key]}</p>
+              )}
+            </Section>
+            {s.sales > 0 && (
+              <Section id={`${s.key}-trim`} title={h.trimmed(h.set[s.key])} sub={h.trimmedWhy}>
+                <Table id="how-iaao-trim" columns={IAAO_TRIMMED} rows={s.trimmed} />
+              </Section>
+            )}
+          </div>
+        ))
+      ) : (
+        <>
+          <Section id="academic" title={h.academicTitle} sub={span(g.sets[0] as SalesSet)}>
+            <p className="wiz-from md-sec-note">{h.academicWhy}</p>
+            <Table id="how-academic" columns={ACADEMIC} rows={g.academic} />
+          </Section>
+          <Section id="academic-trim" title={h.trimmed(h.academicTitle)} sub={h.trimmedWhy}>
+            <Table id="how-academic" columns={ACADEMIC} rows={g.academic_trimmed} />
+          </Section>
+        </>
+      )}
+      {!g.skipped && (
+        <Section id="timings" title={h.timings} sub={h.timingsWhy} open={false}>
+          <Table id="how-timings" columns={TIMINGS} rows={g.timings} />
+        </Section>
+      )}
       <p className="wiz-from">{m.nextSlice}</p>
       {r.notes.length > 0 && (
         <details className="cs-step">
@@ -324,60 +510,5 @@ export function HowTheyDid({ view }: { view: ModelView }) {
         </details>
       )}
     </div>
-  );
-}
-
-function Group({ g }: { g: ModelGroupResult }) {
-  return (
-    <tbody>
-      <tr className="bi-grp">
-        <td colSpan={6}>
-          <span className="mg-sw ab-sw" style={{ background: g.color }} />
-          {g.name} <span className="wiz-from">· {m.salesCount(g.sales)}</span>
-        </td>
-      </tr>
-      {g.skipped ? (
-        <tr>
-          <td colSpan={6} className="wiz-warn">
-            {m.skipped(g.skipped)}
-          </td>
-        </tr>
-      ) : (
-        [...(g.roll ? [g.roll] : []), ...g.models].map((f) => <Row key={f.model} f={f} />)
-      )}
-    </tbody>
-  );
-}
-
-function Row({ f }: { f: ModelFigures }) {
-  const level =
-    f.median == null ? undefined : f.level_ok ? card.inRange : f.median < 1 ? card.low : card.high;
-  const cod =
-    f.cod == null ? undefined : f.cod_low ? card.tooEven : f.cod_ok === false ? card.varied : card.even;
-  const tilt = (f.prb ?? 0) > 0 ? card.dearerHigher : card.dearerLower;
-  const prb = f.prb == null ? undefined : f.prb_ok ? card.alike : f.prb_bad ? tilt : `${m.slight}: ${tilt}`;
-  return (
-    <tr className={f.model === "assessor" ? "md-roll" : undefined}>
-      <td>
-        {f.name}
-        {f.model === "ensemble" && <span className="wiz-from"> · {m.shipped}</span>}
-      </td>
-      <td className="cs-n">{num(f.sales)}</td>
-      <td>
-        <Score ok={f.level_ok} figure={num(f.median, 2)} {...(level ? { word: level } : {})} />
-      </td>
-      <td>
-        <Score ok={f.cod_low ? false : f.cod_ok} figure={num(f.cod, 1)} {...(cod ? { word: cod } : {})} />
-      </td>
-      <td>
-        <Score
-          ok={f.prb_bad ? false : f.prb_ok}
-          figure={f.prb == null ? "—" : signed(f.prb, 3)}
-          {...(prb ? { word: prb } : {})}
-          note="PRB"
-        />
-      </td>
-      <td className="cs-n">{num(f.cod_trimmed, 1)}</td>
-    </tr>
   );
 }

@@ -5066,3 +5066,103 @@ tr.vt-level > td:first-child {
 .vt-how-line {
   margin: 0.4rem 0 0;
 }
+
+/* ---------- How they did: OpenAVMKit's benchmark, a table per set ---------- */
+.md-how-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.4rem;
+}
+.md-sec {
+  margin-top: 0.7rem;
+}
+.md-sec > summary {
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+.md-sec-title {
+  font-weight: 600;
+}
+.md-sec-note {
+  margin: 0.15rem 0 0.35rem;
+}
+.md-empty {
+  padding: 0.45rem 0.6rem;
+  background: #f7f7f7;
+  border: 1px dashed #c8c8c8;
+  border-radius: var(--radius);
+}
+.dt-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+table.bi-tbl.cs-tbl.dt > * > tr > :is(th, td) {
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dt-th {
+  position: relative;
+}
+.dt-sort {
+  width: 100%;
+}
+.cs-n .dt-sort {
+  justify-content: flex-end;
+}
+.dt-arrow {
+  font-size: 0.65rem;
+  color: var(--muted);
+  min-width: 0.6rem;
+}
+.dt-grip {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1;
+  touch-action: none;
+}
+.dt-grip:hover {
+  background: rgba(26, 86, 184, 0.25);
+}
+.dt-fig {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.dt-num {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.dt-pill {
+  font-size: 0.7rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  border: 1px solid;
+  line-height: 1.35;
+}
+.dt-ok {
+  background: #e7f5ec;
+  border-color: #a6d8b8;
+  color: #1d6b3a;
+}
+.dt-slight {
+  background: #fff4e0;
+  border-color: #f0c78a;
+  color: #8a5300;
+}
+.dt-bad {
+  background: #fde8e8;
+  border-color: #f3b4b4;
+  color: #9b1c1c;
+}
+.bi .cs-tbl tbody tr.md-roll :where(td) {
+  background: #f3f6fb;
+}
