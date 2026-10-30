@@ -4828,6 +4828,11 @@ tr.bi-kept > td {
   border-color: #f3b4b4;
   color: #9b1c1c;
 }
+.rv-slight {
+  background: #fff4e0;
+  border-color: #f0c78a;
+  color: #8a5300;
+}
 .rv-few {
   background: #f4f4f4;
   border-color: #d0d0d0;
@@ -4930,31 +4935,20 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
   margin: 0;
 }
 
-/* Step 4's scorecard: mark, figure and word line up down each column. */
+/* Step 4's scorecard: pill, figure and word line up down each column. */
 .rv-score-cell {
   display: inline-grid;
-  grid-template-columns: 1.1em 5.5em auto;
+  grid-template-columns: 1.8em 5.5em auto;
   gap: 0.35rem;
   align-items: baseline;
 }
-.rv-mark {
-  font-weight: 700;
-  color: var(--muted);
-  text-align: center;
-}
-.rv-mark-ok {
-  color: #1d6b3a;
-}
-.rv-mark-bad {
-  color: #b42318;
+.rv-score-pill {
+  display: flex;
 }
 .rv-fig {
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
-}
-.rv-word-bad {
-  color: #9b1c1c;
 }
 
 /* Step 5's models (F9): a model per line, sized to content; the roll's row set apart from the models'. */
@@ -5135,38 +5129,6 @@ table.bi-tbl.cs-tbl.dt > * > tr > :is(th, td) {
 }
 .dt-grip:hover {
   background: rgba(26, 86, 184, 0.25);
-}
-.dt-fig {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-.dt-num {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-}
-.dt-pill {
-  font-size: 0.7rem;
-  padding: 0 0.4rem;
-  border-radius: 999px;
-  border: 1px solid;
-  line-height: 1.35;
-}
-.dt-ok {
-  background: #e7f5ec;
-  border-color: #a6d8b8;
-  color: #1d6b3a;
-}
-.dt-slight {
-  background: #fff4e0;
-  border-color: #f0c78a;
-  color: #8a5300;
-}
-.dt-bad {
-  background: #fde8e8;
-  border-color: #f3b4b4;
-  color: #9b1c1c;
 }
 .bi .cs-tbl tbody tr.md-roll :where(td) {
   background: #f3f6fb;

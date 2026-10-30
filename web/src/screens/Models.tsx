@@ -13,6 +13,7 @@ import {
 } from "../api/client";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { Choice, Tick } from "../components/Form";
+import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
 import { t } from "../strings";
@@ -285,7 +286,8 @@ type Fig = ModelRow;
 
 const h = m.how;
 
-/** A figure as the engine reports it, by its column (a trimmed figure as its untrimmed one): two decimals, counts whole, a share as %, a big number shortened. */
+/** A figure by its column (a trimmed figure as its untrimmed one), written as step 4 writes it: ratios to three
+ * decimals, the COD and the VEI to one, the VEI in percent; counts whole, a big number shortened. */
 function fmt(key: string, v: number | null | undefined): string {
   if (v == null) return "—";
   if (key.startsWith("count")) return num(v);
@@ -294,7 +296,10 @@ function fmt(key: string, v: number | null | undefined): string {
     return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(v);
   if (key === "rmse") return num(v);
   if (key === "prb") return signed(v, 3);
-  if (key === "utility_score" || key === "vei" || key === "vei_sig") return num(v, 1);
+  if (key === "vei") return `${signed(v, 1)}%`;
+  if (key === "vei_sig") return `${num(v, 1)}%`;
+  if (key === "utility_score" || key === "cod") return num(v, 1);
+  if (key === "median_ratio" || key === "mean_ratio" || key === "prd" || key === "slope") return num(v, 3);
   return num(v, 2);
 }
 
@@ -310,13 +315,9 @@ function fig(key: string, label: string, tip?: string, from = key): Column<Fig> 
     cell: (r) => {
       const j = r.judged[from];
       return (
-        <span className="dt-fig">
-          {j && (
-            <span className={`dt-pill dt-${j}`} title={h.verdict[j]}>
-              {j === "ok" ? "✓" : j === "slight" ? "~" : "✗"}
-            </span>
-          )}
-          <span className="dt-num">{fmt(key, r.values[from])}</span>
+        <span className="rv-cell">
+          <span className="rv-cell-pill">{j && <Pill v={j} title={h.verdict[j]} />}</span>
+          <span>{fmt(key, r.values[from])}</span>
         </span>
       );
     },

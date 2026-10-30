@@ -16,6 +16,7 @@ import {
 } from "../api/client";
 import { addBasemap } from "../components/basemap";
 import { Choice, Field, Tick } from "../components/Form";
+import { Pill, type Verdict, verdictOf } from "../components/Pill";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { t } from "../strings";
@@ -96,14 +97,11 @@ function useRatioSetup(projectId: string, enabled: boolean) {
 const ratioText = (v: number | null | undefined) => num(v, 3);
 const pct = (v: number) => Math.round(100 * v);
 
-function Badge({ ok, label }: { ok: boolean | null | undefined; label?: string }) {
-  if (ok === null || ok === undefined) return label ? <span className="rv-pill rv-few">{label}</span> : null;
-  return (
-    <span className={ok ? "rv-pill rv-ok" : "rv-pill rv-bad"}>
-      {ok ? "✓" : "✗"}
-      {label ? ` ${label}` : ""}
-    </span>
-  );
+/** The PRB's verdict: met within the good range, missed outside the unacceptable, near in between. */
+function prbVerdict(g: RatioStudy): Verdict | null {
+  const ok = g.verdict?.prb;
+  if (ok != null) return verdictOf(ok);
+  return g.verdict?.judged && g.prb != null ? "slight" : null;
 }
 
 /** Step 4, Check my values (SPEC F8): the values on the roll against what parcels sold for, judged against the
@@ -727,7 +725,7 @@ function Scorecard({ groups }: { groups: RatioStudy[] }) {
                 {name}
                 <td className="cs-n">{num(g.sales)}</td>
                 <td>
-                  <Score ok={null} figure={ratioText(g.median)} />
+                  <Score v={null} figure={ratioText(g.median)} />
                 </td>
                 <td colSpan={2} className="wiz-from">
                   {c.tooFew}
@@ -746,21 +744,21 @@ function Scorecard({ groups }: { groups: RatioStudy[] }) {
               <td className="cs-n">{num(g.sales)}</td>
               <td>
                 <Score
-                  ok={v.level}
+                  v={verdictOf(v.level)}
                   figure={ratioText(g.median)}
                   word={v.level ? c.inRange : g.median < 1 ? c.low : c.high}
                 />
               </td>
               <td>
                 <Score
-                  ok={v.cod_low ? false : v.cod}
+                  v={verdictOf(v.cod_low ? false : v.cod)}
                   figure={num(g.cod, 1)}
                   word={v.cod_low ? c.tooEven : v.cod === false ? c.varied : c.even}
                 />
               </td>
               <td>
                 <Score
-                  ok={byVei ? veiOk(g) : v.prb}
+                  v={byVei ? verdictOf(veiOk(g)) : prbVerdict(g)}
                   figure={
                     byVei && g.vei != null
                       ? `${signed(g.vei, 1)}%`
@@ -786,31 +784,28 @@ function Scorecard({ groups }: { groups: RatioStudy[] }) {
   );
 }
 
-/** A verdict cell: mark, figure and word in the same three columns on every row. */
+/** A verdict cell: pill, figure and word in the same three columns on every row. */
 export function Score({
-  ok,
+  v,
   figure,
   word,
   note,
 }: {
-  ok: boolean | null | undefined;
+  v: Verdict | null;
   figure: string;
   word?: string;
   note?: string;
 }) {
   return (
     <span className="rv-score-cell">
-      <span
-        className={ok == null ? "rv-mark" : ok ? "rv-mark rv-mark-ok" : "rv-mark rv-mark-bad"}
-        aria-hidden="true"
-      >
-        {ok == null ? "–" : ok ? "✓" : "✗"}
+      <span className="rv-score-pill">
+        <Pill v={v} />
       </span>
       <span className="rv-fig">
         {figure}
         {note && <span className="wiz-from"> {note}</span>}
       </span>
-      <span className={ok === false ? "rv-word rv-word-bad" : "rv-word"}>{word ?? r.card.notJudged}</span>
+      <span>{word ?? r.card.notJudged}</span>
     </span>
   );
 }
@@ -822,7 +817,7 @@ export function signed(v: number, digits: number) {
 /** A figure with its pill: the pill at the cell's left edge, the figure at its right, so a pill never moves the
  * figure; every sale's figure under it. */
 function cell(
-  ok: boolean | null | undefined,
+  v: Verdict | null | undefined,
   text: string,
   every?: string | null,
   low?: boolean | null,
@@ -832,7 +827,7 @@ function cell(
     <>
       <span className="rv-cell">
         <span className="rv-cell-pill">
-          <Badge ok={ok} {...(label ? { label } : {})} />
+          <Pill v={v} {...(label ? { label } : {})} />
           {low && <span className="rv-pill rv-bad">{r.table.low}</span>}
         </span>
         <span>{text}</span>
@@ -869,15 +864,19 @@ function GroupsTable({ result }: { result: FieldResult }) {
         </td>
         <td className="cs-n">{cell(null, num(g.sales), e ? num(e.sales) : null)}</td>
         <td className="cs-n">{num(g.trimmed)}</td>
-        <td className="cs-n">{cell(v?.level, ratioText(g.median), e ? ratioText(e.median) : null)}</td>
+        <td className="cs-n">
+          {cell(verdictOf(v?.level), ratioText(g.median), e ? ratioText(e.median) : null)}
+        </td>
         <td className="cs-n wiz-from">
           {g.low != null && g.high != null ? `${ratioText(g.low)} to ${ratioText(g.high)}` : "—"}
         </td>
-        <td className="cs-n">{cell(v?.cod, num(g.cod, 1), e ? num(e.cod, 1) : null, v?.cod_low)}</td>
+        <td className="cs-n">
+          {cell(verdictOf(v?.cod), num(g.cod, 1), e ? num(e.cod, 1) : null, v?.cod_low)}
+        </td>
         <td className="cs-n">
           {g.vei_verdict
             ? cell(
-                veiOk(g),
+                verdictOf(veiOk(g)),
                 g.vei != null ? `${signed(g.vei, 1)}%` : "—",
                 e?.vei != null ? `${signed(e.vei, 1)}%` : null,
                 null,
@@ -885,7 +884,7 @@ function GroupsTable({ result }: { result: FieldResult }) {
               )
             : "—"}
         </td>
-        <td className="cs-n">{cell(v?.prb, pm(g.prb, 3), e ? pm(e.prb, 3) : null)}</td>
+        <td className="cs-n">{cell(prbVerdict(g), pm(g.prb, 3), e ? pm(e.prb, 3) : null)}</td>
         <td className="cs-n">{cell(null, num(g.prd, 3), e ? num(e.prd, 3) : null)}</td>
         <td className="cs-n">{cell(null, num(g.mki, 3), e ? num(e.mki, 3) : null)}</td>
       </tr>
