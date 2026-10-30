@@ -11,18 +11,15 @@ look at in a map viewer. The receipt (out/oakbox/assemble/) counts what each mod
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
-import shutil
-import sys
 import time
 from pathlib import Path
 from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import bring_in
+from oakbox import bring_in, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "assemble"
@@ -43,8 +40,7 @@ def settings_key(settings: dict, exports: list[str]) -> dict:
 
 
 def settings_hash(settings: dict, exports: list[str]) -> str:
-    text = json.dumps(settings_key(settings, exports), sort_keys=True, default=str)
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+    return steps.key_hash(settings_key(settings, exports))
 
 
 # ---------- The receipt ----------
@@ -93,10 +89,6 @@ def _what(name: str) -> str:
     return ""
 
 
-def _emit(**kw) -> None:
-    print(json.dumps(kw), flush=True)
-
-
 def run(project_id: str) -> None:
     """Tag model groups and write notebook 1's output; then the receipt."""
     import warnings
@@ -112,9 +104,7 @@ def run(project_id: str) -> None:
     src = bring_in.out_dir(pdir) / "sup.pickle"
     if not src.is_file():
         raise RuntimeError("Bring in data first: this starts from what it loaded.")
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -122,18 +112,18 @@ def run(project_id: str) -> None:
 
     t0 = time.time()
     exports = set(project.assemble_exports)
-    with warnings.catch_warnings(record=True) as caught:
+    with warnings.catch_warnings(record=True) as caught, steps.heartbeat():
         warnings.simplefilter("always")
-        _emit(step="load", fraction=0.0, message="Reading what Bring in data loaded")
+        steps.emit(step="load", fraction=0.0, message="Reading what Bring in data loaded")
         sup = cast("SalesUniversePair", pd.read_pickle(src))
-        _emit(step="tag", fraction=0.2, message="Tagging each parcel with its model group")
+        steps.emit(step="tag", fraction=0.2, message="Tagging each parcel with its model group")
         sup = pl.tag_model_groups_sup(sup, pl.load_settings(), verbose=False)
-        _emit(step="write", fraction=0.6, message="Writing notebook 1's output")
+        steps.emit(step="write", fraction=0.6, message="Writing notebook 1's output")
         pl.write_notebook_output_sup(
             sup, "1-assemble", parquet=True, gpkg="gpkg" in exports, shp="shp" in exports, csv="csv" in exports
         )
-    bring_in.written(caught, "notebook 1's output")
-    _emit(step="receipt", fraction=0.9, message="Counting")
+    steps.written(caught, "notebook 1's output")
+    steps.emit(step="receipt", fraction=0.9, message="Counting")
 
     universe = sup.universe
     hydrated = get_hydrated_sales_from_sup(sup)
@@ -169,7 +159,7 @@ def run(project_id: str) -> None:
         if path.is_file():
             rel = path.relative_to(pdir).as_posix()
             written.append(Written(path=rel, what=_what(path.name), bytes=path.stat().st_size))
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     receipt = AssembleReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
         seconds=round(time.time() - t0, 1),
@@ -185,87 +175,56 @@ def run(project_id: str) -> None:
     (tmp / "settings.json").write_text(
         json.dumps({"settings": json.loads(settings_text), "exports": sorted(exports)}), encoding="utf-8"
     )
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
+    steps.publish(tmp, out_dir(pdir))
     n = sum(1 for c in counts if c.id != UNKNOWN and c.parcels)
-    _emit(step="done", fraction=1.0, message=f"{len(universe):,} parcels in {n} model groups")
+    steps.emit(step="done", fraction=1.0, message=f"{len(universe):,} parcels in {n} model groups")
 
 
 # ---------- The step's state ----------
 
 
-class AssembleView(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+class AssembleView(steps.StepView):
     receipt: AssembleReceipt | None
-    stale: bool = Field(description="The data, the model groups or the formats changed since it ran.")
-    blocked: list[str] = Field(description="What stops it running.")
     exports: list[Literal["gpkg", "shp", "csv"]]
     accepted: bool
 
 
-def _ran(project_dir: Path) -> tuple[AssembleReceipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    return AssembleReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+# The run keeps the settings it ran with and the formats it wrote (settings.json).
+STEP = steps.Step(
+    MODULE,
+    AssembleReceipt,
+    key=lambda project, pdir: settings_key(bring_in._current(pdir), list(project.assemble_exports)),
+    ran_hash=lambda ran: settings_hash(ran["settings"], ran.get("exports", [])),
+    again="Run it again first: the data or the model groups changed since it ran.",
+)
 
 
-def current_hash(project, project_dir: Path) -> str:
-    settings = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
-    return settings_hash(settings, list(project.assemble_exports))
+def blocked(project, project_dir: Path) -> list[str]:
+    out = []
+    if not project.groups:
+        out.append("Add at least one model group, and save.")
+    b = bring_in.STEP.state(project, project_dir)
+    if b.receipt is None or b.stale:
+        out.append("Bring in data again first: Data changed since it ran.")
+    return out
 
 
 def view(project, project_dir: Path) -> AssembleView:
-    settings = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
-    r, ran = _ran(project_dir)
-    j = bring_in.job(project.id, MODULE)
-    now = settings_hash(settings, list(project.assemble_exports))
-    stale = bool(r and ran and settings_hash(ran["settings"], ran.get("exports", [])) != now)
-    blocked = []
-    if not project.groups:
-        blocked.append("Add at least one model group, and save.")
-    b, b_ran = bring_in.receipt(project_dir)
-    if b is None or b_ran is None or bring_in.settings_hash(b_ran) != bring_in.settings_hash(settings):
-        blocked.append("Bring in data again first: Data changed since it ran.")
+    s = STEP.state(project, project_dir)
     return AssembleView(
-        status=j.status if j else ("done" if r else "never"),
-        job=j,
-        receipt=r,
-        stale=stale,
-        blocked=blocked,
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=blocked(project, project_dir),
         exports=list(project.assemble_exports),
-        accepted=bool(r and not stale and project.accepted.get(MODULE) == now),
+        accepted=s.accepted,
     )
 
 
 def start(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.blocked:
-        raise ValueError(v.blocked[0])
-    bring_in.start(project.id, project_dir, MODULE)
-
-
-def accept(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.receipt is None or v.stale:
-        raise ValueError("Run it again first: the data or the model groups changed since it ran.")
-    project.accepted[MODULE] = current_hash(project, project_dir)
+    STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

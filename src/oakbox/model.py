@@ -18,12 +18,8 @@ OpenAVMKit prunes per group by its own variable tests before a linear model uses
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
-import shutil
-import sys
-import threading
 import time
 from functools import lru_cache
 from pathlib import Path
@@ -31,7 +27,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox import bring_in, clean, prepare, ratio
+from oakbox import clean, prepare, ratio, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "model"
@@ -534,9 +530,7 @@ def run(project_id: str) -> None:
     pdir = projects.project_dir(project_id)
     if not (pdir / "out" / "2-clean-sup.pickle").is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -544,8 +538,6 @@ def run(project_id: str) -> None:
 
     groups = [g.id for g in project.groups]
     t0 = time.time()
-    beating = threading.Event()
-    threading.Thread(target=bring_in._heartbeat, args=(beating,), daemon=True).start()
 
     def inside(e) -> None:
         # "model:<group>:<model>": which group the models are on, as the step's fraction.
@@ -554,18 +546,18 @@ def run(project_id: str) -> None:
             done = groups.index(parts[1]) / max(len(groups), 1)
             name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
             engine = ENGINES.get(parts[2], (parts[2],))[0]
-            bring_in._emit(step="models", fraction=0.1 + 0.85 * done, message=f"{name}: training {engine}")
+            steps.emit(step="models", fraction=0.1 + 0.85 * done, message=f"{name}: training {engine}")
         else:
-            bring_in._emit(detail=e.message)
+            steps.emit(detail=e.message)
 
-    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside):
+    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside), steps.heartbeat():
         warnings.simplefilter("always")
-        bring_in._emit(step="load", fraction=0.0, message="Reading the prepared fields")
+        steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
         settings = pl.load_settings()
         sup = pl.load_cleaned_data_for_modeling(settings)
-        bring_in._emit(step="split", fraction=0.05, message="Splitting the sales into folds")
+        steps.emit(step="split", fraction=0.05, message="Splitting the sales into folds")
         pl.write_canonical_splits(sup, settings, verbose=False)
-        bring_in._emit(step="models", fraction=0.1, message="Training the models")
+        steps.emit(step="models", fraction=0.1, message="Training the models")
         results = pl.try_models(
             sup,
             settings,
@@ -576,8 +568,7 @@ def run(project_id: str) -> None:
             run_vacant=False,
             run_ensemble=True,
         )
-    beating.set()
-    bring_in._emit(step="receipt", fraction=0.97, message="Counting")
+    steps.emit(step="receipt", fraction=0.97, message="Counting")
     from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
 
     per, sold = _counts(sup.universe, sup.sales["key"].tolist())
@@ -631,7 +622,7 @@ def run(project_id: str) -> None:
                 ),
             )
         )
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     s = json.loads(settings_text)
     main = s.get("modeling", {}).get("models", {}).get("main", {})
     receipt = ModelReceipt(
@@ -647,11 +638,9 @@ def run(project_id: str) -> None:
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(s, pdir)}), encoding="utf-8")
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
+    steps.publish(tmp, out_dir(pdir))
     modeled = sum(1 for g in out if g.sets)
-    bring_in._emit(step="done", fraction=1.0, message=f"{modeled} of {len(out)} model groups modeled")
+    steps.emit(step="done", fraction=1.0, message=f"{modeled} of {len(out)} model groups modeled")
 
 
 # ---------- The step's state ----------
@@ -659,7 +648,7 @@ def run(project_id: str) -> None:
 
 def settings_key(settings: dict, project_dir: Path) -> dict:
     """What a try depends on: the Prepare run it starts from, and the variables and models."""
-    r, _ = prepare._ran(project_dir)
+    r, _ = prepare.STEP.ran(project_dir)
     m = settings.get("modeling", {})
     return {
         "prepare": r.ran_at if r else None,
@@ -670,68 +659,40 @@ def settings_key(settings: dict, project_dir: Path) -> dict:
 
 
 def settings_hash(settings: dict, project_dir: Path) -> str:
-    text = json.dumps(settings_key(settings, project_dir), sort_keys=True, default=str)
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+    return steps.key_hash(settings_key(settings, project_dir))
 
 
-class ModelView(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+class ModelView(steps.StepView):
     receipt: ModelReceipt | None
-    stale: bool = Field(description="Prepare ran again, or a variable or model changed, since the try.")
-    blocked: list[str]
 
 
-def _ran(project_dir: Path) -> tuple[ModelReceipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    try:
-        return ModelReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
-    except ValueError:
-        return None, None  # an older receipt: try again
+def _key(project, project_dir: Path) -> dict:
+    from oakbox import projects
+
+    return settings_key(projects.base_settings(project), project_dir)
+
+
+STEP = steps.Step(MODULE, ModelReceipt, key=_key, again="Try the models again first: something changed since.")
+
+
+def blocked(project, project_dir: Path) -> list[str]:
+    if not prepare.STEP.accepted(project, project_dir):
+        return ["Press Looks right on What changed first: the models start from the prepared fields."]
+    if not [v for v in variables(project, project_dir) if v.chosen]:
+        return ["Choose at least one variable."]
+    return []
 
 
 def view(project, project_dir: Path) -> ModelView:
-    r, ran = _ran(project_dir)
-    j = bring_in.job(project.id, MODULE)
-    from oakbox import projects
-
-    now = settings_hash(projects.base_settings(project), project_dir)
-    blocked = []
-    p = prepare.view(project, project_dir)
-    if not p.accepted:
-        blocked.append("Press Looks right on What changed first: the models start from the prepared fields.")
-    elif not [v for v in variables(project, project_dir) if v.chosen]:
-        blocked.append("Choose at least one variable.")
+    s = STEP.state(project, project_dir)
     return ModelView(
-        status=j.status if j else ("done" if r else "never"),
-        job=j,
-        receipt=r,
-        stale=bool(r and ran and ran.get("hash") != now),
-        blocked=blocked,
+        status=s.status, job=s.job, receipt=s.receipt, stale=s.stale, blocked=blocked(project, project_dir)
     )
 
 
 def start(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.blocked:
-        raise ValueError(v.blocked[0])
-    bring_in.start(project.id, project_dir, MODULE)
+    STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

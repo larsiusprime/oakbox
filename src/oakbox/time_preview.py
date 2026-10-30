@@ -9,19 +9,16 @@ last run's schedules stay as they were. The result is out/oakbox/time_preview/pr
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 import shutil
-import sys
-import threading
 import time
 from pathlib import Path
 from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import bring_in, clean
+from oakbox import bring_in, clean, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "time_preview"
@@ -44,7 +41,7 @@ def settings_key(settings: dict) -> dict:
 
 
 def settings_hash(settings: dict) -> str:
-    return hashlib.sha256(json.dumps(settings_key(settings), sort_keys=True, default=str).encode()).hexdigest()[:16]
+    return steps.key_hash(settings_key(settings))
 
 
 class TimeGroup(BaseModel):
@@ -88,8 +85,6 @@ def run(project_id: str) -> None:
     from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
 
     names = {g.id: g.name for g in project.groups} | {clean.UNKNOWN: "Unassigned"}
-    beating = threading.Event()
-    threading.Thread(target=bring_in._heartbeat, args=(beating,), daemon=True).start()
     base_message = "Working out how prices moved, per model group"
 
     def inside(e) -> None:
@@ -99,21 +94,20 @@ def run(project_id: str) -> None:
         for gid, name in names.items():
             if detail.startswith(gid + " ("):
                 detail = name + detail[len(gid) :]
-        bring_in._emit(detail=detail, sub=e.sub)
+        steps.emit(detail=detail, sub=e.sub)
 
     t0 = time.time()
-    with warnings.catch_warnings(), progress.reporting(inside, stage="time_preview"):
+    with warnings.catch_warnings(), progress.reporting(inside, stage="time_preview"), steps.heartbeat():
         warnings.simplefilter("ignore")
-        bring_in._emit(step="load", fraction=0.0, message="Reading step 2's hand-off")
+        steps.emit(step="load", fraction=0.0, message="Reading step 2's hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
         settings = pl.load_settings(str(settings_path))
         # The groups' own files are named from the project folder; this runs in a scratch folder.
         ta = settings.get("data", {}).get("process", {}).get("time_adjustment", {})
         ta["from_file"] = {g: str(pdir / f) for g, f in ta.get("from_file", {}).items()}
-        bring_in._emit(step="time", fraction=0.2, message=base_message)
+        steps.emit(step="time", fraction=0.2, message=base_message)
         progress.report("time", 0.2, base_message)
         sup = pl.process_sales(sup=sup, settings=settings)
-    beating.set()
     hydrated = get_hydrated_sales_from_sup(sup)
     valid = hydrated[clean._yes(hydrated, "valid_sale")]
     groups = []
@@ -132,18 +126,18 @@ def run(project_id: str) -> None:
         json.dumps({"hash": settings_hash(json.loads(settings_text)), "result": result.model_dump()}),
         encoding="utf-8",
     )
-    bring_in._emit(step="done", fraction=1.0, message="Done")
+    steps.emit(step="done", fraction=1.0, message="Done")
 
 
 class TimePreview(BaseModel):
     status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+    job: steps.Job | None
     result: TimeResult | None
     stale: bool = Field(description="The window, the time adjustment, or the data changed since it ran.")
 
 
 def view(project, project_dir: Path) -> TimePreview:
-    j = bring_in.job(project.id, MODULE)
+    j = steps.job(project.id, MODULE)
     path = out_dir(project_dir) / "preview.json"
     result, stale = None, False
     if path.is_file():
@@ -154,23 +148,14 @@ def view(project, project_dir: Path) -> TimePreview:
 
 
 def start(project, project_dir: Path) -> None:
-    if clean.view(project, project_dir).blocked:
-        raise ValueError("Write step 2 first (Model groups): this starts from its hand-off.")
-    j = bring_in.job(project.id, MODULE)
+    j = steps.job(project.id, MODULE)
     if j and j.status == "running":
         return
-    bring_in.start(project.id, project_dir, MODULE)
+    blocked = clean.blocked(project, project_dir)
+    if blocked:
+        raise ValueError(blocked[0])
+    steps.start(project.id, project_dir, MODULE)
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

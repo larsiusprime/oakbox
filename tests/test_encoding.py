@@ -51,9 +51,9 @@ def test_every_text_read_and_write_says_utf8():
 
 def test_processes_oak_box_starts_run_in_utf8_mode():
     """OpenAVMKit's own reads and writes, and what it prints, are UTF-8 in the runs OAK box starts."""
-    from oakbox import bring_in
+    from oakbox import steps
 
-    env = bring_in.child_env()
+    env = steps.child_env()
     assert env["PYTHONUTF8"] == "1" and env["PYTHONIOENCODING"] == "utf-8"
 
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import mimetypes
 import threading
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
@@ -35,6 +35,7 @@ from oakbox import (
     prepare,
     projects,
     ratio,
+    steps,
     time_preview,
     vartest,
     wizard,
@@ -929,15 +930,139 @@ def create_app() -> FastAPI:
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
 
-    # ---------- Step 1, Bring in data (SPEC §3.3) ----------
+    # ---------- The steps: each one's state, run, stop and Looks right, the same way (steps.py) ----------
 
     def _bring_in_view(project: projects.Project) -> bring_in.View:
         return bring_in.view(project, projects.project_dir(project.id), _wizard(project).problems)
 
-    @app.get("/api/projects/{project_id}/bring-in")
-    def bring_in_state(project_id: str) -> bring_in.View:
-        """Ready, running, or the receipt of the last run, and whether it's out of date."""
-        return _bring_in_view(_load(project_id))
+    def _assemble_view(project: projects.Project) -> assemble.AssembleView:
+        return assemble.view(project, projects.project_dir(project.id))
+
+    def _clean_view(project: projects.Project) -> clean.CleanView:
+        return clean.view(project, projects.project_dir(project.id))
+
+    def _write(project: projects.Project, _pdir: Path) -> None:
+        projects.write_settings(project)
+
+    def _decide(project: projects.Project, pdir: Path) -> None:
+        """Check sales' proposals written down, so the settings say them all, then the settings."""
+        try:
+            clean.decide(project, pdir)
+        except FileNotFoundError as e:
+            raise ValueError("Write step 2 first (Model groups): this starts from its hand-off.") from e
+        projects.save(project)
+        projects.write_settings(project)
+
+    def _step_routes(
+        path: str,
+        view_type: type,
+        view: Callable[[projects.Project], Any],
+        step: steps.Step,
+        start: Callable[[projects.Project, Path], None] | None,
+        before: Callable[[projects.Project, Path], None] | None = None,
+        accept: Callable[[projects.Project, Path], None] | None = None,
+        run_doc: str = "",
+    ) -> None:
+        """GET <path>: ready, running, or the last run's receipt and whether it's out of date. POST run (in a
+        process of its own; `before` gets the project ready), stop, and accept (Looks right) when it has one."""
+        base = f"/api/projects/{{project_id}}/{path}"
+        name = step.module
+
+        @app.get(base, response_model=view_type, name=f"{name}_state")
+        def state(project_id: str) -> Any:
+            return view(_load(project_id))
+
+        if start is not None:
+
+            @app.post(f"{base}/run", response_model=view_type, name=f"{name}_run", description=run_doc)
+            def run(project_id: str) -> Any:
+                project = _load(project_id)
+                pdir = projects.project_dir(project_id)
+                try:
+                    if before is not None:
+                        before(project, pdir)
+                    start(project, pdir)
+                except (ValueError, FileNotFoundError) as e:
+                    raise HTTPException(409, str(e)) from e
+                return view(project)
+
+        @app.post(f"{base}/stop", response_model=view_type, name=f"{name}_stop")
+        def stop(project_id: str) -> Any:
+            step.stop(project_id)
+            return view(_load(project_id))
+
+        if accept is not None:
+
+            @app.post(f"{base}/accept", response_model=view_type, name=f"{name}_accept")
+            def accept_route(project_id: str) -> Any:
+                project = _load(project_id)
+                try:
+                    accept(project, projects.project_dir(project_id))
+                except ValueError as e:
+                    raise HTTPException(409, str(e)) from e
+                projects.save(project)
+                return view(project)
+
+    _step_routes("bring-in", bring_in.View, _bring_in_view, bring_in.STEP, None, accept=bring_in.STEP.accept)
+    _step_routes(
+        "assemble",
+        assemble.AssembleView,
+        _assemble_view,
+        assemble.STEP,
+        assemble.start,
+        before=_write,
+        accept=assemble.STEP.accept,
+        run_doc="Tag each parcel with its model group and write notebook 1's output.",
+    )
+    _step_routes(
+        "clean",
+        clean.CleanView,
+        _clean_view,
+        clean.STEP,
+        clean.start,
+        before=_decide,
+        accept=clean.STEP.accept,
+        run_doc="Check sales: notebook 2's clean stage.",
+    )
+    _step_routes(
+        "prepare",
+        prepare.PrepareView,
+        lambda p: prepare.view(p, projects.project_dir(p.id)),
+        prepare.STEP,
+        prepare.start,
+        before=_decide,
+        accept=prepare.STEP.accept,
+        run_doc="Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again.",
+    )
+    _step_routes(
+        "ratio",
+        ratio.RatioView,
+        lambda p: ratio.view(p, projects.project_dir(p.id)),
+        ratio.STEP,
+        ratio.start,
+        accept=ratio.accept,
+        run_doc="Check the values: OpenAVMKit's value-field studies on the sales Check sales kept.",
+    )
+    _step_routes(
+        "vartest",
+        vartest.VarTestView,
+        lambda p: vartest.view(p, projects.project_dir(p.id)),
+        vartest.STEP,
+        vartest.start,
+        before=_write,
+        run_doc="Test the variables ticked: OpenAVMKit's variable tests, per model group.",
+    )
+    _step_routes(
+        "model",
+        model.ModelView,
+        lambda p: model.view(p, projects.project_dir(p.id)),
+        model.STEP,
+        model.start,
+        before=_write,
+        run_doc="Try the models: OpenAVMKit's try_models on the prepared fields, every model group.",
+    )
+
+    # ---------- Step 1, Bring in data (SPEC §3.3) ----------
 
     @app.post("/api/projects/{project_id}/bring-in/run")
     def bring_in_run(project_id: str) -> bring_in.View:
@@ -948,15 +1073,10 @@ def create_app() -> FastAPI:
             raise HTTPException(422, f"Fix on Data first: {problems[0]}")
         projects.write_settings(project)
         try:
-            bring_in.start(project_id, projects.project_dir(project_id))
+            bring_in.STEP.start(project_id, projects.project_dir(project_id), [])
         except ValueError as e:
             raise HTTPException(409, str(e)) from e
         return _bring_in_view(project)
-
-    @app.post("/api/projects/{project_id}/bring-in/stop")
-    def bring_in_stop(project_id: str) -> bring_in.View:
-        bring_in.stop(project_id)
-        return _bring_in_view(_load(project_id))
 
     @app.post("/api/projects/{project_id}/bring-in/skip/{part}")
     def bring_in_skip(project_id: str, part: str) -> bring_in.View:
@@ -967,17 +1087,6 @@ def create_app() -> FastAPI:
             bring_in.skip(project_id, projects.project_dir(project_id), part)
         except ValueError as e:
             raise HTTPException(409, str(e)) from e
-        return _bring_in_view(project)
-
-    @app.post("/api/projects/{project_id}/bring-in/accept")
-    def bring_in_accept(project_id: str) -> bring_in.View:
-        """Looks right: model groups can start from this."""
-        project = _load(project_id)
-        try:
-            bring_in.accept(project, projects.project_dir(project_id))
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
-        projects.save(project)
         return _bring_in_view(project)
 
     @app.get("/api/projects/{project_id}/bring-in/rows/{name}")
@@ -1098,46 +1207,11 @@ def create_app() -> FastAPI:
 
     # ---------- The end of notebook 1: tag model groups and write its output ----------
 
-    def _assemble_view(project: projects.Project) -> assemble.AssembleView:
-        return assemble.view(project, projects.project_dir(project.id))
-
-    @app.get("/api/projects/{project_id}/assemble")
-    def assemble_state(project_id: str) -> assemble.AssembleView:
-        """Ready, running, or the receipt of the last run, and whether it's out of date."""
-        return _assemble_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/assemble/run")
-    def assemble_run(project_id: str) -> assemble.AssembleView:
-        """Tag each parcel with its model group and write notebook 1's output, in a process of its own."""
-        project = _load(project_id)
-        projects.write_settings(project)
-        try:
-            assemble.start(project, projects.project_dir(project_id))
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
-        return _assemble_view(project)
-
-    @app.post("/api/projects/{project_id}/assemble/stop")
-    def assemble_stop(project_id: str) -> assemble.AssembleView:
-        bring_in.stop(project_id, assemble.MODULE)
-        return _assemble_view(_load(project_id))
-
     @app.put("/api/projects/{project_id}/assemble/exports")
     def assemble_exports(project_id: str, body: AssembleExports) -> assemble.AssembleView:
         """Also write the output as GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets."""
         project = _load(project_id)
         project.assemble_exports = sorted(set(body.exports))
-        projects.save(project)
-        return _assemble_view(project)
-
-    @app.post("/api/projects/{project_id}/assemble/accept")
-    def assemble_accept(project_id: str) -> assemble.AssembleView:
-        """Looks right: notebook 1 is done."""
-        project = _load(project_id)
-        try:
-            assemble.accept(project, projects.project_dir(project_id))
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
         projects.save(project)
         return _assemble_view(project)
 
@@ -1150,14 +1224,6 @@ def create_app() -> FastAPI:
         projects.show_file(first or look)
 
     # ---------- Step 3, Check sales: notebook 2 (clean) ----------
-
-    def _clean_view(project: projects.Project) -> clean.CleanView:
-        return clean.view(project, projects.project_dir(project.id))
-
-    @app.get("/api/projects/{project_id}/clean")
-    def clean_state(project_id: str) -> clean.CleanView:
-        """Ready, running, or the receipt of the last run, and whether it's out of date."""
-        return _clean_view(_load(project_id))
 
     @app.get("/api/projects/{project_id}/clean/setup")
     def clean_setup(project_id: str) -> clean.CleanSetup:
@@ -1196,39 +1262,6 @@ def create_app() -> FastAPI:
         projects.save(project)
         projects.write_settings(project)
         return clean.setup(project, pdir)
-
-    @app.post("/api/projects/{project_id}/clean/run")
-    def clean_run(project_id: str) -> clean.CleanView:
-        """Check sales: notebook 2's clean stage, in a process of its own."""
-        project = _load(project_id)
-        pdir = projects.project_dir(project_id)
-        try:
-            clean.decide(project, pdir)
-        except FileNotFoundError as e:
-            raise HTTPException(409, "Write step 2 first (Model groups): this starts from its hand-off.") from e
-        projects.save(project)
-        projects.write_settings(project)
-        try:
-            clean.start(project, pdir)
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
-        return _clean_view(project)
-
-    @app.post("/api/projects/{project_id}/clean/stop")
-    def clean_stop(project_id: str) -> clean.CleanView:
-        bring_in.stop(project_id, clean.MODULE)
-        return _clean_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/clean/accept")
-    def clean_accept(project_id: str) -> clean.CleanView:
-        """Looks right: step 3 is done."""
-        project = _load(project_id)
-        try:
-            clean.accept(project, projects.project_dir(project_id))
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
-        projects.save(project)
-        return _clean_view(project)
 
     @app.post("/api/projects/{project_id}/clean/show")
     def clean_show(
@@ -1347,50 +1380,7 @@ def create_app() -> FastAPI:
 
     # ---------- Step 5 begins: prepare the fields for the models ----------
 
-    def _prepare_view(project: projects.Project) -> prepare.PrepareView:
-        return prepare.view(project, projects.project_dir(project.id))
-
-    @app.get("/api/projects/{project_id}/prepare")
-    def prepare_state(project_id: str) -> prepare.PrepareView:
-        return _prepare_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/prepare/run")
-    def prepare_run(project_id: str) -> prepare.PrepareView:
-        """Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again."""
-        project = _load(project_id)
-        pdir = projects.project_dir(project_id)
-        try:
-            clean.decide(project, pdir)
-            projects.save(project)
-            projects.write_settings(project)
-            prepare.start(project, pdir)
-        except (ValueError, FileNotFoundError) as e:
-            raise HTTPException(409, str(e)) from e
-        return _prepare_view(project)
-
-    @app.post("/api/projects/{project_id}/prepare/stop")
-    def prepare_stop(project_id: str) -> prepare.PrepareView:
-        bring_in.stop(project_id, prepare.MODULE)
-        return _prepare_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/prepare/accept")
-    def prepare_accept(project_id: str) -> prepare.PrepareView:
-        project = _load(project_id)
-        try:
-            prepare.accept(project, projects.project_dir(project_id))
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
-        projects.save(project)
-        return _prepare_view(project)
-
     # ---------- Step 5, the models (F9) ----------
-
-    def _model_view(project: projects.Project) -> model.ModelView:
-        return model.view(project, projects.project_dir(project.id))
-
-    @app.get("/api/projects/{project_id}/model")
-    def model_state(project_id: str) -> model.ModelView:
-        return _model_view(_load(project_id))
 
     @app.get("/api/projects/{project_id}/model/setup")
     def model_setup(project_id: str) -> model.ModelSetup:
@@ -1414,54 +1404,7 @@ def create_app() -> FastAPI:
         except LookupError as e:
             raise HTTPException(409, str(e)) from e
 
-    def _vartest_view(project: projects.Project) -> vartest.VarTestView:
-        return vartest.view(project, projects.project_dir(project.id))
-
-    @app.get("/api/projects/{project_id}/vartest")
-    def vartest_state(project_id: str) -> vartest.VarTestView:
-        return _vartest_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/vartest/run")
-    def vartest_run(project_id: str) -> vartest.VarTestView:
-        """Test the variables ticked: OpenAVMKit's variable tests, per model group."""
-        project = _load(project_id)
-        try:
-            projects.write_settings(project)
-            vartest.start(project, projects.project_dir(project_id))
-        except (ValueError, FileNotFoundError) as e:
-            raise HTTPException(409, str(e)) from e
-        return _vartest_view(project)
-
-    @app.post("/api/projects/{project_id}/vartest/stop")
-    def vartest_stop(project_id: str) -> vartest.VarTestView:
-        bring_in.stop(project_id, vartest.MODULE)
-        return _vartest_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/model/run")
-    def model_run(project_id: str) -> model.ModelView:
-        """Try the models: OpenAVMKit's try_models on the prepared fields, every model group."""
-        project = _load(project_id)
-        pdir = projects.project_dir(project_id)
-        try:
-            projects.write_settings(project)
-            model.start(project, pdir)
-        except (ValueError, FileNotFoundError) as e:
-            raise HTTPException(409, str(e)) from e
-        return _model_view(project)
-
-    @app.post("/api/projects/{project_id}/model/stop")
-    def model_stop(project_id: str) -> model.ModelView:
-        bring_in.stop(project_id, model.MODULE)
-        return _model_view(_load(project_id))
-
     # ---------- Step 4, Check my values (F8) ----------
-
-    def _ratio_view(project: projects.Project) -> ratio.RatioView:
-        return ratio.view(project, projects.project_dir(project.id))
-
-    @app.get("/api/projects/{project_id}/ratio")
-    def ratio_state(project_id: str) -> ratio.RatioView:
-        return _ratio_view(_load(project_id))
 
     @app.get("/api/projects/{project_id}/ratio/setup")
     def ratio_setup(project_id: str) -> ratio.RatioSetup:
@@ -1484,31 +1427,6 @@ def create_app() -> FastAPI:
             return ratio.setup(project, projects.project_dir(project_id))
         except LookupError as e:
             raise HTTPException(409, str(e)) from e
-
-    @app.post("/api/projects/{project_id}/ratio/run")
-    def ratio_run(project_id: str) -> ratio.RatioView:
-        """Check the values: OpenAVMKit's value-field studies on the sales Check sales kept."""
-        project = _load(project_id)
-        try:
-            ratio.start(project, projects.project_dir(project_id))
-        except (ValueError, FileNotFoundError) as e:
-            raise HTTPException(409, str(e)) from e
-        return _ratio_view(project)
-
-    @app.post("/api/projects/{project_id}/ratio/stop")
-    def ratio_stop(project_id: str) -> ratio.RatioView:
-        bring_in.stop(project_id, ratio.MODULE)
-        return _ratio_view(_load(project_id))
-
-    @app.post("/api/projects/{project_id}/ratio/accept")
-    def ratio_accept(project_id: str) -> ratio.RatioView:
-        project = _load(project_id)
-        try:
-            ratio.accept(project, projects.project_dir(project_id))
-        except ValueError as e:
-            raise HTTPException(409, str(e)) from e
-        projects.save(project)
-        return _ratio_view(project)
 
     @app.get("/api/projects/{project_id}/ratio/map")
     def ratio_map(project_id: str, field: str, group: str = "") -> list[ratio.MapPoint]:

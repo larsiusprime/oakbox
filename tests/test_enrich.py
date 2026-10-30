@@ -391,11 +391,11 @@ def test_the_app_asks_a_running_run_to_skip_a_part(tmp_path, monkeypatch):
     """The skip request is a line in out/oakbox/bring_in.skip, which the run reads at its checkpoints."""
     import time
 
-    from oakbox import bring_in
+    from oakbox import bring_in, steps
 
-    job = bring_in.Job(status="running", started=time.time() - 30, heard=time.time() - 3)
-    monkeypatch.setitem(bring_in._jobs, "bring_in:p1", job)
-    seen = bring_in._skipper(bring_in.skip_path(tmp_path))
+    job = steps.Job(status="running", started=time.time() - 30, heard=time.time() - 3)
+    monkeypatch.setitem(steps._jobs, "bring_in:p1", job)
+    seen = steps.skipper(steps.skip_path(tmp_path, bring_in.MODULE))
     assert not seen("distances")
     bring_in.skip("p1", tmp_path, "distances")
     time.sleep(0.6)  # the run reads the file at most every half second
@@ -403,5 +403,5 @@ def test_the_app_asks_a_running_run_to_skip_a_part(tmp_path, monkeypatch):
     assert job.skipping == ["distances"]
     with pytest.raises(ValueError):
         bring_in.skip("p1", tmp_path, "load")  # loading the files isn't optional
-    j = bring_in.job("p1")
+    j = bring_in.STEP.job("p1")
     assert j is not None and j.elapsed >= 30 and 3 <= j.quiet < 10  # alive: it spoke 3 s ago

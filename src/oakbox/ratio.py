@@ -11,19 +11,16 @@ has no place for them).
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 import re
-import shutil
-import sys
 import time
 from pathlib import Path
 from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import bring_in, clean
+from oakbox import clean, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "ratio"
@@ -440,7 +437,7 @@ class RatioReceipt(BaseModel):
 
 def settings_key(project, project_dir: Path) -> dict:
     """What a run depends on: the Check sales run it starts from, and the calls."""
-    r, _ = clean._ran(project_dir)
+    r, _ = clean.STEP.ran(project_dir)
     start, end, _ = window(project, project_dir=project_dir)
     s: RatioState = project.ratio
     return {
@@ -457,8 +454,7 @@ def settings_key(project, project_dir: Path) -> dict:
 
 
 def settings_hash(project, project_dir: Path) -> str:
-    text = json.dumps(settings_key(project, project_dir), sort_keys=True, default=str)
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+    return steps.key_hash(settings_key(project, project_dir))
 
 
 def _fifths(table, group: str | None) -> list[Fifth]:
@@ -553,9 +549,7 @@ def run(project_id: str) -> None:
         raise RuntimeError("Check sales first: this starts from its hand-off.")
     s: RatioState = project.ratio
     start, end, _ = window(project, project_dir=pdir)
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import SalesUniversePair
@@ -563,12 +557,12 @@ def run(project_id: str) -> None:
 
     t0 = time.time()
     cls = classes(project)
-    with warnings.catch_warnings(record=True) as caught:
+    with warnings.catch_warnings(record=True) as caught, steps.heartbeat():
         warnings.simplefilter("always")
-        bring_in._emit(step="load", fraction=0.0, message="Reading Check sales' hand-off")
+        steps.emit(step="load", fraction=0.0, message="Reading Check sales' hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
         settings = pl.load_settings()
-        bring_in._emit(step="study", fraction=0.2, message="Checking the values against the sales")
+        steps.emit(step="study", fraction=0.2, message="Checking the values against the sales")
         studies = run_value_field_studies(
             sup,
             settings,
@@ -583,7 +577,7 @@ def run(project_id: str) -> None:
             classes={g: (None if c == "none" else c) for g, c in cls.items()},
             outpath=str(tmp / "studies"),
         )
-    bring_in._emit(step="receipt", fraction=0.9, message="Counting")
+    steps.emit(step="receipt", fraction=0.9, message="Counting")
     hydrated = _sales(pdir)
     address = (
         dict(zip(hydrated["key_sale"].astype(str), hydrated["address"], strict=False))
@@ -627,7 +621,7 @@ def run(project_id: str) -> None:
                 trimmed=trimmed,
             )
         )
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     receipt = RatioReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
         seconds=round(time.time() - t0, 1),
@@ -641,75 +635,63 @@ def run(project_id: str) -> None:
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(project, pdir)}), encoding="utf-8")
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
-    bring_in._emit(step="done", fraction=1.0, message=f"{sum(r.overall.sales for r in results):,} sales studied")
+    steps.publish(tmp, out_dir(pdir))
+    steps.emit(step="done", fraction=1.0, message=f"{sum(r.overall.sales for r in results):,} sales studied")
 
 
 # ---------- The step's state ----------
 
 
-class RatioView(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+class RatioView(steps.StepView):
     receipt: RatioReceipt | None
-    stale: bool = Field(description="Check sales ran again, or a call changed, since it ran.")
-    blocked: list[str]
     accepted: bool
 
 
-def _ran(project_dir: Path) -> tuple[RatioReceipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    try:
-        return RatioReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
-    except ValueError:  # written by an earlier OAK box: check the values again
-        return None, None
+STEP = steps.Step(
+    MODULE,
+    RatioReceipt,
+    key=settings_key,
+    again="Check the values again first: something changed since they were checked.",
+)
 
 
-def view(project, project_dir: Path) -> RatioView:
-    r, ran = _ran(project_dir)
-    j = bring_in.job(project.id, MODULE)
-    blocked = []
-    c = clean.view(project, project_dir)
+def blocked(project, project_dir: Path) -> list[str]:
     if (
-        not c.accepted
+        not clean.STEP.accepted(project, project_dir)
         or not (project_dir / "out" / "2-clean-sup.pickle").is_file()
         or not _hydrated(project_dir).is_file()
     ):
-        blocked.append("Press Looks right on Check sales first: this starts from the sales it kept.")
-    now = settings_hash(project, project_dir) if not blocked else None
-    stale = bool(r and ran and now and ran.get("hash") != now)
+        return ["Press Looks right on Check sales first: this starts from the sales it kept."]
+    return []
+
+
+def view(project, project_dir: Path) -> RatioView:
+    stop = blocked(project, project_dir)
+    # What a run would depend on can't be worked out until Check sales is done: not out of date, just blocked.
+    s = STEP.state(project, project_dir, check=not stop)
     return RatioView(
-        status=j.status if j else ("done" if r else "never"),
-        job=j,
-        receipt=r,
-        stale=stale,
-        blocked=blocked,
-        accepted=bool(r and not stale and now and project.accepted.get(MODULE) == now),
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=stop,
+        accepted=s.accepted,
     )
 
 
 def start(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.blocked:
-        raise ValueError(v.blocked[0])
-    sales = _sales(project_dir)
-    if sales is None or FIELD not in sales:
-        raise ValueError("The parcels have no assessed market value (assr_market_value) to check.")
-    bring_in.start(project.id, project_dir, MODULE)
+    stop = blocked(project, project_dir)
+    if not stop:
+        sales = _sales(project_dir)
+        if sales is None or FIELD not in sales:
+            stop = ["The parcels have no assessed market value (assr_market_value) to check."]
+    STEP.start(project.id, project_dir, stop)
 
 
 def accept(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.receipt is None or v.stale:
-        raise ValueError("Check the values again first: something changed since they were checked.")
-    project.accepted[MODULE] = settings_hash(project, project_dir)
+    if blocked(project, project_dir):
+        raise ValueError(STEP.again)
+    STEP.accept(project, project_dir)
 
 
 class RatioPatch(BaseModel):
@@ -790,14 +772,4 @@ def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoin
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

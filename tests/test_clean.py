@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from test_groups import brought_in  # noqa: F401 - the shared project, data brought in
 
-from oakbox import bring_in, clean, projects
+from oakbox import bring_in, clean, projects, steps
 from oakbox.app import create_app
 
 
@@ -288,8 +288,8 @@ def test_a_failed_write_fails_the_run():
     with pytest.raises(
         RuntimeError, match="couldn't write notebook 2's output: Conversion failed for column demo_date"
     ):
-        bring_in.written(caught, "notebook 2's output")
-    bring_in.written([], "notebook 2's output")  # nothing said: written
+        steps.written(caught, "notebook 2's output")
+    steps.written([], "notebook 2's output")  # nothing said: written
 
 
 def test_the_models_study_set_setting_leaves_check_sales_as_it_was():

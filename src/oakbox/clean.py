@@ -16,16 +16,13 @@ import datetime as dt
 import hashlib
 import json
 import os
-import shutil
-import sys
-import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import Field
 
-from oakbox import assemble, bring_in, names
+from oakbox import assemble, bring_in, names, steps
 from oakbox.datafiles import BaseModel
 
 if TYPE_CHECKING:
@@ -315,8 +312,7 @@ def without_fields(settings: dict, project) -> dict:
 
 
 def settings_hash(settings: dict, project) -> str:
-    text = json.dumps(settings_key(settings, project), sort_keys=True, default=str)
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+    return steps.key_hash(settings_key(settings, project))
 
 
 def _settings(project_dir: Path) -> dict:
@@ -618,7 +614,7 @@ def folds(project, project_dir: Path) -> list[Fold]:
 
 
 def _last_run(project_dir: Path) -> dict[str, float | None]:
-    r, _ = _ran(project_dir)
+    r, _ = STEP.ran(project_dir)
     return {g.id: g.per_year for g in r.groups} if r else {}
 
 
@@ -863,10 +859,6 @@ def _curve(path: Path) -> tuple[float | None, str | None, str | None, list[float
     return per_year, str(first.date()), str(last.date()), curve
 
 
-def _emit(**kw) -> None:
-    bring_in._emit(**kw)
-
-
 def run(project_id: str) -> None:
     """Notebook 2's clean stage, with a count at each part; then the receipt and the review's tables."""
     import warnings
@@ -881,9 +873,7 @@ def run(project_id: str) -> None:
     src = pdir / "out" / "1-assemble-sup.pickle"
     if not src.is_file():
         raise RuntimeError("Write step 2 first (Model groups): this starts from its hand-off.")
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
@@ -891,13 +881,11 @@ def run(project_id: str) -> None:
     from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
 
     names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned"}
-    beating = threading.Event()
-    threading.Thread(target=bring_in._heartbeat, args=(beating,), daemon=True).start()
     said: dict[str, str] = {}
 
     def step(name: str, fraction: float, message: str) -> None:
         said["base"] = message
-        _emit(step=name, fraction=fraction, message=message)
+        steps.emit(step=name, fraction=fraction, message=message)
         progress.report(name, fraction, message)
 
     def inside(e) -> None:
@@ -908,11 +896,11 @@ def run(project_id: str) -> None:
         for gid, name in names.items():
             if detail.startswith(gid + " ("):
                 detail = name + detail[len(gid) :]
-        _emit(detail=detail, sub=e.sub)
+        steps.emit(detail=detail, sub=e.sub)
 
     t0 = time.time()
     pl.delete_checkpoints("2-clean")
-    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside, stage="clean"):
+    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside, stage="clean"), steps.heartbeat():
         warnings.simplefilter("always")
         step("load", 0.0, "Reading step 2's hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
@@ -933,9 +921,8 @@ def run(project_id: str) -> None:
         sup = pl.run_sales_scrutiny(sup=sup, settings=settings)
         step("write", 0.93, "Writing notebook 2's output")
         pl.write_notebook_output_sup(sup, "2-clean")
-    beating.set()
-    bring_in.written(caught, "notebook 2's output")
-    _emit(step="receipt", fraction=0.97, message="Counting")
+    steps.written(caught, "notebook 2's output")
+    steps.emit(step="receipt", fraction=0.97, message="Counting")
 
     used = _valid_keys(sup.sales)
     flags = _flags(pdir)
@@ -951,10 +938,10 @@ def run(project_id: str) -> None:
         json.dumps({"settings": json.loads(settings_text), "hash": settings_hash(json.loads(settings_text), project)}),
         encoding="utf-8",
     )
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
-    _emit(step="done", fraction=1.0, message=f"{receipt.used:,} sales for modeling, {receipt.set_aside:,} set aside")
+    steps.publish(tmp, out_dir(pdir))
+    steps.emit(
+        step="done", fraction=1.0, message=f"{receipt.used:,} sales for modeling, {receipt.set_aside:,} set aside"
+    )
 
 
 def _valid_keys(sales) -> set[str]:
@@ -1091,7 +1078,7 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
                     path=path.relative_to(pdir).as_posix(), what=_what(path.name), bytes=path.stat().st_size
                 )
             )
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     aside = len(counted)
     flagged_in = set() if empty else set(flags.loc[only, "key_sale"]) & used
     return CleanReceipt(
@@ -1612,71 +1599,41 @@ def mark(project, key_sale: str, action: Literal["keep", "exclude"] | None, note
 # ---------- The step's state ----------
 
 
-class CleanView(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+class CleanView(steps.StepView):
     receipt: CleanReceipt | None
-    stale: bool = Field(description="Something changed since it ran: the data, model groups, a call or a mark.")
-    blocked: list[str] = Field(description="What stops it running.")
     accepted: bool
 
 
-def _ran(project_dir: Path) -> tuple[CleanReceipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    return CleanReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+STEP = steps.Step(
+    MODULE,
+    CleanReceipt,
+    key=lambda project, pdir: settings_key(_settings(pdir), project),
+    again="Check sales again first: something changed since it ran.",
+)
 
 
-def current_hash(project, project_dir: Path) -> str:
-    return settings_hash(_settings(project_dir), project)
+def blocked(project, project_dir: Path) -> list[str]:
+    a = assemble.STEP.state(project, project_dir)
+    if a.receipt is None or a.stale or not _look(project_dir, "sales-hydrated").is_file():
+        return ["Write step 2 first (Model groups): this starts from its hand-off."]
+    return []
 
 
 def view(project, project_dir: Path) -> CleanView:
-    r, ran = _ran(project_dir)
-    j = bring_in.job(project.id, MODULE)
-    now = current_hash(project, project_dir)
-    stale = bool(r and ran and ran.get("hash") != now)
-    blocked = []
-    a = assemble.view(project, project_dir)
-    if a.receipt is None or a.stale or not _look(project_dir, "sales-hydrated").is_file():
-        blocked.append("Write step 2 first (Model groups): this starts from its hand-off.")
+    s = STEP.state(project, project_dir)
     return CleanView(
-        status=j.status if j else ("done" if r else "never"),
-        job=j,
-        receipt=r,
-        stale=stale,
-        blocked=blocked,
-        accepted=bool(r and not stale and project.accepted.get(MODULE) == now),
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=blocked(project, project_dir),
+        accepted=s.accepted,
     )
 
 
 def start(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.blocked:
-        raise ValueError(v.blocked[0])
-    bring_in.start(project.id, project_dir, MODULE)
-
-
-def accept(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.receipt is None or v.stale:
-        raise ValueError("Check sales again first: something changed since it ran.")
-    project.accepted[MODULE] = current_hash(project, project_dir)
+    STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

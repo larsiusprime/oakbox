@@ -21,15 +21,13 @@ import json
 import os
 import re
 import shutil
-import subprocess
-import sys
-import threading
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 from pydantic import Field
 
+from oakbox import steps
 from oakbox.datafiles import BaseModel
 from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
 
@@ -38,8 +36,11 @@ PAGE = 50
 HELPER_SUFFIXES = ("_src", "_raw", "_text", "_num_src")
 
 
+MODULE = "bring_in"
+
+
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "bring_in"
+    return project_dir / "out" / "oakbox" / MODULE
 
 
 # ---------- The receipt ----------
@@ -460,60 +461,6 @@ def csv_chunks(project_dir: Path, name: str):
 # ---------- The run (in its own process) ----------
 
 
-_emit_lock = threading.Lock()
-
-
-def written(caught, what: str) -> None:
-    """OpenAVMKit's write_notebook_output_sup catches its own errors and only warns ("Failed to output sup"), which
-    leaves a step's hand-off half written: here it fails the run, saying why."""
-    for w in caught:
-        text = str(w.message)
-        if text.startswith("Failed to output sup"):
-            reason = text.removeprefix("Failed to output sup:").strip()
-            raise RuntimeError(f"OpenAVMKit couldn't write {what}: {reason}")
-
-
-def _emit(**kw) -> None:
-    """One line of progress for the app, on the real stdout: enrichments capture what OpenAVMKit prints, and the
-    heartbeat writes from its own thread."""
-    out = sys.__stdout__
-    if out is None:
-        return
-    with _emit_lock:
-        out.write(json.dumps(kw) + "\n")
-        out.flush()
-
-
-HEARTBEAT = 2.0  # seconds between "still working" lines from a run
-
-
-def skip_path(project_dir: Path, module: str = "bring_in") -> Path:
-    """Where the app asks a running run to skip a part (one name per line): the run checks it at each checkpoint."""
-    return project_dir / "out" / "oakbox" / f"{module}.skip"
-
-
-def _skipper(path: Path):
-    """The run's skip check: is this part in the skip file? Read at most every half second."""
-    seen: dict[str, object] = {"at": 0.0, "parts": set()}
-
-    def skip(part: str) -> bool:
-        now = time.time()
-        if now - cast(float, seen["at"]) > 0.5:
-            seen["at"] = now
-            try:
-                seen["parts"] = set(path.read_text(encoding="utf-8").split())
-            except OSError:
-                seen["parts"] = set()
-        return part in cast(set, seen["parts"])
-
-    return skip
-
-
-def _heartbeat(stop: threading.Event) -> None:
-    while not stop.wait(HEARTBEAT):
-        _emit(beat=True)
-
-
 def _write(df, path: Path) -> None:
     import pandas as pd
 
@@ -587,9 +534,7 @@ def run(project_id: str) -> None:
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
     in_dir = pdir / "in"
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     settings_text = (in_dir / "settings.json").read_text(encoding="utf-8")
     _clear_cache_if_rows_change(pdir, json.loads(settings_text))
     os.chdir(pdir)
@@ -598,30 +543,31 @@ def run(project_id: str) -> None:
     from openavmkit import pipeline as pl
     from openavmkit import progress
 
-    enriched = instrument(json.loads(settings_text), _emit)
+    enriched = instrument(json.loads(settings_text), steps.emit)
     timings: list[list] = []
     t0 = time.time()
-    skips = skip_path(pdir)
+    skips = steps.skip_path(pdir, MODULE)
     skips.unlink(missing_ok=True)
-    beating = threading.Event()
-    threading.Thread(target=_heartbeat, args=(beating,), daemon=True).start()
 
     def inside(e) -> None:
         # What OpenAVMKit is doing inside a step ("Parks (2 of 4)"), and how far through it.
-        _emit(detail=e.message, sub=e.sub, part=e.part)
+        steps.emit(detail=e.message, sub=e.sub, part=e.part)
 
-    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside, skip=_skipper(skips)):
+    with (
+        warnings.catch_warnings(record=True) as caught,
+        progress.reporting(inside, skip=steps.skipper(skips)),
+        steps.heartbeat(),
+    ):
         warnings.simplefilter("always")
-        _emit(step="load", fraction=0.0, message="Loading data files")
+        steps.emit(step="load", fraction=0.0, message="Loading data files")
         settings = pl.load_settings()
         dfs = pl.load_dataframes(settings)
         timings.append(["load_dataframes", round(time.time() - t0, 1)])
-        _emit(step="join", fraction=0.2, message="Joining and enriching: map layers, distances, coordinates")
+        steps.emit(step="join", fraction=0.2, message="Joining and enriching: map layers, distances, coordinates")
         t1 = time.time()
         sup = pl.process_dataframes(dfs, pl.load_settings())
         timings.append(["process_dataframes", round(time.time() - t1, 1)])
-    beating.set()
-    _emit(step="receipt", fraction=0.85, message="Counting and saving")
+    steps.emit(step="receipt", fraction=0.85, message="Counting and saving")
     t2 = time.time()
     universe, sales = sup.universe, sup.sales
     recount(enriched, universe)
@@ -928,7 +874,7 @@ def run(project_id: str) -> None:
         )
         checks.append(Said(what=what, said=said, got=got, ok=ok))
 
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     notes = list(dict.fromkeys(str(w.message) for w in mine))[:20]
     _write(universe, tmp / "universe.parquet")
     _write(sales, tmp / "sales.parquet")
@@ -948,152 +894,8 @@ def run(project_id: str) -> None:
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(settings_text, encoding="utf-8")
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
-    _emit(step="done", fraction=1.0, message=f"{len(universe):,} parcels, {len(sales):,} valid sales")
-
-
-# ---------- The job, from the app ----------
-
-
-class Progress(BaseModel):
-    step: str
-    message: str
-    fraction: float | None
-    at: float = Field(description="Seconds since the run started.")
-
-
-class Job(BaseModel):
-    status: Literal["running", "failed", "stopped", "done"]
-    started: float
-    steps: list[Progress] = Field(default_factory=list)
-    error: str | None = None
-    elapsed: float = Field(default=0.0, description="Seconds since it started, as of this answer.")
-    quiet: float = Field(default=0.0, description="Seconds since the run last said anything (it says so every 2).")
-    detail: str | None = Field(default=None, description="What the current step is doing: 'Parks (2 of 4)'.")
-    sub: float | None = Field(default=None, description="How far through the current step, 0-1, when known.")
-    part: str | None = Field(default=None, description="The current step can be skipped: its name.")
-    skipping: list[str] = Field(default_factory=list, description="Parts asked to be skipped.")
-    heard: float = Field(default=0.0, exclude=True, description="When the run last said anything (epoch).")
-
-
-_jobs: dict[str, Job] = {}
-_procs: dict[str, subprocess.Popen] = {}
-_lock = threading.Lock()
-
-
-def start(project_id: str, project_dir: Path, module: str = "bring_in") -> Job:
-    """Run `python -m oakbox.<module> <project id>` in a process of its own, following the JSON step lines it
-    prints. One run per module and project at a time; its log is out/oakbox/<module>.log."""
-    key = f"{module}:{project_id}"
-    with _lock:
-        if key in _jobs and _jobs[key].status == "running":
-            raise ValueError("It's already running.")
-        log = project_dir / "out" / "oakbox" / f"{module}.log"
-        log.parent.mkdir(parents=True, exist_ok=True)
-        proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
-            [sys.executable, "-X", "utf8", "-m", f"oakbox.{module}", project_id],
-            stdout=subprocess.PIPE,
-            stderr=log.open("w", encoding="utf-8"),
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=child_env(),
-        )
-        job = Job(status="running", started=time.time(), heard=time.time())
-        _jobs[key], _procs[key] = job, proc
-
-    def follow() -> None:
-        assert proc.stdout is not None
-        for line in proc.stdout:
-            try:
-                msg = json.loads(line)
-            except ValueError:
-                continue  # OpenAVMKit prints as it goes
-            if not isinstance(msg, dict):
-                continue
-            job.heard = time.time()
-            if "step" in msg:
-                job.steps.append(
-                    Progress(
-                        step=msg["step"],
-                        message=msg["message"],
-                        fraction=msg.get("fraction"),
-                        at=time.time() - job.started,
-                    )
-                )
-                job.detail, job.sub, job.part = None, None, msg.get("part")
-            elif "detail" in msg:
-                job.detail, job.sub = msg["detail"], msg.get("sub")
-                job.part = msg.get("part") or job.part
-        code = proc.wait()
-        if job.status == "running":
-            if code == 0:
-                job.status = "done"
-            else:
-                job.status = "failed"
-                tail = (
-                    log.read_text(errors="replace", encoding="utf-8").strip().splitlines()[-1:] if log.is_file() else []
-                )
-                job.error = tail[0] if tail else f"stopped with code {code}"
-
-    threading.Thread(target=follow, daemon=True).start()
-    return job
-
-
-def child_env() -> dict[str, str]:
-    """A run's environment: Python's UTF-8 mode, so OpenAVMKit reads, writes and prints UTF-8 on Windows too (not
-    the code page, cp1252, which can't write a "−"); and the user's keys for public data."""
-    return {
-        **os.environ,
-        "PYTHONUTF8": "1",
-        "PYTHONIOENCODING": "utf-8",
-        "PYTHONWARNINGS": "ignore::DeprecationWarning",
-        **_keys(),
-    }
-
-
-def _keys() -> dict[str, str]:
-    """The user's own keys for public data, from OAK box's settings, as OpenAVMKit reads them."""
-    from oakbox import appsettings
-
-    key = appsettings.load().census_api_key
-    return {"CENSUS_API_KEY": key} if key else {}
-
-
-def stop(project_id: str, module: str = "bring_in") -> None:
-    key = f"{module}:{project_id}"
-    proc = _procs.get(key)
-    job = _jobs.get(key)
-    if proc is None or job is None or job.status != "running":
-        return
-    job.status = "stopped"
-    proc.terminate()
-
-
-def job(project_id: str, module: str = "bring_in") -> Job | None:
-    j = _jobs.get(f"{module}:{project_id}")
-    if j is not None and j.status == "running":
-        now = time.time()
-        j.elapsed, j.quiet = now - j.started, now - j.heard
-    return j
-
-
-def skip(project_id: str, project_dir: Path, part: str, module: str = "bring_in") -> None:
-    """Ask a running run to skip one part (an enrichment): it stops at its next checkpoint, its fields left out,
-    and the run carries on."""
-    j = _jobs.get(f"{module}:{project_id}")
-    if j is None or j.status != "running":
-        raise ValueError("Nothing is running.")
-    if part not in SKIPPABLE:
-        raise ValueError(f"{part} can't be skipped.")
-    path = skip_path(project_dir, module)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as f:
-        f.write(part + "\n")
-    if part not in j.skipping:
-        j.skipping.append(part)
+    steps.publish(tmp, out_dir(pdir))
+    steps.emit(step="done", fraction=1.0, message=f"{len(universe):,} parcels, {len(sales):,} valid sales")
 
 
 class Plan(BaseModel):
@@ -1103,13 +905,9 @@ class Plan(BaseModel):
     fields: int
 
 
-class View(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: Job | None
+class View(steps.StepView):
     receipt: Receipt | None
-    stale: bool = Field(description="The settings changed since it ran.")
-    changed: list[str]
-    blocked: list[str] = Field(description="Data wizard problems that stop it running.")
+    changed: list[str] = Field(description="What changed in the settings since it ran, in words.")
     accepted: bool = Field(description="Looks right was pressed on this receipt, and nothing changed since.")
     plan: Plan
 
@@ -1149,52 +947,45 @@ def plan(project, in_dir: Path) -> Plan:
     return Plan(files=out, layers=layers, enrichments=public, fields=len(loaded) + len(project.wizard.locations))
 
 
+def _current(project_dir: Path) -> dict:
+    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
+
+
+# The run keeps the whole settings it ran with (settings.json), to say what changed since.
+STEP = steps.Step(
+    MODULE,
+    Receipt,
+    key=lambda project, pdir: settings_key(_current(pdir)),
+    ran_hash=settings_hash,
+    again="Bring in data again first: the Data wizard changed since it ran.",
+)
+
+
 def view(project, project_dir: Path, problems: list[str]) -> View:
-    current = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
-    r, ran = receipt(project_dir)
-    j = job(project.id)
-    stale = bool(r and ran and settings_hash(ran) != settings_hash(current))
-    accepted = bool(r and not stale and project.accepted.get("bring_in") == settings_hash(current))
-    status = j.status if j else ("done" if r else "never")
+    s = STEP.state(project, project_dir)
     return View(
-        status=status,
-        job=j,
-        receipt=r,
-        stale=stale,
-        changed=changes(ran, current) if stale and ran else [],
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        changed=changes(s.ran, _current(project_dir)) if s.stale and s.ran else [],
         blocked=problems,
-        accepted=accepted,
+        accepted=s.accepted,
         plan=plan(project, project_dir / "in"),
     )
 
 
-def accept(project, project_dir: Path) -> None:
-    current = json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
-    r, ran = receipt(project_dir)
-    if r is None or ran is None or settings_hash(ran) != settings_hash(current):
-        raise ValueError("Bring in data again first: the Data wizard changed since it ran.")
-    project.accepted["bring_in"] = settings_hash(current)
-
-
 def receipt(project_dir: Path) -> tuple[Receipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    return Receipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+    """The last run's receipt, and the settings it ran with."""
+    return STEP.ran(project_dir)
+
+
+def skip(project_id: str, project_dir: Path, part: str) -> None:
+    """Skip one part of a running run (an enrichment): its fields are left out, and the run carries on."""
+    if part not in SKIPPABLE:
+        raise ValueError(f"{part} can't be skipped.")
+    steps.skip(project_id, project_dir, part, MODULE)
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

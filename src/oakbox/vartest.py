@@ -13,16 +13,13 @@ import datetime as dt
 import json
 import math
 import os
-import shutil
-import sys
-import threading
 import time
 from pathlib import Path
 from typing import Literal, cast
 
 from pydantic import Field
 
-from oakbox import bring_in, model, prepare
+from oakbox import model, prepare, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "vartest"
@@ -285,22 +282,18 @@ def run(project_id: str) -> None:
     to_run = model.tests(project)
     if not variables:
         raise RuntimeError("Tick at least one variable.")
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import get_hydrated_sales_from_sup
     from openavmkit.model_runner import get_variable_recommendations
 
     t0 = time.time()
-    beating = threading.Event()
-    threading.Thread(target=bring_in._heartbeat, args=(beating,), daemon=True).start()
     groups: list[VarGroup] = []
     thresholds: dict[str, float] = {}
-    with warnings.catch_warnings(record=True) as caught:
+    with warnings.catch_warnings(record=True) as caught, steps.heartbeat():
         warnings.simplefilter("always")
-        bring_in._emit(step="load", fraction=0.0, message="Reading the prepared fields")
+        steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
         settings = pl.load_settings()
         thresholds_set = (
             settings.setdefault("modeling", {})
@@ -314,7 +307,7 @@ def run(project_id: str) -> None:
         sales = get_hydrated_sales_from_sup(sup)
         universe = sup.universe
         for k, g in enumerate(project.groups):
-            bring_in._emit(step="test", fraction=0.05 + 0.9 * k / max(len(project.groups), 1), message=g.name)
+            steps.emit(step="test", fraction=0.05 + 0.9 * k / max(len(project.groups), 1), message=g.name)
             df_s = cast(pd.DataFrame, sales[sales["model_group"].astype(str).eq(g.id) & sales["valid_sale"].eq(True)])
             df_u = cast(pd.DataFrame, universe[universe["model_group"].astype(str).eq(g.id)])
             vg = VarGroup(id=g.id, name=g.name, color=g.color, sales=len(df_s))
@@ -366,8 +359,7 @@ def run(project_id: str) -> None:
                 len(df_s),
             )
             groups.append(vg)
-    beating.set()
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     receipt = VarTestReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
         seconds=round(time.time() - t0, 1),
@@ -378,86 +370,60 @@ def run(project_id: str) -> None:
         groups=groups,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
-    r, _ = prepare._ran(pdir)
+    r, _ = prepare.STEP.ran(pdir)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"prepare": r.ran_at if r else None}), encoding="utf-8")
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
+    steps.publish(tmp, out_dir(pdir))
     tested = sum(1 for g in groups if g.tests)
-    bring_in._emit(step="done", fraction=1.0, message=f"{tested} of {len(groups)} model groups tested")
+    steps.emit(step="done", fraction=1.0, message=f"{tested} of {len(groups)} model groups tested")
 
 
 # ---------- The step's state ----------
 
 
-class VarTestView(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+class VarTestView(steps.StepView):
     receipt: VarTestReceipt | None
-    stale: bool = Field(
-        description="The fields were prepared again, a variable was ticked that wasn't tested, or the tests changed."
-    )
-    blocked: list[str]
 
 
-def _ran(project_dir: Path) -> tuple[VarTestReceipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    try:
-        return VarTestReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
-    except ValueError:
-        return None, None  # an older receipt: test again
+def _key(project, project_dir: Path) -> dict:
+    p, _ = prepare.STEP.ran(project_dir)
+    return {"prepare": p.ran_at if p else None}
+
+
+# The run keeps the Prepare run it tested (settings.json).
+STEP = steps.Step(
+    MODULE,
+    VarTestReceipt,
+    key=_key,
+    ran_hash=lambda ran: steps.key_hash({"prepare": ran.get("prepare")}),
+    again="Test the variables again first: something changed since.",
+)
 
 
 def view(project, project_dir: Path) -> VarTestView:
-    r, ran = _ran(project_dir)
-    j = bring_in.job(project.id, MODULE)
-    p, _ = prepare._ran(project_dir)
+    s = STEP.state(project, project_dir)
+    r = s.receipt
     chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
-    # Unticking a tested variable doesn't need a new test; ticking one that wasn't tested does.
-    stale = bool(
-        r
-        and (
-            (ran or {}).get("prepare") != (p.ran_at if p else None)
-            or chosen - set(r.variables)
-            or r.tests != model.tests(project)
-        )
-    )
-    blocked = []
-    if not prepare.view(project, project_dir).accepted:
-        blocked.append("Press Looks right on What changed first: the tests start from the prepared fields.")
-    elif not chosen:
-        blocked.append("Tick at least one variable.")
+    # The fields were prepared again, or (unticking a tested variable needs no new test) a variable was ticked
+    # that wasn't tested, or the tests changed.
+    stale = bool(r and (s.stale or chosen - set(r.variables) or r.tests != model.tests(project)))
     return VarTestView(
-        status=j.status if j else ("done" if r else "never"),
-        job=j,
-        receipt=r,
-        stale=stale,
-        blocked=blocked,
+        status=s.status, job=s.job, receipt=r, stale=stale, blocked=_blocked(project, project_dir, chosen)
     )
+
+
+def _blocked(project, project_dir: Path, chosen: set[str]) -> list[str]:
+    if not prepare.STEP.accepted(project, project_dir):
+        return ["Press Looks right on What changed first: the tests start from the prepared fields."]
+    if not chosen:
+        return ["Tick at least one variable."]
+    return []
 
 
 def start(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.blocked:
-        raise ValueError(v.blocked[0])
-    bring_in.start(project.id, project_dir, MODULE)
+    chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
+    STEP.start(project.id, project_dir, _blocked(project, project_dir, chosen))
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

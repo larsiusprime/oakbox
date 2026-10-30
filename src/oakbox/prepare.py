@@ -12,18 +12,15 @@ hand-off notebook 2 writes with the same settings. The receipt (out/oakbox/prepa
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
-import shutil
-import sys
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
 
 from pydantic import Field
 
-from oakbox import assemble, bring_in, clean
+from oakbox import assemble, clean, steps
 from oakbox.datafiles import BaseModel
 
 MODULE = "prepare"
@@ -36,7 +33,7 @@ def out_dir(project_dir: Path) -> Path:
 def settings_key(settings: dict, project, project_dir: Path) -> dict:
     """What this run depends on: the Check sales run it starts from, and the fills and folding."""
     process = settings.get("data", {}).get("process", {})
-    r, _ = clean._ran(project_dir)
+    r, _ = clean.STEP.ran(project_dir)
     return {
         "clean": r.ran_at if r else None,
         "fields": {k: process.get(k) for k in clean.FIELD_PROCESS},
@@ -44,8 +41,7 @@ def settings_key(settings: dict, project, project_dir: Path) -> dict:
 
 
 def settings_hash(settings: dict, project, project_dir: Path) -> str:
-    text = json.dumps(settings_key(settings, project, project_dir), sort_keys=True, default=str)
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+    return steps.key_hash(settings_key(settings, project, project_dir))
 
 
 # ---------- The receipt ----------
@@ -81,29 +77,27 @@ def run(project_id: str) -> None:
     src = clean.out_dir(pdir) / "sup.pickle"
     if not src.is_file():
         raise RuntimeError("Check sales first: this starts from what it wrote.")
-    tmp = out_dir(pdir).with_suffix(".tmp")
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir(parents=True)
+    tmp = steps.workdir(out_dir(pdir))
     settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit.data import SalesUniversePair
 
     t0 = time.time()
-    with warnings.catch_warnings(record=True) as caught:
+    with warnings.catch_warnings(record=True) as caught, steps.heartbeat():
         warnings.simplefilter("always")
-        bring_in._emit(step="load", fraction=0.0, message="Reading what Check sales wrote")
+        steps.emit(step="load", fraction=0.0, message="Reading what Check sales wrote")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
         settings = pl.load_settings()
         before = sup.universe.copy()
-        bring_in._emit(step="fill", fraction=0.2, message="Filling blanks")
+        steps.emit(step="fill", fraction=0.2, message="Filling blanks")
         sup = pl.fill_unknown_values_sup(sup, settings)
-        bring_in._emit(step="collapse", fraction=0.5, message="Folding rare categories")
+        steps.emit(step="collapse", fraction=0.5, message="Folding rare categories")
         sup = pl.collapse_sparse_categories_sup(sup, settings)
-        bring_in._emit(step="write", fraction=0.7, message="Writing notebook 2's output")
+        steps.emit(step="write", fraction=0.7, message="Writing notebook 2's output")
         pl.write_notebook_output_sup(sup, "2-clean")
-    bring_in.written(caught, "notebook 2's output")
-    bring_in._emit(step="receipt", fraction=0.95, message="Counting")
+    steps.written(caught, "notebook 2's output")
+    steps.emit(step="receipt", fraction=0.95, message="Counting")
 
     names = clean._names()
     filled: list[clean.Filled] = []
@@ -143,7 +137,7 @@ def run(project_id: str) -> None:
                     path=path.relative_to(pdir).as_posix(), what=clean._what(path.name), bytes=path.stat().st_size
                 )
             )
-    mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
+    mine = steps.engine_notes(caught)
     receipt = PrepareReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
         seconds=round(time.time() - t0, 1),
@@ -156,81 +150,48 @@ def run(project_id: str) -> None:
     s = json.loads(settings_text)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": settings_hash(s, project, pdir)}), encoding="utf-8")
-    final = out_dir(pdir)
-    shutil.rmtree(final, ignore_errors=True)
-    tmp.rename(final)
+    steps.publish(tmp, out_dir(pdir))
     n = sum(x.count for x in filled)
-    bring_in._emit(step="done", fraction=1.0, message=f"{n:,} values filled, {len(folded)} fields folded")
+    steps.emit(step="done", fraction=1.0, message=f"{n:,} values filled, {len(folded)} fields folded")
 
 
 # ---------- The step's state ----------
 
 
-class PrepareView(BaseModel):
-    status: Literal["never", "running", "failed", "stopped", "done"]
-    job: bring_in.Job | None
+class PrepareView(steps.StepView):
     receipt: PrepareReceipt | None
-    stale: bool = Field(description="Check sales ran again, or a fill or the folding changed, since it ran.")
-    blocked: list[str]
     accepted: bool
 
 
-def _ran(project_dir: Path) -> tuple[PrepareReceipt | None, dict | None]:
-    base = out_dir(project_dir)
-    if not (base / "receipt.json").is_file():
-        return None, None
-    ran = (
-        json.loads((base / "settings.json").read_text(encoding="utf-8")) if (base / "settings.json").is_file() else None
-    )
-    return PrepareReceipt.model_validate_json((base / "receipt.json").read_text(encoding="utf-8")), ran
+STEP = steps.Step(
+    MODULE,
+    PrepareReceipt,
+    key=lambda project, pdir: settings_key(clean._settings(pdir), project, pdir),
+    again="Prepare the fields again first: something changed since it ran.",
+)
 
 
-def current_hash(project, project_dir: Path) -> str:
-    return settings_hash(clean._settings(project_dir), project, project_dir)
+def blocked(project, project_dir: Path) -> list[str]:
+    if not clean.STEP.accepted(project, project_dir) or not (clean.out_dir(project_dir) / "sup.pickle").is_file():
+        return ["Press Looks right on Check sales first: this starts from what it wrote."]
+    return []
 
 
 def view(project, project_dir: Path) -> PrepareView:
-    r, ran = _ran(project_dir)
-    j = bring_in.job(project.id, MODULE)
-    now = current_hash(project, project_dir)
-    stale = bool(r and ran and ran.get("hash") != now)
-    blocked = []
-    c = clean.view(project, project_dir)
-    if not c.accepted or not (clean.out_dir(project_dir) / "sup.pickle").is_file():
-        blocked.append("Press Looks right on Check sales first: this starts from what it wrote.")
+    s = STEP.state(project, project_dir)
     return PrepareView(
-        status=j.status if j else ("done" if r else "never"),
-        job=j,
-        receipt=r,
-        stale=stale,
-        blocked=blocked,
-        accepted=bool(r and not stale and project.accepted.get(MODULE) == now),
+        status=s.status,
+        job=s.job,
+        receipt=s.receipt,
+        stale=s.stale,
+        blocked=blocked(project, project_dir),
+        accepted=s.accepted,
     )
 
 
 def start(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.blocked:
-        raise ValueError(v.blocked[0])
-    bring_in.start(project.id, project_dir, MODULE)
-
-
-def accept(project, project_dir: Path) -> None:
-    v = view(project, project_dir)
-    if v.receipt is None or v.stale:
-        raise ValueError("Prepare the fields again first: something changed since it ran.")
-    project.accepted[MODULE] = current_hash(project, project_dir)
+    STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 
 if __name__ == "__main__":
-    from oakbox.net import use_system_certificates
-
-    use_system_certificates()
-    try:
-        run(sys.argv[1])
-    except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
-        traceback.print_exc()
-        print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        sys.exit(1)
+    steps.main(run)

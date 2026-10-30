@@ -36,6 +36,14 @@ is built in the engine, so notebook users get it too, without changing what the 
 (a new setting, off unless asked for). OAK box keeps what only an app needs: screens, wording, the user's
 choices turned into settings.
 
+## Steps that run the engine
+
+Every step that runs OpenAVMKit (Bring in data, Model groups, Check sales, Check my values, Prepare, the variable
+tests, the models) is built on `steps.py`, not on another step's module: a `steps.Step` (its module, its receipt,
+`key`: what it depends on now), and in its run `steps.workdir` / `steps.publish`, `steps.emit`,
+`steps.heartbeat()`, `steps.engine_notes`, `steps.main`. Its routes come from `_step_routes` in `app.py`. A step
+that needs an earlier one done asks `<earlier>.STEP.accepted(...)` (cheap), never builds the earlier step's view.
+
 ## Screens
 
 - **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,

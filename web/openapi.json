@@ -2708,48 +2708,7 @@
   "/api/projects/{project_id}/bring-in": {
    "get": {
     "summary": "Bring In State",
-    "description": "Ready, running, or the receipt of the last run, and whether it's out of date.",
     "operationId": "bring_in_state_api_projects__project_id__bring_in_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/View"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/bring-in/run": {
-   "post": {
-    "summary": "Bring In Run",
-    "description": "Load and join the files with OpenAVMKit, in a process of its own.",
-    "operationId": "bring_in_run_api_projects__project_id__bring_in_run_post",
     "parameters": [
      {
       "name": "project_id",
@@ -2824,11 +2783,10 @@
     }
    }
   },
-  "/api/projects/{project_id}/bring-in/skip/{part}": {
+  "/api/projects/{project_id}/bring-in/accept": {
    "post": {
-    "summary": "Bring In Skip",
-    "description": "Skip one part of the run while it runs (an enrichment): it stops at its next checkpoint, its fields left\nout, and the run carries on.",
-    "operationId": "bring_in_skip_api_projects__project_id__bring_in_skip__part__post",
+    "summary": "Bring In Accept",
+    "operationId": "bring_in_accept_api_projects__project_id__bring_in_accept_post",
     "parameters": [
      {
       "name": "project_id",
@@ -2837,15 +2795,6 @@
       "schema": {
        "type": "string",
        "title": "Project Id"
-      }
-     },
-     {
-      "name": "part",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Part"
       }
      }
     ],
@@ -2873,11 +2822,10 @@
     }
    }
   },
-  "/api/projects/{project_id}/bring-in/accept": {
-   "post": {
-    "summary": "Bring In Accept",
-    "description": "Looks right: model groups can start from this.",
-    "operationId": "bring_in_accept_api_projects__project_id__bring_in_accept_post",
+  "/api/projects/{project_id}/assemble": {
+   "get": {
+    "summary": "Assemble State",
+    "operationId": "assemble_state_api_projects__project_id__assemble_get",
     "parameters": [
      {
       "name": "project_id",
@@ -2886,6 +2834,920 @@
       "schema": {
        "type": "string",
        "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/run": {
+   "post": {
+    "summary": "Assemble Run",
+    "description": "Tag each parcel with its model group and write notebook 1's output.",
+    "operationId": "assemble_run_api_projects__project_id__assemble_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/stop": {
+   "post": {
+    "summary": "Assemble Stop",
+    "operationId": "assemble_stop_api_projects__project_id__assemble_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/assemble/accept": {
+   "post": {
+    "summary": "Assemble Accept",
+    "operationId": "assemble_accept_api_projects__project_id__assemble_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AssembleView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean": {
+   "get": {
+    "summary": "Clean State",
+    "operationId": "clean_state_api_projects__project_id__clean_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/run": {
+   "post": {
+    "summary": "Clean Run",
+    "description": "Check sales: notebook 2's clean stage.",
+    "operationId": "clean_run_api_projects__project_id__clean_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/stop": {
+   "post": {
+    "summary": "Clean Stop",
+    "operationId": "clean_stop_api_projects__project_id__clean_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/clean/accept": {
+   "post": {
+    "summary": "Clean Accept",
+    "operationId": "clean_accept_api_projects__project_id__clean_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CleanView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare": {
+   "get": {
+    "summary": "Prepare State",
+    "operationId": "prepare_state_api_projects__project_id__prepare_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare/run": {
+   "post": {
+    "summary": "Prepare Run",
+    "description": "Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again.",
+    "operationId": "prepare_run_api_projects__project_id__prepare_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare/stop": {
+   "post": {
+    "summary": "Prepare Stop",
+    "operationId": "prepare_stop_api_projects__project_id__prepare_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/prepare/accept": {
+   "post": {
+    "summary": "Prepare Accept",
+    "operationId": "prepare_accept_api_projects__project_id__prepare_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PrepareView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio": {
+   "get": {
+    "summary": "Ratio State",
+    "operationId": "ratio_state_api_projects__project_id__ratio_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/run": {
+   "post": {
+    "summary": "Ratio Run",
+    "description": "Check the values: OpenAVMKit's value-field studies on the sales Check sales kept.",
+    "operationId": "ratio_run_api_projects__project_id__ratio_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/stop": {
+   "post": {
+    "summary": "Ratio Stop",
+    "operationId": "ratio_stop_api_projects__project_id__ratio_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/ratio/accept": {
+   "post": {
+    "summary": "Ratio Accept",
+    "operationId": "ratio_accept_api_projects__project_id__ratio_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RatioView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/vartest": {
+   "get": {
+    "summary": "Vartest State",
+    "operationId": "vartest_state_api_projects__project_id__vartest_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarTestView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/vartest/run": {
+   "post": {
+    "summary": "Vartest Run",
+    "description": "Test the variables ticked: OpenAVMKit's variable tests, per model group.",
+    "operationId": "vartest_run_api_projects__project_id__vartest_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarTestView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/vartest/stop": {
+   "post": {
+    "summary": "Vartest Stop",
+    "operationId": "vartest_stop_api_projects__project_id__vartest_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarTestView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model": {
+   "get": {
+    "summary": "Model State",
+    "operationId": "model_state_api_projects__project_id__model_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/run": {
+   "post": {
+    "summary": "Model Run",
+    "description": "Try the models: OpenAVMKit's try_models on the prepared fields, every model group.",
+    "operationId": "model_run_api_projects__project_id__model_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/stop": {
+   "post": {
+    "summary": "Model Stop",
+    "operationId": "model_stop_api_projects__project_id__model_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/run": {
+   "post": {
+    "summary": "Bring In Run",
+    "description": "Load and join the files with OpenAVMKit, in a process of its own.",
+    "operationId": "bring_in_run_api_projects__project_id__bring_in_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/View"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/bring-in/skip/{part}": {
+   "post": {
+    "summary": "Bring In Skip",
+    "description": "Skip one part of the run while it runs (an enrichment): it stops at its next checkpoint, its fields left\nout, and the run carries on.",
+    "operationId": "bring_in_skip_api_projects__project_id__bring_in_skip__part__post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "part",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Part"
       }
      }
     ],
@@ -3452,125 +4314,6 @@
     }
    }
   },
-  "/api/projects/{project_id}/assemble": {
-   "get": {
-    "summary": "Assemble State",
-    "description": "Ready, running, or the receipt of the last run, and whether it's out of date.",
-    "operationId": "assemble_state_api_projects__project_id__assemble_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/AssembleView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/assemble/run": {
-   "post": {
-    "summary": "Assemble Run",
-    "description": "Tag each parcel with its model group and write notebook 1's output, in a process of its own.",
-    "operationId": "assemble_run_api_projects__project_id__assemble_run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/AssembleView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/assemble/stop": {
-   "post": {
-    "summary": "Assemble Stop",
-    "operationId": "assemble_stop_api_projects__project_id__assemble_stop_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/AssembleView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/projects/{project_id}/assemble/exports": {
    "put": {
     "summary": "Assemble Exports",
@@ -3621,46 +4364,6 @@
     }
    }
   },
-  "/api/projects/{project_id}/assemble/accept": {
-   "post": {
-    "summary": "Assemble Accept",
-    "description": "Looks right: notebook 1 is done.",
-    "operationId": "assemble_accept_api_projects__project_id__assemble_accept_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/AssembleView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/projects/{project_id}/assemble/show": {
    "post": {
     "summary": "Assemble Show",
@@ -3683,46 +4386,6 @@
       "content": {
        "application/json": {
         "schema": {}
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/clean": {
-   "get": {
-    "summary": "Clean State",
-    "description": "Ready, running, or the receipt of the last run, and whether it's out of date.",
-    "operationId": "clean_state_api_projects__project_id__clean_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/CleanView"
-        }
        }
       }
      },
@@ -3810,125 +4473,6 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/CleanSetup"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/clean/run": {
-   "post": {
-    "summary": "Clean Run",
-    "description": "Check sales: notebook 2's clean stage, in a process of its own.",
-    "operationId": "clean_run_api_projects__project_id__clean_run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/CleanView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/clean/stop": {
-   "post": {
-    "summary": "Clean Stop",
-    "operationId": "clean_stop_api_projects__project_id__clean_stop_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/CleanView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/clean/accept": {
-   "post": {
-    "summary": "Clean Accept",
-    "description": "Looks right: step 3 is done.",
-    "operationId": "clean_accept_api_projects__project_id__clean_accept_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/CleanView"
         }
        }
       }
@@ -4412,202 +4956,6 @@
     }
    }
   },
-  "/api/projects/{project_id}/prepare": {
-   "get": {
-    "summary": "Prepare State",
-    "operationId": "prepare_state_api_projects__project_id__prepare_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PrepareView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/prepare/run": {
-   "post": {
-    "summary": "Prepare Run",
-    "description": "Fill blanks and fold rare categories on Check sales' hand-off; write notebook 2's output again.",
-    "operationId": "prepare_run_api_projects__project_id__prepare_run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PrepareView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/prepare/stop": {
-   "post": {
-    "summary": "Prepare Stop",
-    "operationId": "prepare_stop_api_projects__project_id__prepare_stop_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PrepareView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/prepare/accept": {
-   "post": {
-    "summary": "Prepare Accept",
-    "operationId": "prepare_accept_api_projects__project_id__prepare_accept_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/PrepareView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/model": {
-   "get": {
-    "summary": "Model State",
-    "operationId": "model_state_api_projects__project_id__model_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ModelView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/projects/{project_id}/model/setup": {
    "get": {
     "summary": "Model Setup",
@@ -4695,242 +5043,6 @@
     }
    }
   },
-  "/api/projects/{project_id}/vartest": {
-   "get": {
-    "summary": "Vartest State",
-    "operationId": "vartest_state_api_projects__project_id__vartest_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/VarTestView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/vartest/run": {
-   "post": {
-    "summary": "Vartest Run",
-    "description": "Test the variables ticked: OpenAVMKit's variable tests, per model group.",
-    "operationId": "vartest_run_api_projects__project_id__vartest_run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/VarTestView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/vartest/stop": {
-   "post": {
-    "summary": "Vartest Stop",
-    "operationId": "vartest_stop_api_projects__project_id__vartest_stop_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/VarTestView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/model/run": {
-   "post": {
-    "summary": "Model Run",
-    "description": "Try the models: OpenAVMKit's try_models on the prepared fields, every model group.",
-    "operationId": "model_run_api_projects__project_id__model_run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ModelView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/model/stop": {
-   "post": {
-    "summary": "Model Stop",
-    "operationId": "model_stop_api_projects__project_id__model_stop_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ModelView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/ratio": {
-   "get": {
-    "summary": "Ratio State",
-    "operationId": "ratio_state_api_projects__project_id__ratio_get",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/RatioView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/projects/{project_id}/ratio/setup": {
    "get": {
     "summary": "Ratio Setup",
@@ -5001,124 +5113,6 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/RatioSetup"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/ratio/run": {
-   "post": {
-    "summary": "Ratio Run",
-    "description": "Check the values: OpenAVMKit's value-field studies on the sales Check sales kept.",
-    "operationId": "ratio_run_api_projects__project_id__ratio_run_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/RatioView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/ratio/stop": {
-   "post": {
-    "summary": "Ratio Stop",
-    "operationId": "ratio_stop_api_projects__project_id__ratio_stop_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/RatioView"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/projects/{project_id}/ratio/accept": {
-   "post": {
-    "summary": "Ratio Accept",
-    "operationId": "ratio_accept_api_projects__project_id__ratio_accept_post",
-    "parameters": [
-     {
-      "name": "project_id",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Project Id"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/RatioView"
         }
        }
       }
@@ -5627,6 +5621,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -5636,19 +5643,6 @@
         "type": "null"
        }
       ]
-     },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "The data, the model groups or the formats changed since it ran."
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked",
-      "description": "What stops it running."
      },
      "exports": {
       "items": {
@@ -5671,9 +5665,9 @@
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
      "blocked",
+     "receipt",
      "exports",
      "accepted"
     ],
@@ -6657,6 +6651,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -6667,19 +6674,6 @@
        }
       ]
      },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "Something changed since it ran: the data, model groups, a call or a mark."
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked",
-      "description": "What stops it running."
-     },
      "accepted": {
       "type": "boolean",
       "title": "Accepted"
@@ -6689,9 +6683,9 @@
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
      "blocked",
+     "receipt",
      "accepted"
     ],
     "title": "CleanView"
@@ -11122,6 +11116,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -11131,27 +11138,15 @@
         "type": "null"
        }
       ]
-     },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "Prepare ran again, or a variable or model changed, since the try."
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked"
      }
     },
     "type": "object",
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
-     "blocked"
+     "blocked",
+     "receipt"
     ],
     "title": "ModelView"
    },
@@ -12651,6 +12646,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -12661,18 +12669,6 @@
        }
       ]
      },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "Check sales ran again, or a fill or the folding changed, since it ran."
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked"
-     },
      "accepted": {
       "type": "boolean",
       "title": "Accepted"
@@ -12682,9 +12678,9 @@
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
      "blocked",
+     "receipt",
      "accepted"
     ],
     "title": "PrepareView"
@@ -13377,6 +13373,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -13387,18 +13396,6 @@
        }
       ]
      },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "Check sales ran again, or a call changed, since it ran."
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked"
-     },
      "accepted": {
       "type": "boolean",
       "title": "Accepted"
@@ -13408,9 +13405,9 @@
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
      "blocked",
+     "receipt",
      "accepted"
     ],
     "title": "RatioView"
@@ -17287,6 +17284,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -17296,27 +17306,15 @@
         "type": "null"
        }
       ]
-     },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "The fields were prepared again, a variable was ticked that wasn't tested, or the tests changed."
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked"
      }
     },
     "type": "object",
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
-     "blocked"
+     "blocked",
+     "receipt"
     ],
     "title": "VarTestView"
    },
@@ -17526,6 +17524,19 @@
        }
       ]
      },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
      "receipt": {
       "anyOf": [
        {
@@ -17536,25 +17547,13 @@
        }
       ]
      },
-     "stale": {
-      "type": "boolean",
-      "title": "Stale",
-      "description": "The settings changed since it ran."
-     },
      "changed": {
       "items": {
        "type": "string"
       },
       "type": "array",
-      "title": "Changed"
-     },
-     "blocked": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Blocked",
-      "description": "Data wizard problems that stop it running."
+      "title": "Changed",
+      "description": "What changed in the settings since it ran, in words."
      },
      "accepted": {
       "type": "boolean",
@@ -17569,10 +17568,10 @@
     "required": [
      "status",
      "job",
-     "receipt",
      "stale",
-     "changed",
      "blocked",
+     "receipt",
+     "changed",
      "accepted",
      "plan"
     ],
