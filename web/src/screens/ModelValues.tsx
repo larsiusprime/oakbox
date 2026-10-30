@@ -1,9 +1,9 @@
 import type { PrepareView } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { when } from "../lib/format";
 import { t } from "../strings";
-import { when } from "./BringIn";
-import { CollapseCard, FillCard } from "./CheckSales";
+import { CollapseCard, FillCard } from "./CleanCards";
 import { HowTheyDid, ModelsCard, VariablesCard } from "./Models";
 import { TestPicker, TestStep, Verdict } from "./VarTests";
 

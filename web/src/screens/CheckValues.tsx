@@ -20,9 +20,9 @@ import { Choice, Field, Tick } from "../components/Form";
 import { Pill, type Verdict, verdictOf } from "../components/Pill";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { day, money, num, signed, when } from "../lib/format";
+import { useWidth } from "../lib/hooks";
 import { t } from "../strings";
-import { when } from "./BringIn";
-import { day, money, num } from "./CheckSales";
 
 const r = t.ratio;
 type RStep =
@@ -765,10 +765,6 @@ export function Score({
   );
 }
 
-export function signed(v: number, digits: number) {
-  return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(digits)}`;
-}
-
 /** A figure with its pill: the pill at the cell's left edge, the figure at its right, so a pill never moves the
  * figure; every sale's figure under it. */
 function cell(
@@ -884,20 +880,6 @@ function GroupsTable({ result }: { result: FieldResult }) {
       <p className="wiz-from">{tb.note}</p>
     </>
   );
-}
-
-/** A chart drawn at its own width in pixels (AGENTS.md): the text keeps its size. */
-function useWidth<T extends Element>(fallback = 800) {
-  const ref = useRef<T>(null);
-  const [w, setW] = useState(fallback);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const seen = new ResizeObserver(([e]) => e && setW(Math.max(320, Math.round(e.contentRect.width))));
-    seen.observe(el);
-    return () => seen.disconnect();
-  }, []);
-  return [ref, w] as const;
 }
 
 function Prices({

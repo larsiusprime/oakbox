@@ -21,7 +21,7 @@ import { addBasemap } from "../components/basemap";
 import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { t } from "../strings";
-import { FilePicker } from "./FieldsWizard";
+import { FilePicker } from "./WizardFiles";
 
 const s = t.wizard.shapefiles;
 type Kind = Overlay["fields"][number]["kind"];

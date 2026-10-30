@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
 import {
   api,
@@ -13,6 +13,8 @@ import {
 } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { amount, pct } from "../lib/format";
+import { useSettled } from "../lib/hooks";
 import { t } from "../strings";
 
 const r = t.wizard.rule;
@@ -27,22 +29,6 @@ export function ruleComplete(rule: Rule): boolean {
   return (
     rule.conditions.length > 0 && rule.conditions.every((c) => NO_VALUE.includes(c.op) || c.values.length > 0)
   );
-}
-
-/** Waits for typing to stop before asking the server again. */
-export function useSettled<T>(value: T, ms = 250): T {
-  const [settled, setSettled] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setSettled(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return settled;
-}
-
-function pct(n: number, total: number): string {
-  if (!total) return "0%";
-  const p = (100 * n) / total;
-  return (p > 0 && p < 1) || (p > 99 && p < 100) ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
 }
 
 function Mini({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -118,7 +104,11 @@ export function RuleDialog({
           </Heading>
           <p className="rc-sub">{r.lede}</p>
           <div className={`rc-meter ${complete && v && v.yes > 0 && v.yes < v.total ? "ok" : "bad"}`}>
-            <b>{complete && v ? r.meter(v.yes, v.total, word, pct(v.yes, v.total)) : r.incomplete}</b>
+            <b>
+              {complete && v
+                ? r.meter(v.yes, v.total, word, v.total ? pct(v.yes / v.total) : "0%")
+                : r.incomplete}
+            </b>
           </div>
           {rule.conditions.length > 1 && (
             <div className="rl-join">
@@ -441,14 +431,6 @@ export function DateDialog({
 }
 
 const SCALES = [1, 1000, 1_000_000, 0.01];
-
-/** "$246K", "$1.25M", "$10": an amount in the project's currency, short. */
-export function amount(symbol: string, v: number): string {
-  const a = Math.abs(v);
-  if (a >= 1_000_000) return `${symbol}${(v / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 })}M`;
-  if (a >= 10_000) return `${symbol}${Math.round(v / 1000).toLocaleString()}K`;
-  return `${symbol}${v.toLocaleString(undefined, { maximumFractionDigits: a >= 10 ? 0 : 2 })}`;
-}
 
 /** F3d: how to read a money column written as text, previewed as OpenAVMKit reads it, with checks on the amounts. */
 export function NumberDialog({

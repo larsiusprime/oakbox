@@ -26,8 +26,8 @@ import {
 } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
+import { size } from "../lib/format";
 import { t } from "../strings";
-import { size } from "./InputFileList";
 
 /** What OpenAVMKit casts a loaded column to; "asis" writes the bare column (no cast). */
 type Cast = "asis" | "string" | "float" | "int" | "bool" | "datetime";

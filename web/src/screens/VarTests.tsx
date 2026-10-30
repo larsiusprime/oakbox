@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Choice, Tick } from "../components/Form";
+import { num } from "../lib/format";
 import { t } from "../strings";
-import { num } from "./CheckSales";
 import { ColumnsNote } from "./Models";
 
 const vt = t.values.vartest;

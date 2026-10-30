@@ -3,7 +3,7 @@ import type { Job } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
-import { Busy, clock } from "../screens/BringIn";
+import { clock } from "../lib/format";
 import { t } from "../strings";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
@@ -188,6 +188,35 @@ export function RunProgress({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/** The step that's running, in detail: what it's doing, how far through, how long it's taken, that the run is
+ * still alive (it says so every 2 seconds), and Skip for a step that can be left out. */
+function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
+  const skipping = job.part !== null && job.skipping.includes(job.part);
+  // Two missed heartbeats and more: it may be stuck (a frozen process says nothing at all).
+  const silent = job.quiet > 10;
+  return (
+    <div className="bi-busy">
+      {job.detail && <span className="bi-detail">{job.detail}</span>}
+      {job.sub !== null && (
+        <span className="bi-prog bi-sub">
+          <i style={{ width: `${Math.round(100 * job.sub)}%` }} />
+        </span>
+      )}
+      <span className={silent ? "wiz-warn" : "bi-alive"}>
+        {silent
+          ? t.bringIn.silent(clock(job.quiet))
+          : t.bringIn.alive(clock(Math.max(0, job.elapsed - since)))}
+      </span>
+      {job.part && (
+        <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>
+          {skipping ? t.bringIn.skipping : t.bringIn.skip}
+        </Button>
+      )}
+      {job.part && !skipping && <span className="bi-skip-note">{t.bringIn.skipNote}</span>}
     </div>
   );
 }

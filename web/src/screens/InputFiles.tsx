@@ -6,9 +6,10 @@ import { api, type FileCheck, type Project, type ProjectDetail, unwrap } from ".
 import { Choice, Field } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
+import { size } from "../lib/format";
 import { useAddFileRequest } from "../menu";
 import { t } from "../strings";
-import { InputFileList, size } from "./InputFileList";
+import { InputFileList } from "./InputFileList";
 
 /** F3: the Input files tab, the project's data.load entries (SPEC §3.0). */
 export function InputFilesTab({ detail }: { detail: ProjectDetail }) {

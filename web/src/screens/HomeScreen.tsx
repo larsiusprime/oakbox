@@ -6,6 +6,7 @@ import { navigate } from "../App";
 import { api, type Project, unwrap } from "../api/client";
 import { Field } from "../components/Form";
 import { desktop } from "../desktop";
+import { size } from "../lib/format";
 import { t } from "../strings";
 
 export function HomeScreen() {
@@ -75,12 +76,6 @@ function ProjectRow({ project: p }: { project: Project }) {
       </div>
     </li>
   );
-}
-
-function size(bytes: number): string {
-  if (bytes >= 2 ** 30) return `${(bytes / 2 ** 30).toFixed(1)} GB`;
-  if (bytes >= 2 ** 20) return `${(bytes / 2 ** 20).toFixed(0)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 /** Delete sends the project folder to the Recycle Bin, after saying what's in it (SPEC §3.0 F1b). */

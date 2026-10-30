@@ -9,7 +9,6 @@ import {
   type CleanReceipt,
   type CleanSetup,
   type CleanView,
-  type FillRow,
   type PatternTable,
   type RelatedSale,
   type ReviewItem,
@@ -30,8 +29,10 @@ import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
+import { day, money, num, when } from "../lib/format";
+import { useWidth } from "../lib/hooks";
 import { t } from "../strings";
-import { when } from "./BringIn";
+import { Card, type CardProps, NumberBox } from "./CleanCards";
 
 const s = t.sales;
 type Patch = CleanPatch;
@@ -42,39 +43,10 @@ export function useSalesAccepted(projectId: string): boolean {
   return useStep("clean", projectId).data?.accepted ?? false;
 }
 
-export function money(v: number | null | undefined, currency: string): string {
-  if (v === null || v === undefined) return "—";
-  if (v !== 0 && Math.abs(v) < 1) {
-    // A cent a square foot: two significant figures, not "$0.00".
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      maximumSignificantDigits: 2,
-    }).format(v);
-  }
-  const digits = Math.abs(v) < 100 ? 2 : 0;
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(v);
-}
-
-export function num(v: number | null | undefined, digits = 0): string {
-  return v === null || v === undefined
-    ? "—"
-    : v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
-
 /** A price against its group's median: "16.4× the median", "0.37× the median", "1/55,000 of the median". */
 function rel(r: number, of: string): string {
   if (r >= 0.1) return `${num(r, r >= 10 ? 0 : r >= 1 ? 1 : 2)}× ${of}`;
   return `1/${num(Math.round(1 / r))} of ${of}`;
-}
-
-export function day(text: string | null | undefined): string {
-  return text ? text.slice(0, 10) : "—";
 }
 
 type CsStep = "window" | "time" | "scrutiny" | "run" | "sales" | "aside";
@@ -324,23 +296,6 @@ function Notices({ projectId, v }: { projectId: string; v: CleanSetup }) {
         ))}
       </ul>
     </div>
-  );
-}
-
-export type CardProps = { v: CleanSetup; set: (body: Patch) => void };
-
-function Card({ title, sub, children }: { title: React.ReactNode; sub: string; children: React.ReactNode }) {
-  // In a step, the step says what it is: a card only shows its on/off control (a tick) and how it stands.
-  return (
-    <section className="cs-step">
-      {typeof title !== "string" && (
-        <div className="cs-head">
-          <h3>{title}</h3>
-          <span className="wiz-from">{sub}</span>
-        </div>
-      )}
-      {children}
-    </section>
   );
 }
 
@@ -617,83 +572,6 @@ function TimeFileImport({
   );
 }
 
-const METHODS = ["median", "mean", "mode", "zero", "min", "max", "leave"] as const;
-
-function putsIn(row: FillRow): string {
-  const m = row.fill.method;
-  if (m === "leave") return s.fill.leaveNote;
-  if (m === "zero") return "0";
-  const v = row.stats[m];
-  return v === undefined ? "—" : s.fill.example(s.fill.methods[m], num(v, Math.abs(v) < 10 ? 1 : 0));
-}
-
-export function FillCard({ v, set }: CardProps) {
-  return (
-    <Card title={s.fill.title} sub={s.fill.sub}>
-      <p className="cs-text wiz-from">{s.fill.what}</p>
-      {v.fills.length > 0 ? (
-        <table className="bi-tbl cs-tbl">
-          <thead>
-            <tr>
-              <th>{s.fill.field}</th>
-              <th className="cs-n">{s.fill.blank}</th>
-              <th>{s.fill.with}</th>
-              <th>{s.fill.puts}</th>
-              <th>{s.fill.for}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {v.fills.map((row) => (
-              <tr key={row.field}>
-                <td>
-                  {row.name} <span className="mono wiz-from">{row.field}</span>
-                  <div className="wiz-from cs-why-fill">{row.why}</div>
-                </td>
-                <td className="cs-n">{num(row.blanks)}</td>
-                <td>
-                  <Choice
-                    label={s.fill.with}
-                    hideLabel
-                    value={row.fill.method}
-                    options={METHODS.map((m) => [m, s.fill.methods[m]] as const)}
-                    onChange={(method) => set({ fill: { field: row.field, method, scope: row.fill.scope } })}
-                  />
-                </td>
-                <td className="wiz-from">{putsIn(row)}</td>
-                <td>
-                  <Choice
-                    label={s.fill.for}
-                    hideLabel
-                    isDisabled={row.fill.method === "leave"}
-                    value={row.fill.scope}
-                    options={[
-                      ["all", s.fill.scopes.all],
-                      ["impr", s.fill.scopes.impr],
-                      ["vacant", s.fill.scopes.vacant],
-                    ]}
-                    onChange={(scope) => set({ fill: { field: row.field, method: row.fill.method, scope } })}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="wiz-ok">{s.fill.none}</p>
-      )}
-      <details className="bi-details">
-        <summary>{s.fill.auto(v.auto.length)}</summary>
-        <ul>
-          {v.auto.map((a) => (
-            <li key={a}>{a}</li>
-          ))}
-          <li>{s.fill.area}</li>
-        </ul>
-      </details>
-    </Card>
-  );
-}
-
 function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) {
   const options: [string, string][] = [
     ["", s.scrutiny.none],
@@ -769,102 +647,6 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
       </div>
       <p className="wiz-from cs-text">{s.scrutiny.always}</p>
     </Card>
-  );
-}
-
-export function CollapseCard({ v, set }: CardProps) {
-  return (
-    <Card
-      title={
-        <Tick isSelected={v.collapse} onChange={(on) => set({ collapse: on })}>
-          {s.collapse.title}
-        </Tick>
-      }
-      sub={v.collapse ? s.collapse.on : s.collapse.off}
-    >
-      <p className="cs-text wiz-from">{s.collapse.what}</p>
-      {v.collapse && (
-        <>
-          <div className="cs-row">
-            <NumberBox
-              key={`s${v.collapse_sales_min}`}
-              label={s.collapse.salesMin}
-              value={v.collapse_sales_min}
-              onChange={(n) => set({ collapse_sales_min: n })}
-            />
-            <NumberBox
-              key={`u${v.collapse_univ_min}`}
-              label={s.collapse.univMin}
-              value={v.collapse_univ_min}
-              onChange={(n) => set({ collapse_univ_min: n })}
-            />
-          </div>
-          {v.folds.length ? (
-            <table className="bi-tbl cs-tbl">
-              <thead>
-                <tr>
-                  <th>{s.fill.field}</th>
-                  <th className="cs-n">{s.collapse.values}</th>
-                  <th className="cs-n">{s.collapse.fold}</th>
-                  <th className="cs-n">{s.collapse.parcels}</th>
-                  <th>{s.collapse.which}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {v.folds.map((f) => (
-                  <tr key={f.field}>
-                    <td>
-                      {f.name} <span className="mono wiz-from">{f.field}</span>
-                    </td>
-                    <td className="cs-n">{num(f.values)}</td>
-                    <td className="cs-n">{num(f.folded.length)}</td>
-                    <td className="cs-n">{num(f.parcels)}</td>
-                    <td className="cs-folds">
-                      {f.folded.length === 0
-                        ? s.collapse.none
-                        : f.folded.slice(0, 8).join(", ") +
-                          (f.folded.length > 8 ? s.collapse.more(f.folded.length - 8) : "")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="cs-text">{s.collapse.noFields}</p>
-          )}
-        </>
-      )}
-    </Card>
-  );
-}
-
-function NumberBox({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-}) {
-  // Keyed on the value by its parent: a new value starts it afresh.
-  const [text, setText] = useState(String(value));
-  const commit = () => {
-    const n = Math.round(Number(text));
-    if (Number.isFinite(n) && n >= 1 && n !== value) onChange(n);
-    else setText(String(value));
-  };
-  return (
-    <TextField
-      className="field field-short"
-      value={text}
-      onChange={setText}
-      onBlur={commit}
-      aria-label={label}
-    >
-      <span className="field-label">{label}</span>
-      <Input className="input" inputMode="numeric" onKeyDown={(e) => e.key === "Enter" && commit()} />
-    </TextField>
   );
 }
 
@@ -1831,15 +1613,7 @@ function Dots({
   currency: string;
 }) {
   // Drawn at its own width in pixels: all the width there is, the text staying its size.
-  const ref = useRef<SVGSVGElement>(null);
-  const [w, setW] = useState(600);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const seen = new ResizeObserver(([e]) => e && setW(Math.max(300, Math.round(e.contentRect.width))));
-    seen.observe(el);
-    return () => seen.disconnect();
-  }, []);
+  const [ref, w] = useWidth<SVGSVGElement>(600, 300);
   const xs = members.map((m) => m.price_per_area).filter((x): x is number => !!x && x > 0);
   if (xs.length < 2) return null;
   const lo = Math.floor(Math.log10(Math.min(...xs)));

@@ -2,19 +2,12 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
-import {
-  api,
-  type EnrichResult,
-  type Funnel,
-  type Job,
-  type Receipt,
-  type ReceiptField,
-  unwrap,
-} from "../api/client";
+import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { band, pct, when } from "../lib/format";
 import { t } from "../strings";
 
 const b = t.bringIn;
@@ -22,18 +15,6 @@ const b = t.bringIn;
 /** Whether Looks right was pressed on an up-to-date receipt: model groups can start. */
 export function useAccepted(projectId: string): boolean {
   return useStep("bring-in", projectId).data?.accepted ?? false;
-}
-
-export function clock(seconds: number): string {
-  const s = Math.max(0, Math.round(seconds));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-export function when(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date().toDateString() === d.toDateString();
-  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return today ? `today at ${time}` : `${d.toLocaleDateString()} at ${time}`;
 }
 
 type BiStep = "plan" | "run" | "universe" | "sales" | "more";
@@ -479,48 +460,9 @@ function Section({
   );
 }
 
-function pct(share: number): string {
-  const p = 100 * share;
-  return p > 0 && p < 1 ? `${p.toFixed(1)}%` : p > 99 && p < 100 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
-}
-
 const PAGE = 50;
 
 /** Rows a page at a time: only that page is read from the file. CSV export streams the whole set. */
-/** Repeated IDs: the rows of one ID share a background, and IDs alternate. */
-export function band(bands: number[] | null | undefined, i: number): string {
-  // Otherwise every other row, for reading across wide tables.
-  if (!bands) return i % 2 ? "band-b" : "band-a";
-  return bands[i] ? "band-b" : "band-a";
-}
-
-/** The step that's running, in detail: what it's doing, how far through, how long it's taken, that the run is
- * still alive (it says so every 2 seconds), and Skip for a step that can be left out. */
-export function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
-  const skipping = job.part !== null && job.skipping.includes(job.part);
-  // Two missed heartbeats and more: it may be stuck (a frozen process says nothing at all).
-  const silent = job.quiet > 10;
-  return (
-    <div className="bi-busy">
-      {job.detail && <span className="bi-detail">{job.detail}</span>}
-      {job.sub !== null && (
-        <span className="bi-prog bi-sub">
-          <i style={{ width: `${Math.round(100 * job.sub)}%` }} />
-        </span>
-      )}
-      <span className={silent ? "wiz-warn" : "bi-alive"}>
-        {silent ? b.silent(clock(job.quiet)) : b.alive(clock(Math.max(0, job.elapsed - since)))}
-      </span>
-      {job.part && (
-        <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>
-          {skipping ? b.skipping : b.skip}
-        </Button>
-      )}
-      {job.part && !skipping && <span className="bi-skip-note">{b.skipNote}</span>}
-    </div>
-  );
-}
-
 function RowsDialog({
   projectId,
   set,

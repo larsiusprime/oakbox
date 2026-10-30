@@ -30,9 +30,10 @@ import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { moneyShort, when } from "../lib/format";
+import { useSettled } from "../lib/hooks";
 import { t } from "../strings";
-import { AssembleResults, Formats, when } from "./Assemble";
-import { useSettled } from "./FieldRules";
+import { AssembleResults, Formats } from "./Assemble";
 
 const g = t.groups;
 type Op = Condition["op"];
@@ -73,7 +74,7 @@ function usePreview(projectId: string, groups: ModelGroup[], enabled = true) {
 
 /** Step 2, Model groups (SPEC §3.5), one task at a time: how to start, the builder, the checks, tag and write
  * (notebook 1's end), and what each group got; Looks right moves on to Check sales. */
-export function ModelGroupsTab({ projectId }: { projectId: string }) {
+export function ModelGroupsTab({ projectId, currency }: { projectId: string; currency: string }) {
   const queryClient = useQueryClient();
   const state = useGroups(projectId);
   const run = useStep("assemble", projectId);
@@ -211,7 +212,7 @@ export function ModelGroupsTab({ projectId }: { projectId: string }) {
         </>
       )}
       {current === "build" && (
-        <Builder projectId={projectId} view={v} back={back} onward={() => go("check")} />
+        <Builder projectId={projectId} currency={currency} view={v} back={back} onward={() => go("check")} />
       )}
       {current === "check" && (
         <>
@@ -388,18 +389,15 @@ function newId(name: string, groups: ModelGroup[]): string {
   return id;
 }
 
-function money(v: number | null | undefined): string {
-  if (v == null) return "—";
-  return v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${Math.round(v / 1000).toLocaleString()}k`;
-}
-
 function Builder({
   projectId,
+  currency,
   view,
   back,
   onward,
 }: {
   projectId: string;
+  currency: string;
   view: GroupsView;
   back: (() => void) | null;
   onward: () => void;
@@ -555,6 +553,7 @@ function Builder({
           <div className="mg-ed">
             {group ? (
               <GroupEditor
+                currency={currency}
                 key={group.id}
                 projectId={projectId}
                 group={group}
@@ -821,6 +820,7 @@ function useValues(projectId: string, field: string, enabled = true) {
 
 function GroupEditor({
   projectId,
+  currency,
   group,
   order,
   fields,
@@ -834,6 +834,7 @@ function GroupEditor({
   moved,
 }: {
   projectId: string;
+  currency: string;
   group: ModelGroup;
   order: number;
   fields: GroupField[];
@@ -894,7 +895,7 @@ function GroupEditor({
             <span className="mg-stat-l">{g.statVacant}</span>
           </div>
           <div>
-            <b className="mg-stat-n">{money(stats.median_price)}</b>
+            <b className="mg-stat-n">{moneyShort(stats.median_price, currency)}</b>
             <span className="mg-stat-l">{g.statMedian}</span>
           </div>
         </div>

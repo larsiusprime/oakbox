@@ -142,7 +142,7 @@ function ProjectView({
           <BringInTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="groups" className="folder-panel">
-          <ModelGroupsTab projectId={projectId} />
+          <ModelGroupsTab projectId={projectId} currency={project.currency} />
         </TabPanel>
         <TabPanel id="sales" className="folder-panel">
           <SalesTab

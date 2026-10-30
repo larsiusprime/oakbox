@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Dialog,
@@ -16,6 +16,8 @@ import {
 } from "react-aria-components";
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
 import { Tick } from "../components/Form";
+import { pct } from "../lib/format";
+import { useSettled } from "../lib/hooks";
 import { t } from "../strings";
 
 const r = t.wizard.reconcile;
@@ -61,21 +63,6 @@ export function describeSteps(steps: Step[]): string {
                       : d.after(s.text),
     )
     .join(", then ");
-}
-
-function pct(share: number): string {
-  const p = share * 100;
-  return p > 99 && p < 100 ? `${p.toFixed(1)}%` : p > 0 && p < 1 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
-}
-
-/** Waits for typing to stop before asking the server again. */
-function useSettled<T>(value: T, ms = 250): T {
-  const [settled, setSettled] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setSettled(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return settled;
 }
 
 /** F3d: clean up the IDs on both sides of the sales join, live, until they match. */

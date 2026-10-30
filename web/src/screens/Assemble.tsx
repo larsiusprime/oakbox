@@ -4,23 +4,12 @@ import { Button } from "react-aria-components";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
+import { size, when } from "../lib/format";
 import { t } from "../strings";
 
 const r = t.groups.run;
 type Format = AssembleView["exports"][number];
 const FORMATS: Format[] = ["gpkg", "shp", "csv"];
-
-export function when(iso: string): string {
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return new Date().toDateString() === d.toDateString()
-    ? `today at ${time}`
-    : `${d.toLocaleDateString()} at ${time}`;
-}
-
-function size(bytes: number): string {
-  return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1e3))} KB`;
-}
 
 /** The formats notebook 1's output is also written in, beside Parquet. */
 export function Formats({ projectId, view }: { projectId: string; view: AssembleView }) {

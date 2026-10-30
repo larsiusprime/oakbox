@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
 import { api, type Scale, type Source, unwrap, type Wizard, type WizardField } from "../api/client";
 import { Choice } from "../components/Form";
+import { amount, pct } from "../lib/format";
 import { t } from "../strings";
-import { amount } from "./FieldRules";
 
 const q = t.wizard.quality;
 type Kind = NonNullable<Scale["kind"]>;
@@ -59,10 +59,6 @@ export function ScaleChoice({
       />
     </div>
   );
-}
-
-function pct(n: number): string {
-  return `${Math.round(100 * n)}%`;
 }
 
 function fmt(v: number | null | undefined): string {

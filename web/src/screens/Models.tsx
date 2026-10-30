@@ -7,9 +7,8 @@ import { Choice, Tick } from "../components/Form";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
+import { day, num, signed } from "../lib/format";
 import { t } from "../strings";
-import { day, num } from "./CheckSales";
-import { signed } from "./CheckValues";
 
 const m = t.values.model;
 

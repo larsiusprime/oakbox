@@ -17,15 +17,10 @@ import binIcon from "../assets/noto/emoji_u1f5d1.svg";
 import pencilIcon from "../assets/noto/emoji_u270f.svg";
 import { Tick } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
+import { size } from "../lib/format";
 import { t } from "../strings";
 
 const NAME = /^[a-z][a-z0-9_]*$/;
-
-export function size(bytes: number): string {
-  if (bytes >= 2 ** 30) return `${(bytes / 2 ** 30).toFixed(1)} GB`;
-  if (bytes >= 2 ** 20) return `${(bytes / 2 ** 20).toFixed(0)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
 
 /** F3b: the project's input files, one data.load entry per row (SPEC §3.0). */
 export function InputFileList({ project, files }: { project: Project; files: InputFile[] }) {
