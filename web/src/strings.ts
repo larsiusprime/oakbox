@@ -2151,7 +2151,10 @@ export const t = {
       rare: "Rare categories",
       run: "Prepare the fields",
       done: "What changed",
-      models: "Models (not built yet)",
+      variables: "Variables",
+      models: "Models",
+      try: "Try them",
+      how: "How they did",
     },
     fillLede:
       "Blanks the models can't take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",
@@ -2169,8 +2172,65 @@ export const t = {
     noneFolded: "Nothing was folded.",
     foldLine: (name: string, values: number, parcels: number) =>
       `${name}: ${values.toLocaleString()} ${values === 1 ? "value" : "values"}, ${parcels.toLocaleString()} parcels`,
-    looksRight: "Looks right",
-    accepted: "✓ Looks right",
+    looksRight: "Looks right › Variables",
+    toVariables: "Variables ›",
+    // The models (F9): which variables, which models, a try, and how they did.
+    model: {
+      variablesLede:
+        "What the models learn from: every variable found is ticked. Trees use them all; linear models (MRA) only the numbers with no blanks, and OpenAVMKit drops the weak ones per model group by its own tests.",
+      kinds: {
+        big_five: "The big five",
+        building: "Building",
+        location: "Location",
+        public: "Public data",
+        category: "Location categories",
+      } as Record<string, string>,
+      variable: "Variable",
+      has: "Has it",
+      blanks: "Blanks",
+      usedBy: "Used by",
+      usedByWhy:
+        "Linear models (MRA, multi-MRA, GWR) can't take a blank, or a category: they leave such a variable out. Trees (LightGBM, XGBoost, CatBoost) take both.",
+      allModels: "every model",
+      treesOnly: "trees only",
+      fillIt: "Fill it…",
+      everyVariable: "Tick every variable",
+      missing: (fields: string[]) =>
+        `Not loaded: ${fields.join(", ")}. The models do better with them (Data › Building).`,
+      none: "No variables found yet: prepare the fields first.",
+      modelsLede:
+        "Which models to try. The ensemble combines them (the median of their values, leaving out any that don't help); the roll's own value is shown beside them, never in it.",
+      chooseForMe: "Choose for me",
+      chooseForMeNote:
+        "LightGBM, MRA and local area: an accurate model, an explainable one, and a baseline to beat.",
+      chosenForYou: "Chosen for you",
+      groupsTitle: "What each model group has to learn from",
+      group: "Model group",
+      parcels: "Parcels",
+      sales: "Sales",
+      tooFew: "too few to model: no model values",
+      salesCount: (n: number) => `${n.toLocaleString()} ${n === 1 ? "sale" : "sales"} to learn from`,
+      tryLede:
+        "Trains each model on each model group and checks it on sales it never saw (5-fold cross-validation). Nothing is written to the roll: this is a try.",
+      tryNext: "Try them ›",
+      tryAgain: "Try again",
+      tryAgainNext: "Try again ›",
+      stale: "Out of date: the fields were prepared again, or a variable or model changed.",
+      ran: (when: string, seconds: number) => `✓ Tried ${when} · ${seconds} s`,
+      howLede:
+        "Each model on its holdout: every sale predicted by a model that never saw it. The roll's value is on the same sales (it may have seen them). The ensemble is what would ship.",
+      model: "Model",
+      judgedOn: "Sales",
+      judgedOnWhy:
+        "Sales the figures are measured on: those in the ratio study's window, each predicted by a model trained without it.",
+      codTrimmed: "COD trimmed",
+      codTrimmedWhy: "The COD with outlying ratios (beyond 1.5 × the interquartile range) left out.",
+      shipped: "what would ship",
+      skipped: (why: string) => `${why}.`,
+      slight: "a slight tilt",
+      notesTitle: "Notes from OpenAVMKit",
+      nextSlice: "Finalizing (the values written, and checked as step 4 checks the roll's) comes next.",
+    },
   },
 
   metadata: {

@@ -4569,6 +4569,211 @@
     }
    }
   },
+  "/api/projects/{project_id}/model": {
+   "get": {
+    "summary": "Model State",
+    "operationId": "model_state_api_projects__project_id__model_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/setup": {
+   "get": {
+    "summary": "Model Setup",
+    "description": "The variables there are, the models offered, and each model group's sales.",
+    "operationId": "model_setup_api_projects__project_id__model_setup_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "summary": "Model Change",
+    "operationId": "model_change_api_projects__project_id__model_setup_patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ModelPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/run": {
+   "post": {
+    "summary": "Model Run",
+    "description": "Try the models: OpenAVMKit's try_models on the prepared fields, every model group.",
+    "operationId": "model_run_api_projects__project_id__model_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/stop": {
+   "post": {
+    "summary": "Model Stop",
+    "operationId": "model_stop_api_projects__project_id__model_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/ratio": {
    "get": {
     "summary": "Ratio State",
@@ -7466,6 +7671,34 @@
     "title": "Display",
     "description": "How the app looks (SPEC D43, View menu)."
    },
+   "Engine": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     },
+     "chosen": {
+      "type": "boolean",
+      "title": "Chosen"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "note",
+     "chosen"
+    ],
+    "title": "Engine"
+   },
    "EnrichResult": {
     "properties": {
      "key": {
@@ -10165,6 +10398,190 @@
     ],
     "title": "MissingParcels"
    },
+   "ModelFigures": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "cod": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod"
+     },
+     "prd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prd"
+     },
+     "prb": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prb"
+     },
+     "vei": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei"
+     },
+     "vei_significance": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vei Significance"
+     },
+     "trimmed_sales": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Trimmed Sales"
+     },
+     "cod_trimmed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod Trimmed"
+     },
+     "prb_trimmed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prb Trimmed"
+     },
+     "level_ok": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Level Ok",
+      "description": "The median within the level range."
+     },
+     "cod_ok": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod Ok",
+      "description": "The COD within its category's range."
+     },
+     "cod_low": {
+      "type": "boolean",
+      "title": "Cod Low",
+      "description": "Under its category's range: suspiciously even.",
+      "default": false
+     },
+     "prb_ok": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Prb Ok",
+      "description": "The PRB within its good range (None: in between)."
+     },
+     "prb_bad": {
+      "type": "boolean",
+      "title": "Prb Bad",
+      "description": "The PRB outside its unacceptable range.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "name",
+     "sales",
+     "median",
+     "cod",
+     "prd",
+     "prb",
+     "vei",
+     "vei_significance",
+     "trimmed_sales",
+     "cod_trimmed",
+     "prb_trimmed",
+     "level_ok",
+     "cod_ok",
+     "cod_low",
+     "prb_ok",
+     "prb_bad"
+    ],
+    "title": "ModelFigures"
+   },
    "ModelGroup-Input": {
     "properties": {
      "id": {
@@ -10242,6 +10659,362 @@
     ],
     "title": "ModelGroup",
     "description": "Parcels valued together (SPEC \u00a73.5): OpenAVMKit's modeling.model_groups entry. First match wins."
+   },
+   "ModelGroupCount": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales the models learn from and are tested on."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "parcels",
+     "sales"
+    ],
+    "title": "ModelGroupCount"
+   },
+   "ModelGroupResult": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "models": {
+      "items": {
+       "$ref": "#/components/schemas/ModelFigures"
+      },
+      "type": "array",
+      "title": "Models",
+      "description": "Each model and the ensemble, on the holdout."
+     },
+     "roll": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ModelFigures"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The roll's own value on the same holdout sales (it may have seen them: the models didn't)."
+     },
+     "skipped": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Skipped",
+      "description": "Why it has no models, if it hasn't."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "parcels",
+     "sales",
+     "models",
+     "roll",
+     "skipped"
+    ],
+    "title": "ModelGroupResult"
+   },
+   "ModelPatch": {
+    "properties": {
+     "variables": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Variables"
+     },
+     "every_variable": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Every Variable",
+      "description": "True: back to every variable found."
+     },
+     "models": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Models"
+     },
+     "choose_for_me": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Choose For Me",
+      "description": "True: back to Choose for me."
+     }
+    },
+    "type": "object",
+    "title": "ModelPatch"
+   },
+   "ModelReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "models": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Models"
+     },
+     "variables": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Variables"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroupResult"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "models",
+     "variables",
+     "groups",
+     "notes"
+    ],
+    "title": "ModelReceipt"
+   },
+   "ModelSetup": {
+    "properties": {
+     "variables": {
+      "items": {
+       "$ref": "#/components/schemas/Variable"
+      },
+      "type": "array",
+      "title": "Variables"
+     },
+     "missing": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Missing",
+      "description": "Big five fields not loaded, in words."
+     },
+     "engines": {
+      "items": {
+       "$ref": "#/components/schemas/Engine"
+      },
+      "type": "array",
+      "title": "Engines"
+     },
+     "choose_for_me": {
+      "type": "boolean",
+      "title": "Choose For Me"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ModelGroupCount"
+      },
+      "type": "array",
+      "title": "Groups"
+     }
+    },
+    "type": "object",
+    "required": [
+     "variables",
+     "missing",
+     "engines",
+     "choose_for_me",
+     "groups"
+    ],
+    "title": "ModelSetup"
+   },
+   "ModelState": {
+    "properties": {
+     "variables": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Variables",
+      "description": "The variables chosen; None: every one found."
+     },
+     "models": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Models",
+      "description": "The engines chosen; None: Choose for me."
+     }
+    },
+    "type": "object",
+    "required": [
+     "variables",
+     "models"
+    ],
+    "title": "ModelState"
+   },
+   "ModelView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ModelReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Prepare ran again, or a variable or model changed, since the try."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "blocked"
+    ],
+    "title": "ModelView"
    },
    "NameFormat": {
     "properties": {
@@ -11940,6 +12713,10 @@
       "$ref": "#/components/schemas/RatioState",
       "description": "Step 4, Check my values: its calls (F8)."
      },
+     "model": {
+      "$ref": "#/components/schemas/ModelState",
+      "description": "Step 5, the models: variables and models (F9)."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -11972,6 +12749,7 @@
      "enrich",
      "clean",
      "ratio",
+     "model",
      "accepted"
     ],
     "title": "Project"
@@ -16000,6 +16778,64 @@
      "count"
     ],
     "title": "ValueN"
+   },
+   "Variable": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "big_five",
+       "building",
+       "location",
+       "public",
+       "category"
+      ],
+      "title": "Kind"
+     },
+     "numeric": {
+      "type": "boolean",
+      "title": "Numeric"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels",
+      "description": "Parcels with a value."
+     },
+     "blanks": {
+      "type": "integer",
+      "title": "Blanks",
+      "description": "Parcels with none, after Prepare the fields."
+     },
+     "chosen": {
+      "type": "boolean",
+      "title": "Chosen"
+     },
+     "trees_only": {
+      "type": "boolean",
+      "title": "Trees Only",
+      "description": "A category, or a number with blanks: linear models leave it out."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "kind",
+     "numeric",
+     "parcels",
+     "blanks",
+     "chosen",
+     "trees_only"
+    ],
+    "title": "Variable"
    },
    "Verdict": {
     "properties": {

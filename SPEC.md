@@ -684,8 +684,8 @@ It opens once Check sales has Looks right. The assessor's own values, against wh
 
 **Not built yet:** breakdowns by neighbourhood; the PDF report (step 6); land values against vacant land sales; model values side by side (step 5).
 
-#### F7. Step 5, Build model values: Prepare the fields (its own tab, **5 Model values**; the models not built yet)
-It opens once Check sales has Looks right (step 4 isn't built yet). Steps: **Fill blanks** › **Rare categories** › **Prepare the fields** (the run) › **What changed** (Looks right) › **Models** (not built yet).
+#### F7. Step 5, Build model values: Prepare the fields (its own tab, **5 Model values**; the models are F9)
+It opens once Check sales has Looks right (step 4 isn't built yet). Steps: **Fill blanks** › **Rare categories** › **Prepare the fields** (the run) › **What changed** (Looks right) › the models (F9).
 - **Why here:** they're notebook 2's first and last calls in OpenAVMKit's order, but nothing in Check sales depends on them (the equity groups and the sales checks compare land size, finished area, quality, age and condition, which aren't filled here). Some models fail on a blank (the linear ones); the others read it as unknown.
 - **Fill blanks:** each number the models can use that's blank somewhere after step 2, with what a blank means and a proposal from it: zero where blank means none (renovation permits: `renovation_num`); leave blank where there's nothing to stand in (`days_to_*`: no permit, no date; `land_area_alloc_*`: only condo units have a share of land; finished area and year built: blank means no building); the model group's median for census fields (a block group not matched), elevation and slope (a tile not covering the parcel) and the rest. Changeable to median, mean, most common, zero, smallest, largest or leave blank, for every parcel or only improved or only vacant ones. Written as OpenAVMKit's `data.process.fill` lists, added to its own (`+median`).
 - **Rare categories:** off by default. The category fields the models use, but not locations, the model group, IDs and addresses (or anything with more distinct values than half the parcels), or dates. With the thresholds (fewer sales than, fewer parcels than), a table per field: its values, how many fold, their parcels, and which ("Become Other"), counted on the sales Check sales kept, as OpenAVMKit counts them.
@@ -728,8 +728,16 @@ What stands between Prepare the fields (F7) and values a model made, and how ste
 - **Model values** (Looks right): the scorecard, the roll's beside it, how many parcels got a model value, how many are unvalued (and why), and the files.
 - **Out of date when** Prepare runs again, or a variable, model or small-group choice changes. Tuning is reused unless **Re-tune** (§3.10); Stop never deletes it.
 
+**As built, slice 1** (`src/oakbox/model.py`, `web/src/screens/Models.tsx`): the tab's steps run on to **Variables** › **Models** › **Try them** › **How they did**; What changed's Looks right opens Variables.
+- **Variables:** one table grouped by kind (the big five, building, location, public data, location categories), each with a tick, how many parcels have it and the blanks left after Prepare, and **Used by** (every model, or trees only with **Fill it…** back to Fill blanks). Big five fields not loaded are named above it. Written as `modeling.models.main.default.ind_vars` (the numbers with no blanks: what linear models use, pruned per group by OpenAVMKit's own tests) and each tree's own `ind_vars` (every variable ticked); MRA and multi-MRA with `"log": true`. Only written once the fields are prepared.
+- **Models:** each engine in a line (subgrid), **Choose for me** (LightGBM, MRA, local area); then what each model group has to learn from (parcels, sales, "too few to model" under 15). `modeling.instructions.main.run` and a median ensemble.
+- **Try them:** `python -m oakbox.model`: the prepared hand-off, `write_canonical_splits`, then `try_models` (no vacant models), with progress per group and model and Stop. 28 s on the sample.
+- **How they did:** one table, a band per model group: **The roll's value** (italic) on the same holdout sales, worked out by OAK box with OpenAVMKit's own ratio study (OpenAVMKit leaves the assessor off its random holdout, since it can't know the roll didn't see those sales; said so), then the ensemble ("what would ship") and each model; columns **Sales** (judged on), **Level**, **Uniformity**, **Cheaper vs dearer** (the PRB: VEI needs Appendix E's test, slice 2), **COD trimmed**, as step 4's scorecard (mark, figure, word). Groups with too few sales say so. OpenAVMKit's notes fold away underneath. **Try again**.
+- **Out of date when** Prepare runs again, or a variable or model changes.
+- On the sample: every model's level is in range where the roll's is about 0.74, but none is uniform enough (single-family ensemble COD 33.7 against the roll's 27.3 on the same 826 sales): no quality or condition in the sample.
+
 **Engine work** (opt-in, defaults unchanged):
-- **Results returned:** `try_models` and `finalize_models` return `run_models`' results (today they drop them). Small.
+- **Results returned:** `try_models` and `finalize_models` return `run_models`' results, and `run_models` returns them without writing them. **Done** (`engine/enrich-fixes`).
 - **No negative values:** an opt-in floor (`modeling.instructions.min_value`), with the count clipped reported; and a model whose holdout median ratio is outside a sane range left out of the ensemble (`ensemble.exclude_implausible`).
 - **`all_model_groups/universe.parquet`:** one `model_group` column, not `_x` and `_y`.
 - **Outliers machine-readable** (C-list B8) and **headless `try_variables`** (C1), for slice 3.

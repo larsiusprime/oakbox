@@ -208,6 +208,25 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     assert view["status"] == "done", view["job"]
     assert any(w["path"] == "out/2-clean-sup.pickle" for w in view["receipt"]["written"])
     assert client.post(f"{prep}/accept").json()["accepted"]
+
+    # Step 5 continues: the models (F9). The variables found, Choose for me, then a try of one model.
+    mdl = f"/api/projects/{pid}/model"
+    ms = client.get(f"{mdl}/setup").json()
+    assert ms["choose_for_me"] and [e["key"] for e in ms["engines"] if e["chosen"]] == ["lightgbm", "mra", "local_area"]
+    assert any(v["field"].startswith("bldg_area_finished") for v in ms["variables"])
+    client.patch(f"{mdl}/setup", json={"models": ["lightgbm"]})
+    assert client.post(f"{mdl}/run").json()["status"] == "running"
+    view = _wait(client, mdl)
+    assert view["status"] == "done", view["job"]
+    r = view["receipt"]
+    assert r["models"] == ["lightgbm"]
+    modeled = [g for g in r["groups"] if g["models"]]
+    assert modeled and all(g["skipped"] for g in r["groups"] if not g["models"])
+    assert {f["model"] for g in modeled for f in g["models"]} <= {"lightgbm", "ensemble"}
+    assert not client.get(mdl).json()["stale"]
+    client.patch(f"{mdl}/setup", json={"choose_for_me": True})
+    assert client.get(mdl).json()["stale"]
+
     client.patch(f"{url}/setup", json={"collapse_sales_min": 3})
     assert client.get(prep).json()["stale"]
 

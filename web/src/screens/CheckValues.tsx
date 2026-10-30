@@ -787,7 +787,7 @@ function Scorecard({ groups }: { groups: RatioStudy[] }) {
 }
 
 /** A verdict cell: mark, figure and word in the same three columns on every row. */
-function Score({
+export function Score({
   ok,
   figure,
   word,
@@ -815,7 +815,7 @@ function Score({
   );
 }
 
-function signed(v: number, digits: number) {
+export function signed(v: number, digits: number) {
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(digits)}`;
 }
 

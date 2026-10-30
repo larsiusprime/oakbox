@@ -33,10 +33,12 @@ from pydantic import ConfigDict, Field, model_validator
 
 from oakbox import appsettings
 from oakbox import clean as clean_settings
+from oakbox import model as model_calls
 from oakbox.clean import CleanState
 from oakbox.datafiles import DataFile, Rule, clean_calc, data_load, overlay_distance, rule_fields, rule_filter
 from oakbox.enrichments import Enrichments
 from oakbox.enrichments import settings as enrich_settings
+from oakbox.model import ModelState
 from oakbox.ratio import RatioState
 
 
@@ -172,6 +174,7 @@ class Project(BaseModel):
     enrich: Enrichments | None = Field(default=None, description="Enrichments (F3e); None: the step not shown yet.")
     clean: CleanState = Field(default_factory=CleanState, description="Step 3, Check sales: its calls (F6).")
     ratio: RatioState = Field(default_factory=RatioState, description="Step 4, Check my values: its calls (F8).")
+    model: ModelState = Field(default_factory=ModelState, description="Step 5, the models: variables and models (F9).")
 
     @model_validator(mode="before")
     @classmethod
@@ -338,8 +341,9 @@ def _classification(project: Project) -> dict:
 
 def base_settings(project: Project) -> dict:
     """What a project writes: the locality, the valuation date, each data file's data.load entry, model groups,
-    and step 3's calls."""
-    return clean_settings.merge(_base(project), clean_settings.settings(project))
+    step 3's calls, and step 5's variables and models (once the fields are prepared)."""
+    out = clean_settings.merge(_base(project), clean_settings.settings(project))
+    return clean_settings.merge(out, model_calls.settings(project, project_dir(project.id)))
 
 
 def _base(project: Project) -> dict:

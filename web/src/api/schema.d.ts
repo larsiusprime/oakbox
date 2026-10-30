@@ -1701,6 +1701,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Model State */
+        get: operations["model_state_api_projects__project_id__model_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/model/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Model Setup
+         * @description The variables there are, the models offered, and each model group's sales.
+         */
+        get: operations["model_setup_api_projects__project_id__model_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Model Change */
+        patch: operations["model_change_api_projects__project_id__model_setup_patch"];
+        trace?: never;
+    };
+    "/api/projects/{project_id}/model/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Model Run
+         * @description Try the models: OpenAVMKit's try_models on the prepared fields, every model group.
+         */
+        post: operations["model_run_api_projects__project_id__model_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/model/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Model Stop */
+        post: operations["model_stop_api_projects__project_id__model_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio": {
         parameters: {
             query?: never;
@@ -2940,6 +3015,17 @@ export interface components {
              */
             high_contrast: boolean;
         };
+        /** Engine */
+        Engine: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string;
+            /** Chosen */
+            chosen: boolean;
+        };
         /** EnrichResult */
         EnrichResult: {
             /**
@@ -4157,6 +4243,60 @@ export interface components {
              */
             units: boolean;
         };
+        /** ModelFigures */
+        ModelFigures: {
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /** Sales */
+            sales: number;
+            /** Median */
+            median: number | null;
+            /** Cod */
+            cod: number | null;
+            /** Prd */
+            prd: number | null;
+            /** Prb */
+            prb: number | null;
+            /** Vei */
+            vei: number | null;
+            /** Vei Significance */
+            vei_significance: number | null;
+            /** Trimmed Sales */
+            trimmed_sales: number | null;
+            /** Cod Trimmed */
+            cod_trimmed: number | null;
+            /** Prb Trimmed */
+            prb_trimmed: number | null;
+            /**
+             * Level Ok
+             * @description The median within the level range.
+             */
+            level_ok: boolean | null;
+            /**
+             * Cod Ok
+             * @description The COD within its category's range.
+             */
+            cod_ok: boolean | null;
+            /**
+             * Cod Low
+             * @description Under its category's range: suspiciously even.
+             * @default false
+             */
+            cod_low: boolean;
+            /**
+             * Prb Ok
+             * @description The PRB within its good range (None: in between).
+             */
+            prb_ok: boolean | null;
+            /**
+             * Prb Bad
+             * @description The PRB outside its unacceptable range.
+             * @default false
+             */
+            prb_bad: boolean;
+        };
         /**
          * ModelGroup
          * @description Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins.
@@ -4206,6 +4346,127 @@ export interface components {
              * @description Fields the rule tests that are numbers.
              */
             numeric: string[];
+        };
+        /** ModelGroupCount */
+        ModelGroupCount: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Sales
+             * @description Sales the models learn from and are tested on.
+             */
+            sales: number;
+        };
+        /** ModelGroupResult */
+        ModelGroupResult: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Parcels */
+            parcels: number;
+            /** Sales */
+            sales: number;
+            /**
+             * Models
+             * @description Each model and the ensemble, on the holdout.
+             */
+            models: components["schemas"]["ModelFigures"][];
+            /** @description The roll's own value on the same holdout sales (it may have seen them: the models didn't). */
+            roll: components["schemas"]["ModelFigures"] | null;
+            /**
+             * Skipped
+             * @description Why it has no models, if it hasn't.
+             */
+            skipped: string | null;
+        };
+        /** ModelPatch */
+        ModelPatch: {
+            /** Variables */
+            variables?: string[] | null;
+            /**
+             * Every Variable
+             * @description True: back to every variable found.
+             */
+            every_variable?: boolean | null;
+            /** Models */
+            models?: string[] | null;
+            /**
+             * Choose For Me
+             * @description True: back to Choose for me.
+             */
+            choose_for_me?: boolean | null;
+        };
+        /** ModelReceipt */
+        ModelReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /** Models */
+            models: string[];
+            /** Variables */
+            variables: string[];
+            /** Groups */
+            groups: components["schemas"]["ModelGroupResult"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** ModelSetup */
+        ModelSetup: {
+            /** Variables */
+            variables: components["schemas"]["Variable"][];
+            /**
+             * Missing
+             * @description Big five fields not loaded, in words.
+             */
+            missing: string[];
+            /** Engines */
+            engines: components["schemas"]["Engine"][];
+            /** Choose For Me */
+            choose_for_me: boolean;
+            /** Groups */
+            groups: components["schemas"]["ModelGroupCount"][];
+        };
+        /** ModelState */
+        ModelState: {
+            /**
+             * Variables
+             * @description The variables chosen; None: every one found.
+             */
+            variables: string[] | null;
+            /**
+             * Models
+             * @description The engines chosen; None: Choose for me.
+             */
+            models: string[] | null;
+        };
+        /** ModelView */
+        ModelView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["ModelReceipt"] | null;
+            /**
+             * Stale
+             * @description Prepare ran again, or a variable or model changed, since the try.
+             */
+            stale: boolean;
+            /** Blocked */
+            blocked: string[];
         };
         /** NameFormat */
         NameFormat: {
@@ -5006,6 +5267,8 @@ export interface components {
             clean: components["schemas"]["CleanState"];
             /** @description Step 4, Check my values: its calls (F8). */
             ratio: components["schemas"]["RatioState"];
+            /** @description Step 5, the models: variables and models (F9). */
+            model: components["schemas"]["ModelState"];
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -6691,6 +6954,37 @@ export interface components {
             value: string;
             /** Count */
             count: number;
+        };
+        /** Variable */
+        Variable: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "big_five" | "building" | "location" | "public" | "category";
+            /** Numeric */
+            numeric: boolean;
+            /**
+             * Parcels
+             * @description Parcels with a value.
+             */
+            parcels: number;
+            /**
+             * Blanks
+             * @description Parcels with none, after Prepare the fields.
+             */
+            blanks: number;
+            /** Chosen */
+            chosen: boolean;
+            /**
+             * Trees Only
+             * @description A category, or a number with blanks: linear models leave it out.
+             */
+            trees_only: boolean;
         };
         /**
          * Verdict
@@ -10300,6 +10594,165 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrepareView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_state_api_projects__project_id__model_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_setup_api_projects__project_id__model_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_change_api_projects__project_id__model_setup_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_run_api_projects__project_id__model_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_stop_api_projects__project_id__model_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelView"];
                 };
             };
             /** @description Validation Error */

@@ -30,6 +30,7 @@ from oakbox import (
     enrichments,
     fields,
     groups,
+    model,
     names,
     prepare,
     projects,
@@ -1380,6 +1381,54 @@ def create_app() -> FastAPI:
             raise HTTPException(409, str(e)) from e
         projects.save(project)
         return _prepare_view(project)
+
+    # ---------- Step 5, the models (F9) ----------
+
+    def _model_view(project: projects.Project) -> model.ModelView:
+        return model.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/model")
+    def model_state(project_id: str) -> model.ModelView:
+        return _model_view(_load(project_id))
+
+    @app.get("/api/projects/{project_id}/model/setup")
+    def model_setup(project_id: str) -> model.ModelSetup:
+        """The variables there are, the models offered, and each model group's sales."""
+        project = _load(project_id)
+        try:
+            return model.setup(project, projects.project_dir(project_id))
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+
+    @app.patch("/api/projects/{project_id}/model/setup")
+    def model_change(project_id: str, body: model.ModelPatch) -> model.ModelSetup:
+        project = _load(project_id)
+        try:
+            model.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        projects.save(project)
+        try:
+            return model.setup(project, projects.project_dir(project_id))
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+
+    @app.post("/api/projects/{project_id}/model/run")
+    def model_run(project_id: str) -> model.ModelView:
+        """Try the models: OpenAVMKit's try_models on the prepared fields, every model group."""
+        project = _load(project_id)
+        pdir = projects.project_dir(project_id)
+        try:
+            projects.write_settings(project)
+            model.start(project, pdir)
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(409, str(e)) from e
+        return _model_view(project)
+
+    @app.post("/api/projects/{project_id}/model/stop")
+    def model_stop(project_id: str) -> model.ModelView:
+        bring_in.stop(project_id, model.MODULE)
+        return _model_view(_load(project_id))
 
     # ---------- Step 4, Check my values (F8) ----------
 

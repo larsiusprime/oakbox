@@ -4940,3 +4940,21 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
 .rv-word-bad {
   color: #9b1c1c;
 }
+
+/* Step 5's models (F9): a model per line, sized to content; the roll's row set apart from the models'. */
+.md-engines {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 0.8rem;
+  align-items: baseline;
+}
+@supports (grid-template-columns: subgrid) {
+  .md-engine {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+}
+.md-how tr.md-roll {
+  font-style: italic;
+}
