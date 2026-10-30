@@ -82,7 +82,11 @@ class Variable(BaseModel):
     parcels: int = Field(description="Parcels with a value.")
     blanks: int = Field(description="Parcels with none, after Prepare the fields.")
     chosen: bool
-    trees_only: bool = Field(description="A category, or a number with blanks: linear models leave it out.")
+    trees_only: bool = Field(description="A number with blanks: linear models leave it out.")
+    values: int | None = Field(
+        default=None,
+        description="A category's values: each becomes a column of its own to the models (one-hot), which slows them.",
+    )
 
 
 def _universe_path(project_dir: Path) -> Path:
@@ -163,9 +167,9 @@ def big_five_missing(columns: list[str], units: str | None) -> list[str]:
 @lru_cache(maxsize=8)
 def _scan(
     path: str, mtime: float, settings_mtime: float, units: str | None
-) -> tuple[tuple[str, str, bool, int, int], ...]:
-    """(field, kind, numeric, parcels with a value, blanks) for each candidate in the prepared universe. A category
-    with one value, or nearly one per parcel (an ID, an address), isn't offered."""
+) -> tuple[tuple[str, str, bool, int, int, int | None], ...]:
+    """(field, kind, numeric, parcels with a value, blanks, a category's values) for each candidate in the prepared
+    universe. A category with one value, or nearly one per parcel (an ID, an address), isn't offered."""
     import pandas as pd
     import pyarrow.parquet as pq
 
@@ -177,14 +181,15 @@ def _scan(
     for f, kind, numeric in found:
         s = df[f]
         blanks = int(s.isna().sum())
+        values = None
         if not numeric or not (pd.api.types.is_numeric_dtype(s) or pd.api.types.is_bool_dtype(s)):
             distinct = s.nunique(dropna=True)
             if distinct <= 1 or (distinct > len(s) / 2 and distinct > 50):
                 continue
-            kind, numeric = "category", False
+            kind, numeric, values = "category", False, int(distinct)
         elif s.nunique(dropna=True) <= 1:
             continue  # the same everywhere: nothing to learn
-        out.append((f, kind, numeric, len(s) - blanks, blanks))
+        out.append((f, kind, numeric, len(s) - blanks, blanks, values))
     return tuple(out)
 
 
@@ -197,7 +202,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
     out = []
     settings_path = project_dir / "in" / "settings.json"
     stamp = settings_path.stat().st_mtime if settings_path.is_file() else 0.0
-    for f, kind, numeric, parcels, blanks in _scan(str(path), path.stat().st_mtime, stamp, project.units):
+    for f, kind, numeric, parcels, blanks, values in _scan(str(path), path.stat().st_mtime, stamp, project.units):
         out.append(
             Variable(
                 field=f,
@@ -208,6 +213,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
                 blanks=blanks,
                 chosen=chosen is None or f in chosen,
                 trees_only=blanks > 0,
+                values=values,
             )
         )
     return out

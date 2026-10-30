@@ -6,11 +6,12 @@ import { t } from "../strings";
 import { when } from "./BringIn";
 import { CollapseCard, FillCard, useCleanSetup } from "./CheckSales";
 import { HowTheyDid, ModelsCard, useModel, useModelSetup, VariablesCard } from "./Models";
-import { TestStep, useVarTest, Verdict } from "./VarTests";
+import { MoreTests, TestStep, useVarTest, Verdict } from "./VarTests";
 
 const m = t.values;
-// The variable tests, one step each (SPEC F9).
-const TESTS = ["represented", "corr", "enr", "r2", "p_value", "t_value", "vif", "signs"] as const;
+// The variable tests (SPEC F9): Test the variables is a major step; the tests that each answer a question of their
+// own are its parts, the rest (which repeat one of them) together under More tests.
+const TESTS = ["represented", "corr", "p_value", "vif"] as const;
 type Test = (typeof TESTS)[number];
 type MvStep =
   | "fill"
@@ -20,6 +21,7 @@ type MvStep =
   | "variables"
   | "test"
   | Test
+  | "more"
   | "verdict"
   | "models"
   | "try"
@@ -32,13 +34,14 @@ const MV_STEPS: MvStep[] = [
   "variables",
   "test",
   ...TESTS,
+  "more",
   "verdict",
   "models",
   "try",
   "how",
 ];
-const MODEL_STEPS: MvStep[] = ["variables", "test", ...TESTS, "verdict", "models", "try", "how"];
-const TESTED: MvStep[] = [...TESTS, "verdict"];
+const MODEL_STEPS: MvStep[] = ["variables", "test", ...TESTS, "more", "verdict", "models", "try", "how"];
+const TESTED: MvStep[] = [...TESTS, "more", "verdict"];
 
 function usePrepare(projectId: string) {
   return useQuery({
@@ -132,6 +135,7 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const steps: Step[] = MV_STEPS.map((key) => ({
     key,
     title: m.steps[key],
+    ...(TESTED.includes(key) ? { parent: "test" } : {}),
     status:
       key === "run"
         ? called
@@ -336,6 +340,20 @@ export function ValuesTab({ projectId }: { projectId: string }) {
                 set={mSet}
                 fill={() => go("fill")}
               />
+            ) : (
+              <p className="empty">{t.project.loading}</p>
+            )}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "more" && vr && (
+        <>
+          <StepBody kicker={m.kicker} title={m.steps.more}>
+            {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
+            {mu ? (
+              <MoreTests view={vv} setup={mu} set={mSet} fill={() => go("fill")} />
             ) : (
               <p className="empty">{t.project.loading}</p>
             )}

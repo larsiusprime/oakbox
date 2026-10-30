@@ -8,7 +8,9 @@ import { t } from "../strings";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
 export type StepStatus = "done" | "attention" | "blocked" | "blank";
-export type Step = { key: string; title: string; status: StepStatus; disabled?: boolean };
+/** parent: a step nested under another (a major step's parts), shown while the major step or one of its parts is
+ * open. */
+export type Step = { key: string; title: string; status: StepStatus; disabled?: boolean; parent?: string };
 
 const ICONS: Record<StepStatus, string | null> = {
   done: resolvedIcon,
@@ -32,13 +34,21 @@ export function StepFrame({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const tops = steps.filter((s) => !s.parent);
+  const open = steps.find((s) => s.key === current)?.parent ?? current;
   return (
     <div className={wide ? "wiz wiz-wide" : "wiz"}>
       <ol className="wiz-steps">
-        {steps.map((s, i) => {
+        {steps.map((s) => {
+          if (s.parent && s.parent !== open) return null;
           const icon = ICONS[s.status];
           return (
-            <li key={s.key} className={["wiz-step", s.key === current ? "now" : "", s.status].join(" ")}>
+            <li
+              key={s.key}
+              className={["wiz-step", s.parent ? "sub" : "", s.key === current ? "now" : "", s.status].join(
+                " ",
+              )}
+            >
               <button
                 type="button"
                 disabled={s.disabled}
@@ -46,7 +56,13 @@ export function StepFrame({
                 aria-current={s.key === current ? "step" : undefined}
               >
                 <span className="n" aria-hidden="true">
-                  {icon ? <img src={icon} alt="" className="wiz-step-icon" /> : String(i + 1)}
+                  {icon ? (
+                    <img src={icon} alt="" className="wiz-step-icon" />
+                  ) : s.parent ? (
+                    ""
+                  ) : (
+                    String(tops.indexOf(s) + 1)
+                  )}
                 </span>
                 {s.title}
               </button>

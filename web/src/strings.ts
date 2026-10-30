@@ -2155,14 +2155,15 @@ export const t = {
       run: "Prepare the fields",
       done: "What changed",
       variables: "Variables",
-      test: "Test them",
+      test: "Test the variables",
       represented: "Represented",
       corr: "Correlation",
+      p_value: "Significance",
+      vif: "Redundancy (VIF)",
+      more: "More tests",
       enr: "Elastic net",
       r2: "R²",
-      p_value: "P-value",
       t_value: "T-value",
-      vif: "VIF",
       signs: "Signs agree",
       verdict: "What to keep",
       models: "Models",
@@ -2202,6 +2203,9 @@ export const t = {
       value: "Result",
       skipped: (name: string, why: string) => `${name}: ${why}.`,
       untickFailing: "Untick every variable that fails this test",
+      moreLede:
+        "OpenAVMKit runs these too, and counts them in its score, but each mostly repeats a test before: R² on its own is the correlation with price squared; the t-value is the same regression as the significance test, read another way; the elastic net asks again whether a variable adds anything beside the others; signs agree checks the three point the same way. Look here when a variable's earlier results disagree.",
+      moreWhich: "Test",
       reasons: {
         no_correlation: "no correlation",
         low_score: "low score",
@@ -2217,8 +2221,12 @@ export const t = {
       howScore: "Score: strength × clarity²",
       howFloor: (t: string) => `(passes at ${t})`,
       howOverlaps: "Overlaps most with:",
-      howDropped: (other: string, r: string, own: string) =>
-        `Dropped: it moves with ${other} (${r}) more than with price (${own}), and ${other} moves with price more: it adds little that ${other} doesn't.`,
+      howDropped: (other: string, r: string, theirs: string, own: string) =>
+        `Dropped for ${other}: the two move together (${r}), more than this moves with price, and ${other} relates to price a little more (${theirs} against ${own}). Of two near-duplicates, the test keeps the one closer to price.`,
+      nearTie: (other: string) =>
+        `That's a near tie (not a significant difference at these sales): either would do, but not both, which would count the same thing twice. To keep this one instead, tick it and untick ${other}.`,
+      clearWin: (other: string) => `${other} is significantly closer to price, at these sales.`,
+      keptOver: (names: string) => `Kept over: ${names}, which move with it more than with price.`,
       values: (passing: number, of: number) =>
         `${passing.toLocaleString()} of ${of.toLocaleString()} ${of === 1 ? "value passes" : "values pass"}`,
       empty: (names: string[]) =>
@@ -2302,6 +2310,14 @@ export const t = {
       } as Record<string, string>,
       variable: "Variable",
       kindCount: (on: number, of: number) => `${on.toLocaleString()} of ${of.toLocaleString()} ticked`,
+      valuesCount: (n: number) => `${n.toLocaleString()} ${n === 1 ? "value" : "values"}`,
+      columns: (variables: number, columns: number, categories: number, dummies: number) =>
+        `${variables.toLocaleString()} variables ticked: ${columns.toLocaleString()} columns to the models` +
+        (categories
+          ? `, ${dummies.toLocaleString()} of them from ${categories.toLocaleString()} ${categories === 1 ? "category" : "categories"} (each value becomes a column of its own).`
+          : "."),
+      manyColumns: (biggest: string) =>
+        `That many slows every model, and gives a linear model a coefficient to fit for each with few sales behind it. The largest: ${biggest}. Fold rare values (Rare categories), or untick a category that repeats another.`,
       has: "Has it",
       blanks: "Blanks",
       usedBy: "Used by",

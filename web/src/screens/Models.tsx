@@ -74,6 +74,7 @@ export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }
   return (
     <div className="cs-step">
       {v.missing.length > 0 && <p className="wiz-warn">{m.missing(v.missing)}</p>}
+      <ColumnsNote v={v} />
       <table className="bi-tbl cs-tbl md-vars">
         <thead>
           <tr>
@@ -114,6 +115,7 @@ export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }
                       }
                     >
                       {x.name} <span className="mono wiz-from">{x.field}</span>
+                      {x.values != null && <span className="wiz-from"> · {m.valuesCount(x.values)}</span>}
                     </Tick>
                   </td>
                   <td className="cs-n">{`${Math.round((100 * x.parcels) / Math.max(total, 1))}%`}</td>
@@ -197,10 +199,28 @@ function KindRow({
 }
 
 /** The models offered, each in a line; Choose for me; and what each model group has to learn from. */
+/** How many columns the ticked variables become to the models: a number is one, a category one per value (one-hot).
+ * Many category columns slow every model and give linear ones a coefficient each to fit. */
+export function ColumnsNote({ v }: { v: ModelSetup }) {
+  const ticked = v.variables.filter((x) => x.chosen);
+  const cats = ticked.filter((x) => x.values != null);
+  const dummies = cats.reduce((n, x) => n + (x.values ?? 0), 0);
+  const columns = ticked.length - cats.length + dummies;
+  const many = dummies > 40;
+  const biggest = [...cats].sort((a, b) => (b.values ?? 0) - (a.values ?? 0)).slice(0, 3);
+  return (
+    <p className={many ? "wiz-warn" : "wiz-from"}>
+      {m.columns(ticked.length, columns, cats.length, dummies)}
+      {many && ` ${m.manyColumns(biggest.map((x) => `${x.name} (${x.values})`).join(", "))}`}
+    </p>
+  );
+}
+
 export function ModelsCard({ v, set }: CardProps) {
   const chosen = v.engines.filter((e) => e.chosen).map((e) => e.key);
   return (
     <div className="cs-step">
+      <ColumnsNote v={v} />
       <div className="md-engines">
         {v.engines.map((e) => (
           <div key={e.key} className="md-engine">

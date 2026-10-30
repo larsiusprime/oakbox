@@ -65,6 +65,17 @@ class CorrDetail(BaseModel):
     dropped_by: Overlap | None = Field(
         default=None, description="The stronger variable it overlaps more than it relates to price, if dropped so."
     )
+    dropped_by_price: float | None = Field(
+        default=None, description="That variable's correlation with price, to set beside this one's."
+    )
+    near_tie: bool | None = Field(
+        default=None,
+        description="Their correlations with price aren't significantly different (Steiger's test, 5%): either would "
+        "do, as long as not both.",
+    )
+    kept_over: list[Overlap] = Field(
+        default_factory=list, description="The variables dropped for overlapping this one."
+    )
 
 
 class VarGroup(BaseModel):
@@ -192,7 +203,20 @@ def _group_tests(tests: dict, df_results, variables: list[str]) -> dict[str, lis
     return out
 
 
-def _corr_detail(corr: dict, variables: list[str], one_hot: dict, threshold: float) -> dict[str, CorrDetail]:
+def _steiger_z(r1: float, r2: float, r12: float, n: int) -> float | None:
+    """Steiger's (1980) z for two correlations with price that share it, given the two variables' own correlation:
+    is the first stronger than the second, or within chance?"""
+    if n < 4 or abs(r12) >= 1:
+        return None
+    rm2 = (r1 * r1 + r2 * r2) / 2
+    f = min((1 - r12) / (2 * (1 - rm2)), 1.0)
+    h = (1 - f * rm2) / (1 - rm2)
+    return (math.atanh(r1) - math.atanh(r2)) * math.sqrt((n - 3) / (2 * (1 - r12) * h))
+
+
+def _corr_detail(
+    corr: dict, variables: list[str], one_hot: dict, threshold: float, sales: int
+) -> dict[str, CorrDetail]:
     """Each column's correlation with price, clarity and score, its strongest overlaps, and for one dropped for
     overlapping, the stronger variable it overlaps more than it relates to price."""
     m = corr.get("matrix")
@@ -218,19 +242,38 @@ def _corr_detail(corr: dict, variables: list[str], one_hot: dict, threshold: flo
             ((o, m.loc[c, o]) for o in others if o != c and _f(m.loc[c, o]) is not None), key=lambda x: -abs(x[1])
         )[:5]
         dropped_by = None
+        by_price = None
+        tie = None
         if row is not None and c not in kept and (_f(row.get("corr_score")) or 0) >= threshold:
             # As the test drops it: a variable more related to price that it's more related to than to price.
             mine = abs(to_price or 0)
-            stronger = [(o, r) for o, r in near if abs(_f(m.loc[o, target]) or 0) > mine and abs(r) > mine]
+            # Only a variable that was still in at its turn can push another out: one kept to the end.
+            stronger = [
+                (o, r)
+                for o in others
+                if o != c and o in kept
+                for r in [m.loc[c, o]]
+                if _f(r) is not None and abs(_f(m.loc[o, target]) or 0) > mine and abs(r) > mine
+            ]
+            stronger.sort(key=lambda x: -abs(x[1]))
             if stronger:
                 dropped_by = ov(*stronger[0])
+                by_price = _f(m.loc[stronger[0][0], target])
+                z = _steiger_z(abs(by_price or 0), mine, abs(float(stronger[0][1])), sales)
+                tie = None if z is None else abs(z) < 1.96
         out[c] = CorrDetail(
             to_price=to_price,
             clarity=_f(row.get("corr_clarity")) if row is not None else None,
             score=_f(row.get("corr_score")) if row is not None else None,
             overlaps=[ov(o, r) for o, r in near],
             dropped_by=dropped_by,
+            dropped_by_price=by_price,
+            near_tie=tie,
         )
+    # The other side of each drop: what the kept variable was kept over.
+    for c, d in out.items():
+        if d.dropped_by and d.dropped_by.column in out:
+            out[d.dropped_by.column].kept_over.append(ov(c, d.dropped_by.r))
     return out
 
 
@@ -326,6 +369,7 @@ def run(project_id: str) -> None:
                 here,
                 tests.get("one_hot") or {},
                 float((tests.get("thresholds") or {}).get("correlation", 0.1)),
+                len(df_s),
             )
             groups.append(vg)
     beating.set()

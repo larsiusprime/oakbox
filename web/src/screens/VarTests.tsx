@@ -14,6 +14,7 @@ import {
 import { Choice, Tick } from "../components/Form";
 import { t } from "../strings";
 import { num } from "./CheckSales";
+import { ColumnsNote } from "./Models";
 
 const vt = t.values.vartest;
 
@@ -341,6 +342,7 @@ export function Verdict({
   return (
     <div className="cs-step">
       <p className="wiz-lede">{vt.verdictLede}</p>
+      <ColumnsNote v={setup} />
       <p>
         {vt.ticked(chosen.length, setup.variables.length)}{" "}
         <Button
@@ -448,10 +450,57 @@ function CorrHow({
         )}
         {d.dropped_by && (
           <p className="vt-how-line wiz-warn">
-            {vt.howDropped(label(d.dropped_by), num(Math.abs(d.dropped_by.r), 2), num(strength, 2))}
+            {vt.howDropped(
+              label(d.dropped_by),
+              num(Math.abs(d.dropped_by.r), 2),
+              num(Math.abs(d.dropped_by_price ?? 0), 3),
+              num(strength, 3),
+            )}{" "}
+            {d.near_tie === true
+              ? vt.nearTie(label(d.dropped_by))
+              : d.near_tie === false
+                ? vt.clearWin(label(d.dropped_by))
+                : null}
+          </p>
+        )}
+        {d.kept_over.length > 0 && (
+          <p className="vt-how-line">
+            {vt.keptOver(d.kept_over.map((o) => `${label(o)} (${num(Math.abs(o.r), 2)})`).join(", "))}
           </p>
         )}
       </td>
     </tr>
+  );
+}
+
+/** The tests that mostly repeat one before (SPEC F9), one at a time. */
+export function MoreTests({
+  view,
+  setup,
+  set,
+  fill,
+}: {
+  view: VarTestView;
+  setup: ModelSetup;
+  set: (body: ModelPatch) => void;
+  fill: () => void;
+}) {
+  const [test, setTest] = useState("enr");
+  const which = ["enr", "r2", "t_value", "signs"];
+  return (
+    <div className="cs-step">
+      <p className="wiz-lede">{vt.moreLede}</p>
+      <div className="cs-row">
+        <Choice
+          label={vt.moreWhich}
+          value={test}
+          options={which.map(
+            (k) => [k, t.values.steps[k as keyof typeof t.values.steps]] as [string, string],
+          )}
+          onChange={setTest}
+        />
+      </div>
+      <TestStep key={test} test={test} view={view} setup={setup} set={set} fill={fill} />
+    </div>
   );
 }

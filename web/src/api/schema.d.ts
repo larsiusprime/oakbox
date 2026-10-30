@@ -2742,6 +2742,21 @@ export interface components {
             overlaps: components["schemas"]["Overlap"][];
             /** @description The stronger variable it overlaps more than it relates to price, if dropped so. */
             dropped_by: components["schemas"]["Overlap"] | null;
+            /**
+             * Dropped By Price
+             * @description That variable's correlation with price, to set beside this one's.
+             */
+            dropped_by_price: number | null;
+            /**
+             * Near Tie
+             * @description Their correlations with price aren't significantly different (Steiger's test, 5%): either would do, as long as not both.
+             */
+            near_tie: boolean | null;
+            /**
+             * Kept Over
+             * @description The variables dropped for overlapping this one.
+             */
+            kept_over: components["schemas"]["Overlap"][];
         };
         /** CountryDefaults */
         CountryDefaults: {
@@ -7195,9 +7210,14 @@ export interface components {
             chosen: boolean;
             /**
              * Trees Only
-             * @description A category, or a number with blanks: linear models leave it out.
+             * @description A number with blanks: linear models leave it out.
              */
             trees_only: boolean;
+            /**
+             * Values
+             * @description A category's values: each becomes a column of its own to the models (one-hot), which slows them.
+             */
+            values: number | null;
         };
         /**
          * Verdict
