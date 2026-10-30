@@ -2202,6 +2202,23 @@ export const t = {
       value: "Result",
       skipped: (name: string, why: string) => `${name}: ${why}.`,
       untickFailing: "Untick every variable that fails this test",
+      reasons: {
+        no_correlation: "no correlation",
+        low_score: "low score",
+        overlaps: "overlaps",
+      } as Record<string, string>,
+      floor: "0.05",
+      withPrice: (r: string) => `|r| ${r}`,
+      firstPass: (floor: string) =>
+        `First pass: no correlation with price (under ${floor} either way), dropped before the scores were worked out`,
+      how: "how ›",
+      howStrength: "With price",
+      howClarity: "Clarity",
+      howScore: "Score: strength × clarity²",
+      howFloor: (t: string) => `(passes at ${t})`,
+      howOverlaps: "Overlaps most with:",
+      howDropped: (other: string, r: string, own: string) =>
+        `Dropped: it moves with ${other} (${r}) more than with price (${own}), and ${other} moves with price more: it adds little that ${other} doesn't.`,
       values: (passing: number, of: number) =>
         `${passing.toLocaleString()} of ${of.toLocaleString()} ${of === 1 ? "value passes" : "values pass"}`,
       empty: (names: string[]) =>
@@ -2221,7 +2238,7 @@ export const t = {
           figure: "Sales with a value",
         },
         corr: {
-          lede: "Is it associated with price, and not too closely with the other variables? The correlation score is its strength with price times its clarity (how little it overlaps the others), squared. Variables overlapping a stronger one are dropped first.",
+          lede: "In two passes. First, anything with no correlation with price is dropped right away. Then the score: its strength with price times its clarity (how little it overlaps the others), squared; a variable that moves with a stronger one more than with price is dropped too. Press how › on a row to see its figures.",
           rule: (t: number) =>
             `Passes at a score of ${t} or more, and not dropped for overlapping a stronger variable.`,
           figure: "Correlation score",

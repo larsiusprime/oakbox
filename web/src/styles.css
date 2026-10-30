@@ -5050,3 +5050,19 @@ tr.vt-off {
 tr.vt-level > td:first-child {
   padding-left: 2.2rem;
 }
+.bi-tbl.vt-tbl > tbody > tr.vt-how > td {
+  background: #f7f9fc;
+  padding: 0.5rem 0.8rem 0.6rem 2.2rem;
+}
+.vt-how-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem 1.2rem;
+}
+.vt-how-fig {
+  display: grid;
+  gap: 0.15rem;
+}
+.vt-how-line {
+  margin: 0.4rem 0 0;
+}

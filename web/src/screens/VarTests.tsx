@@ -2,7 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
-import { api, type ModelPatch, type ModelSetup, type TestRow, unwrap, type VarTestView } from "../api/client";
+import {
+  api,
+  type CorrDetail,
+  type ModelPatch,
+  type ModelSetup,
+  type TestRow,
+  unwrap,
+  type VarTestView,
+} from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { t } from "../strings";
 import { num } from "./CheckSales";
@@ -60,6 +68,14 @@ export function TestStep({
   const tested = (r?.groups ?? []).filter((g) => Object.keys(g.tests).length > 0);
   const [gid, setGid] = useState(() => [...tested].sort((a, b) => b.sales - a.sales)[0]?.id ?? "");
   const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const [how, setHow] = useState<Set<string>>(() => new Set());
+  const flip = (column: string) =>
+    setHow((was) => {
+      const now = new Set(was);
+      if (now.has(column)) now.delete(column);
+      else now.add(column);
+      return now;
+    });
   if (!r) return null;
   const g = tested.find((x) => x.id === gid) ?? tested[0];
   const info = vt.tests[test];
@@ -105,14 +121,16 @@ export function TestStep({
           <span className="rv-cell-pill">
             {passed == null ? null : (
               <span className={passed ? "rv-pill rv-ok" : "rv-pill rv-bad"}>
-                {passed ? `✓ ${vt.pass}` : `✗ ${vt.fail}`}
+                {passed ? `✓ ${vt.pass}` : `✗ ${x.reason ? vt.reasons[x.reason] : vt.fail}`}
               </span>
             )}
           </span>
           <span>
             {test === "signs"
               ? `${sign(x.more.coef_sign)} ${sign(x.more.enr_coef_sign)} ${sign(x.more.t_value_sign)}`
-              : figure(test, x.value)}
+              : x.reason === "no_correlation"
+                ? vt.withPrice(num(x.more.corr_strength, 3))
+                : figure(test, x.value)}
           </span>
         </span>
       </td>
@@ -185,14 +203,25 @@ export function TestStep({
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => {
+          {items.map((it, k) => {
             const best = it.rows[0];
             if (!best) return null;
+            const firstWeak =
+              test === "corr" &&
+              it.rows.every((x) => x.reason === "no_correlation") &&
+              !items.slice(0, k).some((y) => y.rows.every((x) => x.reason === "no_correlation"));
             const ticked = chosen.includes(it.variable);
             const shown = open.has(it.variable);
             const passing = it.rows.filter((x) => x.passed).length;
             const Chevron = shown ? ChevronDown : ChevronRight;
             return [
+              ...(firstWeak
+                ? [
+                    <tr key="weak-band" className="bi-grp">
+                      <td colSpan={3}>{vt.firstPass(vt.floor)}</td>
+                    </tr>,
+                  ]
+                : []),
               <tr key={it.variable} className={ticked ? undefined : "vt-off"}>
                 <td>
                   <span className="vt-name">
@@ -207,6 +236,15 @@ export function TestStep({
                       {names[it.variable] ?? it.variable}{" "}
                       {!it.category && <span className="mono wiz-from">{best.column}</span>}
                     </Tick>
+                    {test === "corr" && !it.category && g?.corr[best.column] && (
+                      <Button
+                        className="wiz-link vt-values"
+                        aria-expanded={how.has(best.column)}
+                        onPress={() => flip(best.column)}
+                      >
+                        {vt.how}
+                      </Button>
+                    )}
                     {it.category && (
                       <Button
                         className="wiz-link vt-values"
@@ -237,15 +275,44 @@ export function TestStep({
                   best,
                 )}
               </tr>,
+              ...(!it.category && how.has(best.column) && g?.corr[best.column]
+                ? [
+                    <CorrHow
+                      key={`${best.column}-how`}
+                      d={g.corr[best.column]}
+                      names={names}
+                      floor={threshold ?? 0.1}
+                    />,
+                  ]
+                : []),
               ...(it.category && shown
-                ? it.rows.map((x) => (
+                ? it.rows.flatMap((x) => [
                     <tr key={x.column} className={ticked ? "vt-level" : "vt-level vt-off"}>
                       <td>
-                        {x.level} <span className="mono wiz-from">{x.column}</span>
+                        {x.level} <span className="mono wiz-from">{x.column}</span>{" "}
+                        {test === "corr" && g?.corr[x.column] && (
+                          <Button
+                            className="wiz-link vt-values"
+                            aria-expanded={how.has(x.column)}
+                            onPress={() => flip(x.column)}
+                          >
+                            {vt.how}
+                          </Button>
+                        )}
                       </td>
                       {cells(x.passed, x)}
-                    </tr>
-                  ))
+                    </tr>,
+                    ...(how.has(x.column) && g?.corr[x.column]
+                      ? [
+                          <CorrHow
+                            key={`${x.column}-how`}
+                            d={g.corr[x.column]}
+                            names={names}
+                            floor={threshold ?? 0.1}
+                          />,
+                        ]
+                      : []),
+                  ])
                 : []),
             ];
           })}
@@ -325,5 +392,66 @@ export function Verdict({
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** How a correlation score came about: its correlation with price (strength), its clarity (how little it overlaps
+ * the others), the score from the two, the variables it overlaps most and, if it was dropped for one, which. */
+function CorrHow({
+  d,
+  names,
+  floor,
+}: {
+  d: CorrDetail | undefined;
+  names: Record<string, string>;
+  floor: number;
+}) {
+  if (!d) return null;
+  const label = (o: { variable: string; level?: string | null }) =>
+    o.level ? vt.level(names[o.variable] ?? o.variable, o.level) : (names[o.variable] ?? o.variable);
+  const strength = d.to_price == null ? null : Math.abs(d.to_price);
+  return (
+    <tr className="vt-how">
+      <td colSpan={3}>
+        <div className="vt-how-body">
+          <span className="vt-how-fig">
+            <span className="wiz-from">{vt.howStrength}</span>
+            <b>
+              {d.to_price == null ? "—" : `${d.to_price >= 0 ? "+" : "−"}${num(Math.abs(d.to_price), 3)}`}
+            </b>
+            <span className="vt-bar">
+              <span className="vt-fill" style={{ width: `${100 * (strength ?? 0)}%` }} />
+            </span>
+          </span>
+          <span className="vt-how-fig">
+            <span className="wiz-from">{vt.howClarity}</span>
+            <b>{num(d.clarity, 3)}</b>
+            <span className="vt-bar">
+              <span className="vt-fill" style={{ width: `${100 * Math.max(0, d.clarity ?? 0)}%` }} />
+            </span>
+          </span>
+          <span className="vt-how-fig">
+            <span className="wiz-from">{vt.howScore}</span>
+            <b>
+              {strength == null || d.clarity == null
+                ? "—"
+                : `${num(strength, 3)} × ${num(d.clarity, 3)}² = ${num(d.score, 3)}`}
+            </b>
+            <span className="wiz-from">{vt.howFloor(num(floor, 2))}</span>
+          </span>
+        </div>
+        {d.overlaps.length > 0 && (
+          <p className="vt-how-line">
+            <span className="wiz-from">{vt.howOverlaps}</span>{" "}
+            {d.overlaps.map((o) => `${label(o)} ${o.r >= 0 ? "+" : "−"}${num(Math.abs(o.r), 2)}`).join(" · ")}
+          </p>
+        )}
+        {d.dropped_by && (
+          <p className="vt-how-line wiz-warn">
+            {vt.howDropped(label(d.dropped_by), num(Math.abs(d.dropped_by.r), 2), num(strength, 2))}
+          </p>
+        )}
+      </td>
+    </tr>
   );
 }

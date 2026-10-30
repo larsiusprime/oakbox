@@ -222,6 +222,9 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     tested = [g for g in tv["receipt"]["groups"] if g["tests"]]
     assert tested and {"represented", "corr", "p_value", "vif"} <= set(tested[0]["tests"])
     assert all(row["variable"] in tv["receipt"]["variables"] for row in tested[0]["tests"]["corr"])
+    # Each correlation failure says why, and each column's correlation is there in detail (strength, clarity, overlaps).
+    assert all(row["reason"] for row in tested[0]["tests"]["corr"] if row["passed"] is False)
+    assert all("to_price" in d and "overlaps" in d for d in tested[0]["corr"].values())
     assert not tv["stale"]
 
     client.patch(f"{mdl}/setup", json={"models": ["lightgbm"]})

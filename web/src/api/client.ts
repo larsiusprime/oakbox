@@ -20,6 +20,7 @@ export type ModelVariable = components["schemas"]["Variable"];
 export type VarTestView = components["schemas"]["VarTestView"];
 export type VarGroup = components["schemas"]["VarGroup"];
 export type TestRow = components["schemas"]["TestRow"];
+export type CorrDetail = components["schemas"]["CorrDetail"];
 export type NameRow = components["schemas"]["NameRow"];
 export type ProjectDetail = components["schemas"]["ProjectDetail"];
 export type InputFile = components["schemas"]["InputFile"];

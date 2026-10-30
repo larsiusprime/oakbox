@@ -26,6 +26,9 @@ from oakbox import bring_in, model, prepare
 from oakbox.datafiles import BaseModel
 
 MODULE = "vartest"
+# The correlation test's first pass: a correlation with price weaker than this (in absolute value) is none at all,
+# and the variable is dropped before the combined scores are worked out.
+CORR_FLOOR = 0.05
 TESTS = ["represented", "corr", "enr", "r2", "p_value", "t_value", "vif", "signs"]
 
 
@@ -40,6 +43,28 @@ class TestRow(BaseModel):
     value: float | None
     passed: bool | None = Field(description="Passed the test (None: not tested).")
     more: dict[str, float | None] = Field(default_factory=dict, description="The test's other figures.")
+    reason: Literal["no_correlation", "low_score", "overlaps"] | None = Field(
+        default=None, description="Why it failed the correlation test."
+    )
+
+
+class Overlap(BaseModel):
+    column: str
+    variable: str
+    level: str | None = None
+    r: float = Field(description="Their correlation, -1 to 1.")
+
+
+class CorrDetail(BaseModel):
+    """How a column's correlation score came about, for the step to show on a click."""
+
+    to_price: float | None = Field(description="Its correlation with price, -1 to 1.")
+    clarity: float | None = Field(description="1 less its average overlap with the others, 0 to 1.")
+    score: float | None = Field(description="Strength (|correlation with price|) times clarity squared.")
+    overlaps: list[Overlap] = Field(description="The variables it overlaps most, strongest first.")
+    dropped_by: Overlap | None = Field(
+        default=None, description="The stronger variable it overlaps more than it relates to price, if dropped so."
+    )
 
 
 class VarGroup(BaseModel):
@@ -54,6 +79,7 @@ class VarGroup(BaseModel):
     recommended: list[str] = Field(default_factory=list, description="The variables OpenAVMKit would use.")
     scores: dict[str, float] = Field(default_factory=dict, description="Each variable's weighted score.")
     tests: dict[str, list[TestRow]] = Field(default_factory=dict)
+    corr: dict[str, CorrDetail] = Field(default_factory=dict, description="Each column's correlation, in detail.")
 
 
 class VarTestReceipt(BaseModel):
@@ -122,12 +148,32 @@ def _group_tests(tests: dict, df_results, variables: list[str]) -> dict[str, lis
     if rep is not None:
         rep = rep.rename(columns={"name": "variable"})
         out["represented"] = _rows(rep, "sales_pct_gt0", src, lambda c, _v: c not in bad, ("univ_pct_gt0",))
-    # Correlation drops low scores and overlaps in turn: what's left at the end passed.
+    # Correlation: the first pass drops what has no correlation with price; then low scores and overlaps in turn.
+    # What's left at the end passed.
     corr = tests.get("corr") or {}
     kept = final("corr") - set(corr.get("bad_vars") or [])
-    out["corr"] = _rows(
-        corr.get("initial"), "corr_score", src, lambda c, _v: c in kept, ("corr_strength", "corr_clarity")
-    )
+    rows = _rows(corr.get("initial"), "corr_score", src, lambda c, _v: c in kept, ("corr_strength", "corr_clarity"))
+    floor_score = th.get("correlation", 0.1)
+    for x in rows:
+        if not x.passed:
+            x.reason = "low_score" if x.value is not None and x.value < floor_score else "overlaps"
+    matrix = corr.get("matrix")
+    for c in corr.get("weak") or []:
+        if c in src:
+            var, level = src[c]
+            r = _f(matrix.iloc[:, 0].get(c)) if matrix is not None else None
+            rows.append(
+                TestRow(
+                    column=c,
+                    variable=var,
+                    level=level,
+                    value=None,
+                    passed=False,
+                    more={"corr_strength": None if r is None else abs(r)},
+                    reason="no_correlation",
+                )
+            )
+    out["corr"] = rows
     for name, column in (("enr", "enr_coef"), ("p_value", "p_value"), ("t_value", "t_value"), ("vif", "vif")):
         t = tests.get(name) or {}
         keep = final(name)
@@ -142,6 +188,48 @@ def _group_tests(tests: dict, df_results, variables: list[str]) -> dict[str, lis
             src,
             lambda _c, v: None if v is None else v == 1,
             ("coef_sign", "enr_coef_sign", "t_value_sign"),
+        )
+    return out
+
+
+def _corr_detail(corr: dict, variables: list[str], one_hot: dict, threshold: float) -> dict[str, CorrDetail]:
+    """Each column's correlation with price, clarity and score, its strongest overlaps, and for one dropped for
+    overlapping, the stronger variable it overlaps more than it relates to price."""
+    m = corr.get("matrix")
+    if m is None or len(m.columns) < 2:
+        return {}
+    src = _sources(variables, one_hot)
+    target = m.columns[0]
+    first = corr.get("initial")
+    scores = {} if first is None else {str(r["variable"]): r for _, r in first.iterrows()}
+    last = corr.get("final")
+    kept = set(last["variable"].astype(str)) if last is not None and "variable" in last else set()
+
+    def ov(c: str, r) -> Overlap:
+        var, level = src.get(c, (c, None))
+        return Overlap(column=c, variable=var, level=level, r=round(float(r), 3))
+
+    out: dict[str, CorrDetail] = {}
+    others = [c for c in m.columns[1:] if c in src]
+    for c in others:
+        to_price = _f(m.loc[c, target])
+        row = scores.get(c)
+        near = sorted(
+            ((o, m.loc[c, o]) for o in others if o != c and _f(m.loc[c, o]) is not None), key=lambda x: -abs(x[1])
+        )[:5]
+        dropped_by = None
+        if row is not None and c not in kept and (_f(row.get("corr_score")) or 0) >= threshold:
+            # As the test drops it: a variable more related to price that it's more related to than to price.
+            mine = abs(to_price or 0)
+            stronger = [(o, r) for o, r in near if abs(_f(m.loc[o, target]) or 0) > mine and abs(r) > mine]
+            if stronger:
+                dropped_by = ov(*stronger[0])
+        out[c] = CorrDetail(
+            to_price=to_price,
+            clarity=_f(row.get("corr_clarity")) if row is not None else None,
+            score=_f(row.get("corr_score")) if row is not None else None,
+            overlaps=[ov(o, r) for o, r in near],
+            dropped_by=dropped_by,
         )
     return out
 
@@ -178,6 +266,13 @@ def run(project_id: str) -> None:
         warnings.simplefilter("always")
         bring_in._emit(step="load", fraction=0.0, message="Reading the prepared fields")
         settings = pl.load_settings()
+        thresholds_set = (
+            settings.setdefault("modeling", {})
+            .setdefault("instructions", {})
+            .setdefault("feature_selection", {})
+            .setdefault("thresholds", {})
+        )
+        thresholds_set.setdefault("correlation_strength", CORR_FLOOR)
         sup = pl.load_cleaned_data_for_modeling(settings)
         pl.write_canonical_splits(sup, settings, verbose=False)
         sales = get_hydrated_sales_from_sup(sup)
@@ -226,6 +321,12 @@ def run(project_id: str) -> None:
                 if score is not None:
                     vg.scores[var] = max(vg.scores.get(var, score), score)
             vg.tests = _group_tests(tests, df, here)
+            vg.corr = _corr_detail(
+                tests.get("corr") or {},
+                here,
+                tests.get("one_hot") or {},
+                float((tests.get("thresholds") or {}).get("correlation", 0.1)),
+            )
             groups.append(vg)
     beating.set()
     mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]

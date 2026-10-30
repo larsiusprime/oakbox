@@ -7000,6 +7000,75 @@
     "title": "CondosView",
     "description": "The Condo units step: the answer to \"do you have condos?\", what the files suggest, and the files that could\nhold the units."
    },
+   "CorrDetail": {
+    "properties": {
+     "to_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "To Price",
+      "description": "Its correlation with price, -1 to 1."
+     },
+     "clarity": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clarity",
+      "description": "1 less its average overlap with the others, 0 to 1."
+     },
+     "score": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Score",
+      "description": "Strength (|correlation with price|) times clarity squared."
+     },
+     "overlaps": {
+      "items": {
+       "$ref": "#/components/schemas/Overlap"
+      },
+      "type": "array",
+      "title": "Overlaps",
+      "description": "The variables it overlaps most, strongest first."
+     },
+     "dropped_by": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Overlap"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The stronger variable it overlaps more than it relates to price, if dropped so."
+     }
+    },
+    "type": "object",
+    "required": [
+     "to_price",
+     "clarity",
+     "score",
+     "overlaps",
+     "dropped_by"
+    ],
+    "title": "CorrDetail",
+    "description": "How a column's correlation score came about, for the step to show on a click."
+   },
    "CountryDefaults": {
     "properties": {
      "currency": {
@@ -11841,6 +11910,42 @@
     ],
     "title": "OsmFeature"
    },
+   "Overlap": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "variable": {
+      "type": "string",
+      "title": "Variable"
+     },
+     "level": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Level"
+     },
+     "r": {
+      "type": "number",
+      "title": "R",
+      "description": "Their correlation, -1 to 1."
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "variable",
+     "level",
+     "r"
+    ],
+    "title": "Overlap"
+   },
    "Overlay-Input": {
     "properties": {
      "use": {
@@ -15974,6 +16079,23 @@
       "type": "object",
       "title": "More",
       "description": "The test's other figures."
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "no_correlation",
+         "low_score",
+         "overlaps"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason",
+      "description": "Why it failed the correlation test."
      }
     },
     "type": "object",
@@ -15983,7 +16105,8 @@
      "level",
      "value",
      "passed",
-     "more"
+     "more",
+     "reason"
     ],
     "title": "TestRow"
    },
@@ -17033,6 +17156,14 @@
       },
       "type": "object",
       "title": "Tests"
+     },
+     "corr": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/CorrDetail"
+      },
+      "type": "object",
+      "title": "Corr",
+      "description": "Each column's correlation, in detail."
      }
     },
     "type": "object",
@@ -17045,7 +17176,8 @@
      "empty",
      "recommended",
      "scores",
-     "tests"
+     "tests",
+     "corr"
     ],
     "title": "VarGroup"
    },

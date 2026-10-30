@@ -2715,6 +2715,34 @@ export interface components {
              */
             file: string | null;
         };
+        /**
+         * CorrDetail
+         * @description How a column's correlation score came about, for the step to show on a click.
+         */
+        CorrDetail: {
+            /**
+             * To Price
+             * @description Its correlation with price, -1 to 1.
+             */
+            to_price: number | null;
+            /**
+             * Clarity
+             * @description 1 less its average overlap with the others, 0 to 1.
+             */
+            clarity: number | null;
+            /**
+             * Score
+             * @description Strength (|correlation with price|) times clarity squared.
+             */
+            score: number | null;
+            /**
+             * Overlaps
+             * @description The variables it overlaps most, strongest first.
+             */
+            overlaps: components["schemas"]["Overlap"][];
+            /** @description The stronger variable it overlaps more than it relates to price, if dropped so. */
+            dropped_by: components["schemas"]["Overlap"] | null;
+        };
         /** CountryDefaults */
         CountryDefaults: {
             /** Currency */
@@ -4869,6 +4897,20 @@ export interface components {
              */
             top_n: number;
         };
+        /** Overlap */
+        Overlap: {
+            /** Column */
+            column: string;
+            /** Variable */
+            variable: string;
+            /** Level */
+            level: string | null;
+            /**
+             * R
+             * @description Their correlation, -1 to 1.
+             */
+            r: number;
+        };
         /**
          * Overlay
          * @description A map layer used to describe the parcels (F3d Shapefiles), as OpenAVMKit's settings allow.
@@ -6611,6 +6653,11 @@ export interface components {
             more: {
                 [key: string]: number | null;
             };
+            /**
+             * Reason
+             * @description Why it failed the correlation test.
+             */
+            reason: ("no_correlation" | "low_score" | "overlaps") | null;
         };
         /** Tier */
         Tier: {
@@ -7073,6 +7120,13 @@ export interface components {
             /** Tests */
             tests: {
                 [key: string]: components["schemas"]["TestRow"][];
+            };
+            /**
+             * Corr
+             * @description Each column's correlation, in detail.
+             */
+            corr: {
+                [key: string]: components["schemas"]["CorrDetail"];
             };
         };
         /** VarTestReceipt */
