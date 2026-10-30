@@ -435,7 +435,7 @@ def _name(model: str) -> str:
 
 # OpenAVMKit's benchmark columns, as each table shows them.
 IAAO = ("utility_score", "count_sales", "count_univ", "median_ratio", "cod", "prd", "prb", "vei", "vei_sig", "chd")
-IAAO_TRIMMED = ("count_trim", "cod_trim", "prd_trim", "prb_trim")
+IAAO_TRIMMED = ("count_trim", "median_ratio_trim", "cod_trim", "prd_trim", "prb_trim", "vei_trim", "vei_sig_trim")
 TIMINGS = ("total", "param", "train", "test", "univ", "chd")
 ACADEMIC = {
     "count": "count",
@@ -455,9 +455,10 @@ def _judge(values: dict[str, float | None], sales: float | None, cls: str, targe
     if (sales or 0) < targets.min_sales or cls == "none":
         return {}
     out: dict[str, Verdict] = {}
-    m = values.get("median_ratio")
-    if m is not None:
-        out["median_ratio"] = "ok" if targets.level_low <= m <= targets.level_high else "bad"
+    for k in ("median_ratio", "median_ratio_trim"):
+        m = values.get(k)
+        if m is not None:
+            out[k] = "ok" if targets.level_low <= m <= targets.level_high else "bad"
     rng = targets.cod(cls)
     for k in ("cod", "cod_trim"):
         c = values.get(k)

@@ -285,7 +285,7 @@ type Fig = ModelRow;
 
 const h = m.how;
 
-/** A figure as the engine reports it: two decimals, counts whole, a share as %, a big number shortened. */
+/** A figure as the engine reports it, by its column (a trimmed figure as its untrimmed one): two decimals, counts whole, a share as %, a big number shortened. */
 function fmt(key: string, v: number | null | undefined): string {
   if (v == null) return "—";
   if (key.startsWith("count")) return num(v);
@@ -293,7 +293,7 @@ function fmt(key: string, v: number | null | undefined): string {
   if (key === "mse")
     return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(v);
   if (key === "rmse") return num(v);
-  if (key === "prb" || key === "prb_trim") return signed(v, 3);
+  if (key === "prb") return signed(v, 3);
   if (key === "utility_score" || key === "vei" || key === "vei_sig") return num(v, 1);
   return num(v, 2);
 }
@@ -316,7 +316,7 @@ function fig(key: string, label: string, tip?: string, from = key): Column<Fig> 
               {j === "ok" ? "✓" : j === "slight" ? "~" : "✗"}
             </span>
           )}
-          <span className="dt-num">{fmt(from, r.values[from])}</span>
+          <span className="dt-num">{fmt(key, r.values[from])}</span>
         </span>
       );
     },
@@ -360,12 +360,12 @@ const IAAO_TRIMMED = [
   blank("utility_score"),
   fig("count_sales", h.col.sales, h.tip.salesTrimmed, "count_trim"),
   blank("count_univ"),
-  blank("median_ratio"),
+  fig("median_ratio", h.col.median, h.tip.median, "median_ratio_trim"),
   fig("cod", h.col.cod, h.tip.cod, "cod_trim"),
   fig("prd", h.col.prd, h.tip.prd, "prd_trim"),
   fig("prb", h.col.prb, h.tip.prb, "prb_trim"),
-  blank("vei"),
-  blank("vei_sig"),
+  fig("vei", h.col.vei, h.tip.vei, "vei_trim"),
+  fig("vei_sig", h.col.veiSig, h.tip.veiSig, "vei_sig_trim"),
   blank("chd"),
 ];
 const ACADEMIC = [

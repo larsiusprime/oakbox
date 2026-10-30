@@ -119,6 +119,9 @@ def test_how_they_did_tables():
                 "cod_trim": 30.0,
                 "prd_trim": 1.0,
                 "prb_trim": 0.01,
+                "median_ratio_trim": 1.0 if m != "mra" else 0.85,
+                "vei_trim": -2.0,
+                "vei_sig_trim": 0.5,
             }
             for m in models
         }
@@ -145,8 +148,16 @@ def test_how_they_did_tables():
     # Judged: the level, the COD and the PRB, untrimmed and trimmed; the PRD only reported.
     mra = holdout.rows[2]
     assert mra.judged == {"median_ratio": "bad", "cod": "ok", "prb": "slight"}
-    assert holdout.trimmed[2].judged == {"cod_trim": "bad", "prb_trim": "ok"}
-    assert set(holdout.trimmed[0].values) == {"count_trim", "cod_trim", "prd_trim", "prb_trim"}
+    assert holdout.trimmed[2].judged == {"median_ratio_trim": "bad", "cod_trim": "bad", "prb_trim": "ok"}
+    assert set(holdout.trimmed[0].values) == {
+        "count_trim",
+        "median_ratio_trim",
+        "cod_trim",
+        "prd_trim",
+        "prb_trim",
+        "vei_trim",
+        "vei_sig_trim",
+    }
 
 
 def _project_targets():
