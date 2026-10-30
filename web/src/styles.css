@@ -5098,6 +5098,11 @@ tr.vt-level > td:first-child {
   max-width: 100%;
   overflow-x: auto;
 }
+/* Fixed: columns take their set widths, or share what's left equally, whatever is in them; so tables with the
+   same columns line up. */
+table.dt {
+  table-layout: fixed;
+}
 table.bi-tbl.cs-tbl.dt > * > tr > :is(th, td) {
   border: 1px solid var(--rule);
   overflow: hidden;

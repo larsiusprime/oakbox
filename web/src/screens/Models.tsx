@@ -11,7 +11,7 @@ import {
   type SalesSet,
   unwrap,
 } from "../api/client";
-import { type Column, DataTable } from "../components/DataTable";
+import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
@@ -298,17 +298,17 @@ function fmt(key: string, v: number | null | undefined): string {
   return num(v, 2);
 }
 
-/** A column of one of OpenAVMKit's figures; judged ones get their pill, pinned left. */
-function fig(key: string, label: string, tip?: string): Column<Fig> {
+/** A column of one of OpenAVMKit's figures (read from `from`: a trimmed table's COD is in the COD column);
+ * judged ones get their pill, pinned left. */
+function fig(key: string, label: string, tip?: string, from = key): Column<Fig> {
   return {
     key,
     label,
     ...(tip ? { tip } : {}),
     numeric: true,
-    value: (r) => r.values[key] ?? null,
+    value: (r) => r.values[from] ?? null,
     cell: (r) => {
-      const v = r.values[key];
-      const j = r.judged[key];
+      const j = r.judged[from];
       return (
         <span className="dt-fig">
           {j && (
@@ -316,11 +316,16 @@ function fig(key: string, label: string, tip?: string): Column<Fig> {
               {j === "ok" ? "✓" : j === "slight" ? "~" : "✗"}
             </span>
           )}
-          <span className="dt-num">{fmt(key, v)}</span>
+          <span className="dt-num">{fmt(from, r.values[from])}</span>
         </span>
       );
     },
   };
+}
+
+/** A blank column where the main table has one this table hasn't, so the two line up. */
+function blank(key: string): Column<Fig> {
+  return { key, label: "", spacer: true, value: () => null };
 }
 
 const MODEL: Column<Fig> = {
@@ -349,12 +354,19 @@ const IAAO_COLUMNS = [
   fig("vei_sig", h.col.veiSig, h.tip.veiSig),
   fig("chd", h.col.chd, h.tip.chd),
 ];
+// The trimmed table, in the same columns: its figures under theirs, blanks where it has none.
 const IAAO_TRIMMED = [
   MODEL,
-  fig("count_trim", h.col.sales, h.tip.salesTrimmed),
-  fig("cod_trim", h.col.cod, h.tip.cod),
-  fig("prd_trim", h.col.prd, h.tip.prd),
-  fig("prb_trim", h.col.prb, h.tip.prb),
+  blank("utility_score"),
+  fig("count_sales", h.col.sales, h.tip.salesTrimmed, "count_trim"),
+  blank("count_univ"),
+  blank("median_ratio"),
+  fig("cod", h.col.cod, h.tip.cod, "cod_trim"),
+  fig("prd", h.col.prd, h.tip.prd, "prd_trim"),
+  fig("prb", h.col.prb, h.tip.prb, "prb_trim"),
+  blank("vei"),
+  blank("vei_sig"),
+  blank("chd"),
 ];
 const ACADEMIC = [
   MODEL,
@@ -368,19 +380,24 @@ const ACADEMIC = [
   fig("vei_sig", h.col.veiSig, h.tip.veiSig),
   fig("slope", h.col.slope, h.tip.slope),
 ];
+// Under either view, sharing its widths: the model column lines up; the rest are its own.
 const TIMINGS = [
   MODEL,
-  fig("total", h.col.total),
-  fig("param", h.col.param, h.tip.param),
-  fig("train", h.col.train),
-  fig("test", h.col.test, h.tip.test),
-  fig("univ", h.col.univ, h.tip.univ),
-  fig("chd", h.col.chd, h.tip.chdTime),
+  fig("time_total", h.col.total, undefined, "total"),
+  fig("time_param", h.col.param, h.tip.param, "param"),
+  fig("time_train", h.col.train, undefined, "train"),
+  fig("time_test", h.col.test, h.tip.test, "test"),
+  fig("time_univ", h.col.univ, h.tip.univ, "univ"),
+  fig("time_chd", h.col.chd, h.tip.chdTime, "chd"),
 ];
 
-/** The columns any row has a figure in: CHD, say, is only figured on the study set. */
-function present(columns: Column<Fig>[], rows: Fig[]) {
-  return columns.filter((c) => c.key === "model" || rows.some((r) => r.values[c.key] != null));
+/** The columns with a figure in any of a view's tables (CHD, say, is only figured on the study set): every table
+ * in the view shows the same ones, so they line up. */
+function shown(tables: [Column<Fig>[], Fig[]][]): Set<string> {
+  const keys = new Set(["model"]);
+  for (const [columns, rows] of tables)
+    for (const c of columns) if (!c.spacer && rows.some((r) => c.value(r) != null)) keys.add(c.key);
+  return keys;
 }
 
 /** One collapsible table: its title, a line on what it is, the table. */
@@ -408,11 +425,22 @@ function Section({
   );
 }
 
-function Table({ id, columns, rows }: { id: string; columns: Column<Fig>[]; rows: Fig[] }) {
+function Table({
+  columns,
+  rows,
+  keys,
+  widths,
+}: {
+  columns: Column<Fig>[];
+  rows: Fig[];
+  keys: Set<string>;
+  widths: Widths;
+}) {
   return (
     <DataTable
-      id={id}
-      columns={present(columns, rows)}
+      id="how"
+      widths={widths}
+      columns={columns.filter((c) => keys.has(c.key))}
       rows={rows}
       rowKey={(r) => r.model}
       rowClass={(r) => (r.model === "assessor" ? "md-roll" : r.model === "ensemble" ? "md-ship" : undefined)}
@@ -431,9 +459,24 @@ export function HowTheyDid({ view }: { view: ModelView }) {
   const r = view.receipt;
   const [gid, setGid] = useState<string | null>(null);
   const [how, setHow] = useState<How>("iaao");
+  const iaaoWidths = useWidths("how-iaao");
+  const academicWidths = useWidths("how-academic");
   if (!r) return null;
   const g = r.groups.find((x) => x.id === gid) ?? r.groups.find((x) => !x.skipped) ?? r.groups[0];
   if (!g) return null;
+  const widths = how === "iaao" ? iaaoWidths : academicWidths;
+  const keys =
+    how === "iaao"
+      ? shown(
+          g.sets
+            .flatMap((s) => [[IAAO_COLUMNS, s.rows] as const, [IAAO_TRIMMED, s.trimmed] as const])
+            .map((x) => [...x]),
+        )
+      : shown([
+          [ACADEMIC, g.academic],
+          [ACADEMIC, g.academic_trimmed],
+        ]);
+  const timed = shown([[TIMINGS, g.timings]]);
   return (
     <div className="cs-receipt">
       {view.stale && <p className="wiz-warn">{m.stale}</p>}
@@ -468,14 +511,14 @@ export function HowTheyDid({ view }: { view: ModelView }) {
             <Section id={s.key} title={h.set[s.key]} sub={span(s)}>
               <p className="wiz-from md-sec-note">{h.setWhy[s.key]}</p>
               {s.rows.length && s.sales ? (
-                <Table id={`how-iaao-${s.key}`} columns={IAAO_COLUMNS} rows={s.rows} />
+                <Table columns={IAAO_COLUMNS} rows={s.rows} keys={keys} widths={widths} />
               ) : (
                 <p className="md-empty">{h.empty[s.key]}</p>
               )}
             </Section>
             {s.sales > 0 && (
               <Section id={`${s.key}-trim`} title={h.trimmed(h.set[s.key])} sub={h.trimmedWhy}>
-                <Table id="how-iaao-trim" columns={IAAO_TRIMMED} rows={s.trimmed} />
+                <Table columns={IAAO_TRIMMED} rows={s.trimmed} keys={keys} widths={widths} />
               </Section>
             )}
           </div>
@@ -484,16 +527,16 @@ export function HowTheyDid({ view }: { view: ModelView }) {
         <>
           <Section id="academic" title={h.academicTitle} sub={span(g.sets[0] as SalesSet)}>
             <p className="wiz-from md-sec-note">{h.academicWhy}</p>
-            <Table id="how-academic" columns={ACADEMIC} rows={g.academic} />
+            <Table columns={ACADEMIC} rows={g.academic} keys={keys} widths={widths} />
           </Section>
           <Section id="academic-trim" title={h.trimmed(h.academicTitle)} sub={h.trimmedWhy}>
-            <Table id="how-academic" columns={ACADEMIC} rows={g.academic_trimmed} />
+            <Table columns={ACADEMIC} rows={g.academic_trimmed} keys={keys} widths={widths} />
           </Section>
         </>
       )}
       {!g.skipped && (
         <Section id="timings" title={h.timings} sub={h.timingsWhy} open={false}>
-          <Table id="how-timings" columns={TIMINGS} rows={g.timings} />
+          <Table columns={TIMINGS} rows={g.timings} keys={timed} widths={widths} />
         </Section>
       )}
       <p className="wiz-from">{m.nextSlice}</p>

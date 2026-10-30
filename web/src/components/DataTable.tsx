@@ -12,6 +12,14 @@ export type Column<R> = {
   numeric?: boolean;
   /** Starting width in pixels. */
   width?: number;
+  /** A blank column, there to line this table's columns up with another's. */
+  spacer?: boolean;
+};
+
+export type Widths = {
+  widths: Record<string, number>;
+  set: (key: string, width: number) => void;
+  save: () => void;
 };
 
 type Sort = { key: string; desc: boolean } | null;
@@ -30,17 +38,40 @@ function savedWidths(id: string): Record<string, number> {
   }
 }
 
+/** Column widths, remembered per id on this computer. Tables given the same widths share them: dragging a column
+ * in one moves it in all, so tables with the same columns stay lined up. */
+export function useWidths(id: string): Widths {
+  const [widths, setWidths] = useState<Record<string, number>>(() => savedWidths(id));
+  return {
+    widths,
+    set: (key, width) => setWidths((w) => ({ ...w, [key]: width })),
+    save: () =>
+      setWidths((w) => {
+        try {
+          localStorage.setItem(widthsKey(id), JSON.stringify(w));
+        } catch {
+          // Not remembered: the widths still hold until the page is left.
+        }
+        return w;
+      }),
+  };
+}
+
 /** A table whose headings sort it (again, the other way; a third time, back as it came) and whose column edges
- * can be dragged to resize them. Widths are remembered per table id, on this computer. */
+ * can be dragged to resize them. Its columns keep their widths: a table's share of the row, or as dragged. */
 export function DataTable<R>({
   id,
+  widths: shared,
   columns,
   rows,
   rowKey,
   rowClass,
   caption,
 }: {
+  /** Where its widths are remembered, when it keeps them itself. */
   id: string;
+  /** Widths shared with other tables (useWidths), instead of its own. */
+  widths?: Widths;
   columns: Column<R>[];
   rows: R[];
   rowKey: (row: R) => string;
@@ -48,7 +79,8 @@ export function DataTable<R>({
   caption?: string;
 }) {
   const [sort, setSort] = useState<Sort>(null);
-  const [widths, setWidths] = useState<Record<string, number>>(() => savedWidths(id));
+  const own = useWidths(id);
+  const { widths, set, save } = shared ?? own;
   const drag = useRef<{ key: string; x: number; w: number } | null>(null);
 
   const sorted = sort
@@ -72,19 +104,12 @@ export function DataTable<R>({
   const move = (e: React.PointerEvent<HTMLSpanElement>) => {
     const d = drag.current;
     if (!d) return;
-    setWidths((w) => ({ ...w, [d.key]: Math.max(MIN, Math.round(d.w + e.clientX - d.x)) }));
+    set(d.key, Math.max(MIN, Math.round(d.w + e.clientX - d.x)));
   };
   const end = () => {
     if (!drag.current) return;
     drag.current = null;
-    setWidths((w) => {
-      try {
-        localStorage.setItem(widthsKey(id), JSON.stringify(w));
-      } catch {
-        // Not remembered: the widths still hold until the page is left.
-      }
-      return w;
-    });
+    save();
   };
 
   return (
@@ -104,15 +129,17 @@ export function DataTable<R>({
               return (
                 <th
                   key={c.key}
-                  className={c.numeric ? "cs-n dt-th" : "dt-th"}
+                  className={c.spacer ? "dt-th dt-spacer" : c.numeric ? "cs-n dt-th" : "dt-th"}
                   aria-sort={on ? (sort.desc ? "descending" : "ascending") : "none"}
                 >
-                  <button type="button" className="vals-sort dt-sort" onClick={() => setSort(next(c.key))}>
-                    {c.tip ? <InfoTip label={c.label} text={c.tip} /> : c.label}
-                    <span className="dt-arrow" aria-hidden="true">
-                      {on ? (sort.desc ? "▼" : "▲") : ""}
-                    </span>
-                  </button>
+                  {!c.spacer && (
+                    <button type="button" className="vals-sort dt-sort" onClick={() => setSort(next(c.key))}>
+                      {c.tip ? <InfoTip label={c.label} text={c.tip} /> : c.label}
+                      <span className="dt-arrow" aria-hidden="true">
+                        {on ? (sort.desc ? "▼" : "▲") : ""}
+                      </span>
+                    </button>
+                  )}
                   <span
                     className="dt-grip"
                     onPointerDown={(e) => start(c.key, e)}
@@ -129,8 +156,8 @@ export function DataTable<R>({
           {sorted.map((r) => (
             <tr key={rowKey(r)} className={rowClass?.(r)}>
               {columns.map((c) => (
-                <td key={c.key} className={c.numeric ? "cs-n" : undefined}>
-                  {c.cell ? c.cell(r) : (c.value(r) ?? "—")}
+                <td key={c.key} className={c.spacer ? "dt-spacer" : c.numeric ? "cs-n" : undefined}>
+                  {c.spacer ? null : c.cell ? c.cell(r) : (c.value(r) ?? "—")}
                 </td>
               ))}
             </tr>
