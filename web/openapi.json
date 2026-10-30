@@ -17062,6 +17062,14 @@
       "title": "Variables",
       "description": "The variables tested."
      },
+     "untested": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Untested",
+      "description": "Ticked but not tested: they have blanks, which the tests can't take."
+     },
      "thresholds": {
       "additionalProperties": {
        "type": "number"
@@ -17090,6 +17098,7 @@
      "seconds",
      "engine",
      "variables",
+     "untested",
      "thresholds",
      "groups",
      "notes"

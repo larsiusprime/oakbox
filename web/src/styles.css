@@ -5035,3 +5035,18 @@ tr.vt-off {
   font-weight: 400;
   color: var(--muted);
 }
+.vt-name {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.vt-values {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  font-size: 0.82rem;
+}
+tr.vt-level > td:first-child {
+  padding-left: 2.2rem;
+}

@@ -7083,6 +7083,11 @@ export interface components {
              * @description The variables tested.
              */
             variables: string[];
+            /**
+             * Untested
+             * @description Ticked but not tested: they have blanks, which the tests can't take.
+             */
+            untested: string[];
             /** Thresholds */
             thresholds: {
                 [key: string]: number;

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type ModelPatch, type ModelSetup, type TestRow, unwrap, type VarTestView } from "../api/client";
@@ -47,15 +48,18 @@ export function TestStep({
   view,
   setup,
   set,
+  fill,
 }: {
   test: string;
   view: VarTestView;
   setup: ModelSetup;
   set: (body: ModelPatch) => void;
+  fill: () => void;
 }) {
   const r = view.receipt;
   const tested = (r?.groups ?? []).filter((g) => Object.keys(g.tests).length > 0);
   const [gid, setGid] = useState(() => [...tested].sort((a, b) => b.sales - a.sales)[0]?.id ?? "");
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
   if (!r) return null;
   const g = tested.find((x) => x.id === gid) ?? tested[0];
   const info = vt.tests[test];
@@ -86,6 +90,47 @@ export function TestStep({
         : Math.max(0, Math.min(100, (100 * v) / top));
   const chosen = setup.variables.filter((x) => x.chosen).map((x) => x.field);
   const names = Object.fromEntries(setup.variables.map((x) => [x.field, x.name]));
+  // A category is one row, its values (each its own column to the tests) folded under it, best first: it passes if
+  // any of its values does.
+  const items: { variable: string; category: boolean; rows: TestRow[] }[] = [];
+  for (const x of rows) {
+    const it = items.find((y) => y.variable === x.variable);
+    if (it) it.rows.push(x);
+    else items.push({ variable: x.variable, category: x.level != null, rows: [x] });
+  }
+  const cells = (passed: boolean | null | undefined, x: TestRow) => (
+    <>
+      <td className="cs-n">
+        <span className="rv-cell">
+          <span className="rv-cell-pill">
+            {passed == null ? null : (
+              <span className={passed ? "rv-pill rv-ok" : "rv-pill rv-bad"}>
+                {passed ? `✓ ${vt.pass}` : `✗ ${vt.fail}`}
+              </span>
+            )}
+          </span>
+          <span>
+            {test === "signs"
+              ? `${sign(x.more.coef_sign)} ${sign(x.more.enr_coef_sign)} ${sign(x.more.t_value_sign)}`
+              : figure(test, x.value)}
+          </span>
+        </span>
+      </td>
+      <td className="vt-bar-cell">
+        {test !== "signs" && (
+          <span className="vt-bar">
+            <span
+              className={passed === false ? "vt-fill vt-fill-bad" : "vt-fill"}
+              style={{ width: `${width(val(x))}%` }}
+            />
+            {threshold != null && test !== "enr" && (
+              <span className="vt-mark" style={{ left: `${width(threshold)}%` }} />
+            )}
+          </span>
+        )}
+      </td>
+    </>
+  );
   const failingVars = [...new Set(rows.filter((x) => x.passed === false).map((x) => x.variable))].filter(
     (v) => !rows.some((x) => x.variable === v && x.passed),
   );
@@ -104,6 +149,14 @@ export function TestStep({
         />
         <span className="wiz-from">{rule}</span>
       </div>
+      {r.untested.length > 0 && (
+        <p className="wiz-from">
+          {vt.untested(r.untested.map((f) => names[f] ?? f))}{" "}
+          <Button className="wiz-link" onPress={fill}>
+            {t.values.model.fillIt}
+          </Button>
+        </p>
+      )}
       {r.groups.some((x) => x.skipped) && (
         <p className="wiz-from">
           {r.groups
@@ -132,52 +185,70 @@ export function TestStep({
           </tr>
         </thead>
         <tbody>
-          {rows.map((x) => (
-            <tr key={x.column} className={chosen.includes(x.variable) ? undefined : "vt-off"}>
-              <td>
-                <Tick
-                  isSelected={chosen.includes(x.variable)}
-                  onChange={(on) =>
-                    set({ variables: on ? [...chosen, x.variable] : chosen.filter((v) => v !== x.variable) })
-                  }
-                >
-                  {x.level
-                    ? vt.level(names[x.variable] ?? x.variable, x.level)
-                    : (names[x.variable] ?? x.variable)}{" "}
-                  <span className="mono wiz-from">{x.column}</span>
-                </Tick>
-              </td>
-              <td className="cs-n">
-                <span className="rv-cell">
-                  <span className="rv-cell-pill">
-                    {x.passed == null ? null : (
-                      <span className={x.passed ? "rv-pill rv-ok" : "rv-pill rv-bad"}>
-                        {x.passed ? `✓ ${vt.pass}` : `✗ ${vt.fail}`}
-                      </span>
+          {items.map((it) => {
+            const best = it.rows[0];
+            if (!best) return null;
+            const ticked = chosen.includes(it.variable);
+            const shown = open.has(it.variable);
+            const passing = it.rows.filter((x) => x.passed).length;
+            const Chevron = shown ? ChevronDown : ChevronRight;
+            return [
+              <tr key={it.variable} className={ticked ? undefined : "vt-off"}>
+                <td>
+                  <span className="vt-name">
+                    <Tick
+                      isSelected={ticked}
+                      onChange={(on) =>
+                        set({
+                          variables: on ? [...chosen, it.variable] : chosen.filter((v) => v !== it.variable),
+                        })
+                      }
+                    >
+                      {names[it.variable] ?? it.variable}{" "}
+                      {!it.category && <span className="mono wiz-from">{best.column}</span>}
+                    </Tick>
+                    {it.category && (
+                      <Button
+                        className="wiz-link vt-values"
+                        aria-expanded={shown}
+                        onPress={() =>
+                          setOpen((was) => {
+                            const now = new Set(was);
+                            if (now.has(it.variable)) now.delete(it.variable);
+                            else now.add(it.variable);
+                            return now;
+                          })
+                        }
+                      >
+                        <Chevron aria-hidden="true" size="0.9em" />
+                        {vt.values(passing, it.rows.length)}
+                      </Button>
                     )}
                   </span>
-                  <span>
-                    {test === "signs"
-                      ? `${sign(x.more.coef_sign)} ${sign(x.more.enr_coef_sign)} ${sign(x.more.t_value_sign)}`
-                      : figure(test, x.value)}
-                  </span>
-                </span>
-              </td>
-              <td className="vt-bar-cell">
-                {test !== "signs" && (
-                  <span className="vt-bar">
-                    <span
-                      className={x.passed === false ? "vt-fill vt-fill-bad" : "vt-fill"}
-                      style={{ width: `${width(val(x))}%` }}
-                    />
-                    {threshold != null && test !== "enr" && (
-                      <span className="vt-mark" style={{ left: `${width(threshold)}%` }} />
-                    )}
-                  </span>
+                </td>
+                {cells(
+                  it.category
+                    ? passing
+                      ? true
+                      : it.rows.some((x) => x.passed === false)
+                        ? false
+                        : null
+                    : best.passed,
+                  best,
                 )}
-              </td>
-            </tr>
-          ))}
+              </tr>,
+              ...(it.category && shown
+                ? it.rows.map((x) => (
+                    <tr key={x.column} className={ticked ? "vt-level" : "vt-level vt-off"}>
+                      <td>
+                        {x.level} <span className="mono wiz-from">{x.column}</span>
+                      </td>
+                      {cells(x.passed, x)}
+                    </tr>
+                  ))
+                : []),
+            ];
+          })}
         </tbody>
       </table>
     </div>

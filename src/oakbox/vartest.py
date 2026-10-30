@@ -58,6 +58,9 @@ class VarTestReceipt(BaseModel):
     seconds: float
     engine: str
     variables: list[str] = Field(description="The variables tested.")
+    untested: list[str] = Field(
+        default_factory=list, description="Ticked but not tested: they have blanks, which the tests can't take."
+    )
     thresholds: dict[str, float]
     groups: list[VarGroup]
     notes: list[str] = Field(default_factory=list)
@@ -155,9 +158,13 @@ def run(project_id: str) -> None:
     pdir = projects.project_dir(project_id)
     if not (pdir / "out" / "2-clean-sup.pickle").is_file():
         raise RuntimeError("Prepare the fields first: the tests start from what it writes.")
-    variables = [v.field for v in model.variables(project, pdir) if v.chosen]
+    chosen = [v for v in model.variables(project, pdir) if v.chosen]
+    # The tests are linear statistics (elastic net, regressions, VIF): a blank stops them, so a variable with blanks
+    # (trees only until it's filled) is left out and named.
+    variables = [v.field for v in chosen if not v.trees_only]
+    untested = [v.field for v in chosen if v.trees_only]
     if not variables:
-        raise RuntimeError("Tick at least one variable.")
+        raise RuntimeError("Tick at least one variable with no blanks: the tests can't take a blank.")
     tmp = out_dir(pdir).with_suffix(".tmp")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
@@ -200,7 +207,8 @@ def run(project_id: str) -> None:
                     return_tests=True,
                 )
             except Exception as e:  # noqa: BLE001 - one group's failure is said on its row
-                vg.skipped = f"Couldn't be tested: {type(e).__name__}: {e}"[:300]
+                first = str(e).split(". ")[0].strip()
+                vg.skipped = f"couldn't be tested ({type(e).__name__}: {first})"[:200]
                 groups.append(vg)
                 continue
             tests = rec["tests"]
@@ -222,6 +230,7 @@ def run(project_id: str) -> None:
         seconds=round(time.time() - t0, 1),
         engine=version("openavmkit"),
         variables=variables,
+        untested=untested,
         thresholds=thresholds,
         groups=groups,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
@@ -266,7 +275,9 @@ def view(project, project_dir: Path) -> VarTestView:
     p, _ = prepare._ran(project_dir)
     chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
     # Unticking a tested variable doesn't need a new test; ticking one that wasn't tested does.
-    stale = bool(r and ((ran or {}).get("prepare") != (p.ran_at if p else None) or chosen - set(r.variables)))
+    stale = bool(
+        r and ((ran or {}).get("prepare") != (p.ran_at if p else None) or chosen - set(r.variables) - set(r.untested))
+    )
     blocked = []
     if not prepare.view(project, project_dir).accepted:
         blocked.append("Press Looks right on What changed first: the tests start from the prepared fields.")

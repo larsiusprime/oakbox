@@ -328,7 +328,14 @@ export function ValuesTab({ projectId }: { projectId: string }) {
           <StepBody kicker={m.kicker} title={m.steps[current]}>
             {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
             {mu ? (
-              <TestStep key={current} test={current} view={vv} setup={mu} set={mSet} />
+              <TestStep
+                key={current}
+                test={current}
+                view={vv}
+                setup={mu}
+                set={mSet}
+                fill={() => go("fill")}
+              />
             ) : (
               <p className="empty">{t.project.loading}</p>
             )}

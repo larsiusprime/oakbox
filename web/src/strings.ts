@@ -2202,6 +2202,10 @@ export const t = {
       value: "Result",
       skipped: (name: string, why: string) => `${name}: ${why}.`,
       untickFailing: "Untick every variable that fails this test",
+      values: (passing: number, of: number) =>
+        `${passing.toLocaleString()} of ${of.toLocaleString()} ${of === 1 ? "value passes" : "values pass"}`,
+      untested: (names: string[]) =>
+        `Not tested, having blanks (the tests can't take one; trees only until filled): ${names.join(", ")}.`,
       noneFail: "Every variable passes this test in this model group.",
       failing: (n: number) =>
         `${n.toLocaleString()} ${n === 1 ? "variable fails" : "variables fail"} in this model group.`,
