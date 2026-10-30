@@ -7054,6 +7054,11 @@ export interface components {
             /** Skipped */
             skipped: string | null;
             /**
+             * Empty
+             * @description Ticked but not tested here: no sale in the group has a value for them.
+             */
+            empty: string[];
+            /**
              * Recommended
              * @description The variables OpenAVMKit would use.
              */
@@ -7083,11 +7088,6 @@ export interface components {
              * @description The variables tested.
              */
             variables: string[];
-            /**
-             * Untested
-             * @description Ticked but not tested: they have blanks, which the tests can't take.
-             */
-            untested: string[];
             /** Thresholds */
             thresholds: {
                 [key: string]: number;

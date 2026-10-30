@@ -2204,8 +2204,8 @@ export const t = {
       untickFailing: "Untick every variable that fails this test",
       values: (passing: number, of: number) =>
         `${passing.toLocaleString()} of ${of.toLocaleString()} ${of === 1 ? "value passes" : "values pass"}`,
-      untested: (names: string[]) =>
-        `Not tested, having blanks (the tests can't take one; trees only until filled): ${names.join(", ")}.`,
+      empty: (names: string[]) =>
+        `Not tested in this model group: none of its sales has a value for ${names.join(", ")}, so there's nothing to test (and nothing for a model to learn from it here).`,
       noneFail: "Every variable passes this test in this model group.",
       failing: (n: number) =>
         `${n.toLocaleString()} ${n === 1 ? "variable fails" : "variables fail"} in this model group.`,

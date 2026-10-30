@@ -149,9 +149,9 @@ export function TestStep({
         />
         <span className="wiz-from">{rule}</span>
       </div>
-      {r.untested.length > 0 && (
-        <p className="wiz-from">
-          {vt.untested(r.untested.map((f) => names[f] ?? f))}{" "}
+      {g && g.empty.length > 0 && (
+        <p className="wiz-warn">
+          {vt.empty(g.empty.map((f) => names[f] ?? f))}{" "}
           <Button className="wiz-link" onPress={fill}>
             {t.values.model.fillIt}
           </Button>

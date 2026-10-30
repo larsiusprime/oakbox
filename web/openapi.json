@@ -17000,6 +17000,14 @@
       ],
       "title": "Skipped"
      },
+     "empty": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Empty",
+      "description": "Ticked but not tested here: no sale in the group has a value for them."
+     },
      "recommended": {
       "items": {
        "type": "string"
@@ -17034,6 +17042,7 @@
      "color",
      "sales",
      "skipped",
+     "empty",
      "recommended",
      "scores",
      "tests"
@@ -17061,14 +17070,6 @@
       "type": "array",
       "title": "Variables",
       "description": "The variables tested."
-     },
-     "untested": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Untested",
-      "description": "Ticked but not tested: they have blanks, which the tests can't take."
      },
      "thresholds": {
       "additionalProperties": {
@@ -17098,7 +17099,6 @@
      "seconds",
      "engine",
      "variables",
-     "untested",
      "thresholds",
      "groups",
      "notes"

@@ -48,6 +48,9 @@ class VarGroup(BaseModel):
     color: str
     sales: int
     skipped: str | None = None
+    empty: list[str] = Field(
+        default_factory=list, description="Ticked but not tested here: no sale in the group has a value for them."
+    )
     recommended: list[str] = Field(default_factory=list, description="The variables OpenAVMKit would use.")
     scores: dict[str, float] = Field(default_factory=dict, description="Each variable's weighted score.")
     tests: dict[str, list[TestRow]] = Field(default_factory=dict)
@@ -58,9 +61,6 @@ class VarTestReceipt(BaseModel):
     seconds: float
     engine: str
     variables: list[str] = Field(description="The variables tested.")
-    untested: list[str] = Field(
-        default_factory=list, description="Ticked but not tested: they have blanks, which the tests can't take."
-    )
     thresholds: dict[str, float]
     groups: list[VarGroup]
     notes: list[str] = Field(default_factory=list)
@@ -158,13 +158,9 @@ def run(project_id: str) -> None:
     pdir = projects.project_dir(project_id)
     if not (pdir / "out" / "2-clean-sup.pickle").is_file():
         raise RuntimeError("Prepare the fields first: the tests start from what it writes.")
-    chosen = [v for v in model.variables(project, pdir) if v.chosen]
-    # The tests are linear statistics (elastic net, regressions, VIF): a blank stops them, so a variable with blanks
-    # (trees only until it's filled) is left out and named.
-    variables = [v.field for v in chosen if not v.trees_only]
-    untested = [v.field for v in chosen if v.trees_only]
+    variables = [v.field for v in model.variables(project, pdir) if v.chosen]
     if not variables:
-        raise RuntimeError("Tick at least one variable with no blanks: the tests can't take a blank.")
+        raise RuntimeError("Tick at least one variable.")
     tmp = out_dir(pdir).with_suffix(".tmp")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
@@ -195,6 +191,14 @@ def run(project_id: str) -> None:
                 vg.skipped = f"{len(df_s):,} {'sale' if len(df_s) == 1 else 'sales'}: too few to test"
                 groups.append(vg)
                 continue
+            # The tests fill a variable's blanks with its median; one with no value among the group's sales has none
+            # (days to renovation where none of them had a permit, say), and would stop them: it's left out, named.
+            vg.empty = [v for v in variables if v in df_s.columns and bool(df_s[v].isna().all())]
+            here = [v for v in variables if v not in vg.empty]
+            if not here:
+                vg.skipped = "none of the variables has a value among its sales"
+                groups.append(vg)
+                continue
             try:
                 rec = get_variable_recommendations(
                     df_s,
@@ -202,7 +206,7 @@ def run(project_id: str) -> None:
                     False,
                     settings,
                     g.id,
-                    variables_to_use=variables,
+                    variables_to_use=here,
                     do_cross=True,
                     return_tests=True,
                 )
@@ -221,7 +225,7 @@ def run(project_id: str) -> None:
                 score = _f(r.get("weighted_score"))
                 if score is not None:
                     vg.scores[var] = max(vg.scores.get(var, score), score)
-            vg.tests = _group_tests(tests, df, variables)
+            vg.tests = _group_tests(tests, df, here)
             groups.append(vg)
     beating.set()
     mine = [w for w in caught if "openavmkit" in str(w.filename) and issubclass(w.category, UserWarning)]
@@ -230,7 +234,6 @@ def run(project_id: str) -> None:
         seconds=round(time.time() - t0, 1),
         engine=version("openavmkit"),
         variables=variables,
-        untested=untested,
         thresholds=thresholds,
         groups=groups,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
@@ -275,9 +278,7 @@ def view(project, project_dir: Path) -> VarTestView:
     p, _ = prepare._ran(project_dir)
     chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
     # Unticking a tested variable doesn't need a new test; ticking one that wasn't tested does.
-    stale = bool(
-        r and ((ran or {}).get("prepare") != (p.ran_at if p else None) or chosen - set(r.variables) - set(r.untested))
-    )
+    stale = bool(r and ((ran or {}).get("prepare") != (p.ran_at if p else None) or chosen - set(r.variables)))
     blocked = []
     if not prepare.view(project, project_dir).accepted:
         blocked.append("Press Looks right on What changed first: the tests start from the prepared fields.")
