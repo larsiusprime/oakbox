@@ -36,6 +36,7 @@ from oakbox import (
     projects,
     ratio,
     time_preview,
+    vartest,
     wizard,
 )
 from oakbox.datafiles import CleanStep
@@ -1412,6 +1413,29 @@ def create_app() -> FastAPI:
             return model.setup(project, projects.project_dir(project_id))
         except LookupError as e:
             raise HTTPException(409, str(e)) from e
+
+    def _vartest_view(project: projects.Project) -> vartest.VarTestView:
+        return vartest.view(project, projects.project_dir(project.id))
+
+    @app.get("/api/projects/{project_id}/vartest")
+    def vartest_state(project_id: str) -> vartest.VarTestView:
+        return _vartest_view(_load(project_id))
+
+    @app.post("/api/projects/{project_id}/vartest/run")
+    def vartest_run(project_id: str) -> vartest.VarTestView:
+        """Test the variables ticked: OpenAVMKit's variable tests, per model group."""
+        project = _load(project_id)
+        try:
+            projects.write_settings(project)
+            vartest.start(project, projects.project_dir(project_id))
+        except (ValueError, FileNotFoundError) as e:
+            raise HTTPException(409, str(e)) from e
+        return _vartest_view(project)
+
+    @app.post("/api/projects/{project_id}/vartest/stop")
+    def vartest_stop(project_id: str) -> vartest.VarTestView:
+        bring_in.stop(project_id, vartest.MODULE)
+        return _vartest_view(_load(project_id))
 
     @app.post("/api/projects/{project_id}/model/run")
     def model_run(project_id: str) -> model.ModelView:

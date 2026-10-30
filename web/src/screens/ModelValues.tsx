@@ -6,11 +6,39 @@ import { t } from "../strings";
 import { when } from "./BringIn";
 import { CollapseCard, FillCard, useCleanSetup } from "./CheckSales";
 import { HowTheyDid, ModelsCard, useModel, useModelSetup, VariablesCard } from "./Models";
+import { TestStep, useVarTest, Verdict } from "./VarTests";
 
 const m = t.values;
-type MvStep = "fill" | "rare" | "run" | "done" | "variables" | "models" | "try" | "how";
-const MV_STEPS: MvStep[] = ["fill", "rare", "run", "done", "variables", "models", "try", "how"];
-const MODEL_STEPS: MvStep[] = ["variables", "models", "try", "how"];
+// The variable tests, one step each (SPEC F9).
+const TESTS = ["represented", "corr", "enr", "r2", "p_value", "t_value", "vif", "signs"] as const;
+type Test = (typeof TESTS)[number];
+type MvStep =
+  | "fill"
+  | "rare"
+  | "run"
+  | "done"
+  | "variables"
+  | "test"
+  | Test
+  | "verdict"
+  | "models"
+  | "try"
+  | "how";
+const MV_STEPS: MvStep[] = [
+  "fill",
+  "rare",
+  "run",
+  "done",
+  "variables",
+  "test",
+  ...TESTS,
+  "verdict",
+  "models",
+  "try",
+  "how",
+];
+const MODEL_STEPS: MvStep[] = ["variables", "test", ...TESTS, "verdict", "models", "try", "how"];
+const TESTED: MvStep[] = [...TESTS, "verdict"];
 
 function usePrepare(projectId: string) {
   return useQuery({
@@ -48,38 +76,57 @@ export function ValuesTab({ projectId }: { projectId: string }) {
     },
     onSuccess: (data) => queryClient.setQueryData(["model", projectId], data),
   });
+  const vs = useVarTest(projectId);
+  const vv = vs.data;
+  const vAct = useMutation({
+    mutationFn: async (what: "run" | "stop") => {
+      const path = `/api/projects/{project_id}/vartest/${what}` as const;
+      return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
+    },
+    onSuccess: (data) => queryClient.setQueryData(["vartest", projectId], data),
+  });
   const [at, setAt] = useState<{ step: MvStep | null; after: boolean }>({ step: null, after: false });
-  if (!v || !mv) return <p className="empty">{(state.error ?? ms.error)?.message ?? t.project.loading}</p>;
+  if (!v || !mv || !vv)
+    return <p className="empty">{(state.error ?? ms.error ?? vs.error)?.message ?? t.project.loading}</p>;
+  const testing = vv.status === "running";
+  const vr = vv.receipt;
+  const vFresh = !!vr && !vv.stale;
   const running = v.status === "running";
   const trying = mv.status === "running";
   const r = v.receipt;
   const mr = mv.receipt;
   const fresh = !!r && !v.stale;
   const mFresh = !!mr && !mv.stale;
-  const fallback: MvStep = trying
-    ? "try"
-    : prepared && mr
-      ? mFresh
-        ? "how"
-        : "try"
-      : prepared
-        ? "variables"
-        : running
-          ? "run"
-          : fresh
-            ? "done"
-            : r
-              ? "run"
-              : "fill";
+  const fallback: MvStep = testing
+    ? "test"
+    : trying
+      ? "try"
+      : prepared && mr
+        ? mFresh
+          ? "how"
+          : "try"
+        : prepared
+          ? "variables"
+          : running
+            ? "run"
+            : fresh
+              ? "done"
+              : r
+                ? "run"
+                : "fill";
   const current: MvStep =
     at.after && v.status === "done" && at.step === "run"
       ? "done"
       : at.after && mv.status === "done" && at.step === "try"
         ? "how"
-        : (at.step ?? fallback);
+        : at.after && vv.status === "done" && at.step === "test"
+          ? "represented"
+          : (at.step ?? fallback);
   const go = (step: string) => setAt({ step: step as MvStep, after: false });
   const runIt = () => act.mutate("run", { onSuccess: () => setAt({ step: "run", after: true }) });
   const tryIt = () => mAct.mutate("run", { onSuccess: () => setAt({ step: "try", after: true }) });
+  const testIt = () => vAct.mutate("run", { onSuccess: () => setAt({ step: "test", after: true }) });
+  const tests = vr ? (vv.stale ? "attention" : "done") : "blank";
   const called = r ? (v.stale ? "attention" : "done") : "blank";
   const tried = mr ? (mv.stale ? "attention" : "done") : "blank";
   const steps: Step[] = MV_STEPS.map((key) => ({
@@ -92,18 +139,28 @@ export function ValuesTab({ projectId }: { projectId: string }) {
           ? v.accepted
             ? "done"
             : "blank"
-          : key === "try"
-            ? tried
-            : key === "how"
-              ? mr && !mv.stale
+          : key === "test"
+            ? tests
+            : TESTED.includes(key)
+              ? vFresh
                 ? "done"
                 : "blank"
-              : MODEL_STEPS.includes(key)
-                ? prepared
-                  ? "done"
-                  : "blank"
-                : called,
-    disabled: (key === "done" && !r) || (MODEL_STEPS.includes(key) && !prepared) || (key === "how" && !mr),
+              : key === "try"
+                ? tried
+                : key === "how"
+                  ? mr && !mv.stale
+                    ? "done"
+                    : "blank"
+                  : MODEL_STEPS.includes(key)
+                    ? prepared
+                      ? "done"
+                      : "blank"
+                    : called,
+    disabled:
+      (key === "done" && !r) ||
+      (MODEL_STEPS.includes(key) && !prepared) ||
+      (key === "how" && !mr) ||
+      (TESTED.includes(key) && !vr),
   }));
   const i = MV_STEPS.indexOf(current);
   const prev = MV_STEPS[i - 1];
@@ -113,7 +170,15 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const set = (body: Parameters<typeof change.mutate>[0]) => change.mutate(body);
   const mu = mSetup.data;
   const mSet = (body: Parameters<typeof mChange.mutate>[0]) => mChange.mutate(body);
-  const errors = [change.error, act.error, setup.error, mChange.error, mAct.error, mSetup.error].map(
+  const errors = [
+    change.error,
+    act.error,
+    setup.error,
+    mChange.error,
+    mAct.error,
+    mSetup.error,
+    vAct.error,
+  ].map(
     (e) =>
       e && (
         <p key={e.message} className="error" role="alert">
@@ -212,6 +277,70 @@ export function ValuesTab({ projectId }: { projectId: string }) {
             ) : (
               <p className="empty">{t.project.loading}</p>
             )}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "test" && (
+        <>
+          <StepBody kicker={m.kicker} title={m.steps.test} lede={m.vartest.runLede}>
+            {vv.blocked.length > 0 && (
+              <div className="bi-warn">
+                <b>{m.blocked}</b> {vv.blocked[0]}
+              </div>
+            )}
+            {testing ? (
+              <RunProgress job={vv.job} lastSeconds={vr?.seconds ?? null} />
+            ) : (
+              <>
+                {vv.status === "failed" && vv.job?.error && (
+                  <p className="error" role="alert">
+                    {t.bringIn.failed} <span className="mono">{vv.job.error}</span>
+                  </p>
+                )}
+                {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
+                {vFresh && vr && <p className="wiz-ok">{m.vartest.ran(when(vr.ran_at), vr.seconds)}</p>}
+                {!vr && !vv.blocked.length && <p className="wiz-from">{t.bringIn.notRun}</p>}
+              </>
+            )}
+            {errors}
+          </StepBody>
+          <StepFoot
+            back={testing ? null : back}
+            extra={vFresh && !testing ? [{ label: m.vartest.runAgain, onPress: testIt }] : []}
+            next={
+              testing
+                ? { label: t.bringIn.stop, onPress: () => vAct.mutate("stop"), primary: false }
+                : vFresh
+                  ? onward
+                  : {
+                      label: vr ? m.vartest.runAgainNext : m.vartest.runNext,
+                      disabled: vv.blocked.length > 0 || vAct.isPending,
+                      onPress: testIt,
+                    }
+            }
+          />
+        </>
+      )}
+      {(TESTS as readonly string[]).includes(current) && vr && (
+        <>
+          <StepBody kicker={m.kicker} title={m.steps[current]}>
+            {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
+            {mu ? (
+              <TestStep key={current} test={current} view={vv} setup={mu} set={mSet} />
+            ) : (
+              <p className="empty">{t.project.loading}</p>
+            )}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "verdict" && vr && (
+        <>
+          <StepBody kicker={m.kicker} title={m.steps.verdict}>
+            {mu ? <Verdict view={vv} setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />

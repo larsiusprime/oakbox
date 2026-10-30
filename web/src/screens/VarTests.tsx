@@ -1,0 +1,258 @@
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Button } from "react-aria-components";
+import { api, type ModelPatch, type ModelSetup, type TestRow, unwrap, type VarTestView } from "../api/client";
+import { Choice, Tick } from "../components/Form";
+import { t } from "../strings";
+import { num } from "./CheckSales";
+
+const vt = t.values.vartest;
+
+/** The variable tests' run (SPEC F9), polled while it runs. */
+export function useVarTest(projectId: string) {
+  return useQuery({
+    queryKey: ["vartest", projectId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/vartest", { params: { path: { project_id: projectId } } }),
+      ),
+    refetchInterval: (q) => (q.state.data?.status === "running" ? 800 : false),
+  });
+}
+
+/** How each test's figure reads: as a share, a score, a coefficient, a p-value; and which way is better. */
+const LOWER_BETTER = new Set(["p_value", "vif"]);
+const ABSOLUTE = new Set(["enr", "t_value"]);
+
+function figure(test: string, v: number | null | undefined): string {
+  if (v == null) return "—";
+  if (test === "represented") return `${Math.round(100 * v)}%`;
+  if (test === "enr")
+    return Math.abs(v) >= 1000
+      ? new Intl.NumberFormat(undefined, { notation: "compact" }).format(v)
+      : num(v, 2);
+  if (test === "p_value") return v < 0.001 ? "< 0.001" : num(v, 3);
+  if (test === "corr" || test === "r2") return num(v, 3);
+  return num(v, 2);
+}
+
+function sign(v: number | null | undefined) {
+  return v == null || v === 0 ? "·" : v > 0 ? "+" : "−";
+}
+
+/** One test, one model group: a row per variable (a category's values each on their own row), its result as a bar
+ * against the test's threshold, pass or fail, and a tick to keep the variable. */
+export function TestStep({
+  test,
+  view,
+  setup,
+  set,
+}: {
+  test: string;
+  view: VarTestView;
+  setup: ModelSetup;
+  set: (body: ModelPatch) => void;
+}) {
+  const r = view.receipt;
+  const tested = (r?.groups ?? []).filter((g) => Object.keys(g.tests).length > 0);
+  const [gid, setGid] = useState(() => [...tested].sort((a, b) => b.sales - a.sales)[0]?.id ?? "");
+  if (!r) return null;
+  const g = tested.find((x) => x.id === gid) ?? tested[0];
+  const info = vt.tests[test];
+  const key = vt.thresholdKey[test];
+  const threshold = key ? r.thresholds[key] : undefined;
+  const rule = info ? (typeof info.rule === "function" ? info.rule(threshold ?? 0) : info.rule) : "";
+  const rows = [...(g?.tests[test] ?? [])];
+  const val = (x: TestRow) => (x.value == null ? null : ABSOLUTE.has(test) ? Math.abs(x.value) : x.value);
+  rows.sort((a, b) => {
+    const va = val(a);
+    const vb = val(b);
+    if (va == null || vb == null) return va == null ? 1 : -1;
+    return LOWER_BETTER.has(test) ? va - vb : vb - va;
+  });
+  const top = Math.max(
+    ...rows.map((x) => val(x) ?? 0),
+    test === "vif" ? 2 * (threshold ?? 10) : 0,
+    threshold ?? 0,
+    test === "represented" || test === "corr" || test === "r2" || test === "p_value" ? 1 : 0,
+    1e-9,
+  );
+  // VIF runs from 1 to the thousands: on a log scale, so the threshold and the ones near it can be read.
+  const width = (v: number | null) =>
+    v == null
+      ? 0
+      : test === "vif"
+        ? Math.max(0, Math.min(100, (100 * Math.log10(Math.max(v, 1))) / Math.log10(Math.max(top, 10))))
+        : Math.max(0, Math.min(100, (100 * v) / top));
+  const chosen = setup.variables.filter((x) => x.chosen).map((x) => x.field);
+  const names = Object.fromEntries(setup.variables.map((x) => [x.field, x.name]));
+  const failingVars = [...new Set(rows.filter((x) => x.passed === false).map((x) => x.variable))].filter(
+    (v) => !rows.some((x) => x.variable === v && x.passed),
+  );
+  const failingTicked = failingVars.filter((v) => chosen.includes(v));
+  return (
+    <div className="cs-step">
+      <p className="wiz-lede">{info?.lede}</p>
+      <div className="cs-row">
+        <Choice
+          label={vt.group}
+          value={g?.id ?? ""}
+          options={tested.map(
+            (x) => [x.id, `${x.name} · ${t.values.model.salesCount(x.sales)}`] as [string, string],
+          )}
+          onChange={setGid}
+        />
+        <span className="wiz-from">{rule}</span>
+      </div>
+      {r.groups.some((x) => x.skipped) && (
+        <p className="wiz-from">
+          {r.groups
+            .filter((x) => x.skipped)
+            .map((x) => vt.skipped(x.name, x.skipped ?? ""))
+            .join(" ")}
+        </p>
+      )}
+      <p className={failingVars.length ? "wiz-warn" : "wiz-ok"}>
+        {failingVars.length ? vt.failing(failingVars.length) : vt.noneFail}{" "}
+        {failingTicked.length > 0 && (
+          <Button
+            className="wiz-link"
+            onPress={() => set({ variables: chosen.filter((v) => !failingTicked.includes(v)) })}
+          >
+            {vt.untickFailing}
+          </Button>
+        )}
+      </p>
+      <table className="bi-tbl cs-tbl vt-tbl">
+        <thead>
+          <tr>
+            <th>{vt.variable}</th>
+            <th className="cs-n">{info?.figure}</th>
+            <th>{vt.value}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((x) => (
+            <tr key={x.column} className={chosen.includes(x.variable) ? undefined : "vt-off"}>
+              <td>
+                <Tick
+                  isSelected={chosen.includes(x.variable)}
+                  onChange={(on) =>
+                    set({ variables: on ? [...chosen, x.variable] : chosen.filter((v) => v !== x.variable) })
+                  }
+                >
+                  {x.level
+                    ? vt.level(names[x.variable] ?? x.variable, x.level)
+                    : (names[x.variable] ?? x.variable)}{" "}
+                  <span className="mono wiz-from">{x.column}</span>
+                </Tick>
+              </td>
+              <td className="cs-n">
+                <span className="rv-cell">
+                  <span className="rv-cell-pill">
+                    {x.passed == null ? null : (
+                      <span className={x.passed ? "rv-pill rv-ok" : "rv-pill rv-bad"}>
+                        {x.passed ? `✓ ${vt.pass}` : `✗ ${vt.fail}`}
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    {test === "signs"
+                      ? `${sign(x.more.coef_sign)} ${sign(x.more.enr_coef_sign)} ${sign(x.more.t_value_sign)}`
+                      : figure(test, x.value)}
+                  </span>
+                </span>
+              </td>
+              <td className="vt-bar-cell">
+                {test !== "signs" && (
+                  <span className="vt-bar">
+                    <span
+                      className={x.passed === false ? "vt-fill vt-fill-bad" : "vt-fill"}
+                      style={{ width: `${width(val(x))}%` }}
+                    />
+                    {threshold != null && test !== "enr" && (
+                      <span className="vt-mark" style={{ left: `${width(threshold)}%` }} />
+                    )}
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** OpenAVMKit's pick per model group beside what's ticked, and its weighted scores. */
+export function Verdict({
+  view,
+  setup,
+  set,
+}: {
+  view: VarTestView;
+  setup: ModelSetup;
+  set: (body: ModelPatch) => void;
+}) {
+  const r = view.receipt;
+  if (!r) return null;
+  const tested = r.groups.filter((g) => Object.keys(g.tests).length > 0);
+  const chosen = setup.variables.filter((x) => x.chosen).map((x) => x.field);
+  const recommended = new Set(tested.flatMap((g) => g.recommended));
+  const rows = setup.variables.filter((x) => r.variables.includes(x.field));
+  return (
+    <div className="cs-step">
+      <p className="wiz-lede">{vt.verdictLede}</p>
+      <p>
+        {vt.ticked(chosen.length, setup.variables.length)}{" "}
+        <Button
+          className="wiz-link"
+          onPress={() => set({ variables: chosen.filter((v) => recommended.has(v)) })}
+        >
+          {vt.keepRecommended}
+        </Button>
+      </p>
+      <table className="bi-tbl cs-tbl">
+        <thead>
+          <tr>
+            <th>{vt.variable}</th>
+            {tested.map((g) => (
+              <th key={g.id} className="cs-n">
+                <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                {g.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((x) => (
+            <tr key={x.field} className={x.chosen ? undefined : "vt-off"}>
+              <td>
+                <Tick
+                  isSelected={x.chosen}
+                  onChange={(on) =>
+                    set({ variables: on ? [...chosen, x.field] : chosen.filter((v) => v !== x.field) })
+                  }
+                >
+                  {x.name} <span className="mono wiz-from">{x.field}</span>
+                </Tick>
+              </td>
+              {tested.map((g) => (
+                <td key={g.id} className="cs-n">
+                  <span className="rv-cell">
+                    <span className="rv-cell-pill">
+                      {g.recommended.includes(x.field) && (
+                        <span className="rv-pill rv-ok">✓ {vt.recommended}</span>
+                      )}
+                    </span>
+                    <span>{g.scores[x.field] == null ? "—" : num(g.scores[x.field], 0)}</span>
+                  </span>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

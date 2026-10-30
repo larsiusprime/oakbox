@@ -4695,6 +4695,124 @@
     }
    }
   },
+  "/api/projects/{project_id}/vartest": {
+   "get": {
+    "summary": "Vartest State",
+    "operationId": "vartest_state_api_projects__project_id__vartest_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarTestView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/vartest/run": {
+   "post": {
+    "summary": "Vartest Run",
+    "description": "Test the variables ticked: OpenAVMKit's variable tests, per model group.",
+    "operationId": "vartest_run_api_projects__project_id__vartest_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarTestView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/vartest/stop": {
+   "post": {
+    "summary": "Vartest Stop",
+    "operationId": "vartest_stop_api_projects__project_id__vartest_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarTestView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/model/run": {
    "post": {
     "summary": "Model Run",
@@ -15795,6 +15913,80 @@
     "title": "Targets",
     "description": "What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets\nthem, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance."
    },
+   "TestRow": {
+    "properties": {
+     "column": {
+      "type": "string",
+      "title": "Column",
+      "description": "The column tested: the variable, or one of a category's values."
+     },
+     "variable": {
+      "type": "string",
+      "title": "Variable",
+      "description": "The variable it belongs to."
+     },
+     "level": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Level",
+      "description": "A category's value, for its column."
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     },
+     "passed": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Passed",
+      "description": "Passed the test (None: not tested)."
+     },
+     "more": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "More",
+      "description": "The test's other figures."
+     }
+    },
+    "type": "object",
+    "required": [
+     "column",
+     "variable",
+     "level",
+     "value",
+     "passed",
+     "more"
+    ],
+    "title": "TestRow"
+   },
    "Tier": {
     "properties": {
      "value": {
@@ -16778,6 +16970,187 @@
      "count"
     ],
     "title": "ValueN"
+   },
+   "VarGroup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "skipped": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Skipped"
+     },
+     "recommended": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Recommended",
+      "description": "The variables OpenAVMKit would use."
+     },
+     "scores": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Scores",
+      "description": "Each variable's weighted score."
+     },
+     "tests": {
+      "additionalProperties": {
+       "items": {
+        "$ref": "#/components/schemas/TestRow"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Tests"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "sales",
+     "skipped",
+     "recommended",
+     "scores",
+     "tests"
+    ],
+    "title": "VarGroup"
+   },
+   "VarTestReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "variables": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Variables",
+      "description": "The variables tested."
+     },
+     "thresholds": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Thresholds"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/VarGroup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "variables",
+     "thresholds",
+     "groups",
+     "notes"
+    ],
+    "title": "VarTestReceipt"
+   },
+   "VarTestView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/VarTestReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "The fields were prepared again, or a variable was ticked that wasn't tested."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "receipt",
+     "stale",
+     "blocked"
+    ],
+    "title": "VarTestView"
    },
    "Variable": {
     "properties": {

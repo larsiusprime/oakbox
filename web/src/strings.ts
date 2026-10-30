@@ -2155,6 +2155,16 @@ export const t = {
       run: "Prepare the fields",
       done: "What changed",
       variables: "Variables",
+      test: "Test them",
+      represented: "Represented",
+      corr: "Correlation",
+      enr: "Elastic net",
+      r2: "R²",
+      p_value: "P-value",
+      t_value: "T-value",
+      vif: "VIF",
+      signs: "Signs agree",
+      verdict: "What to keep",
       models: "Models",
       try: "Try them",
       how: "How they did",
@@ -2177,6 +2187,86 @@ export const t = {
       `${name}: ${values.toLocaleString()} ${values === 1 ? "value" : "values"}, ${parcels.toLocaleString()} parcels`,
     looksRight: "Looks right › Variables",
     toVariables: "Variables ›",
+    // The variable tests (F9): OpenAVMKit's own, one at a time, untick what's a waste of time.
+    vartest: {
+      runLede:
+        "Runs OpenAVMKit's variable tests on each model group's sales, with the variables ticked: then they're shown one at a time, and you untick what isn't worth modeling with. A few seconds.",
+      runNext: "Test them ›",
+      runAgain: "Test again",
+      runAgainNext: "Test again ›",
+      stale: "Out of date: the fields were prepared again, or a variable was ticked that wasn't tested.",
+      ran: (when: string, seconds: number) => `✓ Tested ${when} · ${seconds} s`,
+      group: "Model group",
+      keep: "Keep",
+      variable: "Variable",
+      value: "Result",
+      skipped: (name: string, why: string) => `${name}: ${why}.`,
+      untickFailing: "Untick every variable that fails this test",
+      noneFail: "Every variable passes this test in this model group.",
+      failing: (n: number) =>
+        `${n.toLocaleString()} ${n === 1 ? "variable fails" : "variables fail"} in this model group.`,
+      pass: "pass",
+      fail: "fail",
+      notTested: "not tested",
+      dropped: "dropped",
+      level: (variable: string, level: string) => `${variable}: ${level}`,
+      tests: {
+        represented: {
+          lede: "Does the variable have values (not zero, not blank) among the sales and among the parcels? One missing from either can't be learned from, or can't be applied.",
+          rule: "Passes with any value in both the sales and the parcels.",
+          figure: "Sales with a value",
+        },
+        corr: {
+          lede: "Is it associated with price, and not too closely with the other variables? The correlation score is its strength with price times its clarity (how little it overlaps the others), squared. Variables overlapping a stronger one are dropped first.",
+          rule: (t: number) =>
+            `Passes at a score of ${t} or more, and not dropped for overlapping a stronger variable.`,
+          figure: "Correlation score",
+        },
+        enr: {
+          lede: "Elastic net regularization fits all the variables at once and shrinks the ones that add little toward zero; the smallest are dropped, again and again.",
+          rule: "Passes if it survives the drops (its coefficient isn't tiny beside the largest).",
+          figure: "Coefficient",
+        },
+        r2: {
+          lede: "On its own, how much of the variation in price does it explain? Adjusted R² from a regression of price on this variable alone.",
+          rule: (t: number) => `Passes over ${t}.`,
+          figure: "Adjusted R²",
+        },
+        p_value: {
+          lede: "With all the variables in one regression, how likely is it that its effect is just chance? The least significant is dropped, again and again.",
+          rule: (t: number) => `Passes if it survives the drops (p-value under ${t}).`,
+          figure: "P-value (first fit)",
+        },
+        t_value: {
+          lede: "The same regression: how many standard errors its coefficient is from zero. The weakest is dropped, again and again.",
+          rule: (t: number) => `Passes if it survives the drops (|t| of ${t} or more).`,
+          figure: "T-value (first fit)",
+        },
+        vif: {
+          lede: "Variance inflation: how much of it the other variables already explain (1: none; 5 to 10: high; over 10: very high). Redundant variables make a model unstable and hard to read. The worst is dropped, again and again; yes/no variables aren't tested.",
+          rule: (t: number) => `Passes if it survives the drops (VIF under ${t}).`,
+          figure: "VIF (first fit)",
+        },
+        signs: {
+          lede: "Does its effect point the same way in the elastic net, the t-test and on its own? A sign that flips is a variable the models can't make sense of.",
+          rule: "Passes when all three agree.",
+          figure: "Signs",
+        },
+      } as Record<string, { lede: string; rule: string | ((t: number) => string); figure: string }>,
+      thresholdKey: {
+        corr: "correlation",
+        r2: "adj_r2",
+        p_value: "p_value",
+        t_value: "t_value",
+        vif: "vif",
+      } as Record<string, string>,
+      verdictLede:
+        "OpenAVMKit scores each variable on the tests (each weighted), then keeps the set that predicts best in cross-validation. Its pick per model group, and what you've ticked.",
+      score: "Score",
+      recommended: "recommended",
+      keepRecommended: "Keep only what OpenAVMKit recommends for some model group",
+      ticked: (n: number, of: number) => `${n.toLocaleString()} of ${of.toLocaleString()} variables ticked.`,
+    },
     // The models (F9): which variables, which models, a try, and how they did.
     model: {
       variablesLede:

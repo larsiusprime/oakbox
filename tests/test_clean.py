@@ -214,6 +214,16 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     ms = client.get(f"{mdl}/setup").json()
     assert ms["choose_for_me"] and [e["key"] for e in ms["engines"] if e["chosen"]] == ["lightgbm", "mra", "local_area"]
     assert any(v["field"].startswith("bldg_area_finished") for v in ms["variables"])
+    # The variables tested, one test at a time: every test's result for every variable, per model group.
+    vt = f"/api/projects/{pid}/vartest"
+    assert client.post(f"{vt}/run").json()["status"] == "running"
+    tv = _wait(client, vt)
+    assert tv["status"] == "done", tv["job"]
+    tested = [g for g in tv["receipt"]["groups"] if g["tests"]]
+    assert tested and {"represented", "corr", "p_value", "vif"} <= set(tested[0]["tests"])
+    assert all(row["variable"] in tv["receipt"]["variables"] for row in tested[0]["tests"]["corr"])
+    assert not tv["stale"]
+
     client.patch(f"{mdl}/setup", json={"models": ["lightgbm"]})
     assert client.post(f"{mdl}/run").json()["status"] == "running"
     view = _wait(client, mdl)

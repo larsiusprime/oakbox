@@ -1739,6 +1739,60 @@ export interface paths {
         patch: operations["model_change_api_projects__project_id__model_setup_patch"];
         trace?: never;
     };
+    "/api/projects/{project_id}/vartest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vartest State */
+        get: operations["vartest_state_api_projects__project_id__vartest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/vartest/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vartest Run
+         * @description Test the variables ticked: OpenAVMKit's variable tests, per model group.
+         */
+        post: operations["vartest_run_api_projects__project_id__vartest_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/vartest/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vartest Stop */
+        post: operations["vartest_stop_api_projects__project_id__vartest_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/model/run": {
         parameters: {
             query?: never;
@@ -6526,6 +6580,38 @@ export interface components {
             vacant: components["schemas"]["CodRange"];
             agricultural: components["schemas"]["CodRange"];
         };
+        /** TestRow */
+        TestRow: {
+            /**
+             * Column
+             * @description The column tested: the variable, or one of a category's values.
+             */
+            column: string;
+            /**
+             * Variable
+             * @description The variable it belongs to.
+             */
+            variable: string;
+            /**
+             * Level
+             * @description A category's value, for its column.
+             */
+            level: string | null;
+            /** Value */
+            value: number | null;
+            /**
+             * Passed
+             * @description Passed the test (None: not tested).
+             */
+            passed: boolean | null;
+            /**
+             * More
+             * @description The test's other figures.
+             */
+            more: {
+                [key: string]: number | null;
+            };
+        };
         /** Tier */
         Tier: {
             /** Value */
@@ -6954,6 +7040,74 @@ export interface components {
             value: string;
             /** Count */
             count: number;
+        };
+        /** VarGroup */
+        VarGroup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Sales */
+            sales: number;
+            /** Skipped */
+            skipped: string | null;
+            /**
+             * Recommended
+             * @description The variables OpenAVMKit would use.
+             */
+            recommended: string[];
+            /**
+             * Scores
+             * @description Each variable's weighted score.
+             */
+            scores: {
+                [key: string]: number;
+            };
+            /** Tests */
+            tests: {
+                [key: string]: components["schemas"]["TestRow"][];
+            };
+        };
+        /** VarTestReceipt */
+        VarTestReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /**
+             * Variables
+             * @description The variables tested.
+             */
+            variables: string[];
+            /** Thresholds */
+            thresholds: {
+                [key: string]: number;
+            };
+            /** Groups */
+            groups: components["schemas"]["VarGroup"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** VarTestView */
+        VarTestView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            receipt: components["schemas"]["VarTestReceipt"] | null;
+            /**
+             * Stale
+             * @description The fields were prepared again, or a variable was ticked that wasn't tested.
+             */
+            stale: boolean;
+            /** Blocked */
+            blocked: string[];
         };
         /** Variable */
         Variable: {
@@ -10691,6 +10845,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vartest_state_api_projects__project_id__vartest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VarTestView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vartest_run_api_projects__project_id__vartest_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VarTestView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vartest_stop_api_projects__project_id__vartest_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VarTestView"];
                 };
             };
             /** @description Validation Error */
