@@ -2190,7 +2190,8 @@ export const t = {
       runNext: "Test them ›",
       runAgain: "Test again",
       runAgainNext: "Test again ›",
-      stale: "Out of date: the fields were prepared again, the tests to run changed, or a variable was ticked that wasn't tested.",
+      stale:
+        "Out of date: the fields were prepared again, the tests to run changed, or a variable was ticked that wasn't tested.",
       ran: (when: string, seconds: number) => `✓ Tested ${when} · ${seconds} s`,
       group: "Model group",
       keep: "Keep",

@@ -63,7 +63,12 @@ export function ValuesTab({ projectId }: { projectId: string }) {
       const path = `/api/projects/{project_id}/prepare/${what}` as const;
       return unwrap(await api.POST(path, { params: { path: { project_id: projectId } } }));
     },
-    onSuccess: (data) => queryClient.setQueryData(["prepare", projectId], data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["prepare", projectId], data);
+      // The tests and the models start from the prepared fields: what they may do changes with it.
+      void queryClient.invalidateQueries({ queryKey: ["vartest", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["model", projectId] });
+    },
   });
   const ms = useModel(projectId);
   const mv = ms.data;

@@ -104,6 +104,8 @@ export function useCleanSetup(projectId: string, enabled: boolean) {
       queryClient.invalidateQueries({ queryKey: ["clean", projectId] });
       queryClient.invalidateQueries({ queryKey: ["clean-time", projectId] });
       queryClient.invalidateQueries({ queryKey: ["prepare", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["vartest", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["model", projectId] });
     },
   });
   return { setup, change };

@@ -56,6 +56,7 @@ export function useModelSetup(projectId: string, enabled: boolean) {
     onSuccess: (data) => {
       queryClient.setQueryData(["model-setup", projectId], data);
       void queryClient.invalidateQueries({ queryKey: ["model", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["vartest", projectId] });
     },
   });
   return { setup, change };
