@@ -33,9 +33,14 @@ rng = np.random.default_rng(336)
 # centre falls inside; map layers are cut to the window plus a margin.
 X0, Y0, X1, Y1 = 1_760_000, 843_000, 1_772_000, 862_000
 MARGIN = 3_000
-SINCE = 2015
+# Every date in Guilford's data moves this many years later: the sales then run up to the end of 2025, so a 2026 tax
+# year (valued 1 January 2026) has a year of sales before its valuation date, as a ratio study's study set needs.
+LATER = 1
+SINCE = 2015 + LATER
 # The date the true values are for: the day after the last sale.
-VALUATION = pd.Timestamp("2025-01-01")
+VALUATION = pd.Timestamp(f"{2025 + LATER}-01-01")
+# The revaluation Guilford's own assessed values are from, moved with the rest.
+REVAL = pd.Timestamp(f"{2022 + LATER}-01-01")
 # How far a qualified sale's price strays from its true value (log scale): with a perfect model, a COD of about 8.
 NOISE = 0.10
 
@@ -105,8 +110,9 @@ for _, idx in street.groupby(street).groups.items():
     house[idx] = rng.permutation(house[idx])
 p["addr"] = np.where((street != "") & (house != ""), house + " " + street, "")
 
-# Guilford's 2022 assessed values: each parcel's share of land, and for parcels without a building card (shops,
-# offices, vacant land), where the truth starts from (below). The published assessed values come from the truth.
+# Guilford's 2022 assessed values (dated REVAL here, with the rest): each parcel's share of land, and for parcels
+# without a building card (shops, offices, vacant land), where the truth starts from (below). The published
+# assessed values come from the truth.
 land = pd.to_numeric(p.TOTAL_LAND_VALUE_ASSESSED, errors="coerce").fillna(0)
 bldg = pd.to_numeric(p.TOTAL_BLDG_VALUE_ASSESSED, errors="coerce").fillna(0)
 p["real_total"] = land + bldg
@@ -220,18 +226,18 @@ KINDS = ["ALTERATION", "REROOF", "ADDITION", "ELECTRICAL", "NEW CONSTRUCTION", "
 WEIGHTS = [0.32, 0.22, 0.14, 0.14, 0.09, 0.04, 0.05]
 n_permits = 2_100
 permit_ids = permit_rng.choice(p["reid"].dropna().to_numpy(), n_permits)
-issued = pd.Timestamp("2011-01-01") + pd.to_timedelta(permit_rng.integers(0, 15 * 365, n_permits), unit="D")
+issued = pd.Timestamp(f"{2011 + LATER}-01-01") + pd.to_timedelta(permit_rng.integers(0, 15 * 365, n_permits), unit="D")
 kinds = permit_rng.choice(KINDS, n_permits, p=WEIGHTS)
 
 
 def time_index() -> pd.DataFrame:
-    """The market's quarterly price index, as a county might publish one: slow growth to 2019, a run-up through
-    2022, then flat. Every price follows it (below), so it's the true time adjustment."""
+    """The market's quarterly price index, as a county might publish one: slow growth for five years, a run-up for
+    three, then flat. Every price follows it (below), so it's the true time adjustment."""
     rows, level = [], 100.0
-    for year in range(2015, 2025):
+    for year in range(SINCE, VALUATION.year):
         for q in range(1, 5):
             rows.append({"period": f"{year}-Q{q}", "index": round(level, 1)})
-            level *= 1.008 if year < 2020 else 1.025 if year < 2023 else 1.0
+            level *= 1.008 if year < SINCE + 5 else 1.025 if year < SINCE + 8 else 1.0
     return pd.DataFrame(rows)
 
 
@@ -278,15 +284,16 @@ X["nbhd"] = text(site.NEIGHBORHOOD).reindex(X.index).fillna("")
 X["lake"] = np.exp(-site.d_lake.reindex(X.index).fillna(1e9) / LAKE_FT)
 HEDONIC = ["log_area", "log_acres", "grade", "log_good", "baths", "air", "condo"]
 
-# The fit: Guilford's own prices (before any change), single-parcel qualified sales of a house or condo since 2015.
+# The fit: Guilford's own prices (before any change), single-parcel qualified sales of a house or condo since SINCE.
 real_sales = pd.read_csv(
     fetch("sale.csv"),
     dtype=str,
     usecols=["REID", "SALE_DATE", "SALE_PRICE", "SALE_STATUS", "SALE_TYPE", "DEED_BOOK", "DEED_PAGE"],
 )
 real_sales = real_sales[real_sales.REID.isin(new_id)].copy()
-real_sales["when"] = pd.to_datetime(real_sales.SALE_DATE, format="%m/%d/%Y %H:%M")
-real_sales = real_sales[real_sales.when.dt.year >= SINCE]
+real_sales["when"] = pd.to_datetime(real_sales.SALE_DATE, format="%m/%d/%Y %H:%M") + pd.DateOffset(years=LATER)
+real_sales = real_sales[real_sales.when.dt.year >= SINCE].copy()
+real_sales["SALE_DATE"] = [f"{d.month}/{d.day}/{d.year} {d.hour}:{d.minute:02d}" for d in real_sales.when]
 deed_of = real_sales.DEED_BOOK.fillna("") + "/" + real_sales.DEED_PAGE.fillna("") + "/" + real_sales.SALE_DATE
 fit = real_sales[
     (real_sales.SALE_STATUS == "QUALIFIED")
@@ -340,9 +347,9 @@ def renovated(reids, dates) -> np.ndarray:
     return d["index"].isin(m["index"]).to_numpy()
 
 
-# Parcels without a building card (shops, offices, land): Guilford's own 2022 assessed value, brought to the
+# Parcels without a building card (shops, offices, land): Guilford's own assessed value (as of REVAL), brought to the
 # valuation date by the index. Not a model: there's too little to fit one on, and they're not what the sample is for.
-anchor = (site.real_total * market([pd.Timestamp("2022-01-01")])[0] ** -1).where(site.real_total > 0)
+anchor = (site.real_total * market([REVAL])[0] ** -1).where(site.real_total > 0)
 anchor = anchor.drop(index=X.index, errors="ignore")
 
 
@@ -364,10 +371,10 @@ truth["value"] = true_value(ids, [VALUATION] * len(ids))
 truth["land"] = truth.value * truth.reid.map(site.land_share).fillna(1.0).to_numpy()
 truth = truth.set_index("reid")
 
-# The roll's assessed values: the 2022 revaluation's, from the truth, with the faults a real roll has. Valued at
-# 97% of the 2022 market, regressive (a parcel worth twice the median assessed 8% lower than it should be), and
+# The roll's assessed values: the revaluation's (REVAL), from the truth, with the faults a real roll has. Valued at
+# 97% of that market, regressive (a parcel worth twice the median assessed 8% lower than it should be), and
 # about 10% off either way.
-v2022 = truth.value * market([pd.Timestamp("2022-01-01")])[0]
+v2022 = truth.value * market([REVAL])[0]
 median = float(v2022.median())
 assessed = (v2022 * 0.97 * (v2022 / median) ** -0.12 * truth_rng.lognormal(0, 0.10, len(v2022))).round(-2)
 assessed_land = (assessed * site.land_share.reindex(truth.index)).round(-2)
@@ -385,7 +392,7 @@ roll(parcels, parcels.GDV_REID.fillna("").str.lstrip("0"))
 roll(units, units.REID)
 parcels = parcels[[*[c for c in parcels.columns if c != "geometry"], "geometry"]]
 
-# ---------- Sales since 2015: the real deeds, priced from the truth. No sale ID. ----------
+# ---------- Sales since SINCE: the real deeds, priced from the truth. No sale ID. ----------
 s = real_sales.drop(columns="when")
 when = pd.to_datetime(s.SALE_DATE, format="%m/%d/%Y %H:%M")
 # Several sales on one deed (one sale of several parcels) move together, keeping its date and price the same: that
@@ -569,8 +576,9 @@ pd.DataFrame(
                 "unqualified": 0.25,
                 "unqualified_mean": -0.15,
             },
-            "assessed_2022": {"level": 0.97, "regressivity": -0.12, "noise": 0.10},
-            "no_card": "parcels with no building card: Guilford's 2022 assessed value, brought to the valuation date",
+            "assessed": {"revaluation": REVAL.date().isoformat(), "level": 0.97, "regressivity": -0.12, "noise": 0.10},
+            "no_card": "parcels with no building card: Guilford's assessed value at the revaluation, "
+            "brought to the valuation date",
         },
         indent=1,
     ),

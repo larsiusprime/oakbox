@@ -1,13 +1,14 @@
 # us-nc-guilford-synth
 
 A slice of Guilford County, NC: downtown Greensboro north to Buffalo Lake. It holds about 9,400 parcels, their
-building cards, and 3,800 sales from 2015 to 2024. Everything starts from Guilford's own public data, as OpenAVMKit's
-sample locality publishes it. That data is then altered so no record is the county's own, and problems are planted
+building cards, and 3,800 sales from 2016 to 2025. Everything starts from Guilford's own public data, as OpenAVMKit's
+sample locality publishes it, with every date moved a year later: a project for tax year 2026 (valued 1 January
+2026) then has a year of sales before its valuation date, which a ratio study's study set needs. That data is then altered so no record is the county's own, and problems are planted
 for OAK box to catch (below). Every price and assessed value comes from one known model of market value, fitted to
 Guilford's own sales, so a model's values can be scored against the truth (`answers/`).
 
 The slice is small enough to run quickly. It still has a usable single-family model group: about 5,200 houses and
-1,400 qualified house sales since 2018. There are also about 1,100 condos.
+1,400 qualified house sales since 2019. There are also about 1,100 condos.
 
 ## How it was made
 
@@ -29,13 +30,13 @@ x 1,760,000–1,772,000, y 843,000–862,000.
     them on one day;
   - qualified/unqualified and improved/vacant kept as Guilford coded them;
   - about 12% of unqualified deeds recorded at a nominal $10.
-- **Assessed values:** the 2022 revaluation's, from the truth, with planted faults (below).
+- **Assessed values:** the 2023 revaluation's, from the truth, with planted faults (below).
 - **Map layers:** Guilford's own, cut to the window. The flood zones are the exception: they are bands drawn along
   the real streams, because the FEMA maps aren't in the sample container.
 
 ## The truth
 
-Every house and condo has a true market value on **1 January 2025**, from one log-linear model of what's in the
+Every house and condo has a true market value on **1 January 2026**, from one log-linear model of what's in the
 files. Its coefficients were fitted to Guilford's own qualified sales in the window (quarter by quarter), then
 fixed: they're in `answers/model.json`.
 
@@ -62,9 +63,9 @@ have no effect of their own: a model that leans on them is fitting noise, or a f
   perfect model would score a COD of about 8 on them; 0.12 would be about 10, 0.15 about 12. An unqualified sale is
   usually under (−15% at the median) and further off (σ 0.25). A vacant sale, or a teardown, is the land's value
   (the land's share as Guilford assessed it). A deed of several parcels sold them all for the sum of their values.
-- **Parcels with no building card** (shops, offices, vacant land, about 2,400): Guilford's own 2022 assessed value,
-  brought to the valuation date by the index. Not a model; their sales stray by σ 0.20.
-- **Assessed values (2022):** from the 2022 truth, at 97% of it, **regressive** (a parcel worth twice the median is
+- **Parcels with no building card** (shops, offices, vacant land, about 2,400): Guilford's own assessed value (its
+  2022 revaluation's, dated 2023 here with the rest), brought to the valuation date by the index. Not a model; their sales stray by σ 0.20.
+- **Assessed values (2023):** from the 2023 truth, at 97% of it, **regressive** (a parcel worth twice the median is
   assessed 8% under the rest) and off by σ 0.10, land and building split as Guilford's were. Against qualified house
   sales brought to the valuation date: a median ratio of 0.84 (the market rose about 12% since), a COD of 18, a PRD of 1.11.
 
@@ -72,12 +73,12 @@ have no effect of their own: a model that leans on them is fitting noise, or a f
 
 | File | Rows | Key columns |
 | --- | --- | --- |
-| `in/geo/parcels.parquet` | 7,999 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `TOTAL_ACRES` (land, in acres), `LOCATION_ADDR`, `PHYADDR_CITY`, `PHYADDR_ZIP`, `NEIGHBORHOOD`, `LAND_CLASS`, `ZONING`, 2022 assessed `TOTAL_LAND_VALUE_ASSESSED` / `TOTAL_BLDG_VALUE_ASSESSED` / `TOTAL_PROP_VALUE` |
+| `in/geo/parcels.parquet` | 7,999 shapes | `GDV_REID` (parcel ID), `PIN_PLUS_EXT`, `TOTAL_ACRES` (land, in acres), `LOCATION_ADDR`, `PHYADDR_CITY`, `PHYADDR_ZIP`, `NEIGHBORHOOD`, `LAND_CLASS`, `ZONING`, 2023 assessed `TOTAL_LAND_VALUE_ASSESSED` / `TOTAL_BLDG_VALUE_ASSESSED` / `TOTAL_PROP_VALUE` |
 | `in/condo_units.csv` | 1,360 condo units | The units without a shape of their own: the parcel file's columns (`REID` the plain parcel ID, `PIN_PLUS_EXT` with the unit's extension, `-001` and on), no geometry. Their building's parcel (`-000`) is in `parcels.parquet`. |
 | `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE`; and as other systems combine them: `QC_RATING` (`Q3C2`, `Q3/C2`: UAD-style quality and condition in one value, 1 best) and `CDU` (EX … PR) |
 | `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), `GRANTOR` and `GRANTEE` (made up, below), and `PRICE_*`: the same prices in other formats (below) |
-| `in/permits.csv` | 2,140 permits | Made up: `PERMIT_NO`, `REID` (the plain parcel ID), `ISSUE_DATE` (2011–2025, year-month-day), `WORK_CLASS` (ALTERATION, REROOF, ADDITION, ELECTRICAL, NEW CONSTRUCTION, DEMOLITION, POOL), `VALUATION` |
-| `in/time_adjustment_index.csv` | 40 quarters | `period` (`2015-Q1` … `2024-Q4`), `index` (100 in 2015-Q1). The market's own index, as a county might publish one: every price follows it (above). For trying a model group's own time adjustment (Check sales › Time adjustment › **My own file**). |
+| `in/permits.csv` | 2,140 permits | Made up: `PERMIT_NO`, `REID` (the plain parcel ID), `ISSUE_DATE` (2012–2026, year-month-day), `WORK_CLASS` (ALTERATION, REROOF, ADDITION, ELECTRICAL, NEW CONSTRUCTION, DEMOLITION, POOL), `VALUATION` |
+| `in/time_adjustment_index.csv` | 40 quarters | `period` (`2016-Q1` … `2025-Q4`), `index` (100 in 2016-Q1). The market's own index, as a county might publish one: every price follows it (above). For trying a model group's own time adjustment (Check sales › Time adjustment › **My own file**). |
 | `in/time_adjustment_index_broken.csv` | 6 rows | The same, with problems planted: a period that isn't one (`spring 2015`), a quarter twice, a negative and a missing level. OAK box should refuse it and say each. |
 | `in/geo/zoning.geojson` | 588 polygons | Zoning districts: `ZONING` (R-5, C-M…), `CLASSIFICATION` (RESIDENTIAL, COMMERCIAL…). In degrees (EPSG:4326), unlike the parcels. |
 | `in/geo/school_districts.shp` | 4 polygons | School board districts: `DISTRICT`. Every parcel is in one. |
@@ -87,7 +88,7 @@ have no effect of their own: a model that leans on them is fitting noise, or a f
 | `in/geo/cbd.gpkg` | 1 polygon | Downtown Greensboro, the central business district, in a GeoPackage (layer `cbd`), in degrees. |
 | `in/geo/universities.shp` | 6 points | UNCG, NC A&T and others: `name`. Points, so for distances only. |
 | `in/geo/parks.shp` | 38 polygons | Parks: `name`. No `.prj` (below). |
-| `answers/true_values.csv` | 9,354 parcels | Not to load: the answers. `REID` (plain), `true_market_value` and `true_land_value` on 1 January 2025, `how` (`model`; `assessed` for a parcel with no building card; blank, no value, for one with neither card nor assessed value). Condo units too. |
+| `answers/true_values.csv` | 9,354 parcels | Not to load: the answers. `REID` (plain), `true_market_value` and `true_land_value` on 1 January 2026, `how` (`model`; `assessed` for a parcel with no building card; blank, no value, for one with neither card nor assessed value). Condo units too. |
 | `answers/model.json` | | The model: coefficients, each neighbourhood's effect, the planted effects, the noise and the assessed values' faults. |
 
 ## Problems planted on purpose

@@ -1,5 +1,5 @@
 {
- "valuation_date": "2025-01-01",
+ "valuation_date": "2026-01-01",
  "log_value": "intercept + sum(coefficient * variable) + neighbourhood + lake * exp(-feet / lake_feet) + renovation * (alteration or addition permit in the last renovation_years)",
  "intercept": 8.142,
  "coefficients": {
@@ -224,10 +224,11 @@
   "unqualified": 0.25,
   "unqualified_mean": -0.15
  },
- "assessed_2022": {
+ "assessed": {
+  "revaluation": "2023-01-01",
   "level": 0.97,
   "regressivity": -0.12,
   "noise": 0.1
  },
- "no_card": "parcels with no building card: Guilford's 2022 assessed value, brought to the valuation date"
+ "no_card": "parcels with no building card: Guilford's assessed value at the revaluation, brought to the valuation date"
 }
