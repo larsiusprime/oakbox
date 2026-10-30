@@ -250,6 +250,7 @@ def test_check_sales_and_review_them(brought_in, monkeypatch):  # noqa: F811
     assert "assessor" in {f["model"] for f in sets["study"]["rows"]}
     assert "assessor" not in {f["model"] for f in modeled[0]["academic"]}
     assert modeled[0]["timings"] and modeled[0]["academic_trimmed"]
+    assert "vei" not in modeled[0]["academic"][0]["values"]  # the IAAO view has it
     assert not client.get(mdl).json()["stale"]
     client.patch(f"{mdl}/setup", json={"choose_for_me": True})
     assert client.get(mdl).json()["stale"]

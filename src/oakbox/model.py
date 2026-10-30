@@ -444,8 +444,6 @@ ACADEMIC = {
     "RMSE": "rmse",
     "m.ratio": "median_ratio",
     "avg.ratio": "mean_ratio",
-    "VEI": "vei",
-    "VEI_sig": "vei_sig",
     "Slope": "slope",
 }
 

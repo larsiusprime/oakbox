@@ -376,8 +376,6 @@ const ACADEMIC = [
   fig("rmse", h.col.rmse, h.tip.rmse),
   fig("median_ratio", h.col.median, h.tip.median),
   fig("mean_ratio", h.col.mean, h.tip.mean),
-  fig("vei", h.col.vei, h.tip.vei),
-  fig("vei_sig", h.col.veiSig, h.tip.veiSig),
   fig("slope", h.col.slope, h.tip.slope),
 ];
 // Under either view, sharing its widths: the model column lines up; the rest are its own.
