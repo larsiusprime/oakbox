@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { Button } from "react-aria-components";
 import {
   api,
@@ -62,8 +64,9 @@ export function useModelSetup(projectId: string, enabled: boolean) {
 type CardProps = { v: ModelSetup; set: (body: ModelPatch) => void };
 
 /** One table of the variables, grouped by kind: ticked, how many parcels have it, blanks left, and which models
- * use it. */
+ * use it. Each kind is a heading that folds its rows away, with one tick for all of them. */
 export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }) {
+  const [shut, setShut] = useState<Set<string>>(() => new Set());
   if (!v.variables.length) return <p className="wiz-from">{m.none}</p>;
   const chosen = v.variables.filter((x) => x.chosen).map((x) => x.field);
   const total = Math.max(...v.variables.map((x) => x.parcels + x.blanks));
@@ -84,11 +87,23 @@ export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }
         </thead>
         {kinds.map((k) => (
           <tbody key={k}>
-            <tr className="bi-grp">
-              <td colSpan={4}>{m.kinds[k] ?? k}</td>
-            </tr>
+            <KindRow
+              name={m.kinds[k] ?? k}
+              fields={v.variables.filter((x) => x.kind === k).map((x) => x.field)}
+              chosen={chosen}
+              open={!shut.has(k)}
+              toggle={() =>
+                setShut((was) => {
+                  const now = new Set(was);
+                  if (now.has(k)) now.delete(k);
+                  else now.add(k);
+                  return now;
+                })
+              }
+              set={set}
+            />
             {v.variables
-              .filter((x) => x.kind === k)
+              .filter((x) => x.kind === k && !shut.has(k))
               .map((x) => (
                 <tr key={x.field}>
                   <td>
@@ -133,6 +148,51 @@ export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }
         </p>
       )}
     </div>
+  );
+}
+
+/** A kind's heading: one tick for all its variables, its name (folding its rows away) and how many are ticked. */
+function KindRow({
+  name,
+  fields,
+  chosen,
+  open,
+  toggle,
+  set,
+}: {
+  name: string;
+  fields: string[];
+  chosen: string[];
+  open: boolean;
+  toggle: () => void;
+  set: (body: ModelPatch) => void;
+}) {
+  const on = fields.filter((f) => chosen.includes(f)).length;
+  const Chevron = open ? ChevronDown : ChevronRight;
+  return (
+    <tr className="md-kind">
+      <td colSpan={4}>
+        <span className="md-kind-row">
+          <Tick
+            isSelected={on === fields.length}
+            onChange={(all) =>
+              set({
+                variables: all
+                  ? [...new Set([...chosen, ...fields])]
+                  : chosen.filter((f) => !fields.includes(f)),
+              })
+            }
+          >
+            <span className="visually-hidden">{name}</span>
+          </Tick>
+          <Button className="md-kind-name" aria-expanded={open} onPress={toggle}>
+            <Chevron aria-hidden="true" size="1em" />
+            {name}
+            <span className="md-kind-count">{m.kindCount(on, fields.length)}</span>
+          </Button>
+        </span>
+      </td>
+    </tr>
   );
 }
 

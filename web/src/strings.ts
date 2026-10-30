@@ -2280,6 +2280,7 @@ export const t = {
         category: "Categories",
       } as Record<string, string>,
       variable: "Variable",
+      kindCount: (on: number, of: number) => `${on.toLocaleString()} of ${of.toLocaleString()} ticked`,
       has: "Has it",
       blanks: "Blanks",
       usedBy: "Used by",

@@ -5005,3 +5005,33 @@ table.bi-tbl.cs-tbl > * > tr.rv-total > td {
 tr.vt-off {
   color: var(--muted);
 }
+
+/* Step 5's variables: each kind a heading that stands out and folds its rows away. */
+.bi-tbl.md-vars > tbody > tr.md-kind > td {
+  padding: 0.5rem 0.4rem 0.35rem;
+  background: #e9edf3;
+  border-top: 2px solid #c9d1dc;
+}
+.md-kind-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.md-kind-name {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--ink, #1f2328);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.md-kind-count {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+}
