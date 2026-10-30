@@ -1,5 +1,7 @@
 """Builds the Guilford sample county (see README.md) from a slice of Guilford County, NC's real data, altered and
-with problems planted. Deterministic: same seed, same files.
+with problems planted. Every price and assessed value comes from one known model of market value, fitted to
+Guilford's own sales, so a model's values can be scored against the truth (answers/). Deterministic: same seed, same
+files.
 
 uv run python sample/us-nc-guilford-synth/make.py
 
@@ -7,6 +9,7 @@ The first run downloads Guilford's files (about 300 MB) from OpenAVMKit's public
 .cache/ beside this file; later runs reuse them.
 """
 
+import json
 import shutil
 import urllib.request
 from pathlib import Path
@@ -20,6 +23,7 @@ import deed_names
 
 HERE = Path(__file__).parent
 IN = HERE / "in"
+ANSWERS = HERE / "answers"
 CACHE = HERE / ".cache"
 SOURCE = "https://landeconomics.blob.core.windows.net/localities-public/us/nc/guilford"
 rng = np.random.default_rng(336)
@@ -30,6 +34,10 @@ rng = np.random.default_rng(336)
 X0, Y0, X1, Y1 = 1_760_000, 843_000, 1_772_000, 862_000
 MARGIN = 3_000
 SINCE = 2015
+# The date the true values are for: the day after the last sale.
+VALUATION = pd.Timestamp("2025-01-01")
+# How far a qualified sale's price strays from its true value (log scale): with a perfect model, a COD of about 8.
+NOISE = 0.10
 
 
 def fetch(name: str) -> Path:
@@ -97,11 +105,15 @@ for _, idx in street.groupby(street).groups.items():
     house[idx] = rng.permutation(house[idx])
 p["addr"] = np.where((street != "") & (house != ""), house + " " + street, "")
 
-# Assessed values (2022 revaluation): the real ones, each nudged a little.
+# Guilford's 2022 assessed values: each parcel's share of land, and for parcels without a building card (shops,
+# offices, vacant land), where the truth starts from (below). The published assessed values come from the truth.
 land = pd.to_numeric(p.TOTAL_LAND_VALUE_ASSESSED, errors="coerce").fillna(0)
 bldg = pd.to_numeric(p.TOTAL_BLDG_VALUE_ASSESSED, errors="coerce").fillna(0)
-p["land_val"] = (land * rng.lognormal(0, 0.04, n)).round(-2)
-p["bldg_val"] = (bldg * rng.lognormal(0, 0.04, n)).round(-2)
+p["real_total"] = land + bldg
+p["land_share"] = (land / (land + bldg)).where(land + bldg > 0, 1.0).clip(0.1, 1.0)
+rng.lognormal(0, 0.04, n), rng.lognormal(0, 0.04, n)  # draws kept, so the ones after them don't change
+lakes_2264 = layer("lakes").to_crs(2264).geometry.union_all()
+p["d_lake"] = p.geometry.centroid.distance(lakes_2264).to_numpy()
 
 # ---------- Planted problems in the parcel file ----------
 # 1. Parcel IDs from the old system are zero-padded to 10 characters; IDs given since aren't. The sales and
@@ -128,9 +140,6 @@ parcels = gpd.GeoDataFrame(
         "NEIGHBORHOOD": text(p.NEIGHBORHOOD),
         "LAND_CLASS": text(p.LAND_CLASS),
         "ZONING": text(p.ZONING),
-        "TOTAL_LAND_VALUE_ASSESSED": p.land_val.astype(int),
-        "TOTAL_BLDG_VALUE_ASSESSED": p.bldg_val.astype(int),
-        "TOTAL_PROP_VALUE": (p.land_val + p.bldg_val).astype(int),
     },
     geometry=p.geometry.to_numpy(),
     crs=2264,
@@ -203,25 +212,210 @@ buildings["QC_RATING"] = ["Q" + str(q) + s + "C" + str(c) for q, s, c in zip(gra
 cdu_words = {1: "EX", 2: "VG", 3: "GD", 4: "AV", 5: "FR", 6: "PR"}
 buildings["CDU"] = [cdu_words[int(min(6, max(1, c + qc_rng.integers(-1, 2))))] for c in cond_c]
 
-# ---------- Sales since 2015: the real deeds, dates moved up to a month and prices nudged. No sale ID. ----------
-s = pd.read_csv(
+# ---------- Building permits: made up, one row per permit, on the plain parcel ID ----------
+# Renovations (alterations and additions) raise a house's true value for five years (below). Teardowns follow the
+# sales. Its own random stream, so nothing else changes.
+permit_rng = np.random.default_rng(4242)
+KINDS = ["ALTERATION", "REROOF", "ADDITION", "ELECTRICAL", "NEW CONSTRUCTION", "DEMOLITION", "POOL"]
+WEIGHTS = [0.32, 0.22, 0.14, 0.14, 0.09, 0.04, 0.05]
+n_permits = 2_100
+permit_ids = permit_rng.choice(p["reid"].dropna().to_numpy(), n_permits)
+issued = pd.Timestamp("2011-01-01") + pd.to_timedelta(permit_rng.integers(0, 15 * 365, n_permits), unit="D")
+kinds = permit_rng.choice(KINDS, n_permits, p=WEIGHTS)
+
+
+def time_index() -> pd.DataFrame:
+    """The market's quarterly price index, as a county might publish one: slow growth to 2019, a run-up through
+    2022, then flat. Every price follows it (below), so it's the true time adjustment."""
+    rows, level = [], 100.0
+    for year in range(2015, 2025):
+        for q in range(1, 5):
+            rows.append({"period": f"{year}-Q{q}", "index": round(level, 1)})
+            level *= 1.008 if year < 2020 else 1.025 if year < 2023 else 1.0
+    return pd.DataFrame(rows)
+
+
+INDEX = time_index()
+_mid = [pd.Period(x.replace("-", ""), freq="Q") for x in INDEX.period]
+_mid_ns = np.array([(q.start_time + (q.end_time - q.start_time) / 2).value for q in _mid], dtype=float)
+
+
+def market(dates) -> np.ndarray:
+    """The index on each date, as a multiple of its level on the valuation date (between quarters, a straight line;
+    before the first or after the last, flat)."""
+    at = pd.DatetimeIndex(dates).asi8.astype(float)
+    return np.interp(at, _mid_ns, INDEX["index"]) / np.interp(VALUATION.value, _mid_ns, INDEX["index"])
+
+
+# ---------- The truth: every parcel's market value, from one known model ----------
+# A house or condo's value is a log-linear hedonic model of what's in the files: heated area, land, quality (grade),
+# % good (condition), baths, central air, house or condo, its neighbourhood; plus two effects planted, because a
+# sample should have something to find: being near Buffalo Lake, and a renovation in the last five years. The
+# coefficients are fitted to Guilford's own qualified sales in the window (quarter by quarter, neighbourhoods shrunk
+# toward the average), then rounded: they're the model, written to answers/model.json.
+LAKE = 0.12  # +12% on the shore, fading by 1/e every 1,000 ft
+LAKE_FT = 1_000
+RENO = 0.07  # +7% for five years after an alteration or addition permit
+RENO_YEARS = 5
+
+
+def _num(c: pd.Series) -> pd.Series:
+    return pd.to_numeric(c, errors="coerce")
+
+
+cards = buildings.assign(area=_num(buildings.HEATED_AREA))
+card1 = cards.groupby("REID").first()
+X = pd.DataFrame(index=card1.index)
+X["log_area"] = np.log(cards.groupby("REID").area.sum().clip(lower=200))
+X["grade"] = _num(card1.GRADE_SCORE).fillna(_num(card1.GRADE_SCORE).median())
+X["log_good"] = np.log(1 - _num(card1.CONDITION_SCORE).fillna(0.1).clip(0, 0.9))
+X["baths"] = _num(card1.BATH_FULL).fillna(0) + 0.5 * _num(card1.BATH_HALF).fillna(0)
+X["air"] = card1.AIR_COND.fillna("NONE").ne("NONE").astype(float)
+X["condo"] = card1.BLDG_TYPE.fillna("").str.startswith("03").astype(float)
+site = p.drop_duplicates("reid").set_index("reid")
+X["log_acres"] = np.log(_num(site.TOTAL_ACRES).reindex(X.index).fillna(0).clip(lower=0.01))
+X["nbhd"] = text(site.NEIGHBORHOOD).reindex(X.index).fillna("")
+X["lake"] = np.exp(-site.d_lake.reindex(X.index).fillna(1e9) / LAKE_FT)
+HEDONIC = ["log_area", "log_acres", "grade", "log_good", "baths", "air", "condo"]
+
+# The fit: Guilford's own prices (before any change), single-parcel qualified sales of a house or condo since 2015.
+real_sales = pd.read_csv(
     fetch("sale.csv"),
     dtype=str,
     usecols=["REID", "SALE_DATE", "SALE_PRICE", "SALE_STATUS", "SALE_TYPE", "DEED_BOOK", "DEED_PAGE"],
 )
-s = s[s.REID.isin(new_id)].copy()
+real_sales = real_sales[real_sales.REID.isin(new_id)].copy()
+real_sales["when"] = pd.to_datetime(real_sales.SALE_DATE, format="%m/%d/%Y %H:%M")
+real_sales = real_sales[real_sales.when.dt.year >= SINCE]
+deed_of = real_sales.DEED_BOOK.fillna("") + "/" + real_sales.DEED_PAGE.fillna("") + "/" + real_sales.SALE_DATE
+fit = real_sales[
+    (real_sales.SALE_STATUS == "QUALIFIED")
+    & (real_sales.SALE_TYPE == "IMPROVED")
+    & deed_of.map(deed_of.value_counts()).eq(1)
+].assign(reid=lambda d: d.REID.map(new_id), price=lambda d: _num(d.SALE_PRICE))
+fit = fit[fit.reid.isin(X.index) & (fit.price > 20_000)]
+fit = fit.join(X, on="reid")
+quarters = fit.when.dt.to_period("Q").astype(str)
+nbhds = sorted(fit.nbhd.unique())
+design = np.column_stack(
+    [
+        fit[HEDONIC].to_numpy(float),
+        pd.get_dummies(quarters).iloc[:, 1:].to_numpy(float),  # the first quarter is the base
+        pd.get_dummies(pd.Categorical(fit.nbhd, categories=nbhds)).to_numpy(float),  # one each, no intercept
+    ]
+)
+beta = np.linalg.lstsq(design, np.log(fit.price.to_numpy()), rcond=None)[0]
+coef = {k: round(float(b), 3) for k, b in zip(HEDONIC, beta, strict=False)}
+q_last = pd.get_dummies(quarters).columns[-1]
+q_effect = float(beta[len(HEDONIC) + pd.get_dummies(quarters).columns.get_loc(q_last) - 1])
+raw_nb = pd.Series(beta[-len(nbhds) :], index=nbhds) + q_effect  # in the last quarter's prices
+counts = fit.nbhd.value_counts()
+centre = float(np.average(raw_nb, weights=counts.reindex(nbhds)))
+SHRINK = 8  # a neighbourhood with 8 sales moves halfway from the average to its own figure
+nb_effect = centre + (raw_nb - centre) * counts.reindex(nbhds) / (counts.reindex(nbhds) + SHRINK)
+# The market moved between the last quarter's prices and the valuation date as the index did; the intercept is the
+# value at the valuation date.
+intercept = round(centre - float(np.log(market([fit.when.max()])[0])), 3)
+nb_effect = (nb_effect - centre).round(3)
+# Neighbourhoods with no such sale: the average of the three nearest that have one.
+all_nb = text(site.NEIGHBORHOOD)
+nb_xy = site.geometry.centroid.groupby(all_nb.to_numpy()).agg(lambda g: (g.x.mean(), g.y.mean()))
+known = [n for n in nb_effect.index if n in nb_xy.index]
+for name in nb_xy.index.difference(nb_effect.index):
+    x, y = nb_xy[name]
+    near = sorted(known, key=lambda k: (nb_xy[k][0] - x) ** 2 + (nb_xy[k][1] - y) ** 2)[:3]
+    nb_effect[name] = round(float(nb_effect[near].mean()), 3)
+
+base = intercept + sum(coef[k] * X[k] for k in HEDONIC) + X.nbhd.map(nb_effect).fillna(0) + LAKE * X.lake
+reno_permits = pd.DataFrame(
+    {"reid": permit_ids, "issued": issued, "reno": np.isin(kinds, ["ALTERATION", "ADDITION"])}
+).query("reno")
+
+
+def renovated(reids, dates) -> np.ndarray:
+    """Whether each parcel had an alteration or addition permit in the five years up to each date."""
+    d = pd.DataFrame({"reid": list(reids), "at": pd.DatetimeIndex(dates)}).reset_index()
+    m = d.merge(reno_permits, on="reid")
+    m = m[(m.issued <= m["at"]) & (m.issued > m["at"] - pd.DateOffset(years=RENO_YEARS))]
+    return d["index"].isin(m["index"]).to_numpy()
+
+
+# Parcels without a building card (shops, offices, land): Guilford's own 2022 assessed value, brought to the
+# valuation date by the index. Not a model: there's too little to fit one on, and they're not what the sample is for.
+anchor = (site.real_total * market([pd.Timestamp("2022-01-01")])[0] ** -1).where(site.real_total > 0)
+anchor = anchor.drop(index=X.index, errors="ignore")
+
+
+def true_value(reids, dates, land_only=None) -> np.ndarray:
+    """Each parcel's true market value on each date (blank: no way to tell), or its land's when land_only."""
+    reids = pd.Series(list(reids))
+    at = pd.DatetimeIndex(dates)
+    log_v = reids.map(base).to_numpy() + RENO * renovated(reids, at)
+    v = np.where(np.isnan(log_v), reids.map(anchor).to_numpy(), np.exp(log_v)) * market(at)
+    if land_only is not None:
+        v = np.where(land_only, v * reids.map(site.land_share).fillna(1.0).to_numpy(), v)
+    return v
+
+
+truth_rng = np.random.default_rng(5150)  # its own stream: the prices and assessed values, from the truth
+ids = site.index.dropna()
+truth = pd.DataFrame({"reid": ids})
+truth["value"] = true_value(ids, [VALUATION] * len(ids))
+truth["land"] = truth.value * truth.reid.map(site.land_share).fillna(1.0).to_numpy()
+truth = truth.set_index("reid")
+
+# The roll's assessed values: the 2022 revaluation's, from the truth, with the faults a real roll has. Valued at
+# 97% of the 2022 market, regressive (a parcel worth twice the median assessed 8% lower than it should be), and
+# about 10% off either way.
+v2022 = truth.value * market([pd.Timestamp("2022-01-01")])[0]
+median = float(v2022.median())
+assessed = (v2022 * 0.97 * (v2022 / median) ** -0.12 * truth_rng.lognormal(0, 0.10, len(v2022))).round(-2)
+assessed_land = (assessed * site.land_share.reindex(truth.index)).round(-2)
+assessed_bldg = (assessed - assessed_land).clip(lower=0)
+
+
+def roll(frame: pd.DataFrame, plain_ids: pd.Series) -> None:
+    """Puts the assessed values on the parcel or condo-unit file, by plain parcel ID."""
+    frame["TOTAL_LAND_VALUE_ASSESSED"] = plain_ids.map(assessed_land).fillna(0).astype(int).to_numpy()
+    frame["TOTAL_BLDG_VALUE_ASSESSED"] = plain_ids.map(assessed_bldg).fillna(0).astype(int).to_numpy()
+    frame["TOTAL_PROP_VALUE"] = frame.TOTAL_LAND_VALUE_ASSESSED + frame.TOTAL_BLDG_VALUE_ASSESSED
+
+
+roll(parcels, parcels.GDV_REID.fillna("").str.lstrip("0"))
+roll(units, units.REID)
+parcels = parcels[[*[c for c in parcels.columns if c != "geometry"], "geometry"]]
+
+# ---------- Sales since 2015: the real deeds, priced from the truth. No sale ID. ----------
+s = real_sales.drop(columns="when")
 when = pd.to_datetime(s.SALE_DATE, format="%m/%d/%Y %H:%M")
-s = s[when.dt.year >= SINCE]
 # Several sales on one deed (one sale of several parcels) move together, keeping its date and price the same: that
-# is how sales scrutiny finds them. The same draws as before, so nothing else changes.
+# is how sales scrutiny finds them.
 deed = (s.DEED_BOOK.fillna("") + "/" + s.DEED_PAGE.fillna("") + "/" + s.SALE_DATE).to_numpy()
 first = pd.Series(np.arange(len(s))).groupby(deed).transform("first").to_numpy()
 shift = rng.integers(-30, 31, len(s))[first]
-when = when[s.index] + pd.to_timedelta(shift, unit="D")
+when = when + pd.to_timedelta(shift, unit="D")
 when = when.clip(lower=pd.Timestamp(f"{SINCE}-01-01"))
-price = pd.to_numeric(s.SALE_PRICE, errors="coerce").to_numpy()
-price = np.where(price < 1_000, price, (price * rng.lognormal(0, 0.03, len(s))[first]).round(-2)).astype(int)
+real_price = _num(s.SALE_PRICE).to_numpy()
+rng.lognormal(0, 0.03, len(s))  # a draw kept, so the ones after it don't change
 qualified = (s.SALE_STATUS == "QUALIFIED").to_numpy()
+vacant = (s.SALE_TYPE == "VACANT").to_numpy()
+# Each sale's true value on its date (a vacant sale, the land's); a deed of several parcels sold them all at once.
+reids = s.REID.map(new_id)
+value = true_value(reids, when, land_only=vacant)
+deed_value = pd.Series(value).groupby(first).transform("sum").to_numpy()
+# A qualified sale strays from it by NOISE; one of a parcel with no building card (no model, above) by twice that.
+# An unqualified sale is usually under (a family sale, a quick sale), and further off.
+modeled = reids.isin(X.index).to_numpy()
+spread = np.where(qualified, np.where(modeled, NOISE, 2 * NOISE), 0.25)
+centre_off = np.where(qualified, 0.0, -0.15)
+draw = truth_rng.normal(0, 1, len(s))[first]
+deed_price = deed_value * np.exp(centre_off + spread * draw)
+# On a deed of several parcels, each sale has the whole price where Guilford's did, otherwise its share.
+same = pd.Series(real_price).groupby(first).transform(lambda x: x.nunique() == 1).to_numpy()
+price = np.where(same | (deed_value == value), deed_price, deed_price * value / deed_value)
+# No true value (a parcel no model covers, with no assessed value): Guilford's own price.
+price = np.where(np.isnan(price), real_price, price)
+price = np.where(real_price < 1_000, real_price, np.round(price, -2)).astype(int)
 # Some unqualified deeds are recorded at a nominal $10 (gifts, family transfers).
 nominal = ~qualified & (rng.random(len(s)) < 0.12)[first]
 price = np.where(nominal, 10, price)
@@ -248,6 +442,28 @@ sales = pd.DataFrame(
     }
 ).sort_values(["DEED_BOOK", "DEED_PAGE"], key=lambda c: pd.to_numeric(c, errors="coerce"), kind="stable")
 
+# ---------- Teardowns, and the permits file ----------
+# 15. Teardowns: 40 improved, qualified sales are followed by a demolition permit within a year, so the sale was
+#     really of the land.
+torn = sales[(sales.SALE_STATUS == "QUALIFIED") & (sales.SALE_TYPE == "IMPROVED") & sales.REID.isin(X.index)]
+torn = torn.iloc[permit_rng.choice(len(torn), 40, replace=False)]
+torn_when = pd.to_datetime(torn.SALE_DATE, format="%m/%d/%Y %H:%M") + pd.to_timedelta(
+    permit_rng.integers(20, 330, len(torn)), unit="D"
+)
+# The buyer paid for the land: its true value on the day, give or take NOISE.
+torn_sold = pd.to_datetime(torn.SALE_DATE, format="%m/%d/%Y %H:%M")
+torn_land = true_value(torn.REID, torn_sold, land_only=np.ones(len(torn), bool))
+sales.loc[torn.index, "SALE_PRICE"] = np.round(torn_land * truth_rng.lognormal(0, NOISE, len(torn)), -2).astype(int)
+permits = pd.DataFrame(
+    {
+        "REID": [*permit_ids, *torn.REID],
+        "ISSUE_DATE": [d.strftime("%Y-%m-%d") for d in [*issued, *torn_when]],
+        "WORK_CLASS": [*kinds, *["DEMOLITION"] * len(torn)],
+    }
+).sort_values("ISSUE_DATE", kind="stable")
+permits.insert(0, "PERMIT_NO", [f"BP-{d[:4]}-{i:05d}" for i, d in enumerate(permits.ISSUE_DATE)])
+permits["VALUATION"] = (permit_rng.lognormal(9.5, 1.0, len(permits)) // 100 * 100).astype(int)
+
 # 6. The same prices written the ways exports write them, one column each, to try the price checks on.
 #    A separate random stream, so the columns above don't change.
 fmt_rng = np.random.default_rng(1024)
@@ -270,30 +486,6 @@ for i in np.flatnonzero(fmt_rng.random(len(v)) < 0.01):
     sales.iloc[i, sales.columns.get_loc("PRICE_MIXED")] = fmt_rng.choice(["N/A", "-", "0", "$0.00", "TBD"])
 sales["PRICE_NEGATIVE"] = [f"({x:,})" if x < 100 else f"{x:,}" for x in v]  # accounting: (10) for a $10 deed
 
-# ---------- Building permits: made up, one row per permit, on the plain parcel ID ----------
-# 15. Teardowns: 40 improved, qualified sales are followed by a demolition permit within a year, so the sale was
-#     really of the land. Its own random stream, so nothing above changes.
-permit_rng = np.random.default_rng(4242)
-KINDS = ["ALTERATION", "REROOF", "ADDITION", "ELECTRICAL", "NEW CONSTRUCTION", "DEMOLITION", "POOL"]
-WEIGHTS = [0.32, 0.22, 0.14, 0.14, 0.09, 0.04, 0.05]
-n_permits = 2_100
-permit_ids = permit_rng.choice(p["reid"].dropna().to_numpy(), n_permits)
-issued = pd.Timestamp("2011-01-01") + pd.to_timedelta(permit_rng.integers(0, 15 * 365, n_permits), unit="D")
-kinds = permit_rng.choice(KINDS, n_permits, p=WEIGHTS)
-torn = sales[(sales.SALE_STATUS == "QUALIFIED") & (sales.SALE_TYPE == "IMPROVED") & (sales.REID.str.len() == 6)]
-torn = torn.iloc[permit_rng.choice(len(torn), 40, replace=False)]
-torn_when = pd.to_datetime(torn.SALE_DATE, format="%m/%d/%Y %H:%M") + pd.to_timedelta(
-    permit_rng.integers(20, 330, len(torn)), unit="D"
-)
-permits = pd.DataFrame(
-    {
-        "REID": [*permit_ids, *torn.REID],
-        "ISSUE_DATE": [d.strftime("%Y-%m-%d") for d in [*issued, *torn_when]],
-        "WORK_CLASS": [*kinds, *["DEMOLITION"] * len(torn)],
-    }
-).sort_values("ISSUE_DATE", kind="stable")
-permits.insert(0, "PERMIT_NO", [f"BP-{d[:4]}-{i:05d}" for i, d in enumerate(permits.ISSUE_DATE)])
-permits["VALUATION"] = (permit_rng.lognormal(9.5, 1.0, len(permits)) // 100 * 100).astype(int)
 
 # ---------- Map layers: Guilford's own, cut to the window ----------
 zoning = layer("zoning")[["ZONING", "CLASSIFICATION", "geometry"]]
@@ -335,19 +527,58 @@ units.to_csv(IN / "condo_units.csv", index=False)
 deed_names.add(sales).to_csv(IN / "sales.csv", index=False)  # 16. buyers and sellers (GRANTOR, GRANTEE)
 permits.to_csv(IN / "permits.csv", index=False)
 
+# The answers: kept out of in/, so they're never loaded by mistake. Each parcel's true value on the valuation date
+# (by plain parcel ID, condo units too), and the model that made every price.
+if ANSWERS.exists():
+    shutil.rmtree(ANSWERS)
+ANSWERS.mkdir()
+pd.DataFrame(
+    {
+        "REID": truth.index,
+        "true_market_value": truth.value.round(-2).astype("Int64").to_numpy(),
+        "true_land_value": truth.land.round(-2).astype("Int64").to_numpy(),
+        "how": np.where(truth.index.isin(X.index), "model", np.where(truth.value.notna(), "assessed", "")),
+    }
+).sort_values("REID", key=lambda c: pd.to_numeric(c)).to_csv(ANSWERS / "true_values.csv", index=False)
+(ANSWERS / "model.json").write_text(
+    json.dumps(
+        {
+            "valuation_date": VALUATION.date().isoformat(),
+            "log_value": "intercept + sum(coefficient * variable) + neighbourhood + lake * exp(-feet / lake_feet) "
+            "+ renovation * (alteration or addition permit in the last renovation_years)",
+            "intercept": intercept,
+            "coefficients": coef,
+            "variables": {
+                "log_area": "log of HEATED_AREA, every card summed",
+                "log_acres": "log of TOTAL_ACRES (0.01 at least)",
+                "grade": "GRADE_SCORE (card 1)",
+                "log_good": "log(1 - CONDITION_SCORE) (card 1)",
+                "baths": "BATH_FULL + BATH_HALF / 2 (card 1)",
+                "air": "1 with central air (AIR_COND not NONE)",
+                "condo": "1 for a condo (BLDG_TYPE 03-...)",
+            },
+            "lake": LAKE,
+            "lake_feet": LAKE_FT,
+            "renovation": RENO,
+            "renovation_years": RENO_YEARS,
+            "neighbourhood": nb_effect.sort_index().to_dict(),
+            "time": "in/time_adjustment_index.csv, linear between quarter midpoints",
+            "noise": {
+                "qualified": NOISE,
+                "qualified_no_card": 2 * NOISE,
+                "unqualified": 0.25,
+                "unqualified_mean": -0.15,
+            },
+            "assessed_2022": {"level": 0.97, "regressivity": -0.12, "noise": 0.10},
+            "no_card": "parcels with no building card: Guilford's 2022 assessed value, brought to the valuation date",
+        },
+        indent=1,
+    ),
+    encoding="utf-8",
+)
 
-def time_index() -> pd.DataFrame:
-    """A made-up quarterly price index, as a county's own time adjustment might be published: slow growth to 2019,
-    a run-up through 2022, then flat. For trying a model group's own time adjustment file; not Guilford's."""
-    rows, level = [], 100.0
-    for year in range(2015, 2025):
-        for q in range(1, 5):
-            rows.append({"period": f"{year}-Q{q}", "index": round(level, 1)})
-            level *= 1.008 if year < 2020 else 1.025 if year < 2023 else 1.0
-    return pd.DataFrame(rows)
 
-
-time_index().to_csv(IN / "time_adjustment_index.csv", index=False)
+INDEX.to_csv(IN / "time_adjustment_index.csv", index=False)
 # The same with problems planted: a period that isn't one, a quarter twice, a negative and a missing level.
 (IN / "time_adjustment_index_broken.csv").write_text(
     "period,index\n2015-Q1,100\n2015-Q2,100.8\nspring 2015,101.2\n2015-Q3,-4\n2015-Q3,102\n2015-Q4,n/a\n",

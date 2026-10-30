@@ -3,7 +3,8 @@
 A slice of Guilford County, NC: downtown Greensboro north to Buffalo Lake. It holds about 9,400 parcels, their
 building cards, and 3,800 sales from 2015 to 2024. Everything starts from Guilford's own public data, as OpenAVMKit's
 sample locality publishes it. That data is then altered so no record is the county's own, and problems are planted
-for OAK box to catch (below).
+for OAK box to catch (below). Every price and assessed value comes from one known model of market value, fitted to
+Guilford's own sales, so a model's values can be scored against the truth (`answers/`).
 
 The slice is small enough to run quickly. It still has a usable single-family model group: about 5,200 houses and
 1,400 qualified house sales since 2018. There are also about 1,100 condos.
@@ -23,17 +24,49 @@ x 1,760,000–1,772,000, y 843,000–862,000.
   - Heated area and footprint move by up to 5%, together.
   - A parcel with no building, such as vacant land, still has none. Bedrooms, baths, grade and condition stay with
     their building.
-- **Sales:** the real deeds, with these changes:
-  - dates moved by up to a month, and prices nudged by about 3%: a deed's sales together, so the 123 deeds that
-    sold several parcels at once keep them on one day at one price;
+- **Sales:** the real deeds (which parcels sold, and when), priced from the truth (below):
+  - dates moved by up to a month: a deed's sales together, so the 123 deeds that sold several parcels at once keep
+    them on one day;
   - qualified/unqualified and improved/vacant kept as Guilford coded them;
   - about 12% of unqualified deeds recorded at a nominal $10.
-- **Assessed values:** the 2022 revaluation's, each nudged by about 4%.
+- **Assessed values:** the 2022 revaluation's, from the truth, with planted faults (below).
 - **Map layers:** Guilford's own, cut to the window. The flood zones are the exception: they are bands drawn along
   the real streams, because the FEMA maps aren't in the sample container.
 
-These are real market patterns, not a formula: a model has real things to find, but there's no "true value" to score
-it against.
+## The truth
+
+Every house and condo has a true market value on **1 January 2025**, from one log-linear model of what's in the
+files. Its coefficients were fitted to Guilford's own qualified sales in the window (quarter by quarter), then
+fixed: they're in `answers/model.json`.
+
+| Variable | From | Effect |
+| --- | --- | --- |
+| Heated area | `HEATED_AREA`, every card | 0.58 per log unit: twice the area, 49% more value |
+| Land | `TOTAL_ACRES` | 0.064 per log unit |
+| Quality | `GRADE_SCORE` | +0.372 per point: B (1.2) to A (1.5) is +12% |
+| Condition | `CONDITION_SCORE` (% depreciation) | 0.826 × log(% good) |
+| Baths | `BATH_FULL` + half of `BATH_HALF` | +0.9% each |
+| Central air | `AIR_COND` not NONE | +6.7% |
+| Condo | `BLDG_TYPE` 03-… | −17% |
+| Neighbourhood | `NEIGHBORHOOD` | −34% to +86%; each fitted, shrunk toward the average (8 sales: halfway), one with no sales the average of the three nearest |
+| Buffalo Lake | distance to `lakes.shp` | **planted:** +12% on the shore, fading by 1/e every 1,000 ft |
+| Renovation | an `ALTERATION` or `ADDITION` permit | **planted:** +7% for five years after it |
+
+The two planted effects aren't in Guilford's prices; they're there to be found (the lake by its proximity, the
+renovation by the permits step). Other fields (bedrooms, style, exterior, year built, zoning, the other map layers)
+have no effect of their own: a model that leans on them is fitting noise, or a field that goes with one above.
+
+- **Time:** prices follow `in/time_adjustment_index.csv` exactly (a straight line between quarter midpoints), so it's
+  the true time adjustment.
+- **Sale prices:** a qualified sale is its true value on the day, off by a random amount: log-normal, σ 0.10. A
+  perfect model would score a COD of about 8 on them; 0.12 would be about 10, 0.15 about 12. An unqualified sale is
+  usually under (−15% at the median) and further off (σ 0.25). A vacant sale, or a teardown, is the land's value
+  (the land's share as Guilford assessed it). A deed of several parcels sold them all for the sum of their values.
+- **Parcels with no building card** (shops, offices, vacant land, about 2,400): Guilford's own 2022 assessed value,
+  brought to the valuation date by the index. Not a model; their sales stray by σ 0.20.
+- **Assessed values (2022):** from the 2022 truth, at 97% of it, **regressive** (a parcel worth twice the median is
+  assessed 8% under the rest) and off by σ 0.10, land and building split as Guilford's were. Against qualified house
+  sales brought to the valuation date: a median ratio of 0.84 (the market rose about 12% since), a COD of 18, a PRD of 1.11.
 
 ## Files
 
@@ -44,7 +77,7 @@ it against.
 | `in/building.csv` | 6,864 building cards | `REID`, `BLDG_CARD`, `BLDG_DESC` / `BLDG_TYPE` (01-SFR, 04-CONDO…), `UNITS`, `HEATED_AREA` and `MB_FOOTPRINT_AREA` (sq ft), `STYLE`, `EXTERIOR`, `HEATING`, `AIR_COND`, `YEAR_BUILT`, `EFF_YEAR`, `BEDROOMS`, `BATH_FULL`, `BATH_HALF`; quality three ways, as Guilford writes it: `GRADE` (`B+5  130%`), `GRADE_LETTER` (AA–E), `GRADE_SCORE` (1.3); condition likewise: `CONDITION` (`A  12%`), `CONDITION_CODE`, `CONDITION_SCORE`; and as other systems combine them: `QC_RATING` (`Q3C2`, `Q3/C2`: UAD-style quality and condition in one value, 1 best) and `CDU` (EX … PR) |
 | `in/sales.csv` | 3,804 sales | `REID`, `PIN`, `SALE_DATE`, `DEED_BOOK`, `DEED_PAGE`, `SALE_PRICE`, `SALE_STATUS` (QUALIFIED / UNQUALIFIED), `SALE_TYPE` (IMPROVED / VACANT, some blank), `GRANTOR` and `GRANTEE` (made up, below), and `PRICE_*`: the same prices in other formats (below) |
 | `in/permits.csv` | 2,140 permits | Made up: `PERMIT_NO`, `REID` (the plain parcel ID), `ISSUE_DATE` (2011–2025, year-month-day), `WORK_CLASS` (ALTERATION, REROOF, ADDITION, ELECTRICAL, NEW CONSTRUCTION, DEMOLITION, POOL), `VALUATION` |
-| `in/time_adjustment_index.csv` | 40 quarters | Made up: `period` (`2015-Q1` … `2024-Q4`), `index` (100 in 2015-Q1). A price index as a county might publish one, for trying a model group's own time adjustment (Check sales › Time adjustment › **My own file**). Not Guilford's. |
+| `in/time_adjustment_index.csv` | 40 quarters | `period` (`2015-Q1` … `2024-Q4`), `index` (100 in 2015-Q1). The market's own index, as a county might publish one: every price follows it (above). For trying a model group's own time adjustment (Check sales › Time adjustment › **My own file**). |
 | `in/time_adjustment_index_broken.csv` | 6 rows | The same, with problems planted: a period that isn't one (`spring 2015`), a quarter twice, a negative and a missing level. OAK box should refuse it and say each. |
 | `in/geo/zoning.geojson` | 588 polygons | Zoning districts: `ZONING` (R-5, C-M…), `CLASSIFICATION` (RESIDENTIAL, COMMERCIAL…). In degrees (EPSG:4326), unlike the parcels. |
 | `in/geo/school_districts.shp` | 4 polygons | School board districts: `DISTRICT`. Every parcel is in one. |
@@ -54,6 +87,8 @@ it against.
 | `in/geo/cbd.gpkg` | 1 polygon | Downtown Greensboro, the central business district, in a GeoPackage (layer `cbd`), in degrees. |
 | `in/geo/universities.shp` | 6 points | UNCG, NC A&T and others: `name`. Points, so for distances only. |
 | `in/geo/parks.shp` | 38 polygons | Parks: `name`. No `.prj` (below). |
+| `answers/true_values.csv` | 9,354 parcels | Not to load: the answers. `REID` (plain), `true_market_value` and `true_land_value` on 1 January 2025, `how` (`model`; `assessed` for a parcel with no building card; blank, no value, for one with neither card nor assessed value). Condo units too. |
+| `answers/model.json` | | The model: coefficients, each neighbourhood's effect, the planted effects, the noise and the assessed values' faults. |
 
 ## Problems planted on purpose
 
@@ -69,7 +104,7 @@ it against.
 7. **No sale ID.** Make one from the parcel ID and date.
 8. **Dates with a time**, as Guilford's exports write them: `8/8/2023 15:13`.
 9. **Codes, not yes/no.** Valid and vacant sales are `SALE_STATUS` and `SALE_TYPE` codes, so they need rules.
-   116 unqualified deeds are for $10. A `PIN` column is on the sales too, hyphenated (`7864-34-8966`), unlike the
+   127 unqualified deeds are for $10. A `PIN` column is on the sales too, hyphenated (`7864-34-8966`), unlike the
    parcel file's `PIN_PLUS_EXT` (`7864348966-000`).
 10. **Land in acres** (`TOTAL_ACRES`), building area in square feet.
 11. **Prices written every which way.** The `PRICE_*` columns are `SALE_PRICE` again, as exports write it:
@@ -110,6 +145,6 @@ it against.
     sets them aside once the Deeds step names the deed.
 17. **Buyers and sellers, made up.** `GRANTOR` (seller) and `GRANTEE` (buyer), as a recorder writes them: SURNAME
     GIVEN in capitals, couples joined with `&` (`SMITH JOHN A & MARY`), companies, banks, the city and family trusts.
-    About 4% are between family, the same surname on both sides (196 sales share one, some by chance); five builders
+    About 4% are between family, the same surname on both sides (204 sales share one, some by chance); five builders
     and investors buy dozens of parcels each. `deed_names.py` makes them (`python deed_names.py` adds them to
     `in/sales.csv` as it is).
