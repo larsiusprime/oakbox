@@ -288,3 +288,27 @@ def test_infinite_variables_are_named_before_the_models_run():
         "ratio in Single family: 1 sales and 2 parcels (used by Trees, MRA)",
         "area in Single family: 0 sales and 1 parcels (used by Trees)",
     ]
+
+
+def test_far_out_variables_and_where_it_stopped():
+    """What a crash can say: variables whose parcels go far past the sales (a log model's prediction overflows there),
+    and the frames it stopped in."""
+    import pandas as pd
+
+    from oakbox.model import _stack, far_out
+
+    sales = pd.DataFrame({"model_group": ["sf"] * 3, "area": [1000.0, 1500.0, 2000.0], "age": [10.0, 20.0, 30.0]})
+    universe = pd.DataFrame(
+        {"model_group": ["sf"] * 4, "area": [1200.0, 900.0, 80_000.0, 1100.0], "age": [5.0, 15.0, 25.0, 40.0]}
+    )
+    assert far_out(sales, universe, "sf", ["area", "age", "missing"]) == [
+        "area: sales 1,000 to 2,000, parcels 900 to 8e+04 (1 parcels far outside)"
+    ]
+
+    def inner():
+        raise ValueError("Input contains infinity")
+
+    try:
+        inner()
+    except ValueError as e:
+        assert _stack(e).endswith("test_model.py:" + str(inner.__code__.co_firstlineno + 1) + " inner")

@@ -866,12 +866,136 @@ def not_finite(sales, universe, settings: dict, groups: dict[str, str], own: dic
     return out
 
 
+def bad_prices(sales, groups: dict[str, str]) -> list[str]:
+    """Prices a model can't learn from, per model group: 0 or below (their log is -infinity), or infinite."""
+    import numpy as np
+    import pandas as pd
+
+    out = []
+    for g, gname in groups.items():
+        rows = sales[sales["model_group"] == g] if "model_group" in sales else sales.iloc[0:0]
+        for f in ("sale_price", "sale_price_time_adj"):
+            if f not in rows:
+                continue
+            col = np.asarray(pd.to_numeric(pd.Series(rows[f]), errors="coerce"), dtype=float)
+            low, inf = int((col <= 0).sum()), int(np.isinf(col).sum())
+            if low:
+                out.append(f"{f} in {gname}: {low:,} sales at 0 or below (a log price makes them -infinity)")
+            if inf:
+                out.append(f"{f} in {gname}: {inf:,} sales infinite")
+    return out
+
+
+def far_out(sales, universe, group: str, variables: list[str], keep: int = 4) -> list[str]:
+    """Variables whose parcels reach far beyond the group's sales (10 times the sales' spread past their edge): where a
+    model predicting on log price overflows to infinity. Furthest first."""
+    import numpy as np
+    import pandas as pd
+
+    def col(df, v):
+        rows = df[df["model_group"] == group] if "model_group" in df else df
+        x = np.asarray(pd.to_numeric(pd.Series(rows[v]), errors="coerce"), dtype=float)
+        return x[np.isfinite(x)]
+
+    found = []
+    for v in variables:
+        if v not in sales or v not in universe or sales[v].dtype == bool:
+            continue
+        s, u = col(sales, v), col(universe, v)
+        if not len(s) or not len(u):
+            continue
+        spread = max(float(s.max() - s.min()), 1e-9)
+        past = max(float(u.max() - s.max()), float(s.min() - u.min())) / spread
+        if past > 10:
+            n = int(((u > s.max() + 10 * spread) | (u < s.min() - 10 * spread)).sum())
+            found.append(
+                (
+                    past,
+                    f"{v}: sales {s.min():,.4g} to {s.max():,.4g}, parcels {u.min():,.4g} to {u.max():,.4g}"
+                    f" ({n:,} parcels far outside)",
+                )
+            )
+    return [text for _, text in sorted(found, reverse=True)[:keep]]
+
+
+def _stack(e: BaseException, keep: int = 2) -> str:
+    """Where it stopped: the last frame in OpenAVMKit (what it was doing) and the last few below it, in a library
+    ("model_runner.py:1365 run_one_model › validation.py:133 _assert_all_finite")."""
+    import traceback
+
+    frames = traceback.extract_tb(e.__traceback__)
+
+    def at(f: traceback.FrameSummary) -> str:
+        return f"{Path(f.filename).name}:{f.lineno} {f.name}"
+
+    engine = [i for i, f in enumerate(frames) if "openavmkit" in f.filename.replace("\\", "/")]
+    if not engine:
+        return " › ".join(at(f) for f in frames[-keep - 1 :])
+    last = engine[-1]
+    below = frames[last + 1 :][-keep:]
+    skipped = len(frames) - last - 1 - len(below)
+    return " › ".join([f"OpenAVMKit {at(frames[last])}", *(["…"] if skipped else []), *(at(f) for f in below)])
+
+
 def _infinite_error(found: list[str]) -> str:
     return (
         "Some variables have infinite values, which no model can take: "
         + "; ".join(found)
         + ". Take them out of the variable lists (Variables), or see where they come from in Data."
     )
+
+
+def _crashed(
+    e: Exception, project, pdir: Path, at: dict[str, str], sup, settings: dict, gnames: dict[str, str], own: dict
+) -> Exception:
+    """OpenAVMKit's error, with what can be said about it: the model group and model it was training, its variable
+    list, what in the data could have caused it (infinite variables, prices a log can't take), and where in the code
+    it stopped."""
+    from oakbox import varlists
+
+    said = [str(e).rstrip(".") + "."]
+    g, key = at.get("group"), at.get("model")
+    if g:
+        entry = next((x for x in group_models(project, pdir, g) if x.key == key), None)
+        engine = own.get(g, {}).get(key or "") or ENGINES.get(key or "", (key,))[0]
+        lst = next((x for x in varlists.lists(project, pdir) if entry and x.id == entry.list_id), None)
+        listed = f', variable list "{lst.name}" ({len(lst.variables)} variables)' if lst else ""
+        import traceback
+
+        if any("ensemble" in f.name for f in traceback.extract_tb(e.__traceback__)):
+            said.append(f"While combining {gnames.get(g, g)}'s models into the ensemble, after {engine}.")
+        else:
+            said.append(f"While training {engine} on {gnames.get(g, g)}{listed}.")
+    scope = {g: gnames[g]} if g in gnames else gnames
+    if "infinity" in str(e) or "too large" in str(e) or "NaN" in str(e):
+        found = not_finite(sup.sales, sup.universe, settings, scope, own) + bad_prices(sup.sales, scope)
+        if found:
+            said.append("What could cause it: " + "; ".join(found) + ".")
+        else:
+            said.append("No variable or price is infinite as prepared, so the model made one while training.")
+            # Most often a prediction that overflowed: a log-price model asked about parcels far outside its sales.
+            ivs = (
+                (settings.get("modeling", {}).get("models", {}).get("main", {}).get(g or "") or {}).get(key or "") or {}
+            ).get("ind_vars") or []
+            if isinstance(ivs, str) and ivs.startswith("$$variable_lists."):
+                ivs = settings.get("variable_lists", {}).get(ivs.split(".", 1)[1], [])
+            far = far_out(sup.sales, sup.universe, g, list(ivs)) if g and isinstance(ivs, list) else []
+            if far:
+                said.append(
+                    "Likely a prediction that overflowed, for parcels far outside what its sales cover: "
+                    + "; ".join(far)
+                    + ". Take the variable out of the list, or leave those parcels out of the group."
+                )
+    said.append(f"Stopped in {_stack(e)}.")
+    # The whole traceback, for anyone who needs more than the message.
+    import traceback
+
+    log = pdir / "out" / "oakbox" / "model_error.txt"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("".join(traceback.format_exception(e)), encoding="utf-8")
+    said.append(f"The full traceback is in {log.relative_to(pdir)}.")
+    # Shown as "<its own type>: <all of this>", as any error is.
+    return type(type(e).__name__, (Exception,), {})(" ".join(said))
 
 
 def run(project_id: str) -> None:
@@ -901,10 +1025,13 @@ def run(project_id: str) -> None:
     outside = tuple(_outside(project, pdir))
     t0 = time.time()
 
+    at: dict[str, str] = {}  # the group and model training now: said if it stops
+
     def inside(e) -> None:
         # "model:<group>:<model>": which group the models are on, as the step's fraction.
         parts = (e.step or "").split(":")
         if len(parts) == 3 and parts[0] == "model" and parts[1] in groups:
+            at.update(group=parts[1], model=parts[2])
             done = groups.index(parts[1]) / max(len(groups), 1)
             name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
             engine = own.get(parts[1], {}).get(parts[2]) or ENGINES.get(parts[2], (parts[2],))[0]
@@ -936,12 +1063,8 @@ def run(project_id: str) -> None:
                 run_vacant=False,
                 run_ensemble=True,
             )
-        except ValueError as e:
-            if "infinity" not in str(e) and "too large" not in str(e):
-                raise
-            # Made during training (a ratio, a log): what the data holds still says where to look, if anything.
-            found = not_finite(sup.sales, sup.universe, settings, gnames, own)
-            raise ValueError(f"{e} " + (_infinite_error(found) if found else "No variable has one as prepared.")) from e
+        except Exception as e:
+            raise _crashed(e, project, pdir, at, sup, settings, gnames, own) from e
     steps.emit(step="receipt", fraction=0.97, message="Counting")
     from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
 
