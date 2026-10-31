@@ -17,7 +17,7 @@ import { FieldsTab } from "./FieldsWizard";
 import { ModelGroupsTab } from "./ModelGroups";
 import { ValuesTab } from "./ModelValues";
 
-export const TABS = ["metadata", "files", "fields", "bring", "groups", "sales", "check", "values"] as const;
+export const TABS = ["metadata", "fields", "bring", "groups", "sales", "check", "values"] as const;
 export type TabId = (typeof TABS)[number];
 const PLACEHOLDERS = ["later-1"] as const;
 
@@ -55,22 +55,20 @@ function ProjectView({
   const projectId = project.id;
   // A project opens on the Data wizard, where its files are added and described (SPEC F3d).
   useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
-  // The Input files tab (and each file's own fields) is out of the flow for now: its links open the Data wizard.
   const accepted = useAccepted(projectId);
   const grouped = useStep("assemble", projectId).data?.accepted ?? false;
   const checked = useSalesAccepted(projectId);
-  const selected =
-    tab === "files" || !tab
-      ? "fields"
-      : tab === "groups" && !accepted
-        ? "bring"
-        : tab === "sales" && !grouped
-          ? accepted
-            ? "groups"
-            : "bring"
-          : (tab === "values" || tab === "check") && !checked
-            ? "sales"
-            : tab;
+  const selected = !tab
+    ? "fields"
+    : tab === "groups" && !accepted
+      ? "bring"
+      : tab === "sales" && !grouped
+        ? accepted
+          ? "groups"
+          : "bring"
+        : (tab === "values" || tab === "check") && !checked
+          ? "sales"
+          : tab;
   const locked = [
     ...PLACEHOLDERS,
     ...(accepted ? [] : ["groups"]),

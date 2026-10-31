@@ -29,7 +29,7 @@ import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { band } from "../lib/format";
 import { t } from "../strings";
-import { AddFile } from "./InputFiles";
+import { AddFile } from "./AddFile";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { CondosLink } from "./Units";
 import type { Mutate } from "./wizardChange";

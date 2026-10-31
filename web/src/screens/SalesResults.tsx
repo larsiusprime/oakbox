@@ -46,7 +46,7 @@ export function SalesResult({
       {view.stale && <p className="wiz-warn">{s.stale}</p>}
       <div className="cs-meter">
         <span className="wiz-ok">{s.meter(r.used, r.set_aside)}</span>
-        <span className="wiz-from">{t.bringIn.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+        <span className="wiz-from">{t.step.ran(when(r.ran_at), r.seconds, r.engine)}</span>
       </div>
       <section className="cs-step">
         <h3 className="wiz-group">{s.funnel.title}</h3>
@@ -289,7 +289,7 @@ export function TimePreviewPanel({ projectId }: { projectId: string }) {
         <RunProgress job={v.job} lastSeconds={result?.seconds ?? null} />
       ) : v.status === "failed" ? (
         <p className="error" role="alert">
-          {t.bringIn.failed} <span className="mono">{v.job?.error}</span>{" "}
+          {t.step.failed} <span className="mono">{v.job?.error}</span>{" "}
           <Button className="wiz-link" isDisabled={run.isPending} onPress={() => run.mutate()}>
             {s.time.previewAgain}
           </Button>

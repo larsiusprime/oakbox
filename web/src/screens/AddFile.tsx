@@ -1,62 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, Plus } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { Button, Label, Radio, RadioGroup } from "react-aria-components";
-import { api, type FileCheck, type Project, type ProjectDetail, unwrap } from "../api/client";
+import { api, type FileCheck, type Project, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
 import { TipOn } from "../components/Tip";
-import { desktop, useCanPickFile } from "../desktop";
 import { size } from "../lib/format";
-import { useAddFileRequest } from "../menu";
 import { t } from "../strings";
-import { InputFileList } from "./InputFileList";
-
-/** F3: the Input files tab, the project's data.load entries (SPEC §3.0). */
-export function InputFilesTab({ detail }: { detail: ProjectDetail }) {
-  const f = t.inputFiles;
-  const { project, files } = detail;
-  const canPick = useCanPickFile();
-  // The file picker drives adding: nothing opens until a file is picked (SPEC F2).
-  const [picked, setPicked] = useState<string | null>(null);
-  const pick = async () => {
-    const path = await desktop.pickFile();
-    if (path) setPicked(path);
-  };
-  useAddFileRequest(() => void pick()); // Project → Add a file… (SPEC §3.14)
-  const addButton = canPick ? (
-    <Button className="button" onPress={() => void pick()}>
-      <Plus aria-hidden="true" size="1em" />
-      {f.add}
-    </Button>
-  ) : (
-    <TipOn text={f.needsWindow}>
-      <Button className="button" isDisabled>
-        <Plus aria-hidden="true" size="1em" />
-        {f.add}
-      </Button>
-    </TipOn>
-  );
-  return (
-    <div className="input-files">
-      {files.length > 0 && picked === null && <div className="tab-actions">{addButton}</div>}
-      {picked !== null && (
-        <AddFile
-          project={project}
-          path={picked}
-          onBrowse={() => void pick()}
-          onDone={() => setPicked(null)}
-        />
-      )}
-      {files.length === 0 && picked === null && (
-        <div className="tab-empty">
-          <p className="empty">{f.none}</p>
-          {addButton}
-        </div>
-      )}
-      {files.length > 0 && <InputFileList project={project} files={files} />}
-    </div>
-  );
-}
 
 /** Pick-then-add (SPEC F2), also used inside the Data wizard (F3d), which learns the new entry's name. */
 export function AddFile(props: {

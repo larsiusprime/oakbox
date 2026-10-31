@@ -95,7 +95,6 @@ STEPS: list[Step] = [
 ]
 STEP_KEYS = [s.key for s in STEPS]
 PARENTS = {s.parent for s in STEPS if s.parent}
-SALES_FIELDS = {f for s in STEPS if s.sales for f in s.fields}
 # The "big five" a model needs: building size is required; land size comes from the shapes when
 # missing; age is flagged when missing; quality and condition are nice to have.
 REQUIRED = ["bldg_area_finished_sqft"]

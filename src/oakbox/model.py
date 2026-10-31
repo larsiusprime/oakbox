@@ -44,7 +44,6 @@ ENGINES: dict[str, tuple[str, str]] = {
 }
 CHOOSE_FOR_ME = ["lightgbm", "mra", "local_area"]
 TREES = {"lightgbm", "xgboost", "catboost"}
-LINEAR = {"mra", "multi_mra", "gwr"}
 LOGGED = {"mra", "multi_mra"}
 
 LOCATION = ["latitude_norm", "longitude_norm", "polar_radius", "polar_angle"]
@@ -422,7 +421,6 @@ def _name(model: str) -> str:
 # OpenAVMKit's benchmark columns, as each table shows them.
 IAAO = ("utility_score", "count_univ", "count_sales", "median_ratio", "cod", "prd", "prb", "vei", "vei_sig", "chd")
 IAAO_TRIMMED = ("count_trim", "median_ratio_trim", "cod_trim", "prd_trim", "prb_trim", "vei_trim", "vei_sig_trim")
-TIMINGS = ("total", "param", "train", "test", "univ", "chd")
 ACADEMIC = {
     "count": "count",
     "MAPE": "mape",

@@ -1,6 +1,5 @@
 /** Every user-facing string lives here (SPEC D13), so a missing key is a type error. */
 export const t = {
-  appName: { strong: "OAK", light: "box" },
   appTitle: "OAK box",
   tagline: "OpenAVMKit in a box",
 
@@ -55,7 +54,6 @@ export const t = {
   inputFiles: {
     none: "No input files yet.",
     add: "Add a file",
-    needsWindow: "Adding a file needs the file picker, which is only in the OAK box window.",
     path: "File",
     browse: "Browse…",
     cancel: "Cancel",
@@ -85,76 +83,11 @@ export const t = {
       actions: "Actions",
     },
     noFields: "None yet",
-    fieldCount: (loaded: number, of: number) => `${loaded} of ${of}`,
-    chooseFields: "Choose fields",
-    missingFile: (filename: string) => `${filename} is missing from the project folder.`,
     yes: "Yes",
     no: "No",
-    showFile: (filename: string) => `Show ${filename} in its folder`,
-    rename: "Rename",
     newName: (name: string) => `New name for ${name}`,
-    nameRules: "Use lowercase letters, digits and underscores, starting with a letter.",
-    nameTaken: (name: string) => `There's already a file called ${name}.`,
     save: "Save",
     remove: "Remove",
-    removeTitle: (name: string) => `Remove ${name} from the project?`,
-    alsoTrash: (filename: string) => `Also move ${filename} to the Recycle Bin`,
-    removeConfirm: "Remove",
-  },
-
-  fields: {
-    back: "Input files",
-    summary: (filename: string, format: string, size: string, rows: number | null) =>
-      [filename, format, size, rows === null ? null : `${rows.toLocaleString()} rows`]
-        .filter(Boolean)
-        .join(" · "),
-    filter: "Filter columns",
-    show: "Show",
-    all: (n: number) => `All ${n}`,
-    loaded: (n: number) => `Loaded ${n}`,
-    columns: {
-      load: "Load",
-      column: "Column",
-      inFile: "In file",
-      samples: "Sample values",
-      field: "Field",
-      type: "Type",
-      extra: "Format or blanks",
-    },
-    otherGroup: "other",
-    loadColumn: (column: string) => `Load ${column}`,
-    fieldFor: (column: string) => `Field for ${column}`,
-    typeFor: (column: string) => `Type for ${column}`,
-    formatFor: (column: string) => `Date format for ${column}`,
-    blanksFor: (column: string) => `Blank values in ${column}`,
-    custom: "Custom…",
-    customName: (column: string) => `Custom field name for ${column}`,
-    backToList: "Pick from the list",
-    showList: "Show the list",
-    kinds: { text: "text", number: "number", "yes/no": "yes/no", date: "date", geometry: "geometry" },
-    types: {
-      asis: "As in file",
-      string: "Text",
-      float: "Number",
-      int: "Whole number",
-      bool: "Yes/No",
-      datetime: "Date",
-    },
-    blanks: { na_false: "Blank = No", na_true: "Blank = Yes" },
-    yesValues:
-      "Yes: true, t, 1, y, yes. No: false, f, 0, n, no. Blank: empty, none, null, na, n/a, -, unknown. Any other text counts as Yes.",
-    geometry: "always loaded",
-    notInFile: "Not in the file",
-    needsName: "Give the field a name.",
-    badName: "Use lowercase letters, digits and underscores, starting with a letter.",
-    clash: (field: string) => `Another column is already loaded as ${field}.`,
-    needsFormat: "Choose the date format.",
-    derived: (field: string) => `OpenAVMKit computes ${field} itself, so it will overwrite this column.`,
-    reserved: (field: string) =>
-      `OpenAVMKit keeps ${field} for a value it computes. Load this column under another name.`,
-    unreadable: "These samples don't read with this format.",
-    noMatches: "No columns match.",
-    reading: "Reading the file…",
   },
 
   about: {
@@ -212,7 +145,6 @@ export const t = {
     loading: "Reading the files…",
     stepOf: (n: number, of: number) => `Step ${n} of ${of}`,
     back: "‹ Back",
-    next: "Next ›",
     toBringIn: "Bring in data ›",
     // Above the button bar while Next is greyed (it still answers a click).
     // A few are named, so it's clear what Next waits for ("2 things left: Pick the valid sale; Pick the vacant sale").
@@ -634,7 +566,6 @@ export const t = {
         "Fields you untick are left out of the parcel data. With none ticked, nothing is downloaded.",
       key: "API key",
       keySaved: (end: string) => `saved on this computer, not in the project (…${end})`,
-      keyNone: "None yet: get one free from the Census Bureau",
       keyGet: "Get a key",
       keyPlaceholder: "Paste your key",
       keySave: "Save",
@@ -1160,6 +1091,26 @@ export const t = {
   },
 
   // Step 1, Bring in data: OpenAVMKit loads and joins the files into the parcel universe and the sales record.
+  // What every step that runs the engine says about its run.
+  step: {
+    next: "Next ›",
+    notRun: "Not run yet",
+    running: (elapsed: string, left: string | null) =>
+      `Running · ${elapsed} so far${left ? `, about ${left} left` : ""}`,
+    stop: "Stop",
+    stopped: "Stopped before it finished. The last receipt, if there is one, is unchanged.",
+    alive: (inStep: string) => `working · ${inStep} on this step`,
+    silent: (quiet: string) =>
+      `No word from the run for ${quiet}: it may be stuck. Stop it, or wait a little longer.`,
+    starting: "Starting Python and OpenAVMKit (it can take a few seconds)",
+    skip: "Skip this step",
+    skipping: "Skipping…",
+    skipNote:
+      "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
+    failed: "It stopped with an error:",
+    ran: (when: string, seconds: number, engine: string) =>
+      `ran ${when} · ${seconds.toLocaleString()} seconds · OpenAVMKit ${engine}`,
+  },
   bringIn: {
     kicker: "Step 1 of 5 · after Data",
     steps: {
@@ -1185,29 +1136,13 @@ export const t = {
     layers: "Map layers",
     fields: (n: number) =>
       `${n.toLocaleString()} fields from Data, and what OpenAVMKit works out: coordinates, ages, distances, shape measures`,
-    notRun: "Not run yet",
     run: "Bring in data ›",
     runAgain: "Run again",
-    running: (elapsed: string, left: string | null) =>
-      `Running · ${elapsed} so far${left ? `, about ${left} left` : ""}`,
-    stop: "Stop",
-    stopped: "Stopped before it finished. The last receipt, if there is one, is unchanged.",
-    alive: (inStep: string) => `working · ${inStep} on this step`,
-    silent: (quiet: string) =>
-      `No word from the run for ${quiet}: it may be stuck. Stop it, or wait a little longer.`,
-    starting: "Starting Python and OpenAVMKit (it can take a few seconds)",
-    skip: "Skip this step",
-    skipping: "Skipping…",
-    skipNote:
-      "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
-    failed: "It stopped with an error:",
     failedLog: "The full log is in out/oakbox/bring_in.log in the project folder.",
     stale: "Out of date: Data changed since this ran:",
     staleNote: "This receipt is from the last run, greyed until it runs again.",
     meter: (parcels: number, sales: number) =>
       `✓ ${parcels.toLocaleString()} parcels in the parcel universe and ${sales.toLocaleString()} valid sales in the sales record`,
-    ran: (when: string, seconds: number, engine: string) =>
-      `ran ${when} · ${seconds.toLocaleString()} seconds · OpenAVMKit ${engine}`,
     universe: "Parcel universe",
     sales: "Sales record",
     seeThem: "see them",
@@ -1493,7 +1428,6 @@ export const t = {
     notices: (n: number) => `Before you run: ${n === 1 ? "1 thing" : `${n} things`} to look at`,
     toData: "Data…",
     links: { sales: "Data › Sales…", condos: "Data › Condo units…" } as Record<string, string>,
-    backToReceipt: "Back to the receipt",
     run: "Check sales",
     runAgain: "Check sales again",
     runNote:
@@ -1524,10 +1458,7 @@ export const t = {
       coarser: "It goes coarser (to years) where most periods have fewer than 5 sales.",
       sales: "Sales in the window",
       last: "Found last time",
-      notYet: "—",
       perYear: (p: number) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}% a year`,
-      chartSub: "How prices moved, per model group (first period = 1).",
-      lastRun: "Last run",
       from: "Time adjustment from",
       ownSales: "its own sales",
       borrowFrom: (name: string) => `same as ${name}`,
@@ -1639,8 +1570,6 @@ export const t = {
       "Out of date: something changed since this ran (a call, a keep or an exclusion, or an earlier step).",
     meter: (used: number, aside: number) =>
       `✓ ${used.toLocaleString()} sales for modeling, ${aside.toLocaleString()} set aside for you to look at`,
-    lookAt: (n: number) => `Look at the ${n.toLocaleString()} sales set aside ›`,
-    changeCalls: "Change the calls…",
     looksRight: "Looks right › Check my values",
     toValues: "Check my values ›",
     patterns: {
@@ -2236,7 +2165,6 @@ export const t = {
         `${n.toLocaleString()} ${n === 1 ? "variable fails" : "variables fail"} in this model group.`,
       pass: "pass",
       fail: "fail",
-      notTested: "not tested",
       dropped: "dropped",
       level: (variable: string, level: string) => `${variable}: ${level}`,
       tests: {

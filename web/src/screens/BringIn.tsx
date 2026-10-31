@@ -72,7 +72,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
   }));
   const prev = BI_STEPS[BI_STEPS.indexOf(current) - 1];
   const back = prev ? () => go(prev) : null;
-  const nextOf = (key: BiStep) => ({ label: t.wizard.next, onPress: () => go(key) });
+  const nextOf = (key: BiStep) => ({ label: t.step.next, onPress: () => go(key) });
   const staleNote = v.stale && r ? <p className="wiz-warn">{b.staleNote}</p> : null;
 
   return (
@@ -126,11 +126,11 @@ export function BringInTab({ projectId }: { projectId: string }) {
               <>
                 {v.status === "failed" && v.job?.error && (
                   <div className="bi-warn" role="alert">
-                    <b>{b.failed}</b> <span className="mono">{v.job.error}</span>
+                    <b>{t.step.failed}</b> <span className="mono">{v.job.error}</span>
                     <div className="wiz-from">{b.failedLog}</div>
                   </div>
                 )}
-                {v.status === "stopped" && <p className="wiz-from">{b.stopped}</p>}
+                {v.status === "stopped" && <p className="wiz-from">{t.step.stopped}</p>}
                 {v.blocked.map((x) => (
                   <p key={x} className="wiz-warn">
                     {x}
@@ -144,10 +144,10 @@ export function BringInTab({ projectId }: { projectId: string }) {
                 {fresh && r && (
                   <p className="wiz-ok">
                     {b.meter(r.universe.rows, r.sales.rows)}{" "}
-                    <span className="wiz-from">{b.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+                    <span className="wiz-from">{t.step.ran(when(r.ran_at), r.seconds, r.engine)}</span>
                   </p>
                 )}
-                {!r && <p className="wiz-from">{b.notRun}</p>}
+                {!r && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
             {(act.error ?? skip.error) && (
@@ -161,7 +161,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
             extra={fresh && !running ? [{ label: b.runAgain, onPress: runIt }] : []}
             next={
               running
-                ? { label: b.stop, onPress: () => act.mutate("stop"), primary: false }
+                ? { label: t.step.stop, onPress: () => act.mutate("stop"), primary: false }
                 : fresh
                   ? nextOf("universe")
                   : {

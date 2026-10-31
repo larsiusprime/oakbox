@@ -288,7 +288,7 @@ export function TestStep({
 }
 
 /** OpenAVMKit's pick per model group beside what's ticked, and its weighted scores. */
-export function Verdict({
+export function WhatToKeep({
   view,
   setup,
   set,

@@ -186,7 +186,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
             )}
           </StepBody>
           <StepFoot
-            next={v.start ? { label: t.wizard.next, onPress: () => go("build") } : null}
+            next={v.start ? { label: t.step.next, onPress: () => go("build") } : null}
             note={v.start ? null : g.pickStart}
           />
         </>
@@ -204,7 +204,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               edit={() => go("build")}
             />
           </StepBody>
-          <StepFoot back={back} next={{ label: t.wizard.next, onPress: () => go("write") }} />
+          <StepFoot back={back} next={{ label: t.step.next, onPress: () => go("write") }} />
         </>
       )}
       {current === "write" && (
@@ -251,7 +251,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               running
                 ? { label: g.run.stop, onPress: () => act.mutate("stop"), primary: false }
                 : fresh
-                  ? { label: t.wizard.next, onPress: () => go("results") }
+                  ? { label: t.step.next, onPress: () => go("results") }
                   : {
                       label: a.receipt ? g.run.runAgain : g.run.run,
                       disabled: a.blocked.length > 0 || act.isPending,
@@ -663,7 +663,7 @@ function Builder({
         back={back}
         note={dirty ? g.unsavedNote : null}
         next={{
-          label: dirty ? g.saveNext : t.wizard.next,
+          label: dirty ? g.saveNext : t.step.next,
           disabled: draft.length === 0 || save.isPending,
           onPress: () => (dirty ? save.mutate(draft, { onSuccess: onward }) : onward()),
         }}

@@ -125,11 +125,6 @@ def update_base(project: Project, in_dir: Path, rename: bool = False) -> None:
     project.wizard.base = base.name if base else None
 
 
-def renamed(project: Project, old: str, new: str) -> None:
-    if project.wizard.base == old:
-        project.wizard.base = new
-
-
 def view(project: Project, in_dir: Path) -> Wizard:
     files = Files(project, in_dir)
     by_key = {d.key: d for d in fields.dictionary(project.jurisdiction)}

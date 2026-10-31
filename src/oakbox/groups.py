@@ -610,10 +610,6 @@ def _new_id(name: str, groups: list[ModelGroup]) -> str:
     return out
 
 
-def new_id(name: str, groups: list[ModelGroup]) -> str:
-    return _new_id(name, groups)
-
-
 # ---------- The tab's state ----------
 
 

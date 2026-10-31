@@ -15,7 +15,6 @@ from oakbox.wizard.base import RENAMED, YES
 from oakbox.wizard.condos import set_condos, set_unit_field, set_units, unit_ids, units_view
 from oakbox.wizard.core import (
     confirm,
-    renamed,
     repeat_rows,
     set_field,
     set_file,
@@ -82,7 +81,6 @@ __all__ = [
     "Reconcile",
     "reconcile",
     "RENAMED",
-    "renamed",
     "repeat_rows",
     "RepeatRows",
     "rule_complete",

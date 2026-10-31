@@ -58,7 +58,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D42 | Help on hover | Explanations go in hover tooltips (also shown on keyboard focus), not in lines of text on the screen. Screens carry only labels and what the user needs to act. Applies to new screens and to screens as they are revised. |
 | D43 | Dense by default | Compact, information-dense presentation, after mid-2000s desktop software (Mac OS X Tiger): 14 px text, about 24 px controls and table rows, a light grey window, softly rounded panels and tabs, buttons with a classic two-step bevel (two rings of light and shadow, swapped when pressed; grey, blue for the main action, red for danger; hovered icon buttons share it); every dropdown, pick-list or searchable, is a classic combo box: a sunken white field with a bevelled arrow button inside its right edge, folder tabs that touch, the first flush with the panel, slightly rounded inputs, little padding. Tables keep full outlines: an outer border, a gradient header bar, column lines and row lines, with a blue alternate-row tint. **Comfortable** density (about 36 px controls and rows, same text size) is used automatically on touch screens and can be chosen under View → Density (with the menus, D44); the choice is kept in OAK box's settings. **Built:** touch screens get it automatically (`pointer: coarse`); the setting itself arrives with the menus. Large text scales everything up. |
 | D44 | Native window | The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (pywebview) and hold only what exists (§3.9). Browser mode has no menus; everything in them is also reachable on the page. |
-| D45 | Fields wizard | Fields are chosen in a guided wizard over all of a project's files, one small question at a time (F3d), with the per-file table (F3c) as the Advanced view. Guesses are preselected only on a name match that passes the field's check. |
+| D45 | Fields wizard | Fields are chosen in a guided wizard over all of a project's files, one small question at a time (F3d), (the per-file table, F3c, was the Advanced view until it was removed on 2026-10-31). Guesses are preselected only on a name match that passes the field's check. |
 | D46 | Tables use the width | Tables, charts and other non-text elements use all the width there is (a minimum width, never a maximum); only running text is capped for reading. Every table has faint cell lines and alternate gray rows, and a numbers column's header lines up with its numbers. A cell says a short phrase; the fuller explanation is in a tooltip on an ⓘ (D42), and a column's header isn't repeated in its cells. |
 
 ## 3. What the user sees
@@ -183,11 +183,13 @@ Under the project's name and tax year, everything about a project lives in one t
  |                    [ Show in folder ]                                    |
 ```
 
-**Input files tab:** F2, unchanged in what it does. One line per file (its columns are in F3b). **Add a file** sits at the top right; the add flow opens inline at the top of the tab, above the list. Empty state: "No input files yet." with **Add a file**.
+**Input files tab** (removed 2026-10-31, see F3b): F2, unchanged in what it does. One line per file (its columns are in F3b). **Add a file** sits at the top right; the add flow opens inline at the top of the tab, above the list. Empty state: "No input files yet." with **Add a file**.
 
 **The sample county is removed** (D19): the home screen's sample, the old steps screen (Run, Stop, results), and the code and API behind them, including the M1a settings generator. Projects made from the sample by earlier builds are no longer listed. The CI smoke test changes with it (§8).
 
 #### F3b. The input file list: show, rename, remove
+
+> **Removed 2026-10-31:** the Input files tab, its list (F3b) and the per-file field view (F3c) are gone, with the API only they used (rename, remove, show a file; a file's columns, load, the dictionary, date formats). Files are added and described in the Data wizard (F3d), which keeps F2's add flow.
 
 OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with its `filename` (and `layer`).
 
@@ -238,6 +240,8 @@ OpenAVMKit: each input file is one `data.load` entry, keyed by its name, with it
 - A removed file left in `in/` can be added again later. Its add form shows "Already in the project folder" instead of the copy/move choice (F2).
 
 #### F3c. Choosing a file's fields
+
+> **Removed 2026-10-31** with the Input files tab (see F3b).
 
 OpenAVMKit: an entry loads only the columns listed in its `load`, each renamed to a field and optionally cast:
 
@@ -438,7 +442,7 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 └─────────────────────┴───────────────────────────────────────────────────────────────┘
 ```
 
-- **Layout:** a classic installer wizard. The step list on the left shows done (✓), skipped (–) and the current step, and any step can be clicked. The question is on the right, with Back / I don't have these / Next at the bottom. **Advanced view** goes to the Input files list (F3b), where each file's Choose fields opens F3c.
+- **Layout:** a classic installer wizard. The step list on the left shows done (✓), skipped (–) and the current step, and any step can be clicked. The question is on the right, with Back / I don't have these / Next at the bottom. (**Advanced view**, to the Input files list, went with that tab on 2026-10-31.)
 - **Saving:** each pick saves at once, as in F3c. Next only moves on.
 
 **Step 1: Your files.** One table, one row per data file:

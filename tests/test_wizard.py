@@ -185,8 +185,10 @@ def test_names_say_the_jurisdiction(client, pid):
     w = client.get(f"/api/projects/{pid}/wizard").json()
     jurisdiction = projects.load(pid).jurisdiction
     assert _field(w, "assr_land_value")["name"] == f"{jurisdiction} land value"
-    plain = {f["key"]: f for f in client.get("/api/dictionary").json()}
-    assert plain["assr_land_value"]["name"] == "Assessor's land value"
+    from oakbox import fields
+
+    plain = {f.key: f for f in fields.dictionary()}
+    assert plain["assr_land_value"].name == "Assessor's land value"
 
 
 def test_guesses_come_when_the_file_is_added_after_the_step_is_shown(client, pid):

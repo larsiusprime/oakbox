@@ -1,10 +1,11 @@
-"""F3c Choosing a file's fields (SPEC §3.0): previews, the dictionary, and the entry's load."""
+"""Reading a file's columns (their types, samples and date formats), dates as OpenAVMKit reads them, and its data
+dictionary: what the Data wizard is built on."""
 
 import pandas as pd
 import pytest
-from helpers import NEW, read_settings
+from helpers import NEW
 
-from oakbox import projects
+from oakbox import fields, projects
 
 
 @pytest.fixture
@@ -24,82 +25,32 @@ def pid(client, tmp_path):
     return pid
 
 
-LOAD = {
-    "key": ["PIN", "string"],
-    "sale_price": ["PRICE", "float"],
-    "sale_date": ["SALEDT", "datetime", "%m/%d/%Y"],
-    "is_vacant": ["VAC", "bool", "na_false"],
-}
+def _columns(pid, name, layer=None):
+    return fields.columns(projects.project_dir(pid) / "in" / name, layer)
 
 
-def test_columns_preview_types_samples_and_date_formats(client, pid):
-    r = client.get(f"/api/projects/{pid}/files/cama/columns").json()
-    cols = {c["name"]: c for c in r["columns"]}
-    assert r["rows"] is None and not r["geometry"]  # CSV: no row count without reading it all
-    assert cols["PRICE"]["type"] == "number" and cols["PIN"]["type"] == "text"
-    assert cols["SALEDT"]["samples"] == ["03/14/2025", "11/02/2024"]  # blanks left out
-    assert cols["SALEDT"]["date_format"] == "%m/%d/%Y" and cols["PIN"]["date_format"] is None
-    assert cols["YEAR"]["type"] == "number" and cols["YEAR"]["samples"] == ["1987", "2003"]  # as written
+def test_columns_preview_types_samples_and_date_formats(pid):
+    r = _columns(pid, "cama.csv")
+    cols = {c.name: c for c in r.columns}
+    assert r.rows is None and not r.geometry  # CSV: no row count without reading it all
+    assert cols["PRICE"].type == "number" and cols["PIN"].type == "text"
+    assert cols["SALEDT"].samples == ["03/14/2025", "11/02/2024"]  # blanks left out
+    assert cols["SALEDT"].date_format == "%m/%d/%Y" and cols["PIN"].date_format is None
+    assert cols["YEAR"].type == "number" and cols["YEAR"].samples == ["1987", "2003"]  # as written
 
 
-def test_load_is_written_as_openavmkit_reads_it(client, pid, monkeypatch):
-    assert client.put(f"/api/projects/{pid}/files/cama/load", json={"load": LOAD}).status_code == 200
-    entry = read_settings(pid)["data"]["load"]["cama"]
-    assert entry["load"] == LOAD
-    files = {f["name"]: f for f in client.get(f"/api/projects/{pid}").json()["files"]}
-    assert files["cama"]["fields_loaded"] == 4 and files["cama"]["columns"] == 5
-
-    from openavmkit.data import load_dataframe
-
-    monkeypatch.chdir(projects.project_dir(pid))
-    df = load_dataframe(entry, {})
-    assert df is not None
-    assert {"key", "sale_price", "sale_date", "is_vacant"} <= set(df.columns)  # plus sale_year etc., derived
-    assert df["sale_date"].iloc[0] == pd.Timestamp("2025-03-14")
-    assert df["is_vacant"].tolist() == [True, False, True]  # "Y"/"N" from a CSV (engine/csv-bool)
+def test_date_format_check_reads_like_openavmkit():
+    assert fields.check_dates(["03/14/2025", "2025-03-14"], "%m/%d/%Y").parsed == ["2025-03-14", None]
 
 
-def test_a_bare_column_is_written_as_a_string(client, pid):
-    assert client.put(f"/api/projects/{pid}/files/cama/load", json={"load": {"key": ["PIN"]}}).status_code == 200
-    assert read_settings(pid)["data"]["load"]["cama"]["load"] == {"key": "PIN"}
-
-
-@pytest.mark.parametrize(
-    "load",
-    [
-        {"Sale Price": ["PRICE", "float"]},  # not a valid field name
-        {"sale_date": ["SALEDT", "datetime"]},  # a date needs its format
-        {"is_vacant": ["VAC", "bool"]},  # yes/no needs blank handling
-        {"is_vacant": ["VAC", "bool", "maybe"]},
-        {"sale_price": ["PRICE", "money"]},  # not a type OpenAVMKit casts to
-        {"sale_price": ["PRICE", "float", "%Y"]},  # only dates and yes/no take a third item
-        {"a": ["PIN"], "b": ["PIN"]},  # one column, two fields
-    ],
-)
-def test_incomplete_or_unreadable_loads_are_refused(client, pid, load):
-    assert client.put(f"/api/projects/{pid}/files/cama/load", json={"load": load}).status_code == 422
-    assert "load" not in read_settings(pid)["data"]["load"]["cama"]
-
-
-def test_date_format_check_reads_like_openavmkit(client):
-    r = client.post("/api/date-format", json={"samples": ["03/14/2025", "2025-03-14"], "format": "%m/%d/%Y"})
-    assert r.json()["parsed"] == ["2025-03-14", None]
-
-
-def test_dictionary_offers_openavmkit_fields(client):
-    fields = {f["key"]: f for f in client.get("/api/dictionary").json()}
-    assert fields["sale_price"]["name"] == "Sale price" and fields["sale_price"]["groups"] == ["sale"]
-    offered = {k for k, f in fields.items() if f["offered"]}
+def test_dictionary_offers_openavmkit_fields():
+    found = {f.key: f for f in fields.dictionary()}
+    assert found["sale_price"].name == "Sale price" and found["sale_price"].groups == ["sale"]
+    offered = {k for k, f in found.items() if f.offered}
     assert {"sale_price", "land_area_sqft"} <= offered  # input; either (computed only when missing)
     # derived (always computed), reserved (kept for computed values), and dist_to_* (computed when configured)
     assert not offered & {"model_group", "sale_year", "model_market_value", "osm_is_corner_lot", "dist_to_cbd"}
-    assert fields["model_group"]["source"] == "derived" and fields["model_market_value"]["source"] == "reserved"
-
-
-def test_rename_and_remove_keep_the_load(client, pid):
-    client.put(f"/api/projects/{pid}/files/cama/load", json={"load": LOAD})
-    client.put(f"/api/projects/{pid}/files/cama/name", json={"name": "cama_2026"})
-    assert read_settings(pid)["data"]["load"]["cama_2026"]["load"] == LOAD
+    assert found["model_group"].source == "derived" and found["model_market_value"].source == "reserved"
 
 
 def test_columns_preview_a_geopackage_layer(client, tmp_path):
@@ -112,6 +63,6 @@ def test_columns_preview_a_geopackage_layer(client, tmp_path):
     gdf.to_file(tmp_path / "county.gpkg", layer="roads")
     body = {"path": str(tmp_path / "county.gpkg"), "mode": "copy", "name": "county", "layer": "parcels"}
     assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
-    r = client.get(f"/api/projects/{pid}/files/county/columns").json()
-    assert r["rows"] == 2 and r["geometry"]
-    assert [(c["name"], c["type"]) for c in r["columns"]] == [("PIN", "text"), ("ACRES", "number")]
+    r = _columns(pid, "county.gpkg", "parcels")
+    assert r.rows == 2 and r.geometry
+    assert [(c.name, c.type) for c in r.columns] == [("PIN", "text"), ("ACRES", "number")]

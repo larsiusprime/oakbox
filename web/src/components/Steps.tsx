@@ -166,7 +166,7 @@ export function RunProgress({
   const left = lastSeconds && elapsed < lastSeconds ? lastSeconds - elapsed : null;
   return (
     <div className="bi-card">
-      <h3>{t.bringIn.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
+      <h3>{t.step.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
       <div className="bi-prog">
         <i style={{ width: `${Math.round(100 * fraction)}%` }} />
       </div>
@@ -174,7 +174,7 @@ export function RunProgress({
         {steps.length === 0 && (
           <li className="now">
             <span className="bi-pulse" aria-hidden="true" />
-            {t.bringIn.starting}
+            {t.step.starting}
           </li>
         )}
         {steps.map((x, i) => {
@@ -207,16 +207,14 @@ function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: stri
         </span>
       )}
       <span className={silent ? "wiz-warn" : "bi-alive"}>
-        {silent
-          ? t.bringIn.silent(clock(job.quiet))
-          : t.bringIn.alive(clock(Math.max(0, job.elapsed - since)))}
+        {silent ? t.step.silent(clock(job.quiet)) : t.step.alive(clock(Math.max(0, job.elapsed - since)))}
       </span>
       {job.part && (
         <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>
-          {skipping ? t.bringIn.skipping : t.bringIn.skip}
+          {skipping ? t.step.skipping : t.step.skip}
         </Button>
       )}
-      {job.part && !skipping && <span className="bi-skip-note">{t.bringIn.skipNote}</span>}
+      {job.part && !skipping && <span className="bi-skip-note">{t.step.skipNote}</span>}
     </div>
   );
 }

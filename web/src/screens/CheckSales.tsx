@@ -102,7 +102,7 @@ export function SalesTab({
   const i = CS_STEPS.indexOf(current);
   const prev = CS_STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
-  const onward = { label: t.wizard.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
+  const onward = { label: t.step.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
   const toValues = () => navigate({ name: "project", id: projectId, tab: "check" });
   const kicker = s.kicker;
   const loading = <p className="empty">{setup.error?.message ?? t.project.loading}</p>;
@@ -169,19 +169,19 @@ export function SalesTab({
               <>
                 {v.status === "failed" && v.job?.error && (
                   <div className="bi-warn" role="alert">
-                    <b>{t.bringIn.failed}</b> <span className="mono">{v.job.error}</span>
+                    <b>{t.step.failed}</b> <span className="mono">{v.job.error}</span>
                     <div className="wiz-from">{s.failedLog}</div>
                   </div>
                 )}
-                {v.status === "stopped" && <p className="wiz-from">{t.bringIn.stopped}</p>}
+                {v.status === "stopped" && <p className="wiz-from">{t.step.stopped}</p>}
                 {v.stale && <p className="wiz-warn">{s.stale}</p>}
                 {fresh && r && (
                   <p className="wiz-ok">
                     {s.meter(r.used, r.set_aside)}{" "}
-                    <span className="wiz-from">{t.bringIn.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+                    <span className="wiz-from">{t.step.ran(when(r.ran_at), r.seconds, r.engine)}</span>
                   </p>
                 )}
-                {!r && <p className="wiz-from">{t.bringIn.notRun}</p>}
+                {!r && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
             {errors}
@@ -191,7 +191,7 @@ export function SalesTab({
             extra={fresh && !running ? [{ label: s.runAgain, onPress: runIt }] : []}
             next={
               running
-                ? { label: t.bringIn.stop, onPress: () => act.mutate("stop"), primary: false }
+                ? { label: t.step.stop, onPress: () => act.mutate("stop"), primary: false }
                 : fresh
                   ? onward
                   : { label: r ? s.runAgainNext : s.runNext, disabled: act.isPending, onPress: runIt }

@@ -7,7 +7,7 @@ import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
 export type Route =
   | { name: "home" }
   | { name: "new" }
-  | { name: "project"; id: string; tab?: TabId | null; file?: string | null; step?: string | null };
+  | { name: "project"; id: string; tab?: TabId | null; step?: string | null };
 
 function parseHash(hash: string): Route {
   if (hash === "#/new") return { name: "new" };
@@ -15,25 +15,14 @@ function parseHash(hash: string): Route {
   if (!match?.[1]) return { name: "home" };
   const wanted = match[2];
   const tab = TABS.find((x) => x === wanted) ?? null;
-  // #/projects/<id>/files/<name>: one input file's fields (SPEC F3c). #/projects/<id>/fields/<step>: F3d.
-  return {
-    name: "project",
-    id: match[1],
-    tab,
-    file: tab === "files" ? (match[3] ?? null) : null,
-    step: tab === "fields" ? (match[3] ?? null) : null,
-  };
+  // #/projects/<id>/fields/<step>: a step of the Data wizard (F3d).
+  return { name: "project", id: match[1], tab, step: tab === "fields" ? (match[3] ?? null) : null };
 }
 
 export function navigate(route: Route): void {
   if (route.name === "project") {
-    const file =
-      route.tab === "files" && route.file
-        ? `/${route.file}`
-        : route.tab === "fields" && route.step
-          ? `/${route.step}`
-          : "";
-    window.location.hash = `#/projects/${route.id}${route.tab ? `/${route.tab}` : ""}${file}`;
+    const step = route.tab === "fields" && route.step ? `/${route.step}` : "";
+    window.location.hash = `#/projects/${route.id}${route.tab ? `/${route.tab}` : ""}${step}`;
   } else {
     window.location.hash = route.name === "new" ? "#/new" : "#/";
   }

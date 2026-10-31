@@ -9,9 +9,9 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
-from oakbox import datafiles, fields, projects, wizard
+from oakbox import datafiles, projects, wizard
 from oakbox.datafiles import BaseModel
-from oakbox.routes.common import file_entry, load_project
+from oakbox.routes.common import load_project
 
 router = APIRouter()
 
@@ -30,19 +30,6 @@ class InputFile(BaseModel):
     columns: int | None = Field(
         description="Columns in the file, not counting geometry. None if missing or unreadable."
     )
-
-
-class EntryName(BaseModel):
-    name: str
-
-
-class EntryLoad(BaseModel):
-    load: dict[str, list[str]]
-
-
-class DateFormatCheck(BaseModel):
-    samples: list[str]
-    format: str
 
 
 class ProjectDetail(BaseModel):
@@ -222,88 +209,6 @@ def add_file(project_id: str, body: AddFile) -> projects.Project:
     projects.save(project)
     projects.write_settings(project)
     return project
-
-
-@router.put("/api/projects/{project_id}/files/{name}/name")
-def rename_file(project_id: str, name: str, body: EntryName) -> None:
-    """Rename a data.load entry; the file keeps its name (SPEC §3.0 F3b)."""
-    project = load_project(project_id)
-    try:
-        datafiles.rename(project.files, name, body.name.strip())
-        wizard.renamed(project, name, body.name.strip())
-    except LookupError as e:
-        raise HTTPException(404, "No such input file") from e
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
-    projects.write_settings(project)
-
-
-@router.delete("/api/projects/{project_id}/files/{name}")
-def remove_file(project_id: str, name: str, trash: bool = False) -> None:
-    """Drop a data.load entry; with trash, its file goes to the Recycle Bin (SPEC §3.0 F3b)."""
-    project = load_project(project_id)
-    try:
-        datafiles.remove(projects.project_dir(project_id) / "in", project.files, name, trash)
-    except LookupError as e:
-        raise HTTPException(404, "No such input file") from e
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    except OSError as e:
-        raise HTTPException(500, f"Couldn't move the file to the Recycle Bin: {e}") from e
-    wizard.update_base(project, projects.project_dir(project_id) / "in")
-    projects.save(project)
-    projects.write_settings(project)
-
-
-@router.post("/api/projects/{project_id}/files/{name}/show")
-def show_file(project_id: str, name: str) -> None:
-    """Show an input file in the file manager (SPEC §3.0 F3b)."""
-    entry = file_entry(load_project(project_id), name)
-    try:
-        projects.show_file(projects.project_dir(project_id) / "in" / entry.filename)
-    except OSError as e:
-        raise HTTPException(500, str(e)) from e
-
-
-@router.get("/api/projects/{project_id}/files/{name}/columns")
-def file_columns(project_id: str, name: str) -> fields.FileColumns:
-    """The file's columns, their types and sample values, read without changing it (SPEC §3.0 F3c)."""
-    entry = file_entry(load_project(project_id), name)
-    path = projects.project_dir(project_id) / "in" / entry.filename
-    if not path.is_file():
-        raise HTTPException(404, f"{entry.filename} is missing from the project folder.")
-    try:
-        return fields.columns(path, entry.layer)
-    except Exception as e:  # noqa: BLE001 - a damaged file: say so in the view
-        raise HTTPException(422, f"Couldn't read {entry.filename}: {e}") from e
-
-
-@router.put("/api/projects/{project_id}/files/{name}/load")
-def set_load(project_id: str, name: str, body: EntryLoad) -> None:
-    """Replace the entry's load: field -> [column, type, extra] (SPEC §3.0 F3c)."""
-    project = load_project(project_id)
-    try:
-        fields.set_load(file_entry(project, name), body.load)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
-    projects.write_settings(project)
-
-
-@router.get("/api/dictionary")
-def dictionary(jurisdiction: str = "") -> list[fields.DictionaryField]:
-    """OpenAVMKit's data dictionary: the fields a column can be loaded into (SPEC §3.0 F3c).
-
-    With the project's jurisdiction, names say it where OpenAVMKit writes "{jurisdiction}".
-    """
-    return fields.dictionary(jurisdiction)
-
-
-@router.post("/api/date-format")
-def date_format(body: DateFormatCheck) -> fields.DateCheck:
-    """Read sample values with a date format, as OpenAVMKit would (SPEC §3.0 F3c)."""
-    return fields.check_dates(body.samples, body.format)
 
 
 @router.get("/api/projects/{project_id}")

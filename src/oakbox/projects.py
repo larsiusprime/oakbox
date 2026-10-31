@@ -514,9 +514,6 @@ def _condos(project: Project, out: dict) -> None:
     }
 
 
-PERMIT_FIELDS = ("date", "permit_type", "is_teardown", "is_renovation", "renovation_num", "renovation_txt")
-
-
 def permits_file(project: Project) -> DataFile | None:
     return next((f for f in project.files if f.holds == "permits"), None)
 

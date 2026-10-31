@@ -99,7 +99,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const prev = STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
   const toValues = () => navigate({ name: "project", id: projectId, tab: "values" });
-  const onward = { label: t.wizard.next, onPress: () => go(STEPS[i + 1] ?? current) };
+  const onward = { label: t.step.next, onPress: () => go(STEPS[i + 1] ?? current) };
   const u = setup.data;
   const set = (body: RatioPatch) => change.mutate(body);
   const errors = [change.error, act.error, setup.error].map(
@@ -151,12 +151,12 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
               <>
                 {v.status === "failed" && v.job?.error && (
                   <p className="error" role="alert">
-                    {t.bringIn.failed} <span className="mono">{v.job.error}</span>
+                    {t.step.failed} <span className="mono">{v.job.error}</span>
                   </p>
                 )}
                 {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
                 {fresh && rc && <p className="wiz-ok">{r.run.ran(when(rc.ran_at), rc.seconds)}</p>}
-                {!rc && <p className="wiz-from">{t.bringIn.notRun}</p>}
+                {!rc && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
             {errors}
@@ -166,7 +166,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
             extra={fresh && !running ? [{ label: r.run.again, onPress: runIt }] : []}
             next={
               running
-                ? { label: t.bringIn.stop, onPress: () => act.mutate("stop"), primary: false }
+                ? { label: t.step.stop, onPress: () => act.mutate("stop"), primary: false }
                 : fresh
                   ? onward
                   : { label: rc ? r.run.againNext : r.run.next, disabled: act.isPending, onPress: runIt }

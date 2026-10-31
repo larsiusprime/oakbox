@@ -5,7 +5,7 @@ import { when } from "../lib/format";
 import { t } from "../strings";
 import { CollapseCard, FillCard } from "./CleanCards";
 import { HowTheyDid, ModelsCard, VariablesCard } from "./Models";
-import { TestPicker, TestStep, Verdict } from "./VarTests";
+import { TestPicker, TestStep, WhatToKeep } from "./VarTests";
 
 const m = t.values;
 // The variable tests (SPEC F9): Test the variables is a major step, the tests the user picked its parts.
@@ -140,7 +140,7 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const i = shown.indexOf(current);
   const prev = shown[i - 1];
   const back = prev ? () => go(prev) : null;
-  const onward = { label: t.wizard.next, onPress: () => go(shown[i + 1] ?? current) };
+  const onward = { label: t.step.next, onPress: () => go(shown[i + 1] ?? current) };
   const u = setup.data;
   const set = (body: Parameters<typeof change.mutate>[0]) => change.mutate(body);
   const mu = mSetup.data;
@@ -197,12 +197,12 @@ export function ValuesTab({ projectId }: { projectId: string }) {
               <>
                 {v.status === "failed" && v.job?.error && (
                   <p className="error" role="alert">
-                    {t.bringIn.failed} <span className="mono">{v.job.error}</span>
+                    {t.step.failed} <span className="mono">{v.job.error}</span>
                   </p>
                 )}
                 {v.stale && <p className="wiz-warn">{m.stale}</p>}
                 {fresh && r && <p className="wiz-ok">{m.ran(when(r.ran_at), r.seconds)}</p>}
-                {!r && !v.blocked.length && <p className="wiz-from">{t.bringIn.notRun}</p>}
+                {!r && !v.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
             {errors}
@@ -212,7 +212,7 @@ export function ValuesTab({ projectId }: { projectId: string }) {
             extra={fresh && !running ? [{ label: m.runAgain, onPress: runIt }] : []}
             next={
               running
-                ? { label: t.bringIn.stop, onPress: () => act.mutate("stop"), primary: false }
+                ? { label: t.step.stop, onPress: () => act.mutate("stop"), primary: false }
                 : fresh
                   ? onward
                   : {
@@ -272,12 +272,12 @@ export function ValuesTab({ projectId }: { projectId: string }) {
               <>
                 {vv.status === "failed" && vv.job?.error && (
                   <p className="error" role="alert">
-                    {t.bringIn.failed} <span className="mono">{vv.job.error}</span>
+                    {t.step.failed} <span className="mono">{vv.job.error}</span>
                   </p>
                 )}
                 {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
                 {vFresh && vr && <p className="wiz-ok">{m.vartest.ran(when(vr.ran_at), vr.seconds)}</p>}
-                {!vr && !vv.blocked.length && <p className="wiz-from">{t.bringIn.notRun}</p>}
+                {!vr && !vv.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
             {errors}
@@ -287,7 +287,7 @@ export function ValuesTab({ projectId }: { projectId: string }) {
             extra={vFresh && !testing ? [{ label: m.vartest.runAgain, onPress: testIt }] : []}
             next={
               testing
-                ? { label: t.bringIn.stop, onPress: () => vAct.mutate("stop"), primary: false }
+                ? { label: t.step.stop, onPress: () => vAct.mutate("stop"), primary: false }
                 : vFresh
                   ? onward
                   : {
@@ -323,7 +323,11 @@ export function ValuesTab({ projectId }: { projectId: string }) {
       {current === "verdict" && vr && (
         <>
           <StepBody kicker={m.kicker} title={m.steps.verdict}>
-            {mu ? <Verdict view={vv} setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
+            {mu ? (
+              <WhatToKeep view={vv} setup={mu} set={mSet} />
+            ) : (
+              <p className="empty">{t.project.loading}</p>
+            )}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />
@@ -352,12 +356,12 @@ export function ValuesTab({ projectId }: { projectId: string }) {
               <>
                 {mv.status === "failed" && mv.job?.error && (
                   <p className="error" role="alert">
-                    {t.bringIn.failed} <span className="mono">{mv.job.error}</span>
+                    {t.step.failed} <span className="mono">{mv.job.error}</span>
                   </p>
                 )}
                 {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
                 {mFresh && mr && <p className="wiz-ok">{m.model.ran(when(mr.ran_at), mr.seconds)}</p>}
-                {!mr && !mv.blocked.length && <p className="wiz-from">{t.bringIn.notRun}</p>}
+                {!mr && !mv.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
             {errors}
@@ -367,7 +371,7 @@ export function ValuesTab({ projectId }: { projectId: string }) {
             extra={mFresh && !trying ? [{ label: m.model.tryAgain, onPress: tryIt }] : []}
             next={
               trying
-                ? { label: t.bringIn.stop, onPress: () => mAct.mutate("stop"), primary: false }
+                ? { label: t.step.stop, onPress: () => mAct.mutate("stop"), primary: false }
                 : mFresh
                   ? onward
                   : {

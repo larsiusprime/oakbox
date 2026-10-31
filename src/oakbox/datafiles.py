@@ -751,32 +751,6 @@ def has_geometry(path: Path, layer: str | None) -> bool | None:
     return None if names is None else "geometry" in names
 
 
-def rename(files: list[DataFile], old: str, new: str) -> None:
-    """Rename a data.load entry in place. The file keeps its name (SPEC F3b)."""
-    entry = _entry(files, old)
-    if new == old:
-        return
-    if not NAME.fullmatch(new):
-        raise ValueError("Names use lowercase letters, digits and underscores, and start with a letter.")
-    if new in {f.name for f in files}:
-        raise ValueError(f"This project already has a file called {new}.")
-    entry.name = new
-
-
-def remove(in_dir: Path, files: list[DataFile], name: str, trash: bool) -> None:
-    """Drop a data.load entry and, if asked, send its file (and sidecars) to the Recycle Bin."""
-    entry = _entry(files, name)
-    path = in_dir / entry.filename
-    if trash and path.is_file():
-        if any(f.filename == entry.filename for f in files if f is not entry):
-            raise ValueError(f"Another entry also uses {entry.filename}, so it stays in the project folder.")
-        from send2trash import send2trash
-
-        for p in companions(path):
-            send2trash(str(p))
-    files.remove(entry)
-
-
 def _entry(files: list[DataFile], name: str) -> DataFile:
     for f in files:
         if f.name == name:

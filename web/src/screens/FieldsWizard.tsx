@@ -191,7 +191,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             aria-disabled={gated}
             onPress={() => (gated ? setUnfinished(true) : onward())}
           >
-            {current.key === "welcome" ? w.start : next ? w.next : w.toBringIn}
+            {current.key === "welcome" ? w.start : next ? t.step.next : w.toBringIn}
           </Button>
         </div>
       </div>

@@ -16,7 +16,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox.datafiles import NAME, BaseModel, DataFile, file_ext
+from oakbox.datafiles import BaseModel, file_ext
 
 SAMPLE_ROWS = 1000
 SAMPLES = 5
@@ -212,29 +212,6 @@ def _fill(text: str, jurisdiction: str) -> str:
     out = re.sub(r"^\{jurisdiction\} ", "Assessor's ", out)
     out = out.replace("{jurisdiction}", "the assessor")
     return out[:1].upper() + out[1:]
-
-
-def set_load(entry: DataFile, load: dict[str, list[str]]) -> None:
-    """Replace an entry's load after checking it is something OpenAVMKit reads without guessing."""
-    columns_used: set[str] = set()
-    for field, spec in load.items():
-        if not NAME.fullmatch(field):
-            raise ValueError(f"{field}: names use lowercase letters, digits and underscores, and start with a letter.")
-        if not 1 <= len(spec) <= 3 or not spec[0]:
-            raise ValueError(f"{field}: give the column, then optionally its type and format.")
-        if spec[0] in columns_used:
-            raise ValueError(f"{spec[0]} is loaded twice.")
-        columns_used.add(spec[0])
-        if len(spec) >= 2 and spec[1] not in TYPES:
-            raise ValueError(f"{field}: {spec[1]} isn't a type OpenAVMKit casts to.")
-        kind = spec[1] if len(spec) >= 2 else None
-        if kind == "datetime" and len(spec) != 3:
-            raise ValueError(f"{field}: a date needs its format.")
-        if kind == "bool" and (len(spec) != 3 or spec[2] not in BLANKS):
-            raise ValueError(f"{field}: say what a blank means (na_false or na_true).")
-        if kind not in ("datetime", "bool") and len(spec) == 3:
-            raise ValueError(f"{field}: only dates and yes/no fields take a third item.")
-    entry.load = dict(load)
 
 
 def names() -> dict[str, str]:

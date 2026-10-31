@@ -337,21 +337,6 @@ a {
   text-decoration: underline;
 }
 
-.project-body {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-  align-items: flex-start;
-}
-
-.results-stack {
-  flex: 999 1 40rem;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.25rem;
-}
-
 /* ---------- Panels and rows ---------- */
 
 .panel {
@@ -371,11 +356,6 @@ a {
 
 .panel-head h1 {
   font-size: 1.15rem;
-}
-
-.panel-meta {
-  color: var(--muted);
-  font-size: 0.9rem;
 }
 
 .rows {
@@ -463,8 +443,7 @@ a.row-title:hover {
   transform: translate(1px, 1px);
 }
 
-.button[data-focus-visible],
-.disclosure-trigger[data-focus-visible] {
+.button[data-focus-visible] {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -516,43 +495,6 @@ a.row-title:hover {
   margin-top: 0.1rem;
 }
 
-.step-number {
-  flex: none;
-  width: 1.75rem;
-  height: 1.75rem;
-  margin-top: 0.1rem;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-weight: 600;
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  border: 1.5px solid var(--panel-edge);
-}
-
-.step-done .step-number {
-  color: var(--ok);
-  border-color: var(--ok);
-}
-
-.step-running .step-number {
-  color: var(--active);
-  border-color: var(--active);
-}
-
-.step-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.15rem 0.75rem;
-}
-
-.step-result {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
 .step .progress {
   margin-top: 0.35rem;
 }
@@ -574,31 +516,8 @@ a.row-title:hover {
   flex: none;
 }
 
-.status-not_run {
-  color: var(--muted);
-  font-weight: 500;
-}
-.status-running {
-  color: var(--active);
-}
-.status-done,
-.mark-meets {
-  color: var(--ok);
-}
-.status-stale {
-  color: var(--warn);
-}
-.status-failed,
-.mark-outside {
-  color: var(--bad);
-}
-
 .mark {
   font-size: 0.8rem;
-}
-
-.spin {
-  animation: spin 1.2s linear infinite;
 }
 
 @keyframes spin {
@@ -607,94 +526,12 @@ a.row-title:hover {
   }
 }
 
-/* ---------- Progress: sunken track, raised fill ---------- */
-
-.progress-track {
-  height: 1rem;
-  background: var(--well);
-  border: 1px solid var(--well-edge);
-  border-radius: 999px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) inset;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset;
-  border-radius: 999px;
-  transition: width 0.4s ease;
-}
-
-.progress-fill-indeterminate {
-  width: 100%;
-  background-image:
-    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.25) 0 10px, transparent 10px 20px),
-    linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
-  background-size:
-    28px 28px,
-    100% 100%;
-  animation: stripes 1s linear infinite;
-}
-
 @keyframes stripes {
   to {
     background-position:
       28px 0,
       0 0;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .progress-fill-indeterminate,
-  .spin {
-    animation: none;
-  }
-}
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.progress-pct {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-/* ---------- Results ---------- */
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-.th-label {
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.th-target {
-  display: block;
-  font-weight: 400;
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.stat-value {
-  font-size: 1.35rem;
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.stat-range {
-  white-space: nowrap;
-  font-size: 0.8rem;
-  color: var(--muted);
 }
 
 .popover {
@@ -711,14 +548,6 @@ a.row-title:hover {
   outline: none;
 }
 
-.footnote {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin: 0;
-  padding: 0.6rem 1rem 0.8rem;
-  border-top: 1px solid var(--rule);
-}
-
 /* ---------- Errors ---------- */
 
 .warning {
@@ -732,38 +561,6 @@ a.row-title:hover {
   margin: 0.25rem 0 0;
 }
 
-.disclosure-trigger {
-  font: inherit;
-  font-size: 0.9rem;
-  background: none;
-  border: none;
-  color: var(--link);
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
-}
-
-.error-detail {
-  white-space: pre-wrap;
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  background: var(--head);
-  border: 1px solid var(--rule);
-  padding: 0.75rem;
-  max-height: 16rem;
-  overflow: auto;
-}
-
-/* ---------- Form controls: inputs are sunken, buttons raised ---------- */
-
-.form-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 1rem 1.5rem;
-  margin-bottom: 0.25rem;
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -773,9 +570,7 @@ a.row-title:hover {
 .field-short {
   width: 9rem;
 }
-.field-medium {
-  width: 16rem;
-}
+
 .field-long {
   width: min(100%, 28rem);
 }
@@ -835,8 +630,7 @@ a.row-title:hover {
   align-self: center;
 }
 
-.combo-arrow,
-.picker-button {
+.combo-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -853,13 +647,11 @@ a.row-title:hover {
   cursor: pointer;
 }
 
-.choice-button[data-hovered] .combo-arrow,
-.picker-button[data-hovered] {
+.choice-button[data-hovered] .combo-arrow {
   background: #f7f7f5;
 }
 
-.choice-button[data-pressed] .combo-arrow,
-.picker-button[data-pressed] {
+.choice-button[data-pressed] .combo-arrow {
   background: #e0e0de;
   box-shadow:
     inset 1px 1px 0 #8e9195,
@@ -1187,161 +979,6 @@ a.row-title:hover {
   vertical-align: middle;
 }
 
-.input-files {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.tab-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.tab-empty {
-  display: grid;
-  justify-items: start;
-  gap: 0.5rem;
-}
-
-.tab-empty .empty {
-  padding: 0;
-}
-
-/* Fixed column widths, so nothing shifts when a row switches to renaming. */
-.file-table {
-  width: 100%;
-  table-layout: fixed;
-  border: 1px solid var(--panel-edge);
-}
-
-.col-type {
-  width: 7rem;
-}
-
-.col-size {
-  width: 5.5rem;
-}
-
-.col-geometry {
-  width: 5.5rem;
-}
-
-.col-fields {
-  width: 15rem;
-}
-
-.col-actions {
-  width: calc(3 * var(--ctl-h) + 1.5rem); /* show, rename, remove */
-}
-
-.file-table th {
-  text-align: left;
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--text);
-  padding: 0.15rem 0.45rem;
-  background: linear-gradient(#fefefe, #e4e4e4);
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--panel-edge);
-}
-
-.file-table td {
-  padding: var(--cell-y) 0.45rem;
-  border-top: 1px solid var(--cell-line);
-  vertical-align: middle;
-  white-space: nowrap;
-  border-right: 1px solid var(--cell-line);
-}
-
-.file-table tr.rename-error td {
-  border-top: none;
-  padding: 0 0.45rem 0.3rem;
-  white-space: normal;
-}
-
-.file-table tr:last-child td {
-  border-bottom: none;
-}
-
-.file-table tbody tr:nth-child(even) td {
-  background: var(--info-tint);
-}
-
-.file-table tbody tr:hover td {
-  background: var(--select);
-}
-
-.file-table .num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.file-table td.row-actions {
-  padding-right: 0.45rem;
-}
-
-.row-actions > * + * {
-  margin-left: 0.25rem;
-}
-
-.rename-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.rename-input {
-  width: 14rem;
-}
-
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--ctl-h);
-  height: var(--ctl-h);
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  background: transparent;
-  cursor: pointer;
-  vertical-align: middle;
-  outline: none;
-}
-
-.icon-button img {
-  width: 1rem;
-  height: 1rem;
-}
-
-.icon-button[data-hovered] {
-  background: #efefed;
-  border-color: #505357;
-  box-shadow:
-    inset 1px 1px 0 #ffffff,
-    inset -1px -1px 0 #8e9195,
-    inset 2px 2px 0 #f6f6f4,
-    inset -2px -2px 0 #b9bbbe;
-}
-
-.icon-button[data-pressed] {
-  background: #e0e0de;
-  border-color: #505357;
-  box-shadow:
-    inset 1px 1px 0 #8e9195,
-    inset -1px -1px 0 #ffffff,
-    inset 2px 2px 0 #b9bbbe;
-}
-
-.icon-button[data-focus-visible] {
-  outline: 2px solid var(--focus);
-}
-
-.error-text {
-  color: var(--bad);
-  font-weight: 600;
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -1351,229 +988,9 @@ a.row-title:hover {
   white-space: nowrap;
 }
 
-.fields-cell {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.fields-count {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- F3c: a file's fields ---------- */
-
-.field-view {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.field-view .back-link {
-  justify-self: start;
-}
-
-.field-view-title {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.field-view-title .row-meta {
-  font-size: 0.9rem;
-  font-weight: 400;
-}
-
-.field-tools {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-}
-
-.field-search .input {
-  width: 14rem;
-}
-
-.show-choice {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.field-table {
-  width: 100%;
-  table-layout: fixed;
-  border: 1px solid var(--panel-edge);
-}
-
-.col-load {
-  width: 2.5rem;
-}
-
-.col-column {
-  width: 9.5rem;
-}
-
-.col-kind {
-  width: 4.5rem;
-}
-
-.col-field {
-  width: 16rem;
-}
-
-.col-cast {
-  width: 8rem;
-}
-
-.col-extra {
-  width: 14rem;
-}
-
-.field-table th {
-  text-align: left;
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--text);
-  padding: 0.15rem 0.45rem;
-  background: linear-gradient(#fefefe, #e4e4e4);
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--panel-edge);
-}
-
-/* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
-.field-table td {
-  padding: var(--cell-y) 0.45rem;
-  border-top: 1px solid var(--cell-line);
-  vertical-align: middle;
-  border-right: 1px solid var(--cell-line);
-}
-
-.field-table tbody tr.field-problem td {
-  border-top: none;
-  padding: 0 0.45rem 0.3rem;
-}
-
-.cell-clip {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .samples {
   color: var(--muted);
   font-size: 0.9rem;
-}
-
-/* Unticked rows show what ticking would choose, greyed out. */
-.field-row.unloaded .mono,
-.field-row.unloaded .samples {
-  color: var(--muted);
-}
-
-.field-table .choice {
-  min-width: 0;
-}
-
-.field-table .choice-button {
-  width: 100%;
-}
-
-.field-table .input {
-  width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-.picker-input .input {
-  padding-right: var(--ctl-h);
-}
-
-.field-table [data-disabled] .input,
-.field-table .input[data-disabled],
-.field-table .choice-button[data-disabled],
-.field-table .picker-button[data-disabled] {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.custom-field {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.custom-field > :first-child {
-  flex: 1;
-  min-width: 0;
-}
-
-.picker-input {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-/* In a searchable box the arrow sits inside the text field's right edge. */
-.picker-button {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  bottom: 3px;
-}
-
-.picker-popover {
-  max-height: 22rem;
-  max-width: 30rem;
-  overflow: auto;
-}
-
-.picker-header {
-  padding: 0.45rem 0.75rem 0.2rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
-.picker-custom {
-  font-style: italic;
-  border-bottom: 1px solid var(--rule);
-}
-
-.date-format {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.date-format > :first-child {
-  flex: none;
-  width: calc(6.5rem + var(--ctl-h));
-}
-
-.date-ok {
-  color: var(--ok);
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.field-table tbody tr.geometry-row td {
-  color: var(--muted);
-}
-
-.field-table tbody tr:nth-child(even) td {
-  background: var(--info-tint);
-}
-
-.field-table tbody tr:hover td {
-  background: var(--select);
 }
 
 .add-file {
@@ -1968,17 +1385,6 @@ a.row-title:hover {
   width: 9.5rem;
 }
 
-.wiz-table td.wiz-check {
-  min-width: 12rem;
-  max-width: 17rem;
-}
-
-.wiz-base {
-  font-family: var(--font);
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
 .wiz-section-head {
   padding: 0.3rem 0.6rem 0.1rem;
   font-size: 0.78rem;
@@ -2029,7 +1435,6 @@ a.row-title:hover {
   border-bottom: 1px solid var(--rule);
 }
 
-/* biome-ignore lint/style/noDescendingSpecificity: a different table from .file-table */
 .wiz-review td {
   padding: 0.1rem 0.4rem;
   border-bottom: 1px solid var(--cell-line);
@@ -2120,10 +1525,6 @@ a.row-title:hover {
   height: 1em;
   margin-right: 0.3em;
   vertical-align: -0.12em;
-}
-
-.wiz-wrap {
-  white-space: normal;
 }
 
 .wiz-resolve {
@@ -2569,13 +1970,6 @@ a.row-title:hover {
   margin: 0 0 0.5rem;
 }
 
-/* Shapefiles (F3d): a card per map layer. */
-.wiz-stamp,
-.wiz-dist {
-  display: grid;
-  gap: 0.4rem;
-}
-
 .wiz-num {
   width: 6rem;
 }
@@ -2691,16 +2085,7 @@ a.row-title:hover {
   gap: 0.85rem;
   padding: 0.9rem 1.1rem 1.1rem;
 }
-.bi-kicker {
-  color: var(--muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.bi-title {
-  margin: 0;
-  font-size: 1.15rem;
-}
+
 .bi-lede {
   margin: 0;
   color: var(--muted);
@@ -2765,9 +2150,7 @@ a.row-title:hover {
   display: grid;
   gap: 0.85rem;
 }
-.bi-stale {
-  opacity: 0.55;
-}
+
 .bi-funnels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
@@ -2786,11 +2169,7 @@ a.row-title:hover {
 .bi-fn > * {
   grid-column: 1 / -1;
 }
-.bi-file {
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-family: var(--mono);
-}
+
 .bi-line {
   display: grid;
   grid-template-columns: 1.2rem 5rem 1fr auto;
@@ -2892,13 +2271,7 @@ a.row-title:hover {
   font-size: 0.78rem;
   white-space: pre-wrap;
 }
-.bi-foot {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  border-top: 1px solid var(--rule);
-  padding-top: 0.7rem;
-}
+
 .bi-grow {
   flex: 1;
 }
@@ -3749,32 +3122,6 @@ ul.mg-checks {
   font-size: 0.82rem;
 }
 
-/* ---------- The end of notebook 1: the run bar above the model group builder, and its receipt ---------- */
-.ab {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.7rem;
-  align-items: center;
-  padding: 0.45rem 0.7rem;
-  font-size: 0.9rem;
-  background: var(--head);
-  border-bottom: 1px solid var(--rule);
-}
-.ab-what {
-  flex: 1 1 20rem;
-  color: var(--muted);
-}
-.ab-status {
-  font-weight: 600;
-}
-.ab-formats {
-  display: grid;
-  gap: 0.35rem;
-  width: 18rem;
-}
-.ab-modal {
-  width: min(46rem, 94vw);
-}
 .ab-n {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -3798,9 +3145,6 @@ ul.mg-checks {
   padding: 0;
   font-size: 0.86rem;
   list-style: none;
-}
-.ab-grow {
-  flex: 1;
 }
 
 /* A number field's statistics, in the field detail popover. */
@@ -3986,45 +3330,21 @@ ul.mg-checks {
 .cu-sum li {
   margin: 0.2rem 0;
 }
-.un {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.5rem 0.65rem;
-  font-size: 0.9rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-.un-head,
-.un-row,
+
 .un-rule {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem 0.5rem;
   align-items: center;
 }
-.un-grow {
-  flex: 1;
-}
-.un-label {
-  min-width: 11rem;
-  color: var(--muted);
-}
-.un-indent,
-.un-rules,
-.un-examples {
+
+.un-rules {
   margin-left: 11.5rem;
 }
 .un-rules {
   display: grid;
   gap: 0.3rem;
   justify-items: start;
-}
-.un-examples {
-  display: grid;
-  gap: 0.1rem;
-  padding: 0;
-  font-size: 0.84rem;
-  list-style: none;
 }
 
 /* F3e Enrichments: one compact card per kind of public data. */
@@ -4177,13 +3497,6 @@ ul.mg-checks {
   margin-bottom: 0;
 }
 
-/* Units of a shared parcel: what was guessed and what each choice does, said plainly. */
-.un-basis {
-  max-width: 44rem;
-  margin: 0.1rem 0 0.3rem;
-  font-size: 0.83rem;
-  color: var(--muted);
-}
 .un-offers {
   display: grid;
   gap: 0.35rem;
@@ -4203,15 +3516,12 @@ ul.mg-checks {
 }
 
 /* Repeated IDs: the rows of one ID share a background, and IDs alternate (sorted by the ID). */
-/* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.band-a > td {
   background: var(--panel);
 }
-/* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.band-b > td {
   background: var(--zebra);
 }
-/* biome-ignore lint/style/noDescendingSpecificity: different tables from .file-table's zebra rows */
 tr.bi-kept > td {
   font-weight: 600;
 }
@@ -4286,10 +3596,7 @@ tr.bi-kept > td {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
-/* Step 3, Check sales (SPEC F6) */
-.cs-card {
-  min-width: 0;
-}
+
 .cs-head {
   display: flex;
   align-items: baseline;
@@ -4315,12 +3622,7 @@ tr.bi-kept > td {
   margin: 0;
   max-width: 58rem;
 }
-.cs-back {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-}
+
 .cs-notices {
   margin: 0.3rem 0 0 1.1rem;
   padding: 0;
@@ -4373,9 +3675,7 @@ tr.bi-kept > td {
   display: grid;
   gap: 0.85rem;
 }
-.cs-stale .cs-card {
-  opacity: 0.6;
-}
+
 .cs-meter {
   display: flex;
   flex-wrap: wrap;
@@ -4544,10 +3844,6 @@ tr.bi-kept > td {
 }
 .cs-receipt > .cs-row {
   min-width: 0;
-}
-.cs > .bi-warn {
-  max-width: 62rem;
-  box-sizing: border-box;
 }
 
 /* Tabs as steps (SPEC §3.2): the Data wizard's frame */
@@ -4733,12 +4029,7 @@ tr.bi-kept > td {
   display: grid;
   gap: 0.35rem;
 }
-.rv-choice {
-  display: flex;
-  gap: 0.6rem;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
+
 .rv-head {
   font-size: 1.02rem;
   line-height: 1.5;
@@ -4866,9 +4157,6 @@ table.tbl > * > tr.rv-total > td {
     grid-column: 1 / -1;
     grid-template-columns: subgrid;
   }
-}
-.md-how tr.md-roll {
-  font-style: italic;
 }
 
 /* The variable tests (F9): each result as a bar against the test's threshold; an unticked variable greyed. */

@@ -186,10 +186,6 @@ def _scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale)
 # Evidence: what the choices are checked against. Optional: each part says what it's based on, and what's missing.
 
 
-def _row_ids(files: Files, entry: DataFile, match: str) -> tuple[str, ...]:
-    return files.ids(entry.name, match)
-
-
 def _field_by_id(
     project: Project, files: Files, key: str, match: str, only: DataFile | None = None
 ) -> dict[str, float]:
