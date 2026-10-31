@@ -30,7 +30,8 @@ function rel(r: number, of: string): string {
 
 export function useReviewCounts(projectId: string) {
   return useQuery({
-    queryKey: ["clean-review", projectId, "", "", ""],
+    // Its own key: the list with no filters asks the same route for every sale, not one.
+    queryKey: ["clean-review", projectId, "counts"],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/clean/review", {
