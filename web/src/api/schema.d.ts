@@ -3635,6 +3635,12 @@ export interface components {
              * @description The group, or "" for unassigned.
              */
             id: string;
+            /**
+             * Modeled
+             * @description Modeled: as chosen, else proposed (enough sales).
+             * @default true
+             */
+            modeled: boolean;
             /** Parcels */
             parcels: number;
             /**
@@ -4165,6 +4171,11 @@ export interface components {
              * @description Fields the rule tests that are numbers.
              */
             numeric?: string[];
+            /**
+             * Modeled
+             * @description Modeled (Model groups › Check them); None: proposed, yes with enough sales.
+             */
+            modeled?: boolean | null;
         };
         /**
          * ModelGroup
@@ -4190,6 +4201,11 @@ export interface components {
              * @description Fields the rule tests that are numbers.
              */
             numeric: string[];
+            /**
+             * Modeled
+             * @description Modeled (Model groups › Check them); None: proposed, yes with enough sales.
+             */
+            modeled: boolean | null;
         };
         /** ModelGroupCount */
         ModelGroupCount: {
@@ -4206,6 +4222,12 @@ export interface components {
              * @description Sales the models learn from and are tested on.
              */
             sales: number;
+            /**
+             * Modeled
+             * @description Modeled (Model groups › Check them).
+             * @default true
+             */
+            modeled: boolean;
         };
         /** ModelGroupResult */
         ModelGroupResult: {
@@ -7727,6 +7749,12 @@ export interface components {
             borrow: string | null;
             /** @description Its own time adjustment file. */
             file: components["schemas"]["TimeFile"] | null;
+            /**
+             * Modeled
+             * @description Modeled (Model groups › Check them): shown greyed when not.
+             * @default true
+             */
+            modeled: boolean;
         };
         /** GroupSetup */
         oakbox__ratio__GroupSetup: {

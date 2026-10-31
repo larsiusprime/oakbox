@@ -319,6 +319,7 @@ class GroupSetup(BaseModel):
     per_year: float | None = Field(description="Price change a year found last run, percent; None: none or not run.")
     borrow: str | None = Field(default=None, description="The group whose time adjustment it uses.")
     file: TimeFile | None = Field(default=None, description="Its own time adjustment file.")
+    modeled: bool = Field(default=True, description="Modeled (Model groups › Check them): shown greyed when not.")
 
 
 class FillRow(BaseModel):
@@ -600,6 +601,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
     inside = (~vacant & (year >= impr_from)) | (vacant & (year >= vacant_from))
     last = _last_run(project_dir)
     groups = []
+    modeled = assemble.modeled(project, project_dir)
     for g in [*project.groups]:
         n = int((inside & (valid["model_group"] == g.id)).sum()) if "model_group" in valid else 0
         groups.append(
@@ -611,6 +613,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
                 per_year=last.get(g.id),
                 borrow=project.clean.borrow.get(g.id),
                 file=project.clean.time_files.get(g.id),
+                modeled=g.id in modeled,
             )
         )
     unknown = int((inside & (valid["model_group"] == UNKNOWN)).sum()) if "model_group" in valid else 0

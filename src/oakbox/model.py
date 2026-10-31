@@ -268,6 +268,10 @@ def settings(project, project_dir: Path) -> dict:
     # values (a vendor's AVM…) as pass_through models, judged like the roll: off the holdout, out of the ensemble.
     roll = ["assessor"] if _has_roll(project_dir) else []
     outside = _outside(project, project_dir)
+    from oakbox import assemble
+
+    modeled = assemble.modeled(project, project_dir)
+    unmodeled = [g.id for g in project.groups if g.id not in modeled]
     entries: dict = {"default": {"ind_vars": linear or every}}
     for m in chosen:
         entry: dict = {}
@@ -279,7 +283,12 @@ def settings(project, project_dir: Path) -> dict:
     return {
         "modeling": {
             "instructions": {
-                "main": {"run": chosen + roll + outside, "ensemble": {"type": "median", "models": chosen}}
+                "main": {
+                    "run": chosen + roll + outside,
+                    "ensemble": {"type": "median", "models": chosen},
+                    # Groups not modeled (Model groups › Check them): every model skipped.
+                    **({"skip": {g: chosen + roll + outside for g in unmodeled}} if unmodeled else {}),
+                }
             },
             "models": {"main": entries | {v: {"model": "pass_through", "field": value_field(v)} for v in outside}},
         },
@@ -307,6 +316,7 @@ class ModelGroupCount(BaseModel):
     color: str
     parcels: int
     sales: int = Field(description="Sales the models learn from and are tested on.")
+    modeled: bool = Field(default=True, description="Modeled (Model groups › Check them).")
 
 
 class ModelSetup(BaseModel):
@@ -333,8 +343,18 @@ def setup(project, project_dir: Path) -> ModelSetup:
     if universe is not None:
         keys = pd.read_parquet(sales_path, columns=["key"])["key"].tolist() if sales_path.is_file() else []
         per, sold = _counts(universe, keys)
+        from oakbox import assemble
+
+        modeled = assemble.modeled(project, project_dir)
         groups = [
-            ModelGroupCount(id=x.id, name=x.name, color=x.color, parcels=per.get(x.id, 0), sales=sold.get(x.id, 0))
+            ModelGroupCount(
+                id=x.id,
+                name=x.name,
+                color=x.color,
+                parcels=per.get(x.id, 0),
+                sales=sold.get(x.id, 0),
+                modeled=x.id in modeled,
+            )
             for x in project.groups
         ]
     return ModelSetup(
@@ -429,6 +449,9 @@ class ModelReceipt(BaseModel):
     variables: list[str]
     groups: list[ModelGroupResult]
     notes: list[str] = Field(default_factory=list)
+
+
+NOT_MODELED = "Not modeled: unticked on Model groups › Check them"
 
 
 def _name(model: str, names: dict[str, str]) -> str:
@@ -553,6 +576,9 @@ def run(project_id: str) -> None:
 
     groups = [g.id for g in project.groups]
     names = {v.id: v.name for v in valuesets.value_sets(project)}
+    from oakbox import assemble
+
+    modeled = assemble.modeled(project, pdir)
     outside = tuple(_outside(project, pdir))
     t0 = time.time()
 
@@ -595,6 +621,13 @@ def run(project_id: str) -> None:
     for g in project.groups:
         r = results.get(g.id)
         n = sold.get(g.id, 0)
+        if g.id not in modeled:
+            out.append(
+                ModelGroupResult(
+                    id=g.id, name=g.name, color=g.color, parcels=per.get(g.id, 0), sales=n, skipped=NOT_MODELED
+                )
+            )
+            continue
         if r is None:
             out.append(
                 ModelGroupResult(

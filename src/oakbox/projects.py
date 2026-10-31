@@ -134,6 +134,9 @@ class ModelGroup(BaseModel):
         description="Conditions on parcel universe fields (a condition's column is the field).",
     )
     numeric: list[str] = Field(default_factory=list, description="Fields the rule tests that are numbers.")
+    modeled: bool | None = Field(
+        default=None, description="Modeled (Model groups › Check them); None: proposed, yes with enough sales."
+    )
 
 
 def group_filter(g: ModelGroup) -> list:

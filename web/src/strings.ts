@@ -1351,6 +1351,10 @@ export const t = {
     checkTitle: "Check the groups",
     checkLede:
       "Each group's parcels and sales, as saved, with what needs a look. A group needs enough sales to model; parcels in no group aren't valued.",
+    modelIt: "Model it",
+    modelItTip:
+      "Model this group: values are worked out for its parcels. Proposed for groups with enough improved sales to model (15 or more); a group not modeled is shown greyed, as not modeled, in the steps after.",
+    notModeled: "Not modeled",
     checksCol: "To look at",
     checkFix: "To change a group, go back to the builder.",
     backToBuild: "Build the groups",

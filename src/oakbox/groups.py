@@ -233,6 +233,7 @@ class GroupCheck(BaseModel):
 
 class GroupStats(BaseModel):
     id: str = Field(description='The group, or "" for unassigned.')
+    modeled: bool = Field(default=True, description="Modeled: as chosen, else proposed (enough sales).")
     parcels: int
     vacant: int = Field(description="Parcels without a building.")
     sales: int = Field(description="Valid improved sales.")
@@ -323,6 +324,11 @@ def _checks(st: GroupStats, met, label: str) -> list[GroupCheck]:
     return out
 
 
+def is_modeled(g: ModelGroup, sales: int | None) -> bool:
+    """As chosen; else proposed: yes with enough improved sales to model (or while they aren't counted yet)."""
+    return g.modeled if g.modeled is not None else sales is None or sales >= MIN_SALES
+
+
 def preview(project: Project, project_dir: Path, groups: list[ModelGroup]) -> GroupsPreview:
     u, s = _data(project_dir)
     groups = numeric_fields(project_dir, groups)
@@ -330,6 +336,8 @@ def preview(project: Project, project_dir: Path, groups: list[ModelGroup]) -> Gr
     saved_groups = numeric_fields(project_dir, project.groups)
     before, _ = assign(u, saved_groups)
     stats = [_stats(u, s, now == i, g.id, met[i], g.name) for i, g in enumerate(groups)]
+    for g, st in zip(groups, stats, strict=False):
+        st.modeled = is_modeled(g, st.sales)
     stats.append(_stats(u, s, now == -1, "", None, "Unassigned"))
     ids = [g.id for g in groups]
     saved_ids = [g.id for g in saved_groups]

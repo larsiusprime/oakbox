@@ -178,6 +178,15 @@ STEP = steps.Step(
 )
 
 
+def modeled(project, project_dir: Path) -> set[str]:
+    """The model groups to model: as chosen on Check them, else proposed from the sales the last run counted."""
+    from oakbox.groups import is_modeled
+
+    receipt, _ = STEP.ran(project_dir)
+    sales = {c.id: c.sales for c in receipt.groups} if receipt else {}
+    return {g.id for g in project.groups if is_modeled(g, sales.get(g.id))}
+
+
 def blocked(project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     return [

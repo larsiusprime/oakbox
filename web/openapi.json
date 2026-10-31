@@ -9068,6 +9068,12 @@
       "title": "Id",
       "description": "The group, or \"\" for unassigned."
      },
+     "modeled": {
+      "type": "boolean",
+      "title": "Modeled",
+      "description": "Modeled: as chosen, else proposed (enough sales).",
+      "default": true
+     },
      "parcels": {
       "type": "integer",
       "title": "Parcels"
@@ -9131,6 +9137,7 @@
     "type": "object",
     "required": [
      "id",
+     "modeled",
      "parcels",
      "vacant",
      "sales",
@@ -10257,6 +10264,18 @@
       "type": "array",
       "title": "Numeric",
       "description": "Fields the rule tests that are numbers."
+     },
+     "modeled": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Modeled",
+      "description": "Modeled (Model groups \u203a Check them); None: proposed, yes with enough sales."
      }
     },
     "type": "object",
@@ -10295,6 +10314,18 @@
       "type": "array",
       "title": "Numeric",
       "description": "Fields the rule tests that are numbers."
+     },
+     "modeled": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Modeled",
+      "description": "Modeled (Model groups \u203a Check them); None: proposed, yes with enough sales."
      }
     },
     "type": "object",
@@ -10303,7 +10334,8 @@
      "name",
      "color",
      "rule",
-     "numeric"
+     "numeric",
+     "modeled"
     ],
     "title": "ModelGroup",
     "description": "Parcels valued together (SPEC \u00a73.5): OpenAVMKit's modeling.model_groups entry. First match wins."
@@ -10330,6 +10362,12 @@
       "type": "integer",
       "title": "Sales",
       "description": "Sales the models learn from and are tested on."
+     },
+     "modeled": {
+      "type": "boolean",
+      "title": "Modeled",
+      "description": "Modeled (Model groups \u203a Check them).",
+      "default": true
      }
     },
     "type": "object",
@@ -10338,7 +10376,8 @@
      "name",
      "color",
      "parcels",
-     "sales"
+     "sales",
+     "modeled"
     ],
     "title": "ModelGroupCount"
    },
@@ -18661,6 +18700,12 @@
        }
       ],
       "description": "Its own time adjustment file."
+     },
+     "modeled": {
+      "type": "boolean",
+      "title": "Modeled",
+      "description": "Modeled (Model groups \u203a Check them): shown greyed when not.",
+      "default": true
      }
     },
     "type": "object",
@@ -18671,7 +18716,8 @@
      "sales",
      "per_year",
      "borrow",
-     "file"
+     "file",
+     "modeled"
     ],
     "title": "GroupSetup"
    },

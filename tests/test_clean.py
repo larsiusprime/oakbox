@@ -87,6 +87,8 @@ def assembled(before_groups, brought_in):
     """Model groups (the suggested ones) run and accepted: the groups."""
     with _api(brought_in) as (client, pid):
         groups = client.post(f"/api/projects/{pid}/groups/start", json={"how": "suggested"}).json()["groups"]
+        # The sample's groups are small: each is ticked to be modeled, so every step after has them all.
+        groups = [g | {"modeled": True} for g in groups]
         client.put(f"/api/projects/{pid}/groups", json={"groups": groups})
         assert client.post(f"/api/projects/{pid}/assemble/run").status_code == 200
         assert wait(client, f"/api/projects/{pid}/assemble")["status"] == "done"

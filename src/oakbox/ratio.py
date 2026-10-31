@@ -123,9 +123,15 @@ def checked_sets(project) -> list[ValueSet]:
     return [v for v in loaded_value_sets(project) if s.sets is None or v.id in s.sets]
 
 
-def checked_groups(project) -> list:
+def checked_groups(project, project_dir: Path | None = None) -> list:
+    """The groups to check: as chosen; else every one modeled (Model groups › Check them)."""
     s: RatioState = project.ratio
-    return [g for g in project.groups if s.groups is None or g.id in s.groups]
+    if s.groups is not None:
+        return [g for g in project.groups if g.id in s.groups]
+    from oakbox import assemble, projects
+
+    modeled = assemble.modeled(project, project_dir or projects.project_dir(project.id))
+    return [g for g in project.groups if g.id in modeled]
 
 
 def _first_field(project) -> str:
@@ -311,11 +317,15 @@ def setup(project, project_dir: Path) -> RatioSetup:
         ),
         SalesLine(sign="=", count=int((studied & inside).sum()), text="sales the values answer to"),
     ]
+    from oakbox import assemble
+
+    modeled = assemble.modeled(project, project_dir)
     return RatioSetup(
         check=s.check,
         sets=[SetChoice(id=v.id, name=v.name, roll=v.id == ROLL) for v in loaded_value_sets(project)],
         chosen_sets=[v.id for v in checked_sets(project)],
-        all_groups=[clean.Choice(value=g.id, label=g.name) for g in project.groups],
+        # Only the groups modeled are offered (Model groups › Check them).
+        all_groups=[clean.Choice(value=g.id, label=g.name) for g in project.groups if g.id in modeled],
         chosen_groups=[g.id for g in checked_groups(project)],
         parcels=parcels,
         valuation_date=val,
@@ -597,9 +607,10 @@ def run(project_id: str) -> None:
         sup = cast(SalesUniversePair, pd.read_pickle(src))
         chosen = [g.id for g in checked_groups(project)]
         if len(chosen) < len(project.groups):  # only the groups chosen, overall too
+            # The sales carry their parcel's key, not its group: kept by the parcels kept.
+            universe = cast(pd.DataFrame, sup.universe[sup.universe["model_group"].astype(str).isin(chosen)])
             sup = SalesUniversePair(
-                sales=cast(pd.DataFrame, sup.sales[sup.sales["model_group"].astype(str).isin(chosen)]),
-                universe=cast(pd.DataFrame, sup.universe[sup.universe["model_group"].astype(str).isin(chosen)]),
+                sales=cast(pd.DataFrame, sup.sales[sup.sales["key"].isin(universe["key"])]), universe=universe
             )
         sets = {value_field(v.id): v.name for v in checked_sets(project)}
         settings = pl.load_settings()
@@ -787,7 +798,10 @@ def change(project, body: RatioPatch) -> None:
     if body.groups is not None:
         if not body.groups:
             raise ValueError("Choose at least one model group to check.")
-        s.groups = None if set(body.groups) == {g.id for g in project.groups} else body.groups
+        from oakbox import assemble, projects
+
+        every = assemble.modeled(project, projects.project_dir(project.id))
+        s.groups = None if set(body.groups) == every else body.groups
 
 
 def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:

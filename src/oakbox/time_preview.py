@@ -110,7 +110,10 @@ def run(project_id: str) -> None:
     hydrated = get_hydrated_sales_from_sup(sup)
     valid = hydrated[cells.yes(hydrated, "valid_sale")]
     groups = []
-    for gid, name, color in [(g.id, g.name, g.color) for g in project.groups]:
+    from oakbox import assemble
+
+    modeled = assemble.modeled(project, pdir)
+    for gid, name, color in [(g.id, g.name, g.color) for g in project.groups if g.id in modeled]:
         n = int((valid["model_group"].astype(str) == gid).sum()) if "model_group" in valid else 0
         per_year, first, last, curve = clean.time_curve(
             work / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv"

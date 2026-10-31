@@ -13,9 +13,10 @@ import {
 } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { AddButton } from "../components/AddButton";
-import { Choice } from "../components/Form";
+import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { InfoTip } from "../components/Tip";
 import { when } from "../lib/format";
 import { useSettled } from "../lib/hooks";
 import { t } from "../strings";
@@ -79,6 +80,20 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       nav.go("build");
     },
   });
+  // Which groups are modeled: saved with the groups; the steps after follow.
+  const save = useMutation({
+    mutationFn: async (groups: ModelGroup[]) =>
+      unwrap(
+        await api.PUT("/api/projects/{project_id}/groups", {
+          params: { path: { project_id: projectId } },
+          body: { groups },
+        }),
+      ),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["groups", projectId], data);
+      stepChanged(queryClient, projectId, "clean");
+    },
+  });
   const v = state.data;
   const a = run.data;
   const saved = v?.groups ?? [];
@@ -89,7 +104,9 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const running = a.status === "running";
   const fresh = !!a.receipt && !a.stale;
   const p = preview.data;
+  // A group not modeled has nothing left to look at.
   const worst = (p?.stats ?? [])
+    .filter((x) => x.modeled || x.id === "")
     .flatMap((x) => x.checks)
     .reduce(
       (w, c) => (c.level === "bad" ? "bad" : c.level === "warn" && w !== "bad" ? "warn" : w),
@@ -203,7 +220,15 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               preview={p}
               unassignedColor={v.unassigned_color}
               edit={() => go("build")}
+              setModeled={(id, modeled) =>
+                save.mutate(saved.map((x) => (x.id === id ? { ...x, modeled } : x)))
+              }
             />
+            {save.error && (
+              <p className="error" role="alert">
+                {save.error.message}
+              </p>
+            )}
           </StepBody>
           <StepFoot back={back} next={{ label: t.step.next, onPress: () => go("write") }} />
         </>
@@ -292,11 +317,13 @@ function Checks({
   preview: p,
   unassignedColor,
   edit,
+  setModeled,
 }: {
   groups: ModelGroup[];
   preview: GroupsPreview | undefined;
   unassignedColor: string;
   edit: () => void;
+  setModeled: (id: string, modeled: boolean) => void;
 }) {
   if (!p) return <p className="empty">{t.project.loading}</p>;
   const rows = [
@@ -305,14 +332,17 @@ function Checks({
   ];
   return (
     <>
-      <table className="rc-tbl ab-tbl mg-checks">
+      <table className="tbl mg-checks">
         <thead>
           <tr>
-            <th className="rc-th">{g.run.group}</th>
-            <th className="rc-th ab-n">{g.run.parcels}</th>
-            <th className="rc-th ab-n">{g.run.sales}</th>
-            <th className="rc-th ab-n">{g.run.vacantSales}</th>
-            <th className="rc-th">{g.checksCol}</th>
+            <th className="mg-model">
+              <InfoTip label={g.modelIt} text={g.modelItTip} />
+            </th>
+            <th>{g.run.group}</th>
+            <th className="cs-n">{g.run.parcels}</th>
+            <th className="cs-n">{g.run.sales}</th>
+            <th className="cs-n">{g.run.vacantSales}</th>
+            <th>{g.checksCol}</th>
           </tr>
         </thead>
         <tbody>
@@ -320,17 +350,27 @@ function Checks({
             const x = p.stats.find((s) => s.id === id);
             if (!x) return null;
             const look = x.checks.filter((c) => c.level !== "ok");
+            const off = id !== "" && !x.modeled;
             return (
-              <tr key={id || "unassigned"}>
-                <td className="rc-td">
+              <tr key={id || "unassigned"} className={off ? "not-modeled" : undefined}>
+                <td className="mg-model">
+                  {id !== "" && (
+                    <Tick isSelected={x.modeled} onChange={(on) => setModeled(id, on)}>
+                      <span className="sr-only">{`${g.modelIt}: ${name}`}</span>
+                    </Tick>
+                  )}
+                </td>
+                <td>
                   <span className="mg-sw ab-sw" style={{ background: color }} />
                   {name}
                 </td>
-                <td className="rc-td ab-n">{x.parcels.toLocaleString()}</td>
-                <td className="rc-td ab-n">{x.sales.toLocaleString()}</td>
-                <td className="rc-td ab-n">{x.vacant_sales.toLocaleString()}</td>
-                <td className="rc-td">
-                  {look.length === 0 ? (
+                <td className="cs-n">{x.parcels.toLocaleString()}</td>
+                <td className="cs-n">{x.sales.toLocaleString()}</td>
+                <td className="cs-n">{x.vacant_sales.toLocaleString()}</td>
+                <td>
+                  {off ? (
+                    g.notModeled
+                  ) : look.length === 0 ? (
                     <span className="wiz-ok">✓</span>
                   ) : (
                     look.map((c) => (
@@ -456,6 +496,7 @@ function Builder({
     const x: ModelGroup = {
       id: newId(nm, draft),
       name: nm,
+      modeled: null,
       color,
       rule: { join: "any", conditions: [{ column: first, op: "isin", values: [] }] },
       numeric: [],
@@ -821,6 +862,7 @@ function FromField({
     const x: ModelGroup = {
       id: newId(nm, list),
       name: nm,
+      modeled: null,
       color: colors.find((c) => !used.has(c)) ?? colors[list.length % colors.length] ?? "#888",
       rule: { join: "any", conditions: [] },
       numeric: [],

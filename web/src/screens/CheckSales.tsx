@@ -384,10 +384,21 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                   const options: [string, string][] = [
                     ["own", s.time.ownSales],
                     ...v.groups
-                      .filter((o) => o.id !== g.id && o.id !== "UNKNOWN")
+                      .filter((o) => o.id !== g.id && o.id !== "UNKNOWN" && o.modeled)
                       .map((o) => [o.id, s.time.borrowFrom(o.name)] as [string, string]),
                     ["file", s.time.ownFile],
                   ];
+                  if (!g.modeled)
+                    return (
+                      <tr key={g.id} className="not-modeled">
+                        <td>
+                          <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                          {g.name}
+                        </td>
+                        <td className="cs-n">{num(g.sales)}</td>
+                        <td colSpan={2}>{t.groups.notModeled}</td>
+                      </tr>
+                    );
                   return (
                     <tr key={g.id}>
                       <td>

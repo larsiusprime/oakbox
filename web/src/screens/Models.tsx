@@ -210,14 +210,18 @@ export function ModelsCard({ v, set }: CardProps) {
             </thead>
             <tbody>
               {v.groups.map((g) => (
-                <tr key={g.id}>
+                <tr key={g.id} className={g.modeled ? undefined : "not-modeled"}>
                   <td>
                     <span className="mg-sw ab-sw" style={{ background: g.color }} />
                     {g.name}
                   </td>
                   <td className="cs-n">{num(g.parcels)}</td>
                   <td className="cs-n">{num(g.sales)}</td>
-                  <td className="wiz-warn">{g.sales < 15 ? m.tooFew : ""}</td>
+                  {g.modeled ? (
+                    <td className="wiz-warn">{g.sales < 15 ? m.tooFew : ""}</td>
+                  ) : (
+                    <td>{t.groups.notModeled}</td>
+                  )}
                 </tr>
               ))}
             </tbody>

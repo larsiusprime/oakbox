@@ -299,11 +299,18 @@ def run(project_id: str) -> None:
         pl.write_canonical_splits(sup, settings, verbose=False)
         sales = get_hydrated_sales_from_sup(sup)
         universe = sup.universe
+        from oakbox import assemble
+
+        modeled = assemble.modeled(project, pdir)
         for k, g in enumerate(project.groups):
             steps.emit(step="test", fraction=0.05 + 0.9 * k / max(len(project.groups), 1), message=g.name)
             df_s = cast(pd.DataFrame, sales[sales["model_group"].astype(str).eq(g.id) & sales["valid_sale"].eq(True)])
             df_u = cast(pd.DataFrame, universe[universe["model_group"].astype(str).eq(g.id)])
             vg = VarGroup(id=g.id, name=g.name, color=g.color, sales=len(df_s))
+            if g.id not in modeled:
+                vg.skipped = "Not modeled: unticked on Model groups › Check them"
+                groups.append(vg)
+                continue
             if len(df_s) < 15:
                 vg.skipped = f"{len(df_s):,} {'sale' if len(df_s) == 1 else 'sales'}: too few to test"
                 groups.append(vg)
@@ -366,7 +373,9 @@ def run(project_id: str) -> None:
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
-    (tmp / "settings.json").write_text(json.dumps({"prepare": prepare.STEP.ran_at(pdir)}), encoding="utf-8")
+    (tmp / "settings.json").write_text(
+        json.dumps({"prepare": prepare.STEP.ran_at(pdir), "modeled": sorted(modeled)}), encoding="utf-8"
+    )
     steps.publish(tmp, out_dir(pdir))
     tested = sum(1 for g in groups if g.tests)
     steps.emit(step="done", fraction=1.0, message=f"{tested} of {len(groups)} model groups tested")
@@ -380,17 +389,19 @@ class VarTestView(steps.RunView):
 
 
 def _key(project, project_dir: Path) -> dict:
-    return {"prepare": prepare.STEP.ran_at(project_dir)}
+    from oakbox import assemble
+
+    return {"prepare": prepare.STEP.ran_at(project_dir), "modeled": sorted(assemble.modeled(project, project_dir))}
 
 
-# The run keeps the Prepare run it tested (settings.json).
+# The run keeps the Prepare run it tested, and the groups it tested (settings.json).
 STEP = steps.Step(
     MODULE,
     "Test the variables",
     VarTestReceipt,
     key=_key,
     after=prepare.STEP,
-    ran_hash=lambda ran: steps.key_hash({"prepare": ran.get("prepare")}),
+    ran_hash=lambda ran: steps.key_hash({"prepare": ran.get("prepare"), "modeled": ran.get("modeled", [])}),
     again="Test the variables again first: something changed since.",
 )
 

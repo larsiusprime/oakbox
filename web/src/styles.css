@@ -4364,3 +4364,25 @@ table.tbl.dt > * > tr > :is(th, td) {
 .rv-what {
   margin-top: 0.4rem;
 }
+
+/* Read aloud, not shown: a control's name where its row already shows it. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A model group not modeled (Model groups › Check them): greyed wherever it's listed after. */
+.not-modeled {
+  color: var(--muted);
+}
+.not-modeled .mg-sw {
+  opacity: 0.45;
+}
+.mg-model {
+  width: 1%;
+  white-space: nowrap;
+}
