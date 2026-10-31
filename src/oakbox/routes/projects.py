@@ -215,4 +215,5 @@ def add_file(project_id: str, body: AddFile) -> projects.Project:
 def get_project(project_id: str) -> ProjectDetail:
     project = load_project(project_id)
     folder = projects.project_dir(project_id)
+    projects.refresh_settings(project)
     return ProjectDetail(project=project, folder=str(folder), files=[_view(folder / "in", f) for f in project.files])

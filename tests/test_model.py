@@ -254,3 +254,37 @@ def test_each_models_own_settings(prepared):
     assert block["gwr"]["interactions"] == {"default": False}
     with pytest.raises(ValueError):
         model.ModelEntry(engine="lightgbm", n_trials=0)
+
+
+def test_infinite_variables_are_named_before_the_models_run():
+    """OpenAVMKit's "Input contains infinity" names no variable: OAK box says which, where, and which models use it."""
+    import numpy as np
+    import pandas as pd
+
+    from oakbox.model import not_finite
+
+    sales = pd.DataFrame(
+        {"model_group": ["sf", "sf", "condo"], "ratio": [1.0, np.inf, np.inf], "area": [1.0, 2.0, 3.0]}
+    )
+    universe = pd.DataFrame(
+        {"model_group": ["sf"] * 3, "ratio": [np.inf, -np.inf, 1.0], "area": [1.0, 2.0, 1e308 * 10]}
+    )
+    settings = {
+        "variable_lists": {"main": ["ratio", "area"]},
+        "modeling": {
+            "models": {
+                "main": {
+                    "sf": {
+                        "default": {"ind_vars": ["area"]},
+                        "lightgbm": {"model": "lightgbm", "ind_vars": "$$variable_lists.main"},
+                        "mra": {"model": "mra", "ind_vars": ["ratio"]},
+                    }
+                }
+            }
+        },
+    }
+    found = not_finite(sales, universe, settings, {"sf": "Single family"}, {"sf": {"lightgbm": "Trees"}})
+    assert found == [
+        "ratio in Single family: 1 sales and 2 parcels (used by Trees, MRA)",
+        "area in Single family: 0 sales and 1 parcels (used by Trees)",
+    ]

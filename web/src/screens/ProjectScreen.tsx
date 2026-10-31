@@ -72,21 +72,48 @@ function ProjectView({
   const hasValues = useStep("ratio", projectId).data?.has_values ?? true;
   // Model values once the fields are prepared and Looks right pressed (Variables › What changed).
   const prepared = useStep("prepare", projectId).data?.accepted ?? false;
+  // Asked for a tab that waits on an earlier step: shown that step's tab instead, and why, never silently.
+  const views = {
+    bring: useStep("bring-in", projectId).data,
+    groups: useStep("assemble", projectId).data,
+    sales: useStep("clean", projectId).data,
+    variables: useStep("prepare", projectId).data,
+  };
+  // The first step, in order, that isn't accepted on an up-to-date run: what the tab asked for waits on.
+  const order = ["bring", "groups", "sales", "variables"] as const;
+  const name = (k: string) => t.tabs[k as keyof typeof t.tabs] as string;
+  const first = order.find((k) => !views[k]?.accepted);
+  // A tab that waits on an earlier step shows the first step, in order, not accepted on an up-to-date run: where
+  // something needs doing, with a notice saying why (never silently somewhere else).
+  const tabLocked =
+    (tab === "groups" && !accepted) ||
+    (tab === "sales" && !grouped) ||
+    ((tab === "values" || tab === "variables" || tab === "check") && !checked) ||
+    (tab === "check" && !hasValues) ||
+    (tab === "values" && !prepared);
+  const loaded = order.every((k) => views[k] !== undefined);
   const selected = !tab
     ? "fields"
-    : tab === "groups" && !accepted
-      ? "bring"
-      : tab === "sales" && !grouped
-        ? accepted
-          ? "groups"
-          : "bring"
-        : (tab === "values" || tab === "variables" || tab === "check") && !checked
-          ? "sales"
-          : tab === "check" && !hasValues
-            ? "variables"
-            : tab === "values" && !prepared
-              ? "variables"
-              : tab;
+    : !tabLocked || !loaded
+      ? tab
+      : tab === "check" && checked && !hasValues
+        ? "variables"
+        : (first ?? "bring");
+  const changed = views.bring?.stale ? (views.bring.changed ?? []) : [];
+  const why =
+    tab && tab !== selected
+      ? [
+          t.tabs.waits(name(tab), name(selected)),
+          first
+            ? views[first]?.stale
+              ? t.tabs.runAgain(name(first))
+              : t.tabs.pressLooksRight(name(first))
+            : "",
+          first === "bring" && changed.length ? t.tabs.bringChanged(changed.join(", ")) : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : null;
   const locked = [
     ...PLACEHOLDERS,
     ...(accepted ? [] : ["groups"]),
@@ -106,6 +133,11 @@ function ProjectView({
         <h1>{project.name}</h1>
         <span className="page-meta">{t.project.taxYear(project.tax_year)}</span>
       </header>
+      {why && (
+        <p className="bi-warn tab-waits" role="status">
+          {why}
+        </p>
+      )}
       <Tabs
         className="folder-tabs"
         selectedKey={selected}

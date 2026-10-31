@@ -97,3 +97,36 @@ def test_a_step_follows_the_run_before_and_waits_for_any_step_before_it(tmp_path
     first.accept(project, tmp_path)
     assert second.state(project, tmp_path).stale
     assert (third.state(project, tmp_path).waiting or "").startswith("Run Second again first")
+
+
+def test_bring_in_says_what_changed_even_when_oak_box_wrote_it():
+    """A change no line names (a newer OAK box writing the step's settings differently) is still said, never an empty
+    list beside "out of date"."""
+    from oakbox.bring_in import changes
+
+    old = {"data": {"load": {}, "process": {"enrich": {}}}}
+    new = {"data": {"load": {}, "process": {"enrich": {"calc": {"universe": {"x": ["set", 1]}}}}}}
+    assert changes(old, new) == ["fields worked out after the files join"]
+    odd = {"data": {"load": {}, "process": {"enrich": {}, "something_new": 1}}}
+    assert changes(old, odd) == ["how OAK box writes this step's settings (a newer OAK box)"]
+    # Check sales' own calls aren't Bring in data's.
+    assert changes(old, {"data": {"load": {}, "process": {"enrich": {}, "collapse_sparse_categories": {}}}}) == []
+
+
+def test_opening_a_project_refreshes_its_settings(client):
+    """Settings a newer OAK box would write differently are rewritten when the project is opened, so what that
+    changes shows then, not at the next unrelated click."""
+    import json
+
+    from helpers import NEW
+
+    from oakbox import projects
+
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    path = projects.project_dir(pid) / "in" / "settings.json"
+    assert not projects.refresh_settings(projects.load(pid))
+    s = json.loads(path.read_text(encoding="utf-8"))
+    s["stale_by_an_older_oak_box"] = True
+    path.write_text(json.dumps(s), encoding="utf-8")
+    client.get(f"/api/projects/{pid}")
+    assert "stale_by_an_older_oak_box" not in json.loads(path.read_text(encoding="utf-8"))

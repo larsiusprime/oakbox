@@ -604,6 +604,23 @@ def _effective_year(project: Project, out: dict) -> None:
     calc.setdefault("universe", {})[year] = ["where", [">", year, 0], year, "bldg_year_built"]
 
 
+def refresh_settings(project: Project) -> bool:
+    """Rewrite settings.json when this OAK box would write it differently (a newer OAK box): on opening the project,
+    so what that changes shows at once (Bring in data out of date, say), not at the next unrelated change. True when
+    it was rewritten."""
+    path = project_dir(project.id) / "in" / "settings.json"
+    if not path.exists():
+        return False
+    try:
+        current = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        current = None
+    if current == json.loads(json.dumps(base_settings(project))):
+        return False
+    write_settings(project)
+    return True
+
+
 def write_settings(project: Project) -> Path:
     path = project_dir(project.id) / "in" / "settings.json"
     settings = base_settings(project)

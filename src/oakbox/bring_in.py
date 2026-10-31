@@ -147,6 +147,13 @@ def changes(old: dict, new: dict) -> list[str]:
         out.append("location fields")
     if _own(old, fa) != _own(new, fb):
         out.append("your own fields")
+    if ea.get("calc") != eb.get("calc"):
+        out.append("fields worked out after the files join")
+    if ea.get("permits") != eb.get("permits"):
+        out.append("permits")
+    if not out and settings_key(old) != settings_key(new):
+        # Something no line above names: most often a newer OAK box writing this step's settings differently.
+        out.append("how OAK box writes this step's settings (a newer OAK box)")
     return list(dict.fromkeys(out))
 
 

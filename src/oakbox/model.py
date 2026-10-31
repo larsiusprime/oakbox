@@ -258,7 +258,9 @@ def _scan(
     path: str, mtime: float, settings_mtime: float, units: str | None
 ) -> tuple[tuple[str, str, bool, int, int, int | None], ...]:
     """(field, kind, numeric, parcels with a value, blanks, a category's values) for each candidate in the prepared
-    universe. A category with one value, or nearly one per parcel (an ID, an address), isn't offered."""
+    universe. A category with one value, or nearly one per parcel (an ID, an address), isn't offered; nor is a number
+    the same everywhere, or infinite anywhere."""
+    import numpy as np
     import pandas as pd
     import pyarrow.parquet as pq
 
@@ -278,6 +280,8 @@ def _scan(
             kind, numeric, values = "category", False, int(distinct)
         elif s.nunique(dropna=True) <= 1:
             continue  # the same everywhere: nothing to learn
+        elif not pd.api.types.is_bool_dtype(s) and bool(np.isinf(s.to_numpy(dtype=float, na_value=np.nan)).any()):
+            continue  # infinite somewhere (a ratio over a zero): no model can take it
         out.append((f, kind, numeric, len(s) - blanks, blanks, values))
     return tuple(out)
 
@@ -824,6 +828,52 @@ def _valued(r, outside: tuple[str, ...]) -> tuple[int, int]:
     return int(values.notna().sum()), int((values < 0).sum())
 
 
+def not_finite(sales, universe, settings: dict, groups: dict[str, str], own: dict[str, dict[str, str]]) -> list[str]:
+    """Variables the models use with infinite (or float-overflowing) values, per model group, in words: what
+    OpenAVMKit's "Input contains infinity or a value too large" doesn't say. groups: id -> name; own: each group's
+    model keys -> the names the user gave them."""
+    import numpy as np
+    import pandas as pd
+
+    lists = settings.get("variable_lists", {})
+    main = settings.get("modeling", {}).get("models", {}).get("main", {})
+    out: list[str] = []
+    for g, gname in groups.items():
+        uses: dict[str, list[str]] = {}
+        for key, entry in (main.get(g) or {}).items():
+            if not isinstance(entry, dict):
+                continue
+            ivs = entry.get("ind_vars") or []
+            if isinstance(ivs, str) and ivs.startswith("$$variable_lists."):
+                ivs = lists.get(ivs.split(".", 1)[1], [])
+            for v in ivs if isinstance(ivs, list) else []:
+                name = own.get(g, {}).get(key) or ENGINES.get(entry.get("model", key), (key,))[0]
+                if key != "default" and name not in uses.setdefault(v, []):
+                    uses[v].append(name)
+        counts: dict[str, list[int]] = {}
+        for i, df in enumerate((sales, universe)):
+            rows = df[df["model_group"] == g] if "model_group" in df else df.iloc[0:0]
+            for v in uses:
+                if v not in rows or rows[v].dtype == bool:
+                    continue
+                col = np.asarray(pd.to_numeric(pd.Series(rows[v]), errors="coerce"), dtype=float)
+                bad = int((np.isinf(col) | (np.abs(col) > 1e300)).sum())
+                if bad:
+                    counts.setdefault(v, [0, 0])[i] = bad
+        for v, (n_sales, n_parcels) in counts.items():
+            models = ", ".join(uses[v]) or "every model"
+            out.append(f"{v} in {gname}: {n_sales:,} sales and {n_parcels:,} parcels (used by {models})")
+    return out
+
+
+def _infinite_error(found: list[str]) -> str:
+    return (
+        "Some variables have infinite values, which no model can take: "
+        + "; ".join(found)
+        + ". Take them out of the variable lists (Variables), or see where they come from in Data."
+    )
+
+
 def run(project_id: str) -> None:
     import warnings
     from importlib.metadata import version
@@ -867,19 +917,31 @@ def run(project_id: str) -> None:
         steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
         settings = pl.load_settings()
         sup = pl.load_cleaned_data_for_modeling(settings)
+        # A variable with infinite values stops every model with an error that names none: say which, before.
+        gnames = {g.id: g.name for g in project.groups if g.id in modeled}
+        found = not_finite(sup.sales, sup.universe, settings, gnames, own)
+        if found:
+            raise ValueError(_infinite_error(found))
         steps.emit(step="split", fraction=0.05, message="Splitting the sales into folds")
         pl.write_canonical_splits(sup, settings, verbose=False)
         steps.emit(step="models", fraction=0.1, message="Training the models")
-        results = pl.try_models(
-            sup,
-            settings,
-            save_params=True,
-            use_saved_params=True,
-            verbose=False,
-            run_main=True,
-            run_vacant=False,
-            run_ensemble=True,
-        )
+        try:
+            results = pl.try_models(
+                sup,
+                settings,
+                save_params=True,
+                use_saved_params=True,
+                verbose=False,
+                run_main=True,
+                run_vacant=False,
+                run_ensemble=True,
+            )
+        except ValueError as e:
+            if "infinity" not in str(e) and "too large" not in str(e):
+                raise
+            # Made during training (a ratio, a log): what the data holds still says where to look, if anything.
+            found = not_finite(sup.sales, sup.universe, settings, gnames, own)
+            raise ValueError(f"{e} " + (_infinite_error(found) if found else "No variable has one as prepared.")) from e
     steps.emit(step="receipt", fraction=0.97, message="Counting")
     from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
 

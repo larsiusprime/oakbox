@@ -1141,6 +1141,12 @@ export const t = {
     noValues: "No existing values to check: add them on Data › Existing values.",
     valuesLocked: "Press Looks right on Check sales first",
     later: "Not available yet",
+    waits: (asked: string, shown: string) =>
+      `${asked.replace(/^\d+ /, "")} waits for ${shown.replace(/^\d+ /, "")}.`,
+    runAgain: (step: string) =>
+      `${step.replace(/^\d+ /, "")} is out of date: run it again, then press Looks right.`,
+    pressLooksRight: (step: string) => `Press Looks right on ${step.replace(/^\d+ /, "")} first.`,
+    bringChanged: (what: string) => `What changed: ${what}.`,
   },
 
   // Step 1, Bring in data: OpenAVMKit loads and joins the files into the parcel universe and the sales record.
