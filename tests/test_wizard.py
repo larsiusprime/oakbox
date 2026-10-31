@@ -1420,3 +1420,44 @@ def test_another_numbering_lower_case_and_keying_slips(client, tmp_path):
     lines = sales["not_in_universe"]["lines"]
     assert any(x.startswith("About ") and "keying slips" in x for x in lines)
     assert not any("Add it on More files" in x for x in lines)  # nearly all slips: no talk of missing parcels
+
+
+def test_valid_and_vacant_sale_from_one_column(client, tmp_path, monkeypatch):
+    """One sale type column says both: valid sale is some of its values, vacant sale others (a rule each)."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": [str(n) for n in range(4)]}, geometry=[box(n, 0, n + 1, 1) for n in range(4)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {
+            "PID": ["0", "1", "2", "3"],
+            "PRICE": [250_000, 40_000, 180_000, 90_000],
+            "DATE": ["2024-03-04", "2024-05-06", "2024-07-08", "2024-09-10"],
+            "SALE_TYPE": ["IMPROVED", "VACANT", "FORECLOSURE", "VACANT"],
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "parcels", universe=True, id_column="ID")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    put_file(client, pid, "sale", holds="sales", id_column="PID")
+    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
+    client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
+    for key, values in (("valid_sale", ["IMPROVED", "VACANT"]), ("vacant_sale", ["VACANT"])):
+        assert client.put(f"{field}/{key}", json={"file": "sale", "column": "SALE_TYPE"}).status_code == 200
+        rule = {"join": "all", "conditions": [{"column": "SALE_TYPE", "op": "isin", "values": values}]}
+        w = client.put(f"{field}/{key}/rule", json=rule).json()
+    # Both rules kept, each reading the one column, loaded once.
+    assert _field(w, "valid_sale")["check"]["text"] == "✓ 3 of 4 valid (75%)"
+    assert _field(w, "vacant_sale")["check"]["text"] == "✓ 2 of 4 vacant (50%)"
+    entry = read_settings(pid)["data"]["load"]["sale"]
+    assert entry["load"]["sale_type"] == ["SALE_TYPE", "string"]
+    assert entry["calc"]["valid_sale"] == ["?", ["isin", "sale_type", ["str:IMPROVED", "str:VACANT"]]]
+    assert entry["calc"]["vacant_sale"] == ["?", ["isin", "sale_type", ["str:VACANT"]]]
+    _, sales = _engine(pid, monkeypatch)
+    sales = sales.sort_values("key")
+    assert sales["valid_sale"].tolist() == [True, True, False, True]
+    assert sales["vacant_sale"].tolist() == [False, True, False, True]

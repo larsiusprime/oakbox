@@ -494,7 +494,7 @@ Choosing fields file by file (F3c) shows every column of every file, most of the
 | 8 Other details | Deed (book, page, grantor, grantee) and mailing address fields |
 
 - **Each field is a row:** its readable name (description on hover, D42), a column dropdown, then a check and a few sample values.
-- **The column dropdown** lists columns grouped by file: every parcel file for parcel fields, the sales file for sales fields, plus (none). A column already used shows as "used: Year built" and can't be picked twice.
+- **The column dropdown** lists columns grouped by file: every parcel file for parcel fields, the sales file for sales fields, plus (none). A column already used shows as "used: Year built" and can't be picked twice. Except (revised 2026-10-31): a yes/no field made by a rule (valid sale, vacant sale) only tests a column's values, it doesn't take it, so it can read a column another field uses ("also read by Valid sale"): valid and vacant sale from one sale type column, each its own rule on the one loaded column; and a category's text and ranked number (quality, condition) share one.
 - **The check** reads the samples for that field's type: numbers, a year range for years, the date format found ("✓ reads as month/day/year"), the yes/no reading ("✓ Y = yes, blank = no"). A column that doesn't read as its field's type is shown in red, not saved, with the Advanced view as the place to fix it.
 - **Types and formats are not asked:** the type is the dictionary's (as in F3c), dates take the first common format that reads all samples, and yes/no columns are Blank = No.
 - **Guesses are made when a step is first shown**, and saved like a choice, so the settings always match the screen.

@@ -126,6 +126,7 @@ export function FieldRow({
           files={files}
           used={data.used}
           names={Object.fromEntries(data.fields.map((f) => [f.key, shortName(f)]))}
+          types={Object.fromEntries(data.fields.map((f) => [f.key, f.type]))}
           value={value}
           many={files.length > 1}
           elsewhere={!sales}
@@ -361,8 +362,10 @@ export function shortName(field: WizardField): string {
 }
 
 /** Quality and condition fields can take the same column. */
-function shares(a: string, b: string): boolean {
-  return a in PAIRS && b in PAIRS;
+/** Two fields can read one column when one of them is a yes/no rule (it tests the column's values, it doesn't take
+ * it: valid sale and vacant sale from one sale type), or when they're the text and ranked number of one category. */
+function shares(a: string, b: string, types: Record<string, string>): boolean {
+  return (a in PAIRS && b in PAIRS) || types[a] === "boolean" || types[b] === "boolean";
 }
 
 /** A column dropdown grouped by file, with used columns shown but not pickable. */
@@ -371,6 +374,7 @@ function ColumnChoice({
   files,
   used,
   names,
+  types,
   value,
   many,
   elsewhere,
@@ -380,6 +384,7 @@ function ColumnChoice({
   files: WizardFile[];
   used: Wizard["used"];
   names: Record<string, string>;
+  types: Record<string, string>;
   value: string;
   many: boolean;
   elsewhere: boolean;
@@ -391,7 +396,7 @@ function ColumnChoice({
     for (const c of f.columns) {
       const as = used[f.name]?.[c.name];
       // Quality and condition can share a column: a category is the text and, ranked, the number.
-      if (as && as !== field.key && !shares(field.key, as)) disabled.push(`${f.name}\u0000${c.name}`);
+      if (as && as !== field.key && !shares(field.key, as, types)) disabled.push(`${f.name}\u0000${c.name}`);
     }
   }
   return (
@@ -420,7 +425,8 @@ function ColumnChoice({
               <Header className="wiz-section-head">{f.name}</Header>
               {f.columns.map((c) => {
                 const as = used[f.name]?.[c.name];
-                const taken = as && as !== field.key && !shares(field.key, as);
+                const other = as && as !== field.key;
+                const taken = other && !shares(field.key, as, types);
                 return (
                   <ListBoxItem
                     key={c.name}
@@ -430,7 +436,11 @@ function ColumnChoice({
                   >
                     <span className="mono">{c.name}</span>
                     <span className="wiz-item-note">
-                      {taken ? w.used(nameOf(as)) : c.samples.slice(0, 3).join(", ")}
+                      {taken
+                        ? w.used(nameOf(as))
+                        : other
+                          ? w.alsoRead(nameOf(as))
+                          : c.samples.slice(0, 3).join(", ")}
                     </span>
                   </ListBoxItem>
                 );
