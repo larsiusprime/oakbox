@@ -31,6 +31,11 @@ class FillChange(BaseModel):
     scope: clean.FillScope = "all"
 
 
+class IndexOnChange(BaseModel):
+    group: str
+    per: clean.IndexOn | None = Field(description="null: automatic (OpenAVMKit works it out from the sales).")
+
+
 class CleanPatch(BaseModel):
     """Only the calls named change; null resets a year to the default."""
 
@@ -44,6 +49,7 @@ class CleanPatch(BaseModel):
     nominal_below: int | None = Field(default=None, ge=1)
     collapse_univ_min: int | None = Field(default=None, ge=1)
     fill: FillChange | None = None
+    index_on: IndexOnChange | None = None
 
 
 class MarkBody(BaseModel):
@@ -87,6 +93,11 @@ def clean_change(project_id: str, body: CleanPatch) -> clean.CleanSetup:
         elif name == "fill":
             if value is not None:
                 c.fills[value.field] = clean.Fill(method=value.method, scope=value.scope)
+        elif name == "index_on":
+            if value is not None and value.per is None:
+                c.per.pop(value.group, None)
+            elif value is not None:
+                c.per[value.group] = value.per
         else:
             setattr(c, name, value)
     projects.save(project)

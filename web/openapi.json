@@ -5918,6 +5918,16 @@
         "type": "null"
        }
       ]
+     },
+     "index_on": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/IndexOnChange"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -6247,6 +6257,18 @@
       "title": "Time Files",
       "description": "Group -> its own time adjustment."
      },
+     "per": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "impr",
+        "land"
+       ]
+      },
+      "type": "object",
+      "title": "Per",
+      "description": "Group -> what its index is of (impr: price per finished area; land: per land area); missing: OpenAVMKit works it out from the sales."
+     },
      "fills": {
       "additionalProperties": {
        "$ref": "#/components/schemas/Fill"
@@ -6344,6 +6366,7 @@
      "period",
      "borrow",
      "time_files",
+     "per",
      "fills",
      "location",
      "checks",
@@ -9458,6 +9481,36 @@
     ],
     "title": "Histogram",
     "description": "How a number's values spread: counts in equal bins between its 1st and 99th percentiles (on a log scale when\nthey span orders of magnitude), with what's outside and the zeros said apart."
+   },
+   "IndexOnChange": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "per": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "impr",
+         "land"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per",
+      "description": "null: automatic (OpenAVMKit works it out from the sales)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "per"
+    ],
+    "title": "IndexOnChange"
    },
    "IndexPoint": {
     "properties": {
@@ -16291,6 +16344,12 @@
       "title": "Per",
       "description": "What the index is of: price per finished area (impr) or per land area."
      },
+     "per_chosen": {
+      "type": "boolean",
+      "title": "Per Chosen",
+      "description": "What the index is of was chosen, not worked out.",
+      "default": false
+     },
      "period": {
       "anyOf": [
        {
@@ -16344,6 +16403,7 @@
      "last",
      "curve",
      "per",
+     "per_chosen",
      "period",
      "periods",
      "periods_ok",
@@ -18863,6 +18923,22 @@
       "title": "Modeled",
       "description": "Modeled (Model groups \u203a Check them): shown greyed when not.",
       "default": true
+     },
+     "per": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "impr",
+         "land"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per",
+      "description": "What its index is of, as chosen; None: automatic."
      }
     },
     "type": "object",
@@ -18874,7 +18950,8 @@
      "per_year",
      "borrow",
      "file",
-     "modeled"
+     "modeled",
+     "per"
     ],
     "title": "GroupSetup"
    },

@@ -1519,7 +1519,14 @@ export const t = {
       collapse: "Show it smaller",
       none: "No time adjustment",
       onLand:
-        "Indexed on price per area of land, not finished area: OpenAVMKit chose it for this group. For condos, whose land is a small share of their parcel's, it's rarely right.",
+        "Indexed on price per area of land, not finished area: OpenAVMKit chose it for this group. For condos, whose land is a small share of their parcel's, it's rarely right: choose Finished area under Index on.",
+      indexOn: "Index on",
+      indexOnTip:
+        "What a group's index is of: its sales' price per finished area, or per area of land. Automatic: OpenAVMKit works it out from the sales (land when prices per land area are close to those per finished area and many sales are of land).",
+      auto: "Automatic",
+      autoWas: (what: string) => `Automatic (${what})`,
+      onImpr: "Finished area",
+      onLandArea: "Land area",
       previewRun: "Work it out",
       working: "Working it out…",
     },

@@ -2167,6 +2167,7 @@ export interface components {
             /** Collapse Univ Min */
             collapse_univ_min?: number | null;
             fill?: components["schemas"]["FillChange"] | null;
+            index_on?: components["schemas"]["IndexOnChange"] | null;
         };
         /** CleanReceipt */
         CleanReceipt: {
@@ -2327,6 +2328,13 @@ export interface components {
              */
             time_files: {
                 [key: string]: components["schemas"]["TimeFile"];
+            };
+            /**
+             * Per
+             * @description Group -> what its index is of (impr: price per finished area; land: per land area); missing: OpenAVMKit works it out from the sales.
+             */
+            per: {
+                [key: string]: "impr" | "land";
             };
             /**
              * Fills
@@ -3824,6 +3832,16 @@ export interface components {
              * @description Zeros, left out (often 'none': no building, no year).
              */
             zeros: number;
+        };
+        /** IndexOnChange */
+        IndexOnChange: {
+            /** Group */
+            group: string;
+            /**
+             * Per
+             * @description null: automatic (OpenAVMKit works it out from the sales).
+             */
+            per: ("impr" | "land") | null;
         };
         /** IndexPoint */
         IndexPoint: {
@@ -6752,6 +6770,12 @@ export interface components {
              */
             per: ("impr" | "land") | null;
             /**
+             * Per Chosen
+             * @description What the index is of was chosen, not worked out.
+             * @default false
+             */
+            per_chosen: boolean;
+            /**
              * Period
              * @description The period OpenAVMKit settled on.
              */
@@ -7829,6 +7853,11 @@ export interface components {
              * @default true
              */
             modeled: boolean;
+            /**
+             * Per
+             * @description What its index is of, as chosen; None: automatic.
+             */
+            per: ("impr" | "land") | null;
         };
         /** GroupSetup */
         oakbox__ratio__GroupSetup: {

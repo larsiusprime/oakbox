@@ -55,6 +55,7 @@ class TimeGroup(BaseModel):
     per: Literal["impr", "land"] | None = Field(
         default=None, description="What the index is of: price per finished area (impr) or per land area."
     )
+    per_chosen: bool = Field(default=False, description="What the index is of was chosen, not worked out.")
     period: Literal["M", "Q", "Y"] | None = Field(default=None, description="The period OpenAVMKit settled on.")
     periods: int = Field(default=0, description="Periods with sales of a size.")
     periods_ok: int = Field(default=0, description="Of them, periods with 5 or more: the ones the index is from.")
@@ -153,7 +154,7 @@ def run(project_id: str) -> None:
         g = TimeGroup(id=gid, name=name, color=color, sales=n, per_year=per_year, first=first, last=last, curve=curve)
         mine = cast(pd.DataFrame, valid[valid["model_group"].astype(str) == gid]) if "model_group" in valid else None
         if mine is not None and n:
-            details[gid] = _diagnose(g, mine, settings, project.clean.period, schedule)
+            details[gid] = _diagnose(g, mine, settings, project.clean.period, schedule, project.clean.per.get(gid))
         elif per_year is None:
             g.why = "No sales in the window."
         groups.append(g)
@@ -168,7 +169,7 @@ def run(project_id: str) -> None:
     steps.emit(step="done", fraction=1.0, message="Done")
 
 
-def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path) -> dict:
+def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path, chosen: str | None = None) -> dict:
     """What OpenAVMKit's index for a group is of, the period it settled on, how many periods it's from, and why
     there's none when there's none (its own reasons, worked out as it works them out); and the group's sales and
     index for the expanded chart."""
@@ -187,7 +188,8 @@ def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path) 
     area = {k: cells.numbers(s, f"{f}_{unit}") for k, f in (("impr", "bldg_area_finished"), ("land", "land_area"))}
     sized = {k: int(a.gt(0).sum()) for k, a in area.items()}
     try:
-        g.per = cast(Literal["impr", "land"], _determine_value_driver(s, settings))
+        g.per = cast(Literal["impr", "land"], chosen or _determine_value_driver(s, settings))
+        g.per_chosen = chosen is not None
     except Exception:  # its own checks can fail on odd data: then the reason below says what's known
         g.per = "impr" if sized["impr"] else "land"
     per_area = price / area[g.per].where(area[g.per].gt(0))

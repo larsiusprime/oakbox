@@ -6,6 +6,7 @@ import { api, type CleanPatch, unwrap } from "../api/client";
 import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { InfoTip } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
 import { t } from "../strings";
@@ -284,6 +285,7 @@ function WindowCard({ v, set }: CardProps) {
 
 function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
   const queryClient = useQueryClient();
+  const preview = useTimePreview(projectId);
   const [importing, setImporting] = useState<string | null>(null);
   const borrow = useMutation({
     mutationFn: async (body: { group: string; source: string | null }) =>
@@ -304,6 +306,14 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
     if (from !== now) borrow.mutate({ group: gid, source: from === "own" ? null : from });
   };
   const target = v.groups.find((g) => g.id === importing);
+  // Automatic says what OpenAVMKit chose, once it's been worked out.
+  const worked = preview.v?.result?.groups ?? [];
+  const autoLabel = (gid: string) => {
+    const w = worked.find((x) => x.id === gid);
+    return w?.per && !w.per_chosen
+      ? s.time.autoWas(w.per === "land" ? s.time.onLandArea.toLowerCase() : s.time.onImpr.toLowerCase())
+      : s.time.auto;
+  };
   return (
     <Card
       title={
@@ -334,6 +344,9 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                 <th>{s.group}</th>
                 <th className="cs-n">{s.time.sales}</th>
                 <th>{s.time.from}</th>
+                <th>
+                  <InfoTip label={s.time.indexOn} text={s.time.indexOnTip} />
+                </th>
                 <th />
               </tr>
             </thead>
@@ -357,7 +370,7 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                           {g.name}
                         </td>
                         <td className="cs-n">{num(g.sales)}</td>
-                        <td colSpan={2}>{t.groups.notModeled}</td>
+                        <td colSpan={3}>{t.groups.notModeled}</td>
                       </tr>
                     );
                   return (
@@ -375,6 +388,30 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                           options={options}
                           onChange={(from) => choose(g.id, from, now)}
                         />
+                      </td>
+                      <td>
+                        {now === "own" ? (
+                          <Choice
+                            label={`${s.time.indexOn}: ${g.name}`}
+                            hideLabel
+                            value={g.per ?? "auto"}
+                            options={[
+                              ["auto", autoLabel(g.id)],
+                              ["impr", s.time.onImpr],
+                              ["land", s.time.onLandArea],
+                            ]}
+                            onChange={(per) =>
+                              set({
+                                index_on: {
+                                  group: g.id,
+                                  per: per === "auto" ? null : (per as "impr" | "land"),
+                                },
+                              })
+                            }
+                          />
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="wiz-from cs-ta-note">
                         {g.file ? (

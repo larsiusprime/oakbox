@@ -33,12 +33,14 @@ def test_the_calls_are_openavmkit_settings():
     )
 
     p.clean.sales_from = 2023
+    p.clean.per = {"condos": "impr"}  # condos indexed on finished area, whatever OpenAVMKit would choose
     p.clean.fills = {"slope": clean.Fill(method="median"), "lot": clean.Fill(method="zero", scope="vacant")}
     p.clean.fills["skip"] = clean.Fill(method="leave")
     p.clean.location, p.clean.checks = "", {"dupe_date_price": False}
     s = clean.settings(p)
     # Vacant land has no window of its own: it follows the sales window.
     assert s["modeling"]["metadata"]["use_sales_from"] == {"improved": 2023, "vacant": 2023}
+    assert s["data"]["process"]["time_adjustment"]["per"] == {"condos": "impr"}
     # Added to OpenAVMKit's own fill lists ("+"), not replacing them.
     assert s["data"]["process"]["fill"] == {"+median": ["slope"], "+zero_vacant": ["lot"]}
     assert s["analysis"]["sales_scrutiny"]["location"] is None

@@ -98,6 +98,9 @@ class TimeFile(BaseModel):
     periods: int
 
 
+IndexOn = Literal["impr", "land"]
+
+
 class CleanState(BaseModel):
     sales_from: int | None = Field(default=None, description="Improved sales from this year on; None: the default.")
     time_adjust: bool = True
@@ -106,6 +109,11 @@ class CleanState(BaseModel):
         default_factory=dict, description="Group -> the group whose time adjustment it uses."
     )
     time_files: dict[str, TimeFile] = Field(default_factory=dict, description="Group -> its own time adjustment.")
+    per: dict[str, IndexOn] = Field(
+        default_factory=dict,
+        description="Group -> what its index is of (impr: price per finished area; land: per land area); "
+        "missing: OpenAVMKit works it out from the sales.",
+    )
     fills: dict[str, Fill] = Field(default_factory=dict, description="Per field with blanks; written once proposed.")
     location: str | None = Field(
         default=None, description='Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.'
@@ -150,6 +158,8 @@ def settings(project) -> dict:
     ta: dict[str, Any] = {"use": c.time_adjust, "period": c.period}
     if c.borrow:
         ta["borrow"] = dict(sorted(c.borrow.items()))
+    if c.per:
+        ta["per"] = dict(sorted(c.per.items()))
     if c.time_files:
         ta["from_file"] = {g: f.path for g, f in sorted(c.time_files.items())}
         # A comment to OpenAVMKit ("__"), but part of what the steps' hashes see: a new file with the same name.
@@ -318,6 +328,7 @@ class GroupSetup(BaseModel):
     borrow: str | None = Field(default=None, description="The group whose time adjustment it uses.")
     file: TimeFile | None = Field(default=None, description="Its own time adjustment file.")
     modeled: bool = Field(default=True, description="Modeled (Model groups › Check them): shown greyed when not.")
+    per: IndexOn | None = Field(default=None, description="What its index is of, as chosen; None: automatic.")
 
 
 class FillRow(BaseModel):
@@ -609,6 +620,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
                 borrow=project.clean.borrow.get(g.id),
                 file=project.clean.time_files.get(g.id),
                 modeled=g.id in modeled,
+                per=project.clean.per.get(g.id),
             )
         )
     unknown = int((inside & (valid["model_group"] == UNKNOWN)).sum()) if "model_group" in valid else 0

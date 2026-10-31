@@ -280,7 +280,7 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
                       {s.time.collapse}
                     </Button>
                   </figcaption>
-                  {g.per === "land" && <p className="wiz-warn">{s.time.onLand}</p>}
+                  {g.per === "land" && !g.per_chosen && <p className="wiz-warn">{s.time.onLand}</p>}
                   <TimeChart projectId={projectId} group={g} currency={currency} />
                 </figure>
               ) : (
