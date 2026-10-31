@@ -136,7 +136,7 @@ def _group_tests(tests: dict, variables: list[str]) -> dict[str, list[TestRow]]:
     out["corr"] = rows
     if not tests.get("corr"):
         del out["corr"]
-    for name in ("p_value", "vif"):
+    for name in ("vif",):
         t = tests.get(name)
         if t:
             keep = final(name)

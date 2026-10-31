@@ -2149,7 +2149,6 @@ export const t = {
       test: "Test the variables",
       represented: "Represented",
       corr: "Correlation",
-      p_value: "Significance",
       vif: "Redundancy (VIF)",
       verdict: "What to keep",
       models: "Models",
@@ -2193,7 +2192,6 @@ export const t = {
       pick: {
         represented: "Always: does it have values among the sales and the parcels?",
         corr: "Related to price?",
-        p_value: "Does it matter once all the variables are in one regression?",
         vif: "How much of it do the other variables already explain?",
       } as Record<string, string>,
       reasons: {
@@ -2226,11 +2224,6 @@ export const t = {
           rule: (t: number) => `Passes with a correlation with price of ${t} or more, either way.`,
           figure: "Correlation with price",
         },
-        p_value: {
-          lede: "With all the variables in one regression, how likely is it that its effect is just chance? The least significant is dropped, again and again.",
-          rule: (t: number) => `Passes if it survives the drops (p-value under ${t}).`,
-          figure: "P-value (first fit)",
-        },
         vif: {
           lede: "Variance inflation: how much of it the other variables already explain (1: none; 5 to 10: high; over 10: very high). Redundant variables make a model unstable and hard to read. The worst is dropped, again and again; yes/no variables aren't tested.",
           rule: (t: number) => `Passes if it survives the drops (VIF under ${t}).`,
@@ -2239,7 +2232,6 @@ export const t = {
       } as Record<string, { lede: string; rule: string | ((t: number) => string); figure: string }>,
       thresholdKey: {
         corr: "correlation",
-        p_value: "p_value",
         vif: "vif",
       } as Record<string, string>,
       verdictLede:

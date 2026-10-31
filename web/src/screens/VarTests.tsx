@@ -8,13 +8,12 @@ import { t } from "../strings";
 
 const vt = t.values.vartest;
 
-/** How each test's figure reads: as a share, a score, a coefficient, a p-value; and which way is better. */
-const LOWER_BETTER = new Set(["p_value", "vif"]);
+/** How each test's figure reads: as a share, a coefficient, a VIF; and which way is better. */
+const LOWER_BETTER = new Set(["vif"]);
 
 function figure(test: string, v: number | null | undefined): string {
   if (v == null) return "—";
   if (test === "represented") return `${Math.round(100 * v)}%`;
-  if (test === "p_value") return v < 0.001 ? "< 0.001" : num(v, 3);
   if (test === "corr") return num(v, 3);
   return num(v, 2);
 }
@@ -358,7 +357,7 @@ export function TestPicker({
     <>
       <h3 className="wiz-group">{vt.pickTitle}</h3>
       <div className="md-engines">
-        {["represented", "corr", "p_value", "vif"].map((k) => (
+        {["represented", "corr", "vif"].map((k) => (
           <div key={k} className="md-engine">
             <Tick
               isSelected={k === "represented" || chosen.includes(k)}

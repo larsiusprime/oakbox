@@ -9,7 +9,7 @@ import { TestPicker, TestStep, WhatToKeep } from "./VarTests";
 
 const m = t.values;
 // The variable tests (SPEC F9): Test the variables is a major step, the tests the user picked its parts.
-const TESTS = ["represented", "corr", "p_value", "vif"] as const;
+const TESTS = ["represented", "corr", "vif"] as const;
 type Test = (typeof TESTS)[number];
 type MvStep =
   | "fill"

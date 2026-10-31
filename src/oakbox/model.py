@@ -72,7 +72,7 @@ class ModelState(BaseModel):
 
 # The variable tests offered (OpenAVMKit's names), each answering a question of its own; Represented always runs. The
 # engine's other tests (elastic net, R², t-value, signs agree) mostly repeat one of these and aren't run.
-TESTS = ("corr", "p_value", "vif")
+TESTS = ("corr", "vif")
 
 
 def tests(project) -> list[str]:
