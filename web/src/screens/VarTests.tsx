@@ -5,7 +5,6 @@ import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from ".
 import { Choice, Tick } from "../components/Form";
 import { num } from "../lib/format";
 import { t } from "../strings";
-import { ColumnsNote } from "./Models";
 
 const vt = t.values.vartest;
 
@@ -21,18 +20,16 @@ function figure(test: string, v: number | null | undefined): string {
 }
 
 /** One test, one model group: a row per variable (a category's values each on their own row), its result as a bar
- * against the test's threshold, pass or fail, and a tick to keep the variable. */
+ * against the test's threshold, pass or fail. */
 export function TestStep({
   test,
   view,
   setup,
-  set,
   fill,
 }: {
   test: string;
   view: VarTestView;
   setup: ModelSetup;
-  set: (body: ModelPatch) => void;
   fill: () => void;
 }) {
   const r = view.receipt;
@@ -75,7 +72,6 @@ export function TestStep({
       : test === "vif"
         ? Math.max(0, Math.min(100, (100 * Math.log10(Math.max(v, 1))) / Math.log10(Math.max(top, 10))))
         : Math.max(0, Math.min(100, (100 * v) / top));
-  const chosen = setup.variables.filter((x) => x.chosen).map((x) => x.field);
   const names = Object.fromEntries(setup.variables.map((x) => [x.field, x.name]));
   // A category is one row, its values (each its own column to the tests) folded under it, best first: it passes if
   // any of its values does.
@@ -117,7 +113,6 @@ export function TestStep({
   const failingVars = [...new Set(rows.filter((x) => x.passed === false).map((x) => x.variable))].filter(
     (v) => !rows.some((x) => x.variable === v && x.passed),
   );
-  const failingTicked = failingVars.filter((v) => chosen.includes(v));
   return (
     <div className="cs-step">
       <p className="wiz-lede">{info?.lede}</p>
@@ -149,15 +144,7 @@ export function TestStep({
         </p>
       )}
       <p className={failingVars.length ? "wiz-warn" : "wiz-ok"}>
-        {failingVars.length ? vt.failing(failingVars.length) : vt.noneFail}{" "}
-        {failingTicked.length > 0 && (
-          <Button
-            className="wiz-link"
-            onPress={() => set({ variables: chosen.filter((v) => !failingTicked.includes(v)) })}
-          >
-            {vt.untickFailing}
-          </Button>
-        )}
+        {failingVars.length ? vt.failing(failingVars.length) : vt.noneFail}
       </p>
       <table className="tbl vt-tbl">
         <thead>
@@ -171,25 +158,17 @@ export function TestStep({
           {items.map((it) => {
             const best = it.rows[0];
             if (!best) return null;
-            const ticked = chosen.includes(it.variable);
             const shown = open.has(it.variable);
             const passing = it.rows.filter((x) => x.passed).length;
             const Chevron = shown ? ChevronDown : ChevronRight;
             return [
-              <tr key={it.variable} className={ticked ? undefined : "vt-off"}>
+              <tr key={it.variable}>
                 <td>
                   <span className="vt-name">
-                    <Tick
-                      isSelected={ticked}
-                      onChange={(on) =>
-                        set({
-                          variables: on ? [...chosen, it.variable] : chosen.filter((v) => v !== it.variable),
-                        })
-                      }
-                    >
+                    <span>
                       {names[it.variable] ?? it.variable}{" "}
                       {!it.category && <span className="mono wiz-from">{best.column}</span>}
-                    </Tick>
+                    </span>
                     {test === "corr" && !it.category && g?.corr[best.column] && (
                       <Button
                         className="wiz-link vt-values"
@@ -241,7 +220,7 @@ export function TestStep({
                 : []),
               ...(it.category && shown
                 ? it.rows.flatMap((x) => [
-                    <tr key={x.column} className={ticked ? "vt-level" : "vt-level vt-off"}>
+                    <tr key={x.column} className="vt-level">
                       <td>
                         {x.level} <span className="mono wiz-from">{x.column}</span>{" "}
                         {test === "corr" && g?.corr[x.column] && (
@@ -277,34 +256,14 @@ export function TestStep({
 }
 
 /** OpenAVMKit's pick per model group beside what's ticked, and its weighted scores. */
-export function WhatToKeep({
-  view,
-  setup,
-  set,
-}: {
-  view: VarTestView;
-  setup: ModelSetup;
-  set: (body: ModelPatch) => void;
-}) {
+export function WhatToKeep({ view, setup }: { view: VarTestView; setup: ModelSetup }) {
   const r = view.receipt;
   if (!r) return null;
   const tested = r.groups.filter((g) => Object.keys(g.tests).length > 0);
-  const chosen = setup.variables.filter((x) => x.chosen).map((x) => x.field);
-  const recommended = new Set(tested.flatMap((g) => g.recommended));
   const rows = setup.variables.filter((x) => r.variables.includes(x.field));
   return (
     <div className="cs-step">
       <p className="wiz-lede">{vt.verdictLede}</p>
-      <ColumnsNote v={setup} />
-      <p>
-        {vt.ticked(chosen.length, setup.variables.length)}{" "}
-        <Button
-          className="wiz-link"
-          onPress={() => set({ variables: chosen.filter((v) => recommended.has(v)) })}
-        >
-          {vt.keepRecommended}
-        </Button>
-      </p>
       <table className="tbl">
         <thead>
           <tr>
@@ -319,16 +278,9 @@ export function WhatToKeep({
         </thead>
         <tbody>
           {rows.map((x) => (
-            <tr key={x.field} className={x.chosen ? undefined : "vt-off"}>
+            <tr key={x.field}>
               <td>
-                <Tick
-                  isSelected={x.chosen}
-                  onChange={(on) =>
-                    set({ variables: on ? [...chosen, x.field] : chosen.filter((v) => v !== x.field) })
-                  }
-                >
-                  {x.name} <span className="mono wiz-from">{x.field}</span>
-                </Tick>
+                {x.name} <span className="mono wiz-from">{x.field}</span>
               </td>
               {tested.map((g) => (
                 <td key={g.id} className="cs-n">

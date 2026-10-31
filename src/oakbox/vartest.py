@@ -179,7 +179,7 @@ def run(project_id: str) -> None:
     pdir = projects.project_dir(project_id)
     if not (pdir / "out" / "2-clean-sup.pickle").is_file():
         raise RuntimeError("Prepare the fields first: the tests start from what it writes.")
-    variables = [v.field for v in model.variables(project, pdir) if v.chosen]
+    variables = [v.field for v in model.variables(project, pdir)]  # every variable: lists are built from the results
     to_run = model.tests(project)
     if not variables:
         raise RuntimeError("Tick at least one variable.")
@@ -308,27 +308,26 @@ STEP = steps.Step(
 def view(project, project_dir: Path) -> VarTestView:
     s = STEP.state(project, project_dir)
     r = s.receipt
-    chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
-    # The fields were prepared again, or (unticking a tested variable needs no new test) a variable was ticked
-    # that wasn't tested, or the tests changed.
-    stale = bool(r and (s.stale or chosen - set(r.variables) or r.tests != model.tests(project)))
+    every = {v.field for v in model.variables(project, project_dir)}
+    # The fields were prepared again (a variable not tested is new), or the tests changed.
+    stale = bool(r and (s.stale or every - set(r.variables) or r.tests != model.tests(project)))
     return VarTestView(
-        status=s.status, job=s.job, receipt=r, stale=stale, blocked=_blocked(project, project_dir, chosen)
+        status=s.status, job=s.job, receipt=r, stale=stale, blocked=_blocked(project, project_dir, every)
     )
 
 
-def _blocked(project, project_dir: Path, chosen: set[str]) -> list[str]:
+def _blocked(project, project_dir: Path, every: set[str]) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
-    if not chosen:
-        return ["Tick at least one variable."]
+    if not every:
+        return ["Prepare the fields first: there are no variables to test."]
     return []
 
 
 def start(project, project_dir: Path) -> None:
-    chosen = {v.field for v in model.variables(project, project_dir) if v.chosen}
-    STEP.start(project.id, project_dir, _blocked(project, project_dir, chosen))
+    every = {v.field for v in model.variables(project, project_dir)}
+    STEP.start(project.id, project_dir, _blocked(project, project_dir, every))
 
 
 if __name__ == "__main__":

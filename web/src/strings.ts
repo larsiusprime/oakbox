@@ -2174,10 +2174,10 @@ export const t = {
       `${name}: ${values.toLocaleString()} ${values === 1 ? "value" : "values"}, ${parcels.toLocaleString()} parcels`,
     looksRight: "Looks right › Variables",
     toVariables: "Variables ›",
-    // The variable tests (F9): OpenAVMKit's own, one at a time, untick what's a waste of time.
+    // The variable tests (F9): OpenAVMKit's own, one at a time: the evidence for the variable lists.
     vartest: {
       runLede:
-        "Runs OpenAVMKit's variable tests on each model group's sales, with the variables ticked: then they're shown one at a time, and you untick what isn't worth modeling with. A few seconds.",
+        "Runs OpenAVMKit's variable tests on each model group's sales, every variable: then they're shown one at a time, the evidence for the variable lists. A few seconds.",
       runNext: "Test them ›",
       runAgain: "Test again",
       runAgainNext: "Test again ›",
@@ -2189,7 +2189,6 @@ export const t = {
       variable: "Variable",
       value: "Result",
       skipped: (name: string, why: string) => `${name}: ${why}.`,
-      untickFailing: "Untick every variable that fails this test",
       pickTitle: "Tests to run",
       pick: {
         represented: "Always: does it have values among the sales and the parcels?",
@@ -2244,11 +2243,9 @@ export const t = {
         vif: "vif",
       } as Record<string, string>,
       verdictLede:
-        "OpenAVMKit scores each variable on the tests (each weighted), then keeps the set that predicts best in cross-validation. Its pick per model group, and what you've ticked.",
+        "OpenAVMKit scores each variable on the tests (each weighted), then keeps the set that predicts best in cross-validation: its pick per model group.",
       score: "Score",
       recommended: "recommended",
-      keepRecommended: "Keep only what OpenAVMKit recommends for some model group",
-      ticked: (n: number, of: number) => `${n.toLocaleString()} of ${of.toLocaleString()} variables ticked.`,
     },
     // The models (F9): which variables, which models, a try, and how they did.
     model: {

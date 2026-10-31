@@ -4261,9 +4261,6 @@ table.tbl > * > tr.rv-total > td {
   width: 2px;
   background: #333;
 }
-tr.vt-off {
-  color: var(--muted);
-}
 
 /* Step 5's variables: each kind a heading that stands out and folds its rows away. */
 .tbl.md-vars > tbody > tr.md-kind > td {
