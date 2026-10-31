@@ -4612,6 +4612,9 @@ table.tbl.dt > * > tr > :is(th, td) {
   background: var(--select);
 }
 .gm-addtools {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
   white-space: nowrap;
 }
 
@@ -4697,4 +4700,13 @@ table.tbl.dt > * > tr > :is(th, td) {
 .wiz-appended > p {
   margin: 0.3rem 0;
   max-width: 60rem;
+}
+
+/* The models table's cells line up on their first line (a dropdown's text, a name, a link): a note under one
+   cell's dropdown grows the row downwards, and the dropdowns stay on one line across the row. */
+.tbl.gm-models > tbody > tr:not(.gm-detail) > td {
+  vertical-align: baseline;
+}
+.tbl.gm-models > tbody > tr:not(.gm-detail) > td:first-child .input {
+  width: 100%;
 }

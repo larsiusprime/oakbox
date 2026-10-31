@@ -203,19 +203,21 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                   <p className="wiz-from gm-warn">{engines[adding.engine]?.note}</p>
                 </td>
                 <td className="wiz-from">{m.configLater}</td>
-                <td className="gm-addtools">
-                  <Button
-                    className="button button-primary"
-                    onPress={() => {
-                      save([...entries, { ...adding, key: "" }]);
-                      setAdding(null);
-                    }}
-                  >
-                    {m.addIt}
-                  </Button>
-                  <Button className="wiz-link" onPress={() => setAdding(null)}>
-                    {m.cancel}
-                  </Button>
+                <td>
+                  <div className="gm-addtools">
+                    <Button
+                      className="button button-primary"
+                      onPress={() => {
+                        save([...entries, { ...adding, key: "" }]);
+                        setAdding(null);
+                      }}
+                    >
+                      {m.addIt}
+                    </Button>
+                    <Button className="wiz-link" onPress={() => setAdding(null)}>
+                      {m.cancel}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             )}
