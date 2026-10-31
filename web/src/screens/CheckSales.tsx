@@ -215,7 +215,7 @@ export function SalesTab({
       )}
       {current === "aside" && r && (
         <>
-          <StepBody kicker={kicker} title={s.steps.aside}>
+          <StepBody kicker={kicker} title={s.steps.aside} lede={s.review.lede}>
             <Review
               projectId={projectId}
               currency={currency}

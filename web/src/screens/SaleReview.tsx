@@ -381,6 +381,13 @@ function SaleView({
         <TextField className="cs-note-field" value={note} onChange={setNote} aria-label={s.review.noteLabel}>
           <TextArea className="cs-note" placeholder={s.review.notePlaceholder} />
         </TextField>
+        <p className={i.status === "kept" ? "wiz-ok cs-now" : "cs-now"}>
+          {i.status === "undecided"
+            ? s.review.nowUndecided
+            : i.status === "kept"
+              ? s.review.nowKept
+              : s.review.nowExcluded}
+        </p>
         <div className="cs-actions">
           {i.status === "undecided" ? (
             <>
@@ -397,12 +404,9 @@ function SaleView({
               <span className="wiz-from">{s.review.keepNote}</span>
             </>
           ) : (
-            <>
-              <span className="wiz-ok">{i.status === "kept" ? s.review.isKept : s.review.isExcluded}</span>
-              <Button className="button" isDisabled={mark.isPending} onPress={() => decide(null)}>
-                {s.review.undo}
-              </Button>
-            </>
+            <Button className="button" isDisabled={mark.isPending} onPress={() => decide(null)}>
+              {s.review.undo}
+            </Button>
           )}
           <span className="bi-grow" />
           <Button className="wiz-link" onPress={next}>

@@ -1495,7 +1495,7 @@ def mark(project, key_sale: str, action: Literal["keep", "exclude"] | None, note
         project.clean.marks.pop(key_sale, None)
         return
     if action == "keep" and not note.strip():
-        raise ValueError("Say why it's a market sale: a note is needed to keep it.")
+        raise ValueError("Say why it's a market sale: a note is needed to put it back.")
     project.clean.marks[key_sale] = SaleMark(action=action, note=note.strip())
 
 

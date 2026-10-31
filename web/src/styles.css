@@ -4435,3 +4435,9 @@ table.tbl.dt > * > tr > :is(th, td) {
   width: 1%;
   white-space: nowrap;
 }
+
+/* Where the sale stands now, above what can be done with it (Sales set aside). */
+.cs-now {
+  margin: 0.3rem 0 0;
+  font-weight: 600;
+}
