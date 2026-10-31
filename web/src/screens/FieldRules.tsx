@@ -14,6 +14,7 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { Val } from "../components/Val";
 import { amount, pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
 import { t } from "../strings";
@@ -241,7 +242,7 @@ export function RuleDialog({
                     {row.cells.map((cell, j) => (
                       // biome-ignore lint/suspicious/noArrayIndexKey: a row's cells, by column
                       <td key={j} className="rc-td">
-                        {cell.trim() ? cell : <span className="rc-dim">{r.blank}</span>}
+                        {cell.trim() ? <Val v={cell} /> : <span className="rc-dim">{r.blank}</span>}
                       </td>
                     ))}
                     <td className="rc-td rc-m">
@@ -398,7 +399,9 @@ export function DateDialog({
               <tbody>
                 {v.samples.map((s) => (
                   <tr key={s.raw}>
-                    <td className="rc-td">{s.raw}</td>
+                    <td className="rc-td" title={s.raw}>
+                      {s.raw}
+                    </td>
                     <td className="rc-td rc-arrow">→</td>
                     <td className="rc-td">{s.read ?? <span className="rc-miss">✗ {d.notRead}</span>}</td>
                   </tr>

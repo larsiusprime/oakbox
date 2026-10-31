@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";
+import { Val } from "../components/Val";
 import { t } from "../strings";
 import { FileHeader, FilePicker, IdRow } from "./WizardFiles";
 import type { Mutate } from "./wizardChange";
@@ -95,7 +96,9 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
           <tbody>
             {v.kinds.map((k) => (
               <tr key={k.value}>
-                <td className="pm-cell mono">{k.value}</td>
+                <td className="pm-cell mono">
+                  <Val v={k.value} />
+                </td>
                 <td className="pm-cell pm-n">{k.count.toLocaleString()}</td>
                 <td className="pm-cell">
                   <Choice

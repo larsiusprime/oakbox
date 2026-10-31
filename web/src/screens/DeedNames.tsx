@@ -3,6 +3,7 @@ import { useDeferredValue, useState } from "react";
 import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
 import { api, type NamesView, unwrap } from "../api/client";
 import { setupKey, stepChanged } from "../api/steps";
+import { Val } from "../components/Val";
 import { t } from "../strings";
 
 const n = t.wizard.names;
@@ -120,9 +121,13 @@ export function DeedNames({ projectId }: { projectId: string }) {
             <tbody>
               {v.rows.map((r) => (
                 <tr key={`${r.seller}|${r.buyer}`} className={r.shared.length ? "dn-hit" : undefined}>
-                  <td className="mono">{r.seller}</td>
+                  <td className="mono">
+                    <Val v={r.seller} max={60} />
+                  </td>
                   <td>{r.seller_surnames.join(", ") || <span className="wiz-from">{n.noSurname}</span>}</td>
-                  <td className="mono">{r.buyer}</td>
+                  <td className="mono">
+                    <Val v={r.buyer} max={60} />
+                  </td>
                   <td>{r.buyer_surnames.join(", ") || <span className="wiz-from">{n.noSurname}</span>}</td>
                   <td>{r.shared.join(", ")}</td>
                 </tr>

@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Choice, Tick } from "../components/Form";
-import { num } from "../lib/format";
+import { Val } from "../components/Val";
+import { num, short } from "../lib/format";
 import { t } from "../strings";
 
 const vt = t.values.vartest;
@@ -221,7 +222,7 @@ export function TestStep({
                 ? it.rows.flatMap((x) => [
                     <tr key={x.column} className="vt-level">
                       <td>
-                        {x.level} <span className="mono wiz-from">{x.column}</span>{" "}
+                        <Val v={x.level} /> <span className="mono wiz-from">{short(x.column)}</span>{" "}
                         {test === "corr" && g?.corr[x.column] && (
                           <Button
                             className="wiz-link vt-values"

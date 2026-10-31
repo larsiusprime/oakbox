@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { t } from "../strings";
+import { Val } from "./Val";
 
 const v = t.wizard.values;
 
@@ -52,7 +53,9 @@ export function ValueTable({
         <tbody>
           {values.map((x) => (
             <tr key={x.value}>
-              <td className="vals-td mono vals-v">{x.value}</td>
+              <td className="vals-td mono vals-v">
+                <Val v={x.value} />
+              </td>
               <td className="vals-td vals-n">
                 <span className="vals-bar" style={{ width: `${Math.max(2, (100 * x.count) / top)}%` }} />
                 {x.count.toLocaleString()}

@@ -17,6 +17,7 @@ import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { Val } from "../components/Val";
 import { when } from "../lib/format";
 import { useSettled } from "../lib/hooks";
 import { t } from "../strings";
@@ -914,7 +915,7 @@ function FromField({
               <tbody>
                 {(vals.data?.rows ?? []).map((r) => (
                   <tr key={r.value}>
-                    <td className="rc-td mono">{r.value || g.blank}</td>
+                    <td className="rc-td mono">{r.value ? <Val v={r.value} /> : g.blank}</td>
                     <td className="rc-td mg-num">{r.parcels.toLocaleString()}</td>
                     <td className="rc-td mg-num">{r.vacant.toLocaleString()}</td>
                     <td className="rc-td mg-num">{r.sales.toLocaleString()}</td>
@@ -926,7 +927,7 @@ function FromField({
                           }}
                         />
                         <Choice
-                          label={`${g.ffGroup}: ${r.value || g.blank}`}
+                          label={`${g.ffGroup}: ${r.value ? <Val v={r.value} /> : g.blank}`}
                           hideLabel
                           value={sent[r.value] ?? NONE}
                           options={groupOptions}

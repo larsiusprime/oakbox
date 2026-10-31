@@ -1,9 +1,11 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
+import { short } from "../lib/format";
 import { t } from "../strings";
 import { AddButton } from "./AddButton";
 import { Tick } from "./Form";
+import { Val } from "./Val";
 
 const m = t.multiPick;
 
@@ -46,7 +48,7 @@ export function MultiPick({
   const canAdd = typed !== "" && !listed.has(typed) && !chosen.includes(typed);
   const labels = new Map(values.map((x) => [x.value, text(x)]));
   const named = values.some((x) => x.label);
-  const shown = chosen.map((c) => labels.get(c) ?? (c || m.blank)).join(", ");
+  const shown = chosen.map((c) => labels.get(c) ?? (c ? short(c) : m.blank)).join(", ");
   return (
     <DialogTrigger onOpenChange={(open) => !open && setSearch("")}>
       <Button className="mp-button" aria-label={`${label}: ${chosen.length ? shown : m.none}`}>
@@ -90,7 +92,9 @@ export function MultiPick({
                 isSelected={chosen.includes(x.value)}
                 onChange={(on) => toggle(x.value, on)}
               >
-                <span className={x.label ? "mp-value" : "mp-value mono"}>{text(x)}</span>
+                <span className={x.label ? "mp-value" : "mp-value mono"}>
+                  <Val v={text(x)} max={60} />
+                </span>
                 {x.note && <span className="mp-n mono">{x.note}</span>}
                 {x.count !== undefined && x.count >= 0 && (
                   <span className="mp-n">{x.count.toLocaleString()}</span>

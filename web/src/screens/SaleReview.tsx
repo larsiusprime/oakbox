@@ -12,8 +12,9 @@ import {
 } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Choice } from "../components/Form";
+import { Val } from "../components/Val";
 import { desktop } from "../desktop";
-import { day, money, num } from "../lib/format";
+import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
 import { t } from "../strings";
 
@@ -154,7 +155,7 @@ export function Review({
                   className={i.key_sale === current?.key_sale ? "cs-item sel" : "cs-item"}
                   onClick={() => setPicked(i.key_sale)}
                 >
-                  <b>{i.address ?? i.key}</b>
+                  <b>{i.address ?? short(i.key)}</b>
                   <span>
                     {money(i.price, currency)}
                     {i.price_per_area !== null && i.price_per_area !== undefined && (
@@ -319,8 +320,8 @@ function SaleView({
   return (
     <section ref={top} className="bi-card cs-detail" aria-label={i.address ?? i.key}>
       <h3>
-        {i.address ?? i.key}{" "}
-        <span className="wiz-from">{s.review.head(i.group_name, day(i.sale_date), i.key_sale)}</span>
+        {i.address ?? short(i.key)}{" "}
+        <span className="wiz-from">{s.review.head(i.group_name, day(i.sale_date), short(i.key_sale))}</span>
       </h3>
       {why(i, d, currency, unit).map((line) => (
         <p key={line} className="cs-why">
@@ -348,7 +349,7 @@ function SaleView({
             <tbody>
               {d.members.map((m) => (
                 <tr key={m.key_sale} className={m.key_sale === i.key_sale ? "cs-self" : ""}>
-                  <td>{m.address ?? m.key_sale}</td>
+                  <td>{m.address ?? <Val v={m.key_sale} />}</td>
                   <td className="cs-n">{money(m.price_per_area, currency)}</td>
                   <td className="cs-n">{num(m.area)}</td>
                   <td>{day(m.sale_date)}</td>
@@ -447,7 +448,7 @@ function Together({
     <section className="cs-step">
       <h4 className="wiz-group">
         {d.together_by === "deed" && d.deed
-          ? tg.onDeed(d.deed, day(d.item.sale_date), rows.length)
+          ? tg.onDeed(short(d.deed), day(d.item.sale_date), rows.length)
           : tg.samePrice(day(d.item.sale_date), rows.length)}
       </h4>
       <table className="tbl">
@@ -464,7 +465,7 @@ function Together({
         <tbody>
           {rows.map((x) => (
             <tr key={x.key_sale} className={x.this ? "cs-self" : undefined}>
-              <td>{x.address ?? x.key_sale}</td>
+              <td>{x.address ?? <Val v={x.key_sale} />}</td>
               <td>{x.group_name}</td>
               <td className="cs-n">{money(x.price, currency)}</td>
               <td className="cs-n">{num(x.finished)}</td>
@@ -638,7 +639,7 @@ function Related({ related, currency, unit }: { related: RelatedSale[]; currency
             {related.map((x) => (
               <tr key={x.key_sale}>
                 <td>
-                  {x.address ?? x.key_sale}
+                  {x.address ?? <Val v={x.key_sale} />}
                   {x.set_aside && <span className="pill"> {s.review.setAside}</span>}
                 </td>
                 <td>{day(x.sale_date)}</td>
@@ -646,7 +647,9 @@ function Related({ related, currency, unit }: { related: RelatedSale[]; currency
                 <td className="cs-n">
                   {x.distance == null ? "" : unit === "sqft" ? r.feet(x.distance) : r.metres(x.distance)}
                 </td>
-                <td>{x.buyer ?? ""}</td>
+                <td>
+                  <Val v={x.buyer} max={60} />
+                </td>
                 <td>{x.why.map((w) => r.why[w] ?? w).join(", ")}</td>
               </tr>
             ))}

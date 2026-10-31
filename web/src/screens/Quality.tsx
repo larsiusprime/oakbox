@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
 import { api, type Scale, type Source, unwrap, type Wizard, type WizardField } from "../api/client";
 import { Choice } from "../components/Form";
-import { amount, pct } from "../lib/format";
+import { Val } from "../components/Val";
+import { amount, pct, short } from "../lib/format";
 import { t } from "../strings";
 
 const q = t.wizard.quality;
@@ -141,7 +142,7 @@ export function CompareDialog({
                     <td>{c.kind === "numbers" ? q.numbers(fmt(c.low), fmt(c.high)) : q.text}</td>
                     <td>{pct(c.filled)}</td>
                     <td>{c.distinct.toLocaleString()}</td>
-                    <td className="mono">{c.samples.join(", ")}</td>
+                    <td className="mono">{c.samples.map((x) => short(x)).join(", ")}</td>
                     <td className={c.warn ? "qc-flag" : undefined}>{c.notes.join(" · ")}</td>
                     <td>
                       {c.loaded_as && <span className="pill pill-ok">{q.loadedAsWord[c.loaded_as]}</span>}
@@ -328,7 +329,9 @@ export function ScaleDialog({
           )}
           {v && v.notes.length > 0 && <p className="rc-sub">{v.notes.join(" · ")}</p>}
           {v && kind && v.samples.length > 0 && (
-            <p className="rc-sub mono">{v.samples.map((s) => `${s.raw} → ${fmt(s.value)}`).join("  ·  ")}</p>
+            <p className="rc-sub mono">
+              {v.samples.map((s) => `${short(s.raw)} → ${fmt(s.value)}`).join("  ·  ")}
+            </p>
           )}
           <details className="rc-writes">
             <summary>{q.writes}</summary>
@@ -438,7 +441,7 @@ export function TiersDialog({
                 <span className="pill pill-warn">{q.notRecognised}</span>
               )}
               {v.unplaced.length > 0 && v.recognised && !v.saved && (
-                <span className="qc-flag">{q.unplaced(v.unplaced.join(", "))}</span>
+                <span className="qc-flag">{q.unplaced(v.unplaced.map((x) => short(x)).join(", "))}</span>
               )}
               <Button className="button" onPress={() => rows && setRows(steps([...rows].reverse()))}>
                 {q.reverse}
@@ -482,7 +485,9 @@ export function TiersDialog({
                         <ArrowDown size="0.85em" />
                       </Button>
                     </td>
-                    <td className="mono">{r.value}</td>
+                    <td className="mono">
+                      <Val v={r.value} />
+                    </td>
                     <td>{r.count.toLocaleString()}</td>
                     <td className="num">
                       <TextField

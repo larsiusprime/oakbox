@@ -16,6 +16,7 @@ import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { Val } from "../components/Val";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { t } from "../strings";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
@@ -677,7 +678,7 @@ function Extreme({
         <tbody>
           {result.trimmed.map((x) => (
             <tr key={x.key_sale}>
-              <td>{x.address ?? x.key_sale}</td>
+              <td>{x.address ?? <Val v={x.key_sale} />}</td>
               <td>{x.group_name}</td>
               <td>{day(x.sale_date)}</td>
               <td className="cs-n">{money(x.price, currency)}</td>

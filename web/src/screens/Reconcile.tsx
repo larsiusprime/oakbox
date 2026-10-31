@@ -374,9 +374,11 @@ function Samples({
       <tbody>
         {rows.map((s) => (
           <tr key={s.raw}>
-            <td className="rc-td">{s.raw.trim() ? show(s.raw) : r.blank}</td>
+            <td className="rc-td" title={s.raw}>
+              {s.raw.trim() ? show(s.raw) : r.blank}
+            </td>
             <td className="rc-td rc-arrow">→</td>
-            <td className={s.clean === s.raw ? "rc-td rc-dim" : "rc-td"}>
+            <td className={s.clean === s.raw ? "rc-td rc-dim" : "rc-td"} title={s.clean}>
               {s.clean === s.raw ? r.same_ : show(s.clean)}
             </td>
             <td className="rc-td rc-m">

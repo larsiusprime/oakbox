@@ -2,7 +2,7 @@ import { navigate } from "../App";
 import type { PrepareView } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
-import { when } from "../lib/format";
+import { short, when } from "../lib/format";
 import { t } from "../strings";
 import { CollapseCard, FillCard } from "./CleanCards";
 import { VarListsStep } from "./VarLists";
@@ -303,7 +303,12 @@ function Prepared({ view }: { view: PrepareView }) {
             {r.folded.map((f) => (
               <li key={f.field}>
                 {m.foldLine(f.name, f.folded.length, f.parcels)}{" "}
-                <span className="wiz-from">{f.folded.slice(0, 8).join(", ")}</span>
+                <span className="wiz-from">
+                  {f.folded
+                    .slice(0, 8)
+                    .map((x) => short(x))
+                    .join(", ")}
+                </span>
               </li>
             ))}
           </ul>

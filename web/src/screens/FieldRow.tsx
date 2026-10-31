@@ -434,7 +434,9 @@ function ColumnChoice({
                     className="choice-item wiz-item"
                     textValue={c.name}
                   >
-                    <span className="mono">{c.name}</span>
+                    <span className="mono" title={c.name}>
+                      {c.name}
+                    </span>
                     <span className="wiz-item-note">
                       {taken
                         ? w.used(nameOf(as))

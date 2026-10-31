@@ -7,6 +7,8 @@ import { useEffect, useRef } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { addBasemap } from "../components/basemap";
+import { Val } from "../components/Val";
+import { short } from "../lib/format";
 import { t } from "../strings";
 
 const g = t.groups;
@@ -171,7 +173,7 @@ export function Inspector({
   return (
     <section className="mg-pop" aria-label={v ? g.parcel(v.key) : g.parcel("")}>
       <div className="mg-pop-head">
-        <b className="mg-pop-title">{v ? g.parcel(v.key) : "…"}</b>
+        <b className="mg-pop-title">{v ? g.parcel(short(v.key)) : "…"}</b>
         {v && (
           <span className="mg-tag" style={{ background: colour(v.group) }}>
             {name(v.group)}
@@ -189,7 +191,9 @@ export function Inspector({
               {v.fields.map((f) => (
                 <tr key={f.label}>
                   <td className="mg-pop-k">{f.label}</td>
-                  <td className="mg-pop-v">{f.value}</td>
+                  <td className="mg-pop-v">
+                    <Val v={f.value} />
+                  </td>
                 </tr>
               ))}
             </tbody>

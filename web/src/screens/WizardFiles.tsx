@@ -27,6 +27,7 @@ import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
+import { Val } from "../components/Val";
 import { desktop, useCanPickFile } from "../desktop";
 import { band } from "../lib/format";
 import { t } from "../strings";
@@ -238,7 +239,7 @@ function DupesDialog({
                       {row.map((v, j) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
                         <td key={j} className="mono">
-                          {v}
+                          <Val v={v} />
                         </td>
                       ))}
                     </tr>

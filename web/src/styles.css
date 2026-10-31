@@ -114,6 +114,24 @@ body {
   background: var(--bg);
   line-height: 1.3;
   -webkit-font-smoothing: antialiased;
+  /* Values and column names come from the user's files, and some are hundreds of characters with no space (a
+     county export's "#####…", say): a word too long for its box breaks rather than widening the box, its
+     dialog or the page. Not in tables, whose columns would then be squeezed to a letter or two: values in
+     tables are cut short instead (short() in lib/format.ts, .clip, .rc-td). */
+  overflow-wrap: anywhere;
+}
+
+table {
+  overflow-wrap: break-word;
+}
+
+/* One line, cut with an ellipsis at the width given (the full value in its title). For values from a file. */
+.clip {
+  display: block;
+  max-width: var(--clip, 32ch);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 h1,
@@ -847,6 +865,8 @@ a.row-title:hover {
   inset: 0;
   z-index: 10;
   display: grid;
+  /* The column is the screen's width, never the content's: a long value can't push the dialog off screen. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 1rem;
   background: rgba(20, 22, 24, 0.45);
@@ -854,6 +874,8 @@ a.row-title:hover {
 
 .modal {
   width: min(100%, 34rem);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   background: var(--panel);
   border: 1px solid var(--panel-edge);
   border-radius: var(--radius);
@@ -862,6 +884,7 @@ a.row-title:hover {
 
 .modal-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
   padding: 0.9rem;
   outline: none;
@@ -1411,7 +1434,18 @@ a.row-title:hover {
   padding-left: 1.1rem;
 }
 
+.wiz-item > .mono {
+  flex: 0 0 auto;
+  max-width: 65%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .wiz-item-note {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: right;
   overflow: hidden;
   font-size: 0.82rem;
   white-space: nowrap;
@@ -1813,8 +1847,11 @@ a.row-title:hover {
 }
 
 .rc-td {
+  max-width: 32ch;
   padding: 0.12rem 0.3rem;
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   border-bottom: 1px solid var(--cell-line);
 }
 

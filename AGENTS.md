@@ -84,6 +84,12 @@ name that says what it is.
 - **Short labels, the rest on demand:** a table cell says a short phrase; the fuller explanation goes in a tooltip
   (`components/Tip.tsx`: `InfoTip` shows an ⓘ beside the phrase), not in the cell. A column's header isn't repeated
   in its cells ("Pattern" over "Low price", not "Pattern 2: low price").
+- **Values from the user's files can be any length** (a county export's 255-character "#####…" date, a 120-character
+  column name): never let one size a table, a list or a dialog. In a table or a list, show it through
+  `components/Val.tsx` (cut short, the whole value on hover) or `short()` from `lib/format.ts` when it's joined into
+  text; a one-line cell can clip instead (`.clip`, `.rc-td`). Elsewhere `overflow-wrap: anywhere` on the body
+  breaks a long word in its box, and a dialog never grows past the screen (it scrolls). Check new screens against
+  a file with long values.
 
 ## Going online
 

@@ -16,6 +16,7 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
+import { short } from "../lib/format";
 import { t } from "../strings";
 
 const u = t.wizard.units;
@@ -226,9 +227,10 @@ function Examples({ v, show }: { v: Units_View; show: "link" | "land" | "locatio
     <ul className="cu-ex">
       {v.examples.map((x) => (
         <li key={x.unit} className={x.building ? "" : "wiz-warn"}>
-          <span className="mono">{x.unit}</span> {x.building ? `${u.onParcel} ${x.building}` : u.noParcel}
+          <span className="mono">{short(x.unit)}</span>{" "}
+          {x.building ? `${u.onParcel} ${short(x.building)}` : u.noParcel}
           {show === "link" && x.building_value && (
-            <span className="wiz-from"> {u.matched(column, x.building_value)}</span>
+            <span className="wiz-from"> {u.matched(column, short(x.building_value))}</span>
           )}
           {show === "land" && x.share && (
             <span className="wiz-from">
@@ -472,7 +474,7 @@ function Location({ file, v, change }: Part) {
             <ul className="cu-ex">
               {parcels.map((x) => (
                 <li key={x.building}>
-                  <span className="mono">condo_group {x.building}</span>
+                  <span className="mono">condo_group {short(x.building ?? "")}</span>
                   {x.address && <span className="wiz-from"> · {x.address}</span>}
                 </li>
               ))}

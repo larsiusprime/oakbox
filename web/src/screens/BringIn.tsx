@@ -7,6 +7,7 @@ import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { Val } from "../components/Val";
 import { band, pct, when } from "../lib/format";
 import { t } from "../strings";
 
@@ -547,7 +548,7 @@ function RowsDialog({
                       {row.map((cell, j) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: a row's cells, by column
                         <td key={j} className="mono bi-cell">
-                          {cell}
+                          <Val v={cell} />
                         </td>
                       ))}
                     </tr>

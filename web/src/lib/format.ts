@@ -92,3 +92,10 @@ export function band(bands: number[] | null | undefined, i: number): string {
   if (!bands) return i % 2 ? "band-b" : "band-a";
   return bands[i] ? "band-b" : "band-a";
 }
+
+/** A value from a file, cut to `max` characters with an ellipsis: values can be hundreds of characters with no
+ * space (a county export's "#####…"), and one of them shouldn't stretch a table, a list or a dialog. Show the
+ * whole value in a title where it matters. */
+export function short(v: string, max = 40): string {
+  return v.length > max ? `${v.slice(0, max - 1)}…` : v;
+}

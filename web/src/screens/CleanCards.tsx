@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Input, TextField } from "react-aria-components";
 import type { CleanPatch, CleanSetup, FillRow } from "../api/client";
 import { Choice, Tick } from "../components/Form";
-import { num } from "../lib/format";
+import { num, short } from "../lib/format";
 import { t } from "../strings";
 
 const s = t.sales;
@@ -161,8 +161,10 @@ export function CollapseCard({ v, set }: CardProps) {
                     <td className="cs-folds">
                       {f.folded.length === 0
                         ? s.collapse.none
-                        : f.folded.slice(0, 8).join(", ") +
-                          (f.folded.length > 8 ? s.collapse.more(f.folded.length - 8) : "")}
+                        : f.folded
+                            .slice(0, 8)
+                            .map((x) => short(x))
+                            .join(", ") + (f.folded.length > 8 ? s.collapse.more(f.folded.length - 8) : "")}
                     </td>
                   </tr>
                 ))}
