@@ -105,7 +105,7 @@ class ModelState(BaseModel):
     tests: list[str] | None = Field(
         default=None, description="The variable tests to run (besides Represented); None: all of TESTS."
     )
-    lists: list[VarList] | None = Field(default=None, description="The variable lists; None: as proposed.")
+    lists: list[VarList] | None = Field(default=None, description="The variable lists the user made; None: none yet.")
     groups: dict[str, list[ModelEntry]] = Field(
         default_factory=dict, description="Model group -> its models; a group not here has the default ones."
     )
@@ -443,7 +443,7 @@ class ModelGroupCount(BaseModel):
 
 
 class EntryWarning(BaseModel):
-    code: Literal["kind_mismatch", "list_missing", "list_empty", "blanks_left_out", "no_locations"]
+    code: Literal["no_list", "kind_mismatch", "list_missing", "list_empty", "blanks_left_out", "no_locations"]
     n: int = 0
 
 
@@ -481,7 +481,9 @@ def _entry_view(e: ModelEntry, raw: ModelEntry | None, lists: dict[str, VarList]
             w.append(EntryWarning(code="list_missing"))
         if lst is not None and lst.kind != kind_of(e.engine):
             w.append(EntryWarning(code="kind_mismatch"))
-        if lst is None or not lst.variables:
+        if lst is None:
+            w.append(EntryWarning(code="no_list"))
+        elif not lst.variables:
             w.append(EntryWarning(code="list_empty"))
         elif e.engine not in TREES:
             n = sum(1 for v in lst.variables if v in by_field and by_field[v].trees_only)
@@ -976,7 +978,10 @@ def problems(project, project_dir: Path) -> list[str]:
         if not entries:
             out.append(f"{g.name} has no models: add one, or untick it on Model groups › Check them.")
         for e in entries:
-            if e.engine in TAKES_LIST and not (lists.get(e.list_id or "") and lists[e.list_id or ""].variables):
+            lst = lists.get(e.list_id or "")
+            if e.engine in TAKES_LIST and lst is None:
+                out.append(f"{g.name} › {e.name}: no variable list. Make one on Variables › Variable lists.")
+            elif e.engine in TAKES_LIST and lst is not None and not lst.variables:
                 out.append(f"{g.name} › {e.name}: its variable list has no variables.")
             if e.engine == "local_area" and not e.locations:
                 out.append(f"{g.name} › {e.name}: Local area needs at least one location.")

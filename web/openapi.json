@@ -8352,6 +8352,7 @@
      "code": {
       "type": "string",
       "enum": [
+       "no_list",
        "kind_mismatch",
        "list_missing",
        "list_empty",
@@ -11456,7 +11457,7 @@
        }
       ],
       "title": "Lists",
-      "description": "The variable lists; None: as proposed."
+      "description": "The variable lists the user made; None: none yet."
      },
      "groups": {
       "additionalProperties": {
@@ -18505,11 +18506,6 @@
       "type": "array",
       "title": "Lists"
      },
-     "proposed": {
-      "type": "boolean",
-      "title": "Proposed",
-      "description": "As proposed: nothing changed yet."
-     },
      "variables": {
       "items": {
        "$ref": "#/components/schemas/Variable"
@@ -18569,7 +18565,6 @@
     "type": "object",
     "required": [
      "lists",
-     "proposed",
      "variables",
      "groups",
      "tested",

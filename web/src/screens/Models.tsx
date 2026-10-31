@@ -39,11 +39,8 @@ export function GroupModelsCard({ projectId, v }: { projectId: string; v: ModelS
     save(entries.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const firstList = (engine: string) => {
     const kind = engines[engine]?.kind;
-    return (
-      v.lists.find((x) => x.kind === kind && x.groups.includes(g.id)) ??
-      v.lists.find((x) => x.kind === kind) ??
-      v.lists[0]
-    )?.id;
+    // As the backend proposes: the first of its type for this group; none, rather than another group's.
+    return v.lists.find((x) => x.kind === kind && x.groups.includes(g.id))?.id;
   };
   const listOptions = v.lists.map((x) => [x.id, m.list(x.name, x.count)] as const);
   const others = modeled.filter((x) => x.id !== g.id);
@@ -101,6 +98,7 @@ export function GroupModelsCard({ projectId, v }: { projectId: string; v: ModelS
                         hideLabel
                         value={e.list_id ?? null}
                         options={listOptions}
+                        placeholder={m.chooseList}
                         onChange={(list_id) => change(i, { list_id })}
                       />
                     ) : (
@@ -185,6 +183,7 @@ export function GroupModelsCard({ projectId, v }: { projectId: string; v: ModelS
                       hideLabel
                       value={adding.list_id ?? null}
                       options={listOptions}
+                      placeholder={m.chooseList}
                       onChange={(list_id) => setAdding({ ...adding, list_id })}
                     />
                   ) : (

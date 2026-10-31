@@ -3302,7 +3302,7 @@ export interface components {
              * Code
              * @enum {string}
              */
-            code: "kind_mismatch" | "list_missing" | "list_empty" | "blanks_left_out" | "no_locations";
+            code: "no_list" | "kind_mismatch" | "list_missing" | "list_empty" | "blanks_left_out" | "no_locations";
             /**
              * N
              * @default 0
@@ -4681,7 +4681,7 @@ export interface components {
             tests: string[] | null;
             /**
              * Lists
-             * @description The variable lists; None: as proposed.
+             * @description The variable lists the user made; None: none yet.
              */
             lists: components["schemas"]["VarList-Output"][] | null;
             /**
@@ -7794,11 +7794,6 @@ export interface components {
         VarListsView: {
             /** Lists */
             lists: components["schemas"]["ListView"][];
-            /**
-             * Proposed
-             * @description As proposed: nothing changed yet.
-             */
-            proposed: boolean;
             /** Variables */
             variables: components["schemas"]["Variable"][];
             /** Groups */

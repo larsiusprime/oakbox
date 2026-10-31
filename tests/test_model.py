@@ -76,14 +76,22 @@ def test_default_settings(prepared):
     assert main["instructions"]["main"]["run"] == ["lightgbm", "mra", "multi_mra", "assessor"]
     assert main["instructions"]["main"]["ensemble"]["models"] == ["lightgbm", "mra", "multi_mra"]
     block = main["models"]["main"]["sf"]
-    # Each takes its list by reference; the lists are written once, in variable_lists.
-    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": "$$variable_lists.ml"}
-    assert block["mra"]["log"] and block["mra"]["model"] == "mra"
-    assert block["multi_mra"]["locations"] == []  # no location fields in this universe
-    assert set(s["variable_lists"]) == {"regression", "ml"}
-    # A regression list has nothing with blanks (untested, it goes by blanks and categories alone).
-    assert "slope_mean_deg" not in s["variable_lists"]["regression"]
-    assert "slope_mean_deg" in s["variable_lists"]["ml"]
+    # No variable lists to start (the user makes them): no model has variables, and a try is stopped.
+    assert s["variable_lists"] == {}
+    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": []}
+    assert block["mra"]["log"] and block["multi_mra"]["locations"] == []
+    assert model.problems(_project(), prepared)[0] == (
+        "Single-family › LightGBM: no variable list. Make one on Variables › Variable lists."
+    )
+    # A list for the group: its models take it, by reference.
+    from oakbox import varlists
+
+    p = _project()
+    p.model.lists = varlists.check(
+        p, [model.VarList(id="trees", name="Trees", kind="ml", groups=["sf"], variables=["land_area_sqft"])]
+    )
+    block = model.settings(p, prepared)["modeling"]["models"]["main"]["sf"]
+    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": "$$variable_lists.trees"}
     # Local area and the roll take the areas from the group's default entry.
     assert block["default"] == {"ind_vars": ["land_area_sqft", "bldg_area_finished_sqft"]}
     # The study set judges the models by their holdout predictions, like for like with the roll.

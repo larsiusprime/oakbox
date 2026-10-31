@@ -341,25 +341,33 @@ def test_prepare_fills_and_folds_on_what_check_sales_wrote(prepared, brought_in_
 
 def test_the_variable_lists_and_each_groups_models(prepared, brought_in_client, brought_in):
     client, pid = brought_in_client, brought_in[1]
-    # Variables › Variable lists (F9): proposed, a regression list and a machine-learning one, each for every
-    # modeled group; each variable judged per group and type.
+    # Variables › Variable lists (F9): none to start (the user makes them); each variable judged per group and type.
     vl = client.get(f"/api/projects/{pid}/varlists").json()
-    assert vl["proposed"] and [x["id"] for x in vl["lists"]] == ["regression", "ml"]
+    assert vl["lists"] == []
     assert any(v["field"].startswith("bldg_area_finished") for v in vl["variables"])
     group = next(g["id"] for g in vl["groups"] if g["modeled"])
     assert set(vl["recommend"][group]) == {"regression", "ml"}
+    # Before any list, a group's models have none: said, and a try is stopped.
+    ms = client.get(f"/api/projects/{pid}/model/setup").json()
+    first = next(x for x in ms["groups"] if x["id"] == group)["models"][0]
+    assert first["list_id"] is None and [w["code"] for w in first["warnings"]] == ["no_list"]
     # Every list at once: a new one gets an id from its name; one with no name is refused.
-    lists = [{k: x[k] for k in ("id", "name", "kind", "groups", "variables")} for x in vl["lists"]]
-    lists.append({"id": "", "name": "Short list", "kind": "regression", "groups": [group], "variables": []})
+    fields = [v["field"] for v in vl["variables"]]
+    lists = [
+        {"id": "", "name": "Trees", "kind": "ml", "groups": [group], "variables": fields},
+        {"id": "", "name": "Regression", "kind": "regression", "groups": [group], "variables": fields[:3]},
+        {"id": "", "name": "Short list", "kind": "regression", "groups": [group], "variables": []},
+    ]
     vl = client.put(f"/api/projects/{pid}/varlists", json={"lists": lists}).json()
-    assert not vl["proposed"] and vl["lists"][-1]["id"] == "short_list"
+    assert [x["id"] for x in vl["lists"]] == ["trees", "regression", "short_list"]
     bad = [*lists[:2], {"id": "", "name": " ", "kind": "ml", "groups": [], "variables": []}]
     assert client.put(f"/api/projects/{pid}/varlists", json={"lists": bad}).status_code == 422
-    # Model values › Models: every modeled group starts with LightGBM, MRA and Multi-MRA, each with its list.
+    # Model values › Models: every modeled group starts with LightGBM, MRA and Multi-MRA, each taking the group's
+    # first list of its type.
     ms = client.get(f"/api/projects/{pid}/model/setup").json()
     g = next(x for x in ms["groups"] if x["id"] == group)
     assert [(e["engine"], e["list_id"]) for e in g["models"]] == [
-        ("lightgbm", "ml"),
+        ("lightgbm", "trees"),
         ("mra", "regression"),
         ("multi_mra", "regression"),
     ]
@@ -374,7 +382,7 @@ def test_the_variable_lists_and_each_groups_models(prepared, brought_in_client, 
     )
     assert client.put(url, json={"models": [{"engine": "nope"}]}).status_code == 422
     client.put(url, json={"models": None})
-    client.put(f"/api/projects/{pid}/varlists", json={"lists": None})
+    client.put(f"/api/projects/{pid}/varlists", json={"lists": []})
     # A location stack's preview: whatever location fields there are, broadest first.
     fields = [x["field"] for x in ms["locations"]]
     stack = client.get(f"/api/projects/{pid}/model/stack/{group}", params={"fields": fields}).json()
@@ -414,6 +422,9 @@ def test_a_try_of_one_model(prepared, brought_in_client, brought_in):
     client, pid = brought_in_client, brought_in[1]
     mdl = f"/api/projects/{pid}/model"
     groups = [g["id"] for g in client.get(f"{mdl}/setup").json()["groups"] if g["modeled"]]
+    fields = [v["field"] for v in client.get(f"/api/projects/{pid}/varlists").json()["variables"]]
+    trees = {"id": "", "name": "Trees", "kind": "ml", "groups": groups, "variables": fields}
+    client.put(f"/api/projects/{pid}/varlists", json={"lists": [trees]})
     for g in groups:
         client.put(f"{mdl}/groups/{g}", json={"models": [{"engine": "lightgbm", "name": "Trees"}]})
     assert client.post(f"{mdl}/run").json()["status"] == "running"

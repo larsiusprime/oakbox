@@ -114,47 +114,10 @@ def _sales(project, project_dir: Path) -> dict[str, int]:
     return {g.id: g.sales for g in r.groups} if r else {}
 
 
-def recommended_for(
-    kind: Kind, groups: list[str], recs: dict[str, dict[str, dict[str, Reason | None]]], sales: dict[str, int]
-) -> list[str]:
-    """The variables recommended for the groups holding most of the list's sales (each group by its sales; equally,
-    without them)."""
-    weight = {g: sales.get(g, 0) or (0 if sales else 1) for g in groups if g in recs}
-    total = sum(weight.values())
-    if not total:
-        weight = dict.fromkeys((g for g in groups if g in recs), 1)
-        total = len(weight)
-    if not total:
-        return []
-    first = recs[next(iter(weight))][kind]
-    return [v for v in first if sum(w for g, w in weight.items() if recs[g][kind].get(v) is None) * 2 > total]
-
-
-def proposed(project, project_dir: Path) -> list[VarList]:
-    """A regression list and a machine-learning list, each for every modeled group, each with what's recommended for
-    its type in most of their sales."""
-    from oakbox import assemble
-
-    modeled = [g.id for g in project.groups if g.id in assemble.modeled(project, project_dir)]
-    recs = recommendations(project, project_dir)
-    sales = _sales(project, project_dir)
-    return [
-        VarList(
-            id=kind,
-            name="Regression" if kind == "regression" else "Machine learning",
-            kind=kind,
-            groups=modeled,
-            variables=recommended_for(kind, modeled, recs, sales),
-        )
-        for kind in ("regression", "ml")
-    ]
-
-
 def lists(project, project_dir: Path) -> list[VarList]:
-    """The lists as chosen; or, before any change, as proposed. Variables no longer offered are left out."""
-    chosen: list[VarList] | None = project.model.lists
-    if chosen is None:
-        return proposed(project, project_dir)
+    """The lists the user made (none to start: settled 2026-10-31, so it's plain that a list's ticks are shared by
+    every group it's for). Variables no longer offered are left out."""
+    chosen: list[VarList] = project.model.lists or []
     offered = {v.field for v in model.variables(project, project_dir)}
     return [x.model_copy(update={"variables": [v for v in x.variables if v in offered]}) for x in chosen]
 
@@ -193,13 +156,9 @@ def new_id(taken: set[str], name: str) -> str:
 
 
 def for_group(all_lists: list[VarList], group: str, kind: Kind) -> VarList | None:
-    """The list a model of this type in this group takes unless told otherwise: the first of its type for the group;
-    else the first of its type; else the first."""
-    return (
-        next((x for x in all_lists if x.kind == kind and group in x.groups), None)
-        or next((x for x in all_lists if x.kind == kind), None)
-        or next(iter(all_lists), None)
-    )
+    """The list a model of this type in this group takes unless told otherwise: the first of its type that's for the
+    group; none if there isn't one (a list for other groups, or of the other type, only when the user picks it)."""
+    return next((x for x in all_lists if x.kind == kind and group in x.groups), None)
 
 
 # ---------- The step's view ----------
@@ -227,7 +186,6 @@ class GroupSales(BaseModel):
 
 class VarListsView(BaseModel):
     lists: list[ListView]
-    proposed: bool = Field(description="As proposed: nothing changed yet.")
     variables: list[model.Variable]
     groups: list[GroupSales]
     tested: bool = Field(description="The variable tests have run: the figures and recommendations use them.")
@@ -279,7 +237,6 @@ def view(project, project_dir: Path) -> VarListsView:
             ListView(**x.model_dump(), used_by=used.get(x.id, []), warnings=_warnings(x, by_field, sales))
             for x in all_lists
         ],
-        proposed=project.model.lists is None,
         variables=variables,
         groups=[
             GroupSales(id=g.id, name=g.name, color=g.color, sales=sales.get(g.id), modeled=g.id in modeled)

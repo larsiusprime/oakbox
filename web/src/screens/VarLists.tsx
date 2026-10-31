@@ -38,18 +38,12 @@ export function VarListsStep({ projectId }: { projectId: string }) {
   const save = (lists: VarList[]) => put.mutate(lists);
   const change = (id: string, patch: Partial<VarList>) =>
     save(v.lists.map((x) => (x.id === id ? { ...plain(x), ...patch } : plain(x))));
-  const modeled = v.groups.filter((g) => g.modeled).map((g) => g.id);
+  // A new list starts empty: the user chooses its groups and ticks its variables.
   const add = () => {
     const name = s.newName(v.lists.length + 1);
-    const recommended = v.variables
-      .filter((x) => recommendedIn(v, { groups: modeled, kind: "regression" }, x.field))
-      .map((x) => x.field);
-    put.mutate(
-      [...v.lists.map(plain), { id: "", name, kind: "regression", groups: modeled, variables: recommended }],
-      {
-        onSuccess: (data) => setOpen(data.lists[data.lists.length - 1]?.id ?? null),
-      },
-    );
+    put.mutate([...v.lists.map(plain), { id: "", name, kind: "regression", groups: [], variables: [] }], {
+      onSuccess: (data) => setOpen(data.lists[data.lists.length - 1]?.id ?? null),
+    });
   };
   const gname = Object.fromEntries(v.groups.map((g) => [g.id, g]));
   return (
@@ -128,18 +122,13 @@ export function VarListsStep({ projectId }: { projectId: string }) {
       )}
       <p className="cs-row">
         <AddButton onPress={add}>{s.add}</AddButton>
-        {!v.proposed && (
-          <Button className="wiz-link" onPress={() => put.mutate(null)}>
-            {s.back}
-          </Button>
-        )}
       </p>
       {put.error && (
         <p className="error" role="alert">
           {put.error.message}
         </p>
       )}
-      <p className="wiz-from">{s.proposed}</p>
+      <p className="wiz-from">{s.written}</p>
     </div>
   );
 }
@@ -195,9 +184,11 @@ function ListEditor({
 }) {
   const kind = list.kind as Kind;
   const tested = (tests?.receipt?.groups ?? []).filter((g) => Object.keys(g.tests).length > 0);
-  const mine = list.groups.filter((g) => tested.some((x) => x.id === g));
+  // Until its groups are chosen, any tested group's scores can be shown.
+  const pool = list.groups.length ? list.groups : view.groups.filter((g) => g.modeled).map((g) => g.id);
+  const mine = pool.filter((g) => tested.some((x) => x.id === g));
   const [gid, setGid] = useState<string | null>(null);
-  const shown = gid && mine.includes(gid) ? gid : (mine[0] ?? list.groups[0] ?? null);
+  const shown = gid && mine.includes(gid) ? gid : (mine[0] ?? pool[0] ?? null);
   const group = tested.find((x) => x.id === shown);
   const recs = shown ? view.recommend[shown]?.[kind] : undefined;
   const gname = Object.fromEntries(view.groups.map((g) => [g.id, g.name]));
@@ -256,6 +247,7 @@ function ListEditor({
           />
         </span>
       </div>
+      {list.groups.length === 0 && <p className="wiz-warn">{s.chooseGroups}</p>}
       <p className="wiz-from">{s.rule[kind]}</p>
       {list.warnings.length > 0 && (
         <div className="vl-warns">
@@ -271,7 +263,7 @@ function ListEditor({
         </div>
       )}
       <div className="vl-editrow">
-        {list.groups.length > 1 && (
+        {pool.length > 1 && (
           <>
             <span className="vl-label">{s.scoresFor}</span>
             <Choice
@@ -281,9 +273,9 @@ function ListEditor({
               options={mine.map((g) => [g, gname[g] ?? g] as const)}
               onChange={setGid}
             />
-            {mine.length < list.groups.length && (
+            {mine.length < pool.length && (
               <span className="wiz-from">
-                {s.notTestedIn(list.groups.filter((g) => !mine.includes(g)).map((g) => gname[g] ?? g))}
+                {s.notTestedIn(pool.filter((g) => !mine.includes(g)).map((g) => gname[g] ?? g))}
               </span>
             )}
           </>
@@ -378,7 +370,8 @@ function ListEditor({
   );
 }
 
-/** Recommended for the list's type in the groups holding most of its sales (as the proposed lists are made). */
+/** Recommended for the list's type in the groups holding most of its sales: before the tests, by blanks and
+ * categories alone. */
 function recommendedIn(view: VarListsView, list: { groups: string[]; kind: string }, field: string): boolean {
   const sales = Object.fromEntries(view.groups.map((g) => [g.id, g.sales ?? 0]));
   const any = list.groups.some((g) => (sales[g] ?? 0) > 0);

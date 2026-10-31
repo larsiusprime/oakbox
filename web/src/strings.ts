@@ -2269,9 +2269,8 @@ export const t = {
       remove: "Remove",
       add: "Add a variable list",
       newName: (n: number) => `List ${n}`,
-      back: "Back to the proposed lists",
-      proposed:
-        "Proposed: a regression list and a machine-learning list, each for every modeled group, each ticked with what's recommended for its type in most of their sales. Written to OpenAVMKit's settings as variable_lists, each model pointing at its list.",
+      written:
+        "Written to OpenAVMKit's settings as variable_lists, each model pointing at its list. A list's ticks are the same for every model group it's for: for a group's own variables, make it a list of its own.",
       notTested:
         "The variables haven't been tested yet: the recommendations go by blanks and categories alone until they are (Test the variables).",
       in: "In",
@@ -2304,7 +2303,8 @@ export const t = {
             ? `Categories with many values (CatBoost slows with each): ${names}.`
             : `Categories with many values (each value a column of its own, few sales behind each): ${names}.`,
       },
-      none: "No variable lists: add one.",
+      none: "No variable lists yet. Each model takes its variables from one: add a list, choose its type and the model groups it's for, then tick its variables (Tick the recommended starts you off).",
+      chooseGroups: "Choose the model groups it's for: their models can take it.",
       missing: (fields: string[]) =>
         `Not loaded: ${fields.join(", ")}. The models do better with them (Data › Building).`,
       noVariables: "No variables found yet: prepare the fields first.",
@@ -2393,6 +2393,7 @@ export const t = {
       backToDefault: "Back to the default models",
       noModels: "No models: add one, or untick the group on Model groups › Check them.",
       takesNoList: "its areas' price per area",
+      chooseList: "Choose a list",
       warn: {
         kind_mismatch: (engine: string, kind: string) =>
           kind === "ml"
@@ -2400,6 +2401,7 @@ export const t = {
             : `${engine} is a machine-learning model on a regression list: it'll run, but it could use more variables than this.`,
         list_missing: "Its list was removed: it takes the group's first list of its type.",
         list_empty: "Its variable list has no variables: tick some on Variables › Variable lists.",
+        no_list: "No variable list: make one on Variables › Variable lists.",
         blanks_left_out: (n: number) =>
           `Leaves out ${n.toLocaleString()} ${n === 1 ? "variable" : "variables"} of its list with blanks: a regression can't take a blank.`,
         no_locations: (engine: string) =>
