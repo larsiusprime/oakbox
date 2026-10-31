@@ -397,6 +397,18 @@ class Band(BaseModel):
     value: float | None = Field(description="The median as read (higher is better).")
 
 
+class ValueBand(BaseModel):
+    """Sales of parcels whose value, as read, falls in a band: one row per value when there are few."""
+
+    label: str = Field(description='The value as read ("7"), or a range ("under 40", "40–55", "85 and up").')
+    text: str = Field(description='The text the parcels carry beside it ("C-"), most common first; "" none.')
+    sales: int
+    price: float | None = Field(description="Median sale price.")
+    per_area: float | None = Field(description="Median price per area of building; None without a building size.")
+    type_sales: int = Field(default=0, description="Sales of the most common type among them.")
+    type_price: float | None = Field(default=None, description="Median sale price of the most common type.")
+
+
 class ScaleSample(BaseModel):
     raw: str
     value: float
@@ -415,7 +427,11 @@ class ScalePreview(BaseModel):
     age_basis: str | None
     by_age: list[Band]
     price_basis: str | None
-    by_value: list[Band] = Field(description="Bands of the value as read, with sales and the median price in each.")
+    by_value: list[ValueBand] = Field(
+        description="The value as read (one row each when few, else five bands), with what its sales went for."
+    )
+    by_type: str = Field(default="", description='The type compared alone ("SFR_DETACHED"); "" none.')
+    type_field: str = Field(default="", description="The field the type is read from (land_class…).")
     notes: list[str]
     median: float | None
     samples: list[ScaleSample]
@@ -474,31 +490,13 @@ def scale_preview(
                 )
     else:
         notes.append("No year built or effective year built: choose one on this step to compare with age.")
-    by_value: list[Band] = []
+    by_value: list[ValueBand] = []
     price_basis = None
+    by_type = type_field = ""
     if read and values:
         as_read = dict(zip(values, convert(list(values.values())), strict=True))
-        if s.kind in ("pct_good", "pct_depr"):
-            bands = GOOD_BANDS
-        else:
-            ordered = sorted(set(as_read.values()))
-            cuts = [ordered[int(q * (len(ordered) - 1))] for q in (0, 0.2, 0.4, 0.6, 0.8)] + [1e18]
-            bands = [
-                (cuts[k], cuts[k + 1], f"{short_number(cuts[k])} and up") for k in range(5) if cuts[k] < cuts[k + 1]
-            ]
-        label_of = {}
-        for i, v in as_read.items():
-            for lo, hi, label in bands:
-                if lo <= v < hi:
-                    label_of[i] = label
-                    break
-        prices, price_basis, price_notes = _price_by(project, files, entry.match, label_of)
-        notes += price_notes if not prices else [n for n in price_notes if n != "valid sales"]
-        by_value = [
-            Band(label=label, count=prices[label].sales, raw=None, value=prices[label].median)
-            for _, _, label in bands
-            if label in prices
-        ]
+        by_value, price_basis, by_type, type_field, price_notes = _value_bands(project, files, entry, key, as_read, s)
+        notes += price_notes
     seen: list[str] = []
     for v in raw:
         if v and v not in seen:
@@ -522,6 +520,8 @@ def scale_preview(
         by_age=by_age,
         price_basis=price_basis,
         by_value=by_value,
+        by_type=by_type,
+        type_field=type_field,
         notes=notes,
         median=statistics.median(convert(nums)) if nums and read else None,
         samples=[ScaleSample(raw=r, value=v) for r, v in zip(seen, out, strict=True)],
@@ -529,6 +529,113 @@ def scale_preview(
         load=written[0] if read else {},
         symbol=_symbol(project),
     )
+
+
+# The parcel fields that say what kind of property it is, in the order tried: the first one loaded is used to compare
+# like with like (a grade is often tied to a type: the lowest only on small houses, the middle mostly townhouses).
+TYPE_FIELDS = ("land_class", "bldg_type", "bldg_desc", "bldg_class", "bldg_style")
+# At most this many values as read: a row each. More, and they're cut into five bands with as many parcels each.
+FEW_VALUES = 10
+
+
+def _text_by_id(project: Project, files: Files, key: str, match: str) -> dict[str, str]:
+    """A loaded parcel field as text, by parcel ID (the first row of each), from the first parcel file loading it."""
+    f = next(
+        (
+            x
+            for x in project.files
+            if key in x.load
+            and match in x.load
+            and x.holds not in ("sales", "overlay", "unused")
+            and x.name in files.preview
+        ),
+        None,
+    )
+    return _by_parcel(files, f, f.load[key][0]) if f is not None else {}
+
+
+def _value_cuts(as_read: dict[str, float], kind: str | None) -> list[tuple[float, float, str]]:
+    """(low, high, label) bands of values as read: each value its own when there are few; percentages in fixed
+    bands; else five bands with as many parcels each, labelled as ranges (low included, high not)."""
+    distinct = sorted(set(as_read.values()))
+    if len(distinct) <= FEW_VALUES:
+        return [(v, v, short_number(v)) for v in distinct]
+    if kind in ("pct_good", "pct_depr"):
+        return GOOD_BANDS
+    ordered = sorted(as_read.values())
+    cuts = sorted({ordered[int(q * (len(ordered) - 1))] for q in (0.2, 0.4, 0.6, 0.8)} - {ordered[0]})
+    edges = [-1e18, *cuts, 1e18]
+    out = []
+    for lo, hi in zip(edges, edges[1:], strict=False):
+        if lo == -1e18:
+            label = f"under {short_number(hi)}" if hi != 1e18 else "all"
+        elif hi == 1e18:
+            label = f"{short_number(lo)} and up"
+        else:
+            label = f"{short_number(lo)}–{short_number(hi)}"
+        out.append((lo, hi, label))
+    return out
+
+
+def _value_bands(
+    project: Project, files: Files, entry: DataFile, key: str, as_read: dict[str, float], s: Scale
+) -> tuple[list[ValueBand], str | None, str, str, list[str]]:
+    """Each band's sales: median price, price per area, and the price among the most common type alone. A grade's
+    price per area mostly says how big its buildings are and what kind they are, so on its own it can run the
+    wrong way; the price within one type is the fairer read."""
+    import statistics
+
+    bands = _value_cuts(as_read, s.kind)
+
+    def band_of(v: float) -> str | None:
+        for lo, hi, label in bands:
+            if (lo == hi and v == lo) or (lo != hi and lo <= v < hi):
+                return label
+        return None
+
+    label_of = {i: b for i, v in as_read.items() if (b := band_of(v)) is not None}
+    rows, notes = _sales_evidence(project, files, entry.match)
+    notes = [n for n in notes if n != "valid sales"]
+    if not rows:
+        return [], None, "", "", notes
+    sold = [(i, p, label_of[i]) for i, p in rows if i in label_of]
+    if not sold:
+        return [], None, "", "", [*notes, "no sales found these parcels"]
+    size = _field_by_id(project, files, "bldg_area_finished_sqft", entry.match)
+    unit = "sq ft" if small_unit(project.units) == "sqft" else "m²"
+    if not size:
+        notes.append("no building size: choose it on this step to see the price per area")
+    pair = PAIRS.get(key)
+    texts = _text_by_id(project, files, pair, entry.match) if pair else {}
+    types: dict[str, str] = {}
+    type_field = ""
+    for k in TYPE_FIELDS:
+        types = _text_by_id(project, files, k, entry.match)
+        if types:
+            type_field = k
+            break
+    kinds = Counter(types[i] for i, _, _ in sold if i in types)
+    main = kinds.most_common(1)[0][0] if len(kinds) > 1 else ""
+    out = []
+    for _, _, label in bands:
+        mine = [(i, p) for i, p, b in sold if b == label]
+        if not mine:
+            continue
+        areas = [p / size[i] for i, p in mine if size.get(i, 0) > 0]
+        same = [p for i, p in mine if main and types.get(i) == main]
+        said = Counter(texts[i] for i, _ in mine if texts.get(i)).most_common(3)
+        out.append(
+            ValueBand(
+                label=label,
+                text=" / ".join(t for t, _ in said),
+                sales=len(mine),
+                price=statistics.median(p for _, p in mine),
+                per_area=statistics.median(areas) if areas else None,
+                type_sales=len(same),
+                type_price=statistics.median(same) if same else None,
+            )
+        )
+    return out, f"price per {unit}" if size else None, main, type_field if main else "", notes
 
 
 class Candidate(BaseModel):

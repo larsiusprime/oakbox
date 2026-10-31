@@ -968,8 +968,8 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     depr = {"kind": "pct_depr", "fraction": True, "low": None, "high": None, "tiers": {}}
     scale = {"file": "cama", "column": "COND_SCORE", "scale": depr}
     view = client.post(f"{field}/bldg_condition_num/scale", json=scale).json()
-    assert view["price_basis"] == "sale price"
-    assert "no building size: choose it on this step for a fairer comparison" in view["notes"]
+    assert view["price_basis"] is None and all(b["price"] and b["per_area"] is None for b in view["by_value"])
+    assert "no building size: choose it on this step to see the price per area" in view["notes"]
     client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "AREA", "area_unit": "sqft"})
     view = client.post(
         f"{field}/bldg_condition_num/scale", json={"file": "cama", "column": "COND_SCORE", "scale": depr}
@@ -1160,6 +1160,29 @@ def test_own_fields_named_and_classified_as_land_building_or_other(client, pid):
     w = client.put(f"{url}/zone_class", json={"file": None, "column": None}).json()
     assert w["custom"] == [] and "zone_class" not in read_settings(pid)["data"]["load"]["geo_parcels"]["load"]
     assert "field_classification" not in read_settings(pid)
+
+
+def test_own_fields_may_take_openavmkit_names_nothing_else_sets(client, pid):
+    """zoning is one of OpenAVMKit's input fields, but no step asks for it: an own field can take it, under that name.
+    Names with a row of their own, worked out by OpenAVMKit, or filled in as Bring in data runs are refused, saying
+    why."""
+    start_wizard(client, pid)
+    url = f"/api/projects/{pid}/wizard/custom"
+    w = client.put(f"{url}/zoning", json={"file": "geo_parcels", "column": "ZONE", "group": "land"}).json()
+    assert [x["name"] for x in w["custom"]] == ["zoning"]
+    s = read_settings(pid)
+    assert s["data"]["load"]["geo_parcels"]["load"]["zoning"] == ["ZONE", "string"]
+    assert s["field_classification"]["land"] == {"categorical": ["zoning"]}
+    body = {"file": "geo_parcels", "column": "MAP_NO"}
+    for name, detail in (
+        ("land_class", "land_class has its own row in the wizard (Land use): pick its column there."),
+        ("sale_year", "OpenAVMKit works out sale_year itself: choose another name."),
+        ("latitude", "OpenAVMKit works out latitude itself: choose another name."),
+        ("census_tract", "census_tract is filled in as Bring in data runs: choose another name."),
+        ("condo_group", "condo_group is filled in as Bring in data runs: choose another name."),
+    ):
+        r = client.put(f"{url}/{name}", json=body)
+        assert (r.status_code, r.json()["detail"]) == (422, detail)
 
 
 def test_a_column_already_loaded_is_named_by_its_field(client, pid):
@@ -1587,3 +1610,48 @@ def test_more_parcels_appended(client, tmp_path, monkeypatch):
     univ, sales = _engine(pid, monkeypatch)
     assert sorted(univ["key"]) == ["0", "1", "2", "3"]
     assert len(sales) == 2  # the sale on an appended parcel finds it
+
+
+def test_quality_values_by_price_one_row_each_when_few():
+    """The which-way dialog's price table: a row per value when there are few (a grade from 7 to 11 isn't cut into
+    "7 and up" bands); many, and five bands with as many parcels each, labelled as ranges."""
+    from oakbox.wizard.quality import _value_cuts
+
+    few = {str(i): float(7 + i % 5) for i in range(50)}
+    assert [label for _, _, label in _value_cuts(few, "higher")] == ["7", "8", "9", "10", "11"]
+    many = {str(i): float(i) for i in range(100)}
+    bands = _value_cuts(many, "higher")
+    assert [label for _, _, label in bands] == ["under 19", "19–39", "39–59", "59–79", "79 and up"]
+    counts = [sum(lo <= v < hi for v in many.values()) for lo, hi, _ in bands]
+    assert sum(counts) == 100 and max(counts) - min(counts) <= 2
+
+
+def test_effective_year_zero_means_no_renovation(client, tmp_path):
+    """Rolls write 0 for "no renovation": the column is still years, and OpenAVMKit gets the year built for those
+    (it would read a 0 as a brand-new building)."""
+    from helpers import NEW
+
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    n = 30
+    gpd.GeoDataFrame(
+        {"ID": [str(i) for i in range(n)], "BUILT": [1950 + i for i in range(n)], "EFF": [0] * 25 + [2006] * 5},
+        geometry=[box(i, 0, i + 1, 1) for i in range(n)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    body = {"path": str(tmp_path / "parcels.parquet"), "mode": "copy", "name": "parcels"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    assert put_file(client, pid, "parcels", universe=True, id_column="ID").status_code == 200
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    field = f"/api/projects/{pid}/wizard/fields"
+    r = client.put(f"{field}/bldg_effective_year_built", json={"file": "geo_parcels", "column": "EFF"})
+    assert r.status_code == 200, r.text
+    w = r.json()
+    assert (
+        _field(w, "bldg_effective_year_built")["check"]["text"]
+        == "✓ years 2006–2006 · 0 = no renovation: the year built"
+    )
+    assert "calc" not in read_settings(pid)["data"]["process"].get("enrich", {})  # no year built yet
+    client.put(f"{field}/bldg_year_built", json={"file": "geo_parcels", "column": "BUILT"})
+    calc = read_settings(pid)["data"]["process"]["enrich"]["calc"]["universe"]
+    year = "bldg_effective_year_built"
+    assert calc[year] == ["where", [">", year, 0], year, "bldg_year_built"]

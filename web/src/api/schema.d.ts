@@ -6792,9 +6792,21 @@ export interface components {
             price_basis: string | null;
             /**
              * By Value
-             * @description Bands of the value as read, with sales and the median price in each.
+             * @description The value as read (one row each when few, else five bands), with what its sales went for.
              */
-            by_value: components["schemas"]["Band"][];
+            by_value: components["schemas"]["ValueBand"][];
+            /**
+             * By Type
+             * @description The type compared alone ("SFR_DETACHED"); "" none.
+             * @default
+             */
+            by_type: string;
+            /**
+             * Type Field
+             * @description The field the type is read from (land_class…).
+             * @default
+             */
+            type_field: string;
             /** Notes */
             notes: string[];
             /** Median */
@@ -7823,6 +7835,45 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * ValueBand
+         * @description Sales of parcels whose value, as read, falls in a band: one row per value when there are few.
+         */
+        ValueBand: {
+            /**
+             * Label
+             * @description The value as read ("7"), or a range ("under 40", "40–55", "85 and up").
+             */
+            label: string;
+            /**
+             * Text
+             * @description The text the parcels carry beside it ("C-"), most common first; "" none.
+             */
+            text: string;
+            /** Sales */
+            sales: number;
+            /**
+             * Price
+             * @description Median sale price.
+             */
+            price: number | null;
+            /**
+             * Per Area
+             * @description Median price per area of building; None without a building size.
+             */
+            per_area: number | null;
+            /**
+             * Type Sales
+             * @description Sales of the most common type among them.
+             * @default 0
+             */
+            type_sales: number;
+            /**
+             * Type Price
+             * @description Median sale price of the most common type.
+             */
+            type_price: number | null;
         };
         /** ValueCount */
         ValueCount: {

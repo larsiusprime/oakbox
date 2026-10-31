@@ -168,7 +168,7 @@ export function Review({
                   </span>
                   <span>
                     {pills(i)}
-                    <span className="wiz-from"> {day(i.sale_date)}</span>
+                    <span className="wiz-from cs-date"> {day(i.sale_date)}</span>
                   </span>
                 </button>
               </li>

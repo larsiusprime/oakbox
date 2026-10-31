@@ -36,9 +36,17 @@ def field_check(d: DictionaryField, col: Column) -> tuple[Check, list[str] | Non
             bad = next(s for s in samples if _floats([s]) is None)
             return Check(ok=False, text=f"not numbers: {bad}"), None
         if "year" in d.key and nums:
-            if not all(1700 <= n <= 2100 for n in nums):
-                return Check(ok=False, text="not years"), None
-            return Check(ok=True, text=f"✓ years {int(min(nums))}–{int(max(nums))}"), [col.name, "float"]
+            # 0 is how many rolls write "none" (no renovation, no building): only the rest need be years.
+            years = [n for n in nums if n != 0]
+            if not years or not all(1700 <= n <= 2100 for n in years):
+                bad = next((n for n in years if not 1700 <= n <= 2100), None)
+                return Check(ok=False, text="not years" + (f": {bad:g}" if bad is not None else "")), None
+            text = f"✓ years {int(min(years))}–{int(max(years))}"
+            if len(years) < len(nums):
+                text += (
+                    " · 0 = no renovation: the year built" if d.key == "bldg_effective_year_built" else " · 0 = none"
+                )
+            return Check(ok=True, text=text), [col.name, "float"]
         return Check(ok=True, text="✓ numbers"), [col.name, "float"]
     if d.type == "date":
         if col.type == "date":

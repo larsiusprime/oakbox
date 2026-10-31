@@ -1023,22 +1023,35 @@ export const t = {
         "OpenAVMKit wants condition with higher meaning better. Say how this column writes it and it's converted as it loads. % good and % depreciation are written as % good, 0–100.",
       directionLede:
         "OpenAVMKit wants quality with higher meaning better. Say which way this column runs; lower-is-better numbers are flipped within their range as they load.",
-      fits: (basis: string) => `fits: as read, newer is better by ${basis}`,
+      fits: (basis: string) => `fits: loaded this way, newer is better by ${basis}`,
       writtenAs: "Written as",
       fractions: "fractions, 0–1 (× 100)",
       percents: "percent, 0–100",
       found: (lo: string, hi: string) => `found: every value is between ${lo} and ${hi}`,
-      newerBetter: "✓ As read, newer buildings come out in better condition",
-      olderBetter: "As read, older buildings come out in better condition: is it the other way round?",
+      newerBetter: "✓ Loaded this way, newer buildings come out in better condition",
+      olderBetter:
+        "Loaded this way, older buildings come out in better condition: is it the other way round?",
+      ageSilent: (m: string) =>
+        `Age doesn't tell: condition is about the same at every age (median ${m} in the file). Go by what the values mean, and what they sell for below.`,
+      loadedLede:
+        "In the file: the numbers as the file writes them. Loaded as: what OpenAVMKit gets, where higher is always better.",
       median: (m: string) => `median ${m}`,
       effectiveAge: "Effective age",
       age: "Age (year built)",
       buildings: "Buildings",
-      asWritten: "Median as written",
-      asRead: "As read",
-      asReadBand: "As read",
+      asWritten: "In the file (median)",
+      asRead: "Loaded as (median)",
+      asReadBand: "Loaded as",
       sales: "Sales",
       medianOf: (basis: string) => `Median ${basis}`,
+      writtenText: "Text beside it",
+      samplesLine: "In the file → loaded as:",
+      medianPrice: "Median price",
+      typeOnly: (type: string) => `${type} sales`,
+      byPriceLede: (type: string, field: string) =>
+        type
+          ? `Better should sell for more. Compare within ${type} alone (its ${field}): a grade is often tied to a kind and size of building, and price per area falls as buildings get bigger, so across every sale it can run the wrong way.`
+          : "Better should sell for more. Price per area falls as buildings get bigger, so if better buildings are bigger it can run the wrong way: go by the median price too.",
       writes: "What this writes to the settings",
       nothingYet: "Nothing until you say what the numbers mean.",
       tiersTitle: (column: string) => `Rank ${column}'s tiers`,

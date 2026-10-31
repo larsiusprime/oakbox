@@ -22,6 +22,27 @@ from oakbox.wizard.rules import _distinct
 TAKEN = {"key", "key2", "key3", "key_sale", "geometry", "latitude", "longitude", "polar_radius", "polar_angle"}
 
 
+# OpenAVMKit's own input fields a user's field can't take: made by OAK box (condo_group, on the Condo units step) or by
+# enrichments as Bring in data runs (census_*, dist_to_*), or the answer key of synthetic data (true_*).
+MADE = {"condo_group"}
+MADE_PREFIXES = ("census_", "dist_to_", "true_")
+
+
+def own_name_problem(name: str) -> str | None:
+    """Why a user's own field can't take this name, or None. One of OpenAVMKit's own fields is fine when nothing else
+    sets it: it's loaded under OpenAVMKit's name, so OpenAVMKit treats it as it would (zoning, bldg_rooms_bed…)."""
+    from oakbox.wizard.base import STEPS
+
+    d = _by_key().get(name)
+    if name in TAKEN or name.startswith("polar_") or (d is not None and d.source in ("derived", "reserved")):
+        return f"OpenAVMKit works out {name} itself: choose another name."
+    if name in MADE or name.startswith(MADE_PREFIXES):
+        return f"{name} is filled in as Bring in data runs: choose another name."
+    if any(name in s.fields or name in s.more for s in STEPS):
+        return f"{name} has its own row in the wizard ({_field_name(name)}): pick its column there."
+    return None
+
+
 def locations(project: Project, in_dir: Path) -> list[LocationField]:
     files = Files(project, in_dir)
     out = []
@@ -162,8 +183,9 @@ def set_custom(
         return
     if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
         raise ValueError("Names use lowercase letters, digits and underscores, and start with a letter.")
-    if name in TAKEN or name.startswith("polar_") or name in _by_key():
-        raise ValueError(f"{name} is one of OpenAVMKit's own fields: choose another name.")
+    problem = own_name_problem(name)
+    if problem:
+        raise ValueError(problem)
     if name in project.wizard.locations:
         raise ValueError(f"{name} is already a location field.")
     entry = next((f for f in _field_files(project, False) if f.name == file), None)

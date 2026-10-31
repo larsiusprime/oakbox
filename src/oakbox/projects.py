@@ -443,6 +443,7 @@ def _data(project: Project) -> dict:
         out["process"] = process
     _condos(project, out)
     _permits(project, out)
+    _effective_year(project, out)
     if deed_field(project) == DEED_BOOK_PAGE:
         # Book and page as one deed ID, "123-45"; blank when either is (no deed is no deed).
         f = next(f for f in project.files if f.holds == "sales" and "deed_page" in f.load)
@@ -588,6 +589,19 @@ def _permits(project: Project, out: dict) -> None:
         # It needs the year built to start from.
         "calc_effective_age": p.effective_age and "bldg_year_built" in loaded,
     }
+
+
+def _effective_year(project: Project, out: dict) -> None:
+    """An effective year built of 0 or blank means no renovation on record: the year built. OpenAVMKit would read a 0
+    as a brand-new building (an effective age of 0), so after the merge it's replaced by the year built, from
+    whichever parcel file loads that. Written only when both are loaded, from parcel files."""
+    parcel = [f for f in project.files if f.holds in ("parcels", "parcel_rows") or f.name == project.wizard.base]
+    loaded = {k for f in parcel for k in f.load}
+    if not {"bldg_effective_year_built", "bldg_year_built"} <= loaded:
+        return
+    year = "bldg_effective_year_built"
+    calc = out.setdefault("process", {}).setdefault("enrich", {}).setdefault("calc", {})
+    calc.setdefault("universe", {})[year] = ["where", [">", year, 0], year, "bldg_year_built"]
 
 
 def write_settings(project: Project) -> Path:

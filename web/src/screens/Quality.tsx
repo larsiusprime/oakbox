@@ -227,9 +227,14 @@ export function ScaleDialog({
   const pctKind = kind === "pct_good" || kind === "pct_depr";
   // Newer buildings should come out better as read: each older band no better than the one before.
   const ages = v?.by_age.filter((b) => b.count >= 5) ?? [];
-  const falls = ages.every((b, i) => i === 0 || (b.value ?? 0) <= (ages[i - 1]?.value ?? 0) + 0.5);
+  // Age only tells when condition moves with it (the server's trend): then newer should come out better as loaded.
+  // Flat (most buildings one code), it says so rather than tick whichever way is picked.
+  const told = (v?.fits.length ?? 0) > 0;
+  const newer = told && !!kind && (v?.fits.includes(kind) ?? false);
   const top = Math.max(1, ...(v?.by_age.map((b) => Math.abs(b.value ?? 0)) ?? []));
-  const topPrice = Math.max(1, ...(v?.by_value.map((b) => b.value ?? 0) ?? []));
+  const topPrice = Math.max(1, ...(v?.by_value.map((b) => b.price ?? 0) ?? []));
+  const topType = Math.max(1, ...(v?.by_value.map((b) => b.type_price ?? 0) ?? []));
+  const texts = v?.by_value.some((b) => b.text) ?? false;
   return (
     <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(open) => !open && close()}>
       <Modal className="modal rl qc">
@@ -268,11 +273,16 @@ export function ScaleDialog({
             </div>
           )}
           {v && kind && condition && ages.length > 1 && (
-            <div className={`rc-meter ${falls ? "ok" : "bad"}`}>
-              <b>{falls ? q.newerBetter : q.olderBetter}</b>
-              {v.median != null && <span className="rc-was">{q.median(fmt(v.median))}</span>}
+            <div className={`rc-meter ${!told ? "" : newer ? "ok" : "bad"}`}>
+              {told ? (
+                <b>{newer ? q.newerBetter : q.olderBetter}</b>
+              ) : (
+                <span>{q.ageSilent(fmt(ages[0]?.raw ?? null))}</span>
+              )}
+              {told && v.median != null && <span className="rc-was">{q.median(fmt(v.median))}</span>}
             </div>
           )}
+          {v && kind && <p className="rc-sub">{q.loadedLede}</p>}
           {v && condition && v.by_age.length > 0 && (
             <table className="tbl">
               <thead>
@@ -305,32 +315,59 @@ export function ScaleDialog({
             </table>
           )}
           {v && v.by_value.length > 0 && (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>{q.asReadBand}</th>
-                  <th>{q.sales}</th>
-                  <th>{q.medianOf(v.price_basis ?? "")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {v.by_value.map((b) => (
-                  <tr key={b.label}>
-                    <td>{b.label}</td>
-                    <td>{b.count.toLocaleString()}</td>
-                    <td>
-                      <span className="qc-bar" style={{ width: `${(8 * (b.value ?? 0)) / topPrice}rem` }} />
-                      {b.value != null ? amount(v.symbol, b.value) : ""}
-                    </td>
+            <>
+              <p className="rc-sub">{q.byPriceLede(v.by_type, v.type_field)}</p>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>{q.asReadBand}</th>
+                    {texts && <th>{q.writtenText}</th>}
+                    <th className="num">{q.sales}</th>
+                    <th>{q.medianPrice}</th>
+                    {v.price_basis && <th className="num">{q.medianOf(v.price_basis)}</th>}
+                    {v.by_type && <th className="num">{q.typeOnly(v.by_type)}</th>}
+                    {v.by_type && <th>{q.medianPrice}</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {v.by_value.map((b) => (
+                    <tr key={b.label}>
+                      <td className="mono">{b.label}</td>
+                      {texts && <td className="mono">{b.text}</td>}
+                      <td className="num">{b.sales.toLocaleString()}</td>
+                      <td>
+                        <span className="qc-bar" style={{ width: `${(6 * (b.price ?? 0)) / topPrice}rem` }} />
+                        {b.price != null ? amount(v.symbol, b.price) : ""}
+                      </td>
+                      {v.price_basis && (
+                        <td className="num">{b.per_area != null ? amount(v.symbol, b.per_area) : ""}</td>
+                      )}
+                      {v.by_type && (
+                        <td className="num">{b.type_sales ? b.type_sales.toLocaleString() : ""}</td>
+                      )}
+                      {v.by_type && (
+                        <td>
+                          {b.type_price != null && (
+                            <>
+                              <span
+                                className="qc-bar"
+                                style={{ width: `${(6 * b.type_price) / topType}rem` }}
+                              />
+                              {amount(v.symbol, b.type_price)}
+                            </>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
           {v && v.notes.length > 0 && <p className="rc-sub">{v.notes.join(" · ")}</p>}
           {v && kind && v.samples.length > 0 && (
             <p className="rc-sub mono">
-              {v.samples.map((s) => `${short(s.raw)} → ${fmt(s.value)}`).join("  ·  ")}
+              {q.samplesLine} {v.samples.map((s) => `${short(s.raw)} → ${fmt(s.value)}`).join("  ·  ")}
             </p>
           )}
           <details className="rc-writes">

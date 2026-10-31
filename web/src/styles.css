@@ -1234,7 +1234,9 @@ a.row-title:hover {
 }
 
 .wiz-step .n {
-  width: 1.1rem;
+  flex: none;
+  width: 1.3rem;
+  white-space: nowrap;
   text-align: right;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -3881,6 +3883,11 @@ tr.bi-kept > td {
   background: transparent;
   cursor: pointer;
 }
+/* A sale's date stays on one line (it breaks at its hyphens otherwise). */
+.cs-date {
+  white-space: nowrap;
+}
+
 .cs-item:hover {
   background: var(--info-tint);
 }

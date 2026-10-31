@@ -16335,11 +16335,23 @@
      },
      "by_value": {
       "items": {
-       "$ref": "#/components/schemas/Band"
+       "$ref": "#/components/schemas/ValueBand"
       },
       "type": "array",
       "title": "By Value",
-      "description": "Bands of the value as read, with sales and the median price in each."
+      "description": "The value as read (one row each when few, else five bands), with what its sales went for."
+     },
+     "by_type": {
+      "type": "string",
+      "title": "By Type",
+      "description": "The type compared alone (\"SFR_DETACHED\"); \"\" none.",
+      "default": ""
+     },
+     "type_field": {
+      "type": "string",
+      "title": "Type Field",
+      "description": "The field the type is read from (land_class\u2026).",
+      "default": ""
      },
      "notes": {
       "items": {
@@ -16408,6 +16420,8 @@
      "by_age",
      "price_basis",
      "by_value",
+     "by_type",
+     "type_field",
      "notes",
      "median",
      "samples",
@@ -18650,6 +18664,78 @@
      "type"
     ],
     "title": "ValidationError"
+   },
+   "ValueBand": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label",
+      "description": "The value as read (\"7\"), or a range (\"under 40\", \"40\u201355\", \"85 and up\")."
+     },
+     "text": {
+      "type": "string",
+      "title": "Text",
+      "description": "The text the parcels carry beside it (\"C-\"), most common first; \"\" none."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price",
+      "description": "Median sale price."
+     },
+     "per_area": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Area",
+      "description": "Median price per area of building; None without a building size."
+     },
+     "type_sales": {
+      "type": "integer",
+      "title": "Type Sales",
+      "description": "Sales of the most common type among them.",
+      "default": 0
+     },
+     "type_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Type Price",
+      "description": "Median sale price of the most common type."
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "text",
+     "sales",
+     "price",
+     "per_area",
+     "type_sales",
+     "type_price"
+    ],
+    "title": "ValueBand",
+    "description": "Sales of parcels whose value, as read, falls in a band: one row per value when there are few."
    },
    "ValueCount": {
     "properties": {
