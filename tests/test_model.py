@@ -68,31 +68,79 @@ def test_the_variables_found(prepared):
     assert model.big_five_missing(list(vs), "imperial") == ["quality", "condition"]
 
 
-def test_choose_for_me_settings(prepared):
-    main = model.settings(_project(), prepared)["modeling"]
-    # The roll runs too, as OpenAVMKit's assessor model: it's audited on the study set, beside the models.
-    assert main["instructions"]["main"]["run"] == ["lightgbm", "mra", "local_area", "assessor"]
-    entries = main["models"]["main"]
-    # The default list is the linear-safe one; trees get every variable; MRA fits log price.
-    assert "slope_mean_deg" not in entries["default"]["ind_vars"]
-    assert "slope_mean_deg" in entries["lightgbm"]["ind_vars"]
-    assert entries["mra"] == {"log": True} and entries["local_area"] == {}
+def test_default_settings(prepared):
+    s = model.settings(_project(), prepared)
+    main = s["modeling"]
+    # Every modeled group starts with LightGBM, MRA and Multi-MRA; the roll runs too, as OpenAVMKit's assessor
+    # model: it's audited on the study set, beside the models.
+    assert main["instructions"]["main"]["run"] == ["lightgbm", "mra", "multi_mra", "assessor"]
+    assert main["instructions"]["main"]["ensemble"]["models"] == ["lightgbm", "mra", "multi_mra"]
+    block = main["models"]["main"]["sf"]
+    # Each takes its list by reference; the lists are written once, in variable_lists.
+    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": "$$variable_lists.ml"}
+    assert block["mra"]["log"] and block["mra"]["model"] == "mra"
+    assert block["multi_mra"]["locations"] == []  # no location fields in this universe
+    assert set(s["variable_lists"]) == {"regression", "ml"}
+    # A regression list has nothing with blanks (untested, it goes by blanks and categories alone).
+    assert "slope_mean_deg" not in s["variable_lists"]["regression"]
+    assert "slope_mean_deg" in s["variable_lists"]["ml"]
+    # Local area and the roll take the areas from the group's default entry.
+    assert block["default"] == {"ind_vars": ["land_area_sqft", "bldg_area_finished_sqft"]}
     # The study set judges the models by their holdout predictions, like for like with the roll.
-    assert model.settings(_project(), prepared)["analysis"] == {"ratio_study": {"study_set_predictions": "holdout"}}
+    assert s["analysis"] == {"ratio_study": {"study_set_predictions": "holdout"}}
 
 
-def test_choices(prepared):
+def test_a_groups_own_models(prepared):
+    from oakbox import varlists
+
     p = _project()
-    model.change(p, model.ModelPatch(variables=["land_area_sqft"], models=["mra", "xgboost"]))
+    p.model.lists = varlists.check(
+        p,
+        [
+            model.VarList(id="short", name="Short", kind="regression", groups=["sf"], variables=["land_area_sqft"]),
+            model.VarList(
+                id="blanks",
+                name="Blanks",
+                kind="regression",
+                groups=["sf"],
+                variables=["land_area_sqft", "slope_mean_deg"],
+            ),
+        ],
+    )
+    model.set_group(
+        p,
+        prepared,
+        "sf",
+        [
+            model.ModelEntry(engine="xgboost", name="Trees", list_id="short"),
+            model.ModelEntry(engine="mra", list_id="blanks"),
+            model.ModelEntry(engine="local_area", locations=[]),
+        ],
+    )
+    entries = p.model.groups["sf"]
+    # A key from its name; the engine's name unless given one.
+    assert [(e.key, e.name) for e in entries] == [("trees", "Trees"), ("mra", "MRA"), ("local_area", "Local area")]
     main = model.settings(p, prepared)["modeling"]
-    assert main["instructions"]["main"]["run"] == ["xgboost", "mra", "assessor"]  # in the order offered
-    assert main["models"]["main"]["xgboost"]["ind_vars"] == ["land_area_sqft"]
+    block = main["models"]["main"]["sf"]
+    assert main["instructions"]["main"]["run"] == ["trees", "mra", "local_area", "assessor"]
+    assert block["trees"] == {"model": "xgboost", "ind_vars": "$$variable_lists.short"}
+    # A linear model can't take a blank: its list without the variables with blanks, written out.
+    assert block["mra"]["ind_vars"] == ["land_area_sqft"]
+    assert block["local_area"] == {"model": "local_area", "locations": []}
+    # Local area needs a location; a mismatched list is said, not refused.
+    assert model.problems(p, prepared) == ["Single-family › Local area: Local area needs at least one location."]
+    views = {e.key: e for e in model.setup(p, prepared).groups[0].models}
+    assert [w.code for w in views["trees"].warnings] == ["kind_mismatch"]
+    assert [(w.code, w.n) for w in views["mra"].warnings] == [("blanks_left_out", 1)]
     with pytest.raises(ValueError):
-        model.change(p, model.ModelPatch(models=[]))
+        model.set_group(p, prepared, "sf", [model.ModelEntry(engine="nope")])
     with pytest.raises(ValueError):
-        model.change(p, model.ModelPatch(models=["nope"]))
-    model.change(p, model.ModelPatch(every_variable=True, choose_for_me=True))
-    assert p.model.variables is None and p.model.models is None
+        model.set_group(p, prepared, "sf", [model.ModelEntry(engine="mra", list_id="gone")])
+    with pytest.raises(ValueError):
+        model.set_group(p, prepared, "sf", [model.ModelEntry(engine="mra"), model.ModelEntry(engine="mra")])
+    # Back to the default models.
+    model.set_group(p, prepared, "sf", None)
+    assert "sf" not in p.model.groups
 
 
 def test_nothing_before_the_fields_are_prepared(tmp_path):

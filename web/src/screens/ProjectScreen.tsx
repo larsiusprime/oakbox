@@ -16,8 +16,18 @@ import { CheckValuesTab } from "./CheckValues";
 import { FieldsTab } from "./FieldsWizard";
 import { ModelGroupsTab } from "./ModelGroups";
 import { ValuesTab } from "./ModelValues";
+import { VariablesTab } from "./Variables";
 
-export const TABS = ["metadata", "fields", "bring", "groups", "sales", "check", "values"] as const;
+export const TABS = [
+  "metadata",
+  "fields",
+  "bring",
+  "groups",
+  "sales",
+  "check",
+  "variables",
+  "values",
+] as const;
 export type TabId = (typeof TABS)[number];
 const PLACEHOLDERS = ["later-1"] as const;
 
@@ -60,6 +70,8 @@ function ProjectView({
   const checked = useSalesAccepted(projectId);
   // Check my values only with existing values to check (the roll, a vendor's AVM: Data › Existing values).
   const hasValues = useStep("ratio", projectId).data?.has_values ?? true;
+  // Model values once the fields are prepared and Looks right pressed (Variables › What changed).
+  const prepared = useStep("prepare", projectId).data?.accepted ?? false;
   const selected = !tab
     ? "fields"
     : tab === "groups" && !accepted
@@ -68,17 +80,20 @@ function ProjectView({
         ? accepted
           ? "groups"
           : "bring"
-        : (tab === "values" || tab === "check") && !checked
+        : (tab === "values" || tab === "variables" || tab === "check") && !checked
           ? "sales"
           : tab === "check" && !hasValues
-            ? "values"
-            : tab;
+            ? "variables"
+            : tab === "values" && !prepared
+              ? "variables"
+              : tab;
   const locked = [
     ...PLACEHOLDERS,
     ...(accepted ? [] : ["groups"]),
     ...(grouped ? [] : ["sales"]),
-    ...(checked ? [] : ["check", "values"]),
+    ...(checked ? [] : ["check", "variables", "values"]),
     ...(hasValues ? [] : ["check"]),
+    ...(prepared ? [] : ["values"]),
   ];
 
   return (
@@ -128,9 +143,16 @@ function ProjectView({
             {t.tabs.check}
           </Tab>
           <Tab
-            id="values"
+            id="variables"
             className="folder-tab"
             aria-description={checked ? undefined : t.tabs.valuesLocked}
+          >
+            {t.tabs.variables}
+          </Tab>
+          <Tab
+            id="values"
+            className="folder-tab"
+            aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
           >
             {t.tabs.values}
           </Tab>
@@ -161,6 +183,9 @@ function ProjectView({
         </TabPanel>
         <TabPanel id="check" className="folder-panel">
           <CheckValuesTab projectId={projectId} currency={project.currency} />
+        </TabPanel>
+        <TabPanel id="variables" className="folder-panel">
+          <VariablesTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
           <ValuesTab projectId={projectId} />

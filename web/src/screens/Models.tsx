@@ -1,234 +1,292 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
-import { Button } from "react-aria-components";
-import type { ModelPatch, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
+import { Button, Input, Menu, MenuItem, MenuTrigger, Popover, TextField } from "react-aria-components";
+import type { ModelEntry, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
+import { useSetGroupModels } from "../api/models";
+import { AddButton } from "../components/AddButton";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
-import { Choice, Tick } from "../components/Form";
+import { Choice } from "../components/Form";
+import { LocationStack } from "../components/LocationStack";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
-import { InfoTip } from "../components/Tip";
 import { day, num, signed } from "../lib/format";
 import { t } from "../strings";
 
 const m = t.values.model;
 
-type CardProps = { v: ModelSetup; set: (body: ModelPatch) => void };
-
-/** One table of the variables, grouped by kind: ticked, how many parcels have it, blanks left, and which models
- * use it. Each kind is a heading that folds its rows away, with one tick for all of them. */
-export function VariablesCard({ v, set, fill }: CardProps & { fill: () => void }) {
-  const [shut, setShut] = useState<Set<string>>(() => new Set());
-  if (!v.variables.length) return <p className="wiz-from">{m.none}</p>;
-  const chosen = v.variables.filter((x) => x.chosen).map((x) => x.field);
-  const total = Math.max(...v.variables.map((x) => x.parcels + x.blanks));
-  const kinds = [...new Set(v.variables.map((x) => x.kind))];
+/** Model values › Models: a tab per modeled group (the others greyed, not modeled), its models in a table: each a
+ * name, an engine, its variable list and (Multi-MRA, Local area) its location stack, opened in place one at a time;
+ * Add a model; copy a group's models to others; back to the default ones. */
+export function GroupModelsCard({ projectId, v }: { projectId: string; v: ModelSetup }) {
+  const put = useSetGroupModels(projectId);
+  const [gid, setGid] = useState<string | null>(null);
+  const [stack, setStack] = useState<string | null>(null);
+  const [adding, setAdding] = useState<ModelEntry | null>(null);
+  const modeled = v.groups.filter((g) => g.modeled);
+  const g = modeled.find((x) => x.id === gid) ?? modeled[0];
+  if (!g) return <p className="wiz-from">{t.groups.notModeled}</p>;
+  const engines = Object.fromEntries(v.engines.map((e) => [e.key, e]));
+  const lists = Object.fromEntries(v.lists.map((x) => [x.id, x]));
+  const entries: ModelEntry[] = g.models.map((e) => ({
+    key: e.key,
+    name: e.name,
+    engine: e.engine,
+    list_id: e.list_id ?? null,
+    locations: e.locations ?? null,
+  }));
+  const save = (models: ModelEntry[] | null, group = g.id) => put.mutate({ group, models });
+  const change = (i: number, patch: Partial<ModelEntry>) =>
+    save(entries.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+  const firstList = (engine: string) => {
+    const kind = engines[engine]?.kind;
+    return (
+      v.lists.find((x) => x.kind === kind && x.groups.includes(g.id)) ??
+      v.lists.find((x) => x.kind === kind) ??
+      v.lists[0]
+    )?.id;
+  };
+  const listOptions = v.lists.map((x) => [x.id, m.list(x.name, x.count)] as const);
+  const others = modeled.filter((x) => x.id !== g.id);
   return (
     <div className="cs-step">
-      {v.missing.length > 0 && <p className="wiz-warn">{m.missing(v.missing)}</p>}
-      <ColumnsNote v={v} />
-      <table className="tbl md-vars">
-        <thead>
-          <tr>
-            <th>{m.variable}</th>
-            <th className="cs-n">{m.has}</th>
-            <th className="cs-n">{m.blanks}</th>
-            <th>
-              <InfoTip label={m.usedBy} text={m.usedByWhy} />
-            </th>
-          </tr>
-        </thead>
-        {kinds.map((k) => (
-          <tbody key={k}>
-            <KindRow
-              name={m.kinds[k] ?? k}
-              fields={v.variables.filter((x) => x.kind === k).map((x) => x.field)}
-              chosen={chosen}
-              open={!shut.has(k)}
-              toggle={() =>
-                setShut((was) => {
-                  const now = new Set(was);
-                  if (now.has(k)) now.delete(k);
-                  else now.add(k);
-                  return now;
-                })
-              }
-              set={set}
-            />
-            {v.variables
-              .filter((x) => x.kind === k && !shut.has(k))
-              .map((x) => (
-                <tr key={x.field}>
-                  <td>
-                    <Tick
-                      isSelected={x.chosen}
-                      onChange={(on) =>
-                        set({ variables: on ? [...chosen, x.field] : chosen.filter((f) => f !== x.field) })
-                      }
-                    >
-                      {x.name} <span className="mono wiz-from">{x.field}</span>
-                      {x.values != null && <span className="wiz-from"> · {m.valuesCount(x.values)}</span>}
-                    </Tick>
-                  </td>
-                  <td className="cs-n">{`${Math.round((100 * x.parcels) / Math.max(total, 1))}%`}</td>
-                  <td className="cs-n">{x.blanks ? num(x.blanks) : "—"}</td>
-                  <td>
-                    {x.trees_only ? (
-                      <>
-                        {m.treesOnly}
-                        {x.numeric && (
-                          <>
-                            {" "}
-                            <Button className="wiz-link" onPress={fill}>
-                              {m.fillIt}
-                            </Button>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      m.allModels
-                    )}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
+      <div className="gm-tabs">
+        {v.groups.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            aria-pressed={x.id === g.id}
+            className={x.id === g.id ? "gm-tab on" : "gm-tab"}
+            disabled={!x.modeled}
+            onClick={() => {
+              setGid(x.id);
+              setStack(null);
+              setAdding(null);
+            }}
+          >
+            <span className="mg-sw ab-sw" style={{ background: x.modeled ? x.color : "var(--muted)" }} />
+            {x.name} <span className="wiz-from">{x.modeled ? m.salesTab(x.sales) : m.notModeledTab}</span>
+          </button>
         ))}
-      </table>
-      {chosen.length < v.variables.length && (
-        <p>
-          <Button className="wiz-link" onPress={() => set({ every_variable: true })}>
-            {m.everyVariable}
-          </Button>
-        </p>
+      </div>
+      {g.sales < 15 && <p className="wiz-warn">{m.tooFew}</p>}
+      {entries.length === 0 && !adding ? (
+        <p className="wiz-warn">{m.noModels}</p>
+      ) : (
+        <table className="tbl gm-models">
+          <thead>
+            <tr>
+              <th>{m.model}</th>
+              <th>{m.engine}</th>
+              <th>{m.variables}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {g.models.map((e, i) => {
+              const eng = engines[e.engine];
+              const open = stack === e.key;
+              const stackNames = [...(e.locations ?? [])]
+                .reverse()
+                .map((f) => v.locations.find((x) => x.field === f)?.name ?? f);
+              return [
+                <tr key={e.key}>
+                  <td>
+                    <NameCell value={e.name} label={m.nameLabel} onCommit={(name) => change(i, { name })} />
+                  </td>
+                  <td>{eng?.name ?? e.engine}</td>
+                  <td>
+                    {eng?.takes_list ? (
+                      <Choice
+                        label={`${m.variables}: ${e.name}`}
+                        hideLabel
+                        value={e.list_id ?? null}
+                        options={listOptions}
+                        onChange={(list_id) => change(i, { list_id })}
+                      />
+                    ) : (
+                      <span className="wiz-from">{m.takesNoList}</span>
+                    )}
+                    {eng?.located && (
+                      <div className="gm-stackline">
+                        <span className="wiz-from">{m.locations}</span>{" "}
+                        {stackNames.length ? stackNames.join(" › ") : m.noLocations}{" "}
+                        <Button className="wiz-link" onPress={() => setStack(open ? null : e.key)}>
+                          {open ? m.done : m.change}
+                        </Button>
+                      </div>
+                    )}
+                    {e.warnings.map((w) => (
+                      <p key={w.code} className="wiz-warn gm-warn">
+                        {w.code === "kind_mismatch"
+                          ? m.warn.kind_mismatch(eng?.name ?? e.engine, lists[e.list_id ?? ""]?.kind ?? "")
+                          : w.code === "blanks_left_out"
+                            ? m.warn.blanks_left_out(w.n)
+                            : w.code === "no_locations"
+                              ? m.warn.no_locations(e.engine)
+                              : m.warn[w.code]}
+                      </p>
+                    ))}
+                  </td>
+                  <td>
+                    <Button
+                      className="wiz-link vs-remove"
+                      onPress={() => save(entries.filter((_, j) => j !== i))}
+                    >
+                      <X aria-hidden="true" size="0.9em" />
+                      {m.remove}
+                    </Button>
+                  </td>
+                </tr>,
+                open && (
+                  <tr key={`${e.key}-stack`} className="gm-detail">
+                    <td colSpan={4}>
+                      <LocationStack
+                        projectId={projectId}
+                        group={g.id}
+                        engine={e.engine}
+                        finestFirst={e.locations ?? []}
+                        offered={v.locations}
+                        onChange={(locations) => change(i, { locations })}
+                      />
+                    </td>
+                  </tr>
+                ),
+              ];
+            })}
+            {adding && (
+              <tr className="gm-adding">
+                <td>
+                  <TextField
+                    aria-label={m.nameLabel}
+                    value={adding.name ?? ""}
+                    onChange={(name) => setAdding({ ...adding, name })}
+                  >
+                    <Input
+                      className="input"
+                      placeholder={engines[adding.engine]?.name ?? m.namePlaceholder}
+                    />
+                  </TextField>
+                </td>
+                <td>
+                  <Choice
+                    label={m.engine}
+                    hideLabel
+                    value={adding.engine}
+                    options={v.engines.map((x) => [x.key, x.name] as const)}
+                    onChange={(engine) =>
+                      setAdding({ ...adding, engine, list_id: firstList(engine) ?? null })
+                    }
+                  />
+                </td>
+                <td>
+                  {engines[adding.engine]?.takes_list ? (
+                    <Choice
+                      label={m.variables}
+                      hideLabel
+                      value={adding.list_id ?? null}
+                      options={listOptions}
+                      onChange={(list_id) => setAdding({ ...adding, list_id })}
+                    />
+                  ) : (
+                    <span className="wiz-from">{m.takesNoList}</span>
+                  )}
+                  <p className="wiz-from gm-warn">{engines[adding.engine]?.note}</p>
+                </td>
+                <td className="gm-addtools">
+                  <Button
+                    className="button button-primary"
+                    onPress={() => {
+                      save([...entries, { ...adding, key: "" }]);
+                      setAdding(null);
+                    }}
+                  >
+                    {m.addIt}
+                  </Button>
+                  <Button className="wiz-link" onPress={() => setAdding(null)}>
+                    {m.cancel}
+                  </Button>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       )}
-    </div>
-  );
-}
-
-/** A kind's heading: one tick for all its variables, its name (folding its rows away) and how many are ticked. */
-function KindRow({
-  name,
-  fields,
-  chosen,
-  open,
-  toggle,
-  set,
-}: {
-  name: string;
-  fields: string[];
-  chosen: string[];
-  open: boolean;
-  toggle: () => void;
-  set: (body: ModelPatch) => void;
-}) {
-  const on = fields.filter((f) => chosen.includes(f)).length;
-  const Chevron = open ? ChevronDown : ChevronRight;
-  return (
-    <tr className="md-kind">
-      <td colSpan={4}>
-        <span className="md-kind-row">
-          <Tick
-            isSelected={on === fields.length}
-            onChange={(all) =>
-              set({
-                variables: all
-                  ? [...new Set([...chosen, ...fields])]
-                  : chosen.filter((f) => !fields.includes(f)),
+      <p className="cs-row">
+        {!adding && (
+          <AddButton
+            onPress={() =>
+              setAdding({
+                key: "",
+                name: "",
+                engine: "lightgbm",
+                list_id: firstList("lightgbm") ?? null,
+                locations: null,
               })
             }
           >
-            <span className="visually-hidden">{name}</span>
-          </Tick>
-          <Button className="md-kind-name" aria-expanded={open} onPress={toggle}>
-            <Chevron aria-hidden="true" size="1em" />
-            {name}
-            <span className="md-kind-count">{m.kindCount(on, fields.length)}</span>
+            {m.add}
+          </AddButton>
+        )}
+        {others.length > 0 && (
+          <MenuTrigger>
+            <Button className="wiz-link">{m.copy}</Button>
+            <Popover className="popover rc-menu" placement="bottom start">
+              <Menu
+                className="choice-list"
+                onAction={(key) => {
+                  for (const x of key === "*" ? others : others.filter((o) => o.id === key))
+                    save(entries, x.id);
+                }}
+              >
+                {[{ id: "*", name: m.everyOther }, ...others].map((x) => (
+                  <MenuItem key={x.id} id={x.id} className="choice-item rc-menu-item" textValue={x.name}>
+                    {x.name}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </Popover>
+          </MenuTrigger>
+        )}
+        {g.custom && (
+          <Button className="wiz-link" onPress={() => save(null)}>
+            {m.backToDefault}
           </Button>
-        </span>
-      </td>
-    </tr>
-  );
-}
-
-/** The models offered, each in a line; Choose for me; and what each model group has to learn from. */
-/** How many columns the ticked variables become to the models: a number is one, a category one per value (one-hot).
- * Many category columns slow every model and give linear ones a coefficient each to fit. */
-export function ColumnsNote({ v }: { v: ModelSetup }) {
-  const ticked = v.variables.filter((x) => x.chosen);
-  const cats = ticked.filter((x) => x.values != null);
-  const dummies = cats.reduce((n, x) => n + (x.values ?? 0), 0);
-  const columns = ticked.length - cats.length + dummies;
-  const many = dummies > 40;
-  const biggest = [...cats].sort((a, b) => (b.values ?? 0) - (a.values ?? 0)).slice(0, 3);
-  return (
-    <p className={many ? "wiz-warn" : "wiz-from"}>
-      {m.columns(ticked.length, columns, cats.length, dummies)}
-      {many && ` ${m.manyColumns(biggest.map((x) => `${x.name} (${x.values})`).join(", "))}`}
-    </p>
-  );
-}
-
-export function ModelsCard({ v, set }: CardProps) {
-  const chosen = v.engines.filter((e) => e.chosen).map((e) => e.key);
-  return (
-    <div className="cs-step">
-      <ColumnsNote v={v} />
-      <div className="md-engines">
-        {v.engines.map((e) => (
-          <div key={e.key} className="md-engine">
-            <Tick
-              isSelected={e.chosen}
-              isDisabled={e.chosen && chosen.length === 1}
-              onChange={(on) => set({ models: on ? [...chosen, e.key] : chosen.filter((x) => x !== e.key) })}
-            >
-              <b>{e.name}</b>
-            </Tick>
-            <span className="wiz-from">{e.note}</span>
-          </div>
-        ))}
-      </div>
-      <p>
-        {v.choose_for_me ? (
-          <span className="wiz-ok">✓ {m.chosenForYou}</span>
-        ) : (
-          <Button className="wiz-link" onPress={() => set({ choose_for_me: true })}>
-            {m.chooseForMe}
-          </Button>
-        )}{" "}
-        <span className="wiz-from">{m.chooseForMeNote}</span>
+        )}
       </p>
-      {v.groups.length > 0 && (
-        <>
-          <h3 className="wiz-group">{m.groupsTitle}</h3>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>{m.group}</th>
-                <th className="cs-n">{m.parcels}</th>
-                <th className="cs-n">{m.sales}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {v.groups.map((g) => (
-                <tr key={g.id} className={g.modeled ? undefined : "not-modeled"}>
-                  <td>
-                    <span className="mg-sw ab-sw" style={{ background: g.color }} />
-                    {g.name}
-                  </td>
-                  <td className="cs-n">{num(g.parcels)}</td>
-                  <td className="cs-n">{num(g.sales)}</td>
-                  {g.modeled ? (
-                    <td className="wiz-warn">{g.sales < 15 ? m.tooFew : ""}</td>
-                  ) : (
-                    <td>{t.groups.notModeled}</td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+      {put.error && (
+        <p className="error" role="alert">
+          {put.error.message}
+        </p>
       )}
+      <p className="wiz-from">{m.written(g.id)}</p>
     </div>
+  );
+}
+
+function NameCell({
+  value,
+  label,
+  onCommit,
+}: {
+  value: string;
+  label: string;
+  onCommit: (v: string) => void;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const save = () => {
+    const next = text?.trim();
+    if (next && next !== value) onCommit(next);
+    setText(null);
+  };
+  return (
+    <TextField aria-label={label} value={text ?? value} onChange={setText} onBlur={save} className="gm-name">
+      <Input
+        className="input"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+        }}
+      />
+    </TextField>
   );
 }
 

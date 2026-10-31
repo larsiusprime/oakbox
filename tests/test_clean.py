@@ -339,12 +339,46 @@ def test_prepare_fills_and_folds_on_what_check_sales_wrote(prepared, brought_in_
     assert not client.get(prep).json()["stale"]  # and back as it was
 
 
-def test_the_models_variables_found_and_choose_for_me(prepared, brought_in_client, brought_in):
+def test_the_variable_lists_and_each_groups_models(prepared, brought_in_client, brought_in):
     client, pid = brought_in_client, brought_in[1]
-    # Step 5 continues: the models (F9). The variables found, Choose for me.
+    # Variables › Variable lists (F9): proposed, a regression list and a machine-learning one, each for every
+    # modeled group; each variable judged per group and type.
+    vl = client.get(f"/api/projects/{pid}/varlists").json()
+    assert vl["proposed"] and [x["id"] for x in vl["lists"]] == ["regression", "ml"]
+    assert any(v["field"].startswith("bldg_area_finished") for v in vl["variables"])
+    group = next(g["id"] for g in vl["groups"] if g["modeled"])
+    assert set(vl["recommend"][group]) == {"regression", "ml"}
+    # Every list at once: a new one gets an id from its name; one with no name is refused.
+    lists = [{k: x[k] for k in ("id", "name", "kind", "groups", "variables")} for x in vl["lists"]]
+    lists.append({"id": "", "name": "Short list", "kind": "regression", "groups": [group], "variables": []})
+    vl = client.put(f"/api/projects/{pid}/varlists", json={"lists": lists}).json()
+    assert not vl["proposed"] and vl["lists"][-1]["id"] == "short_list"
+    bad = [*lists[:2], {"id": "", "name": " ", "kind": "ml", "groups": [], "variables": []}]
+    assert client.put(f"/api/projects/{pid}/varlists", json={"lists": bad}).status_code == 422
+    # Model values › Models: every modeled group starts with LightGBM, MRA and Multi-MRA, each with its list.
     ms = client.get(f"/api/projects/{pid}/model/setup").json()
-    assert ms["choose_for_me"] and [e["key"] for e in ms["engines"] if e["chosen"]] == ["lightgbm", "mra", "local_area"]
-    assert any(v["field"].startswith("bldg_area_finished") for v in ms["variables"])
+    g = next(x for x in ms["groups"] if x["id"] == group)
+    assert [(e["engine"], e["list_id"]) for e in g["models"]] == [
+        ("lightgbm", "ml"),
+        ("mra", "regression"),
+        ("multi_mra", "regression"),
+    ]
+    # A model on an empty list is said, and stops a try.
+    url = f"/api/projects/{pid}/model/groups/{group}"
+    ms = client.put(url, json={"models": [{"engine": "mra", "name": "Short", "list_id": "short_list"}]}).json()
+    short = next(x for x in ms["groups"] if x["id"] == group)["models"][0]
+    assert short["key"] == "short" and [w["code"] for w in short["warnings"]] == ["list_empty"]
+    assert any(
+        "Short: its variable list has no variables" in b
+        for b in client.get(f"/api/projects/{pid}/model").json()["blocked"]
+    )
+    assert client.put(url, json={"models": [{"engine": "nope"}]}).status_code == 422
+    client.put(url, json={"models": None})
+    client.put(f"/api/projects/{pid}/varlists", json={"lists": None})
+    # A location stack's preview: whatever location fields there are, broadest first.
+    fields = [x["field"] for x in ms["locations"]]
+    stack = client.get(f"/api/projects/{pid}/model/stack/{group}", params={"fields": fields}).json()
+    assert [x["field"] for x in stack["levels"]] == fields and stack["sales"] >= 0
 
 
 def test_the_variables_tested_one_test_at_a_time(prepared, brought_in_client, brought_in):
@@ -379,23 +413,28 @@ def test_the_variables_tested_one_test_at_a_time(prepared, brought_in_client, br
 def test_a_try_of_one_model(prepared, brought_in_client, brought_in):
     client, pid = brought_in_client, brought_in[1]
     mdl = f"/api/projects/{pid}/model"
-    client.patch(f"{mdl}/setup", json={"models": ["lightgbm"]})
+    groups = [g["id"] for g in client.get(f"{mdl}/setup").json()["groups"] if g["modeled"]]
+    for g in groups:
+        client.put(f"{mdl}/groups/{g}", json={"models": [{"engine": "lightgbm", "name": "Trees"}]})
     assert client.post(f"{mdl}/run").json()["status"] == "running"
     view = wait(client, mdl)
     assert view["status"] == "done", view["job"]
     r = view["receipt"]
-    assert r["models"] == ["lightgbm"]
+    assert r["models"] == ["trees"]
     modeled = [g for g in r["groups"] if g["sets"]]
     assert modeled and all(g["skipped"] for g in r["groups"] if not g["sets"])
     sets = {s["key"]: s for s in modeled[0]["sets"]}
-    assert {f["model"] for f in sets["holdout"]["rows"]} <= {"lightgbm", "ensemble"}
+    assert {f["model"] for f in sets["holdout"]["rows"]} <= {"trees", "ensemble"}
+    # Each model by the name the user gave it.
+    assert "Trees" in {f["name"] for f in sets["holdout"]["rows"]}
     # The roll ran too, as OpenAVMKit's assessor model: on the study set only, never in the academic figures.
     assert "assessor" in {f["model"] for f in sets["study"]["rows"]}
     assert "assessor" not in {f["model"] for f in modeled[0]["academic"]}
     assert modeled[0]["timings"] and modeled[0]["academic_trimmed"]
     assert "vei" not in modeled[0]["academic"][0]["values"]  # the IAAO view has it
     assert not client.get(mdl).json()["stale"]
-    client.patch(f"{mdl}/setup", json={"choose_for_me": True})
+    for g in groups:
+        client.put(f"{mdl}/groups/{g}", json={"models": None})
     assert client.get(mdl).json()["stale"]
 
 

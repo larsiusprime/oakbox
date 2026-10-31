@@ -1847,6 +1847,70 @@ export interface paths {
         patch: operations["model_change_api_projects__project_id__model_setup_patch"];
         trace?: never;
     };
+    "/api/projects/{project_id}/model/groups/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Model Group
+         * @description A model group's models: each an engine, a name, a variable list and (Multi-MRA, Local area) a location stack.
+         */
+        put: operations["model_group_api_projects__project_id__model_groups__group__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/model/stack/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Model Stack
+         * @description A location stack in a model group, broadest first: per level its areas, their sales, and whether it nests.
+         */
+        get: operations["model_stack_api_projects__project_id__model_stack__group__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/varlists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Varlists View
+         * @description The variable lists, the variables, the tests' recommendations per model group and type.
+         */
+        get: operations["varlists_view_api_projects__project_id__varlists_get"];
+        /**
+         * Varlists Change
+         * @description Every variable list at once. A new list (no id) gets one from its name; an id is kept through renames.
+         */
+        put: operations["varlists_change_api_projects__project_id__varlists_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio/setup": {
         parameters: {
             query?: never;
@@ -2956,8 +3020,19 @@ export interface components {
             name: string;
             /** Note */
             note: string;
-            /** Chosen */
-            chosen: boolean;
+            /**
+             * Kind
+             * @description The type of variable list it's made for.
+             * @enum {string}
+             */
+            kind: "regression" | "ml";
+            /** Takes List */
+            takes_list: boolean;
+            /**
+             * Located
+             * @description Reads a location stack.
+             */
+            located: boolean;
         };
         /** EnrichResult */
         EnrichResult: {
@@ -3154,6 +3229,48 @@ export interface components {
              * @enum {integer}
              */
             resolution_m: 10 | 30 | 60;
+        };
+        /** EntryView */
+        EntryView: {
+            /**
+             * Key
+             * @description Its name in the settings, unique in its group: made from its name.
+             * @default
+             */
+            key: string;
+            /**
+             * Name
+             * @description As shown; the engine's name unless given.
+             * @default
+             */
+            name: string;
+            /** Engine */
+            engine: string;
+            /**
+             * List Id
+             * @description The variable list it takes (its id); None: the group's first of its type.
+             */
+            list_id: string | null;
+            /**
+             * Locations
+             * @description Its location stack, finest first (Multi-MRA, Local area); None: proposed.
+             */
+            locations: string[] | null;
+            /** Warnings */
+            warnings: components["schemas"]["EntryWarning"][];
+        };
+        /** EntryWarning */
+        EntryWarning: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "kind_mismatch" | "list_missing" | "list_empty" | "blanks_left_out" | "no_locations";
+            /**
+             * N
+             * @default 0
+             */
+            n: number;
         };
         /**
          * ExtraId
@@ -3568,6 +3685,44 @@ export interface components {
             /** Distinct */
             distinct: number;
         };
+        /** GroupModels */
+        GroupModels: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Sales
+             * @description Sales the models learn from and are tested on.
+             */
+            sales: number;
+            /**
+             * Modeled
+             * @description Modeled (Model groups › Check them).
+             * @default true
+             */
+            modeled: boolean;
+            /** Models */
+            models: components["schemas"]["EntryView"][];
+            /**
+             * Custom
+             * @description Its models were changed: not the default ones.
+             * @default false
+             */
+            custom: boolean;
+        };
+        /** GroupModelsBody */
+        GroupModelsBody: {
+            /**
+             * Models
+             * @description The group's models, in order; null: the default ones.
+             */
+            models: components["schemas"]["ModelEntry-Input"][] | null;
+        };
         /** GroupMove */
         GroupMove: {
             /**
@@ -3618,6 +3773,22 @@ export interface components {
              * @description The price index over time (first = 1), about 40 points.
              */
             curve: number[];
+        };
+        /** GroupSales */
+        GroupSales: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /**
+             * Sales
+             * @description Sales the variables were tested on; None: not tested.
+             */
+            sales: number | null;
+            /** Modeled */
+            modeled: boolean;
         };
         /** GroupStats */
         GroupStats: {
@@ -4003,6 +4174,33 @@ export interface components {
              */
             blocking: boolean;
         };
+        /** Level */
+        Level: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Areas
+             * @description Its areas among the group's parcels.
+             */
+            areas: number;
+            /**
+             * Median Sales
+             * @description Sales per area, the median.
+             */
+            median_sales: number;
+            /**
+             * Enough
+             * @description Areas with 15 or more sales.
+             */
+            enough: number;
+            /**
+             * Split
+             * @description Its areas that span more than one area of the level above (0: it nests).
+             */
+            split: number;
+        };
         /** Line */
         Line: {
             /**
@@ -4021,6 +4219,69 @@ export interface components {
              */
             rows: string | null;
         };
+        /** ListSummary */
+        ListSummary: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "regression" | "ml";
+            /** Groups */
+            groups: string[];
+            /** Count */
+            count: number;
+        };
+        /** ListView */
+        ListView: {
+            /**
+             * Id
+             * @description Its name in the settings: variable_lists.<id>. Kept when it's renamed.
+             * @default
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "regression" | "ml";
+            /**
+             * Groups
+             * @description The model groups it's for.
+             */
+            groups: string[];
+            /** Variables */
+            variables: string[];
+            /**
+             * Used By
+             * @description Models that take it: '<model> · <group>'.
+             */
+            used_by: string[];
+            /** Warnings */
+            warnings: components["schemas"]["ListWarning"][];
+        };
+        /** ListWarning */
+        ListWarning: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "few_sales" | "many_values" | "blanks";
+            /** Group */
+            group: string | null;
+            /**
+             * N
+             * @default 0
+             */
+            n: number;
+            /** Variables */
+            variables: string[];
+        };
         /**
          * Locale
          * @description The project's units, currency and number style: set from the country, changeable (SPEC F1).
@@ -4032,18 +4293,6 @@ export interface components {
             currency?: string | null;
             /** Numbers */
             numbers?: ("1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56") | null;
-        };
-        /** LocationField */
-        LocationField: {
-            /** Name */
-            name: string;
-            /** File */
-            file: string;
-            /** Column */
-            column: string;
-            check: components["schemas"]["Check"];
-            /** Distinct */
-            distinct: number | null;
         };
         /** MapPoint */
         MapPoint: {
@@ -4156,6 +4405,66 @@ export interface components {
             units: boolean;
         };
         /**
+         * ModelEntry
+         * @description One of a model group's models.
+         */
+        "ModelEntry-Input": {
+            /**
+             * Key
+             * @description Its name in the settings, unique in its group: made from its name.
+             * @default
+             */
+            key: string;
+            /**
+             * Name
+             * @description As shown; the engine's name unless given.
+             * @default
+             */
+            name: string;
+            /** Engine */
+            engine: string;
+            /**
+             * List Id
+             * @description The variable list it takes (its id); None: the group's first of its type.
+             */
+            list_id?: string | null;
+            /**
+             * Locations
+             * @description Its location stack, finest first (Multi-MRA, Local area); None: proposed.
+             */
+            locations?: string[] | null;
+        };
+        /**
+         * ModelEntry
+         * @description One of a model group's models.
+         */
+        "ModelEntry-Output": {
+            /**
+             * Key
+             * @description Its name in the settings, unique in its group: made from its name.
+             * @default
+             */
+            key: string;
+            /**
+             * Name
+             * @description As shown; the engine's name unless given.
+             * @default
+             */
+            name: string;
+            /** Engine */
+            engine: string;
+            /**
+             * List Id
+             * @description The variable list it takes (its id); None: the group's first of its type.
+             */
+            list_id: string | null;
+            /**
+             * Locations
+             * @description Its location stack, finest first (Multi-MRA, Local area); None: proposed.
+             */
+            locations: string[] | null;
+        };
+        /**
          * ModelGroup
          * @description Parcels valued together (SPEC §3.5): OpenAVMKit's modeling.model_groups entry. First match wins.
          */
@@ -4215,28 +4524,6 @@ export interface components {
              */
             modeled: boolean | null;
         };
-        /** ModelGroupCount */
-        ModelGroupCount: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Color */
-            color: string;
-            /** Parcels */
-            parcels: number;
-            /**
-             * Sales
-             * @description Sales the models learn from and are tested on.
-             */
-            sales: number;
-            /**
-             * Modeled
-             * @description Modeled (Model groups › Check them).
-             * @default true
-             */
-            modeled: boolean;
-        };
         /** ModelGroupResult */
         ModelGroupResult: {
             /** Id */
@@ -4271,20 +4558,6 @@ export interface components {
         };
         /** ModelPatch */
         ModelPatch: {
-            /** Variables */
-            variables?: string[] | null;
-            /**
-             * Every Variable
-             * @description True: back to every variable found.
-             */
-            every_variable?: boolean | null;
-            /** Models */
-            models?: string[] | null;
-            /**
-             * Choose For Me
-             * @description True: back to Choose for me.
-             */
-            choose_for_me?: boolean | null;
             /**
              * Tests
              * @description The variable tests to run, besides Represented.
@@ -4333,17 +4606,17 @@ export interface components {
         ModelSetup: {
             /** Variables */
             variables: components["schemas"]["Variable"][];
-            /**
-             * Missing
-             * @description Big five fields not loaded, in words.
-             */
-            missing: string[];
             /** Engines */
             engines: components["schemas"]["Engine"][];
-            /** Choose For Me */
-            choose_for_me: boolean;
             /** Groups */
-            groups: components["schemas"]["ModelGroupCount"][];
+            groups: components["schemas"]["GroupModels"][];
+            /** Lists */
+            lists: components["schemas"]["ListSummary"][];
+            /**
+             * Locations
+             * @description The location fields a stack can use.
+             */
+            locations: components["schemas"]["oakbox__locstack__LocationField"][];
             /**
              * Tests
              * @description The variable tests to run, besides Represented.
@@ -4353,20 +4626,22 @@ export interface components {
         /** ModelState */
         ModelState: {
             /**
-             * Variables
-             * @description The variables chosen; None: every one found.
-             */
-            variables: string[] | null;
-            /**
-             * Models
-             * @description The engines chosen; None: Choose for me.
-             */
-            models: string[] | null;
-            /**
              * Tests
              * @description The variable tests to run (besides Represented); None: all of TESTS.
              */
             tests: string[] | null;
+            /**
+             * Lists
+             * @description The variable lists; None: as proposed.
+             */
+            lists: components["schemas"]["VarList-Output"][] | null;
+            /**
+             * Groups
+             * @description Model group -> its models; a group not here has the default ones.
+             */
+            groups: {
+                [key: string]: components["schemas"]["ModelEntry-Output"][];
+            };
         };
         /** ModelView */
         ModelView: {
@@ -6313,6 +6588,18 @@ export interface components {
             /** Column */
             column: string;
         };
+        /** StackPreview */
+        StackPreview: {
+            /** Group */
+            group: string;
+            /** Sales */
+            sales: number;
+            /**
+             * Levels
+             * @description Broadest first, as shown.
+             */
+            levels: components["schemas"]["Level"][];
+        };
         /**
          * StampField
          * @description A column of a map layer copied onto each parcel whose centre falls in one of its shapes.
@@ -7312,6 +7599,101 @@ export interface components {
                 [key: string]: components["schemas"]["CorrDetail"];
             };
         };
+        /**
+         * VarList
+         * @description A variable list (varlists.py): its variables, its type and the model groups it's for.
+         */
+        "VarList-Input": {
+            /**
+             * Id
+             * @description Its name in the settings: variable_lists.<id>. Kept when it's renamed.
+             * @default
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "regression" | "ml";
+            /**
+             * Groups
+             * @description The model groups it's for.
+             */
+            groups: string[];
+            /** Variables */
+            variables: string[];
+        };
+        /**
+         * VarList
+         * @description A variable list (varlists.py): its variables, its type and the model groups it's for.
+         */
+        "VarList-Output": {
+            /**
+             * Id
+             * @description Its name in the settings: variable_lists.<id>. Kept when it's renamed.
+             * @default
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "regression" | "ml";
+            /**
+             * Groups
+             * @description The model groups it's for.
+             */
+            groups: string[];
+            /** Variables */
+            variables: string[];
+        };
+        /** VarListsBody */
+        VarListsBody: {
+            /**
+             * Lists
+             * @description Every list, in order; null: back to the proposed ones.
+             */
+            lists: components["schemas"]["VarList-Input"][] | null;
+        };
+        /** VarListsView */
+        VarListsView: {
+            /** Lists */
+            lists: components["schemas"]["ListView"][];
+            /**
+             * Proposed
+             * @description As proposed: nothing changed yet.
+             */
+            proposed: boolean;
+            /** Variables */
+            variables: components["schemas"]["Variable"][];
+            /** Groups */
+            groups: components["schemas"]["GroupSales"][];
+            /**
+             * Tested
+             * @description The variable tests have run: the figures and recommendations use them.
+             */
+            tested: boolean;
+            /**
+             * Recommend
+             * @description Model group -> type -> variable -> why it isn't recommended (null: it is).
+             */
+            recommend: {
+                [key: string]: {
+                    [key: string]: {
+                        [key: string]: ("blanks" | "not_represented" | "weak" | "overlaps" | "many_values") | null;
+                    };
+                };
+            };
+            /**
+             * Missing
+             * @description Big five fields not loaded, in words.
+             */
+            missing: string[];
+        };
         /** VarTestReceipt */
         VarTestReceipt: {
             /** Ran At */
@@ -7382,8 +7764,6 @@ export interface components {
              * @description Parcels with none, after Prepare the fields.
              */
             blanks: number;
-            /** Chosen */
-            chosen: boolean;
             /**
              * Trees Only
              * @description A number with blanks: linear models leave it out.
@@ -7499,7 +7879,7 @@ export interface components {
              * Locations
              * @description The location fields the user named.
              */
-            locations: components["schemas"]["LocationField"][];
+            locations: components["schemas"]["oakbox__wizard__models__LocationField"][];
             /**
              * Custom
              * @description Fields the user named and classified.
@@ -7950,6 +8330,13 @@ export interface components {
              */
             per: ("impr" | "land") | null;
         };
+        /** LocationField */
+        oakbox__locstack__LocationField: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+        };
         /** GroupSetup */
         oakbox__ratio__GroupSetup: {
             /** Id */
@@ -7973,6 +8360,18 @@ export interface components {
              * @description Sales studied in the window.
              */
             sales: number;
+        };
+        /** LocationField */
+        oakbox__wizard__models__LocationField: {
+            /** Name */
+            name: string;
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            check: components["schemas"]["Check"];
+            /** Distinct */
+            distinct: number | null;
         };
     };
     responses: never;
@@ -8920,7 +9319,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LocationField"][];
+                    "application/json": components["schemas"]["oakbox__wizard__models__LocationField"][];
                 };
             };
             /** @description Validation Error */
@@ -11368,6 +11767,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_group_api_projects__project_id__model_groups__group__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupModelsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_stack_api_projects__project_id__model_stack__group__get: {
+        parameters: {
+            query?: {
+                fields?: string[] | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StackPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    varlists_view_api_projects__project_id__varlists_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VarListsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    varlists_change_api_projects__project_id__varlists_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VarListsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VarListsView"];
                 };
             };
             /** @description Validation Error */

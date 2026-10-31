@@ -1318,7 +1318,7 @@
         "schema": {
          "type": "array",
          "items": {
-          "$ref": "#/components/schemas/LocationField"
+          "$ref": "#/components/schemas/oakbox__wizard__models__LocationField"
          },
          "title": "Response Wizard Locations Api Projects  Project Id  Wizard Locations Get"
         }
@@ -4981,6 +4981,221 @@
     }
    }
   },
+  "/api/projects/{project_id}/model/groups/{group}": {
+   "put": {
+    "summary": "Model Group",
+    "description": "A model group's models: each an engine, a name, a variable list and (Multi-MRA, Local area) a location stack.",
+    "operationId": "model_group_api_projects__project_id__model_groups__group__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GroupModelsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelSetup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/stack/{group}": {
+   "get": {
+    "summary": "Model Stack",
+    "description": "A location stack in a model group, broadest first: per level its areas, their sales, and whether it nests.",
+    "operationId": "model_stack_api_projects__project_id__model_stack__group__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     },
+     {
+      "name": "fields",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Fields"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StackPreview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/varlists": {
+   "get": {
+    "summary": "Varlists View",
+    "description": "The variable lists, the variables, the tests' recommendations per model group and type.",
+    "operationId": "varlists_view_api_projects__project_id__varlists_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarListsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Varlists Change",
+    "description": "Every variable list at once. A new list (no id) gets one from its name; an id is kept through renames.",
+    "operationId": "varlists_change_api_projects__project_id__varlists_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VarListsBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VarListsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/ratio/setup": {
    "get": {
     "summary": "Ratio Setup",
@@ -7569,9 +7784,23 @@
       "type": "string",
       "title": "Note"
      },
-     "chosen": {
+     "kind": {
+      "type": "string",
+      "enum": [
+       "regression",
+       "ml"
+      ],
+      "title": "Kind",
+      "description": "The type of variable list it's made for."
+     },
+     "takes_list": {
       "type": "boolean",
-      "title": "Chosen"
+      "title": "Takes List"
+     },
+     "located": {
+      "type": "boolean",
+      "title": "Located",
+      "description": "Reads a location stack."
      }
     },
     "type": "object",
@@ -7579,7 +7808,9 @@
      "key",
      "name",
      "note",
-     "chosen"
+     "kind",
+     "takes_list",
+     "located"
     ],
     "title": "Engine"
    },
@@ -7953,6 +8184,96 @@
      "resolution_m"
     ],
     "title": "Enrichments"
+   },
+   "EntryView": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key",
+      "description": "Its name in the settings, unique in its group: made from its name.",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "As shown; the engine's name unless given.",
+      "default": ""
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "list_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "List Id",
+      "description": "The variable list it takes (its id); None: the group's first of its type."
+     },
+     "locations": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Locations",
+      "description": "Its location stack, finest first (Multi-MRA, Local area); None: proposed."
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/EntryWarning"
+      },
+      "type": "array",
+      "title": "Warnings"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "engine",
+     "list_id",
+     "locations",
+     "warnings"
+    ],
+    "title": "EntryView"
+   },
+   "EntryWarning": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "enum": [
+       "kind_mismatch",
+       "list_missing",
+       "list_empty",
+       "blanks_left_out",
+       "no_locations"
+      ],
+      "title": "Code"
+     },
+     "n": {
+      "type": "integer",
+      "title": "N",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "n"
+    ],
+    "title": "EntryWarning"
    },
    "ExtraId": {
     "properties": {
@@ -8903,6 +9224,86 @@
     ],
     "title": "GroupField"
    },
+   "GroupModels": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales the models learn from and are tested on."
+     },
+     "modeled": {
+      "type": "boolean",
+      "title": "Modeled",
+      "description": "Modeled (Model groups \u203a Check them).",
+      "default": true
+     },
+     "models": {
+      "items": {
+       "$ref": "#/components/schemas/EntryView"
+      },
+      "type": "array",
+      "title": "Models"
+     },
+     "custom": {
+      "type": "boolean",
+      "title": "Custom",
+      "description": "Its models were changed: not the default ones.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "parcels",
+     "sales",
+     "modeled",
+     "models",
+     "custom"
+    ],
+    "title": "GroupModels"
+   },
+   "GroupModelsBody": {
+    "properties": {
+     "models": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/ModelEntry-Input"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Models",
+      "description": "The group's models, in order; null: the default ones."
+     }
+    },
+    "type": "object",
+    "required": [
+     "models"
+    ],
+    "title": "GroupModelsBody"
+   },
    "GroupMove": {
     "properties": {
      "from_id": {
@@ -9022,6 +9423,47 @@
      "curve"
     ],
     "title": "GroupResult"
+   },
+   "GroupSales": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "sales": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sales",
+      "description": "Sales the variables were tested on; None: not tested."
+     },
+     "modeled": {
+      "type": "boolean",
+      "title": "Modeled"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "sales",
+     "modeled"
+    ],
+    "title": "GroupSales"
    },
    "GroupStats": {
     "properties": {
@@ -9830,6 +10272,48 @@
     ],
     "title": "Left"
    },
+   "Level": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "areas": {
+      "type": "integer",
+      "title": "Areas",
+      "description": "Its areas among the group's parcels."
+     },
+     "median_sales": {
+      "type": "number",
+      "title": "Median Sales",
+      "description": "Sales per area, the median."
+     },
+     "enough": {
+      "type": "integer",
+      "title": "Enough",
+      "description": "Areas with 15 or more sales."
+     },
+     "split": {
+      "type": "integer",
+      "title": "Split",
+      "description": "Its areas that span more than one area of the level above (0: it nests)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "areas",
+     "median_sales",
+     "enough",
+     "split"
+    ],
+    "title": "Level"
+   },
    "Line": {
     "properties": {
      "op": {
@@ -9872,6 +10356,153 @@
      "rows"
     ],
     "title": "Line"
+   },
+   "ListSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "regression",
+       "ml"
+      ],
+      "title": "Kind"
+     },
+     "groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "groups",
+     "count"
+    ],
+    "title": "ListSummary"
+   },
+   "ListView": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "Its name in the settings: variable_lists.<id>. Kept when it's renamed.",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "regression",
+       "ml"
+      ],
+      "title": "Kind"
+     },
+     "groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "The model groups it's for."
+     },
+     "variables": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Variables"
+     },
+     "used_by": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Used By",
+      "description": "Models that take it: '<model> \u00b7 <group>'."
+     },
+     "warnings": {
+      "items": {
+       "$ref": "#/components/schemas/ListWarning"
+      },
+      "type": "array",
+      "title": "Warnings"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "groups",
+     "variables",
+     "used_by",
+     "warnings"
+    ],
+    "title": "ListView"
+   },
+   "ListWarning": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "enum": [
+       "few_sales",
+       "many_values",
+       "blanks"
+      ],
+      "title": "Code"
+     },
+     "group": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Group"
+     },
+     "n": {
+      "type": "integer",
+      "title": "N",
+      "default": 0
+     },
+     "variables": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Variables"
+     }
+    },
+    "type": "object",
+    "required": [
+     "code",
+     "group",
+     "n",
+     "variables"
+    ],
+    "title": "ListWarning"
    },
    "Locale": {
     "properties": {
@@ -9923,45 +10554,6 @@
     "type": "object",
     "title": "Locale",
     "description": "The project's units, currency and number style: set from the country, changeable (SPEC F1)."
-   },
-   "LocationField": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "file": {
-      "type": "string",
-      "title": "File"
-     },
-     "column": {
-      "type": "string",
-      "title": "Column"
-     },
-     "check": {
-      "$ref": "#/components/schemas/Check"
-     },
-     "distinct": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Distinct"
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "file",
-     "column",
-     "check",
-     "distinct"
-    ],
-    "title": "LocationField"
    },
    "MapPoint": {
     "properties": {
@@ -10247,6 +10839,116 @@
     ],
     "title": "MissingParcels"
    },
+   "ModelEntry-Input": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key",
+      "description": "Its name in the settings, unique in its group: made from its name.",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "As shown; the engine's name unless given.",
+      "default": ""
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "list_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "List Id",
+      "description": "The variable list it takes (its id); None: the group's first of its type."
+     },
+     "locations": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Locations",
+      "description": "Its location stack, finest first (Multi-MRA, Local area); None: proposed."
+     }
+    },
+    "type": "object",
+    "required": [
+     "engine"
+    ],
+    "title": "ModelEntry",
+    "description": "One of a model group's models."
+   },
+   "ModelEntry-Output": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key",
+      "description": "Its name in the settings, unique in its group: made from its name.",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "description": "As shown; the engine's name unless given.",
+      "default": ""
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "list_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "List Id",
+      "description": "The variable list it takes (its id); None: the group's first of its type."
+     },
+     "locations": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Locations",
+      "description": "Its location stack, finest first (Multi-MRA, Local area); None: proposed."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "engine",
+     "list_id",
+     "locations"
+    ],
+    "title": "ModelEntry",
+    "description": "One of a model group's models."
+   },
    "ModelGroup-Input": {
     "properties": {
      "id": {
@@ -10350,47 +11052,6 @@
     "title": "ModelGroup",
     "description": "Parcels valued together (SPEC \u00a73.5): OpenAVMKit's modeling.model_groups entry. First match wins."
    },
-   "ModelGroupCount": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "color": {
-      "type": "string",
-      "title": "Color"
-     },
-     "parcels": {
-      "type": "integer",
-      "title": "Parcels"
-     },
-     "sales": {
-      "type": "integer",
-      "title": "Sales",
-      "description": "Sales the models learn from and are tested on."
-     },
-     "modeled": {
-      "type": "boolean",
-      "title": "Modeled",
-      "description": "Modeled (Model groups \u203a Check them).",
-      "default": true
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "name",
-     "color",
-     "parcels",
-     "sales",
-     "modeled"
-    ],
-    "title": "ModelGroupCount"
-   },
    "ModelGroupResult": {
     "properties": {
      "id": {
@@ -10473,58 +11134,6 @@
    },
    "ModelPatch": {
     "properties": {
-     "variables": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Variables"
-     },
-     "every_variable": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Every Variable",
-      "description": "True: back to every variable found."
-     },
-     "models": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Models"
-     },
-     "choose_for_me": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Choose For Me",
-      "description": "True: back to Choose for me."
-     },
      "tests": {
       "anyOf": [
        {
@@ -10656,14 +11265,6 @@
       "type": "array",
       "title": "Variables"
      },
-     "missing": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Missing",
-      "description": "Big five fields not loaded, in words."
-     },
      "engines": {
       "items": {
        "$ref": "#/components/schemas/Engine"
@@ -10671,16 +11272,27 @@
       "type": "array",
       "title": "Engines"
      },
-     "choose_for_me": {
-      "type": "boolean",
-      "title": "Choose For Me"
-     },
      "groups": {
       "items": {
-       "$ref": "#/components/schemas/ModelGroupCount"
+       "$ref": "#/components/schemas/GroupModels"
       },
       "type": "array",
       "title": "Groups"
+     },
+     "lists": {
+      "items": {
+       "$ref": "#/components/schemas/ListSummary"
+      },
+      "type": "array",
+      "title": "Lists"
+     },
+     "locations": {
+      "items": {
+       "$ref": "#/components/schemas/oakbox__locstack__LocationField"
+      },
+      "type": "array",
+      "title": "Locations",
+      "description": "The location fields a stack can use."
      },
      "tests": {
       "items": {
@@ -10694,46 +11306,16 @@
     "type": "object",
     "required": [
      "variables",
-     "missing",
      "engines",
-     "choose_for_me",
      "groups",
+     "lists",
+     "locations",
      "tests"
     ],
     "title": "ModelSetup"
    },
    "ModelState": {
     "properties": {
-     "variables": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Variables",
-      "description": "The variables chosen; None: every one found."
-     },
-     "models": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Models",
-      "description": "The engines chosen; None: Choose for me."
-     },
      "tests": {
       "anyOf": [
        {
@@ -10748,13 +11330,39 @@
       ],
       "title": "Tests",
       "description": "The variable tests to run (besides Represented); None: all of TESTS."
+     },
+     "lists": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/VarList-Output"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lists",
+      "description": "The variable lists; None: as proposed."
+     },
+     "groups": {
+      "additionalProperties": {
+       "items": {
+        "$ref": "#/components/schemas/ModelEntry-Output"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Groups",
+      "description": "Model group -> its models; a group not here has the default ones."
      }
     },
     "type": "object",
     "required": [
-     "variables",
-     "models",
-     "tests"
+     "tests",
+     "lists",
+     "groups"
     ],
     "title": "ModelState"
    },
@@ -15260,6 +15868,33 @@
     ],
     "title": "Source"
    },
+   "StackPreview": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "levels": {
+      "items": {
+       "$ref": "#/components/schemas/Level"
+      },
+      "type": "array",
+      "title": "Levels",
+      "description": "Broadest first, as shown."
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "sales",
+     "levels"
+    ],
+    "title": "StackPreview"
+   },
    "StampField-Input": {
     "properties": {
      "column": {
@@ -17451,6 +18086,205 @@
     ],
     "title": "VarGroup"
    },
+   "VarList-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "Its name in the settings: variable_lists.<id>. Kept when it's renamed.",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "regression",
+       "ml"
+      ],
+      "title": "Kind"
+     },
+     "groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "The model groups it's for."
+     },
+     "variables": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Variables"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "kind",
+     "groups",
+     "variables"
+    ],
+    "title": "VarList",
+    "description": "A variable list (varlists.py): its variables, its type and the model groups it's for."
+   },
+   "VarList-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "Its name in the settings: variable_lists.<id>. Kept when it's renamed.",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "regression",
+       "ml"
+      ],
+      "title": "Kind"
+     },
+     "groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "The model groups it's for."
+     },
+     "variables": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Variables"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "groups",
+     "variables"
+    ],
+    "title": "VarList",
+    "description": "A variable list (varlists.py): its variables, its type and the model groups it's for."
+   },
+   "VarListsBody": {
+    "properties": {
+     "lists": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/VarList-Input"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lists",
+      "description": "Every list, in order; null: back to the proposed ones."
+     }
+    },
+    "type": "object",
+    "required": [
+     "lists"
+    ],
+    "title": "VarListsBody"
+   },
+   "VarListsView": {
+    "properties": {
+     "lists": {
+      "items": {
+       "$ref": "#/components/schemas/ListView"
+      },
+      "type": "array",
+      "title": "Lists"
+     },
+     "proposed": {
+      "type": "boolean",
+      "title": "Proposed",
+      "description": "As proposed: nothing changed yet."
+     },
+     "variables": {
+      "items": {
+       "$ref": "#/components/schemas/Variable"
+      },
+      "type": "array",
+      "title": "Variables"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/GroupSales"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "tested": {
+      "type": "boolean",
+      "title": "Tested",
+      "description": "The variable tests have run: the figures and recommendations use them."
+     },
+     "recommend": {
+      "additionalProperties": {
+       "additionalProperties": {
+        "additionalProperties": {
+         "anyOf": [
+          {
+           "type": "string",
+           "enum": [
+            "blanks",
+            "not_represented",
+            "weak",
+            "overlaps",
+            "many_values"
+           ]
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "object"
+       },
+       "type": "object"
+      },
+      "type": "object",
+      "title": "Recommend",
+      "description": "Model group -> type -> variable -> why it isn't recommended (null: it is)."
+     },
+     "missing": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Missing",
+      "description": "Big five fields not loaded, in words."
+     }
+    },
+    "type": "object",
+    "required": [
+     "lists",
+     "proposed",
+     "variables",
+     "groups",
+     "tested",
+     "recommend",
+     "missing"
+    ],
+    "title": "VarListsView"
+   },
    "VarTestReceipt": {
     "properties": {
      "ran_at": {
@@ -17609,10 +18443,6 @@
       "title": "Blanks",
       "description": "Parcels with none, after Prepare the fields."
      },
-     "chosen": {
-      "type": "boolean",
-      "title": "Chosen"
-     },
      "trees_only": {
       "type": "boolean",
       "title": "Trees Only",
@@ -17639,7 +18469,6 @@
      "numeric",
      "parcels",
      "blanks",
-     "chosen",
      "trees_only",
      "values"
     ],
@@ -17894,7 +18723,7 @@
      },
      "locations": {
       "items": {
-       "$ref": "#/components/schemas/LocationField"
+       "$ref": "#/components/schemas/oakbox__wizard__models__LocationField"
       },
       "type": "array",
       "title": "Locations",
@@ -19047,6 +19876,24 @@
     ],
     "title": "GroupSetup"
    },
+   "oakbox__locstack__LocationField": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name"
+    ],
+    "title": "LocationField"
+   },
    "oakbox__ratio__GroupSetup": {
     "properties": {
      "id": {
@@ -19087,6 +19934,45 @@
      "sales"
     ],
     "title": "GroupSetup"
+   },
+   "oakbox__wizard__models__LocationField": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "column": {
+      "type": "string",
+      "title": "Column"
+     },
+     "check": {
+      "$ref": "#/components/schemas/Check"
+     },
+     "distinct": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distinct"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "file",
+     "column",
+     "check",
+     "distinct"
+    ],
+    "title": "LocationField"
    }
   }
  }

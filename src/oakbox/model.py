@@ -20,6 +20,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 import time
 from functools import lru_cache
 from pathlib import Path
@@ -27,7 +28,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox import cells, fields, prepare, ratio, steps, valuesets
+from oakbox import cells, fields, locstack, prepare, ratio, steps, valuesets
 from oakbox.datafiles import BaseModel
 from oakbox.fields import VALUE_SLOTS
 from oakbox.valuesets import ROLL, value_field
@@ -44,9 +45,15 @@ ENGINES: dict[str, tuple[str, str]] = {
     "gwr": ("GWR", "A linear model that varies smoothly over the map: slow. Uses only variables with no blanks."),
     "local_area": ("Local area", "The neighbourhood's price per area: a baseline to beat."),
 }
-CHOOSE_FOR_ME = ["lightgbm", "mra", "local_area"]
 TREES = {"lightgbm", "xgboost", "catboost"}
 LOGGED = {"mra", "multi_mra"}
+# Models that read a location stack; Local area takes no variable list (its areas' price per area is the model).
+LOCATED = {"multi_mra", "local_area"}
+TAKES_LIST = set(ENGINES) - {"local_area"}
+# Every modeled group starts with these.
+DEFAULT_MODELS = ["lightgbm", "mra", "multi_mra"]
+# Names OpenAVMKit gives a meaning of its own: a model can't be called these.
+RESERVED = {"default", "assessor", "ensemble", "pass_through", "ground_truth", "main", "vacant"}
 
 LOCATION = ["latitude_norm", "longitude_norm", "polar_radius", "polar_angle"]
 # Never offered: identifiers and the roll's own values, sale fields, raw coordinates (the normalized ones are), land
@@ -62,11 +69,45 @@ NAMES = {"polar_radius": "Distance from the centre", "polar_angle": "Direction f
 Kind = Literal["big_five", "building", "land", "location", "other", "category"]
 
 
+ListKind = Literal["regression", "ml"]
+
+
+def kind_of(engine: str) -> ListKind:
+    """The type of variable list an engine is made for: trees take a machine-learning list, the rest a regression's."""
+    return "ml" if engine in TREES else "regression"
+
+
+class VarList(BaseModel):
+    """A variable list (varlists.py): its variables, its type and the model groups it's for."""
+
+    id: str = Field(default="", description="Its name in the settings: variable_lists.<id>. Kept when it's renamed.")
+    name: str
+    kind: ListKind
+    groups: list[str] = Field(description="The model groups it's for.")
+    variables: list[str]
+
+
+class ModelEntry(BaseModel):
+    """One of a model group's models."""
+
+    key: str = Field(default="", description="Its name in the settings, unique in its group: made from its name.")
+    name: str = Field(default="", description="As shown; the engine's name unless given.")
+    engine: str
+    list_id: str | None = Field(
+        default=None, description="The variable list it takes (its id); None: the group's first of its type."
+    )
+    locations: list[str] | None = Field(
+        default=None, description="Its location stack, finest first (Multi-MRA, Local area); None: proposed."
+    )
+
+
 class ModelState(BaseModel):
-    variables: list[str] | None = Field(default=None, description="The variables chosen; None: every one found.")
-    models: list[str] | None = Field(default=None, description="The engines chosen; None: Choose for me.")
     tests: list[str] | None = Field(
         default=None, description="The variable tests to run (besides Represented); None: all of TESTS."
+    )
+    lists: list[VarList] | None = Field(default=None, description="The variable lists; None: as proposed.")
+    groups: dict[str, list[ModelEntry]] = Field(
+        default_factory=dict, description="Model group -> its models; a group not here has the default ones."
     )
 
 
@@ -94,7 +135,6 @@ class Variable(BaseModel):
     numeric: bool
     parcels: int = Field(description="Parcels with a value.")
     blanks: int = Field(description="Parcels with none, after Prepare the fields.")
-    chosen: bool
     trees_only: bool = Field(description="A number with blanks: linear models leave it out.")
     values: int | None = Field(
         default=None,
@@ -231,7 +271,6 @@ def variables(project, project_dir: Path) -> list[Variable]:
     if not path.is_file():
         return []
     names = fields.names() | NAMES
-    chosen = project.model.variables
     out = []
     settings_path = project_dir / "in" / "settings.json"
     stamp = settings_path.stat().st_mtime if settings_path.is_file() else 0.0
@@ -244,7 +283,6 @@ def variables(project, project_dir: Path) -> list[Variable]:
                 numeric=numeric,
                 parcels=parcels,
                 blanks=blanks,
-                chosen=chosen is None or f in chosen,
                 trees_only=blanks > 0,
                 values=values,
             )
@@ -252,45 +290,125 @@ def variables(project, project_dir: Path) -> list[Variable]:
     return out
 
 
-def models(project) -> list[str]:
-    return [m for m in (project.model.models or CHOOSE_FOR_ME) if m in ENGINES]
+def missing(project, project_dir: Path) -> list[str]:
+    """The big five fields Prepare's output doesn't have, in words."""
+    return (
+        big_five_missing(_universe_fields(project_dir), project.units) if _universe_path(project_dir).is_file() else []
+    )
+
+
+def entry_key(name: str, taken: set[str]) -> str:
+    base = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") or "model"
+    if not base[0].isalpha():
+        base = f"m_{base}"
+    out, n = base, 2
+    while out in taken or out in RESERVED:
+        out, n = f"{base}_{n}", n + 1
+    return out
+
+
+def default_models(project, project_dir: Path, group: str) -> list[ModelEntry]:
+    taken: set[str] = set()
+    out = []
+    for engine in DEFAULT_MODELS:
+        key = entry_key(engine, taken)
+        taken.add(key)
+        out.append(ModelEntry(key=key, name=ENGINES[engine][0], engine=engine))
+    return out
+
+
+def group_models(project, project_dir: Path, group: str, all_lists: list[VarList] | None = None) -> list[ModelEntry]:
+    """A group's models as they'll run: each with its list (the group's first of its type unless told otherwise, or
+    if its own was removed) and its location stack (proposed unless told otherwise)."""
+    from oakbox import locstack, varlists
+
+    lists = varlists.lists(project, project_dir) if all_lists is None else all_lists
+    ids = {x.id for x in lists}
+    out = []
+    for e in project.model.groups.get(group) or default_models(project, project_dir, group):
+        update: dict = {}
+        if e.engine in TAKES_LIST and (e.list_id is None or e.list_id not in ids):
+            first = varlists.for_group(lists, group, kind_of(e.engine))
+            update["list_id"] = first.id if first else None
+        elif e.engine not in TAKES_LIST:
+            update["list_id"] = None
+        if e.engine in LOCATED and e.locations is None:
+            update["locations"] = locstack.proposed(project_dir, group)
+        elif e.engine not in LOCATED:
+            update["locations"] = None
+        out.append(e.model_copy(update=update))
+    return out
+
+
+AREAS = ("land_area_sqft", "bldg_area_finished_sqft", "land_area_sqm", "bldg_area_finished_sqm")
+
+
+def _areas(by_field: dict[str, Variable]) -> list[str]:
+    """Land and finished area: what Local area divides a price by."""
+    return [f for f in AREAS if f in by_field]
 
 
 def settings(project, project_dir: Path) -> dict:
-    """OpenAVMKit's modeling settings for the calls: nothing until Prepare the fields has written its output."""
-    vs = [v for v in variables(project, project_dir) if v.chosen]
-    if not vs:
+    """OpenAVMKit's modeling settings for the calls: nothing until Prepare the fields has written its output.
+
+    The variable lists go in `variable_lists`; each modeled group has its own block of models under
+    `modeling.models.main.<group>` (which OpenAVMKit takes in place of the shared one), each model pointing at its
+    list by `$$variable_lists.<id>`. `run` names every group's models; each group skips the ones it hasn't."""
+    from oakbox import assemble, varlists
+
+    by_field = {v.field: v for v in variables(project, project_dir)}
+    if not by_field:
         return {}
-    every = [v.field for v in vs]
-    linear = [v.field for v in vs if not v.trees_only]
-    chosen = models(project)
+    all_lists = varlists.lists(project, project_dir)
+    lists = {x.id: x for x in all_lists}
     # The roll, valued as a model: OpenAVMKit then audits it on the study set, beside the models. Other existing
     # values (a vendor's AVM…) as pass_through models, judged like the roll: off the holdout, out of the ensemble.
     roll = ["assessor"] if _has_roll(project_dir) else []
     outside = _outside(project, project_dir)
-    from oakbox import assemble
-
     modeled = assemble.modeled(project, project_dir)
-    unmodeled = [g.id for g in project.groups if g.id not in modeled]
-    entries: dict = {"default": {"ind_vars": linear or every}}
-    for m in chosen:
-        entry: dict = {}
-        if m in TREES:
-            entry["ind_vars"] = every
-        if m in LOGGED:
-            entry["log"] = True
-        entries[m] = entry
+    areas = _areas(by_field)
+    blocks: dict[str, dict] = {}
+    names: list[str] = []
+    for g in project.groups:
+        if g.id not in modeled:
+            continue
+        # Local area, the roll and existing values take no list: the default entry gives them the areas.
+        block: dict = {"default": {"ind_vars": areas}}
+        for e in group_models(project, project_dir, g.id, all_lists):
+            entry: dict = {"model": e.engine}
+            lst = lists.get(e.list_id or "")
+            if e.engine in TAKES_LIST:
+                blanks = [v for v in (lst.variables if lst else []) if v in by_field and by_field[v].trees_only]
+                if lst is None:
+                    entry["ind_vars"] = []
+                elif blanks and e.engine not in TREES:
+                    # A linear model can't take a blank: the list without its variables with blanks.
+                    entry["ind_vars"] = [v for v in lst.variables if v not in blanks]
+                else:
+                    entry["ind_vars"] = f"$$variable_lists.{lst.id}"
+            if e.engine in LOGGED:
+                entry["log"] = True
+            if e.engine in LOCATED:
+                entry["locations"] = e.locations or []
+            block[e.key] = entry
+            if e.key not in names:
+                names.append(e.key)
+        blocks[g.id] = block | {v: {"model": "pass_through", "field": value_field(v)} for v in outside}
+    run = names + roll + outside
+    skip = {g.id: [m for m in names if m not in blocks[g.id]] if g.id in blocks else run for g in project.groups}
+    skip = {g: v for g, v in skip.items() if v}
     return {
+        "variable_lists": {x.id: x.variables for x in all_lists},
         "modeling": {
             "instructions": {
                 "main": {
-                    "run": chosen + roll + outside,
-                    "ensemble": {"type": "median", "models": chosen},
-                    # Groups not modeled (Model groups › Check them): every model skipped.
-                    **({"skip": {g: chosen + roll + outside for g in unmodeled}} if unmodeled else {}),
+                    "run": run,
+                    "ensemble": {"type": "median", "models": names},
+                    # Groups not modeled skip every model; the others, the models they haven't.
+                    **({"skip": skip} if skip else {}),
                 }
             },
-            "models": {"main": entries | {v: {"model": "pass_through", "field": value_field(v)} for v in outside}},
+            "models": {"main": blocks},
         },
         # On the study set, each model is judged by its holdout predictions, as the roll is beside it: on its
         # predictions on every sale, it would be judged on sales it trained on.
@@ -307,7 +425,9 @@ class Engine(BaseModel):
     key: str
     name: str
     note: str
-    chosen: bool
+    kind: ListKind = Field(description="The type of variable list it's made for.")
+    takes_list: bool
+    located: bool = Field(description="Reads a location stack.")
 
 
 class ModelGroupCount(BaseModel):
@@ -319,77 +439,119 @@ class ModelGroupCount(BaseModel):
     modeled: bool = Field(default=True, description="Modeled (Model groups › Check them).")
 
 
+class EntryWarning(BaseModel):
+    code: Literal["kind_mismatch", "list_missing", "list_empty", "blanks_left_out", "no_locations"]
+    n: int = 0
+
+
+class EntryView(ModelEntry):
+    warnings: list[EntryWarning]
+
+
+class GroupModels(ModelGroupCount):
+    models: list[EntryView] = Field(default_factory=list)
+    custom: bool = Field(default=False, description="Its models were changed: not the default ones.")
+
+
+class ListSummary(BaseModel):
+    id: str
+    name: str
+    kind: ListKind
+    groups: list[str]
+    count: int
+
+
 class ModelSetup(BaseModel):
     variables: list[Variable]
-    missing: list[str] = Field(description="Big five fields not loaded, in words.")
     engines: list[Engine]
-    choose_for_me: bool
-    groups: list[ModelGroupCount]
+    groups: list[GroupModels]
+    lists: list[ListSummary]
+    locations: list[locstack.LocationField] = Field(description="The location fields a stack can use.")
     tests: list[str] = Field(description="The variable tests to run, besides Represented.")
+
+
+def _entry_view(e: ModelEntry, raw: ModelEntry | None, lists: dict[str, VarList], by_field: dict) -> EntryView:
+    w: list[EntryWarning] = []
+    lst = lists.get(e.list_id or "")
+    if e.engine in TAKES_LIST:
+        if raw is not None and raw.list_id and raw.list_id not in lists:
+            w.append(EntryWarning(code="list_missing"))
+        if lst is not None and lst.kind != kind_of(e.engine):
+            w.append(EntryWarning(code="kind_mismatch"))
+        if lst is None or not lst.variables:
+            w.append(EntryWarning(code="list_empty"))
+        elif e.engine not in TREES:
+            n = sum(1 for v in lst.variables if v in by_field and by_field[v].trees_only)
+            if n:
+                w.append(EntryWarning(code="blanks_left_out", n=n))
+    if e.engine in LOCATED and not e.locations:
+        w.append(EntryWarning(code="no_locations"))
+    return EntryView(**e.model_dump(), warnings=w)
 
 
 def setup(project, project_dir: Path) -> ModelSetup:
     import pandas as pd
     import pyarrow.parquet as pq
 
+    from oakbox import assemble, varlists
+
     path = _universe_path(project_dir)
     if not path.is_file():
         raise LookupError("Prepare the fields first: the models start from what it writes.")
     columns = pq.ParquetFile(path).schema_arrow.names
-    chosen = models(project)
-    groups = []
+    vs = variables(project, project_dir)
+    by_field = {v.field: v for v in vs}
+    all_lists = varlists.lists(project, project_dir)
+    lists = {x.id: x for x in all_lists}
     universe = pd.read_parquet(path, columns=["key", "model_group"]) if "model_group" in columns else None
     sales_path = project_dir / "out" / "look" / "2-clean-sales.parquet"
+    per: dict[str, int] = {}
+    sold: dict[str, int] = {}
     if universe is not None:
         keys = pd.read_parquet(sales_path, columns=["key"])["key"].tolist() if sales_path.is_file() else []
         per, sold = _counts(universe, keys)
-        from oakbox import assemble
-
-        modeled = assemble.modeled(project, project_dir)
-        groups = [
-            ModelGroupCount(
+    modeled = assemble.modeled(project, project_dir)
+    groups = []
+    for x in project.groups:
+        raw = {e.key: e for e in project.model.groups.get(x.id) or []}
+        groups.append(
+            GroupModels(
                 id=x.id,
                 name=x.name,
                 color=x.color,
                 parcels=per.get(x.id, 0),
                 sales=sold.get(x.id, 0),
                 modeled=x.id in modeled,
+                models=[
+                    _entry_view(e, raw.get(e.key), lists, by_field)
+                    for e in group_models(project, project_dir, x.id, all_lists)
+                ]
+                if x.id in modeled
+                else [],
+                custom=x.id in project.model.groups,
             )
-            for x in project.groups
-        ]
+        )
     return ModelSetup(
-        variables=variables(project, project_dir),
-        missing=big_five_missing(columns, project.units),
-        engines=[Engine(key=k, name=n, note=note, chosen=k in chosen) for k, (n, note) in ENGINES.items()],
-        choose_for_me=project.model.models is None,
+        variables=vs,
+        engines=[
+            Engine(key=k, name=n, note=note, kind=kind_of(k), takes_list=k in TAKES_LIST, located=k in LOCATED)
+            for k, (n, note) in ENGINES.items()
+        ],
         groups=groups,
+        lists=[
+            ListSummary(id=x.id, name=x.name, kind=x.kind, groups=x.groups, count=len(x.variables)) for x in all_lists
+        ],
+        locations=locstack.offered(project_dir),
         tests=tests(project),
     )
 
 
 class ModelPatch(BaseModel):
-    variables: list[str] | None = None
-    every_variable: bool | None = Field(default=None, description="True: back to every variable found.")
-    models: list[str] | None = None
-    choose_for_me: bool | None = Field(default=None, description="True: back to Choose for me.")
     tests: list[str] | None = Field(default=None, description="The variable tests to run, besides Represented.")
 
 
 def change(project, body: ModelPatch) -> None:
     s: ModelState = project.model
-    if body.every_variable:
-        s.variables = None
-    elif body.variables is not None:
-        s.variables = list(dict.fromkeys(body.variables))
-    if body.choose_for_me:
-        s.models = None
-    elif body.models is not None:
-        unknown = [m for m in body.models if m not in ENGINES]
-        if unknown:
-            raise ValueError(f"Not a model OAK box offers: {', '.join(unknown)}.")
-        if not body.models:
-            raise ValueError("Choose at least one model.")
-        s.models = [m for m in ENGINES if m in body.models]
     if body.tests is not None:
         unknown = [x for x in body.tests if x not in TESTS]
         if unknown:
@@ -397,6 +559,49 @@ def change(project, body: ModelPatch) -> None:
         if not body.tests:
             raise ValueError("Choose at least one test.")
         s.tests = [x for x in TESTS if x in body.tests]
+
+
+def set_group(project, project_dir: Path, group: str, models: list[ModelEntry] | None) -> None:
+    """A model group's models (None: back to the default ones). Each gets the engine's name unless given one, and a
+    key from its name; a list must be one of the lists, a stack's fields location fields."""
+    from oakbox import varlists
+
+    if group not in {g.id for g in project.groups}:
+        raise LookupError(group)
+    if models is None:
+        project.model.groups.pop(group, None)
+        return
+    lists = {x.id for x in varlists.lists(project, project_dir)}
+    places = {x.field for x in locstack.offered(project_dir)}
+    taken: set[str] = set()
+    out = []
+    for e in models:
+        if e.engine not in ENGINES:
+            raise ValueError(f"Not a model OAK box offers: {e.engine}.")
+        name = e.name.strip() or ENGINES[e.engine][0]
+        key = (
+            e.key
+            if e.key and e.key not in taken and e.key not in RESERVED and re.fullmatch(r"[a-z][a-z0-9_]*", e.key)
+            else entry_key(name, taken)
+        )
+        taken.add(key)
+        if e.list_id is not None and e.list_id not in lists:
+            raise ValueError(f"No variable list {e.list_id}.")
+        unknown = [f for f in e.locations or [] if f not in places]
+        if unknown:
+            raise ValueError(f"Not a location field: {', '.join(unknown)}.")
+        out.append(
+            ModelEntry(
+                key=key,
+                name=name,
+                engine=e.engine,
+                list_id=e.list_id if e.engine in TAKES_LIST else None,
+                locations=list(dict.fromkeys(e.locations)) if e.engine in LOCATED and e.locations is not None else None,
+            )
+        )
+    if len({e.name.lower() for e in out}) < len(out):
+        raise ValueError("Two models in a group can't have the same name.")
+    project.model.groups[group] = out
 
 
 # ---------- The receipt ----------
@@ -509,7 +714,7 @@ def _rows(df, columns, rename=None, std=None, sales_key="count_sales", drop=(), 
         values = {(rename or {}).get(c, c): cells.number(row.get(c)) for c in columns}
         judged = _judge(values, values.get(sales_key), std) if std else {}
         out.append(ModelRow(model=model, name=_name(model, names or {}), values=values, judged=judged))
-    order = ["assessor", *VALUE_SLOTS, "ensemble", *ENGINES]
+    order = ["assessor", *VALUE_SLOTS, "ensemble", *(names or {}), *ENGINES]
     return sorted(out, key=lambda f: order.index(f.model) if f.model in order else 99)
 
 
@@ -574,6 +779,8 @@ def run(project_id: str) -> None:
     from oakbox import assemble
 
     modeled = assemble.modeled(project, pdir)
+    # Each group's models by the names the user gave them.
+    own = {g: {e.key: e.name for e in group_models(project, pdir, g)} for g in groups if g in modeled}
     outside = tuple(_outside(project, pdir))
     t0 = time.time()
 
@@ -583,7 +790,7 @@ def run(project_id: str) -> None:
         if len(parts) == 3 and parts[0] == "model" and parts[1] in groups:
             done = groups.index(parts[1]) / max(len(groups), 1)
             name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
-            engine = ENGINES.get(parts[2], (parts[2],))[0]
+            engine = own.get(parts[1], {}).get(parts[2]) or ENGINES.get(parts[2], (parts[2],))[0]
             steps.emit(step="models", fraction=0.1 + 0.85 * done, message=f"{name}: training {engine}")
         else:
             steps.emit(detail=e.message)
@@ -636,7 +843,8 @@ def run(project_id: str) -> None:
                 )
             )
             continue
-        sets = _sets(r, judged_by.get(g.id), names, outside)
+        nm = names | own.get(g.id, {})
+        sets = _sets(r, judged_by.get(g.id), nm, outside)
         if not any(x.sales for x in sets):
             # Modeled, but no sale to judge it by: as good as unmodeled here.
             out.append(
@@ -659,26 +867,25 @@ def run(project_id: str) -> None:
                 parcels=per.get(g.id, 0),
                 sales=n,
                 sets=sets,
-                academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside)),
-                academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside)),
+                academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside), names=nm),
+                academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside), names=nm),
                 timings=_rows(
                     r.benchmark.df_time,
                     ("total", "param", "train", "test", "univ", "chd"),
                     drop=("assessor", *outside),
+                    names=nm,
                 ),
             )
         )
     mine = steps.engine_notes(caught)
     s = json.loads(settings_text)
-    main = s.get("modeling", {}).get("models", {}).get("main", {})
+    run_names = s.get("modeling", {}).get("instructions", {}).get("main", {}).get("run", [])
     receipt = ModelReceipt(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"),
         seconds=round(time.time() - t0, 1),
         engine=version("openavmkit"),
-        models=[
-            m for m in s.get("modeling", {}).get("instructions", {}).get("main", {}).get("run", []) if m in ENGINES
-        ],
-        variables=list(main.get("lightgbm", {}).get("ind_vars") or main.get("default", {}).get("ind_vars") or []),
+        models=[m for m in run_names if m != "assessor" and m not in outside],
+        variables=sorted({v for x in (s.get("variable_lists") or {}).values() for v in x}),
         groups=out,
         notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
     )
@@ -698,6 +905,7 @@ def settings_key(settings: dict, project_dir: Path) -> dict:
     return {
         "prepare": prepare.STEP.ran_at(project_dir),
         "models": m.get("models", {}).get("main"),
+        "lists": settings.get("variable_lists"),
         "run": m.get("instructions", {}).get("main"),
         "study": settings.get("analysis", {}).get("ratio_study", {}).get("study_set_predictions"),
     }
@@ -727,9 +935,32 @@ def blocked(project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
-    if not [v for v in variables(project, project_dir) if v.chosen]:
-        return ["Choose at least one variable."]
-    return []
+    return problems(project, project_dir)
+
+
+def problems(project, project_dir: Path) -> list[str]:
+    """What stops a try in the models themselves: a group with none, a list with no variables, a Local area with no
+    location."""
+    from oakbox import assemble, varlists
+
+    if not variables(project, project_dir):
+        return ["Prepare the fields first: there are no variables."]
+    all_lists = varlists.lists(project, project_dir)
+    lists = {x.id: x for x in all_lists}
+    out = []
+    modeled = assemble.modeled(project, project_dir)
+    for g in project.groups:
+        if g.id not in modeled:
+            continue
+        entries = group_models(project, project_dir, g.id, all_lists)
+        if not entries:
+            out.append(f"{g.name} has no models: add one, or untick it on Model groups › Check them.")
+        for e in entries:
+            if e.engine in TAKES_LIST and not (lists.get(e.list_id or "") and lists[e.list_id or ""].variables):
+                out.append(f"{g.name} › {e.name}: its variable list has no variables.")
+            if e.engine == "local_area" and not e.locations:
+                out.append(f"{g.name} › {e.name}: Local area needs at least one location.")
+    return out
 
 
 def view(project, project_dir: Path) -> ModelView:

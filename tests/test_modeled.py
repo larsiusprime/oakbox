@@ -22,14 +22,17 @@ def test_a_group_not_modeled_skips_every_model(client, monkeypatch):
         ModelGroup(id="sf", name="Single-family", color="#000"),
         ModelGroup(id="ex", name="Exempt", color="#111", modeled=False),
     ]
-    project.model.models = ["lightgbm", "mra"]
+    project.model.groups = {
+        "sf": [
+            model.ModelEntry(key="lightgbm", name="LightGBM", engine="lightgbm"),
+            model.ModelEntry(key="mra", name="MRA", engine="mra"),
+        ]
+    }
     monkeypatch.setattr(
         model,
         "variables",
         lambda p, d: [
-            model.Variable(
-                field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, chosen=True, trees_only=False
-            )
+            model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, trees_only=False)
         ],
     )
     monkeypatch.setattr(model, "_universe_fields", lambda d: [])

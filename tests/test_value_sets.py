@@ -8,6 +8,7 @@ from helpers import NEW, put_file
 from shapely.geometry import box
 
 from oakbox import model, projects
+from oakbox.projects import ModelGroup
 
 
 @pytest.fixture
@@ -59,14 +60,13 @@ def test_other_values_are_pass_through_models_judged_like_the_roll(client, pid, 
     client.post(f"{url}/value-sets", json={"name": "Acme AVM"})
     client.put(f"{url}/fields/vset1_market_value", json={"file": "geo_parcels", "column": "AVM"})
     project = projects.load(pid)
-    project.model.models = ["lightgbm"]
+    project.groups = [ModelGroup(id="sf", name="Single-family", color="#000", modeled=True)]
+    project.model.groups = {"sf": [model.ModelEntry(key="lightgbm", name="LightGBM", engine="lightgbm")]}
     monkeypatch.setattr(
         model,
         "variables",
         lambda p, d: [
-            model.Variable(
-                field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, chosen=True, trees_only=False
-            )
+            model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, trees_only=False)
         ],
     )
     monkeypatch.setattr(model, "_universe_fields", lambda d: ["vset1_market_value"])
@@ -74,5 +74,9 @@ def test_other_values_are_pass_through_models_judged_like_the_roll(client, pid, 
     s = model.settings(project, projects.project_dir(pid))
     main = s["modeling"]["instructions"]["main"]
     assert main["run"] == ["lightgbm", "vset1"] and main["ensemble"]["models"] == ["lightgbm"]
-    assert s["modeling"]["models"]["main"]["vset1"] == {"model": "pass_through", "field": "vset1_market_value"}
+    # In every modeled group's own block of models.
+    blocks = s["modeling"]["models"]["main"]
+    assert blocks and all(
+        b["vset1"] == {"model": "pass_through", "field": "vset1_market_value"} for b in blocks.values()
+    )
     assert s["analysis"]["ratio_study"]["outside_models"] == ["vset1"]

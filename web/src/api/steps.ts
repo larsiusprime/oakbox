@@ -50,7 +50,12 @@ export const stepKey = (id: StepId, projectId: string) => [id, projectId] as con
 export const setupKey = (id: SetupId, projectId: string) => [`${id}-setup`, projectId] as const;
 
 /** What else a step's screen shows from its run or its calls: asked again with it. */
-const ALSO: Partial<Record<StepId, string[]>> = { clean: ["clean-time", "clean-review"], model: ["vartest"] };
+const ALSO: Partial<Record<StepId, string[]>> = {
+  clean: ["clean-time", "clean-review"],
+  prepare: ["varlists"],
+  vartest: ["varlists"],
+  model: ["vartest", "varlists"],
+};
 
 /** Something about a step changed (a call, a mark, a run): ask it again (unless `self` is false: the caller has
  * its new state), what else its screen shows, and every step after it. */

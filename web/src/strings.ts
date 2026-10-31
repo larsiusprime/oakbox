@@ -1097,7 +1097,9 @@ export const t = {
     sales: "3 Check sales",
     salesLocked: "Press Looks right on Model groups first",
     check: "4 Check my values",
-    values: "5 Model values",
+    variables: "5 Variables",
+    values: "6 Model values",
+    modelsLocked: "Press Looks right on Variables › What changed first",
     noValues: "No existing values to check: add them on Data › Existing values.",
     valuesLocked: "Press Looks right on Check sales first",
     later: "Not available yet",
@@ -1125,7 +1127,7 @@ export const t = {
       `ran ${when} · ${seconds.toLocaleString()} seconds · OpenAVMKit ${engine}`,
   },
   bringIn: {
-    kicker: "Step 1 of 5 · after Data",
+    kicker: "Step 1 of 6 · after Data",
     steps: {
       plan: "What runs",
       run: "Bring in data",
@@ -1252,7 +1254,7 @@ export const t = {
   },
 
   groups: {
-    kicker: "Step 2 of 5",
+    kicker: "Step 2 of 6",
     title: "Model groups",
     lede: "Parcels valued together: each group gets its own models. A parcel joins the first group whose rule it meets, so order matters. Vacant parcels stay in their group.",
     notReady: "Bring in data first: model groups are made from its parcel universe.",
@@ -1417,7 +1419,7 @@ export const t = {
 
   // Step 3, Check sales: notebook 2 (clean), each call shown before it runs and every sale set aside listed after.
   sales: {
-    kicker: "Step 3 of 5",
+    kicker: "Step 3 of 6",
     steps: {
       window: "Sales window",
       time: "Time adjustment",
@@ -1855,7 +1857,7 @@ export const t = {
 
   // Step 4, Check my values: the values on the roll now, against what parcels sold for (SPEC F8).
   ratio: {
-    kicker: "Step 4 of 5",
+    kicker: "Step 4 of 6",
     what: {
       title: "Check your existing values?",
       lede: "See how the values you have (the roll, a vendor's AVM) do against the sales, before modelling: OpenAVMKit's ratio and equity studies, per model group and overall. Or skip to Model values: they're compared with the models there either way.",
@@ -2139,18 +2141,19 @@ export const t = {
 
   // Step 5, Build model values: it begins by preparing the fields for the models.
   values: {
-    kicker: "Step 5 of 5",
+    kicker: "Step 5 of 6",
+    modelsKicker: "Step 6 of 6",
     steps: {
       fill: "Fill blanks",
       rare: "Rare categories",
       run: "Prepare the fields",
       done: "What changed",
-      variables: "Variables",
       test: "Test the variables",
       represented: "Represented",
       corr: "Correlation",
       vif: "Redundancy (VIF)",
       verdict: "What to keep",
+      lists: "Variable lists",
       models: "Models",
       try: "Try them",
       how: "How they did",
@@ -2172,7 +2175,8 @@ export const t = {
     foldLine: (name: string, values: number, parcels: number) =>
       `${name}: ${values.toLocaleString()} ${values === 1 ? "value" : "values"}, ${parcels.toLocaleString()} parcels`,
     looksRight: "Looks right › Variables",
-    toVariables: "Variables ›",
+    toTests: "Test the variables ›",
+    toModels: "On to the models ›",
     // The variable tests (F9): OpenAVMKit's own, one at a time: the evidence for the variable lists.
     vartest: {
       runLede:
@@ -2239,47 +2243,137 @@ export const t = {
       score: "Score",
       recommended: "recommended",
     },
-    // The models (F9): which variables, which models, a try, and how they did.
-    model: {
-      variablesLede:
-        "What the models learn from: every field OpenAVMKit classifies as land, building or other (your own fields too), ticked. Distances aren't offered: each feature's proximity is. Trees use them all; linear models (MRA) only those with no blanks.",
-      kinds: {
-        big_five: "The big five",
-        building: "Building",
-        land: "Land and its surroundings",
-        location: "Location",
-        other: "Other",
-        category: "Categories",
-      } as Record<string, string>,
-      variable: "Variable",
-      kindCount: (on: number, of: number) => `${on.toLocaleString()} of ${of.toLocaleString()} ticked`,
-      valuesCount: (n: number) => `${n.toLocaleString()} ${n === 1 ? "value" : "values"}`,
-      columns: (variables: number, columns: number, categories: number, dummies: number) =>
-        `${variables.toLocaleString()} variables ticked: ${columns.toLocaleString()} columns to the models` +
-        (categories
-          ? `, ${dummies.toLocaleString()} of them from ${categories.toLocaleString()} ${categories === 1 ? "category" : "categories"} (each value becomes a column of its own).`
-          : "."),
-      manyColumns: (biggest: string) =>
-        `That many slows every model, and gives a linear model a coefficient to fit for each with few sales behind it. The largest: ${biggest}. Fold rare values (Rare categories), or untick a category that repeats another.`,
-      has: "Has it",
-      blanks: "Blanks",
+    // Variable lists (F9): named lists of variables, each a type and the model groups it's for.
+    lists: {
+      lede: "Each model takes its variables from a list. A list has a name, a type (regression or machine learning) and the model groups it's for; one list can serve several. Beside each variable, its test scores and what's recommended for the list's type.",
+      list: "Variable list",
+      type: "Type",
+      groups: "Model groups",
+      count: "Variables",
       usedBy: "Used by",
-      usedByWhy:
-        "Linear models (MRA, multi-MRA, GWR) can't take a blank: they leave such a variable out. Trees (LightGBM, XGBoost, CatBoost) take blanks.",
-      allModels: "every model",
-      treesOnly: "trees only",
-      fillIt: "Fill it…",
-      everyVariable: "Tick every variable",
+      notUsed: "not used yet",
+      name: "Name",
+      kinds: { regression: "Regression", ml: "Machine learning" } as Record<string, string>,
+      kindShort: { regression: "Regression", ml: "ML" } as Record<string, string>,
+      rule: {
+        regression:
+          "Recommended for a regression: in the sales, moves with price (0.10 or more either way), overlaps nothing much (VIF 10 or under), no blanks, and not a category with many values.",
+        ml: "Recommended for machine learning: anything that's in the sales. Trees find their own way with weak or overlapping variables; a category with many values is the one thing to spare: CatBoost slows with each.",
+      } as Record<string, string>,
+      scoresFor: "Scores for",
+      tickRecommended: "Tick the recommended",
+      untickAll: "Untick all",
+      remove: "Remove",
+      add: "Add a variable list",
+      newName: (n: number) => `List ${n}`,
+      back: "Back to the proposed lists",
+      proposed:
+        "Proposed: a regression list and a machine-learning list, each for every modeled group, each ticked with what's recommended for its type in most of their sales. Written to OpenAVMKit's settings as variable_lists, each model pointing at its list.",
+      notTested:
+        "The variables haven't been tested yet: the recommendations go by blanks and categories alone until they are (Test the variables).",
+      untested: "not tested",
+      in: "In",
+      variable: "Variable",
+      kind: "Kind",
+      number: "number",
+      category: (n: number) => `category · ${n.toLocaleString()} values`,
+      represented: "Represented",
+      corr: "Correlation with price",
+      vif: "VIF",
+      forType: { regression: "For a regression model", ml: "For a machine-learning model" } as Record<
+        string,
+        string
+      >,
+      recommended: "recommended",
+      reasons: {
+        blanks: "has blanks",
+        not_represented: "barely in the sales",
+        weak: "weak with price",
+        overlaps: "overlaps others",
+        many_values: "too many values",
+      } as Record<string, string>,
+      warn: {
+        few_sales: (group: string, sales: number, vars: number) =>
+          `${group} has ${sales.toLocaleString()} sales for this list's ${vars.toLocaleString()} variables: a regression wants about 10 sales a variable. A shorter list of its own would suit it better.`,
+        blanks: (names: string) =>
+          `Has blanks, so a regression leaves it out: ${names}. Fill them (Fill blanks) to use them.`,
+        many_values: (names: string, ml: boolean) =>
+          ml
+            ? `Categories with many values (CatBoost slows with each): ${names}.`
+            : `Categories with many values (each value a column of its own, few sales behind each): ${names}.`,
+      },
+      none: "No variable lists: add one.",
       missing: (fields: string[]) =>
         `Not loaded: ${fields.join(", ")}. The models do better with them (Data › Building).`,
-      none: "No variables found yet: prepare the fields first.",
+      noVariables: "No variables found yet: prepare the fields first.",
+    },
+    // A location stack (F9): the location fields a model reads, broadest first.
+    stack: {
+      title: "Locations, broadest first",
+      how: (engine: string) =>
+        engine === "local_area"
+          ? "Local area values each parcel by its area's median price per area, at the finest level with enough sales; an area with too few falls back to the level above it."
+          : "Multi-MRA fits a regression in each area of the finest level with 15 or more sales; an area with fewer falls back to the level above it, and the whole model group last.",
+      level: "Level",
+      areas: "Areas",
+      medianSales: "Sales per area (median)",
+      enough: "Areas with 15+ sales",
+      nesting: "Nesting",
+      whole: "Whole model group",
+      nests: (above: string) => `✓ nests in ${above}`,
+      splits: (n: number, above: string) =>
+        `${n.toLocaleString()} ${n === 1 ? "area spans" : "areas span"} more than one ${above}`,
+      up: (name: string) => `Move ${name} up (broader)`,
+      down: (name: string) => `Move ${name} down (finer)`,
+      remove: "Remove",
+      add: "Add a level",
+      noneLeft: "Every location field is in the stack.",
+      noFields:
+        "No location fields: add a neighborhood or district on Data › Locations, a map layer, or census areas (Data › Enrichments).",
+      written: (fields: string) => `Written finest first, as OpenAVMKit reads it: ${fields}.`,
+    },
+    // The models (F9): each model group's models, a try, and how they did.
+    model: {
+      fillIt: "Fill it…",
       modelsLede:
-        "Which models to try. The ensemble combines them (the median of their values, leaving out any that don't help). The roll is audited beside them on the study set, never in the ensemble.",
-      chooseForMe: "Choose for me",
-      chooseForMeNote:
-        "LightGBM, MRA and local area: an accurate model, an explainable one, and a baseline to beat.",
-      chosenForYou: "Chosen for you",
-      groupsTitle: "What each model group has to learn from",
+        "Each modeled group has its own models. Every group starts with LightGBM, MRA and Multi-MRA; add, remove or rename them. Each takes its variables from a variable list; Multi-MRA and Local area read a stack of locations too. The ensemble is the median of a group's models, leaving out any that don't help; the roll is audited beside them on the study set, never in it.",
+      notModeledTab: "not modeled",
+      salesTab: (n: number) => `${n.toLocaleString()} ${n === 1 ? "sale" : "sales"}`,
+      engine: "Engine",
+      variables: "Variables",
+      list: (name: string, n: number) =>
+        `${name} · ${n.toLocaleString()} ${n === 1 ? "variable" : "variables"}`,
+      locations: "Locations",
+      noLocations: "none",
+      change: "Change…",
+      done: "Done",
+      remove: "Remove",
+      add: "Add a model",
+      addIt: "Add",
+      cancel: "Cancel",
+      namePlaceholder: "The engine's name",
+      nameLabel: "Name",
+      copy: "Copy these models to…",
+      everyOther: "Every other modeled group",
+      backToDefault: "Back to the default models",
+      noModels: "No models: add one, or untick the group on Model groups › Check them.",
+      takesNoList: "its areas' price per area",
+      warn: {
+        kind_mismatch: (engine: string, kind: string) =>
+          kind === "ml"
+            ? `${engine} is a regression; this is a machine-learning list: overlapping variables and many categories make its coefficients unreliable.`
+            : `${engine} is a machine-learning model on a regression list: it'll run, but it could use more variables than this.`,
+        list_missing: "Its list was removed: it takes the group's first list of its type.",
+        list_empty: "Its variable list has no variables: tick some on Variables › Variable lists.",
+        blanks_left_out: (n: number) =>
+          `Leaves out ${n.toLocaleString()} ${n === 1 ? "variable" : "variables"} of its list with blanks: a regression can't take a blank.`,
+        no_locations: (engine: string) =>
+          engine === "local_area"
+            ? "Local area needs at least one location level."
+            : "No location levels: it fits one regression for the whole group, as MRA does.",
+      },
+      written: (group: string) =>
+        `Written to OpenAVMKit's settings under modeling.models.main.${group}; the models' lists as $$variable_lists.<list>.`,
       group: "Model group",
       parcels: "Parcels",
       sales: "Sales",

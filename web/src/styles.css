@@ -4458,3 +4458,148 @@ table.tbl.dt > * > tr > :is(th, td) {
   margin: 0.3rem 0 0;
   font-weight: 600;
 }
+
+/* Variables › Variable lists: the lists, one open at a time, its variables with their test scores. */
+.vl-lists,
+.vl-vars,
+.gm-models,
+.ls-table {
+  width: 100%;
+}
+.vl-arrow {
+  width: 1.6rem;
+}
+.vl-toggle,
+.vl-name {
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.vl-name {
+  font-weight: 600;
+}
+.tbl.vl-lists > tbody > tr.vl-open > td {
+  background: var(--select);
+}
+.tbl.vl-lists > tbody > tr.vl-detail > td,
+.tbl.gm-models > tbody > tr.gm-detail > td {
+  padding: 0.4rem 0.6rem 0.8rem;
+  background: var(--zebra);
+}
+.vl-chip {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  margin-right: 0.6rem;
+  white-space: nowrap;
+}
+.vl-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.vl-editrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+.vl-label {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 600;
+}
+.vl-grow {
+  flex: 1;
+}
+.vl-namefield .input,
+.gm-name .input {
+  width: 14rem;
+}
+.vl-tick {
+  width: 2.4rem;
+  text-align: center;
+}
+.tbl.vl-vars > tbody > tr.vl-out > td:not(.vl-tick) {
+  color: var(--muted);
+}
+.vl-bad {
+  color: var(--bad);
+}
+
+/* Model values › Models: a tab per model group, its models, a location stack opened under its model. */
+.gm-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid var(--panel-edge);
+}
+.gm-tab {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-right: -1px;
+  padding: 0.25rem 0.8rem;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background: var(--head);
+  border: 1px solid var(--panel-edge);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer;
+}
+.gm-tab.on {
+  position: relative;
+  top: 1px;
+  font-weight: 600;
+  background: var(--panel);
+}
+.gm-tab:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.gm-stackline {
+  margin-top: 0.2rem;
+}
+.gm-warn {
+  margin: 0.2rem 0 0;
+}
+.tbl.gm-models > tbody > tr.gm-adding > td {
+  background: var(--select);
+}
+.gm-addtools {
+  white-space: nowrap;
+}
+
+/* A location stack: broadest first, its levels moved up and down. */
+.ls-title {
+  margin: 0.2rem 0;
+  font-weight: 600;
+}
+.ls-tools {
+  white-space: nowrap;
+}
+.ls-move {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.15rem;
+  padding: 0.05rem 0.3rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ls-move[data-disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+.vl-warns > .wiz-warn {
+  margin: 0.15rem 0;
+}
