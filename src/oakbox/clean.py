@@ -100,7 +100,6 @@ class TimeFile(BaseModel):
 
 class CleanState(BaseModel):
     sales_from: int | None = Field(default=None, description="Improved sales from this year on; None: the default.")
-    vacant_from: int | None = Field(default=None, description="Vacant sales from this year on; None: the default.")
     time_adjust: bool = True
     period: Period = Field(default="Q", description="Months or quarters to start from (OpenAVMKit goes coarser).")
     borrow: dict[str, str] = Field(
@@ -128,11 +127,10 @@ def valuation_year(project) -> int:
     return project.valuation_date.year if project.valuation_date else int(project.tax_year)
 
 
-def window(project) -> tuple[int, int]:
-    """(improved, vacant): the first year sales count from."""
-    c: CleanState = project.clean
-    default = valuation_year(project) - YEARS_BEFORE
-    return c.sales_from or default, c.vacant_from or default
+def window(project) -> int:
+    """The first year sales count from: improved and vacant alike (vacant land isn't modeled on its own yet, so it
+    has no window of its own)."""
+    return project.clean.sales_from or valuation_year(project) - YEARS_BEFORE
 
 
 def settings(project) -> dict:
@@ -141,7 +139,7 @@ def settings(project) -> dict:
     c: CleanState = project.clean
     if c.location is None:
         return {}
-    impr, vacant = window(project)
+    start = window(project)
     fill: dict[str, list[str]] = {}
     for field, f in sorted(c.fills.items()):
         if f.method != "leave":
@@ -183,7 +181,7 @@ def settings(project) -> dict:
     for study in ("horizontal_equity", "land_equity", "impr_equity"):
         analysis[study] = {"location": loc}
     return {
-        "modeling": {"metadata": {"use_sales_from": {"improved": impr, "vacant": vacant}}},
+        "modeling": {"metadata": {"use_sales_from": {"improved": start, "vacant": start}}},
         "data": {"process": process},
         "analysis": analysis,
     }
@@ -355,7 +353,6 @@ class CleanSetup(BaseModel):
     valuation_year: int
     default_from: int
     sales_from: int
-    vacant_from: int
     years: list[YearCount]
     total: int = Field(description="Valid sales from Data.")
     in_window: int
@@ -378,7 +375,6 @@ class CleanSetup(BaseModel):
     collapse_univ_min: int
     collapse_fields: list[str]
     folds: list[Fold] = Field(description="What would fold at the thresholds set, per field (when it's on).")
-    notices: list[Notice]
 
 
 _setup_cache: dict[str, tuple[tuple, Any]] = {}
@@ -554,8 +550,7 @@ def folds(project, project_dir: Path) -> list[Fold]:
         keys = set(pd.read_parquet(used)["key_sale"].astype(str))
         valid = cast("pd.DataFrame", valid[valid["key_sale"].astype(str).isin(list(keys))])
     else:
-        impr_from, vacant_from = window(project)
-        valid = valid[(~vacant & (year >= impr_from)) | (vacant & (year >= vacant_from))]
+        valid = valid[year >= window(project)]
     c: CleanState = project.clean
     names = fields.names()
     out = []
@@ -588,7 +583,7 @@ def _last_run(project_dir: Path) -> dict[str, float | None]:
 def setup(project, project_dir: Path) -> CleanSetup:
     universe, sales = _data(project_dir)
     valid, year, vacant = _valid(sales)
-    impr_from, vacant_from = window(project)
+    start = window(project)
     years = sorted(set(int(y) for y in year.dropna()))
     counts = [
         YearCount(
@@ -598,7 +593,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
         )
         for y in years
     ]
-    inside = (~vacant & (year >= impr_from)) | (vacant & (year >= vacant_from))
+    inside = year >= start
     last = _last_run(project_dir)
     groups = []
     modeled = assemble.modeled(project, project_dir)
@@ -623,45 +618,6 @@ def setup(project, project_dir: Path) -> CleanSetup:
     proposed = _proposed_location(locations)
     location = project.clean.location if project.clean.location is not None else proposed
     names = fields.names()
-    notices = []
-    # Sales whose vacant-at-sale doesn't match the parcel now are left out of ratio studies.
-    keys = set(universe["key"].astype(str))
-    in_univ = valid["key"].astype(str).isin(list(keys))
-    is_vacant = cells.yes(valid, "is_vacant") if "is_vacant" in valid else vacant
-    for sold, now, n in (
-        ("improved", "vacant", int((inside & in_univ & ~vacant & is_vacant).sum())),
-        ("vacant", "improved", int((inside & in_univ & vacant & ~is_vacant).sum())),
-    ):
-        if n:
-            notices.append(
-                Notice(
-                    text=(
-                        f"1 sale in the window was sold as {sold} on a parcel that is {now} now: it's"
-                        if n == 1
-                        else f"{n:,} sales in the window were sold as {sold} on parcels that are {now} now: they're"
-                    )
-                    + " left out of ratio studies (the parcel isn't the same as when it sold). If vacant at sale is "
-                    "assumed on Data › Sales, check that fits.",
-                    link="fields:sales",
-                )
-            )
-    outside = int((inside & ~in_univ).sum())
-    if outside:
-        notices.append(
-            Notice(
-                text=(
-                    "1 sale in the window is for a parcel not in the parcel universe: no model can use it. If it's a "
-                    "condo unit, set it up on Data › Condo units."
-                    if outside == 1
-                    else f"{outside:,} sales in the window are for parcels not in the parcel universe: no model can "
-                    "use them. If they're condo units, set them up on Data › Condo units."
-                ),
-                link="fields:condos",
-            )
-        )
-    for g in groups:
-        if g.sales == 0 and g.id != UNKNOWN:
-            notices.append(Notice(text=f"{g.name}: no sales in the window."))
     unit = "sqft" if project.units == "imperial" else "sqm"
     similar = [
         names.get(f, f)
@@ -676,8 +632,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
     return CleanSetup(
         valuation_year=valuation_year(project),
         default_from=valuation_year(project) - YEARS_BEFORE,
-        sales_from=impr_from,
-        vacant_from=vacant_from,
+        sales_from=start,
         years=counts,
         total=len(valid),
         in_window=int(inside.sum()),
@@ -701,7 +656,6 @@ def setup(project, project_dir: Path) -> CleanSetup:
         collapse_univ_min=c.collapse_univ_min,
         collapse_fields=collapse_fields,
         folds=folds(project, project_dir) if c.collapse else [],
-        notices=notices,
     )
 
 
@@ -920,14 +874,13 @@ def _flags(project_dir: Path):
 def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sales, t0, caught) -> CleanReceipt:
     import pandas as pd
 
-    impr_from, vacant_from = window(project)
+    start_year = window(project)
     b = before.copy()
     b["key_sale"] = b["key_sale"].astype(str)
     b = b[b["key_sale"].isin(list(start))].drop_duplicates("key_sale").set_index("key_sale")
     year = _years(b)
-    vacant = cells.yes(b, "vacant_sale")
     gone = start - processed
-    early = {k for k in gone if k in b.index and year[k] < (vacant_from if bool(vacant[k]) else impr_from)}
+    early = {k for k in gone if k in b.index and year[k] < start_year}
     price = cells.numbers(b, "sale_price")
     no_price = {k for k in gone - early if k in b.index and not (price[k] > 0)}
     keys = set(sales["key"].astype(str)) if "key" in sales else set()
@@ -935,12 +888,7 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
     no_parcel = {k for k in gone - early - no_price if k in b.index and not bool(in_univ[k])}
     other = gone - early - no_price - no_parcel
     funnel = [FunnelLine(sign="", count=len(start), text="valid sales from Data")]
-    window_text = (
-        f"before {impr_from} (the sales window)"
-        if impr_from == vacant_from
-        else f"before {impr_from} (improved) or {vacant_from} (vacant): the sales window"
-    )
-    funnel.append(FunnelLine(sign="-", count=len(early), text=window_text))
+    funnel.append(FunnelLine(sign="-", count=len(early), text=f"before {start_year} (the sales window)"))
     for n, text in (
         (no_price, "with no price"),
         (no_parcel, "for parcels not in the parcel universe"),

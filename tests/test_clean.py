@@ -32,12 +32,13 @@ def test_the_calls_are_openavmkit_settings():
         "neighborhood",
     )
 
-    p.clean.sales_from, p.clean.vacant_from = 2023, 2019
+    p.clean.sales_from = 2023
     p.clean.fills = {"slope": clean.Fill(method="median"), "lot": clean.Fill(method="zero", scope="vacant")}
     p.clean.fills["skip"] = clean.Fill(method="leave")
     p.clean.location, p.clean.checks = "", {"dupe_date_price": False}
     s = clean.settings(p)
-    assert s["modeling"]["metadata"]["use_sales_from"] == {"improved": 2023, "vacant": 2019}
+    # Vacant land has no window of its own: it follows the sales window.
+    assert s["modeling"]["metadata"]["use_sales_from"] == {"improved": 2023, "vacant": 2023}
     # Added to OpenAVMKit's own fill lists ("+"), not replacing them.
     assert s["data"]["process"]["fill"] == {"+median": ["slope"], "+zero_vacant": ["lot"]}
     assert s["analysis"]["sales_scrutiny"]["location"] is None
@@ -196,11 +197,11 @@ def test_the_sales_window_and_fills_proposed(assembled, brought_in_client, broug
     assert area is None or area["proposed"]["method"] == "leave"
 
     try:
-        setup = client.patch(f"{url}/setup", json={"sales_from": 2024, "vacant_from": 2024}).json()
+        setup = client.patch(f"{url}/setup", json={"sales_from": 2024}).json()
         assert setup["sales_from"] == 2024 and 0 < setup["in_window"] < 47
         assert read_settings(pid)["modeling"]["metadata"]["use_sales_from"] == {"improved": 2024, "vacant": 2024}
     finally:
-        setup = client.patch(f"{url}/setup", json={"sales_from": None, "vacant_from": None}).json()
+        setup = client.patch(f"{url}/setup", json={"sales_from": None}).json()
     assert setup["sales_from"] == 2021
     assert read_settings(pid)["analysis"]["sales_scrutiny"]["passes"] == 2
 

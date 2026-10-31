@@ -3633,8 +3633,10 @@ tr.bi-kept > td {
   margin: 0.3rem 0 0 1.1rem;
   padding: 0;
 }
+/* The sales per year: as wide as the text above it, not the whole panel. */
 .cs-bars {
   display: flex;
+  max-width: 58rem;
   gap: 3px;
   height: 5rem;
   align-items: stretch;

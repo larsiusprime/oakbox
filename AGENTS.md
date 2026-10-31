@@ -60,7 +60,8 @@ name that says what it is.
 ## Screens
 
 - **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,
-  never a maximum). Only running text is capped for readability (`.project p`, `.cs-text`, `.wiz-lede`…).
+  never a maximum). Only running text is capped for readability (`.project p`, `.cs-text`, `.wiz-lede`…), and a
+  small chart that illustrates the paragraph above it (Check sales' sales per year) is as wide as that text.
 - **Tables:** a table of results is `<table className="tbl">` (its own class only adds what's its own); every
   table has faint cell lines and alternate grey rows (the `:where(table)` rules in `styles.css`), its cells padded by
   the density (`--cell-y`); a numbers column's header has the column's class (`th.cs-n`) so it lines up with its

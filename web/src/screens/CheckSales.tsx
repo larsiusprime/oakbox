@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { navigate } from "../App";
-import { api, type CleanPatch, type CleanSetup, unwrap } from "../api/client";
+import { api, type CleanPatch, unwrap } from "../api/client";
 import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -77,9 +77,7 @@ export function SalesTab({
     title: s.steps[key],
     status:
       key === "window"
-        ? u?.notices.length
-          ? "attention"
-          : called
+        ? called
         : key === "scrutiny"
           ? u && !u.location
             ? "attention"
@@ -136,16 +134,7 @@ export function SalesTab({
 
   return (
     <StepFrame steps={steps} current={current} go={go} wide={current === "aside"}>
-      {current === "window" &&
-        callStep(
-          u && (
-            <>
-              <WindowCard v={u} set={set} />
-              <Notices projectId={projectId} v={u} />
-            </>
-          ),
-          s.window.sub,
-        )}
+      {current === "window" && callStep(u && <WindowCard v={u} set={set} />, s.window.sub)}
       {current === "time" &&
         callStep(
           u && (
@@ -239,45 +228,12 @@ export function SalesTab({
   );
 }
 
-/** What to look at before running: on the step it concerns (the sales). */
-function Notices({ projectId, v }: { projectId: string; v: CleanSetup }) {
-  if (v.notices.length === 0) return null;
-  return (
-    <div className="bi-warn">
-      <b>{s.notices(v.notices.length)}</b>
-      <ul className="cs-notices">
-        {v.notices.map((n) => (
-          <li key={n.text}>
-            {n.text}{" "}
-            {n.link && (
-              <Button
-                className="wiz-link"
-                onPress={() =>
-                  navigate({
-                    name: "project",
-                    id: projectId,
-                    tab: "fields",
-                    step: n.link?.split(":")[1] ?? null,
-                  })
-                }
-              >
-                {s.links[n.link?.split(":")[1] ?? ""] ?? s.toData}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function WindowCard({ v, set }: CardProps) {
   const first = v.years[0]?.year ?? v.default_from;
   const options: [string, string][] = [];
   for (let y = Math.min(first, v.default_from); y <= v.valuation_year; y++) {
     options.push([String(y), y === v.default_from ? s.window.default(y) : String(y)]);
   }
-  const vacantSales = v.years.some((y) => y.vacant > 0);
   const top = Math.max(1, ...v.years.map((y) => y.improved + y.vacant));
   return (
     <Card title={s.window.title} sub={s.window.sub}>
@@ -288,23 +244,12 @@ function WindowCard({ v, set }: CardProps) {
           options={options}
           onChange={(y) => set({ sales_from: Number(y) === v.default_from ? null : Number(y) })}
         />
-        {vacantSales && (
-          <Choice
-            label={s.window.vacantFrom}
-            value={String(v.vacant_from)}
-            options={options}
-            onChange={(y) => set({ vacant_from: Number(y) === v.default_from ? null : Number(y) })}
-          />
-        )}
       </div>
-      <p className="cs-text">
-        {s.window.text(v.in_window, v.total, v.valuation_year - v.sales_from)}
-        {vacantSales ? ` ${s.window.vacantHint}` : ` ${s.window.noVacant}`}
-      </p>
+      <p className="cs-text">{s.window.text(v.in_window, v.total, v.valuation_year - v.sales_from)}</p>
       <div className="cs-bars" role="img" aria-label={s.window.chart}>
         {v.years.map((y) => {
           const n = y.improved + y.vacant;
-          const inside = y.year >= Math.min(v.sales_from, v.vacant_from);
+          const inside = y.year >= v.sales_from;
           return (
             <div key={y.year} className="cs-bar">
               <i

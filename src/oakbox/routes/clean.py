@@ -35,7 +35,6 @@ class CleanPatch(BaseModel):
     """Only the calls named change; null resets a year to the default."""
 
     sales_from: int | None = None
-    vacant_from: int | None = None
     time_adjust: bool | None = None
     period: clean.Period | None = None
     location: str | None = None

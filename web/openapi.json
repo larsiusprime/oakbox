@@ -5762,17 +5762,6 @@
       ],
       "title": "Sales From"
      },
-     "vacant_from": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Vacant From"
-     },
      "time_adjust": {
       "anyOf": [
        {
@@ -5995,10 +5984,6 @@
       "type": "integer",
       "title": "Sales From"
      },
-     "vacant_from": {
-      "type": "integer",
-      "title": "Vacant From"
-     },
      "years": {
       "items": {
        "$ref": "#/components/schemas/YearCount"
@@ -6136,13 +6121,6 @@
       "type": "array",
       "title": "Folds",
       "description": "What would fold at the thresholds set, per field (when it's on)."
-     },
-     "notices": {
-      "items": {
-       "$ref": "#/components/schemas/Notice"
-      },
-      "type": "array",
-      "title": "Notices"
      }
     },
     "type": "object",
@@ -6150,7 +6128,6 @@
      "valuation_year",
      "default_from",
      "sales_from",
-     "vacant_from",
      "years",
      "total",
      "in_window",
@@ -6172,8 +6149,7 @@
      "nominal_below",
      "collapse_univ_min",
      "collapse_fields",
-     "folds",
-     "notices"
+     "folds"
     ],
     "title": "CleanSetup"
    },
@@ -6190,18 +6166,6 @@
       ],
       "title": "Sales From",
       "description": "Improved sales from this year on; None: the default."
-     },
-     "vacant_from": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Vacant From",
-      "description": "Vacant sales from this year on; None: the default."
      },
      "time_adjust": {
       "type": "boolean",
@@ -6327,7 +6291,6 @@
     "type": "object",
     "required": [
      "sales_from",
-     "vacant_from",
      "time_adjust",
      "period",
      "borrow",
@@ -11173,32 +11136,6 @@
      "columns"
     ],
     "title": "NotLoaded"
-   },
-   "Notice": {
-    "properties": {
-     "text": {
-      "type": "string",
-      "title": "Text"
-     },
-     "link": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Link",
-      "description": "Where it's fixed: a tab and step, 'fields:sales'."
-     }
-    },
-    "type": "object",
-    "required": [
-     "text",
-     "link"
-    ],
-    "title": "Notice"
    },
    "NumberFormat-Input": {
     "properties": {

@@ -2128,8 +2128,6 @@ export interface components {
         CleanPatch: {
             /** Sales From */
             sales_from?: number | null;
-            /** Vacant From */
-            vacant_from?: number | null;
             /** Time Adjust */
             time_adjust?: boolean | null;
             /** Period */
@@ -2197,8 +2195,6 @@ export interface components {
             default_from: number;
             /** Sales From */
             sales_from: number;
-            /** Vacant From */
-            vacant_from: number;
             /** Years */
             years: components["schemas"]["YearCount"][];
             /**
@@ -2278,8 +2274,6 @@ export interface components {
              * @description What would fold at the thresholds set, per field (when it's on).
              */
             folds: components["schemas"]["Fold"][];
-            /** Notices */
-            notices: components["schemas"]["Notice"][];
         };
         /** CleanState */
         CleanState: {
@@ -2288,11 +2282,6 @@ export interface components {
              * @description Improved sales from this year on; None: the default.
              */
             sales_from: number | null;
-            /**
-             * Vacant From
-             * @description Vacant sales from this year on; None: the default.
-             */
-            vacant_from: number | null;
             /**
              * Time Adjust
              * @default true
@@ -4555,16 +4544,6 @@ export interface components {
             file: string;
             /** Columns */
             columns: string[];
-        };
-        /** Notice */
-        Notice: {
-            /** Text */
-            text: string;
-            /**
-             * Link
-             * @description Where it's fixed: a tab and step, 'fields:sales'.
-             */
-            link: string | null;
         };
         /**
          * NumberFormat
