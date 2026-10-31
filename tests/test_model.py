@@ -78,7 +78,7 @@ def test_default_settings(prepared):
     block = main["models"]["main"]["sf"]
     # No variable lists to start (the user makes them): no model has variables, and a try is stopped.
     assert s["variable_lists"] == {}
-    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": []}
+    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": [], "n_trials": 50}
     assert block["mra"]["log"] and block["multi_mra"]["locations"] == []
     assert model.problems(_project(), prepared)[0] == (
         "Single-family › LightGBM: no variable list. Make one on Variables › Variable lists."
@@ -91,7 +91,7 @@ def test_default_settings(prepared):
         p, [model.VarList(id="trees", name="Trees", kind="ml", groups=["sf"], variables=["land_area_sqft"])]
     )
     block = model.settings(p, prepared)["modeling"]["models"]["main"]["sf"]
-    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": "$$variable_lists.trees"}
+    assert block["lightgbm"] == {"model": "lightgbm", "ind_vars": "$$variable_lists.trees", "n_trials": 50}
     # Local area and the roll take the areas from the group's default entry.
     assert block["default"] == {"ind_vars": ["land_area_sqft", "bldg_area_finished_sqft"]}
     # The study set judges the models by their holdout predictions, like for like with the roll.
@@ -131,7 +131,7 @@ def test_a_groups_own_models(prepared):
     main = model.settings(p, prepared)["modeling"]
     block = main["models"]["main"]["sf"]
     assert main["instructions"]["main"]["run"] == ["trees", "mra", "local_area", "assessor"]
-    assert block["trees"] == {"model": "xgboost", "ind_vars": "$$variable_lists.short"}
+    assert block["trees"] == {"model": "xgboost", "ind_vars": "$$variable_lists.short", "n_trials": 50}
     # A linear model can't take a blank: its list without the variables with blanks, written out.
     assert block["mra"]["ind_vars"] == ["land_area_sqft"]
     assert block["local_area"] == {"model": "local_area", "locations": []}
@@ -214,3 +214,43 @@ def test_how_they_did_tables():
         "vei_trim",
         "vei_sig_trim",
     }
+
+
+def test_each_models_own_settings(prepared):
+    from oakbox import varlists
+
+    p = _project()
+    p.model.lists = varlists.check(
+        p, [model.VarList(id="r", name="R", kind="regression", groups=["sf"], variables=["land_area_sqft"])]
+    )
+    model.set_group(
+        p,
+        prepared,
+        "sf",
+        [
+            model.ModelEntry(engine="mra", intercept=False, interactions="default", n_trials=9),
+            model.ModelEntry(engine="catboost", list_id="r", n_trials=20, use_gpu=False, log=False),
+            model.ModelEntry(engine="gwr"),
+        ],
+    )
+    # Only the options an engine reads are kept.
+    mra, cat, gwr = p.model.groups["sf"]
+    assert mra.n_trials is None and cat.log is None
+    block = model.settings(p, prepared)["modeling"]["models"]["main"]["sf"]
+    # Every option written, defaults too: what's shown is what runs.
+    assert block["mra"] == {
+        "model": "mra",
+        "ind_vars": "$$variable_lists.r",
+        "log": True,
+        "intercept": False,
+        "interactions": {"default": True},
+    }
+    assert block["catboost"] == {
+        "model": "catboost",
+        "ind_vars": "$$variable_lists.r",
+        "n_trials": 20,
+        "use_gpu": False,
+    }
+    assert block["gwr"]["interactions"] == {"default": False}
+    with pytest.raises(ValueError):
+        model.ModelEntry(engine="lightgbm", n_trials=0)

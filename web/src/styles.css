@@ -4618,3 +4618,28 @@ table.tbl.dt > * > tr > :is(th, td) {
   z-index: 1;
   background: var(--head);
 }
+
+/* Models › Configuration: a model's own settings, under its row. */
+.mo-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.2rem 0.4rem;
+}
+.mo-option {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  align-items: center;
+}
+.mo-option > .wiz-from {
+  flex-basis: 100%;
+  padding-left: 1.6rem;
+  font-size: 0.88rem;
+}
+.mo-label {
+  font-weight: 600;
+}
+.mo-trials .input {
+  width: 5rem;
+}

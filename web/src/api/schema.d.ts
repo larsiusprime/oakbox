@@ -3070,6 +3070,11 @@ export interface components {
              * @description Reads a location stack.
              */
             located: boolean;
+            /**
+             * Options
+             * @description Its own settings, as Configuration offers them (locations among them).
+             */
+            options: string[];
         };
         /** EnrichResult */
         EnrichResult: {
@@ -3293,6 +3298,36 @@ export interface components {
              * @description Its location stack, finest first (Multi-MRA, Local area); None: proposed.
              */
             locations: string[] | null;
+            /**
+             * Log
+             * @description MRA, Multi-MRA: fit on log price.
+             */
+            log: boolean | null;
+            /**
+             * Intercept
+             * @description MRA, Multi-MRA: a base value every parcel gets.
+             */
+            intercept: boolean | null;
+            /**
+             * Interactions
+             * @description Linear models: default multiplies each land and building category by its area.
+             */
+            interactions: ("none" | "default") | null;
+            /**
+             * Optimize Vars
+             * @description Multi-MRA: drop unhelpful variables per area.
+             */
+            optimize_vars: boolean | null;
+            /**
+             * N Trials
+             * @description Trees: tuning trials.
+             */
+            n_trials: number | null;
+            /**
+             * Use Gpu
+             * @description CatBoost: the graphics card if there is one.
+             */
+            use_gpu: boolean | null;
             /** Warnings */
             warnings: components["schemas"]["EntryWarning"][];
         };
@@ -4470,6 +4505,36 @@ export interface components {
              * @description Its location stack, finest first (Multi-MRA, Local area); None: proposed.
              */
             locations?: string[] | null;
+            /**
+             * Log
+             * @description MRA, Multi-MRA: fit on log price.
+             */
+            log?: boolean | null;
+            /**
+             * Intercept
+             * @description MRA, Multi-MRA: a base value every parcel gets.
+             */
+            intercept?: boolean | null;
+            /**
+             * Interactions
+             * @description Linear models: default multiplies each land and building category by its area.
+             */
+            interactions?: ("none" | "default") | null;
+            /**
+             * Optimize Vars
+             * @description Multi-MRA: drop unhelpful variables per area.
+             */
+            optimize_vars?: boolean | null;
+            /**
+             * N Trials
+             * @description Trees: tuning trials.
+             */
+            n_trials?: number | null;
+            /**
+             * Use Gpu
+             * @description CatBoost: the graphics card if there is one.
+             */
+            use_gpu?: boolean | null;
         };
         /**
          * ModelEntry
@@ -4500,6 +4565,36 @@ export interface components {
              * @description Its location stack, finest first (Multi-MRA, Local area); None: proposed.
              */
             locations: string[] | null;
+            /**
+             * Log
+             * @description MRA, Multi-MRA: fit on log price.
+             */
+            log: boolean | null;
+            /**
+             * Intercept
+             * @description MRA, Multi-MRA: a base value every parcel gets.
+             */
+            intercept: boolean | null;
+            /**
+             * Interactions
+             * @description Linear models: default multiplies each land and building category by its area.
+             */
+            interactions: ("none" | "default") | null;
+            /**
+             * Optimize Vars
+             * @description Multi-MRA: drop unhelpful variables per area.
+             */
+            optimize_vars: boolean | null;
+            /**
+             * N Trials
+             * @description Trees: tuning trials.
+             */
+            n_trials: number | null;
+            /**
+             * Use Gpu
+             * @description CatBoost: the graphics card if there is one.
+             */
+            use_gpu: boolean | null;
         };
         /**
          * ModelGroup
@@ -4666,6 +4761,13 @@ export interface components {
              * @description The location fields a stack can use.
              */
             locations: components["schemas"]["oakbox__locstack__LocationField"][];
+            /**
+             * Defaults
+             * @description Each model option's default.
+             */
+            defaults: {
+                [key: string]: boolean | number | string;
+            };
             /**
              * Tests
              * @description The variable tests to run, besides Represented.

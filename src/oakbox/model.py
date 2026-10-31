@@ -46,7 +46,26 @@ ENGINES: dict[str, tuple[str, str]] = {
     "local_area": ("Local area", "The neighbourhood's price per area: a baseline to beat."),
 }
 TREES = {"lightgbm", "xgboost", "catboost"}
-LOGGED = {"mra", "multi_mra"}
+# Each engine's own settings (Model values › Models › Configuration), as OpenAVMKit reads them from its entry, and
+# their defaults. Locations are the stack (LOCATED); interactions only for the linear ones (trees find their own).
+OPTIONS: dict[str, list[str]] = {
+    "mra": ["log", "intercept", "interactions"],
+    "multi_mra": ["locations", "log", "intercept", "interactions", "optimize_vars"],
+    "gwr": ["interactions"],
+    "local_area": ["locations"],
+    "lightgbm": ["n_trials"],
+    "xgboost": ["n_trials"],
+    "catboost": ["n_trials", "use_gpu"],
+}
+DEFAULTS: dict[str, object] = {
+    "log": True,
+    "intercept": True,
+    "interactions": "none",
+    "optimize_vars": False,
+    "n_trials": 50,
+    "use_gpu": True,
+}
+Interactions = Literal["none", "default"]
 # Models that read a location stack; Local area takes no variable list (its areas' price per area is the model).
 LOCATED = {"multi_mra", "local_area"}
 TAKES_LIST = set(ENGINES) - {"local_area"}
@@ -99,6 +118,20 @@ class ModelEntry(BaseModel):
     locations: list[str] | None = Field(
         default=None, description="Its location stack, finest first (Multi-MRA, Local area); None: proposed."
     )
+    # Its own settings (OPTIONS); None: the default (DEFAULTS).
+    log: bool | None = Field(default=None, description="MRA, Multi-MRA: fit on log price.")
+    intercept: bool | None = Field(default=None, description="MRA, Multi-MRA: a base value every parcel gets.")
+    interactions: Interactions | None = Field(
+        default=None, description="Linear models: default multiplies each land and building category by its area."
+    )
+    optimize_vars: bool | None = Field(default=None, description="Multi-MRA: drop unhelpful variables per area.")
+    n_trials: int | None = Field(default=None, ge=1, le=500, description="Trees: tuning trials.")
+    use_gpu: bool | None = Field(default=None, description="CatBoost: the graphics card if there is one.")
+
+    def option(self, name: str):
+        """An option's value, or its default."""
+        v = getattr(self, name)
+        return DEFAULTS[name] if v is None else v
 
 
 class ModelState(BaseModel):
@@ -389,10 +422,14 @@ def settings(project, project_dir: Path) -> dict:
                     entry["ind_vars"] = [v for v in lst.variables if v not in blanks]
                 else:
                     entry["ind_vars"] = f"$$variable_lists.{lst.id}"
-            if e.engine in LOGGED:
-                entry["log"] = True
-            if e.engine in LOCATED:
-                entry["locations"] = e.locations or []
+            # Every option the engine reads, defaults too: what's shown is what runs.
+            for o in OPTIONS.get(e.engine, []):
+                if o == "locations":
+                    entry["locations"] = e.locations or []
+                elif o == "interactions":
+                    entry["interactions"] = {"default": e.option(o) == "default"}
+                else:
+                    entry[o] = e.option(o)
             block[e.key] = entry
             if e.key not in names:
                 names.append(e.key)
@@ -431,6 +468,7 @@ class Engine(BaseModel):
     kind: ListKind = Field(description="The type of variable list it's made for.")
     takes_list: bool
     located: bool = Field(description="Reads a location stack.")
+    options: list[str] = Field(description="Its own settings, as Configuration offers them (locations among them).")
 
 
 class ModelGroupCount(BaseModel):
@@ -470,6 +508,7 @@ class ModelSetup(BaseModel):
     groups: list[GroupModels]
     lists: list[ListSummary]
     locations: list[locstack.LocationField] = Field(description="The location fields a stack can use.")
+    defaults: dict[str, bool | int | str] = Field(description="Each model option's default.")
     tests: list[str] = Field(description="The variable tests to run, besides Represented.")
 
 
@@ -539,7 +578,15 @@ def setup(project, project_dir: Path) -> ModelSetup:
     return ModelSetup(
         variables=vs,
         engines=[
-            Engine(key=k, name=n, note=note, kind=kind_of(k), takes_list=k in TAKES_LIST, located=k in LOCATED)
+            Engine(
+                key=k,
+                name=n,
+                note=note,
+                kind=kind_of(k),
+                takes_list=k in TAKES_LIST,
+                located=k in LOCATED,
+                options=OPTIONS.get(k, []),
+            )
             for k, (n, note) in ENGINES.items()
         ],
         groups=groups,
@@ -547,6 +594,7 @@ def setup(project, project_dir: Path) -> ModelSetup:
             ListSummary(id=x.id, name=x.name, kind=x.kind, groups=x.groups, count=len(x.variables)) for x in all_lists
         ],
         locations=locstack.offered(project_dir),
+        defaults={k: v for k, v in DEFAULTS.items() if isinstance(v, bool | int | str)},
         tests=tests(project),
     )
 
@@ -602,6 +650,8 @@ def set_group(project, project_dir: Path, group: str, models: list[ModelEntry] |
                 engine=e.engine,
                 list_id=e.list_id if e.engine in TAKES_LIST else None,
                 locations=list(dict.fromkeys(e.locations)) if e.engine in LOCATED and e.locations is not None else None,
+                # Only the options the engine reads.
+                **{o: getattr(e, o) for o in OPTIONS.get(e.engine, []) if o != "locations"},
             )
         )
     if len({e.name.lower() for e in out}) < len(out):

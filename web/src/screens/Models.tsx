@@ -6,11 +6,11 @@ import { useSetGroupModels } from "../api/models";
 import { AddButton } from "../components/AddButton";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { Choice } from "../components/Form";
-import { LocationStack } from "../components/LocationStack";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
 import { day, num, signed } from "../lib/format";
 import { t } from "../strings";
+import { ConfigSummary, ModelOptions } from "./ModelOptions";
 
 const m = t.values.model;
 
@@ -36,7 +36,14 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
     engine: e.engine,
     list_id: e.list_id ?? null,
     locations: e.locations ?? null,
+    log: e.log ?? null,
+    intercept: e.intercept ?? null,
+    interactions: e.interactions ?? null,
+    optimize_vars: e.optimize_vars ?? null,
+    n_trials: e.n_trials ?? null,
+    use_gpu: e.use_gpu ?? null,
   }));
+  const places = Object.fromEntries(v.locations.map((x) => [x.field, x.name]));
   const save = (models: ModelEntry[] | null, group = g.id) => put.mutate({ group, models });
   const change = (i: number, patch: Partial<ModelEntry>) =>
     save(entries.map((e, j) => (j === i ? { ...e, ...patch } : e)));
@@ -67,6 +74,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
               <th>{m.model}</th>
               <th>{m.engine}</th>
               <th>{m.variables}</th>
+              <th>{m.configuration}</th>
               <th />
             </tr>
           </thead>
@@ -74,9 +82,8 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
             {g.models.map((e, i) => {
               const eng = engines[e.engine];
               const open = stack === e.key;
-              const stackNames = [...(e.locations ?? [])]
-                .reverse()
-                .map((f) => v.locations.find((x) => x.field === f)?.name ?? f);
+              const options = eng?.options ?? [];
+              const entry = entries[i] ?? e;
               return [
                 <tr key={e.key}>
                   <td>
@@ -96,26 +103,36 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     ) : (
                       <span className="wiz-from">{m.takesNoList}</span>
                     )}
-                    {eng?.located && (
-                      <div className="gm-stackline">
-                        <span className="wiz-from">{m.locations}</span>{" "}
-                        {stackNames.length ? stackNames.join(" › ") : m.noLocations}{" "}
+                    {e.warnings
+                      .filter((w) => w.code !== "no_locations")
+                      .map((w) => (
+                        <p key={w.code} className="wiz-warn gm-warn">
+                          {w.code === "kind_mismatch"
+                            ? m.warn.kind_mismatch(eng?.name ?? e.engine, lists[e.list_id ?? ""]?.kind ?? "")
+                            : w.code === "blanks_left_out"
+                              ? m.warn.blanks_left_out(w.n)
+                              : m.warn[w.code as "list_missing" | "list_empty" | "no_list"]}
+                        </p>
+                      ))}
+                  </td>
+                  <td>
+                    {options.length ? (
+                      <>
+                        <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />{" "}
                         <Button className="wiz-link" onPress={() => setStack(open ? null : e.key)}>
                           {open ? m.done : m.change}
                         </Button>
-                      </div>
+                      </>
+                    ) : (
+                      <span className="wiz-from">{m.noSettings}</span>
                     )}
-                    {e.warnings.map((w) => (
-                      <p key={w.code} className="wiz-warn gm-warn">
-                        {w.code === "kind_mismatch"
-                          ? m.warn.kind_mismatch(eng?.name ?? e.engine, lists[e.list_id ?? ""]?.kind ?? "")
-                          : w.code === "blanks_left_out"
-                            ? m.warn.blanks_left_out(w.n)
-                            : w.code === "no_locations"
-                              ? m.warn.no_locations(e.engine)
-                              : m.warn[w.code]}
-                      </p>
-                    ))}
+                    {e.warnings
+                      .filter((w) => w.code === "no_locations")
+                      .map((w) => (
+                        <p key={w.code} className="wiz-warn gm-warn">
+                          {m.warn.no_locations(e.engine)}
+                        </p>
+                      ))}
                   </td>
                   <td>
                     <Button
@@ -128,15 +145,17 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                   </td>
                 </tr>,
                 open && (
-                  <tr key={`${e.key}-stack`} className="gm-detail">
-                    <td colSpan={4}>
-                      <LocationStack
+                  <tr key={`${e.key}-config`} className="gm-detail">
+                    <td colSpan={5}>
+                      <ModelOptions
                         projectId={projectId}
                         group={g.id}
-                        engine={e.engine}
-                        finestFirst={e.locations ?? []}
+                        e={entry}
+                        name={e.name}
+                        options={options}
+                        defaults={v.defaults}
                         offered={v.locations}
-                        onChange={(locations) => change(i, { locations })}
+                        change={(patch) => change(i, patch)}
                       />
                     </td>
                   </tr>
@@ -183,6 +202,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                   )}
                   <p className="wiz-from gm-warn">{engines[adding.engine]?.note}</p>
                 </td>
+                <td className="wiz-from">{m.configLater}</td>
                 <td className="gm-addtools">
                   <Button
                     className="button button-primary"

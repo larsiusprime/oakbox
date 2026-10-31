@@ -7899,6 +7899,14 @@
       "type": "boolean",
       "title": "Located",
       "description": "Reads a location stack."
+     },
+     "options": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Options",
+      "description": "Its own settings, as Configuration offers them (locations among them)."
      }
     },
     "type": "object",
@@ -7908,7 +7916,8 @@
      "note",
      "kind",
      "takes_list",
-     "located"
+     "located",
+     "options"
     ],
     "title": "Engine"
    },
@@ -8328,6 +8337,84 @@
       "title": "Locations",
       "description": "Its location stack, finest first (Multi-MRA, Local area); None: proposed."
      },
+     "log": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Log",
+      "description": "MRA, Multi-MRA: fit on log price."
+     },
+     "intercept": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Intercept",
+      "description": "MRA, Multi-MRA: a base value every parcel gets."
+     },
+     "interactions": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "none",
+         "default"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Interactions",
+      "description": "Linear models: default multiplies each land and building category by its area."
+     },
+     "optimize_vars": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Optimize Vars",
+      "description": "Multi-MRA: drop unhelpful variables per area."
+     },
+     "n_trials": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 500.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "N Trials",
+      "description": "Trees: tuning trials."
+     },
+     "use_gpu": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use Gpu",
+      "description": "CatBoost: the graphics card if there is one."
+     },
      "warnings": {
       "items": {
        "$ref": "#/components/schemas/EntryWarning"
@@ -8343,6 +8430,12 @@
      "engine",
      "list_id",
      "locations",
+     "log",
+     "intercept",
+     "interactions",
+     "optimize_vars",
+     "n_trials",
+     "use_gpu",
      "warnings"
     ],
     "title": "EntryView"
@@ -10982,6 +11075,84 @@
       ],
       "title": "Locations",
       "description": "Its location stack, finest first (Multi-MRA, Local area); None: proposed."
+     },
+     "log": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Log",
+      "description": "MRA, Multi-MRA: fit on log price."
+     },
+     "intercept": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Intercept",
+      "description": "MRA, Multi-MRA: a base value every parcel gets."
+     },
+     "interactions": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "none",
+         "default"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Interactions",
+      "description": "Linear models: default multiplies each land and building category by its area."
+     },
+     "optimize_vars": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Optimize Vars",
+      "description": "Multi-MRA: drop unhelpful variables per area."
+     },
+     "n_trials": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 500.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "N Trials",
+      "description": "Trees: tuning trials."
+     },
+     "use_gpu": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use Gpu",
+      "description": "CatBoost: the graphics card if there is one."
      }
     },
     "type": "object",
@@ -11035,6 +11206,84 @@
       ],
       "title": "Locations",
       "description": "Its location stack, finest first (Multi-MRA, Local area); None: proposed."
+     },
+     "log": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Log",
+      "description": "MRA, Multi-MRA: fit on log price."
+     },
+     "intercept": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Intercept",
+      "description": "MRA, Multi-MRA: a base value every parcel gets."
+     },
+     "interactions": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "none",
+         "default"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Interactions",
+      "description": "Linear models: default multiplies each land and building category by its area."
+     },
+     "optimize_vars": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Optimize Vars",
+      "description": "Multi-MRA: drop unhelpful variables per area."
+     },
+     "n_trials": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 500.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "N Trials",
+      "description": "Trees: tuning trials."
+     },
+     "use_gpu": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Use Gpu",
+      "description": "CatBoost: the graphics card if there is one."
      }
     },
     "type": "object",
@@ -11043,7 +11292,13 @@
      "name",
      "engine",
      "list_id",
-     "locations"
+     "locations",
+     "log",
+     "intercept",
+     "interactions",
+     "optimize_vars",
+     "n_trials",
+     "use_gpu"
     ],
     "title": "ModelEntry",
     "description": "One of a model group's models."
@@ -11407,6 +11662,24 @@
       "title": "Locations",
       "description": "The location fields a stack can use."
      },
+     "defaults": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "integer"
+        },
+        {
+         "type": "string"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Defaults",
+      "description": "Each model option's default."
+     },
      "tests": {
       "items": {
        "type": "string"
@@ -11423,6 +11696,7 @@
      "groups",
      "lists",
      "locations",
+     "defaults",
      "tests"
     ],
     "title": "ModelSetup"
