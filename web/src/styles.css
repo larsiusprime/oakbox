@@ -4533,36 +4533,30 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 /* Model values › Models: a tab per model group, its models, a location stack opened under its model. */
-.gm-tabs {
+.gm-head {
   display: flex;
   flex-wrap: wrap;
-  margin-bottom: 0.6rem;
-  border-bottom: 1px solid var(--panel-edge);
+  gap: 0.2rem 0.8rem;
+  align-items: baseline;
+  margin: 0.2rem 0 0.7rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--zebra);
+  border: 1px solid var(--cell-line);
+  border-radius: var(--radius);
 }
-.gm-tab {
-  display: inline-flex;
-  gap: 0.35rem;
-  align-items: center;
-  margin-right: -1px;
-  padding: 0.25rem 0.8rem;
-  font-family: inherit;
-  font-size: inherit;
-  color: var(--text);
-  background: var(--head);
-  border: 1px solid var(--panel-edge);
-  border-bottom: 0;
-  border-radius: var(--radius) var(--radius) 0 0;
-  cursor: pointer;
-}
-.gm-tab.on {
-  position: relative;
-  top: 1px;
-  font-weight: 600;
-  background: var(--panel);
-}
-.gm-tab:disabled {
+.gm-of {
+  flex-basis: 100%;
+  font-size: 0.8rem;
   color: var(--muted);
-  cursor: default;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gm-title {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0;
+  font-size: 1.35rem;
 }
 .gm-stackline {
   margin-top: 0.2rem;

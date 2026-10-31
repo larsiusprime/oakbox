@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { when } from "../lib/format";
@@ -16,6 +17,8 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const { setup: mSetup } = useStepSetup("model", projectId);
   const mAct = useStepAct("model", projectId);
   const nav = useStepNav<MvStep>();
+  // Models: one model group at a time, the footer moving between them.
+  const [groupAt, setGroupAt] = useState(0);
   const at = nav.at;
   if (!mv) return <p className="empty">{ms.error?.message ?? t.project.loading}</p>;
   const trying = mv.status === "running";
@@ -27,6 +30,15 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const go = nav.go;
   const tryIt = () => mAct.mutate("run", { onSuccess: () => nav.ran("try") });
   const tried = mr ? (mv.stale ? "attention" : "done") : "blank";
+  const modeled = (mSetup.data?.groups ?? []).filter((g) => g.modeled);
+  const gi = Math.min(groupAt, Math.max(modeled.length - 1, 0));
+  const group = modeled[gi];
+  // Groups a model of which still has no list (or an empty one): Next waits for them.
+  const unlisted = modeled.filter(
+    (g) =>
+      g.models.length === 0 ||
+      g.models.some((e) => e.warnings.some((w) => w.code === "no_list" || w.code === "list_empty")),
+  );
   const steps: Step[] = MV_STEPS.map((key) => ({
     key,
     title: m.steps[key],
@@ -37,7 +49,9 @@ export function ValuesTab({ projectId }: { projectId: string }) {
           ? mr && !mv.stale
             ? "done"
             : "blank"
-          : "done",
+          : unlisted.length
+            ? "attention"
+            : "done",
     disabled: (key === "how" || key === "small") && !mr,
   }));
   const i = MV_STEPS.indexOf(current);
@@ -59,14 +73,26 @@ export function ValuesTab({ projectId }: { projectId: string }) {
       {current === "models" && (
         <>
           <StepBody kicker={m.modelsKicker} title={m.steps.models} lede={m.model.modelsLede}>
-            {mu ? (
-              <GroupModelsCard projectId={projectId} v={mu} />
+            {mu && group ? (
+              <GroupModelsCard key={group.id} projectId={projectId} v={mu} gid={group.id} />
             ) : (
               <p className="empty">{t.project.loading}</p>
             )}
             {errors}
           </StepBody>
-          <StepFoot back={back} next={onward} />
+          <StepFoot
+            back={gi > 0 ? () => setGroupAt(gi - 1) : back}
+            note={
+              gi === modeled.length - 1 && unlisted.length
+                ? m.model.unlisted(unlisted.map((g) => g.name))
+                : null
+            }
+            next={
+              gi < modeled.length - 1
+                ? { label: m.model.nextGroup(modeled[gi + 1]?.name ?? ""), onPress: () => setGroupAt(gi + 1) }
+                : { ...onward, disabled: unlisted.length > 0 }
+            }
+          />
         </>
       )}
       {current === "try" && (

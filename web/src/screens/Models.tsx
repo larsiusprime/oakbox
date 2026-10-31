@@ -17,13 +17,16 @@ const m = t.values.model;
 /** Model values › Models: a tab per modeled group (the others greyed, not modeled), its models in a table: each a
  * name, an engine, its variable list and (Multi-MRA, Local area) its location stack, opened in place one at a time;
  * Add a model; copy a group's models to others; back to the default ones. */
-export function GroupModelsCard({ projectId, v }: { projectId: string; v: ModelSetup }) {
+export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: ModelSetup; gid: string }) {
   const put = useSetGroupModels(projectId);
-  const [gid, setGid] = useState<string | null>(null);
   const [stack, setStack] = useState<string | null>(null);
   const [adding, setAdding] = useState<ModelEntry | null>(null);
   const modeled = v.groups.filter((g) => g.modeled);
-  const g = modeled.find((x) => x.id === gid) ?? modeled[0];
+  const at = Math.max(
+    0,
+    modeled.findIndex((x) => x.id === gid),
+  );
+  const g = modeled[at];
   if (!g) return <p className="wiz-from">{t.groups.notModeled}</p>;
   const engines = Object.fromEntries(v.engines.map((e) => [e.key, e]));
   const lists = Object.fromEntries(v.lists.map((x) => [x.id, x]));
@@ -46,24 +49,13 @@ export function GroupModelsCard({ projectId, v }: { projectId: string; v: ModelS
   const others = modeled.filter((x) => x.id !== g.id);
   return (
     <div className="cs-step">
-      <div className="gm-tabs">
-        {v.groups.map((x) => (
-          <button
-            key={x.id}
-            type="button"
-            aria-pressed={x.id === g.id}
-            className={x.id === g.id ? "gm-tab on" : "gm-tab"}
-            disabled={!x.modeled}
-            onClick={() => {
-              setGid(x.id);
-              setStack(null);
-              setAdding(null);
-            }}
-          >
-            <span className="mg-sw ab-sw" style={{ background: x.modeled ? x.color : "var(--muted)" }} />
-            {x.name} <span className="wiz-from">{x.modeled ? m.salesTab(x.sales) : m.notModeledTab}</span>
-          </button>
-        ))}
+      <div className="gm-head">
+        <span className="gm-of">{m.groupOf(at + 1, modeled.length)}</span>
+        <h3 className="gm-title">
+          <span className="mg-sw ab-sw big" style={{ background: g.color }} />
+          {g.name}
+        </h3>
+        <span className="wiz-from">{m.salesTab(g.sales)}</span>
       </div>
       {g.sales < 15 && <p className="wiz-warn">{m.tooFew}</p>}
       {entries.length === 0 && !adding ? (

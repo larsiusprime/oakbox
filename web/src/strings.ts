@@ -2371,8 +2371,10 @@ export const t = {
     model: {
       fillIt: "Fill it…",
       modelsLede:
-        "Each modeled group has its own models. Every group starts with LightGBM, MRA and Multi-MRA; add, remove or rename them. Each takes its variables from a variable list; Multi-MRA and Local area read a stack of locations too. The ensemble is the median of a group's models, leaving out any that don't help; the roll is audited beside them on the study set, never in it.",
-      notModeledTab: "not modeled",
+        "Each modeled group has its own models, one group at a time: the button at the bottom right goes on to the next. Every group starts with LightGBM, MRA and Multi-MRA; add, remove or rename them. Each takes its variables from a variable list; Multi-MRA and Local area read a stack of locations too. The ensemble is the median of a group's models, leaving out any that don't help; the roll is audited beside them on the study set, never in it.",
+      groupOf: (n: number, of: number) => `Model group ${n.toLocaleString()} of ${of.toLocaleString()}`,
+      nextGroup: (name: string) => `${name} ›`,
+      unlisted: (groups: string[]) => `Still without a variable list: ${groups.join(", ")}.`,
       salesTab: (n: number) => `${n.toLocaleString()} ${n === 1 ? "sale" : "sales"}`,
       engine: "Engine",
       variables: "Variables",
