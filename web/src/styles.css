@@ -4603,3 +4603,12 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vl-warns > .wiz-warn {
   margin: 0.15rem 0;
 }
+
+/* Model values › Small groups. */
+.sg-table {
+  width: 100%;
+}
+.sg-flags {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}

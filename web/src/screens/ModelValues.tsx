@@ -3,10 +3,11 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { when } from "../lib/format";
 import { t } from "../strings";
 import { GroupModelsCard, HowTheyDid } from "./Models";
+import { SmallGroupsStep } from "./SmallGroups";
 
 const m = t.values;
-type MvStep = "models" | "try" | "how";
-const MV_STEPS: MvStep[] = ["models", "try", "how"];
+type MvStep = "models" | "try" | "how" | "small";
+const MV_STEPS: MvStep[] = ["models", "try", "how", "small"];
 
 /** Step 6, Model values (SPEC F9): each model group's models, a try, and how they did. */
 export function ValuesTab({ projectId }: { projectId: string }) {
@@ -29,8 +30,15 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const steps: Step[] = MV_STEPS.map((key) => ({
     key,
     title: m.steps[key],
-    status: key === "try" ? tried : key === "how" ? (mr && !mv.stale ? "done" : "blank") : "done",
-    disabled: key === "how" && !mr,
+    status:
+      key === "try"
+        ? tried
+        : key === "how" || key === "small"
+          ? mr && !mv.stale
+            ? "done"
+            : "blank"
+          : "done",
+    disabled: (key === "how" || key === "small") && !mr,
   }));
   const i = MV_STEPS.indexOf(current);
   const prev = MV_STEPS[i - 1];
@@ -107,7 +115,16 @@ export function ValuesTab({ projectId }: { projectId: string }) {
           <StepBody kicker={m.modelsKicker} title={m.steps.how} lede={m.model.howLede}>
             <HowTheyDid view={mv} />
           </StepBody>
-          <StepFoot back={back} extra={[{ label: m.model.tryAgain, onPress: tryIt }]} />
+          <StepFoot back={back} extra={[{ label: m.model.tryAgain, onPress: tryIt }]} next={onward} />
+        </>
+      )}
+      {current === "small" && mr && (
+        <>
+          <StepBody kicker={m.modelsKicker} title={m.steps.small} lede={m.small.lede}>
+            {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
+            <SmallGroupsStep projectId={projectId} />
+          </StepBody>
+          <StepFoot back={back} />
         </>
       )}
     </StepFrame>

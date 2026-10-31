@@ -66,3 +66,33 @@ export function useStack(projectId: string, group: string, broadestFirst: string
     placeholderData: keepPreviousData,
   });
 }
+
+export const smallKey = (projectId: string) => ["model-small", projectId] as const;
+
+/** The groups the try can't be trusted on, and what's done with each. */
+export function useSmallGroups(projectId: string) {
+  return useQuery({
+    queryKey: smallKey(projectId),
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/model/small", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+  });
+}
+
+/** Leave a flagged group unvalued, or model it anyway. */
+export function useSetSmall(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ group, choice }: { group: string; choice: "leave" | "model" }) =>
+      unwrap(
+        await api.PUT("/api/projects/{project_id}/model/small/{group}", {
+          params: { path: { project_id: projectId, group } },
+          body: { choice },
+        }),
+      ),
+    onSuccess: (data) => queryClient.setQueryData(smallKey(projectId), data),
+  });
+}

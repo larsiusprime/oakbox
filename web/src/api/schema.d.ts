@@ -1911,6 +1911,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/small": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Model Small
+         * @description The groups the try can't be trusted on, why, and whether each is left unvalued or modeled anyway.
+         */
+        get: operations["model_small_api_projects__project_id__model_small_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/model/small/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Model Small Choice */
+        put: operations["model_small_choice_api_projects__project_id__model_small__group__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio/setup": {
         parameters: {
             query?: never;
@@ -4259,7 +4296,7 @@ export interface components {
             variables: string[];
             /**
              * Used By
-             * @description Models that take it: '<model> · <group>'.
+             * @description Models that take it: '<model> · <group>' or '<model> · <n> groups'.
              */
             used_by: string[];
             /** Warnings */
@@ -4555,6 +4592,18 @@ export interface components {
              * @description Why it has no models, if it hasn't.
              */
             skipped: string | null;
+            /**
+             * Valued
+             * @description Parcels the try gave a value (the ensemble's, else a model's).
+             * @default 0
+             */
+            valued: number;
+            /**
+             * Below Zero
+             * @description Of them, valued below zero.
+             * @default 0
+             */
+            below_zero: number;
         };
         /** ModelPatch */
         ModelPatch: {
@@ -4641,6 +4690,13 @@ export interface components {
              */
             groups: {
                 [key: string]: components["schemas"]["ModelEntry-Output"][];
+            };
+            /**
+             * Small
+             * @description Small groups: model group -> left unvalued or modeled anyway.
+             */
+            small: {
+                [key: string]: "leave" | "model";
             };
         };
         /** ModelView */
@@ -6580,6 +6636,81 @@ export interface components {
             name: string;
             /** Roll */
             roll: boolean;
+        };
+        /** SmallChoice */
+        SmallChoice: {
+            /**
+             * Choice
+             * @enum {string}
+             */
+            choice: "leave" | "model";
+        };
+        /** SmallGroup */
+        SmallGroup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Parcels */
+            parcels: number;
+            /** Sales */
+            sales: number;
+            /**
+             * Modeled
+             * @description Ticked on Model groups › Check them.
+             */
+            modeled: boolean;
+            /**
+             * Median
+             * @description The ensemble's holdout median ratio.
+             */
+            median: number | null;
+            /**
+             * Cod
+             * @description The ensemble's holdout COD.
+             */
+            cod: number | null;
+            /** Below Zero */
+            below_zero: number;
+            /** Flags */
+            flags: ("too_few" | "no_values" | "no_holdout" | "implausible" | "below_zero")[];
+            /**
+             * Can Model
+             * @description Some model produced values for it: it can be modeled anyway.
+             */
+            can_model: boolean;
+            /**
+             * Choice
+             * @description Flagged: left unvalued or modeled anyway; null: not flagged.
+             */
+            choice: ("leave" | "model") | null;
+        };
+        /** SmallGroupsView */
+        SmallGroupsView: {
+            /**
+             * Tried
+             * @description The models have been tried: the flags are the try's.
+             */
+            tried: boolean;
+            /** Groups */
+            groups: components["schemas"]["SmallGroup"][];
+            /**
+             * Unvalued Parcels
+             * @description Parcels in the groups left unvalued.
+             */
+            unvalued_parcels: number;
+            /**
+             * Unvalued
+             * @description The groups left unvalued, by name.
+             */
+            unvalued: string[];
+            /**
+             * Blanked
+             * @description Parcels in modeled groups valued below zero: left blank.
+             */
+            blanked: number;
         };
         /** Source */
         Source: {
@@ -11903,6 +12034,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VarListsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_small_api_projects__project_id__model_small_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmallGroupsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_small_choice_api_projects__project_id__model_small__group__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmallChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmallGroupsView"];
                 };
             };
             /** @description Validation Error */

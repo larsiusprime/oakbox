@@ -54,7 +54,7 @@ const ALSO: Partial<Record<StepId, string[]>> = {
   clean: ["clean-time", "clean-review"],
   prepare: ["varlists"],
   vartest: ["varlists"],
-  model: ["vartest", "varlists"],
+  model: ["vartest", "varlists", "model-small"],
 };
 
 /** Something about a step changed (a call, a mark, a run): ask it again (unless `self` is false: the caller has

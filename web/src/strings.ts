@@ -2157,6 +2157,7 @@ export const t = {
       models: "Models",
       try: "Try them",
       how: "How they did",
+      small: "Small groups",
     },
     fillLede:
       "Blanks the models can't take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",
@@ -2331,6 +2332,39 @@ export const t = {
       noFields:
         "No location fields: add a neighborhood or district on Data › Locations, a map layer, or census areas (Data › Enrichments).",
       written: (fields: string) => `Written finest first, as OpenAVMKit reads it: ${fields}.`,
+    },
+    // Small groups (F9, slice 2): the groups the try can't be trusted on, left unvalued unless modeled anyway.
+    small: {
+      lede: "Groups the models can't be trusted on: too few sales to learn from or to judge them by, or values that make no sense (a holdout median ratio outside 0.5 to 2, or a value below zero). Left unvalued unless you choose to model them anyway: their parcels get no model value, and the report says so.",
+      notTried: "Try the models first: the groups are judged by the try.",
+      group: "Model group",
+      parcels: "Parcels",
+      sales: "Sales",
+      median: "Median ratio (holdout)",
+      cod: "COD",
+      belowZero: "Values below zero",
+      fromTry: "From the try",
+      todo: "What to do",
+      fine: "fine",
+      modeled: "Modeled",
+      notModeled: "Not modeled (Model groups › Check them)",
+      leave: "Leave unvalued",
+      model: "Model it anyway",
+      flags: {
+        too_few: (n: number) => `${n.toLocaleString()} ${n === 1 ? "sale" : "sales"}: too few to model`,
+        no_values: () => "no model produced values for it",
+        no_holdout: () => "no sales held out to judge it by",
+        implausible: (_n: number, median: string) => `median ratio ${median}: makes no sense`,
+        below_zero: (n: number) => `${n.toLocaleString()} ${n === 1 ? "value" : "values"} below zero`,
+      } as Record<string, (n: number, median: string) => string>,
+      cantModel: "No model produced values for it: it can only be left unvalued.",
+      unvalued: (parcels: number, groups: string[]) =>
+        `Left unvalued: ${parcels.toLocaleString()} ${parcels === 1 ? "parcel" : "parcels"} in ${groups.length.toLocaleString()} ${groups.length === 1 ? "group" : "groups"} (${groups.join(", ")}). Their model value is blank; the report and the export list them.`,
+      noneUnvalued: "Every modeled group gets model values.",
+      blanked: (n: number) =>
+        `${n.toLocaleString()} ${n === 1 ? "parcel" : "parcels"} in groups modeled anyway came out below zero: left blank, and counted.`,
+      neverBelow: "A value below zero never ships: the parcel stays blank and is counted.",
+      applies: "Applies when the values are made (Finalize): the try models every group, to judge it.",
     },
     // The models (F9): each model group's models, a try, and how they did.
     model: {

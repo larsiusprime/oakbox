@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import Field
 
-from oakbox import locstack, model, projects, varlists
+from oakbox import locstack, model, projects, smallgroups, varlists
 from oakbox.datafiles import BaseModel
 from oakbox.routes.common import load_project
 
@@ -114,3 +114,31 @@ def varlists_change(project_id: str, body: VarListsBody) -> varlists.VarListsVie
             raise HTTPException(422, str(e)) from e
     projects.save(project)
     return varlists.view(project, pdir)
+
+
+# ---------- Small groups ----------
+
+
+class SmallChoice(BaseModel):
+    choice: smallgroups.Choice
+
+
+@router.get("/api/projects/{project_id}/model/small")
+def model_small(project_id: str) -> smallgroups.SmallGroupsView:
+    """The groups the try can't be trusted on, why, and whether each is left unvalued or modeled anyway."""
+    project = load_project(project_id)
+    return smallgroups.view(project, projects.project_dir(project_id))
+
+
+@router.put("/api/projects/{project_id}/model/small/{group}")
+def model_small_choice(project_id: str, group: str, body: SmallChoice) -> smallgroups.SmallGroupsView:
+    project = load_project(project_id)
+    pdir = projects.project_dir(project_id)
+    try:
+        smallgroups.choose(project, pdir, group, body.choice)
+    except LookupError as e:
+        raise HTTPException(404, f"No model group {group}.") from e
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    projects.save(project)
+    return smallgroups.view(project, pdir)

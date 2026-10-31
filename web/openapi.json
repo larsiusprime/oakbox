@@ -5196,6 +5196,104 @@
     }
    }
   },
+  "/api/projects/{project_id}/model/small": {
+   "get": {
+    "summary": "Model Small",
+    "description": "The groups the try can't be trusted on, why, and whether each is left unvalued or modeled anyway.",
+    "operationId": "model_small_api_projects__project_id__model_small_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SmallGroupsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/model/small/{group}": {
+   "put": {
+    "summary": "Model Small Choice",
+    "operationId": "model_small_choice_api_projects__project_id__model_small__group__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SmallChoice"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SmallGroupsView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/ratio/setup": {
    "get": {
     "summary": "Ratio Setup",
@@ -10438,7 +10536,7 @@
       },
       "type": "array",
       "title": "Used By",
-      "description": "Models that take it: '<model> \u00b7 <group>'."
+      "description": "Models that take it: '<model> \u00b7 <group>' or '<model> \u00b7 <n> groups'."
      },
      "warnings": {
       "items": {
@@ -11115,6 +11213,18 @@
       ],
       "title": "Skipped",
       "description": "Why it has no models, if it hasn't."
+     },
+     "valued": {
+      "type": "integer",
+      "title": "Valued",
+      "description": "Parcels the try gave a value (the ensemble's, else a model's).",
+      "default": 0
+     },
+     "below_zero": {
+      "type": "integer",
+      "title": "Below Zero",
+      "description": "Of them, valued below zero.",
+      "default": 0
      }
     },
     "type": "object",
@@ -11128,7 +11238,9 @@
      "academic",
      "academic_trimmed",
      "timings",
-     "skipped"
+     "skipped",
+     "valued",
+     "below_zero"
     ],
     "title": "ModelGroupResult"
    },
@@ -11356,13 +11468,26 @@
       "type": "object",
       "title": "Groups",
       "description": "Model group -> its models; a group not here has the default ones."
+     },
+     "small": {
+      "additionalProperties": {
+       "type": "string",
+       "enum": [
+        "leave",
+        "model"
+       ]
+      },
+      "type": "object",
+      "title": "Small",
+      "description": "Small groups: model group -> left unvalued or modeled anyway."
      }
     },
     "type": "object",
     "required": [
      "tests",
      "lists",
-     "groups"
+     "groups",
+     "small"
     ],
     "title": "ModelState"
    },
@@ -15849,6 +15974,174 @@
      "roll"
     ],
     "title": "SetChoice"
+   },
+   "SmallChoice": {
+    "properties": {
+     "choice": {
+      "type": "string",
+      "enum": [
+       "leave",
+       "model"
+      ],
+      "title": "Choice"
+     }
+    },
+    "type": "object",
+    "required": [
+     "choice"
+    ],
+    "title": "SmallChoice"
+   },
+   "SmallGroup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "modeled": {
+      "type": "boolean",
+      "title": "Modeled",
+      "description": "Ticked on Model groups \u203a Check them."
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median",
+      "description": "The ensemble's holdout median ratio."
+     },
+     "cod": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cod",
+      "description": "The ensemble's holdout COD."
+     },
+     "below_zero": {
+      "type": "integer",
+      "title": "Below Zero"
+     },
+     "flags": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "too_few",
+        "no_values",
+        "no_holdout",
+        "implausible",
+        "below_zero"
+       ]
+      },
+      "type": "array",
+      "title": "Flags"
+     },
+     "can_model": {
+      "type": "boolean",
+      "title": "Can Model",
+      "description": "Some model produced values for it: it can be modeled anyway."
+     },
+     "choice": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "leave",
+         "model"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Choice",
+      "description": "Flagged: left unvalued or modeled anyway; null: not flagged."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "parcels",
+     "sales",
+     "modeled",
+     "median",
+     "cod",
+     "below_zero",
+     "flags",
+     "can_model",
+     "choice"
+    ],
+    "title": "SmallGroup"
+   },
+   "SmallGroupsView": {
+    "properties": {
+     "tried": {
+      "type": "boolean",
+      "title": "Tried",
+      "description": "The models have been tried: the flags are the try's."
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/SmallGroup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "unvalued_parcels": {
+      "type": "integer",
+      "title": "Unvalued Parcels",
+      "description": "Parcels in the groups left unvalued."
+     },
+     "unvalued": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Unvalued",
+      "description": "The groups left unvalued, by name."
+     },
+     "blanked": {
+      "type": "integer",
+      "title": "Blanked",
+      "description": "Parcels in modeled groups valued below zero: left blank."
+     }
+    },
+    "type": "object",
+    "required": [
+     "tried",
+     "groups",
+     "unvalued_parcels",
+     "unvalued",
+     "blanked"
+    ],
+    "title": "SmallGroupsView"
    },
    "Source": {
     "properties": {

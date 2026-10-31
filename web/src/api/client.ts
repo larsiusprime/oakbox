@@ -20,6 +20,7 @@ export type VarList = components["schemas"]["VarList-Input"];
 export type VarListsView = components["schemas"]["VarListsView"];
 export type ListView = components["schemas"]["ListView"];
 export type StackPreview = components["schemas"]["StackPreview"];
+export type SmallGroupsView = components["schemas"]["SmallGroupsView"];
 export type ModelRow = components["schemas"]["ModelRow"];
 export type SalesSet = components["schemas"]["SalesSet"];
 export type VarTestView = components["schemas"]["VarTestView"];

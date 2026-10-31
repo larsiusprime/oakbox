@@ -109,6 +109,9 @@ class ModelState(BaseModel):
     groups: dict[str, list[ModelEntry]] = Field(
         default_factory=dict, description="Model group -> its models; a group not here has the default ones."
     )
+    small: dict[str, Literal["leave", "model"]] = Field(
+        default_factory=dict, description="Small groups: model group -> left unvalued or modeled anyway."
+    )
 
 
 # The variable tests offered (OpenAVMKit's names), each answering a question of its own; Represented always runs. The
@@ -644,6 +647,8 @@ class ModelGroupResult(BaseModel):
     academic_trimmed: list[ModelRow] = Field(default_factory=list)
     timings: list[ModelRow] = Field(default_factory=list, description="Seconds each model took, by stage.")
     skipped: str | None = Field(default=None, description="Why it has no models, if it hasn't.")
+    valued: int = Field(default=0, description="Parcels the try gave a value (the ensemble's, else a model's).")
+    below_zero: int = Field(default=0, description="Of them, valued below zero.")
 
 
 class ModelReceipt(BaseModel):
@@ -757,6 +762,16 @@ def _sets(r, std: ratio.Standard | None, names: dict[str, str], outside: tuple[s
     return out
 
 
+def _valued(r, outside: tuple[str, ...]) -> tuple[int, int]:
+    """Parcels a group's try valued, and how many below zero: the ensemble's values, else its one model's."""
+    results = r.model_results
+    m = results.get("ensemble") or next((v for k, v in results.items() if k not in ("assessor", *outside)), None)
+    if m is None:
+        return 0, 0
+    values = m.df_universe[m.field_prediction]
+    return int(values.notna().sum()), int((values < 0).sum())
+
+
 def run(project_id: str) -> None:
     import warnings
     from importlib.metadata import version
@@ -844,6 +859,7 @@ def run(project_id: str) -> None:
             )
             continue
         nm = names | own.get(g.id, {})
+        valued, below = _valued(r, outside)
         sets = _sets(r, judged_by.get(g.id), nm, outside)
         if not any(x.sales for x in sets):
             # Modeled, but no sale to judge it by: as good as unmodeled here.
@@ -855,6 +871,8 @@ def run(project_id: str) -> None:
                     parcels=per.get(g.id, 0),
                     sales=n,
                     skipped=f"{n:,} {'sale' if n == 1 else 'sales'}, none held out to judge the models by",
+                    valued=valued,
+                    below_zero=below,
                 )
             )
             continue
@@ -867,6 +885,8 @@ def run(project_id: str) -> None:
                 parcels=per.get(g.id, 0),
                 sales=n,
                 sets=sets,
+                valued=valued,
+                below_zero=below,
                 academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside), names=nm),
                 academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside), names=nm),
                 timings=_rows(
