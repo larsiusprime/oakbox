@@ -123,6 +123,9 @@ def time_worked_out(checked_accepted, brought_in):
         assert client.post(f"{url}/time/run").json()["status"] == "running"
         time_view = wait(client, f"{url}/time")
         assert time_view["status"] == "done", time_view["job"]
+        shown = next((g for g in time_view["result"]["groups"] if g["curve"]), None)
+        time_view["detail"] = client.get(f"{url}/time/{shown['id']}").json() if shown else None
+        time_view["missing"] = client.get(f"{url}/time/no_such_group").status_code
     return time_view
 
 
@@ -252,6 +255,16 @@ def test_review_the_sales_set_aside(checked, brought_in_client, brought_in):
 
 def test_the_time_adjustment_worked_out_alone(time_worked_out, assembled):
     assert {g["id"] for g in time_worked_out["result"]["groups"]} == {g["id"] for g in assembled}
+    # Each group says what its index is of; a group without one says why, in OpenAVMKit's own terms.
+    for g in time_worked_out["result"]["groups"]:
+        if g["sales"]:
+            assert g["per"] in ("impr", "land")
+        if g["per_year"] is None:
+            assert g["why"], g
+    # The expanded chart: the index over time and every sale drawn, each with its price per area.
+    d = time_worked_out["detail"]
+    assert d and d["index"] and d["sales"] and all(x["per_area"] > 0 for x in d["sales"])
+    assert time_worked_out["missing"] == 404
 
 
 def test_a_groups_own_time_adjustment_file_and_borrowing_it(own_time_files):

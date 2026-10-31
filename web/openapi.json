@@ -4805,6 +4805,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/clean/time/{group}": {
+   "get": {
+    "summary": "Clean Time Group",
+    "description": "One group's index over time and every sale it's worked out from, as the last preview found them.",
+    "operationId": "clean_time_group_api_projects__project_id__clean_time__group__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TimeDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/clean/time/run": {
    "post": {
     "summary": "Clean Time Run",
@@ -9409,6 +9458,24 @@
     ],
     "title": "Histogram",
     "description": "How a number's values spread: counts in equal bins between its 1st and 99th percentiles (on a log scale when\nthey span orders of magnitude), with what's outside and the zeros said apart."
+   },
+   "IndexPoint": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "value": {
+      "type": "number",
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "value"
+    ],
+    "title": "IndexPoint"
    },
    "InputFile": {
     "properties": {
@@ -16022,6 +16089,43 @@
     ],
     "title": "TiersPreview"
    },
+   "TimeDetail": {
+    "properties": {
+     "index": {
+      "items": {
+       "$ref": "#/components/schemas/IndexPoint"
+      },
+      "type": "array",
+      "title": "Index",
+      "description": "The index, a week apart."
+     },
+     "sales": {
+      "items": {
+       "$ref": "#/components/schemas/TimeSale"
+      },
+      "type": "array",
+      "title": "Sales"
+     },
+     "unit": {
+      "type": "string",
+      "enum": [
+       "sqft",
+       "sqm"
+      ],
+      "title": "Unit",
+      "description": "What prices are per.",
+      "default": "sqft"
+     }
+    },
+    "type": "object",
+    "required": [
+     "index",
+     "sales",
+     "unit"
+    ],
+    "title": "TimeDetail",
+    "description": "One group's index over time, and every sale it's worked out from: the expanded chart."
+   },
    "TimeFile": {
     "properties": {
      "path": {
@@ -16140,7 +16244,7 @@
        }
       ],
       "title": "Per Year",
-      "description": "Price change a year, percent; None: no adjustment (too few sales)."
+      "description": "Price change a year, percent; None: no adjustment (see why)."
      },
      "first": {
       "anyOf": [
@@ -16170,6 +16274,63 @@
       },
       "type": "array",
       "title": "Curve"
+     },
+     "per": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "impr",
+         "land"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per",
+      "description": "What the index is of: price per finished area (impr) or per land area."
+     },
+     "period": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "M",
+         "Q",
+         "Y"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Period",
+      "description": "The period OpenAVMKit settled on."
+     },
+     "periods": {
+      "type": "integer",
+      "title": "Periods",
+      "description": "Periods with sales of a size.",
+      "default": 0
+     },
+     "periods_ok": {
+      "type": "integer",
+      "title": "Periods Ok",
+      "description": "Of them, periods with 5 or more: the ones the index is from.",
+      "default": 0
+     },
+     "why": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Why",
+      "description": "Why there's no adjustment, when there's none."
      }
     },
     "type": "object",
@@ -16181,7 +16342,12 @@
      "per_year",
      "first",
      "last",
-     "curve"
+     "curve",
+     "per",
+     "period",
+     "periods",
+     "periods_ok",
+     "why"
     ],
     "title": "TimeGroup"
    },
@@ -16258,6 +16424,60 @@
      "groups"
     ],
     "title": "TimeResult"
+   },
+   "TimeSale": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "date": {
+      "type": "string",
+      "title": "Date"
+     },
+     "price": {
+      "type": "number",
+      "title": "Price"
+     },
+     "per_area": {
+      "type": "number",
+      "title": "Per Area",
+      "description": "Price per area, of what the index is of."
+     },
+     "adjusted": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Adjusted",
+      "description": "The price brought forward by the time adjustment."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "address",
+     "date",
+     "price",
+     "per_area",
+     "adjusted"
+    ],
+    "title": "TimeSale"
    },
    "TogetherSale": {
     "properties": {

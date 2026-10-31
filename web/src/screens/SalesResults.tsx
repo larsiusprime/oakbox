@@ -10,6 +10,7 @@ import { RunProgress } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { num, when } from "../lib/format";
 import { t } from "../strings";
+import { TimeChart } from "./TimeChart";
 
 const s = t.sales;
 
@@ -211,52 +212,8 @@ function Patterns({ tables, look }: { tables: PatternTable[]; look: (check: stri
   );
 }
 
-type Curved = {
-  id: string;
-  name: string;
-  color: string;
-  per_year: number | null;
-  first: string | null;
-  last: string | null;
-  curve: number[];
-};
-
-/** How prices moved, per model group: an index line each. */
-function Charts({
-  groups,
-  schedule,
-}: {
-  groups: Curved[];
-  schedule?: ((group: string) => void) | undefined;
-}) {
-  const curves = groups.filter((g) => g.curve.length > 1);
-  return (
-    <div className="cs-charts">
-      {curves.map((g) => (
-        <figure key={g.id} className="cs-chart">
-          <figcaption>
-            <span className="mg-sw ab-sw" style={{ background: g.color }} />
-            <b>{g.name}</b> {g.per_year !== null && s.time.perYear(g.per_year)}
-          </figcaption>
-          <Curve points={g.curve} color={g.color} />
-          <div className="cs-chart-foot">
-            <span>{g.first?.slice(0, 7)}</span>
-            <span>×{num(g.curve.at(-1) ?? 1, 2)}</span>
-            <span>{g.last?.slice(0, 7)}</span>
-          </div>
-          {schedule && (
-            <Button className="wiz-link" onPress={() => schedule(g.id)}>
-              {s.time.schedule}
-            </Button>
-          )}
-        </figure>
-      ))}
-    </div>
-  );
-}
-
-/** Time adjustment worked out alone, before running (seconds): started when the step opens, and again on asking. */
-export function TimePreviewPanel({ projectId }: { projectId: string }) {
+/** Time adjustment worked out alone, before running (seconds): only when asked (Work it out, the step's action). */
+export function useTimePreview(projectId: string) {
   const queryClient = useQueryClient();
   const q = useQuery({
     queryKey: ["clean-time", projectId],
@@ -266,7 +223,7 @@ export function TimePreviewPanel({ projectId }: { projectId: string }) {
           params: { path: { project_id: projectId } },
         }),
       ),
-    refetchInterval: (x) => (x.state.data?.status === "running" ? POLL : false),
+    refetchInterval: (query) => (query.state.data?.status === "running" ? POLL : false),
   });
   const run = useMutation({
     mutationFn: async () =>
@@ -275,13 +232,29 @@ export function TimePreviewPanel({ projectId }: { projectId: string }) {
           params: { path: { project_id: projectId } },
         }),
       ),
-    onSuccess: (data) => queryClient.setQueryData(["clean-time", projectId], data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["clean-time", projectId], data);
+      queryClient.removeQueries({
+        queryKey: ["clean-time", projectId],
+        exact: false,
+        predicate: (x) => x.queryKey.length > 2,
+      });
+    },
   });
   const v = q.data;
-  // Run when asked, as Check sales is: opening the step starts nothing.
+  const ready = !!v?.result && !v.stale && v.status !== "running";
+  return { v, run, ready };
+}
+
+/** How prices moved, worked out alone: a small chart per group (one shown larger, with its sales, at a time), and
+ * why a group has none. */
+export function TimePreviewPanel({ projectId, currency }: { projectId: string; currency: string }) {
+  const { v, run } = useTimePreview(projectId);
+  const [open, setOpen] = useState<string | null>(null);
   if (!v) return null;
   const result = v.result;
-  const flat = result?.groups.filter((g) => g.per_year === null && g.sales > 0) ?? [];
+  const none = result?.groups.filter((g) => g.per_year === null) ?? [];
+  const curves = result?.groups.filter((g) => g.curve.length > 1) ?? [];
   return (
     <section className="cs-step">
       <h3 className="wiz-group">{s.time.preview}</h3>
@@ -289,29 +262,68 @@ export function TimePreviewPanel({ projectId }: { projectId: string }) {
         <RunProgress job={v.job} lastSeconds={result?.seconds ?? null} />
       ) : v.status === "failed" ? (
         <p className="error" role="alert">
-          {t.step.failed} <span className="mono">{v.job?.error}</span>{" "}
-          <Button className="wiz-link" isDisabled={run.isPending} onPress={() => run.mutate()}>
-            {s.time.previewAgain}
-          </Button>
+          {t.step.failed} <span className="mono">{v.job?.error}</span>
         </p>
       ) : result ? (
         <>
           <p className="wiz-from cs-text">
-            {v.stale ? s.time.previewStale : s.time.previewNote(result.seconds)}{" "}
-            <Button className="wiz-link" isDisabled={run.isPending} onPress={() => run.mutate()}>
-              {s.time.previewAgain}
-            </Button>
+            {v.stale ? s.time.previewStale : s.time.previewNote(result.seconds)}
           </p>
-          <Charts groups={result.groups} />
-          {flat.length > 0 && <p className="wiz-from">{s.groups.few(flat.map((g) => g.name).join(", "))}</p>}
+          <div className="cs-charts">
+            {curves.map((g) =>
+              open === g.id ? (
+                <figure key={g.id} className="cs-chart cs-chart-open">
+                  <figcaption>
+                    <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                    <b>{g.name}</b> {g.per_year !== null && s.time.perYear(g.per_year)}{" "}
+                    <Button className="wiz-link" onPress={() => setOpen(null)}>
+                      {s.time.collapse}
+                    </Button>
+                  </figcaption>
+                  {g.per === "land" && <p className="wiz-warn">{s.time.onLand}</p>}
+                  <TimeChart projectId={projectId} group={g} currency={currency} />
+                </figure>
+              ) : (
+                <Button key={g.id} className="cs-chart cs-chart-button" onPress={() => setOpen(g.id)}>
+                  <span className="cs-chart-cap">
+                    <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                    <b>{g.name}</b> {g.per_year !== null && s.time.perYear(g.per_year)}
+                  </span>
+                  <Curve points={g.curve} color={g.color} />
+                  <span className="cs-chart-foot">
+                    <span>{g.first?.slice(0, 7)}</span>
+                    <span>×{num(g.curve.at(-1) ?? 1, 2)}</span>
+                    <span>{g.last?.slice(0, 7)}</span>
+                  </span>
+                  <span className="sr-only">{s.time.expand}</span>
+                </Button>
+              ),
+            )}
+          </div>
+          {none.length > 0 && (
+            <table className="tbl cs-none">
+              <thead>
+                <tr>
+                  <th>{s.time.none}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {none.map((g) => (
+                  <tr key={g.id}>
+                    <td>
+                      <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                      {g.name}
+                    </td>
+                    <td>{g.why}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </>
       ) : (
-        <p className="wiz-from cs-text">
-          {s.time.previewFirst}{" "}
-          <Button className="button" isDisabled={run.isPending} onPress={() => run.mutate()}>
-            {s.time.previewRun}
-          </Button>
-        </p>
+        <p className="wiz-from cs-text">{s.time.previewFirst}</p>
       )}
       {run.error && (
         <p className="error" role="alert">

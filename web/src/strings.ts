@@ -1500,9 +1500,28 @@ export const t = {
       previewStale: "The calls changed since this was worked out.",
       previewAgain: "Work it out again",
       previewFirst:
-        "See how prices moved with these calls: it runs OpenAVMKit's time adjustment (a few seconds to a minute).",
+        "See how prices moved with these calls before going on: Work it out runs OpenAVMKit's time adjustment (a few seconds to a minute).",
+      noDots: "No sale with a size to draw.",
+      perImpr: (unit: string) => `price per ${unit} finished`,
+      perLand: (unit: string) => `price per ${unit} of land`,
+      by: { M: "month", Q: "quarter", Y: "year" } as Record<string, string>,
+      chartNote: (per: string, n: string) =>
+        `Each dot is a sale's ${per}, as sold (${n} sales); the line is the index OpenAVMKit works out from them, drawn through their median.`,
+      periodsNote: (by: string, ok: number, of: number) =>
+        `By ${by}: ${ok} of ${of} ${of === 1 ? by : `${by}s`} have 5 sales or more, and the index is from those (the rest are interpolated).`,
+      chartLabel: (name: string) => `${name}: prices per area over time, and the time adjustment index`,
+      tip: (price: string, per: string, perWhat: string) =>
+        `Sold for ${price}: ${per} ${perWhat.replace(/^price /, "")}`,
+      tipAdjusted: (price: string) => `Time-adjusted: ${price}`,
+      outside: (n: number) =>
+        `${n.toLocaleString()} far-off ${n === 1 ? "sale isn't" : "sales aren't"} drawn.`,
+      expand: "Show it larger, with its sales",
+      collapse: "Show it smaller",
+      none: "No time adjustment",
+      onLand:
+        "Indexed on price per area of land, not finished area: OpenAVMKit chose it for this group. For condos, whose land is a small share of their parcel's, it's rarely right.",
       previewRun: "Work it out",
-      schedule: "Show schedule",
+      working: "Working it out…",
     },
     fill: {
       title: "Fill blanks",

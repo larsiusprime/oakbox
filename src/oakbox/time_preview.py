@@ -48,10 +48,42 @@ class TimeGroup(BaseModel):
     name: str
     color: str
     sales: int = Field(description="Valid sales in the window.")
-    per_year: float | None = Field(description="Price change a year, percent; None: no adjustment (too few sales).")
+    per_year: float | None = Field(description="Price change a year, percent; None: no adjustment (see why).")
     first: str | None
     last: str | None
     curve: list[float]
+    per: Literal["impr", "land"] | None = Field(
+        default=None, description="What the index is of: price per finished area (impr) or per land area."
+    )
+    period: Literal["M", "Q", "Y"] | None = Field(default=None, description="The period OpenAVMKit settled on.")
+    periods: int = Field(default=0, description="Periods with sales of a size.")
+    periods_ok: int = Field(default=0, description="Of them, periods with 5 or more: the ones the index is from.")
+    why: str | None = Field(default=None, description="Why there's no adjustment, when there's none.")
+
+
+class TimeSale(BaseModel):
+    key_sale: str
+    address: str | None
+    date: str
+    price: float
+    per_area: float = Field(description="Price per area, of what the index is of.")
+    adjusted: float | None = Field(description="The price brought forward by the time adjustment.")
+
+
+class IndexPoint(BaseModel):
+    day: str
+    value: float
+
+
+class TimeDetail(BaseModel):
+    """One group's index over time, and every sale it's worked out from: the expanded chart."""
+
+    index: list[IndexPoint] = Field(description="The index, a week apart.")
+    sales: list[TimeSale]
+    unit: Literal["sqft", "sqm"] = Field(default="sqft", description="What prices are per.")
+
+
+MIN_PER_PERIOD = 5  # OpenAVMKit's min_sale_count: a period with fewer sales is interpolated across
 
 
 class TimeResult(BaseModel):
@@ -110,25 +142,121 @@ def run(project_id: str) -> None:
     hydrated = get_hydrated_sales_from_sup(sup)
     valid = hydrated[cells.yes(hydrated, "valid_sale")]
     groups = []
+    details: dict[str, dict] = {}
     from oakbox import assemble
 
     modeled = assemble.modeled(project, pdir)
     for gid, name, color in [(g.id, g.name, g.color) for g in project.groups if g.id in modeled]:
         n = int((valid["model_group"].astype(str) == gid).sum()) if "model_group" in valid else 0
-        per_year, first, last, curve = clean.time_curve(
-            work / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv"
-        )
-        groups.append(
-            TimeGroup(id=gid, name=name, color=color, sales=n, per_year=per_year, first=first, last=last, curve=curve)
-        )
+        schedule = work / "out" / "time_adjustment" / gid / "time_adjustment_schedule.csv"
+        per_year, first, last, curve = clean.time_curve(schedule)
+        g = TimeGroup(id=gid, name=name, color=color, sales=n, per_year=per_year, first=first, last=last, curve=curve)
+        mine = cast(pd.DataFrame, valid[valid["model_group"].astype(str) == gid]) if "model_group" in valid else None
+        if mine is not None and n:
+            details[gid] = _diagnose(g, mine, settings, project.clean.period, schedule)
+        elif per_year is None:
+            g.why = "No sales in the window."
+        groups.append(g)
     result = TimeResult(
         ran_at=dt.datetime.now().isoformat(timespec="seconds"), seconds=round(time.time() - t0, 1), groups=groups
     )
+    (base / "detail.json").write_text(json.dumps(details), encoding="utf-8")
     (base / "preview.json").write_text(
         json.dumps({"hash": settings_hash(json.loads(settings_text), pdir), "result": result.model_dump()}),
         encoding="utf-8",
     )
     steps.emit(step="done", fraction=1.0, message="Done")
+
+
+def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path) -> dict:
+    """What OpenAVMKit's index for a group is of, the period it settled on, how many periods it's from, and why
+    there's none when there's none (its own reasons, worked out as it works them out); and the group's sales and
+    index for the expanded chart."""
+    import pandas as pd
+    from openavmkit.time_adjustment import _determine_time_resolution, _determine_value_driver
+    from openavmkit.utilities.settings import area_unit
+
+    unit = area_unit(settings)
+    s = sales.copy()
+    s["sale_date"] = pd.to_datetime(s["sale_date"], errors="coerce")
+    s = s[s["sale_date"].notna()]
+    s["sale_year"] = s["sale_date"].dt.year
+    s["sale_year_month"] = s["sale_date"].dt.to_period("M").astype(str)
+    s["sale_year_quarter"] = s["sale_date"].dt.to_period("Q").astype(str)
+    price = cells.numbers(s, "sale_price")
+    area = {k: cells.numbers(s, f"{f}_{unit}") for k, f in (("impr", "bldg_area_finished"), ("land", "land_area"))}
+    sized = {k: int(a.gt(0).sum()) for k, a in area.items()}
+    try:
+        g.per = cast(Literal["impr", "land"], _determine_value_driver(s, settings))
+    except Exception:  # its own checks can fail on odd data: then the reason below says what's known
+        g.per = "impr" if sized["impr"] else "land"
+    per_area = price / area[g.per].where(area[g.per].gt(0))
+    s["_per"] = per_area
+    with_size = s[s["_per"].gt(0)]
+    if len(with_size):
+        try:
+            g.period = cast(
+                Literal["M", "Q", "Y"], _determine_time_resolution(with_size, "_per", MIN_PER_PERIOD, period)
+            )
+        except Exception:
+            g.period = None
+        if g.period:
+            column = {"M": "sale_year_month", "Q": "sale_year_quarter", "Y": "sale_year"}[g.period]
+            counts = with_size.groupby(column).size()
+            g.periods, g.periods_ok = len(counts), int(counts.ge(MIN_PER_PERIOD).sum())
+    if g.per_year is None:
+        what = "a finished area" if g.per == "impr" else "a land size"
+        if not len(with_size):
+            g.why = f"No sale has {what}: the index is of price per area, so there's nothing to work it out from."
+        elif g.periods_ok == 0:
+            word = {"M": "month", "Q": "quarter", "Y": "year"}.get(g.period or "Y", "year")
+            g.why = (
+                f"No {word} has {MIN_PER_PERIOD} sales with {what} (the index needs {MIN_PER_PERIOD} a period, even "
+                f"by year): {len(with_size):,} of its {g.sales:,} sales have one."
+            )
+        else:
+            g.why = "OpenAVMKit found no change in prices over the window."
+    index: list[dict] = []
+    if schedule.is_file():
+        t = pd.read_csv(schedule)
+        if "start_indexed" in t:
+            t = t[cells.numbers(t, "start_indexed").notna()].iloc[::7]
+            index = [
+                {"day": str(p)[:10], "value": float(v)} for p, v in zip(t["period"], t["start_indexed"], strict=True)
+            ]
+    adjusted = cells.numbers(s, "sale_price_time_adj") if "sale_price_time_adj" in s else None
+    out = [
+        TimeSale(
+            key_sale=str(k),
+            address=cells.text(a),
+            date=str(d.date()),
+            price=float(p),
+            per_area=float(pa),
+            adjusted=cells.number(adjusted[i]) if adjusted is not None else None,
+        ).model_dump()
+        for i, k, a, d, p, pa in zip(
+            s.index,
+            s["key_sale"],
+            s["address"] if "address" in s else [None] * len(s),
+            s["sale_date"],
+            price,
+            per_area,
+            strict=True,
+        )
+        if pa > 0
+    ]
+    return {"index": index, "sales": out, "unit": unit}
+
+
+def detail(project_dir: Path, group: str) -> TimeDetail:
+    path = out_dir(project_dir) / "detail.json"
+    data = json.loads(path.read_text(encoding="utf-8")).get(group) if path.is_file() else None
+    if data is None:
+        raise LookupError(group)
+    try:
+        return TimeDetail.model_validate(data)
+    except ValueError as e:  # written by an older OAK box: work it out again
+        raise LookupError(group) from e
 
 
 class TimePreview(BaseModel):

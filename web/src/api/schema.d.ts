@@ -1786,6 +1786,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/clean/time/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clean Time Group
+         * @description One group's index over time and every sale it's worked out from, as the last preview found them.
+         */
+        get: operations["clean_time_group_api_projects__project_id__clean_time__group__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/clean/time/run": {
         parameters: {
             query?: never;
@@ -3804,6 +3824,13 @@ export interface components {
              * @description Zeros, left out (often 'none': no building, no year).
              */
             zeros: number;
+        };
+        /** IndexPoint */
+        IndexPoint: {
+            /** Day */
+            day: string;
+            /** Value */
+            value: number;
         };
         /**
          * InputFile
@@ -6630,6 +6657,26 @@ export interface components {
             few: number;
         };
         /**
+         * TimeDetail
+         * @description One group's index over time, and every sale it's worked out from: the expanded chart.
+         */
+        TimeDetail: {
+            /**
+             * Index
+             * @description The index, a week apart.
+             */
+            index: components["schemas"]["IndexPoint"][];
+            /** Sales */
+            sales: components["schemas"]["TimeSale"][];
+            /**
+             * Unit
+             * @description What prices are per.
+             * @default sqft
+             * @enum {string}
+             */
+            unit: "sqft" | "sqm";
+        };
+        /**
          * TimeFile
          * @description A model group's own time adjustment, as the user gave it (a copy in in/oakbox/time_adjustment/).
          */
@@ -6690,7 +6737,7 @@ export interface components {
             sales: number;
             /**
              * Per Year
-             * @description Price change a year, percent; None: no adjustment (too few sales).
+             * @description Price change a year, percent; None: no adjustment (see why).
              */
             per_year: number | null;
             /** First */
@@ -6699,6 +6746,33 @@ export interface components {
             last: string | null;
             /** Curve */
             curve: number[];
+            /**
+             * Per
+             * @description What the index is of: price per finished area (impr) or per land area.
+             */
+            per: ("impr" | "land") | null;
+            /**
+             * Period
+             * @description The period OpenAVMKit settled on.
+             */
+            period: ("M" | "Q" | "Y") | null;
+            /**
+             * Periods
+             * @description Periods with sales of a size.
+             * @default 0
+             */
+            periods: number;
+            /**
+             * Periods Ok
+             * @description Of them, periods with 5 or more: the ones the index is from.
+             * @default 0
+             */
+            periods_ok: number;
+            /**
+             * Why
+             * @description Why there's no adjustment, when there's none.
+             */
+            why: string | null;
         };
         /** TimePreview */
         TimePreview: {
@@ -6723,6 +6797,27 @@ export interface components {
             seconds: number;
             /** Groups */
             groups: components["schemas"]["TimeGroup"][];
+        };
+        /** TimeSale */
+        TimeSale: {
+            /** Key Sale */
+            key_sale: string;
+            /** Address */
+            address: string | null;
+            /** Date */
+            date: string;
+            /** Price */
+            price: number;
+            /**
+             * Per Area
+             * @description Price per area, of what the index is of.
+             */
+            per_area: number;
+            /**
+             * Adjusted
+             * @description The price brought forward by the time adjustment.
+             */
+            adjusted: number | null;
         };
         /** TogetherSale */
         TogetherSale: {
@@ -11024,6 +11119,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clean_time_group_api_projects__project_id__clean_time__group__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeDetail"];
                 };
             };
             /** @description Validation Error */

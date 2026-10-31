@@ -200,6 +200,16 @@ def clean_time(project_id: str) -> time_preview.TimePreview:
     return time_preview.view(project, projects.project_dir(project_id))
 
 
+@router.get("/api/projects/{project_id}/clean/time/{group}")
+def clean_time_group(project_id: str, group: str) -> time_preview.TimeDetail:
+    """One group's index over time and every sale it's worked out from, as the last preview found them."""
+    load_project(project_id)
+    try:
+        return time_preview.detail(projects.project_dir(project_id), group)
+    except LookupError as e:
+        raise HTTPException(404, f"No time adjustment worked out for {e}") from e
+
+
 @router.post("/api/projects/{project_id}/clean/time/run")
 def clean_time_run(project_id: str) -> time_preview.TimePreview:
     """Work out the time adjustment alone (seconds), with the calls as they are now."""

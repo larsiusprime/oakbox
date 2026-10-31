@@ -3754,6 +3754,53 @@ tr.bi-kept > td {
 .cs-chart .wiz-link {
   justify-self: start;
 }
+/* A group's small chart is a button: pressed, it's shown larger in its place (one at a time). */
+.cs-chart-button {
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--panel);
+  cursor: pointer;
+}
+.cs-chart-button[data-hovered],
+.cs-chart-button[data-focus-visible] {
+  border-color: var(--link);
+}
+.cs-chart-cap {
+  display: block;
+}
+.cs-chart-open {
+  grid-column: 1 / -1;
+}
+.cs-tchart {
+  position: relative;
+  display: grid;
+  gap: 0.3rem;
+}
+.cs-tsvg {
+  display: block;
+}
+.cs-tgrid {
+  stroke: var(--cell-line);
+}
+.cs-taxis {
+  font-size: 0.72rem;
+  fill: var(--muted);
+}
+.cs-ttip {
+  position: absolute;
+  top: 2.2rem;
+  right: 0.6rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+.cs-none {
+  margin-top: 0.6rem;
+}
 .cs-list-plain {
   margin: 0 0 0 1.1rem;
   padding: 0;

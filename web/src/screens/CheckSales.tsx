@@ -11,7 +11,7 @@ import { num, when } from "../lib/format";
 import { t } from "../strings";
 import { Card, type CardProps, NumberBox } from "./CleanCards";
 import { Review, useReviewCounts } from "./SaleReview";
-import { SalesResult, TimePreviewPanel } from "./SalesResults";
+import { SalesResult, TimePreviewPanel, useTimePreview } from "./SalesResults";
 
 const s = t.sales;
 type Patch = CleanPatch;
@@ -43,6 +43,7 @@ export function SalesTab({
   // The step shown; after: a run was started here, so its results open when it's done.
   const nav = useStepNav<CsStep>();
   const [check, setCheck] = useState("");
+  const preview = useTimePreview(projectId);
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   if (v.blocked.length > 0)
     return (
@@ -118,7 +119,11 @@ export function SalesTab({
       )}
     </>
   );
-  const callStep = (body: React.ReactNode, lede?: string) => (
+  const callStep = (
+    body: React.ReactNode,
+    lede?: string,
+    next: Parameters<typeof StepFoot>[0]["next"] = onward,
+  ) => (
     <>
       <StepBody
         kicker={kicker}
@@ -128,7 +133,7 @@ export function SalesTab({
         {u ? body : loading}
         {errors}
       </StepBody>
-      <StepFoot back={back} next={onward} />
+      <StepFoot back={back} next={next} />
     </>
   );
 
@@ -140,9 +145,20 @@ export function SalesTab({
           u && (
             <>
               <TimeCard v={u} set={set} projectId={projectId} />
-              {u.time_adjust && <TimePreviewPanel projectId={projectId} />}
+              {u.time_adjust && <TimePreviewPanel projectId={projectId} currency={currency} />}
             </>
           ),
+          undefined,
+          // With time adjustment on, it's worked out first, where Next goes; Next comes once it is.
+          !u?.time_adjust || preview.ready
+            ? onward
+            : preview.v?.status === "running"
+              ? { label: s.time.working, disabled: true, onPress: () => {} }
+              : {
+                  label: preview.v?.result ? s.time.previewAgain : s.time.previewRun,
+                  disabled: preview.run.isPending,
+                  onPress: () => preview.run.mutate(),
+                },
         )}
       {current === "scrutiny" &&
         callStep(u && <ScrutinyCard v={u} set={set} projectId={projectId} />, s.scrutiny.sub)}
