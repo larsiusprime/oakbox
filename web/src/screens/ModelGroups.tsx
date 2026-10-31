@@ -12,6 +12,7 @@ import {
   unwrap,
 } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
+import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -501,9 +502,7 @@ function Builder({
             }}
           />
           <div className="mg-adds">
-            <Button className="button" onPress={add}>
-              {g.addGroup}
-            </Button>
+            <AddButton onPress={add}>{g.addGroup}</AddButton>
             <Button className="button" onPress={() => setFromField(true)}>
               {g.fromField}
             </Button>

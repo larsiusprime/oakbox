@@ -508,6 +508,10 @@ def _raw(files, entry, columns=None):
     return pd.DataFrame({c: values_of(stamp, entry.layer, c, raw=True) for c in cols})
 
 
+def _rows_of(condos: dict | None) -> dict | None:
+    return {k: v for k, v in condos.items() if k != "inherit"} if condos else condos
+
+
 def _clear_cache_if_rows_change(pdir: Path, settings: dict) -> None:
     """Condo units change which rows the parcel universe has, and OpenAVMKit's enrichment cache refuses a
     different set of rows (it stops rather than recompute): clear it when condo handling changes."""
@@ -518,7 +522,8 @@ def _clear_cache_if_rows_change(pdir: Path, settings: dict) -> None:
         else None
     )
     now = settings.get("data", {}).get("process", {}).get("condos")
-    if before != now and (pdir / "cache").is_dir():
+    # The fields units take from their parcel don't change which rows there are.
+    if _rows_of(before) != _rows_of(now) and (pdir / "cache").is_dir():
         shutil.rmtree(pdir / "cache", ignore_errors=True)
 
 

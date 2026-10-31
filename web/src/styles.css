@@ -430,6 +430,12 @@ a.row-title:hover {
   flex: none;
 }
 
+/* Add something (components/AddButton.tsx): on its own line, as wide as its words. */
+.add-button {
+  justify-self: start;
+  align-self: start;
+}
+
 .button[data-hovered] {
   background: #f7f7f5;
 }
@@ -753,7 +759,7 @@ a.row-title:hover {
   align-content: start;
 }
 
-.panel-head-action {
+.panel-head .add-button {
   margin-left: auto;
 }
 
@@ -1600,7 +1606,8 @@ a.row-title:hover {
   font-weight: 700;
 }
 
-.wiz-add-id {
+.wiz-body > .add-button,
+.wiz-body > span > .add-button {
   margin-top: 0.5rem;
 }
 
@@ -1777,10 +1784,6 @@ a.row-title:hover {
   background: none;
   border: 0;
   cursor: pointer;
-}
-
-.rc-add {
-  justify-self: start;
 }
 
 .rc-menu {
@@ -3073,8 +3076,7 @@ ul.mg-checks {
   border: 1px solid var(--rule);
   border-radius: 999px;
 }
-.ly-kind,
-.ly-add {
+.ly-kind {
   display: inline-flex;
   gap: 0.15rem;
   align-items: center;
@@ -3086,8 +3088,7 @@ ul.mg-checks {
   border-radius: var(--radius);
   cursor: pointer;
 }
-.ly-kind[data-hovered],
-.ly-add[data-hovered] {
+.ly-kind[data-hovered] {
   background: var(--info-tint);
 }
 .ly-x {
@@ -3198,7 +3199,7 @@ ul.mg-checks {
   color: var(--muted);
 }
 .mp-popover {
-  width: 22rem;
+  width: 26rem;
   max-width: 92vw;
 }
 .mp-body {
@@ -3497,22 +3498,27 @@ ul.mg-checks {
   margin-bottom: 0;
 }
 
-.un-offers {
-  display: grid;
-  gap: 0.35rem;
-  justify-items: start;
-  max-width: 44rem;
-  margin: 0.2rem 0 0.5rem;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.88rem;
-  background: var(--warn-tint);
-  border: 1px solid var(--warn-edge);
-  border-radius: var(--radius);
+.cu-h {
+  margin: 0.9rem 0 0.35rem;
+  font-size: 0.95rem;
 }
-.un-offer-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.2rem 1rem;
+.cu-h:first-child {
+  margin-top: 0.2rem;
+}
+.cu > .mp-button {
+  max-width: 28.8rem;
+}
+.cu-fields {
+  grid-template-columns: 12rem 16rem auto;
+  justify-content: start;
+  margin-top: 0.5rem;
+}
+.cu-sub-h {
+  margin: 0.6rem 0 0.15rem;
+}
+.cu-shape {
+  margin: 0;
+  padding-left: 1.2rem;
 }
 
 /* Repeated IDs: the rows of one ID share a background, and IDs alternate (sorted by the ID). */

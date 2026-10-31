@@ -72,6 +72,14 @@ name that says what it is.
   A chart is drawn at its own width in pixels (a `ResizeObserver`), not scaled, so its text stays its size.
 - **Funnels and other line lists** (a count, a phrase, a link): columns only as wide as their content, so a link
   sits beside its line, not at the far edge (`.cs-funnel`, `.bi-fn`: one grid, the lines on it by `subgrid`).
+- **Adding something** (a file, a field, a test, a condition, a group, a step, a layer…) is always
+  `components/AddButton.tsx`: a button with a plus and "Add …" in words (never a "+" typed into the label, a link,
+  or a bare "+"). It opens what it adds (a menu, a popover, a new row) or adds it at once. A form's own submit
+  button inside that popover is an ordinary button.
+- **Picking fields or values from a list** is always `components/MultiPick.tsx`: a button listing what's chosen
+  that opens a searchable checklist (a field's name with its column as a note, or a value with its count). Never
+  a row of chips with ✕s, nor a row of loose ticks. Each chosen field that needs more (its column) gets a row
+  below it in the wizard's grid (`.wiz-grid`: the name, its dropdown, ✕), as everywhere in the Data wizard.
 - **Short labels, the rest on demand:** a table cell says a short phrase; the fuller explanation goes in a tooltip
   (`components/Tip.tsx`: `InfoTip` shows an ⓘ beside the phrase), not in the cell. A column's header isn't repeated
   in its cells ("Pattern" over "Low price", not "Pattern 2: low price").

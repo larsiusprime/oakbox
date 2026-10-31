@@ -16295,6 +16295,14 @@
       "title": "Location",
       "description": "The shared parcel (condo_group) is also a location, like a neighborhood.",
       "default": true
+     },
+     "inherit": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Inherit",
+      "description": "Fields each unit takes from the parcel it's on (its land and location: zoning, a district), where its own is blank. OpenAVMKit's condos.inherit."
      }
     },
     "type": "object",
@@ -16378,6 +16386,14 @@
       "title": "Location",
       "description": "The shared parcel (condo_group) is also a location, like a neighborhood.",
       "default": true
+     },
+     "inherit": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Inherit",
+      "description": "Fields each unit takes from the parcel it's on (its land and location: zoning, a district), where its own is blank. OpenAVMKit's condos.inherit."
      }
     },
     "type": "object",
@@ -16389,7 +16405,8 @@
      "prefix_len",
      "land",
      "guessed",
-     "location"
+     "location",
+     "inherit"
     ],
     "title": "Units",
     "description": "Rows of a parcel file with no shape of their own, on a parcel they share (condos of any kind, timeshares,\nhomes in a mobile-home park, buildings on leased land): each borrows that parcel's shape and gets a share of its\nland, or none. OpenAVMKit's data.process.condos."
@@ -16457,6 +16474,22 @@
       "title": "Offers",
       "description": "The parcel universe's fields not given yet that this file has a column of the same name for."
      },
+     "inheritable": {
+      "items": {
+       "$ref": "#/components/schemas/UnitField"
+      },
+      "type": "array",
+      "title": "Inheritable",
+      "description": "The parcel's land and location fields a unit can take from the parcel it's on (column: the parcel's), the units file's own left out."
+     },
+     "from_shape": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "From Shape",
+      "description": "What each unit gets from its parcel's shape: map layers, enrichments."
+     },
      "basis": {
       "anyOf": [
        {
@@ -16485,6 +16518,8 @@
      "examples",
      "fields",
      "offers",
+     "inheritable",
+     "from_shape",
      "basis",
      "land",
      "check"

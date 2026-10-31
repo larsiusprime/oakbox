@@ -15,6 +15,7 @@ import {
   TextField,
 } from "react-aria-components";
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
 import { pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
@@ -262,7 +263,7 @@ function CleanSteps({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) 
         ))}
       </ol>
       <MenuTrigger>
-        <Button className="button rc-add">{r.add}</Button>
+        <AddButton>{r.add}</AddButton>
         <Popover className="popover rc-menu" placement="bottom start">
           <Menu
             className="choice-list"

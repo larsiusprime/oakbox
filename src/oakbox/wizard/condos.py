@@ -7,7 +7,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from oakbox import projects
+from oakbox import enrichments, projects
 from oakbox.datafiles import (
     EXTRA_IDS,
     SQFT_PER,
@@ -37,6 +37,31 @@ from oakbox.wizard.quality import _field_by_id
 from oakbox.wizard.rules import rule_result
 
 # ---------- Units of a shared parcel: condos (F3d) ----------
+
+# A parcel's location fields a unit never takes: its own address, and what its shape brings (census, by enrichment).
+INHERIT_NEVER = {"address", "census_tract", "census_block", "census_block_group", projects.CONDO_GROUP}
+
+
+def from_shape(project: Project, units: Units) -> list[str]:
+    """What each unit gets from the shape of the parcel it's on, as every parcel does from its own."""
+    out = [
+        f"{f.name} (map layer)"
+        for f in project.files
+        if f.holds == "overlay" and f.overlay and f.overlay.use in ("stamp", "distance")
+    ]
+    e = project.enrich
+    if e is not None:
+        names = enrichments.osm_names(e)
+        on = [s.label.lower() for s, *_ in enrichments.FEATURES if s.key in names]
+        if on:
+            out.append("Distance to " + ", ".join(on))
+        if e.census:
+            out.append("Census tract and block group")
+        if e.elevation:
+            out.append("Elevation and slope")
+    if units.location:
+        out.append("The parcel itself, as a location")
+    return out
 
 
 def _unshaped(files: Files, f: DataFile, base: str | None) -> int:
@@ -163,6 +188,21 @@ def units_view(project: Project, files: Files, f: DataFile) -> UnitsView:
         for k, spec in base_load.items()
         if k not in skip and k not in f.load and spec[0] in columns
     ]
+    # From the parcel each unit is on: its land and location fields (never the unit's own: address, size, values).
+    own = set(f.load)
+    inheritable = []
+    seen: set[str] = set()
+    for g in project.files:
+        if g is f or g.holds != "parcels":
+            continue
+        for k, spec in g.load.items():
+            d = by_key.get(k)
+            land_or_place = k in project.wizard.locations or (
+                d is not None and bool({"location", "land use"} & set(d.groups)) or k == "land_class"
+            )
+            if land_or_place and k not in INHERIT_NEVER and k not in own and k not in seen:
+                seen.add(k)
+                inheritable.append(UnitField(field=k, name=named(k), column=spec[0]))
     if not rows:
         check = Check(ok=False, text="no row without a shape is a unit: check which rows are units")
     elif units.column is None:
@@ -198,6 +238,8 @@ def units_view(project: Project, files: Files, f: DataFile) -> UnitsView:
         examples=examples,
         fields=given,
         offers=offers,
+        inheritable=inheritable,
+        from_shape=from_shape(project, units),
         basis=basis,
         land=land,
         check=check,

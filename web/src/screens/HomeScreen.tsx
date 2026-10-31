@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, Plus, Trash2 } from "lucide-react";
+import { FolderOpen, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type Project, unwrap } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Field } from "../components/Form";
 import { desktop } from "../desktop";
 import { size } from "../lib/format";
@@ -21,13 +22,9 @@ export function HomeScreen() {
         <section className="panel" aria-labelledby="projects-title">
           <header className="panel-head">
             <h1 id="projects-title">{t.home.projectsTitle}</h1>
-            <Button
-              className="button button-primary panel-head-action"
-              onPress={() => navigate({ name: "new" })}
-            >
-              <Plus aria-hidden="true" size="1.1em" />
+            <AddButton primary onPress={() => navigate({ name: "new" })}>
               {t.home.newProject}
-            </Button>
+            </AddButton>
           </header>
           {projects.data?.length === 0 && <p className="empty">{t.home.noProjects}</p>}
           <ul className="rows">

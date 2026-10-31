@@ -2,12 +2,14 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
 import { t } from "../strings";
+import { AddButton } from "./AddButton";
 import { Tick } from "./Form";
 
 const m = t.multiPick;
 
-/** Pick several values in one line: the button lists what's chosen; it opens a searchable checklist with each
- * value's count. Values typed in are kept when the list doesn't show them all. */
+/** Pick several things in one line, values or fields: the button lists what's chosen; it opens a searchable
+ * checklist, each with its count or a note (a field's column). Values typed in are kept when the list doesn't show
+ * them all. The one way to pick fields or values from a list: not chips, not a row of ticks. */
 export function MultiPick({
   label,
   values,
@@ -15,30 +17,41 @@ export function MultiPick({
   chosen,
   onChange,
   countNoun,
+  placeholder,
 }: {
   label: string;
-  values: { value: string; count: number }[];
+  /** label: shown instead of the value (a field's name); note: beside it (its column); count: -1 or none for none. */
+  values: { value: string; count?: number; label?: string; note?: string }[];
   more?: number;
   chosen: string[];
   onChange: (v: string[]) => void;
-  /** What a count counts ("parcels"), for the list's header. */
-  countNoun: string;
+  /** What a count counts ("parcels"), for the list's foot; none without counts. */
+  countNoun?: string;
+  /** What the button says while nothing is chosen. */
+  placeholder?: string;
 }) {
   const [search, setSearch] = useState("");
   const listed = new Set(values.map((x) => x.value));
-  const extra = chosen.filter((c) => !listed.has(c)).map((value) => ({ value, count: -1 }));
+  const extra = chosen
+    .filter((c) => !listed.has(c))
+    .map((value) => ({ value, count: -1 }) as (typeof values)[number]);
   const q = search.trim().toLowerCase();
-  const rows = [...extra, ...values].filter((x) => !q || (x.value || m.blank).toLowerCase().includes(q));
+  const text = (x: (typeof values)[number]) => x.label ?? (x.value || m.blank);
+  const rows = [...extra, ...values].filter(
+    (x) => !q || `${text(x)} ${x.note ?? ""}`.toLowerCase().includes(q),
+  );
   const toggle = (value: string, on: boolean) =>
     onChange(on ? [...chosen, value] : chosen.filter((c) => c !== value));
   const typed = search.trim();
   const canAdd = typed !== "" && !listed.has(typed) && !chosen.includes(typed);
-  const shown = chosen.map((c) => c || m.blank).join(", ");
+  const labels = new Map(values.map((x) => [x.value, text(x)]));
+  const named = values.some((x) => x.label);
+  const shown = chosen.map((c) => labels.get(c) ?? (c || m.blank)).join(", ");
   return (
     <DialogTrigger onOpenChange={(open) => !open && setSearch("")}>
       <Button className="mp-button" aria-label={`${label}: ${chosen.length ? shown : m.none}`}>
-        <span className={chosen.length ? "mp-text mono" : "mp-text mp-placeholder"}>
-          {chosen.length ? shown : m.choose}
+        <span className={chosen.length ? (named ? "mp-text" : "mp-text mono") : "mp-text mp-placeholder"}>
+          {chosen.length ? shown : (placeholder ?? m.choose)}
         </span>
         {chosen.length > 1 && <span className="pill pill-info">{chosen.length}</span>}
         <ChevronDown aria-hidden="true" size="0.9em" />
@@ -77,25 +90,27 @@ export function MultiPick({
                 isSelected={chosen.includes(x.value)}
                 onChange={(on) => toggle(x.value, on)}
               >
-                <span className="mp-value mono">{x.value || m.blank}</span>
-                {x.count >= 0 && <span className="mp-n">{x.count.toLocaleString()}</span>}
+                <span className={x.label ? "mp-value" : "mp-value mono"}>{text(x)}</span>
+                {x.note && <span className="mp-n mono">{x.note}</span>}
+                {x.count !== undefined && x.count >= 0 && (
+                  <span className="mp-n">{x.count.toLocaleString()}</span>
+                )}
               </Tick>
             ))}
             {rows.length === 0 && !canAdd && <p className="vals-sub">{m.noMatch}</p>}
           </div>
           {canAdd && more > 0 && (
-            <Button
-              className="wiz-link"
+            <AddButton
               onPress={() => {
                 onChange([...chosen, typed]);
                 setSearch("");
               }}
             >
               {m.add(typed)}
-            </Button>
+            </AddButton>
           )}
           {more > 0 && <p className="vals-sub">{m.more(more)}</p>}
-          <p className="vals-sub mp-noun">{m.counts(countNoun)}</p>
+          {countNoun && <p className="vals-sub mp-noun">{m.counts(countNoun)}</p>}
         </Dialog>
       </Popover>
     </DialogTrigger>

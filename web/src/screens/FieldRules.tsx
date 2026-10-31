@@ -11,6 +11,7 @@ import {
   type WizardField,
   type WizardFile,
 } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { amount, pct } from "../lib/format";
@@ -178,8 +179,7 @@ export function RuleDialog({
             ))}
           </ol>
           <div className="rl-adds">
-            <Button
-              className="button rc-add"
+            <AddButton
               onPress={() =>
                 setRule({
                   ...rule,
@@ -188,10 +188,9 @@ export function RuleDialog({
               }
             >
               {r.addTest}
-            </Button>
+            </AddButton>
             {field.key === "valid_sale" && (
-              <Button
-                className="button rc-add"
+              <AddButton
                 isDisabled={!priceColumn}
                 onPress={() =>
                   priceColumn &&
@@ -202,7 +201,7 @@ export function RuleDialog({
                 }
               >
                 {r.addPrice(p ? amount(p.symbol, 1000) : "1,000")}
-              </Button>
+              </AddButton>
             )}
           </div>
           {field.key === "valid_sale" && (

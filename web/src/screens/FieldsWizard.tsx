@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Button,
@@ -25,6 +24,7 @@ import {
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
+import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { Tip, TipOn } from "../components/Tip";
 import { t } from "../strings";
@@ -342,10 +342,9 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
       </div>
       {!adding && base.extra_ids.length < EXTRA_IDS.length && (
         <Tip text={w.extraIdTip}>
-          <Button className="button wiz-add-id" onPress={() => setAdding(true)}>
-            <Plus aria-hidden="true" size="1em" />
+          <AddButton onPress={() => setAdding(true)}>
             {w.addId(w.idOrdinal[EXTRA_IDS[base.extra_ids.length] ?? "key2"] ?? "")}
-          </Button>
+          </AddButton>
         </Tip>
       )}
     </>
@@ -516,10 +515,9 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
           )}
         </div>
       ) : (
-        <Button className="button wiz-add-id" onPress={() => setAdding(true)}>
-          <Plus aria-hidden="true" size="1em" />
+        <AddButton onPress={() => setAdding(true)}>
           {extras.length ? w.extraFiles.another : w.extraFiles.first}
-        </Button>
+        </AddButton>
       )}
     </>
   );

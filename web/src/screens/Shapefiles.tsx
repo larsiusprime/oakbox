@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import L from "leaflet";
-import { ChevronDown, Map as MapIcon, Plus, X } from "lucide-react";
+import { ChevronDown, Map as MapIcon, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Button,
@@ -17,6 +17,7 @@ import {
 import { api, type LayerView, type Overlay, type Project, unwrap, type Wizard } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
+import { AddButton } from "../components/AddButton";
 import { addBasemap } from "../components/basemap";
 import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
@@ -87,10 +88,7 @@ export function ShapefilesStep({
           )}
         </div>
       ) : (
-        <Button className="button wiz-add-id" onPress={() => setAdding(true)}>
-          <Plus aria-hidden="true" size="1em" />
-          {data.layers.length ? s.another : s.first}
-        </Button>
+        <AddButton onPress={() => setAdding(true)}>{data.layers.length ? s.another : s.first}</AddButton>
       )}
     </>
   );
@@ -243,10 +241,7 @@ function AddStamp({ layer, add }: { layer: LayerView; add: (f: Overlay["fields"]
   if (free.length === 0) return null;
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button className="ly-add">
-        <Plus aria-hidden="true" size="0.9em" />
-        {s.addField}
-      </Button>
+      <AddButton>{s.addField}</AddButton>
       <Popover className="popover" placement="bottom start">
         <Dialog className="popover-body ly-pop" aria-label={s.addField}>
           <form

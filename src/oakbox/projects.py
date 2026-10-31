@@ -511,7 +511,14 @@ def _condos(project: Project, out: dict) -> None:
         "group_field": CONDO_GROUP,
         "borrow_geometry": True,
         "land_share": share,
+        # Fields a unit takes from its parcel: only those a parcel file other than the units' own still loads.
+        **({"inherit": inherit} if (inherit := _inheritable(project, u, units.inherit)) else {}),
     }
+
+
+def _inheritable(project: Project, u: DataFile, wanted: list[str]) -> list[str]:
+    loaded = {k for f in project.files if f is not u and f.holds == "parcels" for k in f.load}
+    return [k for k in wanted if k in loaded and k not in u.load]
 
 
 def permits_file(project: Project) -> DataFile | None:

@@ -24,6 +24,7 @@ import {
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
+import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
@@ -369,14 +370,12 @@ export function FilePicker({
   return (
     <div className="wiz-pick">
       {canPick ? (
-        <Button className="button button-primary" onPress={() => void pick()}>
+        <AddButton primary onPress={() => void pick()}>
           {w.addFile}
-        </Button>
+        </AddButton>
       ) : (
         <TipOn text={w.noPicker}>
-          <Button className="button" isDisabled>
-            {w.addFile}
-          </Button>
+          <AddButton isDisabled>{w.addFile}</AddButton>
         </TipOn>
       )}
       {existing.length > 0 && (

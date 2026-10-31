@@ -1,16 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import {
-  Button,
-  Dialog,
-  DialogTrigger,
-  Input,
-  Popover,
-  Radio,
-  RadioGroup,
-  TextField,
-} from "react-aria-components";
+import { X } from "lucide-react";
+import { Fragment, type ReactNode, useState } from "react";
+import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
 import { navigate } from "../App";
 import {
   api,
@@ -21,6 +12,7 @@ import {
   type Wizard,
   type WizardFile,
 } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
@@ -43,6 +35,7 @@ const DEFAULT: Units = {
   land: "equal",
   location: true,
   guessed: false,
+  inherit: [],
 };
 
 type Props = { projectId: string; data: Wizard; change: (c: UnitsChange) => void };
@@ -358,33 +351,106 @@ function Land({ data, file, v, change }: Part) {
 }
 
 function Fields({ data, file, v, change }: Part) {
+  const set = setter(file, v, change);
+  const base = data.files.find((f) => f.base);
+  // Fields ticked that have no same-named column yet: a row each, waiting for its column.
+  const [waiting, setWaiting] = useState<string[]>([]);
+  const offered = new Map(v.offers.map((o) => [o.field, o.column]));
+  const named = new Map(data.fields.map((f) => [f.key, f.name]));
+  const given = v.fields.map((f) => f.field);
+  const rows = [
+    ...v.fields.map((f) => ({ ...f, name: named.get(f.field) ?? f.name })),
+    ...waiting
+      .filter((k) => !given.includes(k))
+      .map((k) => ({ field: k, name: named.get(k) ?? k, column: null })),
+  ];
+  // Not the land size: the Land part sets it (a share of the parcel's, or the unit's own).
+  const candidates = data.fields.filter(
+    (f) =>
+      f.sources.some((s) => s.file === base?.name) &&
+      !["key", "land_area_sqft", "land_area_sqm"].includes(f.key),
+  );
+  const unit = (field: string, column: string | null) =>
+    change({ kind: "unitField", name: file.name, field, column });
+  const pick = (next: string[]) => {
+    const now = rows.map((r) => r.field);
+    const added = next.filter((k) => !now.includes(k));
+    const withColumn: Record<string, string> = {};
+    for (const k of added) {
+      const column = offered.get(k);
+      if (column) withColumn[k] = column;
+    }
+    if (Object.keys(withColumn).length) change({ kind: "unitFields", name: file.name, fields: withColumn });
+    const removed = now.filter((k) => !next.includes(k));
+    for (const k of removed) if (given.includes(k)) unit(k, null);
+    setWaiting((w) => [...w.filter((k) => !removed.includes(k)), ...added.filter((k) => !offered.has(k))]);
+  };
+  const columns = file.columns.map((c) => [c.name, c.name] as const);
   return (
     <>
-      <div className="cu-row">
-        <span>{u.gives}</span>
-        {v.fields.length === 0 && <span className="wiz-from">{u.givesNone}</span>}
-        {v.fields.map((f) => (
-          <span key={f.field} className="ly-chip">
-            <span>{f.name}</span>
-            <span className="wiz-from mono">← {f.column}</span>
-            <Button
-              className="ly-x"
-              aria-label={`${u.remove} ${f.name}`}
-              onPress={() => change({ kind: "unitField", name: file.name, field: f.field, column: null })}
-            >
-              <X size="0.85em" />
-            </Button>
-          </span>
-        ))}
-      </div>
-      {v.offers.length > 0 && <Offers file={file} offers={v.offers} change={change} />}
-      <AddField
-        data={data}
-        file={file}
-        given={v.fields.map((f) => f.field)}
-        add={(field, column) => change({ kind: "unitField", name: file.name, field, column })}
+      <h3 className="cu-h">{u.fromFile}</h3>
+      <MultiPick
+        label={u.fieldsPick}
+        placeholder={u.chooseFields}
+        values={candidates.map((f) => {
+          const note = offered.get(f.key);
+          return note ? { value: f.key, label: f.name, note } : { value: f.key, label: f.name };
+        })}
+        chosen={rows.map((r) => r.field)}
+        onChange={pick}
       />
-      <p className="wiz-from">{u.fromParcel}</p>
+      {rows.length > 0 && (
+        <div className="wiz-grid cu-fields">
+          {rows.map((r) => (
+            <Fragment key={r.field}>
+              <span className="wiz-label">{r.name}</span>
+              <Choice
+                label={r.name}
+                hideLabel
+                value={r.column}
+                placeholder={u.pickColumn}
+                options={columns}
+                onChange={(column) => {
+                  unit(r.field, column);
+                  setWaiting((w) => w.filter((k) => k !== r.field));
+                }}
+              />
+              <Button
+                className="ly-x"
+                aria-label={`${u.remove} ${r.name}`}
+                onPress={() => pick(rows.map((x) => x.field).filter((k) => k !== r.field))}
+              >
+                <X size="0.9em" />
+              </Button>
+            </Fragment>
+          ))}
+        </div>
+      )}
+      <h3 className="cu-h">{u.fromParcelTitle}</h3>
+      {v.inheritable.length > 0 ? (
+        <>
+          <MultiPick
+            label={u.inheritPick}
+            placeholder={u.chooseFields}
+            values={v.inheritable.map((f) => ({ value: f.field, label: f.name, note: f.column }))}
+            chosen={v.settings.inherit}
+            onChange={(inherit) => set({ inherit })}
+          />
+          <p className="wiz-from">{u.inheritNote}</p>
+        </>
+      ) : (
+        <p className="wiz-from">{u.inheritNone}</p>
+      )}
+      {v.from_shape.length > 0 && (
+        <>
+          <p className="cu-sub-h">{u.shapeTitle}</p>
+          <ul className="cu-shape">
+            {v.from_shape.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        </>
+      )}
     </>
   );
 }
@@ -469,49 +535,6 @@ export function CondosLink({ projectId }: { projectId: string }) {
   );
 }
 
-/** The parcel universe's fields this file has same-named columns for: listed, ticked, given only when asked. */
-function Offers({
-  file,
-  offers,
-  change,
-}: {
-  file: WizardFile;
-  offers: Units_View["offers"];
-  change: (c: UnitsChange) => void;
-}) {
-  const [off, setOff] = useState<string[]>([]);
-  const chosen = offers.filter((o) => !off.includes(o.field));
-  return (
-    <div className="un-offers">
-      <span>{u.offerTitle(offers.length)}</span>
-      <div className="un-offer-list">
-        {offers.map((o) => (
-          <Tick
-            key={o.field}
-            isSelected={!off.includes(o.field)}
-            onChange={(on) => setOff((x) => (on ? x.filter((k) => k !== o.field) : [...x, o.field]))}
-          >
-            {o.name} <span className="wiz-from mono">← {o.column}</span>
-          </Tick>
-        ))}
-      </div>
-      <Button
-        className="button"
-        isDisabled={chosen.length === 0}
-        onPress={() =>
-          change({
-            kind: "unitFields",
-            name: file.name,
-            fields: Object.fromEntries(chosen.map((o) => [o.field, o.column])),
-          })
-        }
-      >
-        {u.giveThese(chosen.length)}
-      </Button>
-    </div>
-  );
-}
-
 function Prefix({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   // What's typed, until it's saved; otherwise the value as it is.
   const [draft, setDraft] = useState<string | null>(null);
@@ -581,12 +604,11 @@ function RuleLines({
           )}
         </div>
       ))}
-      <Button
-        className="ly-add"
+      <AddButton
         onPress={() => onChange([...conditions, { column: columns[0]?.[0] ?? "", op: "isin", values: [] }])}
       >
         {u.addCondition}
-      </Button>
+      </AddButton>
     </div>
   );
 }
@@ -623,65 +645,5 @@ function ColumnValues({
       onChange={onChange}
       countNoun={t.wizard.rule.countRows}
     />
-  );
-}
-
-/** Give the units another of the parcel universe's fields, from a column of their file. */
-function AddField({
-  data,
-  file,
-  given,
-  add,
-}: {
-  data: Wizard;
-  file: WizardFile;
-  given: string[];
-  add: (field: string, column: string) => void;
-}) {
-  const base = data.files.find((f) => f.base);
-  const fields = data.fields.filter(
-    (f) => f.sources.some((s) => s.file === base?.name) && !given.includes(f.key) && f.key !== "key",
-  );
-  const [field, setField] = useState<string | null>(null);
-  const [column, setColumn] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
-  if (fields.length === 0) return null;
-  return (
-    <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button className="ly-add">
-        <Plus aria-hidden="true" size="0.9em" />
-        {u.addField}
-      </Button>
-      <Popover className="popover" placement="bottom start">
-        <Dialog className="popover-body ly-pop" aria-label={u.addField}>
-          <div className="ly-form">
-            <Choice
-              label={u.fieldPick}
-              value={field}
-              options={fields.map((f) => [f.key, f.name] as const)}
-              onChange={setField}
-            />
-            <Choice
-              label={u.columnPick}
-              value={column}
-              options={file.columns.map((c) => [c.name, c.name] as const)}
-              onChange={setColumn}
-            />
-            <Button
-              className="button button-primary"
-              isDisabled={!field || !column}
-              onPress={() => {
-                if (field && column) add(field, column);
-                setField(null);
-                setColumn(null);
-                setOpen(false);
-              }}
-            >
-              {u.add}
-            </Button>
-          </div>
-        </Dialog>
-      </Popover>
-    </DialogTrigger>
   );
 }

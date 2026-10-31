@@ -6756,6 +6756,11 @@ export interface components {
              * @default true
              */
             location: boolean;
+            /**
+             * Inherit
+             * @description Fields each unit takes from the parcel it's on (its land and location: zoning, a district), where its own is blank. OpenAVMKit's condos.inherit.
+             */
+            inherit?: string[];
         };
         /**
          * Units
@@ -6807,6 +6812,11 @@ export interface components {
              * @default true
              */
             location: boolean;
+            /**
+             * Inherit
+             * @description Fields each unit takes from the parcel it's on (its land and location: zoning, a district), where its own is blank. OpenAVMKit's condos.inherit.
+             */
+            inherit: string[];
         };
         /** UnitsBody */
         UnitsBody: {
@@ -6847,6 +6857,16 @@ export interface components {
              * @description The parcel universe's fields not given yet that this file has a column of the same name for.
              */
             offers: components["schemas"]["UnitField"][];
+            /**
+             * Inheritable
+             * @description The parcel's land and location fields a unit can take from the parcel it's on (column: the parcel's), the units file's own left out.
+             */
+            inheritable: components["schemas"]["UnitField"][];
+            /**
+             * From Shape
+             * @description What each unit gets from its parcel's shape: map layers, enrichments.
+             */
+            from_shape: string[];
             /**
              * Basis
              * @description How the link was guessed, when it was.

@@ -416,6 +416,11 @@ class Units(BaseModel):
     location: bool = Field(
         default=True, description="The shared parcel (condo_group) is also a location, like a neighborhood."
     )
+    inherit: list[str] = Field(
+        default_factory=list,
+        description="Fields each unit takes from the parcel it's on (its land and location: zoning, a district), "
+        "where its own is blank. OpenAVMKit's condos.inherit.",
+    )
 
 
 PermitMeaning = Literal["teardown", "major", "minor", "none"]

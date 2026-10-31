@@ -10,6 +10,7 @@ import {
   type ModelGroup,
   unwrap,
 } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { moneyShort } from "../lib/format";
@@ -188,8 +189,7 @@ export function GroupEditor({
           ))}
         </ol>
         <div className="mg-card-foot">
-          <Button
-            className="button rc-add"
+          <AddButton
             onPress={() =>
               setConditions([
                 ...rule.conditions,
@@ -198,7 +198,7 @@ export function GroupEditor({
             }
           >
             {g.addCondition}
-          </Button>
+          </AddButton>
           <span className="mg-help">{g.counts}</span>
         </div>
       </div>

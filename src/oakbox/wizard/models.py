@@ -97,6 +97,14 @@ class UnitsView(BaseModel):
         default_factory=list,
         description="The parcel universe's fields not given yet that this file has a column of the same name for.",
     )
+    inheritable: list[UnitField] = Field(
+        default_factory=list,
+        description="The parcel's land and location fields a unit can take from the parcel it's on (column: the "
+        "parcel's), the units file's own left out.",
+    )
+    from_shape: list[str] = Field(
+        default_factory=list, description="What each unit gets from its parcel's shape: map layers, enrichments."
+    )
     basis: str | None = Field(default=None, description="How the link was guessed, when it was.")
     land: Check
     check: Check

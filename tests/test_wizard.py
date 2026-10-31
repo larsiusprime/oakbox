@@ -1189,6 +1189,7 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
             "USE": ["COMMON", "COMMON", "RESIDENTIAL"],
             "ACRES": [2.0, 1.0, 0.25],
             "AREA": [None, None, 1500.0],
+            "DISTRICT": ["North", "South", "East"],
         },
         geometry=[box(-79.8 + i * 0.01, 36.0, -79.8 + i * 0.01 + 0.005, 36.005) for i in range(3)],
         crs="EPSG:4326",
@@ -1218,6 +1219,7 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     for key, col in (("land_class", "USE"), ("bldg_area_finished_sqft", "AREA")):
         client.put(f"{field}/{key}", json={"file": "geo_parcels", "column": col})
     client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "acres"})
+    client.put(f"/api/projects/{pid}/wizard/locations/district", json={"file": "geo_parcels", "column": "DISTRICT"})
     w = put_file(client, pid, "units", holds="parcels", id_column="ID").json()
     assert _file(w, "units")["unshaped"] == 5  # all but the house
     # Rows without a shape are Condo units' to set up: a pointer there from More files, never a stop.
@@ -1273,8 +1275,17 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     # Its fields are the units' own, not a second source of the parcel universe's.
     assert _field(w, "land_class")["sources"] == [{"file": "geo_parcels", "column": "USE"}]
     assert _file(w, "units")["id_check"]["ok"]
+    # From the parcel each unit is on: its land and location fields the units' file doesn't give them.
+    assert [f["field"] for f in u["inheritable"]] == ["district"]
+    assert "The parcel itself, as a location" in u["from_shape"]
+    w = client.put(
+        f"/api/projects/{pid}/wizard/files/units/units", json={"units": {**u["settings"], "inherit": ["district"]}}
+    ).json()
+    u = _file(w, "units")["units"]
+    assert u["settings"]["inherit"] == ["district"]
 
     s = read_settings(pid)
+    assert s["data"]["process"]["condos"]["inherit"] == ["district"]
     condos = s["data"]["process"]["condos"]
     assert condos["link"] == {"method": "id_prefix", "id_field": "condo_link", "prefix_len": 3, "from": "geo_parcels"}
     assert condos["select"] == ["==", "condo_unit", True]
@@ -1297,6 +1308,7 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     assert uni.loc["11", "condo_group"] == "100" and uni.loc["22", "condo_group"] == "200"
     assert uni.loc["12", "land_class"] == "CONDO" and round(uni.loc["12", "land_area_sqft"]) == round(0.02 * 43560)
     assert uni.loc["21", "bldg_area_finished_sqft"] == 800.0
+    assert uni.loc["11", "district"] == "North" and uni.loc["22", "district"] == "South"  # their parcel's
     assert view["receipt"]["sales"]["rows"] == 3  # the units' sales find them
     lines = {line["text"]: line for line in view["receipt"]["universe"]["funnels"][0]["lines"]}
     assert lines["units from units.csv, with their building's shape"]["n"] == 4
