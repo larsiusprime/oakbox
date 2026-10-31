@@ -4643,3 +4643,14 @@ table.tbl.dt > * > tr > :is(th, td) {
 .mo-trials .input {
   width: 5rem;
 }
+
+/* More files: how a file joins, under what it's about; a file appended as rows, against the file it adds to. */
+.wiz-how {
+  margin-left: 1.6rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--info-edge);
+}
+.wiz-appended > p {
+  margin: 0.3rem 0;
+  max-width: 60rem;
+}

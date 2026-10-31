@@ -413,6 +413,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/files/{name}/rows/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard Row Field
+         * @description A field of a file appended as rows (more sales, more parcels), or the date of more sales details joined on
+         *     a made sale ID: from this file's own column (F3d).
+         */
+        put: operations["wizard_row_field_api_projects__project_id__wizard_files__name__rows__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/sale-id": {
         parameters: {
             query?: never;
@@ -2878,7 +2899,7 @@ export interface components {
              * Holds
              * @description What the file holds (F3d): one row per parcel, one row per sale, or not used. None: not chosen.
              */
-            holds: ("parcels" | "sales" | "unused" | "overlay" | "permits") | null;
+            holds: ("parcels" | "sales" | "sale_rows" | "parcel_rows" | "unused" | "overlay" | "permits") | null;
             /**
              * Clean
              * @description ID field -> clean-up steps, so it matches the other files (F3d reconcile).
@@ -6322,6 +6343,34 @@ export interface components {
              */
             unit: "sqft" | "sqm";
         };
+        /** RowField */
+        RowField: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /**
+             * Column
+             * @description This file's column for it; None: not in it (blank for its rows).
+             */
+            column: string | null;
+            /**
+             * Assumed
+             * @description No column: assumed, as the sales record assumes it.
+             * @default false
+             */
+            assumed: boolean;
+        };
+        /** RowFieldChoice */
+        RowFieldChoice: {
+            /**
+             * Column
+             * @description Its column in this file; null: not in it (blank for its rows).
+             */
+            column: string | null;
+            /** Date Format */
+            date_format?: string | null;
+        };
         /** Rows */
         Rows: {
             /** Set */
@@ -6349,6 +6398,50 @@ export interface components {
              * @description Repeated IDs (sorted by the ID, its first column): 0 or 1 per row, alternating per ID, so the rows of one ID share a background.
              */
             bands: number[] | null;
+        };
+        /**
+         * RowsView
+         * @description An appended file against the main file it adds to.
+         */
+        RowsView: {
+            /**
+             * Adds To
+             * @description sales or parcels.
+             */
+            adds_to: string;
+            /** Fields */
+            fields: components["schemas"]["RowField"][];
+            /**
+             * Have
+             * @description Of the main file's fields, how many this file has.
+             */
+            have: number;
+            /** Of */
+            of: number;
+            /**
+             * Few
+             * @description Half of them or fewer: likely the wrong file, or a different layout.
+             */
+            few: boolean;
+            /**
+             * Key Text
+             * @description Whether its IDs look like the main file's, in a line.
+             */
+            key_text: string;
+            /** Key Ok */
+            key_ok: boolean;
+            /**
+             * Found
+             * @description Rows whose ID finds a parcel in the universe (more sales) or is already in it.
+             */
+            found: number;
+            /** Rows */
+            rows: number;
+            /**
+             * Overlap
+             * @description Rows already in the main file (same sale ID, or parcel ID): kept once.
+             */
+            overlap: number;
         };
         /**
          * Rule
@@ -8277,7 +8370,7 @@ export interface components {
             /** Geometry */
             geometry: boolean;
             /** Holds */
-            holds: ("parcels" | "sales" | "unused" | "overlay" | "permits") | null;
+            holds: ("parcels" | "sales" | "sale_rows" | "parcel_rows" | "unused" | "overlay" | "permits") | null;
             /**
              * Match
              * @description Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).
@@ -8318,6 +8411,13 @@ export interface components {
             units: components["schemas"]["UnitsView"] | null;
             /** @description Its rows that don't find a parcel are for parcels missing from the parcel universe, not IDs written differently: cleaning won't help (Reconcile is for that). */
             not_in_universe: components["schemas"]["MissingParcels"] | null;
+            /** @description Appended as rows: against the file it adds to. */
+            appended: components["schemas"]["RowsView"] | null;
+            /**
+             * Date Column
+             * @description More sales details on a made sale ID: the date its own sale ID is made with.
+             */
+            date_column: string | null;
         };
         /**
          * WizardFileChoice
@@ -8325,7 +8425,7 @@ export interface components {
          */
         WizardFileChoice: {
             /** Holds */
-            holds?: ("parcels" | "sales" | "unused" | "overlay" | "permits") | null;
+            holds?: ("parcels" | "sales" | "sale_rows" | "parcel_rows" | "unused" | "overlay" | "permits") | null;
             /**
              * Universe
              * @description Make this the parcel universe file (it needs shapes).
@@ -9374,6 +9474,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Reconcile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_row_field_api_projects__project_id__wizard_files__name__rows__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RowFieldChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
                 };
             };
             /** @description Validation Error */

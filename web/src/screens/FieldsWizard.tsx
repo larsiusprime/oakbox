@@ -479,7 +479,12 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
     (f) =>
       !f.base &&
       f !== main &&
-      (f.holds === "parcels" || f.holds === "sales" || f.holds === null || chosen.includes(f.name)),
+      (f.holds === "parcels" ||
+        f.holds === "sales" ||
+        f.holds === "parcel_rows" ||
+        f.holds === "sale_rows" ||
+        f.holds === null ||
+        chosen.includes(f.name)),
   );
   const [adding, setAdding] = useState(extras.length === 0);
   return (
@@ -547,9 +552,22 @@ function ExtraFile({
   drop: () => void;
 }) {
   const m = w.extraFiles;
-  const holds = file.holds === "parcels" || file.holds === "sales" ? file.holds : null;
-  // More sales details join on the sale ID, so the main sales file needs one in a column.
-  const salesOk = main !== undefined && main.id_column !== null && !data.sale_id.made;
+  // What it's about (parcels or sales), then how it joins: on the ID, or appended as extra rows.
+  const about =
+    file.holds === "parcels" || file.holds === "parcel_rows"
+      ? "parcels"
+      : file.holds === "sales" || file.holds === "sale_rows"
+        ? "sales"
+        : null;
+  const appended = file.holds === "parcel_rows" || file.holds === "sale_rows";
+  const set = (holds: "parcels" | "sales" | "parcel_rows" | "sale_rows") =>
+    change(
+      holds === "sales"
+        ? { kind: "file", name: file.name, holds, match: "key_sale" }
+        : { kind: "file", name: file.name, holds },
+    );
+  const joined = about === "parcels" ? "parcels" : "sales";
+  const rows = about === "parcels" ? "parcel_rows" : "sale_rows";
   return (
     <section className="wiz-extra">
       <div className="wiz-file">
@@ -562,13 +580,9 @@ function ExtraFile({
       </div>
       <RadioGroup
         className="field radios wiz-holds"
-        value={holds}
+        value={about}
         onChange={(v) =>
-          change(
-            v === "sales"
-              ? { kind: "file", name: file.name, holds: "sales", match: "key_sale" }
-              : { kind: "file", name: file.name, holds: "parcels" },
-          )
+          set(v === "sales" ? (appended ? "sale_rows" : "sales") : appended ? "parcel_rows" : "parcels")
         }
       >
         <Label className="field-label">{m.what}</Label>
@@ -576,15 +590,84 @@ function ExtraFile({
           <span className="radio-dot" aria-hidden="true" />
           {m.parcels}
         </Radio>
-        <Radio value="sales" className="radio" isDisabled={!salesOk && holds !== "sales"}>
+        <Radio value="sales" className="radio" isDisabled={!main}>
           <span className="radio-dot" aria-hidden="true" />
           {m.sales}
-          {!salesOk && <small className="wiz-from"> {m.salesNeedsId}</small>}
+          {!main && <small className="wiz-from"> {m.needsSales}</small>}
         </Radio>
       </RadioGroup>
-      {holds && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
-      {holds === "parcels" && <UnitsPointer projectId={project.id} file={file} />}
+      {about && (
+        <RadioGroup
+          className="field radios wiz-holds wiz-how"
+          value={appended ? "rows" : "joined"}
+          onChange={(v) => set(v === "rows" ? rows : joined)}
+        >
+          <Label className="field-label">{m.how}</Label>
+          <Radio value="joined" className="radio">
+            <span className="radio-dot" aria-hidden="true" />
+            {about === "parcels" ? m.joinedParcels : m.joinedSales}
+          </Radio>
+          <Radio value="rows" className="radio" isDisabled={about === "parcels" && !file.geometry}>
+            <span className="radio-dot" aria-hidden="true" />
+            {about === "parcels" ? m.rowsParcels : m.rowsSales}
+            {about === "parcels" && !file.geometry && <small className="wiz-from"> {m.needsShapes}</small>}
+          </Radio>
+        </RadioGroup>
+      )}
+      {about && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
+      {file.appended && <Appended file={file} change={change} />}
+      {file.holds === "parcels" && <UnitsPointer projectId={project.id} file={file} />}
     </section>
+  );
+}
+
+/** A file appended as rows: how many of the main file's fields it has, whether its IDs look like the main file's,
+ * its columns for those fields (each changeable), and what happens to rows in both. */
+function Appended({ file, change }: { file: WizardFile; change: Mutate }) {
+  const m = w.extraFiles;
+  const a = file.appended;
+  if (!a) return null;
+  const sales = a.adds_to === "sales";
+  const missing = a.fields.filter((f) => !f.column && !f.assumed).map((f) => f.name);
+  const columns = [["", m.notIn] as const, ...file.columns.map((c) => [c.name, c.name] as const)];
+  return (
+    <div className="wiz-appended">
+      <p className={a.few ? "wiz-warn" : "wiz-ok"}>
+        {a.few ? "" : "✓ "}
+        {m.has(a.have, a.of, sales ? m.salesRecord : m.universe)}
+        {missing.length > 0 && m.missing(missing.join(", "))}
+        {a.few && ` ${m.few}`}
+      </p>
+      <p className={a.key_ok ? "wiz-ok" : "wiz-warn"}>
+        {a.key_ok ? "✓ " : "! "}
+        {a.key_text.charAt(0).toUpperCase() + a.key_text.slice(1)}.
+      </p>
+      <div className="wiz-grid">
+        {a.fields.map((f) => [
+          <div key={`${f.key}-l`} className="wiz-label">
+            {f.name}
+          </div>,
+          <div key={`${f.key}-c`}>
+            <Choice
+              label={`${f.name}: ${file.name}`}
+              hideLabel
+              value={f.column ?? ""}
+              options={columns}
+              onChange={(column) =>
+                change({ kind: "rowField", name: file.name, key: f.key, column: column || null })
+              }
+            />
+          </div>,
+          <div key={`${f.key}-n`} className="wiz-samples wiz-from">
+            {f.assumed ? m.assumedNote : sales && f.key === "valid_sale" && f.column ? m.ruleNote : ""}
+          </div>,
+        ])}
+      </div>
+      {a.overlap > 0 && (
+        <p className="wiz-warn">{sales ? m.overlapSales(a.overlap) : m.overlapParcels(a.overlap)}</p>
+      )}
+      <p className="wiz-from">{sales ? m.appendedSales(a.rows) : m.appendedParcels(a.rows)}</p>
+    </div>
   );
 }
 

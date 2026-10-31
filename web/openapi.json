@@ -1069,6 +1069,74 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/files/{name}/rows/{key}": {
+   "put": {
+    "summary": "Wizard Row Field",
+    "description": "A field of a file appended as rows (more sales, more parcels), or the date of more sales details joined on\na made sale ID: from this file's own column (F3d).",
+    "operationId": "wizard_row_field_api_projects__project_id__wizard_files__name__rows__key__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RowFieldChoice"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/sale-id": {
    "put": {
     "summary": "Wizard Sale Id",
@@ -7464,6 +7532,8 @@
         "enum": [
          "parcels",
          "sales",
+         "sale_rows",
+         "parcel_rows",
          "unused",
          "overlay",
          "permits"
@@ -15285,6 +15355,76 @@
     ],
     "title": "ReviewPage"
    },
+   "RowField": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "This file's column for it; None: not in it (blank for its rows)."
+     },
+     "assumed": {
+      "type": "boolean",
+      "title": "Assumed",
+      "description": "No column: assumed, as the sales record assumes it.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "column",
+     "assumed"
+    ],
+    "title": "RowField"
+   },
+   "RowFieldChoice": {
+    "properties": {
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "Its column in this file; null: not in it (blank for its rows)."
+     },
+     "date_format": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Format"
+     }
+    },
+    "type": "object",
+    "required": [
+     "column"
+    ],
+    "title": "RowFieldChoice"
+   },
    "Rows": {
     "properties": {
      "set": {
@@ -15371,6 +15511,74 @@
      "bands"
     ],
     "title": "Rows"
+   },
+   "RowsView": {
+    "properties": {
+     "adds_to": {
+      "type": "string",
+      "title": "Adds To",
+      "description": "sales or parcels."
+     },
+     "fields": {
+      "items": {
+       "$ref": "#/components/schemas/RowField"
+      },
+      "type": "array",
+      "title": "Fields"
+     },
+     "have": {
+      "type": "integer",
+      "title": "Have",
+      "description": "Of the main file's fields, how many this file has."
+     },
+     "of": {
+      "type": "integer",
+      "title": "Of"
+     },
+     "few": {
+      "type": "boolean",
+      "title": "Few",
+      "description": "Half of them or fewer: likely the wrong file, or a different layout."
+     },
+     "key_text": {
+      "type": "string",
+      "title": "Key Text",
+      "description": "Whether its IDs look like the main file's, in a line."
+     },
+     "key_ok": {
+      "type": "boolean",
+      "title": "Key Ok"
+     },
+     "found": {
+      "type": "integer",
+      "title": "Found",
+      "description": "Rows whose ID finds a parcel in the universe (more sales) or is already in it."
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "overlap": {
+      "type": "integer",
+      "title": "Overlap",
+      "description": "Rows already in the main file (same sale ID, or parcel ID): kept once."
+     }
+    },
+    "type": "object",
+    "required": [
+     "adds_to",
+     "fields",
+     "have",
+     "of",
+     "few",
+     "key_text",
+     "key_ok",
+     "found",
+     "rows",
+     "overlap"
+    ],
+    "title": "RowsView",
+    "description": "An appended file against the main file it adds to."
    },
    "Rule-Input": {
     "properties": {
@@ -19770,6 +19978,8 @@
         "enum": [
          "parcels",
          "sales",
+         "sale_rows",
+         "parcel_rows",
          "unused",
          "overlay",
          "permits"
@@ -19882,6 +20092,29 @@
        }
       ],
       "description": "Its rows that don't find a parcel are for parcels missing from the parcel universe, not IDs written differently: cleaning won't help (Reconcile is for that)."
+     },
+     "appended": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/RowsView"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Appended as rows: against the file it adds to."
+     },
+     "date_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Column",
+      "description": "More sales details on a made sale ID: the date its own sale ID is made with."
      }
     },
     "type": "object",
@@ -19903,7 +20136,9 @@
      "clean",
      "unshaped",
      "units",
-     "not_in_universe"
+     "not_in_universe",
+     "appended",
+     "date_column"
     ],
     "title": "WizardFile"
    },
@@ -19916,6 +20151,8 @@
         "enum": [
          "parcels",
          "sales",
+         "sale_rows",
+         "parcel_rows",
          "unused",
          "overlay",
          "permits"

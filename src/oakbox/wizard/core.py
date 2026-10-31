@@ -89,6 +89,11 @@ from oakbox.wizard.models import (
 )
 from oakbox.wizard.money import _area_check, _money_check, _plain, detect_number_format, is_money
 from oakbox.wizard.quality import _new_scale, _scale_check
+from oakbox.wizard.rows import ROWS, copy_rule
+from oakbox.wizard.rows import assume as rows_assume
+from oakbox.wizard.rows import main_of as rows_main
+from oakbox.wizard.rows import propose as propose_rows
+from oakbox.wizard.rows import view as rows_view
 from oakbox.wizard.rules import _date_check, _distinct, _rule_check
 from oakbox.wizard.user_fields import custom_fields, locations
 
@@ -138,7 +143,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
     out_files = []
     for f in project.files:
         match: Match = "key" if f.name == base else f.match
-        key = f.load.get(match)
+        # More sales details joined on a made sale ID: their own made from their parcel ID and date.
+        key = f.load.get("key") if _more_sales(f) and "key_sale" in f.calc else f.load.get(match)
         id_check, repeats = _id_check(files, f.name, f.holds, base)
         extra_ids = []
         if f.name == base and f.name in files.preview:
@@ -165,6 +171,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 clean=f.clean,
                 unshaped=_unshaped(files, f, base),
                 units=units_view(project, files, f) if f.units is not None else None,
+                appended=rows_view(project, files, f) if f.holds in ROWS else None,
+                date_column=f.load.get("sale_date", [None])[0] if _more_sales(f) else None,
             )
         )
 
@@ -406,6 +414,13 @@ def _status(
                 ids(f, f.name)
                 for i in left[before:]:
                     i.text = f"{f.name}: {i.text}"
+            if f.appended is not None:
+                a = f.appended
+                if a.few:
+                    text = f"{f.name}: has {a.have} of the {a.of} fields: the right file?"
+                    left.append(Left(text=text, blocking=False))
+                if not a.key_ok and f.id_column is not None:
+                    left.append(Left(text=f"{f.name}: {a.key_text}", blocking=False))
     elif step.key.startswith("condo_"):
         left.extend(_condo_left(step.key, files))
     elif step.key == "permits":
@@ -702,6 +717,12 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     return RepeatRows(columns=shown, rows=rows, bands=bands(r[0] for r in rows))
 
 
+def _main_made(project: Project) -> bool:
+    """The sales record's sale ID is made from parcel ID + date (not a column)."""
+    main = sales_file(project)
+    return main is not None and "key_sale" in main.calc
+
+
 def made_sale_id(match: Match) -> list:
     """The sale ID made from the parcel ID + sale date, e.g. "0012-001-2023-01-09" (an OpenAVMKit calc)."""
     return ["join", ["values", match, "sale_date"], "str:-"]
@@ -742,6 +763,13 @@ def set_file(
                 project.wizard.base = None
         entry.holds, entry.match, holds = "parcels", "key", None
     is_base = universe or entry.name == project.wizard.base
+    if holds == "parcel_rows" and not files.geometry(name):
+        raise ValueError(f"{name} has no shapes: parcels added to the universe need their shape, as the others have.")
+    if holds is not None and holds != entry.holds and (holds in ROWS or entry.holds in ROWS):
+        # Into or out of appended rows: its fields were for the other role; the ID stays, as the parcel ID.
+        kept = entry.load.get(entry.match) or entry.load.get("key")
+        entry.load, entry.rules, entry.calc = ({"key": kept} if kept else {}), {}, {}
+        entry.match = "key"
     if holds == "parcels" and entry.match == "key_sale":  # was more sales details: back to a parcel ID
         match = match if match not in (None, "key_sale") else "key"
     if match == "key_sale" and (holds or entry.holds) != "sales":
@@ -751,8 +779,10 @@ def set_file(
         entry.match = match
         if old and id_column is None:
             id_column = old[0]
+    joined_made = (holds or entry.holds) == "sales" and entry.match == "key_sale" and _main_made(project)
     if id_column is not None:
-        field = "key" if is_base else entry.match
+        # Appended rows, and details joined on a made sale ID, carry the parcel ID.
+        field = "key" if is_base or (holds or entry.holds) in ROWS or joined_made else entry.match
         if not is_base:
             for other in ("key", *EXTRA_IDS):
                 if other != field:
@@ -785,12 +815,16 @@ def set_file(
             for key in ("key_sale", *ASSUMABLE):
                 entry.calc.pop(key, None)
         entry.holds = holds
-    if entry.holds == "sales" and entry.match == "key_sale":
+    if entry.holds == "sales" and entry.match == "key_sale" and joined_made:
+        entry.calc["key_sale"] = made_sale_id("key")  # made as the sales record's, from its own columns
+    elif entry.holds == "sales" and entry.match == "key_sale":
         entry.calc.pop("key_sale", None)  # more sales details carry the sale ID itself
     elif entry.holds == "sales" and "key_sale" in entry.calc:
         entry.calc["key_sale"] = made_sale_id(entry.match)
     if holds is not None and id_column is None and entry.match not in entry.load and not is_base:
         _guess_join(project, files, entry)
+    if entry.holds in ROWS and "key" in entry.load:
+        propose_rows(project, in_dir, entry)
     if dupes is not None:  # the duplicates dialog: what to do with repeated IDs
         if dupes_sort is not None and dupes_sort not in entry.load:
             raise ValueError(f"Sort by a field {name} loads; {dupes_sort} isn't one.")
@@ -849,15 +883,23 @@ def set_field(
     number_format: NumberFormat | None = None,
     scale: Scale | None = None,
     absent: bool = False,
+    only: str | None = None,
 ) -> None:
     """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
 
-    A yes/no field from a column that isn't yes/no gets a rule to fill in: which values mean yes."""
+    A yes/no field from a column that isn't yes/no gets a rule to fill in: which values mean yes. ``only``: in
+    that one file, which carries its own (a file appended as rows, or the date of more sales details joined on a
+    made sale ID), the other files untouched."""
     by_key = _by_key()
     step = next((s for s in STEPS if key in s.fields or key in s.more), None)
     if step is None or key not in by_key:
         raise LookupError(key)
     allowed = _field_files(project, step.sales)
+    if only is not None:
+        allowed = [f for f in project.files if f.name == only and (f.holds in ROWS or _more_sales(f))]
+        if not allowed:
+            raise LookupError(only)
+        step = step.model_copy(update={"sales": allowed[0].holds in ("sales", "sale_rows")})
     sales = sales_file(project)
     target: DataFile | None = None
     spec: list[str] | None = None
@@ -906,11 +948,11 @@ def set_field(
         f.area_units.pop(key, None)
         f.numbers.pop(key, None)
         f.scales.pop(key, None)
-    if key in project.wizard.absent:
+    if only is None and key in project.wizard.absent:
         project.wizard.absent.remove(key)
-    if absent:
+    if absent and only is None:
         project.wizard.absent.append(key)
-    if sales is not None and key in ASSUMABLE:
+    if only is None and sales is not None and key in ASSUMABLE:  # (one file's own: the sales record untouched)
         sales.calc.pop(key, None)
     if target is not None and spec is None:
         target.rules[key] = Rule(conditions=[Condition(column=cast(str, column))])
@@ -924,10 +966,33 @@ def set_field(
             target.scales[key] = _new_scale(Files(project, in_dir), target, key, spec[0], scale)
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
+    if only is not None:
+        return
     if key not in project.wizard.decided:
         project.wizard.decided.append(key)
     if step.key in project.wizard.skipped and (file or assume):
         project.wizard.skipped.remove(step.key)
+
+
+def set_row_field(
+    project: Project, in_dir: Path, name: str, key: str, column: str | None, date_format: str | None = None
+) -> None:
+    """One field of a file appended as rows (or the date of more sales details on a made sale ID): its own column,
+    or none (blank for its rows). A yes/no field takes the main file's rule, on this column."""
+    entry = next((f for f in project.files if f.name == name), None)
+    if entry is None or not (entry.holds in ROWS or _more_sales(entry)):
+        raise LookupError(name)
+    main = rows_main(project, entry.holds or "")
+    if column is None:
+        for part in (entry.load, entry.rules, entry.area_units, entry.numbers, entry.scales):
+            part.pop(key, None)
+        if main is not None and entry.holds == "sale_rows":
+            rows_assume(main, entry)  # no column: assumed as the sales record assumes it, if it does
+        return
+    set_field(project, in_dir, key, name, column, False, date_format=date_format, only=name)
+    entry.calc.pop(key, None)  # a column of its own, not an assumption
+    if main is not None:
+        copy_rule(main, entry, key)
 
 
 def skip(project: Project, step: str) -> None:

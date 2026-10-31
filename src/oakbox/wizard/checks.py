@@ -94,6 +94,9 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
 
     f = files.entry(name)
     match = "key" if name == base else f.match
+    made = _more_sales(f) and "key_sale" in f.calc
+    if made:  # details on a made sale ID: their own made from their parcel ID and date
+        match = "key"
     spec = f.load.get(match)
     if not spec or name not in files.preview:
         return None, None
@@ -103,7 +106,8 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
     issues: list[Issue] = []
     more_sales = _more_sales(f)
     # One row each is expected of a parcel file (per parcel) and of more sales details (per sale).
-    one_each = holds == "parcels" or more_sales
+    # (A parcel ID repeats in details on a made sale ID: a parcel sold more than once.)
+    one_each = holds in ("parcels", "parcel_rows") or (more_sales and not made)
     if r.extra and one_each and (r.few or r.policy):
         repeated = _n(r.repeated, "repeated ID")
         if r.policy is None:  # nothing chosen yet (OpenAVMKit would keep the first)
@@ -122,19 +126,39 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
     blocked = any(i.blocking for i in issues)
     if more_sales:
         main = sales_file(files.project)
-        if r.extra and not r.few and r.policy is None:
+        # (On a made sale ID the parcel ID repeats: a parcel sold more than once. Its made IDs are what count.)
+        if r.extra and not r.few and r.policy is None and not made:
             text = f"{_n(r.repeated, 'repeated sale ID')} ({_n(r.extra, 'extra row')}): choose what to do"
             return Check(ok=False, text=text, issues=issues), flagged
-        if main is None or "key_sale" not in main.load:
-            text = "the sales record has no sale ID column to join on"
+        from oakbox.wizard.rows import sale_keys
+
+        if main is None or not ("key_sale" in main.load or "key_sale" in main.calc):
+            text = "the sales record has no sale ID to join on"
             return Check(ok=False, text=text, issues=issues), flagged
-        sale_ids = {v for v in files.ids(main.name, "key_sale") if v}
-        found = len(set(present) & sale_ids)
-        share = found / len(set(present)) if present else 0.0
-        text = f"{_pct(found, len(set(present)))} match a sale"
+        if "key_sale" in main.calc and "sale_date" not in f.load:
+            return Check(
+                ok=False, text="pick its sale date: its sale ID is made from parcel ID + date", issues=issues
+            ), flagged
+        # Its sale IDs: its column's, or made from its own parcel ID and date as the sales record's are.
+        mine = sale_keys(files, f) if "key_sale" in main.calc else set(present)
+        found = len(mine & sale_keys(files, main))
+        share = found / len(mine) if mine else 0.0
+        if share < MATCH_MIN and "key_sale" in main.calc:
+            text = (
+                f"{_pct(found, len(mine))} match a sale. Most don't: are these sales of their own? "
+                "Then append them as extra rows"
+            )
+            return Check(ok=False, text=text, warn=True, issues=issues, share=share), flagged
+        text = f"{_pct(found, len(mine))} match a sale"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
-    if holds == "sales":
+    if holds == "parcel_rows":
+        # More parcels: each a parcel of its own; one already in the universe is kept once, the universe's.
+        parcels = _base_ids(files, base, "key")
+        new = len(set(present) - parcels)
+        text = f"{r.distinct:,} parcels · {new:,} new, {r.distinct - new:,} already in the universe"
+        return Check(ok=not blocked, text=text, warn=open_issues, issues=issues), flagged
+    if holds in ("sales", "sale_rows"):
         flagged = r if r.blank else None
         if base is None or base == name:
             return Check(ok=True, text=f"{r.rows:,} sales", warn=open_issues, issues=issues), flagged

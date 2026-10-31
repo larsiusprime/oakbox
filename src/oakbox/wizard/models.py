@@ -123,6 +123,28 @@ class MissingParcels(BaseModel):
     )
 
 
+class RowField(BaseModel):
+    key: str
+    name: str
+    column: str | None = Field(description="This file's column for it; None: not in it (blank for its rows).")
+    assumed: bool = Field(default=False, description="No column: assumed, as the sales record assumes it.")
+
+
+class RowsView(BaseModel):
+    """An appended file against the main file it adds to."""
+
+    adds_to: str = Field(description="sales or parcels.")
+    fields: list[RowField]
+    have: int = Field(description="Of the main file's fields, how many this file has.")
+    of: int
+    few: bool = Field(description="Half of them or fewer: likely the wrong file, or a different layout.")
+    key_text: str = Field(description="Whether its IDs look like the main file's, in a line.")
+    key_ok: bool
+    found: int = Field(description="Rows whose ID finds a parcel in the universe (more sales) or is already in it.")
+    rows: int
+    overlap: int = Field(description="Rows already in the main file (same sale ID, or parcel ID): kept once.")
+
+
 class WizardFile(BaseModel):
     name: str
     filename: str
@@ -145,6 +167,10 @@ class WizardFile(BaseModel):
         default=None,
         description="Its rows that don't find a parcel are for parcels missing from the parcel universe, not IDs "
         "written differently: cleaning won't help (Reconcile is for that).",
+    )
+    appended: RowsView | None = Field(default=None, description="Appended as rows: against the file it adds to.")
+    date_column: str | None = Field(
+        default=None, description="More sales details on a made sale ID: the date its own sale ID is made with."
     )
 
 

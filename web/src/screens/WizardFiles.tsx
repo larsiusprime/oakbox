@@ -427,12 +427,15 @@ export function IdRow({
   change: Mutate;
 }) {
   const options = matchOptions(base);
-  // More sales details join on the sale ID; anything else on the parcel ID or an extra ID.
-  const several = options.length > 1 && file.match !== "key_sale";
+  // More sales details join on the sale ID (made from their parcel ID and date, if the sales record's is); rows
+  // appended join on the parcel ID; anything else on the parcel ID or an extra ID.
+  const made = file.match === "key_sale" && data.sale_id.made;
+  const appended = file.holds === "parcel_rows" || file.holds === "sale_rows";
+  const several = options.length > 1 && file.match !== "key_sale" && !appended;
   return (
     <div className="wiz-grid">
       <div className="wiz-label">
-        {file.match === "key_sale" ? w.saleIdLabel : several ? w.matchBy : w.parcelId}
+        {file.match === "key_sale" && !made ? w.saleIdLabel : several ? w.matchBy : w.parcelId}
       </div>
       <div className="wiz-pair">
         {several && (
@@ -454,6 +457,22 @@ export function IdRow({
         />
       </div>
       <IdCheck projectId={projectId} data={data} file={file} change={change} />
+      {made && (
+        <>
+          <div className="wiz-label">{w.extraFiles.saleDate}</div>
+          <div className="wiz-pair">
+            <Choice
+              label={`${w.extraFiles.saleDate}: ${file.name}`}
+              hideLabel
+              value={file.date_column ?? null}
+              placeholder={w.choose}
+              options={file.columns.map((c) => [c.name, c.name] as const)}
+              onChange={(column) => change({ kind: "rowField", name: file.name, key: "sale_date", column })}
+            />
+          </div>
+          <div className="wiz-samples wiz-from">{w.extraFiles.madeId}</div>
+        </>
+      )}
     </div>
   );
 }

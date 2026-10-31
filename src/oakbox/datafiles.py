@@ -39,7 +39,7 @@ class BaseModel(_PydanticBase):
 
 # overlay: a map layer (zoning, school zones, parks) joined onto the parcels by where they are (F3d Shapefiles).
 # permits: building permits, one row per permit, joined on the parcel ID (F3g).
-Holds = Literal["parcels", "sales", "unused", "overlay", "permits"]
+Holds = Literal["parcels", "sales", "sale_rows", "parcel_rows", "unused", "overlay", "permits"]
 # The ID a file joins on: the universe's parcel ID or an extra ID; or, for more sales details, the sale ID.
 Match = Literal["key", "key2", "key3", "key_sale"]
 # The universe's extra IDs, after its parcel ID (key): the ones OpenAVMKit knows by name.

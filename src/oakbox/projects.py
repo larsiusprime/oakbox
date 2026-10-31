@@ -413,8 +413,26 @@ def _data(project: Project) -> dict:
     sales = sorted((f for f in project.files if f.holds == "sales"), key=lambda f: f.match == "key_sale")
     if parcels or sales:
         parcels.sort(key=lambda f: f.name != base)
-        universe = [f.name if f.name == base or f.match == "key" else {"id": f.name, "on": f.match} for f in parcels]
-        process: dict = {"merge": {"universe": universe, "sales": [f.name for f in sales]}}
+        universe: list = [
+            f.name if f.name == base or f.match == "key" else {"id": f.name, "on": f.match} for f in parcels
+        ]
+        merged: list = [f.name for f in sales]
+        # Files appended as rows: right after the file they add to, so the details joined after reach their rows
+        # too. A row in both is kept once, the main file's (ranked first, then the appended in order).
+        for key, holds, into, rank in (
+            ("key", "parcel_rows", universe, "parcel_file_rank"),
+            ("key_sale", "sale_rows", merged, "sale_file_rank"),
+        ):
+            more = [f for f in project.files if f.holds == holds]
+            if not more or not into:
+                continue
+            first = into[0] if isinstance(into[0], str) else into[0]["id"]
+            dupes = {"subset": key, "sort_by": [[key, "asc"], [rank, "asc"]]}
+            for i, f in enumerate([None, *more]):
+                name = first if f is None else f.name
+                out["load"].setdefault(name, {}).setdefault("calc", {})[rank] = ["set", i]
+            into[1:1] = [{"id": f.name, "how": "append", "dupes": dupes} for f in more]
+        process: dict = {"merge": {"universe": universe, "sales": merged}}
         lookups = [
             {"id": base, "key_ref_table": f.match, "key_target": f.match, "add_fields": ["key"]}
             for f in sales

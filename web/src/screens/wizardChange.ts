@@ -17,7 +17,7 @@ import type { UnitsChange } from "./Units";
 import type { ValuesChange } from "./ValueSets";
 
 export type AreaUnit = NonNullable<WizardField["area_unit"]>;
-type Holds = "parcels" | "sales" | "unused" | "permits";
+type Holds = "parcels" | "sales" | "sale_rows" | "parcel_rows" | "unused" | "permits";
 
 // ---------- Changes ----------
 
@@ -54,6 +54,7 @@ export type Change =
       absent?: boolean;
     }
   | { kind: "rule"; key: string; rule: Rule }
+  | { kind: "rowField"; name: string; key: string; column: string | null }
   | { kind: "location"; name: string; file: string | null; column: string | null }
   | CustomChange
   | UnitsChange
@@ -88,6 +89,14 @@ export function useChange(projectId: string) {
               blank_ok: null,
               ...body,
             },
+          }),
+        );
+      }
+      if (c.kind === "rowField") {
+        return unwrap(
+          await api.PUT("/api/projects/{project_id}/wizard/files/{name}/rows/{key}", {
+            params: { path: { project_id, name: c.name, key: c.key } },
+            body: { column: c.column, date_format: null },
           }),
         );
       }

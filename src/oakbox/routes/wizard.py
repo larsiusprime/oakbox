@@ -243,6 +243,18 @@ def wizard_reconcile(project_id: str, name: str, body: WizardReconcile) -> wizar
     return _change(project_id, lambda p, d: wizard.set_reconcile(p, d, name, body.file_steps, body.base_steps))
 
 
+class RowFieldChoice(BaseModel):
+    column: str | None = Field(description="Its column in this file; null: not in it (blank for its rows).")
+    date_format: str | None = None
+
+
+@router.put("/api/projects/{project_id}/wizard/files/{name}/rows/{key}")
+def wizard_row_field(project_id: str, name: str, key: str, body: RowFieldChoice) -> wizard.Wizard:
+    """A field of a file appended as rows (more sales, more parcels), or the date of more sales details joined on
+    a made sale ID: from this file's own column (F3d)."""
+    return _change(project_id, lambda p, d: wizard.set_row_field(p, d, name, key, body.column, body.date_format))
+
+
 @router.put("/api/projects/{project_id}/wizard/sale-id")
 def wizard_sale_id(project_id: str, body: WizardSaleId) -> wizard.Wizard:
     """The sales file's sale ID: a column, or made from parcel ID + sale date (F3d)."""

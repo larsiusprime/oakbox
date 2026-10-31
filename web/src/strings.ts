@@ -190,7 +190,7 @@ export const t = {
       more_files: {
         title: "More files",
         question: "Any more files to join?",
-        lede: "Building details, sale details… Add each file, say whether it's about parcels or sales, and pick the ID it joins on. Permits have a step of their own, later. None? Just go on.",
+        lede: "Building details, sale details, more sales… Add each file, say what it's about and how it joins. Permits have a step of their own, later. None? Just go on.",
       },
       details: { title: "More details", question: "", lede: "" },
       big_five: {
@@ -767,9 +767,33 @@ export const t = {
       another: "Add another file",
       drop: "Don't use this file",
       what: "What's in it?",
-      parcels: "More about each parcel: joins the parcel universe",
-      sales: "More about each sale: joins the sales, on the sale ID",
-      salesNeedsId: "(the sales record needs a sale ID column for this)",
+      parcels: "More about each parcel",
+      sales: "More about each sale",
+      how: "How does it join?",
+      joinedParcels: "Joined to each parcel, on the parcel ID",
+      joinedSales: "Joined to each sale, on the sale ID",
+      rowsParcels: "Appended as extra rows: more parcels",
+      rowsSales: "Appended as extra rows: more sales",
+      needsShapes: "(needs shapes: the universe's parcels have theirs)",
+      needsSales: "(add the sales record first)",
+      madeId: "Its sale ID is made as the sales record's: from its parcel ID and sale date.",
+      saleDate: "Sale date",
+      has: (have: number, of: number, what: string) => `Has ${have} of the ${what} ${of} fields.`,
+      missing: (names: string) => ` Not in it: ${names} (blank for its rows).`,
+      few: "Half of them or fewer: likely the wrong file, or a different layout.",
+      salesRecord: "sales record's",
+      universe: "parcel universe's",
+      notIn: "(not in it)",
+      overlapSales: (n: number) =>
+        `${n.toLocaleString()} of its sales ${n === 1 ? "is" : "are"} in the sales record already (the same sale ID): each kept once, the sales record's row.`,
+      overlapParcels: (n: number) =>
+        `${n.toLocaleString()} of its parcels ${n === 1 ? "is" : "are"} in the parcel universe already: each kept once, the universe's row.`,
+      appendedSales: (rows: number) =>
+        `Its ${rows.toLocaleString()} rows are added to the sales record. Written as OpenAVMKit's data.process.merge.sales, "how": "append".`,
+      appendedParcels: (rows: number) =>
+        `Its ${rows.toLocaleString()} rows are added to the parcel universe. Written as OpenAVMKit's data.process.merge.universe, "how": "append".`,
+      ruleNote: "the sales record's rule, on this column",
+      assumedNote: "no column: assumed, as the sales record assumes it",
     },
     valueSets: {
       market: "Market value",

@@ -1461,3 +1461,129 @@ def test_valid_and_vacant_sale_from_one_column(client, tmp_path, monkeypatch):
     sales = sales.sort_values("key")
     assert sales["valid_sale"].tolist() == [True, True, False, True]
     assert sales["vacant_sale"].tolist() == [False, True, False, True]
+
+
+def test_more_sales_appended_and_details_on_a_made_sale_id(client, tmp_path, monkeypatch):
+    """A file of more sales, appended as rows: its columns matched to the sales record's fields, one sale in both
+    kept once (the sales record's); and a details file joined on the sale ID made from parcel ID + date."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": [f"00{n}" for n in range(5)]}, geometry=[box(n, 0, n + 1, 1) for n in range(5)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {
+            "PID": ["000", "001", "002"],
+            "PRICE": [250_000, 40_000, 180_000],
+            "DATE": ["2024-03-04", "2024-05-06", "2024-07-08"],
+            "SALE_TYPE": ["Q", "Q", "U"],
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    pd.DataFrame(  # older sales, one (002 on 2024-07-08) already in the sales record
+        {
+            "key": ["003", "004", "002"],
+            "sale_price": [15_000, 16_500, 1],
+            "sale_date": ["2021-11-08", "2020-02-21", "2024-07-08"],
+            "sale_type": ["Q", "Q", "Q"],
+            "confidence": ["high", "high", "low"],
+        }
+    ).to_csv(tmp_path / "teardowns.csv", index=False)
+    pd.DataFrame({"PARCEL": ["000", "001"], "WHEN": ["2024-03-04", "2024-05-06"], "LOAN": ["cash", "mortgage"]}).to_csv(
+        tmp_path / "details.csv", index=False
+    )
+    for name, ext in (("parcels", "parquet"), ("sale", "csv"), ("teardowns", "csv"), ("details", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "parcels", universe=True, id_column="ID")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    put_file(client, pid, "sale", holds="sales", id_column="PID")
+    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
+    client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
+    client.put(f"/api/projects/{pid}/wizard/sale-id", json={"column": None, "make": True})
+    client.put(f"{field}/valid_sale", json={"file": "sale", "column": "SALE_TYPE"})
+    rule = {"join": "all", "conditions": [{"column": "SALE_TYPE", "op": "isin", "values": ["Q"]}]}
+    client.put(f"{field}/valid_sale/rule", json=rule)
+    client.put(f"{field}/vacant_sale", json={"assume": True})
+
+    # More sales, appended: the fields proposed from the sales record's, the rule copied onto its own column.
+    w = put_file(client, pid, "teardowns", holds="sale_rows", id_column="key").json()
+    f = next(x for x in w["files"] if x["name"] == "teardowns")
+    a = f["appended"]
+    cols = {x["key"]: x["column"] for x in a["fields"]}
+    assert cols["sale_price"] == "sale_price" and cols["sale_date"] == "sale_date" and cols["valid_sale"] == "sale_type"
+    assert a["have"] == a["of"] and not a["few"]
+    assert a["key_ok"] and "3 digits, leading zeros kept" in a["key_text"]
+    assert a["found"] == 3 and a["overlap"] == 1
+    # Vacant sale assumed as the sales record assumes it; a column of its own leaves the sales record's alone.
+    assert next(x for x in a["fields"] if x["key"] == "vacant_sale")["assumed"]
+    w = client.put(f"/api/projects/{pid}/wizard/files/teardowns/rows/vacant_sale", json={"column": "confidence"}).json()
+    assert next(x for x in w["fields"] if x["key"] == "vacant_sale")["assumed"]  # the sales record's, still
+    w = client.put(f"/api/projects/{pid}/wizard/files/teardowns/rows/vacant_sale", json={"column": None}).json()
+    a = next(x for x in w["files"] if x["name"] == "teardowns")["appended"]
+    assert next(x for x in a["fields"] if x["key"] == "vacant_sale")["assumed"]
+    # Details joined to each sale on the sale ID made from their own parcel ID and date.
+    w = put_file(client, pid, "details", holds="sales", match="key_sale", id_column="PARCEL").json()
+    assert "pick its sale date" in next(x for x in w["files"] if x["name"] == "details")["id_check"]["text"]
+    w = client.put(f"/api/projects/{pid}/wizard/files/details/rows/sale_date", json={"column": "WHEN"}).json()
+    d = next(x for x in w["files"] if x["name"] == "details")
+    assert d["id_column"] == "PARCEL" and d["date_column"] == "WHEN"
+    assert d["id_check"]["text"].startswith("2 of 2") or "100%" in d["id_check"]["text"], d["id_check"]
+
+    s = read_settings(pid)["data"]
+    merge = s["process"]["merge"]["sales"]
+    assert (
+        merge[0] == "sale" and merge[1]["id"] == "teardowns" and merge[1]["how"] == "append" and merge[2] == "details"
+    )
+    assert s["load"]["teardowns"]["calc"]["valid_sale"] == ["?", ["isin", "sale_type", ["str:Q"]]]
+    _, sales = _engine(pid, monkeypatch)
+    sales = sales.sort_values("key_sale")
+    # Five sales: three from the record, two more; the sale in both kept once, the record's (its price, not $1).
+    assert len(sales) == 5
+    both = sales.loc[sales["key"].eq("002"), ["sale_price", "valid_sale"]].to_dict("records")
+    assert both == [{"sale_price": 180_000, "valid_sale": False}]
+    assert sales.set_index("key")["valid_sale"].to_dict() == {
+        "000": True,
+        "001": True,
+        "002": False,
+        "003": True,
+        "004": True,
+    }
+
+
+def test_more_parcels_appended(client, tmp_path, monkeypatch):
+    """A second parcel file appended to the universe: it needs shapes; one parcel in both is kept once."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame({"ID": ["0", "1"]}, geometry=[box(n, 0, n + 1, 1) for n in range(2)], crs="EPSG:4326").to_parquet(
+        tmp_path / "parcels.parquet"
+    )
+    gpd.GeoDataFrame(
+        {"PIN": ["1", "2", "3"]}, geometry=[box(n, 0, n + 1, 1) for n in range(1, 4)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "annexed.parquet")
+    pd.DataFrame({"PIN": ["9"]}).to_csv(tmp_path / "flat.csv", index=False)
+    pd.DataFrame({"PID": ["0", "2"], "PRICE": [100_000, 120_000], "DATE": ["2024-01-02", "2024-03-04"]}).to_csv(
+        tmp_path / "sale.csv", index=False
+    )
+    for name, ext in (("parcels", "parquet"), ("annexed", "parquet"), ("flat", "csv"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "parcels", universe=True, id_column="ID")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    put_file(client, pid, "sale", holds="sales", id_column="PID")
+    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
+    client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
+    client.put(f"/api/projects/{pid}/wizard/sale-id", json={"column": None, "make": True})
+    for key in ("valid_sale", "vacant_sale"):
+        client.put(f"{field}/{key}", json={"assume": True})
+    assert put_file(client, pid, "flat", holds="parcel_rows", id_column="PIN").status_code == 422  # no shapes
+    w = put_file(client, pid, "annexed", holds="parcel_rows", id_column="PIN").json()
+    f = next(x for x in w["files"] if x["name"] == "annexed")
+    assert f["id_check"]["text"] == "3 parcels · 2 new, 1 already in the universe"
+    universe = read_settings(pid)["data"]["process"]["merge"]["universe"]
+    assert universe[0] == "geo_parcels" and universe[1]["id"] == "annexed" and universe[1]["how"] == "append"
+    assert universe[1]["dupes"]["sort_by"] == [["key", "asc"], ["parcel_file_rank", "asc"]]
+    univ, sales = _engine(pid, monkeypatch)
+    assert sorted(univ["key"]) == ["0", "1", "2", "3"]
+    assert len(sales) == 2  # the sale on an appended parcel finds it
