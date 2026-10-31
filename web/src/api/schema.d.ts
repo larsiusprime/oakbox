@@ -2618,7 +2618,8 @@ export interface components {
         };
         /**
          * CorrDetail
-         * @description How a column's correlation score came about, for the step to show on a click.
+         * @description A column's correlation with price (what the test judges), and the variables it moves with most (what VIF
+         *     judges), for the step to show on a click.
          */
         CorrDetail: {
             /**
@@ -2627,37 +2628,10 @@ export interface components {
              */
             to_price: number | null;
             /**
-             * Clarity
-             * @description 1 less its average overlap with the others, 0 to 1.
-             */
-            clarity: number | null;
-            /**
-             * Score
-             * @description Strength (|correlation with price|) times clarity squared.
-             */
-            score: number | null;
-            /**
              * Overlaps
-             * @description The variables it overlaps most, strongest first.
+             * @description The variables it moves with most, strongest first.
              */
             overlaps: components["schemas"]["Overlap"][];
-            /** @description The stronger variable it overlaps more than it relates to price, if dropped so. */
-            dropped_by: components["schemas"]["Overlap"] | null;
-            /**
-             * Dropped By Price
-             * @description That variable's correlation with price, to set beside this one's.
-             */
-            dropped_by_price: number | null;
-            /**
-             * Near Tie
-             * @description Their correlations with price aren't significantly different (Steiger's test, 5%): either would do, as long as not both.
-             */
-            near_tie: boolean | null;
-            /**
-             * Kept Over
-             * @description The variables dropped for overlapping this one.
-             */
-            kept_over: components["schemas"]["Overlap"][];
         };
         /** CountryDefaults */
         CountryDefaults: {
@@ -6729,7 +6703,7 @@ export interface components {
              * Reason
              * @description Why it failed the correlation test.
              */
-            reason: ("no_correlation" | "low_score" | "overlaps") | null;
+            reason: "no_correlation" | null;
         };
         /** Tier */
         Tier: {

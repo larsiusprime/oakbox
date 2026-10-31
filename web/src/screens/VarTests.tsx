@@ -168,25 +168,14 @@ export function TestStep({
           </tr>
         </thead>
         <tbody>
-          {items.map((it, k) => {
+          {items.map((it) => {
             const best = it.rows[0];
             if (!best) return null;
-            const firstWeak =
-              test === "corr" &&
-              it.rows.every((x) => x.reason === "no_correlation") &&
-              !items.slice(0, k).some((y) => y.rows.every((x) => x.reason === "no_correlation"));
             const ticked = chosen.includes(it.variable);
             const shown = open.has(it.variable);
             const passing = it.rows.filter((x) => x.passed).length;
             const Chevron = shown ? ChevronDown : ChevronRight;
             return [
-              ...(firstWeak
-                ? [
-                    <tr key="weak-band" className="bi-grp">
-                      <td colSpan={3}>{vt.firstPass(vt.floor)}</td>
-                    </tr>,
-                  ]
-                : []),
               <tr key={it.variable} className={ticked ? undefined : "vt-off"}>
                 <td>
                   <span className="vt-name">
@@ -361,8 +350,8 @@ export function WhatToKeep({
   );
 }
 
-/** How a correlation score came about: its correlation with price (strength), its clarity (how little it overlaps
- * the others), the score from the two, the variables it overlaps most and, if it was dropped for one, which. */
+/** A column's correlation with price (what the test judges, against the threshold it passes at), and the
+ * variables it moves with most (what the VIF test judges). */
 function CorrHow({
   d,
   names,
@@ -388,21 +377,6 @@ function CorrHow({
             <span className="vt-bar">
               <span className="vt-fill" style={{ width: `${100 * (strength ?? 0)}%` }} />
             </span>
-          </span>
-          <span className="vt-how-fig">
-            <span className="wiz-from">{vt.howClarity}</span>
-            <b>{num(d.clarity, 3)}</b>
-            <span className="vt-bar">
-              <span className="vt-fill" style={{ width: `${100 * Math.max(0, d.clarity ?? 0)}%` }} />
-            </span>
-          </span>
-          <span className="vt-how-fig">
-            <span className="wiz-from">{vt.howScore}</span>
-            <b>
-              {strength == null || d.clarity == null
-                ? "—"
-                : `${num(strength, 3)} × ${num(d.clarity, 3)}² = ${num(d.score, 3)}`}
-            </b>
             <span className="wiz-from">{vt.howFloor(num(floor, 2))}</span>
           </span>
         </div>
@@ -410,26 +384,6 @@ function CorrHow({
           <p className="vt-how-line">
             <span className="wiz-from">{vt.howOverlaps}</span>{" "}
             {d.overlaps.map((o) => `${label(o)} ${o.r >= 0 ? "+" : "−"}${num(Math.abs(o.r), 2)}`).join(" · ")}
-          </p>
-        )}
-        {d.dropped_by && (
-          <p className="vt-how-line wiz-warn">
-            {vt.howDropped(
-              label(d.dropped_by),
-              num(Math.abs(d.dropped_by.r), 2),
-              num(Math.abs(d.dropped_by_price ?? 0), 3),
-              num(strength, 3),
-            )}{" "}
-            {d.near_tie === true
-              ? vt.nearTie(label(d.dropped_by))
-              : d.near_tie === false
-                ? vt.clearWin(label(d.dropped_by))
-                : null}
-          </p>
-        )}
-        {d.kept_over.length > 0 && (
-          <p className="vt-how-line">
-            {vt.keptOver(d.kept_over.map((o) => `${label(o)} (${num(Math.abs(o.r), 2)})`).join(", "))}
           </p>
         )}
       </td>

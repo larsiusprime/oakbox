@@ -2193,31 +2193,18 @@ export const t = {
       pickTitle: "Tests to run",
       pick: {
         represented: "Always: does it have values among the sales and the parcels?",
-        corr: "Related to price, and not a near-duplicate of a stronger variable?",
+        corr: "Related to price?",
         p_value: "Does it matter once all the variables are in one regression?",
         vif: "How much of it do the other variables already explain?",
       } as Record<string, string>,
       reasons: {
-        no_correlation: "no correlation",
-        low_score: "low score",
-        overlaps: "overlaps",
+        no_correlation: "too weak",
       } as Record<string, string>,
-      floor: "0.05",
       withPrice: (r: string) => `|r| ${r}`,
-      firstPass: (floor: string) =>
-        `First pass: no correlation with price (under ${floor} either way), dropped before the scores were worked out`,
       how: "how ›",
       howStrength: "With price",
-      howClarity: "Clarity",
-      howScore: "Score: strength × clarity²",
-      howFloor: (t: string) => `(passes at ${t})`,
-      howOverlaps: "Overlaps most with:",
-      howDropped: (other: string, r: string, theirs: string, own: string) =>
-        `Dropped for ${other}: the two move together (${r}), more than this moves with price, and ${other} relates to price a little more (${theirs} against ${own}). Of two near-duplicates, the test keeps the one closer to price.`,
-      nearTie: (other: string) =>
-        `That's a near tie (not a significant difference at these sales): either would do, but not both, which would count the same thing twice. To keep this one instead, tick it and untick ${other}.`,
-      clearWin: (other: string) => `${other} is significantly closer to price, at these sales.`,
-      keptOver: (names: string) => `Kept over: ${names}, which move with it more than with price.`,
+      howFloor: (t: string) => `(passes at ${t} or more, either way)`,
+      howOverlaps: "Moves most with (the VIF test judges overlap):",
       values: (passing: number, of: number) =>
         `${passing.toLocaleString()} of ${of.toLocaleString()} ${of === 1 ? "value passes" : "values pass"}`,
       empty: (names: string[]) =>
@@ -2236,10 +2223,9 @@ export const t = {
           figure: "Sales with a value",
         },
         corr: {
-          lede: "In two passes. First, anything with no correlation with price is dropped right away. Then the score: its strength with price times its clarity (how little it overlaps the others), squared; a variable that moves with a stronger one more than with price is dropped too. Press how › on a row to see its figures.",
-          rule: (t: number) =>
-            `Passes at a score of ${t} or more, and not dropped for overlapping a stronger variable.`,
-          figure: "Correlation score",
+          lede: "Does the variable move with price? Its correlation with sale price, either way: whether it overlaps other variables isn't judged here, the VIF test does that. Press how › on a row to see what it moves with most.",
+          rule: (t: number) => `Passes with a correlation with price of ${t} or more, either way.`,
+          figure: "Correlation with price",
         },
         p_value: {
           lede: "With all the variables in one regression, how likely is it that its effect is just chance? The least significant is dropped, again and again.",

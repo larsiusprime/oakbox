@@ -6848,95 +6848,22 @@
       "title": "To Price",
       "description": "Its correlation with price, -1 to 1."
      },
-     "clarity": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Clarity",
-      "description": "1 less its average overlap with the others, 0 to 1."
-     },
-     "score": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Score",
-      "description": "Strength (|correlation with price|) times clarity squared."
-     },
      "overlaps": {
       "items": {
        "$ref": "#/components/schemas/Overlap"
       },
       "type": "array",
       "title": "Overlaps",
-      "description": "The variables it overlaps most, strongest first."
-     },
-     "dropped_by": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/Overlap"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "The stronger variable it overlaps more than it relates to price, if dropped so."
-     },
-     "dropped_by_price": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Dropped By Price",
-      "description": "That variable's correlation with price, to set beside this one's."
-     },
-     "near_tie": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Near Tie",
-      "description": "Their correlations with price aren't significantly different (Steiger's test, 5%): either would do, as long as not both."
-     },
-     "kept_over": {
-      "items": {
-       "$ref": "#/components/schemas/Overlap"
-      },
-      "type": "array",
-      "title": "Kept Over",
-      "description": "The variables dropped for overlapping this one."
+      "description": "The variables it moves with most, strongest first."
      }
     },
     "type": "object",
     "required": [
      "to_price",
-     "clarity",
-     "score",
-     "overlaps",
-     "dropped_by",
-     "dropped_by_price",
-     "near_tie",
-     "kept_over"
+     "overlaps"
     ],
     "title": "CorrDetail",
-    "description": "How a column's correlation score came about, for the step to show on a click."
+    "description": "A column's correlation with price (what the test judges), and the variables it moves with most (what VIF\njudges), for the step to show on a click."
    },
    "CountryDefaults": {
     "properties": {
@@ -16149,11 +16076,7 @@
       "anyOf": [
        {
         "type": "string",
-        "enum": [
-         "no_correlation",
-         "low_score",
-         "overlaps"
-        ]
+        "const": "no_correlation"
        },
        {
         "type": "null"

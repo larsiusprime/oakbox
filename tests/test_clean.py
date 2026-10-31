@@ -357,8 +357,12 @@ def test_the_variables_tested_one_test_at_a_time(prepared, brought_in_client, br
     tested = [g for g in tv["receipt"]["groups"] if g["tests"]]
     assert tested and {"represented", "corr", "p_value", "vif"} <= set(tested[0]["tests"])
     assert all(row["variable"] in tv["receipt"]["variables"] for row in tested[0]["tests"]["corr"])
-    # Each correlation failure says why, and each column's correlation is there in detail (strength, clarity, overlaps).
-    assert all(row["reason"] for row in tested[0]["tests"]["corr"] if row["passed"] is False)
+    # The correlation test judges the relation to price alone (overlap is VIF's): a failure is too weak a
+    # correlation, a pass a strong enough one, whatever it overlaps; each column's correlation is there in detail.
+    floor = tv["receipt"]["thresholds"].get("correlation", 0.1)
+    for row in tested[0]["tests"]["corr"]:
+        assert row["passed"] == ((row["value"] or 0) >= floor), row
+        assert row["reason"] == (None if row["passed"] else "no_correlation")
     assert all("to_price" in d and "overlaps" in d for d in tested[0]["corr"].values())
     assert not tv["stale"] and tv["receipt"]["tests"] == ["corr", "p_value", "vif"]
     # Only the tests picked run; a change of tests makes the results out of date.
