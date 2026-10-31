@@ -2263,6 +2263,8 @@ export const t = {
       } as Record<string, string>,
       scoresFor: "Scores for",
       tickRecommended: "Tick the recommended",
+      tickRecommendedFor: (group: string) => `Tick the recommended for ${group}`,
+      notTestedIn: (groups: string[]) => `Not tested: ${groups.join(", ")}.`,
       untickAll: "Untick all",
       remove: "Remove",
       add: "Add a variable list",
@@ -2272,7 +2274,6 @@ export const t = {
         "Proposed: a regression list and a machine-learning list, each for every modeled group, each ticked with what's recommended for its type in most of their sales. Written to OpenAVMKit's settings as variable_lists, each model pointing at its list.",
       notTested:
         "The variables haven't been tested yet: the recommendations go by blanks and categories alone until they are (Test the variables).",
-      untested: "not tested",
       in: "In",
       variable: "Variable",
       kind: "Kind",

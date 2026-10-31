@@ -8,7 +8,7 @@ import type { ListView, TestRow, VarList, VarListsView, VarTestView } from "../a
 import { useSetVarLists, useVarLists } from "../api/models";
 import { useStep } from "../api/steps";
 import { AddButton } from "../components/AddButton";
-import { Tick } from "../components/Form";
+import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { num } from "../lib/format";
@@ -274,97 +274,106 @@ function ListEditor({
         {list.groups.length > 1 && (
           <>
             <span className="vl-label">{s.scoresFor}</span>
-            <Seg
+            <Choice
               label={s.scoresFor}
+              hideLabel
               value={shown}
-              options={list.groups.map((g) => [g, gname[g] ?? g] as const)}
-              disabled={list.groups.filter((g) => !mine.includes(g))}
-              titles={Object.fromEntries(
-                list.groups.filter((g) => !mine.includes(g)).map((g) => [g, s.untested]),
-              )}
+              options={mine.map((g) => [g, gname[g] ?? g] as const)}
               onChange={setGid}
             />
+            {mine.length < list.groups.length && (
+              <span className="wiz-from">
+                {s.notTestedIn(list.groups.filter((g) => !mine.includes(g)).map((g) => gname[g] ?? g))}
+              </span>
+            )}
           </>
         )}
         <span className="vl-grow" />
         <Button
           className="button"
-          onPress={() => set(new Set(order.filter((f) => recommendedIn(view, list, f))))}
+          onPress={() =>
+            // What the pills say: recommended for the group shown (without its tests, across the list's groups).
+            set(
+              new Set(order.filter((f) => (recs && shown ? recs[f] == null : recommendedIn(view, list, f)))),
+            )
+          }
         >
-          {s.tickRecommended}
+          {shown && recs ? s.tickRecommendedFor(gname[shown] ?? shown) : s.tickRecommended}
         </Button>
         <Button className="button" onPress={() => set(new Set())}>
           {s.untickAll}
         </Button>
       </div>
-      <table className="tbl vl-vars">
-        <thead>
-          <tr>
-            <th className="vl-tick">{s.in}</th>
-            <th>{s.variable}</th>
-            <th>{s.kind}</th>
-            <th className="cs-n">{s.represented}</th>
-            <th className="cs-n">{s.corr}</th>
-            <th className="cs-n">{s.vif}</th>
-            <th>{s.forType[kind]}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((x) => {
-            const f = fig(x.field);
-            const why = recs?.[x.field];
-            const on = chosen.has(x.field);
-            return (
-              <tr key={x.field} className={on ? undefined : "vl-out"}>
-                <td className="vl-tick">
-                  <Tick
-                    isSelected={on}
-                    onChange={(yes) => {
-                      const next = new Set(chosen);
-                      if (yes) next.add(x.field);
-                      else next.delete(x.field);
-                      set(next);
-                    }}
-                  >
-                    <span className="visually-hidden">{x.name}</span>
-                  </Tick>
-                </td>
-                <td>
-                  {x.name} <span className="mono wiz-from">{x.field}</span>
-                </td>
-                <td className="wiz-from">{x.values != null ? s.category(x.values) : s.number}</td>
-                <td className="cs-n">{pct(f.rep)}</td>
-                <td className="cs-n">
-                  {f.corr?.value == null ? (
-                    "—"
-                  ) : (
-                    <>
-                      <span className={f.corr.passed ? undefined : "vl-bad"}>{num(f.corr.value, 2)}</span>
-                      {f.corr.level && <span className="wiz-from"> ({f.corr.level})</span>}
-                    </>
-                  )}
-                </td>
-                <td className="cs-n">
-                  {f.vif?.value == null ? (
-                    "—"
-                  ) : (
-                    <span className={f.vif.passed ? undefined : "vl-bad"}>{num(f.vif.value, 1)}</span>
-                  )}
-                </td>
-                <td>
-                  <span className="rv-cell-pill">
-                    {why == null ? (
-                      <span className="pill pill-ok">✓ {s.recommended}</span>
+      <div className="vl-scroll">
+        <table className="tbl vl-vars">
+          <thead>
+            <tr>
+              <th className="vl-tick">{s.in}</th>
+              <th>{s.variable}</th>
+              <th>{s.kind}</th>
+              <th className="cs-n">{s.represented}</th>
+              <th className="cs-n">{s.corr}</th>
+              <th className="cs-n">{s.vif}</th>
+              <th>{s.forType[kind]}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((x) => {
+              const f = fig(x.field);
+              const why = recs?.[x.field];
+              const on = chosen.has(x.field);
+              return (
+                <tr key={x.field} className={on ? undefined : "vl-out"}>
+                  <td className="vl-tick">
+                    <Tick
+                      isSelected={on}
+                      onChange={(yes) => {
+                        const next = new Set(chosen);
+                        if (yes) next.add(x.field);
+                        else next.delete(x.field);
+                        set(next);
+                      }}
+                    >
+                      <span className="visually-hidden">{x.name}</span>
+                    </Tick>
+                  </td>
+                  <td>
+                    {x.name} <span className="mono wiz-from">{x.field}</span>
+                  </td>
+                  <td className="wiz-from">{x.values != null ? s.category(x.values) : s.number}</td>
+                  <td className="cs-n">{pct(f.rep)}</td>
+                  <td className="cs-n">
+                    {f.corr?.value == null ? (
+                      "—"
                     ) : (
-                      <span className="pill pill-bad">× {s.reasons[why] ?? why}</span>
+                      <>
+                        <span className={f.corr.passed ? undefined : "vl-bad"}>{num(f.corr.value, 2)}</span>
+                        {f.corr.level && <span className="wiz-from"> ({f.corr.level})</span>}
+                      </>
                     )}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  <td className="cs-n">
+                    {f.vif?.value == null ? (
+                      "—"
+                    ) : (
+                      <span className={f.vif.passed ? undefined : "vl-bad"}>{num(f.vif.value, 1)}</span>
+                    )}
+                  </td>
+                  <td>
+                    <span className="rv-cell-pill">
+                      {why == null ? (
+                        <span className="pill pill-ok">✓ {s.recommended}</span>
+                      ) : (
+                        <span className="pill pill-bad">× {s.reasons[why] ?? why}</span>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -4612,3 +4612,15 @@ table.tbl.dt > * > tr > :is(th, td) {
   flex-wrap: wrap;
   gap: 0.25rem;
 }
+/* An open list's variables scroll in a box of their own: the other lists stay in sight. */
+.vl-scroll {
+  max-height: 26rem;
+  overflow-y: auto;
+  border: 1px solid var(--cell-line);
+}
+.vl-scroll > .tbl.vl-vars > thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+}
