@@ -12,6 +12,7 @@ from pydantic import Field
 from oakbox.datafiles import (
     BaseModel,
 )
+from oakbox.fields import VALUE_SLOTS
 
 # ---------- The steps ----------
 
@@ -66,6 +67,8 @@ STEPS: list[Step] = [
         parent="details",
         # Not OpenAVMKit's true_* values: they're the answer key of synthetic data, never a real roll.
         fields=["assr_land_value", "assr_impr_value", "assr_market_value"],
+        # Other existing values (a vendor's AVM…), each set in a slot of its own: shown only for the sets there are.
+        more=[f"{slot}_{part}_value" for slot in VALUE_SLOTS for part in ("market", "land", "impr")],
     ),
     # Map layers joined onto the parcels by where they are, or measured to (F3d Shapefiles).
     Step(key="shapefiles", parent="details"),

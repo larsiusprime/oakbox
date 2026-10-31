@@ -75,7 +75,7 @@ class DictionaryField(BaseModel):
 
 
 # Computed when configured, so not offered by default; your own column would still win (SPEC F3c).
-NOT_OFFERED_PREFIXES = ("dist_to_",)
+NOT_OFFERED_PREFIXES = ("dist_to_", "vset")
 # Fields OAK box asks for that OpenAVMKit's dictionary doesn't list, though its settings name them.
 EXTRA = {
     "deed_id": {
@@ -87,6 +87,21 @@ EXTRA = {
         "source": "input",
     },
 }
+
+
+# Value sets besides the roll (a vendor's AVM, last year's values: Data › Existing values), in slots of their own;
+# each set is named by the user. The roll's are OpenAVMKit's assr_* fields.
+VALUE_SLOTS = [f"vset{n}" for n in range(1, 6)]
+VALUE_PARTS = {"market": "market value", "land": "land value", "impr": "improvement value"}
+for _slot in VALUE_SLOTS:
+    for _part, _words in VALUE_PARTS.items():
+        EXTRA[f"{_slot}_{_part}_value"] = {
+            "name": f"Values {_slot[4:]} {_words}",
+            "description": f"The {_words} of a set of existing values: compared with the models, never modelled with.",
+            "type": "number",
+            "groups": ["valuation"],
+            "source": "input",
+        }
 
 
 class DateCheck(BaseModel):

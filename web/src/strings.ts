@@ -219,9 +219,9 @@ export const t = {
         lede: "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have, and add any other field you want to use, saying whether it's a land/location, improvement or other field.",
       },
       assessed: {
-        title: "Assessed values",
-        question: "Do you have the current assessed values?",
-        lede: "Used to compare the models with the roll.",
+        title: "Existing values",
+        question: "Do you have values to compare the models with?",
+        lede: "The roll, a vendor's AVM, last year's values: each set is judged beside the models, on the same sales. A market value is enough; land and improvement values are kept for later.",
       },
       shapefiles: {
         title: "Shapefiles",
@@ -770,6 +770,18 @@ export const t = {
       sales: "More about each sale: joins the sales, on the sale ID",
       salesNeedsId: "(the sales record needs a sale ID column for this)",
     },
+    valueSets: {
+      market: "Market value",
+      land: "Land value",
+      impr: "Improvement value",
+      roll: "The assessor's roll",
+      rollNote: "checked on Check my values, and beside the models as OpenAVMKit's assessor",
+      otherNote: "beside the models, and on Check my values",
+      remove: "Remove",
+      name: "Name of the set",
+      add: "Add a set of values",
+      none: "No existing values: the models are judged on their own.",
+    },
     reconcile: {
       open: "Reconcile…",
       seeThem: "See them…",
@@ -1086,6 +1098,7 @@ export const t = {
     salesLocked: "Press Looks right on Model groups first",
     check: "4 Check my values",
     values: "5 Model values",
+    noValues: "No existing values to check: add them on Data › Existing values.",
     valuesLocked: "Press Looks right on Check sales first",
     later: "Not available yet",
   },
@@ -1815,7 +1828,18 @@ export const t = {
   // Step 4, Check my values: the values on the roll now, against what parcels sold for (SPEC F8).
   ratio: {
     kicker: "Step 4 of 5",
+    what: {
+      title: "Check your existing values?",
+      lede: "See how the values you have (the roll, a vendor's AVM) do against the sales, before modelling: OpenAVMKit's ratio and equity studies, per model group and overall. Or skip to Model values: they're compared with the models there either way.",
+      check: ["Check them", "A few seconds. Judged against the standards you set next."],
+      skip: ["Skip this step", "Go straight to Model values. You can come back to it."],
+      sets: "Values to check",
+      groups: "Model groups",
+      shown: "Values shown",
+      toValues: "Go to Model values ›",
+    },
     steps: {
+      what: "What to check",
       sales: "Which sales",
       standards: "Standards",
       run: "Check my values",
@@ -1931,7 +1955,7 @@ export const t = {
     summary: {
       share: (pct: number) => `about ${pct}%`,
       head: (name: string, pct: number, start: string, end: string) =>
-        `${name}s are about ${pct}% of what parcels sold for, ${start} to ${end}.`,
+        `${name}'s values are about ${pct}% of what parcels sold for, ${start} to ${end}.`,
       levelAll: (lo: string, hi: string) =>
         ` That's outside the ${lo} to ${hi} the standard asks for in every model group judged.`,
       levelNone: (lo: string, hi: string) =>

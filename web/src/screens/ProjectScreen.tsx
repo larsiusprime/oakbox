@@ -58,6 +58,8 @@ function ProjectView({
   const accepted = useAccepted(projectId);
   const grouped = useStep("assemble", projectId).data?.accepted ?? false;
   const checked = useSalesAccepted(projectId);
+  // Check my values only with existing values to check (the roll, a vendor's AVM: Data › Existing values).
+  const hasValues = useStep("ratio", projectId).data?.has_values ?? true;
   const selected = !tab
     ? "fields"
     : tab === "groups" && !accepted
@@ -68,12 +70,15 @@ function ProjectView({
           : "bring"
         : (tab === "values" || tab === "check") && !checked
           ? "sales"
-          : tab;
+          : tab === "check" && !hasValues
+            ? "values"
+            : tab;
   const locked = [
     ...PLACEHOLDERS,
     ...(accepted ? [] : ["groups"]),
     ...(grouped ? [] : ["sales"]),
     ...(checked ? [] : ["check", "values"]),
+    ...(hasValues ? [] : ["check"]),
   ];
 
   return (
@@ -114,7 +119,12 @@ function ProjectView({
           <Tab id="sales" className="folder-tab" aria-description={grouped ? undefined : t.tabs.salesLocked}>
             {t.tabs.sales}
           </Tab>
-          <Tab id="check" className="folder-tab" aria-description={checked ? undefined : t.tabs.valuesLocked}>
+          <Tab
+            id="check"
+            className="folder-tab"
+            aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
+            {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
+          >
             {t.tabs.check}
           </Tab>
           <Tab

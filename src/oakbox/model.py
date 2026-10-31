@@ -27,8 +27,10 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox import cells, fields, prepare, ratio, steps
+from oakbox import cells, fields, prepare, ratio, steps, valuesets
 from oakbox.datafiles import BaseModel
+from oakbox.fields import VALUE_SLOTS
+from oakbox.valuesets import ROLL, value_field
 
 MODULE = "model"
 
@@ -50,7 +52,7 @@ LOCATION = ["latitude_norm", "longitude_norm", "polar_radius", "polar_angle"]
 # Never offered: identifiers and the roll's own values, sale fields, raw coordinates (the normalized ones are), land
 # area as given or measured (land area is), years (ages are), Check sales' groups of similar parcels (he_id), and
 # distances (each feature's proximity is: it rises near the feature and is 0 beyond the distance that matters).
-NEVER = ("key", "assr_", "sale_", "model_group", "latitude", "longitude", "deed_", "within_", "dist_to_")
+NEVER = ("key", "assr_", "vset", "sale_", "model_group", "latitude", "longitude", "deed_", "within_", "dist_to_")
 NEVER_ENDS = ("_in_acres", "_gis_sqft", "_gis_sqm", "_given_sqft", "_given_sqm", "_year_built", "_date", "he_id")
 NEVER_HAS = ("_delta",)
 KEEP = {"latitude_norm", "longitude_norm", "dist_to_cbd"}
@@ -204,6 +206,19 @@ def _scan(
     return tuple(out)
 
 
+def _universe_fields(project_dir: Path) -> list[str]:
+    import pyarrow.parquet as pq
+
+    path = _universe_path(project_dir)
+    return pq.ParquetFile(path).schema_arrow.names if path.is_file() else []
+
+
+def _outside(project, project_dir: Path) -> list[str]:
+    """The value sets besides the roll that Prepare's output carries a market value for."""
+    have = set(_universe_fields(project_dir))
+    return [v.id for v in valuesets.value_sets(project) if v.id != ROLL and value_field(v.id) in have]
+
+
 def _has_roll(project_dir: Path) -> bool:
     import pyarrow.parquet as pq
 
@@ -249,8 +264,10 @@ def settings(project, project_dir: Path) -> dict:
     every = [v.field for v in vs]
     linear = [v.field for v in vs if not v.trees_only]
     chosen = models(project)
-    # The roll, valued as a model: OpenAVMKit then audits it on the study set, beside the models.
+    # The roll, valued as a model: OpenAVMKit then audits it on the study set, beside the models. Other existing
+    # values (a vendor's AVM…) as pass_through models, judged like the roll: off the holdout, out of the ensemble.
     roll = ["assessor"] if _has_roll(project_dir) else []
+    outside = _outside(project, project_dir)
     entries: dict = {"default": {"ind_vars": linear or every}}
     for m in chosen:
         entry: dict = {}
@@ -261,12 +278,16 @@ def settings(project, project_dir: Path) -> dict:
         entries[m] = entry
     return {
         "modeling": {
-            "instructions": {"main": {"run": chosen + roll, "ensemble": {"type": "median"}}},
-            "models": {"main": entries},
+            "instructions": {
+                "main": {"run": chosen + roll + outside, "ensemble": {"type": "median", "models": chosen}}
+            },
+            "models": {"main": entries | {v: {"model": "pass_through", "field": value_field(v)} for v in outside}},
         },
         # On the study set, each model is judged by its holdout predictions, as the roll is beside it: on its
         # predictions on every sale, it would be judged on sales it trained on.
-        "analysis": {"ratio_study": {"study_set_predictions": "holdout"}},
+        "analysis": {
+            "ratio_study": {"study_set_predictions": "holdout", **({"outside_models": outside} if outside else {})}
+        },
     }
 
 
@@ -410,12 +431,13 @@ class ModelReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-def _name(model: str) -> str:
+def _name(model: str, names: dict[str, str]) -> str:
+    """A model's name; the roll and other existing values by the names the user gave them."""
     if model == "ensemble":
         return "Ensemble"
     if model == "assessor":
-        return "The roll"
-    return ENGINES.get(model, (model,))[0]
+        return names.get(ROLL, "The roll")
+    return names.get(model) or ENGINES.get(model, (model,))[0]
 
 
 # OpenAVMKit's benchmark columns, as each table shows them.
@@ -453,7 +475,9 @@ def _judge(values: dict[str, float | None], sales: float | None, cls: str, targe
     return out
 
 
-def _rows(df, columns, rename=None, cls="none", targets=None, sales_key="count_sales", drop=()) -> list[ModelRow]:
+def _rows(
+    df, columns, rename=None, cls="none", targets=None, sales_key="count_sales", drop=(), names=None
+) -> list[ModelRow]:
     """A row per model from one of OpenAVMKit's tables, the ensemble first, then the models in OAK box's order."""
     if df is None or len(df) == 0:
         return []
@@ -464,8 +488,8 @@ def _rows(df, columns, rename=None, cls="none", targets=None, sales_key="count_s
             continue
         values = {(rename or {}).get(c, c): cells.number(row.get(c)) for c in columns}
         judged = _judge(values, values.get(sales_key), cls, targets) if targets else {}
-        out.append(ModelRow(model=model, name=_name(model), values=values, judged=judged))
-    order = ["assessor", "ensemble", *ENGINES]
+        out.append(ModelRow(model=model, name=_name(model, names or {}), values=values, judged=judged))
+    order = ["assessor", *VALUE_SLOTS, "ensemble", *ENGINES]
     return sorted(out, key=lambda f: order.index(f.model) if f.model in order else 99)
 
 
@@ -478,7 +502,7 @@ def _dates(df) -> tuple[str | None, str | None]:
     return (d.min().date().isoformat(), d.max().date().isoformat()) if len(d) else (None, None)
 
 
-def _sets(r, cls: str, targets: ratio.Targets) -> list[SalesSet]:
+def _sets(r, cls: str, targets: ratio.Targets, names: dict[str, str], outside: tuple[str, ...]) -> list[SalesSet]:
     """OpenAVMKit's sets of sales: the holdout, the sales after the valuation date when there are any, and the
     study set (the look-back before the valuation date). The roll is only on the study set: the holdout is
     OpenAVMKit's own, and the roll's values may have been made with those very sales."""
@@ -486,13 +510,13 @@ def _sets(r, cls: str, targets: ratio.Targets) -> list[SalesSet]:
     first = next(iter(r.model_results.values()))
     out = []
     frames: list[tuple[SetKey, object, object, tuple[str, ...]]] = [
-        ("holdout", b.df_stats_test, first.df_test, ("assessor",))
+        ("holdout", b.df_stats_test, first.df_test, ("assessor", *outside))
     ]
     if b.df_stats_test_post_val is not None and not b.test_post_val_empty:
-        frames.append(("post_val", b.df_stats_test_post_val, None, ("assessor",)))
+        frames.append(("post_val", b.df_stats_test_post_val, None, ("assessor", *outside)))
     frames.append(("study", b.df_stats_full, first.df_sales_lookback, ()))
     for key, df, sales_df, drop in frames:
-        rows = _rows(df, IAAO, cls=cls, targets=targets, drop=drop)
+        rows = _rows(df, IAAO, cls=cls, targets=targets, drop=drop, names=names)
         n = int(rows[0].values.get("count_sales") or 0) if rows else 0
         f, last = _dates(sales_df) if sales_df is not None else (None, None)
         out.append(
@@ -502,7 +526,9 @@ def _sets(r, cls: str, targets: ratio.Targets) -> list[SalesSet]:
                 first=f,
                 last=last,
                 rows=rows,
-                trimmed=_rows(df, IAAO_TRIMMED, cls=cls, targets=targets, sales_key="count_trim", drop=drop),
+                trimmed=_rows(
+                    df, IAAO_TRIMMED, cls=cls, targets=targets, sales_key="count_trim", drop=drop, names=names
+                ),
             )
         )
     return out
@@ -526,6 +552,8 @@ def run(project_id: str) -> None:
     from openavmkit import progress
 
     groups = [g.id for g in project.groups]
+    names = {v.id: v.name for v in valuesets.value_sets(project)}
+    outside = tuple(_outside(project, pdir))
     t0 = time.time()
 
     def inside(e) -> None:
@@ -581,7 +609,7 @@ def run(project_id: str) -> None:
                 )
             )
             continue
-        sets = _sets(r, cls[g.id], targets)
+        sets = _sets(r, cls[g.id], targets, names, outside)
         if not any(x.sales for x in sets):
             # Modeled, but no sale to judge it by: as good as unmodeled here.
             out.append(
@@ -604,10 +632,12 @@ def run(project_id: str) -> None:
                 parcels=per.get(g.id, 0),
                 sales=n,
                 sets=sets,
-                academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor",)),
-                academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor",)),
+                academic=_rows(untrimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside)),
+                academic_trimmed=_rows(trimmed, ACADEMIC, ACADEMIC, drop=("assessor", *outside)),
                 timings=_rows(
-                    r.benchmark.df_time, ("total", "param", "train", "test", "univ", "chd"), drop=("assessor",)
+                    r.benchmark.df_time,
+                    ("total", "param", "train", "test", "univ", "chd"),
+                    drop=("assessor", *outside),
                 ),
             )
         )

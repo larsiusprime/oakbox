@@ -355,6 +355,33 @@ def wizard_unit_field(project_id: str, name: str, field: str, body: UnitFieldBod
     return _change(project_id, lambda p, d: wizard.set_unit_field(p, d, name, field, body.column))
 
 
+class ValueSetNew(BaseModel):
+    name: str
+
+
+class ValueSetChange(BaseModel):
+    name: str | None = None
+    roll: bool | None = Field(default=None, description="Make it the assessor's roll (true), or not (false).")
+
+
+@router.post("/api/projects/{project_id}/wizard/value-sets")
+def wizard_add_value_set(project_id: str, body: ValueSetNew) -> wizard.Wizard:
+    """Add a set of existing values to compare the models with (a vendor's AVM, last year's values)."""
+    return _change(project_id, lambda p, _d: wizard.add_value_set(p, body.name))
+
+
+@router.patch("/api/projects/{project_id}/wizard/value-sets/{set_id}")
+def wizard_change_value_set(project_id: str, set_id: str, body: ValueSetChange) -> wizard.Wizard:
+    """Rename a set of values, or make it the roll (or not)."""
+    return _change(project_id, lambda p, _d: wizard.change_value_set(p, set_id, body.name, body.roll))
+
+
+@router.delete("/api/projects/{project_id}/wizard/value-sets/{set_id}")
+def wizard_remove_value_set(project_id: str, set_id: str) -> wizard.Wizard:
+    """Take a set of values away, with its fields."""
+    return _change(project_id, lambda p, _d: wizard.remove_value_set(p, set_id))
+
+
 @router.put("/api/projects/{project_id}/wizard/custom/{name}")
 def wizard_custom(project_id: str, name: str, body: WizardCustom) -> wizard.Wizard:
     """Load a parcel file's column as a field the user names and classifies (land, building or other); no column

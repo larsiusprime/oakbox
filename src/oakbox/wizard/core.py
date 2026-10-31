@@ -26,7 +26,9 @@ from oakbox.datafiles import (
     guess_area_unit,
     small_unit,
 )
+from oakbox.fields import VALUE_PARTS
 from oakbox.projects import Project
+from oakbox.valuesets import ROLL, value_field, value_sets
 from oakbox.wizard.base import (
     ABSENT_OK,
     ASSUMABLE,
@@ -80,6 +82,7 @@ from oakbox.wizard.models import (
     Source,
     Status,
     StepView,
+    ValueSetView,
     Wizard,
     WizardField,
     WizardFile,
@@ -180,6 +183,9 @@ def view(project: Project, in_dir: Path) -> Wizard:
             check = Check(ok=has_date, text="from parcel ID + sale date" if has_date else "needs a sale date")
         sale_id = SaleId(file=sales.name, column=spec[0] if spec else None, made=made, check=check)
 
+    set_fields = {
+        value_field(v.id, part): f"{v.name} {words}" for v in value_sets(project) for part, words in VALUE_PARTS.items()
+    }
     out_fields = []
     for step in STEPS:
         for more, keys in ((False, step.fields), (True, step.more)):
@@ -231,6 +237,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     check = Check(ok=False, text="loaded from more than one file")
                 assumed = bool(sales and key in ASSUMABLE and key in sales.calc)
                 name, description = RENAMED.get(key, (d.name, d.description))
+                if key in set_fields:  # a value set's field: named by the set ("Acme AVM market value")
+                    name = set_fields[key]
                 if project.units == "metric":  # written as land_area_sqm etc. (datafiles.area_key)
                     name, description = (x.replace("square feet", "square metres") for x in (name, description))
                 out_fields.append(
@@ -307,6 +315,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
         deeds=_deeds_check(project, files),
         permits=_permits_view(project, files),
         condos=_condos_view(project, out_files),
+        value_sets=[ValueSetView(id=v.id, name=v.name, roll=v.id == ROLL) for v in value_sets(project)],
     )
 
 

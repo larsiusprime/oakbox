@@ -48,6 +48,7 @@ from oakbox.enrichments import Enrichments
 from oakbox.enrichments import settings as enrich_settings
 from oakbox.model import ModelState
 from oakbox.ratio import RatioState
+from oakbox.valuesets import ValueSet
 
 Units = Literal["imperial", "metric"]
 # How numbers are written: the thousands separator and the decimal mark (SPEC F1).
@@ -116,6 +117,9 @@ class WizardState(BaseModel):
     condos: bool | None = Field(
         default=None,
         description="Condo units: whether some parcels are units without a shape of their own; None: not asked yet.",
+    )
+    value_sets: list[ValueSet] | None = Field(
+        default=None, description="Existing values (Data › Existing values); None: the roll, as first proposed."
     )
 
 

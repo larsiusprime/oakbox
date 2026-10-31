@@ -619,6 +619,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/value-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wizard Add Value Set
+         * @description Add a set of existing values to compare the models with (a vendor's AVM, last year's values).
+         */
+        post: operations["wizard_add_value_set_api_projects__project_id__wizard_value_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/value-sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Wizard Remove Value Set
+         * @description Take a set of values away, with its fields.
+         */
+        delete: operations["wizard_remove_value_set_api_projects__project_id__wizard_value_sets__set_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Wizard Change Value Set
+         * @description Rename a set of values, or make it the roll (or not).
+         */
+        patch: operations["wizard_change_value_set_api_projects__project_id__wizard_value_sets__set_id__patch"];
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/custom/{name}": {
         parameters: {
             query?: never;
@@ -5176,6 +5220,21 @@ export interface components {
              * @description A location field; "" for none.
              */
             region?: string | null;
+            /**
+             * Check
+             * @description Check the existing values (true) or skip (false).
+             */
+            check?: boolean | null;
+            /**
+             * Sets
+             * @description The value sets to check.
+             */
+            sets?: string[] | null;
+            /**
+             * Groups
+             * @description The model groups to check.
+             */
+            groups?: string[] | null;
         };
         /** RatioReceipt */
         RatioReceipt: {
@@ -5209,6 +5268,25 @@ export interface components {
         };
         /** RatioSetup */
         RatioSetup: {
+            /**
+             * Check
+             * @description Check the existing values (False: skipped); None: not asked yet.
+             */
+            check: boolean | null;
+            /**
+             * Sets
+             * @description The value sets with a market value: the ones that can be checked.
+             */
+            sets: components["schemas"]["SetChoice"][];
+            /** Chosen Sets */
+            chosen_sets: string[];
+            /**
+             * All Groups
+             * @description Every model group, to choose from.
+             */
+            all_groups: components["schemas"]["Choice"][];
+            /** Chosen Groups */
+            chosen_groups: string[];
             /**
              * Parcels
              * @description Parcels with an assessed market value above zero.
@@ -5313,6 +5391,21 @@ export interface components {
              * @description The location for neighbourhood price levels; "" none; None: Check sales' location.
              */
             region: string | null;
+            /**
+             * Check
+             * @description Check the existing values (False: skip); None: not asked.
+             */
+            check: boolean | null;
+            /**
+             * Sets
+             * @description The value sets to check (ids); None: every one.
+             */
+            sets: string[] | null;
+            /**
+             * Groups
+             * @description The model groups to check (ids); None: every one.
+             */
+            groups: string[] | null;
         };
         /** RatioView */
         RatioView: {
@@ -5335,6 +5428,16 @@ export interface components {
             receipt: components["schemas"]["RatioReceipt"] | null;
             /** Accepted */
             accepted: boolean;
+            /**
+             * Has Values
+             * @description Some existing values (the roll, a vendor's AVM) have a market value.
+             */
+            has_values: boolean;
+            /**
+             * Skipped
+             * @description The user chose not to check them.
+             */
+            skipped: boolean;
         };
         /** Receipt */
         Receipt: {
@@ -6136,6 +6239,15 @@ export interface components {
             /** Value */
             value: number;
         };
+        /** SetChoice */
+        SetChoice: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Roll */
+            roll: boolean;
+        };
         /** Source */
         Source: {
             /** File */
@@ -6905,6 +7017,49 @@ export interface components {
             /** Count */
             count: number;
         };
+        /**
+         * ValueSet
+         * @description A set of existing values to compare the models with: the roll, a vendor's AVM, last year's values.
+         */
+        ValueSet: {
+            /**
+             * Id
+             * @description Its fields' prefix: "assr" for the roll (OpenAVMKit's assessor), else a slot (vset1…).
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** ValueSetChange */
+        ValueSetChange: {
+            /** Name */
+            name?: string | null;
+            /**
+             * Roll
+             * @description Make it the assessor's roll (true), or not (false).
+             */
+            roll?: boolean | null;
+        };
+        /** ValueSetNew */
+        ValueSetNew: {
+            /** Name */
+            name: string;
+        };
+        /** ValueSetView */
+        ValueSetView: {
+            /**
+             * Id
+             * @description Its fields' prefix: "assr" (the roll), or a slot.
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Roll
+             * @description The assessor's roll: OpenAVMKit's assessor model; Check my values' first.
+             */
+            roll: boolean;
+        };
         /** VarGroup */
         VarGroup: {
             /** Id */
@@ -7150,6 +7305,11 @@ export interface components {
             permits: components["schemas"]["PermitsView"] | null;
             /** @description The Condo units step. */
             condos: components["schemas"]["CondosView"] | null;
+            /**
+             * Value Sets
+             * @description Existing values (Assessed values).
+             */
+            value_sets: components["schemas"]["ValueSetView"][];
         };
         /** WizardColumnRef */
         WizardColumnRef: {
@@ -7515,6 +7675,11 @@ export interface components {
              * @description Condo units: whether some parcels are units without a shape of their own; None: not asked yet.
              */
             condos: boolean | null;
+            /**
+             * Value Sets
+             * @description Existing values (Data › Existing values); None: the roll, as first proposed.
+             */
+            value_sets: components["schemas"]["ValueSet"][] | null;
         };
         /** Written */
         Written: {
@@ -8741,6 +8906,109 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UnitFieldBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_add_value_set_api_projects__project_id__wizard_value_sets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueSetNew"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_remove_value_set_api_projects__project_id__wizard_value_sets__set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wizard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_change_value_set_api_projects__project_id__wizard_value_sets__set_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValueSetChange"];
             };
         };
         responses: {

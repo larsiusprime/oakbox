@@ -4329,3 +4329,38 @@ table.tbl.dt > * > tr > :is(th, td) {
 .tbl tbody tr.md-roll :where(td) {
   background: var(--info-tint);
 }
+
+/* ---------- Existing values: a card per set (Data › Existing values) ---------- */
+.vs {
+  display: grid;
+  gap: 0.8rem;
+  max-width: 62rem;
+}
+.vs-set {
+  padding: 0.6rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.vs-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.vs-name .input {
+  width: 14rem;
+  font-weight: 600;
+}
+.vs-grow {
+  flex: 1;
+}
+.vs-remove {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+}
+.rv-what {
+  margin-top: 0.4rem;
+}

@@ -35,7 +35,9 @@ const ASSUME = "__assume";
 const ELSEWHERE = "__elsewhere";
 /** Amounts of money: read with a format when written as text, and checked for scale (SPEC F3d). */
 function isMoney(key: string): boolean {
-  return key === "sale_price" || (key.startsWith("assr_") && key.endsWith("_value"));
+  return (
+    key === "sale_price" || ((key.startsWith("assr_") || key.startsWith("vset")) && key.endsWith("_value"))
+  );
 }
 
 export function FieldRow({
@@ -68,7 +70,9 @@ export function FieldRow({
   const money = isMoney(field.key);
   // Under a numbered title, the field's own name only when it says more ("4. Quality" needs no "Quality").
   const name = shortName(field);
-  const same = label?.replace(/^\d+\.\s*/, "").toLowerCase() === name.toLowerCase();
+  // (or only adds what the card says: "Market value" in the Acme AVM card needs no "Acme AVM market value").
+  const titled = label?.replace(/^\d+\.\s*/, "").toLowerCase();
+  const same = !!titled && (titled === name.toLowerCase() || name.toLowerCase().endsWith(` ${titled}`));
   const sub = [label && !same ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
   const files = data.files.filter((f) => f.holds === (sales ? "sales" : "parcels"));
   const source = field.sources[0];

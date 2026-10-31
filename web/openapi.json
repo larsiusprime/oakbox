@@ -1731,6 +1731,162 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/value-sets": {
+   "post": {
+    "summary": "Wizard Add Value Set",
+    "description": "Add a set of existing values to compare the models with (a vendor's AVM, last year's values).",
+    "operationId": "wizard_add_value_set_api_projects__project_id__wizard_value_sets_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ValueSetNew"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/value-sets/{set_id}": {
+   "patch": {
+    "summary": "Wizard Change Value Set",
+    "description": "Rename a set of values, or make it the roll (or not).",
+    "operationId": "wizard_change_value_set_api_projects__project_id__wizard_value_sets__set_id__patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ValueSetChange"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Wizard Remove Value Set",
+    "description": "Take a set of values away, with its fields.",
+    "operationId": "wizard_remove_value_set_api_projects__project_id__wizard_value_sets__set_id__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "set_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Set Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Wizard"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/custom/{name}": {
    "put": {
     "summary": "Wizard Custom",
@@ -12520,6 +12676,48 @@
       ],
       "title": "Region",
       "description": "A location field; \"\" for none."
+     },
+     "check": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check",
+      "description": "Check the existing values (true) or skip (false)."
+     },
+     "sets": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sets",
+      "description": "The value sets to check."
+     },
+     "groups": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups",
+      "description": "The model groups to check."
      }
     },
     "type": "object",
@@ -12592,6 +12790,48 @@
    },
    "RatioSetup": {
     "properties": {
+     "check": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check",
+      "description": "Check the existing values (False: skipped); None: not asked yet."
+     },
+     "sets": {
+      "items": {
+       "$ref": "#/components/schemas/SetChoice"
+      },
+      "type": "array",
+      "title": "Sets",
+      "description": "The value sets with a market value: the ones that can be checked."
+     },
+     "chosen_sets": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Chosen Sets"
+     },
+     "all_groups": {
+      "items": {
+       "$ref": "#/components/schemas/Choice"
+      },
+      "type": "array",
+      "title": "All Groups",
+      "description": "Every model group, to choose from."
+     },
+     "chosen_groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Chosen Groups"
+     },
      "parcels": {
       "type": "integer",
       "title": "Parcels",
@@ -12701,6 +12941,11 @@
     },
     "type": "object",
     "required": [
+     "check",
+     "sets",
+     "chosen_sets",
+     "all_groups",
+     "chosen_groups",
      "parcels",
      "valuation_date",
      "start",
@@ -12796,6 +13041,48 @@
       ],
       "title": "Region",
       "description": "The location for neighbourhood price levels; \"\" none; None: Check sales' location."
+     },
+     "check": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check",
+      "description": "Check the existing values (False: skip); None: not asked."
+     },
+     "sets": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sets",
+      "description": "The value sets to check (ids); None: every one."
+     },
+     "groups": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups",
+      "description": "The model groups to check (ids); None: every one."
      }
     },
     "type": "object",
@@ -12806,7 +13093,10 @@
      "targets",
      "classes",
      "trim",
-     "region"
+     "region",
+     "check",
+     "sets",
+     "groups"
     ],
     "title": "RatioState"
    },
@@ -12859,6 +13149,16 @@
      "accepted": {
       "type": "boolean",
       "title": "Accepted"
+     },
+     "has_values": {
+      "type": "boolean",
+      "title": "Has Values",
+      "description": "Some existing values (the roll, a vendor's AVM) have a market value."
+     },
+     "skipped": {
+      "type": "boolean",
+      "title": "Skipped",
+      "description": "The user chose not to check them."
      }
     },
     "type": "object",
@@ -12868,7 +13168,9 @@
      "stale",
      "blocked",
      "receipt",
-     "accepted"
+     "accepted",
+     "has_values",
+     "skipped"
     ],
     "title": "RatioView"
    },
@@ -14823,6 +15125,29 @@
     ],
     "title": "ScaleSample"
    },
+   "SetChoice": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "roll": {
+      "type": "boolean",
+      "title": "Roll"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "roll"
+    ],
+    "title": "SetChoice"
+   },
    "Source": {
     "properties": {
      "file": {
@@ -16604,6 +16929,93 @@
     ],
     "title": "ValueN"
    },
+   "ValueSet": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "Its fields' prefix: \"assr\" for the roll (OpenAVMKit's assessor), else a slot (vset1\u2026)."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "ValueSet",
+    "description": "A set of existing values to compare the models with: the roll, a vendor's AVM, last year's values."
+   },
+   "ValueSetChange": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "roll": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Roll",
+      "description": "Make it the assessor's roll (true), or not (false)."
+     }
+    },
+    "type": "object",
+    "title": "ValueSetChange"
+   },
+   "ValueSetNew": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "ValueSetNew"
+   },
+   "ValueSetView": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id",
+      "description": "Its fields' prefix: \"assr\" (the roll), or a slot."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "roll": {
+      "type": "boolean",
+      "title": "Roll",
+      "description": "The assessor's roll: OpenAVMKit's assessor model; Check my values' first."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "roll"
+    ],
+    "title": "ValueSetView"
+   },
    "VarGroup": {
     "properties": {
      "id": {
@@ -17188,6 +17600,14 @@
        }
       ],
       "description": "The Condo units step."
+     },
+     "value_sets": {
+      "items": {
+       "$ref": "#/components/schemas/ValueSetView"
+      },
+      "type": "array",
+      "title": "Value Sets",
+      "description": "Existing values (Assessed values)."
      }
     },
     "type": "object",
@@ -17205,7 +17625,8 @@
      "layers",
      "deeds",
      "permits",
-     "condos"
+     "condos",
+     "value_sets"
     ],
     "title": "Wizard"
    },
@@ -18107,6 +18528,21 @@
       ],
       "title": "Condos",
       "description": "Condo units: whether some parcels are units without a shape of their own; None: not asked yet."
+     },
+     "value_sets": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/ValueSet"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value Sets",
+      "description": "Existing values (Data \u203a Existing values); None: the roll, as first proposed."
      }
     },
     "type": "object",
@@ -18119,7 +18555,8 @@
      "locations",
      "absent",
      "custom",
-     "condos"
+     "condos",
+     "value_sets"
     ],
     "title": "WizardState",
     "description": "The Fields wizard's own state (SPEC \u00a73.0 F3d). Everything it chooses is in the files' entries."

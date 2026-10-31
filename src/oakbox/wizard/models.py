@@ -299,6 +299,12 @@ class LayerView(BaseModel):
     left: list[Left] = Field(default_factory=list, description="What's still to do or wrong with it.")
 
 
+class ValueSetView(BaseModel):
+    id: str = Field(description='Its fields\' prefix: "assr" (the roll), or a slot.')
+    name: str
+    roll: bool = Field(description="The assessor's roll: OpenAVMKit's assessor model; Check my values' first.")
+
+
 class Wizard(BaseModel):
     steps: list[StepView]
     files: list[WizardFile]
@@ -314,3 +320,4 @@ class Wizard(BaseModel):
     deeds: DeedsCheck | None = Field(default=None, description="Sales sharing a deed (the Deeds step).")
     permits: PermitsView | None = Field(default=None, description="The permits file, set up (the Permits step).")
     condos: CondosView | None = Field(default=None, description="The Condo units step.")
+    value_sets: list[ValueSetView] = Field(default_factory=list, description="Existing values (Assessed values).")

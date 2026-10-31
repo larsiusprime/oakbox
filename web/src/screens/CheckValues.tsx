@@ -13,6 +13,8 @@ import {
 } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { Choice, Field, Tick } from "../components/Form";
+import { MultiPick } from "../components/MultiPick";
+import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
@@ -23,6 +25,7 @@ import { GroupsTable, judged, Scorecard } from "./ValueTables";
 
 const r = t.ratio;
 type RStep =
+  | "what"
   | "sales"
   | "standards"
   | "run"
@@ -34,6 +37,7 @@ type RStep =
   | "similar"
   | "extreme";
 const STEPS: RStep[] = [
+  "what",
   "sales",
   "standards",
   "run",
@@ -63,16 +67,17 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const { setup, change } = useStepSetup("ratio", projectId, !!v && v.blocked.length === 0);
   const act = useStepAct("ratio", projectId);
   const nav = useStepNav<RStep>();
+  // Several sets of values checked: the results show one at a time, the same one from part to part.
+  const [shown, setShown] = useState<string | null>(null);
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
   const running = v.status === "running";
   const rc = v.receipt;
   const fresh = !!rc && !v.stale;
-  const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "sales";
+  const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "what";
   const current = nav.current(v.status, fallback, "summary");
   const go = nav.go;
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
-  // Only the market value is checked (one result).
-  const result: FieldResult | undefined = rc?.results[0];
+  const result: FieldResult | undefined = rc?.results.find((x) => x.field === shown) ?? rc?.results[0];
   const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
   const called = rc ? (v.stale ? "attention" : "done") : "blank";
   const steps: Step[] = STEPS.map((key) => ({
@@ -88,12 +93,14 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
             : "blank"
       : key === "run"
         ? called
-        : key === "sales" && setup.data && setup.data.year_before === 0
-          ? "attention"
-          : setup.data
-            ? "done"
-            : "blank",
-    disabled: AFTER.includes(key) && !rc,
+        : key === "what" && v.skipped
+          ? "done"
+          : key === "sales" && setup.data && setup.data.year_before === 0
+            ? "attention"
+            : setup.data
+              ? "done"
+              : "blank",
+    disabled: (AFTER.includes(key) && !rc) || (v.skipped && key !== "what"),
   }));
   const i = STEPS.indexOf(current);
   const prev = STEPS[i - 1];
@@ -122,8 +129,38 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
     );
   const loading = <p className="empty">{t.project.loading}</p>;
 
+  const which = rc && rc.results.length > 1 && result && (
+    <Seg
+      label={r.what.shown}
+      value={result.field}
+      options={rc.results.map((x) => [x.field, x.name] as const)}
+      onChange={setShown}
+    />
+  );
+
   return (
     <StepFrame steps={steps} current={current} go={go}>
+      {current === "what" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.what.title} lede={r.what.lede}>
+            {u ? <WhatCard v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot
+            next={
+              v.skipped
+                ? { label: r.what.toValues, onPress: toValues }
+                : {
+                    label: t.step.next,
+                    onPress: () =>
+                      u?.check === null
+                        ? change.mutate({ check: true }, { onSuccess: () => go("sales") })
+                        : go("sales"),
+                  }
+            }
+          />
+        </>
+      )}
       {current === "sales" && (
         <>
           <StepBody kicker={r.kicker} title={r.sales.title} lede={r.sales.lede}>
@@ -177,6 +214,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       {AFTER.includes(current) && rc && result && (
         <>
           <StepBody kicker={r.kicker} {...(current === "prices" ? {} : { title: r.steps[current] })}>
+            {which}
             {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
             {current === "summary" && (
               <Summary result={result} receipt={rc} nominal={nominal.length} see={() => go("extreme")} />
@@ -218,6 +256,51 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
 }
 
 type CardProps = { v: RatioSetup; set: (body: RatioPatch) => void };
+
+/** Check the existing values, or skip to the models; which sets and which model groups. */
+function WhatCard({ v, set }: CardProps) {
+  const checking = v.check !== false;
+  return (
+    <div className="rv-cards">
+      <RadioGroup
+        aria-label={r.what.title}
+        className="cu-choices"
+        value={checking ? "check" : "skip"}
+        onChange={(x) => set({ check: x === "check" })}
+      >
+        {(["check", "skip"] as const).map((k) => (
+          <Radio key={k} value={k} className="radio cu-choice">
+            <span className="radio-dot" aria-hidden="true" />
+            <span className="cu-text">
+              <b>{r.what[k][0]}</b>
+              <span className="cu-sub">{r.what[k][1]}</span>
+            </span>
+          </Radio>
+        ))}
+      </RadioGroup>
+      {checking && (
+        <div className="wiz-grid rv-what">
+          <span className="wiz-label">{r.what.sets}</span>
+          <MultiPick
+            label={r.what.sets}
+            values={v.sets.map((x) => ({ value: x.id, label: x.name }))}
+            chosen={v.chosen_sets}
+            onChange={(sets) => sets.length && set({ sets })}
+          />
+          <span />
+          <span className="wiz-label">{r.what.groups}</span>
+          <MultiPick
+            label={r.what.groups}
+            values={v.all_groups.map((g) => ({ value: g.value, label: g.label }))}
+            chosen={v.chosen_groups}
+            onChange={(groups) => groups.length && set({ groups })}
+          />
+          <span />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SalesCard({ v, set }: CardProps) {
   // Typed until the box loses focus; the card is remounted (keyed on the window) when the window changes.

@@ -184,7 +184,8 @@ def test_sales_matched_by_the_second_id(client, pid, monkeypatch):
 def test_names_say_the_jurisdiction(client, pid):
     w = client.get(f"/api/projects/{pid}/wizard").json()
     jurisdiction = projects.load(pid).jurisdiction
-    assert _field(w, "assr_land_value")["name"] == f"{jurisdiction} land value"
+    # The roll is a set of existing values, named "<jurisdiction> roll" until renamed.
+    assert _field(w, "assr_land_value")["name"] == f"{jurisdiction} roll land value"
     from oakbox import fields
 
     plain = {f.key: f for f in fields.dictionary()}
@@ -1173,7 +1174,8 @@ def test_true_values_are_not_asked(client, pid):
     """OpenAVMKit's true_* values are synthetic data's answer key: the wizard never shows or guesses them."""
     w = client.get(f"/api/projects/{pid}/wizard").json()
     assert not [f["key"] for f in w["fields"] if f["key"].startswith("true_")]
-    assert wizard_step(w, "assessed")["more"] == []
+    # More holds only the slots of other sets of existing values (a vendor's AVM…).
+    assert all(k.startswith("vset") for k in wizard_step(w, "assessed")["more"])
 
 
 def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):

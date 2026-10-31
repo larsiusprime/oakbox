@@ -74,7 +74,7 @@ def _area_check(files: Files, entry: DataFile, key: str, column: str, unit: str,
 
 
 def is_money(key: str) -> bool:
-    return key == "sale_price" or (key.startswith("assr_") and key.endswith("_value"))
+    return key == "sale_price" or (key.startswith(("assr_", "vset")) and key.endswith("_value"))
 
 
 # Written where there's no amount: read as missing, not as a failure.

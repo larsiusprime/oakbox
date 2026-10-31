@@ -136,7 +136,7 @@ def test_how_they_did_tables():
     )
     first = SimpleNamespace(df_test=dates, df_sales_lookback=dates)
     r = SimpleNamespace(benchmark=bench, model_results={"lightgbm": first})
-    holdout, study = model._sets(r, "residential", _project_targets())
+    holdout, study = model._sets(r, "residential", _project_targets(), {}, ())
     assert holdout.key == "holdout" and study.key == "study"  # no sales after the valuation date: no such set
     # The roll is on the study set only, first; the ensemble before the models.
     assert [f.model for f in holdout.rows] == ["ensemble", "lightgbm", "mra"]

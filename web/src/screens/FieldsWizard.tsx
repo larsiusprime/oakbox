@@ -36,6 +36,7 @@ import { LocationExtras } from "./Location";
 import { PermitsStep } from "./Permits";
 import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep, UnitsPointer } from "./Units";
+import { ValueSetsStep } from "./ValueSets";
 import { CheckText, FileHeader, FilePicker, IdCheck, IdRow, isMainSales } from "./WizardFiles";
 import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
@@ -134,9 +135,14 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "review" && (
             <ReviewStep projectId={projectId} data={data} go={go} change={change.mutate} />
           )}
-          {current.fields.length > 0 && (current.key !== "sales" || data.sale_id.file) && (
-            <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
+          {current.key === "assessed" && (
+            <ValueSetsStep project={project} data={data} change={change.mutateAsync} />
           )}
+          {current.fields.length > 0 &&
+            current.key !== "assessed" &&
+            (current.key !== "sales" || data.sale_id.file) && (
+              <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
+            )}
           {current.key === "location" && (
             <LocationExtras project={project} data={data} change={change.mutate} />
           )}

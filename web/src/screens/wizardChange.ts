@@ -14,6 +14,7 @@ import type { CustomChange } from "./CustomFields";
 import type { PermitsChange } from "./Permits";
 import type { LayerChange } from "./Shapefiles";
 import type { UnitsChange } from "./Units";
+import type { ValuesChange } from "./ValueSets";
 
 export type AreaUnit = NonNullable<WizardField["area_unit"]>;
 type Holds = "parcels" | "sales" | "unused" | "permits";
@@ -56,6 +57,7 @@ export type Change =
   | { kind: "location"; name: string; file: string | null; column: string | null }
   | CustomChange
   | UnitsChange
+  | ValuesChange
   | LayerChange
   | PermitsChange;
 
@@ -126,6 +128,32 @@ export function useChange(projectId: string) {
           await api.PUT("/api/projects/{project_id}/wizard/files/{name}/permits", {
             params: { path: { project_id, name: c.name } },
             body: { permits: c.permits, guess: c.guess ?? false },
+          }),
+        );
+      }
+      if (c.kind === "addSet") {
+        return unwrap(
+          await api.POST("/api/projects/{project_id}/wizard/value-sets", {
+            params: { path: { project_id } },
+            body: { name: c.name },
+          }),
+        );
+      }
+      if (c.kind === "setChange") {
+        return unwrap(
+          await api.PATCH("/api/projects/{project_id}/wizard/value-sets/{set_id}", {
+            params: { path: { project_id, set_id: c.id } },
+            body: {
+              ...(c.name !== undefined ? { name: c.name } : {}),
+              ...(c.roll !== undefined ? { roll: c.roll } : {}),
+            },
+          }),
+        );
+      }
+      if (c.kind === "removeSet") {
+        return unwrap(
+          await api.DELETE("/api/projects/{project_id}/wizard/value-sets/{set_id}", {
+            params: { path: { project_id, set_id: c.id } },
           }),
         );
       }

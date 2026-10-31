@@ -22,11 +22,11 @@ from pydantic import Field
 
 from oakbox import cells, clean, fields, steps
 from oakbox.datafiles import BaseModel
+from oakbox.valuesets import ROLL, ValueSet, loaded_value_sets, value_field
 
 MODULE = "ratio"
 # The value checked: the whole parcel's market value (land and improvement values aren't sold on their own).
 FIELD = "assr_market_value"
-FIELD_NAME = "Assessed market value"
 PropertyClass = Literal[
     "residential",
     "residential_homogeneous",
@@ -112,6 +112,25 @@ class RatioState(BaseModel):
     region: str | None = Field(
         default=None, description='The location for neighbourhood price levels; "" none; None: Check sales\' location.'
     )
+    check: bool | None = Field(default=None, description="Check the existing values (False: skip); None: not asked.")
+    sets: list[str] | None = Field(default=None, description="The value sets to check (ids); None: every one.")
+    groups: list[str] | None = Field(default=None, description="The model groups to check (ids); None: every one.")
+
+
+def checked_sets(project) -> list[ValueSet]:
+    """The value sets to check: those with a market value loaded, as chosen."""
+    s: RatioState = project.ratio
+    return [v for v in loaded_value_sets(project) if s.sets is None or v.id in s.sets]
+
+
+def checked_groups(project) -> list:
+    s: RatioState = project.ratio
+    return [g for g in project.groups if s.groups is None or g.id in s.groups]
+
+
+def _first_field(project) -> str:
+    sets = checked_sets(project)
+    return value_field(sets[0].id) if sets else FIELD
 
 
 def proposed_class(group_id: str, name: str) -> PropertyClass:
@@ -167,7 +186,18 @@ def region(project) -> str:
     return s.region if s.region is not None else (project.clean.location or "")
 
 
+class SetChoice(BaseModel):
+    id: str
+    name: str
+    roll: bool
+
+
 class RatioSetup(BaseModel):
+    check: bool | None = Field(description="Check the existing values (False: skipped); None: not asked yet.")
+    sets: list[SetChoice] = Field(description="The value sets with a market value: the ones that can be checked.")
+    chosen_sets: list[str]
+    all_groups: list[clean.Choice] = Field(description="Every model group, to choose from.")
+    chosen_groups: list[str]
     parcels: int = Field(description="Parcels with an assessed market value above zero.")
     valuation_date: dt.date
     start: dt.date
@@ -229,7 +259,8 @@ def window(project, sales=None, project_dir: Path | None = None) -> tuple[dt.dat
     if sales is None and project_dir is not None:
         sales = _sales(project_dir)
     if sales is not None and len(sales):
-        ok = _studied(sales, FIELD) if FIELD in sales else None
+        field = _first_field(project)
+        ok = _studied(sales, field) if field in sales else None
         for years in range(1, 6):
             start = _years_back(val, years)
             proposed = start
@@ -249,8 +280,9 @@ def setup(project, project_dir: Path) -> RatioSetup:
     universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
     start, end, proposed = window(project, sales)
     val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
-    parcels = int(cells.numbers(universe, FIELD).gt(0).sum()) if FIELD in universe else 0
-    studied = _studied(sales, FIELD) if FIELD in sales else pd.Series(False, index=sales.index)
+    field = _first_field(project)
+    parcels = int(cells.numbers(universe, field).gt(0).sum()) if field in universe else 0
+    studied = _studied(sales, field) if field in sales else pd.Series(False, index=sales.index)
     inside = _in(sales, start, end)
     year_before = int((studied & _in(sales, _years_back(val, 1), val - dt.timedelta(days=1))).sum())
     group_of = clean.model_groups_of(sales)
@@ -264,7 +296,7 @@ def setup(project, project_dir: Path) -> RatioSetup:
             proposed=g.id not in s.classes,
             sales=int((studied & inside & (group_of == g.id)).sum()),
         )
-        for g in project.groups
+        for g in checked_groups(project)
     ]
     dates = sales["sale_date"].dropna()
     n_all = len(sales)
@@ -280,6 +312,11 @@ def setup(project, project_dir: Path) -> RatioSetup:
         SalesLine(sign="=", count=int((studied & inside).sum()), text="sales the values answer to"),
     ]
     return RatioSetup(
+        check=s.check,
+        sets=[SetChoice(id=v.id, name=v.name, roll=v.id == ROLL) for v in loaded_value_sets(project)],
+        chosen_sets=[v.id for v in checked_sets(project)],
+        all_groups=[clean.Choice(value=g.id, label=g.name) for g in project.groups],
+        chosen_groups=[g.id for g in checked_groups(project)],
         parcels=parcels,
         valuation_date=val,
         start=start,
@@ -441,13 +478,14 @@ def settings_key(project, project_dir: Path) -> dict:
     s: RatioState = project.ratio
     return {
         "clean": clean.STEP.ran_at(project_dir),
-        "fields": [FIELD],
+        "fields": [value_field(v.id) for v in checked_sets(project)],
         "window": [str(start), str(end)],
         "price": s.price,
         "trim": s.trim,
         "targets": s.targets.model_dump(),
         "classes": classes(project),
-        "groups": [(g.id, g.name) for g in project.groups],
+        "groups": [(g.id, g.name) for g in checked_groups(project)],
+        "names": [v.name for v in checked_sets(project)],
         "region": region(project),
     }
 
@@ -557,12 +595,19 @@ def run(project_id: str) -> None:
         warnings.simplefilter("always")
         steps.emit(step="load", fraction=0.0, message="Reading Check sales' hand-off")
         sup = cast(SalesUniversePair, pd.read_pickle(src))
+        chosen = [g.id for g in checked_groups(project)]
+        if len(chosen) < len(project.groups):  # only the groups chosen, overall too
+            sup = SalesUniversePair(
+                sales=cast(pd.DataFrame, sup.sales[sup.sales["model_group"].astype(str).isin(chosen)]),
+                universe=cast(pd.DataFrame, sup.universe[sup.universe["model_group"].astype(str).isin(chosen)]),
+            )
+        sets = {value_field(v.id): v.name for v in checked_sets(project)}
         settings = pl.load_settings()
         steps.emit(step="study", fraction=0.2, message="Checking the values against the sales")
         studies = run_value_field_studies(
             sup,
             settings,
-            [FIELD] if FIELD in sup.universe else [],
+            [f for f in sets if f in sup.universe],
             start_date=str(start),
             end_date=str(end),
             sale_field="sale_price" if s.price == "sold" else "sale_price_time_adj",
@@ -588,7 +633,7 @@ def run(project_id: str) -> None:
             table = pd.DataFrame({c: [] for c in ("model_group", "sale_price", "ratio", "trimmed")})
         groups = [
             _study(g.id, g.name, g.color, cls[g.id], study["groups"][g.id], table)
-            for g in project.groups
+            for g in checked_groups(project)
             if g.id in study["groups"]
         ]
         trimmed = []
@@ -611,7 +656,7 @@ def run(project_id: str) -> None:
         results.append(
             FieldResult(
                 field=field,
-                name=FIELD_NAME if field == FIELD else field,
+                name=sets.get(field) or field,
                 groups=groups,
                 overall=_study("", "All model groups", "#888888", None, study["overall"], table),
                 trimmed=trimmed,
@@ -641,6 +686,8 @@ def run(project_id: str) -> None:
 class RatioView(steps.RunView):
     receipt: RatioReceipt | None
     accepted: bool
+    has_values: bool = Field(description="Some existing values (the roll, a vendor's AVM) have a market value.")
+    skipped: bool = Field(description="The user chose not to check them.")
 
 
 STEP = steps.Step(
@@ -673,6 +720,8 @@ def view(project, project_dir: Path) -> RatioView:
         stale=s.stale,
         blocked=stop,
         accepted=s.accepted,
+        has_values=bool(loaded_value_sets(project)),
+        skipped=project.ratio.check is False,
     )
 
 
@@ -680,8 +729,12 @@ def start(project, project_dir: Path) -> None:
     stop = blocked(project, project_dir)
     if not stop:
         sales = _sales(project_dir)
-        if sales is None or FIELD not in sales:
-            stop = ["The parcels have no assessed market value (assr_market_value) to check."]
+        if project.ratio.check is False:
+            stop = ["You chose to skip checking the existing values."]
+        elif not checked_sets(project):
+            stop = ["No existing values to check: add them on Data › Assessed values."]
+        elif sales is None or not any(value_field(v.id) in sales for v in checked_sets(project)):
+            stop = ["Run Check sales again first: its sales don't carry the existing values yet."]
     STEP.start(project.id, project_dir, stop)
 
 
@@ -700,6 +753,9 @@ class RatioPatch(BaseModel):
     classes: dict[str, PropertyClass] | None = Field(default=None, description="Merged into the groups' classes.")
     trim: bool | None = None
     region: str | None = Field(default=None, description='A location field; "" for none.')
+    check: bool | None = Field(default=None, description="Check the existing values (true) or skip (false).")
+    sets: list[str] | None = Field(default=None, description="The value sets to check.")
+    groups: list[str] | None = Field(default=None, description="The model groups to check.")
 
 
 def change(project, body: RatioPatch) -> None:
@@ -722,6 +778,16 @@ def change(project, body: RatioPatch) -> None:
         s.trim = body.trim
     if body.region is not None:
         s.region = body.region
+    if body.check is not None:
+        s.check = body.check
+    if body.sets is not None:
+        if not body.sets:
+            raise ValueError("Choose at least one set of values to check.")
+        s.sets = body.sets
+    if body.groups is not None:
+        if not body.groups:
+            raise ValueError("Choose at least one model group to check.")
+        s.groups = None if set(body.groups) == {g.id for g in project.groups} else body.groups
 
 
 def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:

@@ -54,6 +54,7 @@ from oakbox.wizard.rules import (
     sort_counts,
 )
 from oakbox.wizard.user_fields import locations, set_custom, set_location
+from oakbox.wizard.values import add_value_set, change_value_set, remove_value_set
 
 __all__ = [
     "base_file",
@@ -102,6 +103,9 @@ __all__ = [
     "set_rule",
     "set_sale_id",
     "set_unit_field",
+    "add_value_set",
+    "change_value_set",
+    "remove_value_set",
     "set_units",
     "short_number",
     "skip",
