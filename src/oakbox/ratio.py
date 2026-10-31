@@ -102,10 +102,65 @@ class Targets(BaseModel):
         }
 
 
+# The IAAO's property categories (the exposure draft's Table 7), as standards are named when they're the IAAO's.
+IAAO_NAMES: dict[str, str] = {
+    "residential": "Residential improved",
+    "residential_homogeneous": "Residential, homogeneous (condos)",
+    "residential_rural": "Residential, rural or manufactured",
+    "apartments": "Multi-unit apartments",
+    "commercial": "Commercial, industrial, retail",
+    "vacant": "Vacant land",
+    "agricultural": "Agricultural land",
+}
+
+
+class Standard(BaseModel):
+    """A set of targets the values are judged against (the IAAO's for a property category, or a state's, an
+    office's), and the model groups it judges."""
+
+    id: str
+    name: str
+    level_low: float = Field(default=0.90, description="Level: the median ratio, from.")
+    level_high: float = 1.10
+    cod_low: float = Field(default=5.0, description="Uniformity: the COD, from (below it, suspect).")
+    cod_high: float = 15.0
+    prb_good: float = Field(default=0.05, description="PRB within ±: good.")
+    prb_bad: float = Field(default=0.10, description="PRB outside ±: unacceptable.")
+    vei: float = Field(default=10.0, description="The most a VEI may stray, percent, before it can be a finding.")
+    min_sales: int = Field(default=5, description="Fewer sales: shown, not judged.")
+    groups: list[str] | None = Field(default=None, description="The model groups it judges; None: proposed.")
+
+
+def iaao_standards(targets: Targets | None = None) -> list[Standard]:
+    """The IAAO's, one standard per property category (from older projects' targets, when they changed them)."""
+    t = targets or Targets()
+    out = []
+    for c in CATEGORIES:
+        cod = t.cod(c) or CodRange(low=5.0, high=15.0)
+        out.append(
+            Standard(
+                id=c,
+                name=IAAO_NAMES[c],
+                level_low=t.level_low,
+                level_high=t.level_high,
+                cod_low=cod.low,
+                cod_high=cod.high,
+                prb_good=t.prb_good,
+                prb_bad=t.prb_bad,
+                vei=t.vei,
+                min_sales=t.min_sales,
+            )
+        )
+    return out
+
+
 class RatioState(BaseModel):
     start: dt.date | None = Field(default=None, description="First sale date; None: proposed.")
     end: dt.date | None = Field(default=None, description="Last sale date; None: the day before valuation.")
     price: Literal["sold", "time_adjusted"] = "sold"
+    source: Literal["iaao", "custom"] = Field(default="iaao", description="Whose standards: the IAAO's or custom.")
+    standards: list[Standard] | None = Field(default=None, description="The standards; None: the IAAO's as they are.")
+    # Before standards: one set of targets and a category per group. Read once, into the standards.
     targets: Targets = Field(default_factory=Targets)
     classes: dict[str, PropertyClass] = Field(default_factory=dict, description="Group -> class; missing: proposed.")
     trim: bool = Field(default=True, description="Leave outlying ratios (1.5 x IQR) out of the statistics, listed.")
@@ -163,9 +218,50 @@ def proposed_class(group_id: str, name: str) -> PropertyClass:
     return "residential"
 
 
-def classes(project) -> dict[str, PropertyClass]:
+def standards(project) -> list[Standard]:
     s: RatioState = project.ratio
-    return {g.id: s.classes.get(g.id) or proposed_class(g.id, g.name) for g in project.groups}
+    return s.standards if s.standards is not None else iaao_standards(s.targets)
+
+
+def classes(project) -> dict[str, str]:
+    """Model group -> the id of the standard that judges it, or "none". Once any standard's groups are chosen, they
+    are the whole answer; before, each group's is proposed from its name (an IAAO category that's a standard)."""
+    s: RatioState = project.ratio
+    stds = standards(project)
+    if any(x.groups is not None for x in stds):
+        chosen = {g: x.id for x in stds for g in (x.groups or [])}
+        return {g.id: chosen.get(g.id, "none") for g in project.groups}
+    ids = {x.id for x in stds}
+    out = {}
+    for g in project.groups:
+        c = s.classes.get(g.id) or proposed_class(g.id, g.name)
+        out[g.id] = c if c in ids else "none"
+    return out
+
+
+def standard_of(project) -> dict[str, Standard | None]:
+    """Model group -> the standard that judges it (None: not judged)."""
+    by_id = {x.id: x for x in standards(project)}
+    return {g: by_id.get(c) for g, c in classes(project).items()}
+
+
+def engine_standards(project) -> dict:
+    """The standards as OpenAVMKit's value studies read them: each one a class, with all its own targets."""
+    stds = standards(project)
+    return {
+        **Targets().standards(),
+        "cod": {x.id: [x.cod_low, x.cod_high] for x in stds},
+        "by_class": {
+            x.id: {
+                "level": [x.level_low, x.level_high],
+                "prb": [-x.prb_good, x.prb_good],
+                "prb_unacceptable": [-x.prb_bad, x.prb_bad],
+                "vei": x.vei,
+                "min_sales": x.min_sales,
+            }
+            for x in stds
+        },
+    }
 
 
 # ---------- Before running: what's there, and the window proposed ----------
@@ -175,8 +271,8 @@ class GroupSetup(BaseModel):
     id: str
     name: str
     color: str
-    cls: PropertyClass
-    proposed: bool = Field(description="The class is proposed from the group's name, not chosen.")
+    cls: str = Field(description='The standard that judges it (its id), or "none".')
+    proposed: bool = Field(description="Its standard is proposed from the group's name, not chosen.")
     sales: int = Field(description="Sales studied in the window.")
 
 
@@ -215,7 +311,9 @@ class RatioSetup(BaseModel):
     year_before: int = Field(description="Sales studied in the year before the valuation date (the IAAO's window).")
     price: Literal["sold", "time_adjusted"]
     time_adjusted: bool = Field(description="Check sales brought prices to the valuation date (time adjustment on).")
-    targets: Targets
+    source: Literal["iaao", "custom"]
+    standards: list[Standard] = Field(description="Each with the groups it judges (as chosen, or proposed).")
+    iaao: bool = Field(description="The standards are the IAAO's as they are (nothing changed).")
     groups: list[GroupSetup]
     funnel: list[SalesLine]
     trim: bool
@@ -299,7 +397,7 @@ def setup(project, project_dir: Path) -> RatioSetup:
             name=g.name,
             color=g.color,
             cls=cls[g.id],
-            proposed=g.id not in s.classes,
+            proposed=not any(x.groups is not None for x in standards(project)),
             sales=int((studied & inside & (group_of == g.id)).sum()),
         )
         for g in checked_groups(project)
@@ -338,7 +436,12 @@ def setup(project, project_dir: Path) -> RatioSetup:
         year_before=year_before,
         price=s.price,
         time_adjusted=project.clean.time_adjust and "sale_price_time_adj" in sales,
-        targets=s.targets,
+        source=s.source,
+        standards=[
+            x.model_copy(update={"groups": [g.id for g in project.groups if cls.get(g.id) == x.id]})
+            for x in standards(project)
+        ],
+        iaao=s.standards is None,
         groups=groups,
         funnel=funnel,
         trim=s.trim,
@@ -425,7 +528,7 @@ class Study(BaseModel):
     id: str = Field(description='The model group; "" for all groups.')
     name: str
     color: str
-    cls: PropertyClass | None
+    cls: str | None = Field(description="The standard that judges it (its id); None: not judged.")
     sales: int = Field(description="Sales in the statistics (after trimming).")
     trimmed: int
     parcels: int
@@ -492,7 +595,7 @@ def settings_key(project, project_dir: Path) -> dict:
         "window": [str(start), str(end)],
         "price": s.price,
         "trim": s.trim,
-        "targets": s.targets.model_dump(),
+        "standards": [x.model_dump(exclude={"groups"}) for x in standards(project)],
         "classes": classes(project),
         "groups": [(g.id, g.name) for g in checked_groups(project)],
         "names": [v.name for v in checked_sets(project)],
@@ -624,7 +727,7 @@ def run(project_id: str) -> None:
             sale_field="sale_price" if s.price == "sold" else "sale_price_time_adj",
             trim_outliers=s.trim,
             median_ci="iaao",
-            standards=s.targets.standards(),
+            standards=engine_standards(project),
             region=region(project) or None,
             classes={g: (None if c == "none" else c) for g, c in cls.items()},
             outpath=str(tmp / "studies"),
@@ -760,8 +863,12 @@ class RatioPatch(BaseModel):
     end: dt.date | None = None
     reset_window: bool | None = Field(default=None, description="True: back to the proposed window.")
     price: Literal["sold", "time_adjusted"] | None = None
-    targets: Targets | None = None
-    classes: dict[str, PropertyClass] | None = Field(default=None, description="Merged into the groups' classes.")
+    source: Literal["iaao", "custom"] | None = Field(default=None, description="Whose standards.")
+    start_from: Literal["iaao", "empty"] | None = Field(
+        default=None, description="Custom: start from the IAAO's figures, or with no standard."
+    )
+    standards: list[Standard] | None = Field(default=None, description="Every standard, as it is to be.")
+    reset_standards: bool | None = Field(default=None, description="True: back to the IAAO's.")
     trim: bool | None = None
     region: str | None = Field(default=None, description='A location field; "" for none.')
     check: bool | None = Field(default=None, description="Check the existing values (true) or skip (false).")
@@ -781,10 +888,13 @@ def change(project, body: RatioPatch) -> None:
         raise ValueError("The window starts after it ends.")
     if body.price is not None:
         s.price = body.price
-    if body.targets is not None:
-        s.targets = body.targets
-    if body.classes is not None:
-        s.classes = {**s.classes, **body.classes}
+    if body.source == "iaao" or body.reset_standards:
+        s.source, s.standards = "iaao", None
+    elif body.source == "custom":
+        s.source = "custom"
+        s.standards = iaao_standards(s.targets) if body.start_from != "empty" else []
+    if body.standards is not None:
+        s.standards = _checked(body.standards)
     if body.trim is not None:
         s.trim = body.trim
     if body.region is not None:
@@ -802,6 +912,34 @@ def change(project, body: RatioPatch) -> None:
 
         every = assemble.modeled(project, projects.project_dir(project.id))
         s.groups = None if set(body.groups) == every else body.groups
+
+
+def _checked(stds: list[Standard]) -> list[Standard]:
+    """Standards as saved: named, each id and name once, ranges the right way round, a group in one at most (the
+    last that names it)."""
+    seen_ids: set[str] = set()
+    names: set[str] = set()
+    owner: dict[str, int] = {}
+    for i, x in enumerate(stds):
+        if not x.name.strip():
+            raise ValueError("Every standard needs a name.")
+        if x.id in seen_ids or x.name.strip() in names:
+            raise ValueError(f"There's already a standard called {x.name.strip()}.")
+        seen_ids.add(x.id)
+        names.add(x.name.strip())
+        if x.level_low > x.level_high or x.cod_low > x.cod_high or x.prb_good > x.prb_bad:
+            raise ValueError(f"{x.name}: a range starts above where it ends.")
+        for g in x.groups or []:
+            owner[g] = i
+    return [
+        x.model_copy(
+            update={
+                "name": x.name.strip(),
+                "groups": None if x.groups is None else [g for g in x.groups if owner.get(g) == i],
+            }
+        )
+        for i, x in enumerate(stds)
+    ]
 
 
 def points(project_dir: Path, field: str, group: str | None) -> list[tuple[float, float, bool]]:

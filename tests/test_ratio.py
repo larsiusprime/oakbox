@@ -61,9 +61,41 @@ def test_changes_are_checked():
     p = _project()
     with pytest.raises(ValueError):
         ratio.change(p, ratio.RatioPatch(start=dt.date(2025, 1, 1), end=dt.date(2024, 1, 1)))
-    ratio.change(p, ratio.RatioPatch(reset_window=True, classes={"sf": "commercial"}))
-    assert p.ratio.start is None and ratio.classes(p) == {"sf": "commercial"}
+    ratio.change(p, ratio.RatioPatch(reset_window=True))
+    assert p.ratio.start is None
     # The exposure draft's targets: COD ranges per category (Table 7), the PRB's good and unacceptable ranges.
     t = ratio.Targets().standards()
     assert t["level"] == [0.9, 1.1] and t["cod"]["residential"] == [5.0, 15.0] and t["cod"]["apartments"] == [7.0, 20.0]
     assert t["prb"] == [-0.05, 0.05] and t["prb_unacceptable"] == [-0.10, 0.10] and "prd" not in t
+
+
+def test_standards_the_iaaos_or_custom_and_the_groups_each_judges():
+    p = _project()
+    p.groups.append(projects.ModelGroup(id="condo", name="Condos", color="#111"))
+    # The IAAO's, one standard per category; each group's proposed from its name.
+    iaao = ratio.standards(p)
+    assert [x.id for x in iaao] == list(ratio.CATEGORIES) and iaao[1].cod_low == 4.0
+    assert ratio.classes(p) == {"sf": "residential", "condo": "residential_homogeneous"}
+    # Custom, starting from the IAAO's figures (each changeable), or with none.
+    ratio.change(p, ratio.RatioPatch(source="custom", start_from="empty"))
+    assert (
+        p.ratio.source == "custom" and ratio.standards(p) == [] and ratio.classes(p) == {"sf": "none", "condo": "none"}
+    )
+    ratio.change(p, ratio.RatioPatch(source="custom", start_from="iaao"))
+    assert len(ratio.standards(p)) == 7
+    # A state's own: its own targets and the groups it judges; a group in one standard at most (the last naming it).
+    state = ratio.Standard(id="s1", name="State residential", level_low=0.95, level_high=1.05, vei=15.0, groups=["sf"])
+    other = ratio.Standard(id="s2", name="State condos", groups=["condo", "sf"])
+    ratio.change(p, ratio.RatioPatch(standards=[state, other]))
+    assert ratio.classes(p) == {"sf": "s2", "condo": "s2"}
+    with pytest.raises(ValueError):
+        ratio.change(p, ratio.RatioPatch(standards=[state, state]))  # a name once
+    with pytest.raises(ValueError):
+        ratio.change(p, ratio.RatioPatch(standards=[state.model_copy(update={"level_low": 1.2})]))  # upside down
+    ratio.change(p, ratio.RatioPatch(standards=[state, other.model_copy(update={"groups": ["condo"]})]))
+    e = ratio.engine_standards(p)
+    assert e["cod"]["s1"] == [5.0, 15.0] and e["by_class"]["s1"]["level"] == [0.95, 1.05]
+    assert e["by_class"]["s1"]["vei"] == 15.0 and ratio.classes(p) == {"sf": "s1", "condo": "s2"}
+    # Back to the IAAO's.
+    ratio.change(p, ratio.RatioPatch(reset_standards=True))
+    assert p.ratio.source == "iaao" and p.ratio.standards is None

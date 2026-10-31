@@ -12715,40 +12715,64 @@
       ],
       "title": "Price"
      },
-     "targets": {
+     "source": {
       "anyOf": [
        {
-        "$ref": "#/components/schemas/Targets-Input"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "classes": {
-      "anyOf": [
-       {
-        "additionalProperties": {
-         "type": "string",
-         "enum": [
-          "residential",
-          "residential_homogeneous",
-          "residential_rural",
-          "apartments",
-          "commercial",
-          "vacant",
-          "agricultural",
-          "none"
-         ]
-        },
-        "type": "object"
+        "type": "string",
+        "enum": [
+         "iaao",
+         "custom"
+        ]
        },
        {
         "type": "null"
        }
       ],
-      "title": "Classes",
-      "description": "Merged into the groups' classes."
+      "title": "Source",
+      "description": "Whose standards."
+     },
+     "start_from": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "iaao",
+         "empty"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start From",
+      "description": "Custom: start from the IAAO's figures, or with no standard."
+     },
+     "standards": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/Standard-Input"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Standards",
+      "description": "Every standard, as it is to be."
+     },
+     "reset_standards": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reset Standards",
+      "description": "True: back to the IAAO's."
      },
      "trim": {
       "anyOf": [
@@ -13000,8 +13024,26 @@
       "title": "Time Adjusted",
       "description": "Check sales brought prices to the valuation date (time adjustment on)."
      },
-     "targets": {
-      "$ref": "#/components/schemas/Targets-Output"
+     "source": {
+      "type": "string",
+      "enum": [
+       "iaao",
+       "custom"
+      ],
+      "title": "Source"
+     },
+     "standards": {
+      "items": {
+       "$ref": "#/components/schemas/Standard-Output"
+      },
+      "type": "array",
+      "title": "Standards",
+      "description": "Each with the groups it judges (as chosen, or proposed)."
+     },
+     "iaao": {
+      "type": "boolean",
+      "title": "Iaao",
+      "description": "The standards are the IAAO's as they are (nothing changed)."
      },
      "groups": {
       "items": {
@@ -13053,7 +13095,9 @@
      "year_before",
      "price",
      "time_adjusted",
-     "targets",
+     "source",
+     "standards",
+     "iaao",
      "groups",
      "funnel",
      "trim",
@@ -13099,8 +13143,33 @@
       "title": "Price",
       "default": "sold"
      },
+     "source": {
+      "type": "string",
+      "enum": [
+       "iaao",
+       "custom"
+      ],
+      "title": "Source",
+      "description": "Whose standards: the IAAO's or custom.",
+      "default": "iaao"
+     },
+     "standards": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/Standard-Output"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Standards",
+      "description": "The standards; None: the IAAO's as they are."
+     },
      "targets": {
-      "$ref": "#/components/schemas/Targets-Output"
+      "$ref": "#/components/schemas/Targets"
      },
      "classes": {
       "additionalProperties": {
@@ -13186,6 +13255,8 @@
      "start",
      "end",
      "price",
+     "source",
+     "standards",
      "targets",
      "classes",
      "trim",
@@ -15325,6 +15396,175 @@
     "title": "StampField",
     "description": "A column of a map layer copied onto each parcel whose centre falls in one of its shapes."
    },
+   "Standard-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "level_low": {
+      "type": "number",
+      "title": "Level Low",
+      "description": "Level: the median ratio, from.",
+      "default": 0.9
+     },
+     "level_high": {
+      "type": "number",
+      "title": "Level High",
+      "default": 1.1
+     },
+     "cod_low": {
+      "type": "number",
+      "title": "Cod Low",
+      "description": "Uniformity: the COD, from (below it, suspect).",
+      "default": 5.0
+     },
+     "cod_high": {
+      "type": "number",
+      "title": "Cod High",
+      "default": 15.0
+     },
+     "prb_good": {
+      "type": "number",
+      "title": "Prb Good",
+      "description": "PRB within \u00b1: good.",
+      "default": 0.05
+     },
+     "prb_bad": {
+      "type": "number",
+      "title": "Prb Bad",
+      "description": "PRB outside \u00b1: unacceptable.",
+      "default": 0.1
+     },
+     "vei": {
+      "type": "number",
+      "title": "Vei",
+      "description": "The most a VEI may stray, percent, before it can be a finding.",
+      "default": 10.0
+     },
+     "min_sales": {
+      "type": "integer",
+      "title": "Min Sales",
+      "description": "Fewer sales: shown, not judged.",
+      "default": 5
+     },
+     "groups": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups",
+      "description": "The model groups it judges; None: proposed."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name"
+    ],
+    "title": "Standard",
+    "description": "A set of targets the values are judged against (the IAAO's for a property category, or a state's, an\noffice's), and the model groups it judges."
+   },
+   "Standard-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "level_low": {
+      "type": "number",
+      "title": "Level Low",
+      "description": "Level: the median ratio, from.",
+      "default": 0.9
+     },
+     "level_high": {
+      "type": "number",
+      "title": "Level High",
+      "default": 1.1
+     },
+     "cod_low": {
+      "type": "number",
+      "title": "Cod Low",
+      "description": "Uniformity: the COD, from (below it, suspect).",
+      "default": 5.0
+     },
+     "cod_high": {
+      "type": "number",
+      "title": "Cod High",
+      "default": 15.0
+     },
+     "prb_good": {
+      "type": "number",
+      "title": "Prb Good",
+      "description": "PRB within \u00b1: good.",
+      "default": 0.05
+     },
+     "prb_bad": {
+      "type": "number",
+      "title": "Prb Bad",
+      "description": "PRB outside \u00b1: unacceptable.",
+      "default": 0.1
+     },
+     "vei": {
+      "type": "number",
+      "title": "Vei",
+      "description": "The most a VEI may stray, percent, before it can be a finding.",
+      "default": 10.0
+     },
+     "min_sales": {
+      "type": "integer",
+      "title": "Min Sales",
+      "description": "Fewer sales: shown, not judged.",
+      "default": 5
+     },
+     "groups": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Groups",
+      "description": "The model groups it judges; None: proposed."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "level_low",
+     "level_high",
+     "cod_low",
+     "cod_high",
+     "prb_good",
+     "prb_bad",
+     "vei",
+     "min_sales",
+     "groups"
+    ],
+    "title": "Standard",
+    "description": "A set of targets the values are judged against (the IAAO's for a property category, or a state's, an\noffice's), and the model groups it judges."
+   },
    "Stat": {
     "properties": {
      "label": {
@@ -15495,23 +15735,14 @@
      "cls": {
       "anyOf": [
        {
-        "type": "string",
-        "enum": [
-         "residential",
-         "residential_homogeneous",
-         "residential_rural",
-         "apartments",
-         "commercial",
-         "vacant",
-         "agricultural",
-         "none"
-        ]
+        "type": "string"
        },
        {
         "type": "null"
        }
       ],
-      "title": "Cls"
+      "title": "Cls",
+      "description": "The standard that judges it (its id); None: not judged."
      },
      "sales": {
       "type": "integer",
@@ -15775,69 +16006,7 @@
     ],
     "title": "Suggestion"
    },
-   "Targets-Input": {
-    "properties": {
-     "level_low": {
-      "type": "number",
-      "title": "Level Low",
-      "default": 0.9
-     },
-     "level_high": {
-      "type": "number",
-      "title": "Level High",
-      "default": 1.1
-     },
-     "prb_good": {
-      "type": "number",
-      "title": "Prb Good",
-      "description": "Within \u00b1: good.",
-      "default": 0.05
-     },
-     "prb_bad": {
-      "type": "number",
-      "title": "Prb Bad",
-      "description": "Outside \u00b1: unacceptable.",
-      "default": 0.1
-     },
-     "vei": {
-      "type": "number",
-      "title": "Vei",
-      "description": "The most a VEI may stray, percent, before it can be a finding.",
-      "default": 10.0
-     },
-     "min_sales": {
-      "type": "integer",
-      "title": "Min Sales",
-      "description": "Fewer sales: shown, not judged.",
-      "default": 5
-     },
-     "residential": {
-      "$ref": "#/components/schemas/CodRange"
-     },
-     "residential_homogeneous": {
-      "$ref": "#/components/schemas/CodRange"
-     },
-     "residential_rural": {
-      "$ref": "#/components/schemas/CodRange"
-     },
-     "apartments": {
-      "$ref": "#/components/schemas/CodRange"
-     },
-     "commercial": {
-      "$ref": "#/components/schemas/CodRange"
-     },
-     "vacant": {
-      "$ref": "#/components/schemas/CodRange"
-     },
-     "agricultural": {
-      "$ref": "#/components/schemas/CodRange"
-     }
-    },
-    "type": "object",
-    "title": "Targets",
-    "description": "What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets\nthem, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance."
-   },
-   "Targets-Output": {
+   "Targets": {
     "properties": {
      "level_low": {
       "type": "number",
@@ -18971,22 +19140,13 @@
      },
      "cls": {
       "type": "string",
-      "enum": [
-       "residential",
-       "residential_homogeneous",
-       "residential_rural",
-       "apartments",
-       "commercial",
-       "vacant",
-       "agricultural",
-       "none"
-      ],
-      "title": "Cls"
+      "title": "Cls",
+      "description": "The standard that judges it (its id), or \"none\"."
      },
      "proposed": {
       "type": "boolean",
       "title": "Proposed",
-      "description": "The class is proposed from the group's name, not chosen."
+      "description": "Its standard is proposed from the group's name, not chosen."
      },
      "sales": {
       "type": "integer",

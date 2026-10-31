@@ -5251,14 +5251,26 @@ export interface components {
             reset_window?: boolean | null;
             /** Price */
             price?: ("sold" | "time_adjusted") | null;
-            targets?: components["schemas"]["Targets-Input"] | null;
             /**
-             * Classes
-             * @description Merged into the groups' classes.
+             * Source
+             * @description Whose standards.
              */
-            classes?: {
-                [key: string]: "residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none";
-            } | null;
+            source?: ("iaao" | "custom") | null;
+            /**
+             * Start From
+             * @description Custom: start from the IAAO's figures, or with no standard.
+             */
+            start_from?: ("iaao" | "empty") | null;
+            /**
+             * Standards
+             * @description Every standard, as it is to be.
+             */
+            standards?: components["schemas"]["Standard-Input"][] | null;
+            /**
+             * Reset Standards
+             * @description True: back to the IAAO's.
+             */
+            reset_standards?: boolean | null;
             /** Trim */
             trim?: boolean | null;
             /**
@@ -5382,7 +5394,21 @@ export interface components {
              * @description Check sales brought prices to the valuation date (time adjustment on).
              */
             time_adjusted: boolean;
-            targets: components["schemas"]["Targets-Output"];
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "iaao" | "custom";
+            /**
+             * Standards
+             * @description Each with the groups it judges (as chosen, or proposed).
+             */
+            standards: components["schemas"]["Standard-Output"][];
+            /**
+             * Iaao
+             * @description The standards are the IAAO's as they are (nothing changed).
+             */
+            iaao: boolean;
             /** Groups */
             groups: components["schemas"]["oakbox__ratio__GroupSetup"][];
             /** Funnel */
@@ -5418,7 +5444,19 @@ export interface components {
              * @enum {string}
              */
             price: "sold" | "time_adjusted";
-            targets: components["schemas"]["Targets-Output"];
+            /**
+             * Source
+             * @description Whose standards: the IAAO's or custom.
+             * @default iaao
+             * @enum {string}
+             */
+            source: "iaao" | "custom";
+            /**
+             * Standards
+             * @description The standards; None: the IAAO's as they are.
+             */
+            standards: components["schemas"]["Standard-Output"][] | null;
+            targets: components["schemas"]["Targets"];
             /**
              * Classes
              * @description Group -> class; missing: proposed.
@@ -6341,6 +6379,130 @@ export interface components {
              */
             kind: "location" | "category" | "number";
         };
+        /**
+         * Standard
+         * @description A set of targets the values are judged against (the IAAO's for a property category, or a state's, an
+         *     office's), and the model groups it judges.
+         */
+        "Standard-Input": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Level Low
+             * @description Level: the median ratio, from.
+             * @default 0.9
+             */
+            level_low: number;
+            /**
+             * Level High
+             * @default 1.1
+             */
+            level_high: number;
+            /**
+             * Cod Low
+             * @description Uniformity: the COD, from (below it, suspect).
+             * @default 5
+             */
+            cod_low: number;
+            /**
+             * Cod High
+             * @default 15
+             */
+            cod_high: number;
+            /**
+             * Prb Good
+             * @description PRB within ±: good.
+             * @default 0.05
+             */
+            prb_good: number;
+            /**
+             * Prb Bad
+             * @description PRB outside ±: unacceptable.
+             * @default 0.1
+             */
+            prb_bad: number;
+            /**
+             * Vei
+             * @description The most a VEI may stray, percent, before it can be a finding.
+             * @default 10
+             */
+            vei: number;
+            /**
+             * Min Sales
+             * @description Fewer sales: shown, not judged.
+             * @default 5
+             */
+            min_sales: number;
+            /**
+             * Groups
+             * @description The model groups it judges; None: proposed.
+             */
+            groups?: string[] | null;
+        };
+        /**
+         * Standard
+         * @description A set of targets the values are judged against (the IAAO's for a property category, or a state's, an
+         *     office's), and the model groups it judges.
+         */
+        "Standard-Output": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Level Low
+             * @description Level: the median ratio, from.
+             * @default 0.9
+             */
+            level_low: number;
+            /**
+             * Level High
+             * @default 1.1
+             */
+            level_high: number;
+            /**
+             * Cod Low
+             * @description Uniformity: the COD, from (below it, suspect).
+             * @default 5
+             */
+            cod_low: number;
+            /**
+             * Cod High
+             * @default 15
+             */
+            cod_high: number;
+            /**
+             * Prb Good
+             * @description PRB within ±: good.
+             * @default 0.05
+             */
+            prb_good: number;
+            /**
+             * Prb Bad
+             * @description PRB outside ±: unacceptable.
+             * @default 0.1
+             */
+            prb_bad: number;
+            /**
+             * Vei
+             * @description The most a VEI may stray, percent, before it can be a finding.
+             * @default 10
+             */
+            vei: number;
+            /**
+             * Min Sales
+             * @description Fewer sales: shown, not judged.
+             * @default 5
+             */
+            min_sales: number;
+            /**
+             * Groups
+             * @description The model groups it judges; None: proposed.
+             */
+            groups: string[] | null;
+        };
         /** Stat */
         Stat: {
             /** Label */
@@ -6405,8 +6567,11 @@ export interface components {
             name: string;
             /** Color */
             color: string;
-            /** Cls */
-            cls: ("residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none") | null;
+            /**
+             * Cls
+             * @description The standard that judges it (its id); None: not judged.
+             */
+            cls: string | null;
             /**
              * Sales
              * @description Sales in the statistics (after trimming).
@@ -6486,55 +6651,7 @@ export interface components {
          * @description What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets
          *     them, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance.
          */
-        "Targets-Input": {
-            /**
-             * Level Low
-             * @default 0.9
-             */
-            level_low: number;
-            /**
-             * Level High
-             * @default 1.1
-             */
-            level_high: number;
-            /**
-             * Prb Good
-             * @description Within ±: good.
-             * @default 0.05
-             */
-            prb_good: number;
-            /**
-             * Prb Bad
-             * @description Outside ±: unacceptable.
-             * @default 0.1
-             */
-            prb_bad: number;
-            /**
-             * Vei
-             * @description The most a VEI may stray, percent, before it can be a finding.
-             * @default 10
-             */
-            vei: number;
-            /**
-             * Min Sales
-             * @description Fewer sales: shown, not judged.
-             * @default 5
-             */
-            min_sales: number;
-            residential?: components["schemas"]["CodRange"];
-            residential_homogeneous?: components["schemas"]["CodRange"];
-            residential_rural?: components["schemas"]["CodRange"];
-            apartments?: components["schemas"]["CodRange"];
-            commercial?: components["schemas"]["CodRange"];
-            vacant?: components["schemas"]["CodRange"];
-            agricultural?: components["schemas"]["CodRange"];
-        };
-        /**
-         * Targets
-         * @description What counts as good enough: the IAAO's targets as the Standard on Ratio Studies exposure draft (May 2026) sets
-         *     them, each editable. The PRD is reported, not judged: the draft no longer uses it for compliance.
-         */
-        "Targets-Output": {
+        Targets: {
             /**
              * Level Low
              * @default 0.9
@@ -7869,12 +7986,12 @@ export interface components {
             color: string;
             /**
              * Cls
-             * @enum {string}
+             * @description The standard that judges it (its id), or "none".
              */
-            cls: "residential" | "residential_homogeneous" | "residential_rural" | "apartments" | "commercial" | "vacant" | "agricultural" | "none";
+            cls: string;
             /**
              * Proposed
-             * @description The class is proposed from the group's name, not chosen.
+             * @description Its standard is proposed from the group's name, not chosen.
              */
             proposed: boolean;
             /**

@@ -477,30 +477,27 @@ ACADEMIC = {
 }
 
 
-def _judge(values: dict[str, float | None], sales: float | None, cls: str, targets: ratio.Targets) -> dict:
-    """The figures IAAO's standard judges, against this project's targets: the level, the COD, the PRB."""
-    if (sales or 0) < targets.min_sales or cls == "none":
+def _judge(values: dict[str, float | None], sales: float | None, std: ratio.Standard) -> dict:
+    """The figures a standard judges, against the group's standard (Check my values): the level, the COD, the PRB."""
+    if (sales or 0) < std.min_sales:
         return {}
     out: dict[str, Verdict] = {}
     for k in ("median_ratio", "median_ratio_trim"):
         m = values.get(k)
         if m is not None:
-            out[k] = "ok" if targets.level_low <= m <= targets.level_high else "bad"
-    rng = targets.cod(cls)
+            out[k] = "ok" if std.level_low <= m <= std.level_high else "bad"
     for k in ("cod", "cod_trim"):
         c = values.get(k)
-        if c is not None and rng:
-            out[k] = "ok" if rng.low <= c <= rng.high else "bad"
+        if c is not None:
+            out[k] = "ok" if std.cod_low <= c <= std.cod_high else "bad"
     for k in ("prb", "prb_trim"):
         b = values.get(k)
         if b is not None:
-            out[k] = "ok" if abs(b) <= targets.prb_good else "bad" if abs(b) > targets.prb_bad else "slight"
+            out[k] = "ok" if abs(b) <= std.prb_good else "bad" if abs(b) > std.prb_bad else "slight"
     return out
 
 
-def _rows(
-    df, columns, rename=None, cls="none", targets=None, sales_key="count_sales", drop=(), names=None
-) -> list[ModelRow]:
+def _rows(df, columns, rename=None, std=None, sales_key="count_sales", drop=(), names=None) -> list[ModelRow]:
     """A row per model from one of OpenAVMKit's tables, the ensemble first, then the models in OAK box's order."""
     if df is None or len(df) == 0:
         return []
@@ -510,7 +507,7 @@ def _rows(
         if model in drop:
             continue
         values = {(rename or {}).get(c, c): cells.number(row.get(c)) for c in columns}
-        judged = _judge(values, values.get(sales_key), cls, targets) if targets else {}
+        judged = _judge(values, values.get(sales_key), std) if std else {}
         out.append(ModelRow(model=model, name=_name(model, names or {}), values=values, judged=judged))
     order = ["assessor", *VALUE_SLOTS, "ensemble", *ENGINES]
     return sorted(out, key=lambda f: order.index(f.model) if f.model in order else 99)
@@ -525,7 +522,7 @@ def _dates(df) -> tuple[str | None, str | None]:
     return (d.min().date().isoformat(), d.max().date().isoformat()) if len(d) else (None, None)
 
 
-def _sets(r, cls: str, targets: ratio.Targets, names: dict[str, str], outside: tuple[str, ...]) -> list[SalesSet]:
+def _sets(r, std: ratio.Standard | None, names: dict[str, str], outside: tuple[str, ...]) -> list[SalesSet]:
     """OpenAVMKit's sets of sales: the holdout, the sales after the valuation date when there are any, and the
     study set (the look-back before the valuation date). The roll is only on the study set: the holdout is
     OpenAVMKit's own, and the roll's values may have been made with those very sales."""
@@ -539,7 +536,7 @@ def _sets(r, cls: str, targets: ratio.Targets, names: dict[str, str], outside: t
         frames.append(("post_val", b.df_stats_test_post_val, None, ("assessor", *outside)))
     frames.append(("study", b.df_stats_full, first.df_sales_lookback, ()))
     for key, df, sales_df, drop in frames:
-        rows = _rows(df, IAAO, cls=cls, targets=targets, drop=drop, names=names)
+        rows = _rows(df, IAAO, std=std, drop=drop, names=names)
         n = int(rows[0].values.get("count_sales") or 0) if rows else 0
         f, last = _dates(sales_df) if sales_df is not None else (None, None)
         out.append(
@@ -549,9 +546,7 @@ def _sets(r, cls: str, targets: ratio.Targets, names: dict[str, str], outside: t
                 first=f,
                 last=last,
                 rows=rows,
-                trimmed=_rows(
-                    df, IAAO_TRIMMED, cls=cls, targets=targets, sales_key="count_trim", drop=drop, names=names
-                ),
+                trimmed=_rows(df, IAAO_TRIMMED, std=std, sales_key="count_trim", drop=drop, names=names),
             )
         )
     return out
@@ -615,8 +610,7 @@ def run(project_id: str) -> None:
     from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
 
     per, sold = _counts(sup.universe, sup.sales["key"].tolist())
-    cls = ratio.classes(project)
-    targets = project.ratio.targets
+    judged_by = ratio.standard_of(project)
     out: list[ModelGroupResult] = []
     for g in project.groups:
         r = results.get(g.id)
@@ -642,7 +636,7 @@ def run(project_id: str) -> None:
                 )
             )
             continue
-        sets = _sets(r, cls[g.id], targets, names, outside)
+        sets = _sets(r, judged_by.get(g.id), names, outside)
         if not any(x.sales for x in sets):
             # Modeled, but no sale to judge it by: as good as unmodeled here.
             out.append(

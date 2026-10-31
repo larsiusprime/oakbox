@@ -9,7 +9,6 @@ export type RatioView = components["schemas"]["RatioView"];
 export type RatioSetup = components["schemas"]["RatioSetup"];
 export type RatioPatch = components["schemas"]["RatioPatch"];
 export type RatioStudy = components["schemas"]["Study"];
-export type RatioTargets = components["schemas"]["Targets-Output"];
 export type FieldResult = components["schemas"]["FieldResult"];
 export type ModelView = components["schemas"]["ModelView"];
 export type ModelSetup = components["schemas"]["ModelSetup"];

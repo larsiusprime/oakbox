@@ -4093,12 +4093,32 @@ tr.bi-kept > td {
   width: 100%;
   display: block;
 }
+/* A standard's two figures, side by side in their cell ("0.9 – 1.1", "± 0.05"). */
 .rv-pair {
-  align-items: end;
-  flex-wrap: nowrap;
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  white-space: nowrap;
 }
-.rv-num .field {
-  min-width: 0;
+.rv-numcell .input {
+  width: 4.2rem;
+  min-height: 1.6rem;
+  padding: 0.1rem 0.3rem;
+}
+.rv-namecell .input {
+  width: 16rem;
+  min-height: 1.6rem;
+  padding: 0.1rem 0.3rem;
+}
+.rv-start {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: 1.6rem;
+}
+.rv-assign .mp-button {
+  width: 100%;
+  max-width: 28rem;
 }
 /* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
 table.tbl > * > tr.rv-total > td {

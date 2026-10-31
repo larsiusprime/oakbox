@@ -7,18 +7,18 @@ import {
   type FieldResult,
   type RatioPatch,
   type RatioSetup,
-  type RatioTargets,
   type RatioView,
   unwrap,
 } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
-import { Choice, Field, Tick } from "../components/Form";
+import { Choice, Field } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { t } from "../strings";
+import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
 import { BandChart, Scatter } from "./ValueCharts";
 import { RatioMap, Regions } from "./ValueMap";
 import { GroupsTable, judged, Scorecard } from "./ValueTables";
@@ -27,7 +27,9 @@ const r = t.ratio;
 type RStep =
   | "what"
   | "sales"
+  | "whose"
   | "standards"
+  | "assign"
   | "run"
   | "summary"
   | "groups"
@@ -39,7 +41,9 @@ type RStep =
 const STEPS: RStep[] = [
   "what",
   "sales",
+  "whose",
   "standards",
+  "assign",
   "run",
   "summary",
   "groups",
@@ -50,7 +54,6 @@ const STEPS: RStep[] = [
   "extreme",
 ];
 const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
-type Class = RatioSetup["groups"][number]["cls"];
 
 /** Whether Looks right was pressed on an up-to-date Check my values. */
 export function useValuesChecked(projectId: string): boolean {
@@ -170,10 +173,28 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
           <StepFoot next={onward} />
         </>
       )}
+      {current === "whose" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.standards.whose} lede={r.standards.whoseLede}>
+            {u ? <WhoseCard v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
       {current === "standards" && (
         <>
           <StepBody kicker={r.kicker} title={r.standards.title} lede={r.standards.lede}>
-            {u ? <StandardsCard v={u} set={set} /> : loading}
+            {u ? <StandardsTable v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "assign" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.standards.assignTitle} lede={r.standards.assignLede}>
+            {u ? <AssignTable v={u} set={set} /> : loading}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />
@@ -391,239 +412,6 @@ function SalesCard({ v, set }: CardProps) {
                 <td className="cs-n">{num(g.sales)}</td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </section>
-    </div>
-  );
-}
-
-/** A number the user can change: committed when the box loses focus; a new value starts it over. */
-function NumberEdit(props: { label: string; short?: string; value: number; onCommit: (v: number) => void }) {
-  return <NumberBox key={props.value} {...props} />;
-}
-
-function NumberBox({
-  label,
-  short,
-  value,
-  onCommit,
-}: {
-  label: string;
-  short?: string | undefined;
-  value: number;
-  onCommit: (v: number) => void;
-}) {
-  const [text, setText] = useState(String(value));
-  return (
-    <span className="rv-num">
-      <Field
-        label={short ?? label}
-        type="number"
-        width="short"
-        value={text}
-        onChange={setText}
-        onBlur={() => {
-          const n = Number.parseFloat(text);
-          if (Number.isFinite(n) && n !== value) onCommit(n);
-          else setText(String(value));
-        }}
-      />
-    </span>
-  );
-}
-
-const CATS = [
-  "residential",
-  "residential_homogeneous",
-  "residential_rural",
-  "apartments",
-  "commercial",
-  "vacant",
-  "agricultural",
-] as const;
-type Cat = (typeof CATS)[number];
-const range = (low: number, high: number) => ({ low, high });
-const IAAO: RatioTargets = {
-  level_low: 0.9,
-  level_high: 1.1,
-  prb_good: 0.05,
-  prb_bad: 0.1,
-  vei: 10,
-  min_sales: 5,
-  residential: range(5, 15),
-  residential_homogeneous: range(4, 10),
-  residential_rural: range(10, 20),
-  apartments: range(7, 20),
-  commercial: range(10, 25),
-  vacant: range(10, 20),
-  agricultural: range(10, 25),
-};
-
-function codRange(g: RatioTargets, c: string) {
-  return (CATS as readonly string[]).includes(c) ? g[c as Cat] : null;
-}
-
-function StandardsCard({ v, set }: CardProps) {
-  const g = v.targets;
-  const put = (patch: Partial<RatioTargets>) => set({ targets: { ...g, ...patch } });
-  const s = r.standards;
-  const changed = JSON.stringify(g) !== JSON.stringify(IAAO);
-  return (
-    <div className="rv-cards">
-      <p className="wiz-from">{s.source}</p>
-      <table className="tbl rv-targets">
-        <thead>
-          <tr>
-            <th>{s.what}</th>
-            <th>{s.target}</th>
-            <th>{s.means}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{s.level}</td>
-            <td>
-              <span className="cs-row rv-pair">
-                <NumberEdit
-                  label={`${s.from} (${s.level})`}
-                  short={s.from}
-                  value={g.level_low}
-                  onCommit={(n) => put({ level_low: n })}
-                />
-                <NumberEdit
-                  label={`${s.to} (${s.level})`}
-                  short={s.to}
-                  value={g.level_high}
-                  onCommit={(n) => put({ level_high: n })}
-                />
-              </span>
-            </td>
-            <td>{s.levelWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.vei}</td>
-            <td>
-              <NumberEdit label={s.vei} short="± %" value={g.vei} onCommit={(n) => put({ vei: n })} />
-            </td>
-            <td>{s.veiWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.prb}</td>
-            <td>
-              <span className="cs-row rv-pair">
-                <NumberEdit
-                  label={`${s.prbGood} (${s.prb})`}
-                  short={s.prbGood}
-                  value={g.prb_good}
-                  onCommit={(n) => put({ prb_good: n })}
-                />
-                <NumberEdit
-                  label={`${s.prbBad} (${s.prb})`}
-                  short={s.prbBad}
-                  value={g.prb_bad}
-                  onCommit={(n) => put({ prb_bad: n })}
-                />
-              </span>
-            </td>
-            <td>{s.prbWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.prd}</td>
-            <td className="wiz-from">{s.prdNot}</td>
-            <td>{s.prdWhy}</td>
-          </tr>
-          <tr>
-            <td>{s.minSales}</td>
-            <td>
-              <NumberEdit
-                label={s.minSales}
-                short={s.sales}
-                value={g.min_sales}
-                onCommit={(n) => put({ min_sales: Math.max(1, Math.round(n)) })}
-              />
-            </td>
-            <td>{s.minSalesWhy}</td>
-          </tr>
-        </tbody>
-      </table>
-      <section className="cs-step">
-        <h3 className="wiz-group">{s.cod}</h3>
-        <p className="wiz-from">{s.codWhy}</p>
-        <table className="tbl">
-          <thead>
-            <tr>
-              <th>{s.category}</th>
-              <th>{s.codRange}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {CATS.map((c) => (
-              <tr key={c}>
-                <td>{s.cls[c]}</td>
-                <td>
-                  <span className="cs-row rv-pair">
-                    <NumberEdit
-                      label={`${s.from} (${s.cls[c]})`}
-                      short={s.from}
-                      value={g[c].low}
-                      onCommit={(n) => put({ [c]: { ...g[c], low: n } } as Partial<RatioTargets>)}
-                    />
-                    <NumberEdit
-                      label={`${s.to} (${s.cls[c]})`}
-                      short={s.to}
-                      value={g[c].high}
-                      onCommit={(n) => put({ [c]: { ...g[c], high: n } } as Partial<RatioTargets>)}
-                    />
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-      {changed && (
-        <Button className="wiz-link" onPress={() => set({ targets: IAAO })}>
-          {s.reset}
-        </Button>
-      )}
-      <Tick isSelected={v.trim} onChange={(on) => set({ trim: on })}>
-        {s.trim}
-      </Tick>
-      <section className="cs-step">
-        <h3 className="wiz-group">{s.classes}</h3>
-        <p className="wiz-from">{s.classesWhy}</p>
-        <table className="tbl">
-          <thead>
-            <tr>
-              <th>{r.table.group}</th>
-              <th>{s.category}</th>
-              <th className="cs-n">{s.codRange}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {v.groups.map((x) => {
-              const cr = codRange(g, x.cls);
-              return (
-                <tr key={x.id}>
-                  <td>
-                    <span className="mg-sw ab-sw" style={{ background: x.color }} />
-                    {x.name}
-                  </td>
-                  <td>
-                    <Choice
-                      label={`${s.category}: ${x.name}`}
-                      hideLabel
-                      value={x.cls}
-                      options={[...CATS, "none" as const].map((c) => [c, s.cls[c] ?? c] as [string, string])}
-                      onChange={(c) => set({ classes: { [x.id]: c as Class } })}
-                    />{" "}
-                    {x.proposed && <span className="wiz-from">{s.proposed}</span>}
-                  </td>
-                  <td className="cs-n">{cr ? `${cr.low} to ${cr.high}` : "—"}</td>
-                </tr>
-              );
-            })}
           </tbody>
         </table>
       </section>

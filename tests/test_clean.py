@@ -319,7 +319,8 @@ def test_step_4_checks_the_values_against_the_sales_kept(own_time_files, assembl
         assert len(points) == result["overall"]["sales"] + result["overall"]["trimmed"]
         assert all({"lat", "lon", "ratio"} <= set(x) for x in points)
         assert client.post(f"{rv}/accept").json()["accepted"]
-        client.patch(f"{rv}/setup", json={"price": "sold", "targets": {**setup["targets"], "level_low": 0.5}})
+        stds = [x | {"level_low": 0.5} if i == 0 else x for i, x in enumerate(setup["standards"])]
+        client.patch(f"{rv}/setup", json={"price": "sold", "standards": stds})
         assert client.get(rv).json()["stale"]
 
 
