@@ -6,6 +6,7 @@ import { navigate } from "../App";
 import { api, type Project, unwrap } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Field } from "../components/Form";
+import { OakBand } from "../components/OakBand";
 import { desktop } from "../desktop";
 import { size } from "../lib/format";
 import { t } from "../strings";
@@ -17,25 +18,28 @@ export function HomeScreen() {
   });
 
   return (
-    <div className="home">
-      <div className="home-main">
-        <section className="panel" aria-labelledby="projects-title">
-          <header className="panel-head">
-            <h1 id="projects-title">{t.home.projectsTitle}</h1>
-            <AddButton primary onPress={() => navigate({ name: "new" })}>
-              {t.home.newProject}
-            </AddButton>
-          </header>
-          {projects.data?.length === 0 && <p className="empty">{t.home.noProjects}</p>}
-          <ul className="rows">
-            {projects.data?.map((p) => (
-              <ProjectRow key={p.id} project={p} />
-            ))}
-          </ul>
-        </section>
-        <StorageLocation />
+    <>
+      <OakBand here={<b>{t.home.projectsTitle}</b>} />
+      <div className="home">
+        <div className="home-main">
+          <section className="panel" aria-labelledby="projects-title">
+            <header className="panel-head">
+              <h1 id="projects-title">{t.home.projectsTitle}</h1>
+              <AddButton primary onPress={() => navigate({ name: "new" })}>
+                {t.home.newProject}
+              </AddButton>
+            </header>
+            {projects.data?.length === 0 && <p className="empty">{t.home.noProjects}</p>}
+            <ul className="rows">
+              {projects.data?.map((p) => (
+                <ProjectRow key={p.id} project={p} />
+              ))}
+            </ul>
+          </section>
+          <StorageLocation />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, FolderOpen } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { useEffect } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
@@ -8,6 +8,7 @@ import { useStep } from "../api/steps";
 import clipboard from "../assets/noto/emoji_u1f4cb.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
+import { OakBand } from "../components/OakBand";
 import { desktop } from "../desktop";
 import { t } from "../strings";
 import { BringInTab, useAccepted } from "./BringIn";
@@ -127,92 +128,106 @@ function ProjectView({
     ...(finalized ? [] : ["report"]),
   ];
 
+  // Why the tab asked for isn't the one shown: at the top of the page, under the tabs.
+  const notice = why && (
+    <p className="bi-warn tab-waits" role="status">
+      {why}
+    </p>
+  );
+
   return (
     <div className="project">
-      <header className="page-head">
-        <a className="back-link" href="#/">
-          <ChevronLeft aria-hidden="true" size="1.1em" />
-          {t.project.back}
-        </a>
-        <h1>{project.name}</h1>
-        <span className="page-meta">{t.project.taxYear(project.tax_year)}</span>
-      </header>
-      {why && (
-        <p className="bi-warn tab-waits" role="status">
-          {why}
-        </p>
-      )}
+      <h1 className="visually-hidden">{project.name}</h1>
       <Tabs
         className="folder-tabs"
         selectedKey={selected}
         onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
         disabledKeys={locked}
       >
-        <TabList className="folder-tab-list" aria-label={project.name}>
-          <Tab id="metadata" className="folder-tab">
-            <img src={gear} alt="" className="tab-icon" />
-            {t.tabs.metadata}
-          </Tab>
-          <Tab id="fields" className="folder-tab">
-            <img src={clipboard} alt="" className="tab-icon" />
-            {t.tabs.fields}
-          </Tab>
-          <Tab id="bring" className="folder-tab">
-            {t.tabs.bring}
-          </Tab>
-          <Tab
-            id="groups"
-            className="folder-tab"
-            aria-description={accepted ? undefined : t.tabs.groupsLocked}
-          >
-            {t.tabs.groups}
-          </Tab>
-          <Tab id="sales" className="folder-tab" aria-description={grouped ? undefined : t.tabs.salesLocked}>
-            {t.tabs.sales}
-          </Tab>
-          <Tab
-            id="check"
-            className="folder-tab"
-            aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
-            {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
-          >
-            {t.tabs.check}
-          </Tab>
-          <Tab
-            id="variables"
-            className="folder-tab"
-            aria-description={checked ? undefined : t.tabs.valuesLocked}
-          >
-            {t.tabs.variables}
-          </Tab>
-          <Tab
-            id="values"
-            className="folder-tab"
-            aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
-          >
-            {t.tabs.values}
-          </Tab>
-          <Tab
-            id="report"
-            className="folder-tab"
-            aria-description={finalized ? undefined : t.tabs.reportLocked}
-          >
-            {t.tabs.report}
-          </Tab>
-        </TabList>
+        <OakBand
+          here={
+            <>
+              <b>{project.name}</b>
+              <span className="plate-sep">·</span>
+              {t.project.taxYear(project.tax_year)}
+            </>
+          }
+        >
+          <TabList className="folder-tab-list" aria-label={project.name}>
+            <Tab id="metadata" className="folder-tab">
+              <img src={gear} alt="" className="tab-icon" />
+              {t.tabs.metadata}
+            </Tab>
+            <Tab id="fields" className="folder-tab">
+              <img src={clipboard} alt="" className="tab-icon" />
+              {t.tabs.fields}
+            </Tab>
+            <Tab id="bring" className="folder-tab">
+              {t.tabs.bring}
+            </Tab>
+            <Tab
+              id="groups"
+              className="folder-tab"
+              aria-description={accepted ? undefined : t.tabs.groupsLocked}
+            >
+              {t.tabs.groups}
+            </Tab>
+            <Tab
+              id="sales"
+              className="folder-tab"
+              aria-description={grouped ? undefined : t.tabs.salesLocked}
+            >
+              {t.tabs.sales}
+            </Tab>
+            <Tab
+              id="check"
+              className="folder-tab"
+              aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
+              {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
+            >
+              {t.tabs.check}
+            </Tab>
+            <Tab
+              id="variables"
+              className="folder-tab"
+              aria-description={checked ? undefined : t.tabs.valuesLocked}
+            >
+              {t.tabs.variables}
+            </Tab>
+            <Tab
+              id="values"
+              className="folder-tab"
+              aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
+            >
+              {t.tabs.values}
+            </Tab>
+            <Tab
+              id="report"
+              className="folder-tab"
+              aria-description={finalized ? undefined : t.tabs.reportLocked}
+            >
+              {t.tabs.report}
+            </Tab>
+          </TabList>
+        </OakBand>
         <TabPanel id="metadata" className="folder-panel">
+          {notice}
           <MetadataTab detail={detail} />
         </TabPanel>
         <TabPanel id="fields" className="folder-panel">
+          {notice}
           <FieldsTab detail={detail} step={step} />
         </TabPanel>
         <TabPanel id="bring" className="folder-panel">
+          {notice}
           <BringInTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="groups" className="folder-panel">
+          {notice}
           <ModelGroupsTab projectId={projectId} currency={project.currency} />
         </TabPanel>
         <TabPanel id="sales" className="folder-panel">
+          {notice}
           <SalesTab
             projectId={projectId}
             currency={project.currency}
@@ -220,15 +235,19 @@ function ProjectView({
           />
         </TabPanel>
         <TabPanel id="check" className="folder-panel">
+          {notice}
           <CheckValuesTab projectId={projectId} currency={project.currency} />
         </TabPanel>
         <TabPanel id="variables" className="folder-panel">
+          {notice}
           <VariablesTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
+          {notice}
           <ValuesTab projectId={projectId} currency={project.currency} units={project.units} />
         </TabPanel>
         <TabPanel id="report" className="folder-panel">
+          {notice}
           <ReportTab projectId={projectId} />
         </TabPanel>
       </Tabs>

@@ -111,7 +111,11 @@ function ExportStep({ projectId, v }: { projectId: string; v: View }) {
       <p className="wiz-from">{v.formats.find((x) => x.id === fmt)?.label}</p>
       <p className="wiz-from">{r.columns}</p>
       <div className="rp-row">
-        <Button className="button button-primary" onPress={() => write.mutate(fmt)} isDisabled={write.isPending}>
+        <Button
+          className="button button-primary"
+          onPress={() => write.mutate(fmt)}
+          isDisabled={write.isPending}
+        >
           {write.isPending ? r.writing : r.write}
         </Button>
         {done && (

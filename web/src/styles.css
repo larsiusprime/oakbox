@@ -160,13 +160,15 @@ a {
   color: var(--link);
 }
 
-/* ---------- Titlebar (not shown for now, D21; kept to bring back when chrome is needed): polished oak ---------- */
+/* ---------- The top of every screen (OakBand, D21): polished oak, the plate on it, the folder tabs on its edge ---- */
 
-.titlebar {
-  display: flex;
+.oak-nav {
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  min-height: 3.5rem;
-  padding: 0 1.25rem;
+  /* full width: out to the page's edges, over its top padding */
+  margin: -0.6rem -0.9rem 0;
+  padding: 0.55rem 0.9rem 0;
   border-bottom: 1px solid #4a2e15;
   box-shadow:
     0 1px 0 rgba(255, 240, 215, 0.35) inset,
@@ -181,9 +183,16 @@ a {
       rgba(60, 30, 5, 0.2)
     ),
     /* the oak itself: procedural flat-sawn grain, see assets/oak-grain.svg */ url("./assets/oak-grain.svg") 0
-    50% / 2560px 120px no-repeat,
+    50% / 2560px max(120px, 100%) no-repeat,
     linear-gradient(to bottom, #d1a26b, #b98450 60%, #a8723f);
 }
+
+/* No tabs (Home, New project): the band alone, the page below it. */
+.oak-nav-bare {
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.55rem;
+}
+
 
 /*
  * The nameplate: brushed metal fixed to the oak, so the name never sits on a dark
@@ -202,7 +211,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.8rem;
-  padding: 0.4rem 1.6rem;
+  padding: 0.3rem 1.75rem;
   text-decoration: none;
   color: var(--plate-text);
   border: 1px solid var(--plate-edge);
@@ -269,7 +278,7 @@ a {
   display: inline-flex;
   align-items: baseline;
   gap: 0.3em;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   /* Plex's capitals sit centred in a 1em line box, on the screws' centreline */
   line-height: 1;
 }
@@ -292,13 +301,23 @@ a {
   border-right: 1px solid rgba(255, 255, 255, 0.45);
 }
 
-.tagline {
-  font-size: 0.9rem;
-  font-weight: 600;
+/* Where you are: the projects, or the project and its year. */
+.plate-here {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.95rem;
   line-height: 1;
+  white-space: nowrap;
+}
+.plate-here b {
+  font-weight: 700;
+}
+.plate-sep {
+  opacity: 0.55;
 }
 
-:root[data-contrast="high"] .titlebar {
+:root[data-contrast="high"] .oak-nav {
   background: #000000;
   box-shadow: none;
 }
@@ -328,31 +347,6 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
   gap: 1.25rem;
   align-items: start;
-}
-
-.page-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.1rem 0.75rem;
-  margin-bottom: 0.4rem;
-}
-
-.page-meta {
-  color: var(--muted);
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-  flex-basis: 100%;
-  font-size: 0.9rem;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  text-decoration: underline;
 }
 
 /* ---------- Panels and rows ---------- */
@@ -1183,8 +1177,7 @@ a.row-title:hover {
     --head: #ffffff;
   }
 
-  .titlebar,
-  .back-link,
+  .oak-nav,
   .button {
     display: none;
   }
@@ -4811,4 +4804,28 @@ table.tbl.dt > * > tr > :is(th, td) {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: #f3f3f0;
+}
+
+/* The folder tabs stand on the band's bottom edge, paper on wood; the open one runs into the page. */
+.oak-nav > .folder-tab-list {
+  grid-column: 1 / -1;
+  margin: 0.5rem 0 -1px;
+}
+.oak-nav .folder-tab {
+  background: linear-gradient(#f4efe4, #d9cfbd);
+  border-color: #6b4a2a;
+  color: #4a3a2a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.oak-nav .folder-tab[data-selected] {
+  background: var(--panel);
+  border-bottom-color: var(--panel);
+  color: var(--text);
+  box-shadow: none;
+}
+.oak-nav .folder-tab[data-disabled] {
+  background: rgba(240, 232, 218, 0.55);
+  border-color: rgba(80, 50, 20, 0.5);
+  border-bottom-color: #6b4a2a;
+  color: #7a6650;
 }

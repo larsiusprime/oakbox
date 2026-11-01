@@ -2759,9 +2759,12 @@ export const t = {
     showInFolder: "Show in folder",
   },
 
+  nav: {
+    home: "Back to the projects",
+  },
+
   project: {
     title: (name: string) => `${name} – OAK box`,
-    back: "Projects",
     taxYear: (year: number) => `Tax year ${year}`,
     loading: "Loading…",
   },
