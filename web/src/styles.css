@@ -4710,3 +4710,18 @@ table.tbl.dt > * > tr > :is(th, td) {
 .tbl.gm-models > tbody > tr:not(.gm-detail) > td:first-child .input {
   width: 100%;
 }
+
+/* Variables › Nearby sales and buildings (spatial lag). */
+.lag {
+  display: grid;
+  gap: 0.6rem;
+}
+.lag p {
+  margin: 0;
+}
+.lag-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}

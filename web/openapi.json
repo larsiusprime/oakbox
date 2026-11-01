@@ -10402,6 +10402,168 @@
     ],
     "title": "Job"
    },
+   "LagBorrow": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "sources": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Sources",
+      "description": "Other groups whose sales it also averages."
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "sources"
+    ],
+    "title": "LagBorrow"
+   },
+   "LagChoice": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name"
+    ],
+    "title": "LagChoice"
+   },
+   "LagGroup": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "borrow": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Borrow",
+      "description": "Other groups whose sales it also averages."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "sales",
+     "borrow"
+    ],
+    "title": "LagGroup"
+   },
+   "LagState": {
+    "properties": {
+     "on": {
+      "type": "boolean",
+      "title": "On",
+      "default": true
+     },
+     "borrow": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Borrow",
+      "description": "Model group -> other groups whose sales it also averages (its own always)."
+     },
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "Fields averaged besides OpenAVMKit's own."
+     }
+    },
+    "type": "object",
+    "required": [
+     "on",
+     "borrow",
+     "fields"
+    ],
+    "title": "LagState",
+    "description": "Nearby sales and buildings (OpenAVMKit's spatial lag): each parcel gets the distance-weighted average of its\nnearest sales' prices, and of its nearest parcels' characteristics, offered as variables."
+   },
+   "LagView": {
+    "properties": {
+     "on": {
+      "type": "boolean",
+      "title": "On"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/LagGroup"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "The modeled groups, each averaging its own sales and any it borrows."
+     },
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields",
+      "description": "Fields averaged besides OpenAVMKit's own."
+     },
+     "offered": {
+      "items": {
+       "$ref": "#/components/schemas/LagChoice"
+      },
+      "type": "array",
+      "title": "Offered",
+      "description": "Numbers that can be averaged besides OpenAVMKit's own."
+     },
+     "adds": {
+      "items": {
+       "$ref": "#/components/schemas/LagChoice"
+      },
+      "type": "array",
+      "title": "Adds",
+      "description": "The variables it adds."
+     }
+    },
+    "type": "object",
+    "required": [
+     "on",
+     "groups",
+     "fields",
+     "offered",
+     "adds"
+    ],
+    "title": "LagView"
+   },
    "LayerMap": {
     "properties": {
      "shapes": {
@@ -11586,6 +11748,44 @@
       ],
       "title": "Tests",
       "description": "The variable tests to run, besides Represented."
+     },
+     "lag_on": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lag On",
+      "description": "Nearby sales and buildings, on or off."
+     },
+     "lag_borrow": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LagBorrow"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "A group's sales sources besides its own."
+     },
+     "lag_fields": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lag Fields",
+      "description": "Fields averaged besides OpenAVMKit's own."
      }
     },
     "type": "object",
@@ -11696,6 +11896,9 @@
    },
    "ModelSetup": {
     "properties": {
+     "lag": {
+      "$ref": "#/components/schemas/LagView"
+     },
      "variables": {
       "items": {
        "$ref": "#/components/schemas/Variable"
@@ -11761,6 +11964,7 @@
     },
     "type": "object",
     "required": [
+     "lag",
      "variables",
      "engines",
      "groups",
@@ -11773,6 +11977,9 @@
    },
    "ModelState": {
     "properties": {
+     "lag": {
+      "$ref": "#/components/schemas/LagState"
+     },
      "tests": {
       "anyOf": [
        {
@@ -11829,6 +12036,7 @@
     },
     "type": "object",
     "required": [
+     "lag",
      "tests",
      "lists",
      "groups",

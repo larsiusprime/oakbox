@@ -142,7 +142,19 @@ class ModelEntry(BaseModel):
         return DEFAULTS[name] if v is None else v
 
 
+class LagState(BaseModel):
+    """Nearby sales and buildings (OpenAVMKit's spatial lag): each parcel gets the distance-weighted average of its
+    nearest sales' prices, and of its nearest parcels' characteristics, offered as variables."""
+
+    on: bool = True
+    borrow: dict[str, list[str]] = Field(
+        default_factory=dict, description="Model group -> other groups whose sales it also averages (its own always)."
+    )
+    fields: list[str] = Field(default_factory=list, description="Fields averaged besides OpenAVMKit's own.")
+
+
 class ModelState(BaseModel):
+    lag: LagState = Field(default_factory=LagState)
     tests: list[str] | None = Field(
         default=None, description="The variable tests to run (besides Represented); None: all of TESTS."
     )
@@ -314,6 +326,163 @@ def _has_roll(project_dir: Path) -> bool:
     return path.is_file() and ratio.FIELD in pq.ParquetFile(path).schema_arrow.names
 
 
+# Nearby sales and buildings (spatial lag). OpenAVMKit names a price lag after the price it averages (sale_price, or
+# sale_price_time_adj with time adjustment), so OAK box offers them under the plain name and writes the one it is.
+LAG = "spatial_lag_"
+LAG_PRICE = "spatial_lag_sale_price"
+# OpenAVMKit's own parcel fields it averages (5 nearest each), with what they need to be there.
+LAG_OWN = (
+    "floor_area_ratio",
+    "bedroom_density",
+    "bldg_age_years",
+    "bldg_effective_age_years",
+    "bldg_quality_num",
+    "bldg_condition_num",
+)
+
+
+def lag_fields(project, columns: list[str] | set[str]) -> list[tuple[str, str]]:
+    """(field, name) of each nearby-average variable offered, by its stable name: the sales' price and price per
+    finished area, then the parcels' fields OpenAVMKit averages that are there, then the user's own."""
+    u = "sqft" if project.units == "imperial" else "sqm"
+    unit = "sq ft" if u == "sqft" else "m²"
+    have = set(columns)
+    names = fields.names() | NAMES
+    out = [(LAG_PRICE, "Nearby sale price"), (f"{LAG_PRICE}_impr_{u}", f"Nearby price per finished {unit}")]
+    own = [f"bldg_area_finished_{u}", f"land_area_{u}", *LAG_OWN]
+    needs = {
+        "floor_area_ratio": [f"bldg_area_finished_{u}", f"land_area_{u}"],
+        "bedroom_density": ["bldg_rooms_bed", f"land_area_{u}"],
+    }
+    short = {
+        f"bldg_area_finished_{u}": "finished area",
+        f"land_area_{u}": "land area",
+        "floor_area_ratio": "floor area ratio",
+        "bedroom_density": "bedrooms per land area",
+        "bldg_age_years": "building age",
+        "bldg_effective_age_years": "effective age",
+        "bldg_quality_num": "quality",
+        "bldg_condition_num": "condition",
+    }
+    for f in [*own, *project.model.lag.fields]:
+        if all(x in have for x in needs.get(f, [f])) and (LAG + f) not in [x for x, _ in out]:
+            out.append((LAG + f, f"Nearby {short.get(f) or (names.get(f) or f.replace('_', ' ')).lower()}"))
+    return out
+
+
+def lag_actual(field: str, sale_field: str) -> str:
+    """A nearby-average variable's name as OpenAVMKit writes it: the price lags carry the price field's name."""
+    return field.replace(LAG_PRICE, f"spatial_lag_{sale_field}", 1) if field.startswith(LAG_PRICE) else field
+
+
+def sale_field(project) -> str:
+    """The price OpenAVMKit models (and averages nearby): time adjusted when Check sales adjusts it."""
+    return "sale_price_time_adj" if project.clean.time_adjust else "sale_price"
+
+
+def lag_stable(sup, sale: str):
+    """The nearby price averages under their stable names (spatial_lag_sale_price…), as variables are offered: a copy
+    of OpenAVMKit's columns named after the price averaged (spatial_lag_sale_price_time_adj…)."""
+    if sale == "sale_price":
+        return sup
+    actual = f"spatial_lag_{sale}"
+    for df in (sup.sales, sup.universe):
+        for c in [c for c in df.columns if c.startswith(actual) and not c.endswith("_confidence")]:
+            df[c.replace(actual, LAG_PRICE, 1)] = df[c]
+    return sup
+
+
+def lag_zeros(sales, universe, settings: dict, groups: dict[str, str]) -> dict[str, list[str]]:
+    """Group -> the nearby averages its models use that are 0 for all its parcels: OpenAVMKit's stand-in when there
+    are too few sales to average (6 or fewer training sales), which a model would read as "nearby, it's worth
+    nothing"."""
+    import numpy as np
+    import pandas as pd
+
+    lists = settings.get("variable_lists", {})
+    main = settings.get("modeling", {}).get("models", {}).get("main", {})
+    out: dict[str, list[str]] = {}
+    for g in groups:
+        used: set[str] = set()
+        for entry in (main.get(g) or {}).values():
+            ivs = entry.get("ind_vars") if isinstance(entry, dict) else None
+            if isinstance(ivs, str) and ivs.startswith("$$variable_lists."):
+                ivs = lists.get(ivs.split(".", 1)[1], [])
+            used |= {v for v in ivs or [] if isinstance(v, str) and v.startswith(LAG)}
+        rows = universe[universe["model_group"] == g] if "model_group" in universe else universe.iloc[0:0]
+        for v in sorted(used):
+            x = (
+                np.nan_to_num(np.asarray(pd.to_numeric(pd.Series(rows[v]), errors="coerce"), dtype=float))
+                if v in rows
+                else None
+            )
+            if x is None or (len(x) and not x.any()):  # not worked out at all (its group too small), or all 0
+                out.setdefault(g, []).append(v)
+    return out
+
+
+def drop_lag_zeros(
+    settings: dict, zeros: dict[str, list[str]], names: dict[str, str], labels: dict[str, str] | None = None
+) -> list[str]:
+    """Leaves each group's all-zero nearby averages out of its models, in the settings the run passes OpenAVMKit (the
+    file is left as it is), and says so, a line per group. A model left with no variable stops the run."""
+    lists = settings.get("variable_lists", {})
+    main = settings.get("modeling", {}).get("models", {}).get("main", {})
+    for g, gone in zeros.items():
+        for key, entry in (main.get(g) or {}).items():
+            ivs = entry.get("ind_vars") if isinstance(entry, dict) else None
+            if isinstance(ivs, str) and ivs.startswith("$$variable_lists."):
+                ivs = lists.get(ivs.split(".", 1)[1], [])
+            if not isinstance(ivs, list) or not set(gone) & set(ivs):
+                continue
+            kept = [v for v in ivs if v not in gone]
+            if not kept and key != "default":
+                raise ValueError(
+                    f"Too few sales near {names.get(g, g)}'s parcels to average, and {key} has no other variable:"
+                    " let the group borrow another group's sales (Variables › Nearby sales and buildings), or give"
+                    " the model more variables."
+                )
+            entry["ind_vars"] = kept
+    said = labels or {}
+    return [
+        f"{names.get(g, g)}: {', '.join(said.get(v, v) for v in gone)} left out of its models: too few sales"
+        " nearby to average (0 for every parcel). Let it borrow another group's sales (Variables › Nearby sales"
+        " and buildings)."
+        for g, gone in zeros.items()
+    ]
+
+
+# OpenAVMKit looks up each parcel's 5 nearest parcels in its group: a group with fewer stops it (an IndexError).
+LAG_MIN_PARCELS = 10
+
+
+def lag_prune(settings: dict, universe) -> list[str]:
+    """Takes groups with too few parcels to average (fewer than LAG_MIN_PARCELS) out of the spatial lag, in the
+    settings the run passes OpenAVMKit; their nearby averages are then blank, left out of their models as any
+    average there's nothing to work out from (drop_lag_zeros). The groups taken out."""
+    lag = settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag") or {}
+    groups = lag.get("model_groups") or {}
+    counts = universe["model_group"].astype(str).value_counts() if "model_group" in universe else {}
+    few = [g for g in groups if int(counts.get(g, 0)) < LAG_MIN_PARCELS]
+    for g in few:
+        del groups[g]
+    for g in groups.values():
+        g["sample_from"] = [x for x in g.get("sample_from", []) if x not in few] or g.get("sample_from", [])
+    return few
+
+
+def lag_settings(project, modeled: list[str]) -> dict:
+    """data.process.enrich.spatial_lag: each modeled group averages its own sales and any it borrows; the user's
+    fields besides OpenAVMKit's own (5 nearest each)."""
+    lag = project.model.lag
+    if not lag.on or not modeled:
+        return {}
+    return {
+        "model_groups": {g: {"sample_from": [g, *[x for x in lag.borrow.get(g, []) if x != g]]} for g in modeled},
+        **({"fields": {f: 5 for f in lag.fields}} if lag.fields else {}),
+    }
+
+
 def variables(project, project_dir: Path) -> list[Variable]:
     path = _universe_path(project_dir)
     if not path.is_file():
@@ -335,6 +504,17 @@ def variables(project, project_dir: Path) -> list[Variable]:
                 values=values,
             )
         )
+    if project.model.lag.on and out:
+        # Worked out when the models run (after the sales are split, from training sales only): every parcel of a
+        # modeled group gets one.
+        import pyarrow.parquet as pq
+
+        columns = pq.ParquetFile(path).schema_arrow.names
+        n = max(v.parcels + v.blanks for v in out)
+        for f, name in lag_fields(project, columns):
+            out.append(
+                Variable(field=f, name=name, kind="location", numeric=True, parcels=n, blanks=0, trees_only=False)
+            )
     return out
 
 
@@ -431,7 +611,7 @@ def settings(project, project_dir: Path) -> dict:
                     entry["ind_vars"] = []
                 elif blanks and e.engine not in ML:
                     # A linear model can't take a blank: the list without its variables with blanks.
-                    entry["ind_vars"] = [v for v in lst.variables if v not in blanks]
+                    entry["ind_vars"] = [lag_actual(v, sale_field(project)) for v in lst.variables if v not in blanks]
                 else:
                     entry["ind_vars"] = f"$$variable_lists.{lst.id}"
             # Every option the engine reads, defaults too: what's shown is what runs.
@@ -449,8 +629,14 @@ def settings(project, project_dir: Path) -> dict:
     run = names + roll + outside
     skip = {g.id: [m for m in names if m not in blocks[g.id]] if g.id in blocks else run for g in project.groups}
     skip = {g: v for g, v in skip.items() if v}
+    sale = sale_field(project)
     return {
-        "variable_lists": {x.id: x.variables for x in all_lists},
+        "variable_lists": {x.id: [lag_actual(v, sale) for v in x.variables] for x in all_lists},
+        **(
+            {"data": {"process": {"enrich": {"spatial_lag": lag}}}}
+            if (lag := lag_settings(project, [g.id for g in project.groups if g.id in modeled]))
+            else {}
+        ),
         "modeling": {
             "instructions": {
                 "main": {
@@ -514,7 +700,29 @@ class ListSummary(BaseModel):
     count: int
 
 
+class LagGroup(BaseModel):
+    id: str
+    name: str
+    color: str
+    sales: int
+    borrow: list[str] = Field(description="Other groups whose sales it also averages.")
+
+
+class LagChoice(BaseModel):
+    field: str
+    name: str
+
+
+class LagView(BaseModel):
+    on: bool
+    groups: list[LagGroup] = Field(description="The modeled groups, each averaging its own sales and any it borrows.")
+    fields: list[str] = Field(description="Fields averaged besides OpenAVMKit's own.")
+    offered: list[LagChoice] = Field(description="Numbers that can be averaged besides OpenAVMKit's own.")
+    adds: list[LagChoice] = Field(description="The variables it adds.")
+
+
 class ModelSetup(BaseModel):
+    lag: LagView
     variables: list[Variable]
     engines: list[Engine]
     groups: list[GroupModels]
@@ -587,7 +795,29 @@ def setup(project, project_dir: Path) -> ModelSetup:
                 custom=x.id in project.model.groups,
             )
         )
+    own = {
+        f
+        for f, _ in lag_fields(
+            project.model_copy(update={"model": project.model.model_copy(update={"lag": LagState()})}), columns
+        )
+    }
+    lag = LagView(
+        on=project.model.lag.on,
+        groups=[
+            LagGroup(id=g.id, name=g.name, color=g.color, sales=g.sales, borrow=project.model.lag.borrow.get(g.id, []))
+            for g in groups
+            if g.modeled
+        ],
+        fields=project.model.lag.fields,
+        offered=[
+            LagChoice(field=v.field, name=v.name)
+            for v in vs
+            if v.numeric and not v.field.startswith(LAG) and (LAG + v.field) not in own and v.kind != "category"
+        ],
+        adds=[LagChoice(field=f, name=n) for f, n in lag_fields(project, columns)] if project.model.lag.on else [],
+    )
     return ModelSetup(
+        lag=lag,
         variables=vs,
         engines=[
             Engine(
@@ -611,12 +841,34 @@ def setup(project, project_dir: Path) -> ModelSetup:
     )
 
 
+class LagBorrow(BaseModel):
+    group: str
+    sources: list[str] = Field(description="Other groups whose sales it also averages.")
+
+
 class ModelPatch(BaseModel):
     tests: list[str] | None = Field(default=None, description="The variable tests to run, besides Represented.")
+    lag_on: bool | None = Field(default=None, description="Nearby sales and buildings, on or off.")
+    lag_borrow: LagBorrow | None = Field(default=None, description="A group's sales sources besides its own.")
+    lag_fields: list[str] | None = Field(default=None, description="Fields averaged besides OpenAVMKit's own.")
 
 
 def change(project, body: ModelPatch) -> None:
     s: ModelState = project.model
+    if body.lag_on is not None:
+        s.lag.on = body.lag_on
+    if body.lag_borrow is not None:
+        ids = {g.id for g in project.groups}
+        b = body.lag_borrow
+        if b.group not in ids or any(x not in ids for x in b.sources):
+            raise ValueError("Not a model group.")
+        sources = [x for x in dict.fromkeys(b.sources) if x != b.group]
+        if sources:
+            s.lag.borrow[b.group] = sources
+        else:
+            s.lag.borrow.pop(b.group, None)
+    if body.lag_fields is not None:
+        s.lag.fields = list(dict.fromkeys(body.lag_fields))
     if body.tests is not None:
         unknown = [x for x in body.tests if x not in TESTS]
         if unknown:
@@ -1047,6 +1299,7 @@ def run(project_id: str) -> None:
         else:
             steps.emit(detail=e.message)
 
+    dropped: list[str] = []  # nearby averages left out of a group's models, said in the receipt
     with warnings.catch_warnings(record=True) as caught, progress.reporting(inside), steps.heartbeat():
         warnings.simplefilter("always")
         steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
@@ -1059,6 +1312,14 @@ def run(project_id: str) -> None:
             raise ValueError(_infinite_error(found))
         steps.emit(step="split", fraction=0.05, message="Splitting the sales into folds")
         pl.write_canonical_splits(sup, settings, verbose=False)
+        if settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"):
+            # After the split: a sale's nearby price is averaged from training sales only, and out of its own fold.
+            steps.emit(step="lag", fraction=0.07, message="Averaging nearby sales and buildings")
+            lag_prune(settings, sup.universe)
+            sup = pl.enrich_sup_spatial_lag(sup, settings, verbose=False)
+            sale = sale_field(project)
+            labels = {lag_actual(f, sale): n for f, n in lag_fields(project, list(sup.universe.columns))}
+            dropped = drop_lag_zeros(settings, lag_zeros(sup.sales, sup.universe, settings, gnames), gnames, labels)
         steps.emit(step="models", fraction=0.1, message="Training the models")
         try:
             results = pl.try_models(
@@ -1152,7 +1413,7 @@ def run(project_id: str) -> None:
         models=[m for m in run_names if m != "assessor" and m not in outside],
         variables=sorted({v for x in (s.get("variable_lists") or {}).values() for v in x}),
         groups=out,
-        notes=list(dict.fromkeys(str(w.message) for w in mine))[:20],
+        notes=[*dropped, *list(dict.fromkeys(str(w.message) for w in mine))][:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
@@ -1171,6 +1432,7 @@ def settings_key(settings: dict, project_dir: Path) -> dict:
         "prepare": prepare.STEP.ran_at(project_dir),
         "models": m.get("models", {}).get("main"),
         "lists": settings.get("variable_lists"),
+        "lag": settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"),
         "run": m.get("instructions", {}).get("main"),
         "study": settings.get("analysis", {}).get("ratio_study", {}).get("study_set_predictions"),
     }

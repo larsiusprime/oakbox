@@ -2192,6 +2192,7 @@ export const t = {
       rare: "Rare categories",
       run: "Prepare the fields",
       done: "What changed",
+      lag: "Nearby sales and buildings",
       test: "Test the variables",
       represented: "Represented",
       corr: "Correlation",
@@ -2202,6 +2203,24 @@ export const t = {
       try: "Try them",
       how: "How they did",
       small: "Small groups",
+    },
+    lag: {
+      lede: "What's around a parcel says a lot about its value. Each parcel can get the average of its nearest sales' prices, and of its nearest parcels' size, age and quality, as variables of their own: put them in a variable list like any other.",
+      on: "Average nearby sales and buildings",
+      how: "OpenAVMKit's spatial lag: the 5 nearest of each, weighted by distance, fading out by about half a mile.",
+      adds: "Adds:",
+      group: "Model group",
+      sales: "Sales",
+      averages: "Averages the sales of",
+      borrowFor: (group: string) => `Other groups' sales ${group} averages`,
+      ownOnly: "Its own only",
+      plusOwn: (others: string) => `its own, and ${others}'s`,
+      salesNoun: "sales",
+      fields: "Also average",
+      noFields: "Nothing else",
+      fieldsWhy: "Numbers of the parcels around each one, besides those above.",
+      split:
+        "Worked out as the models are tried, after the sales are split: a sale's nearby price comes only from sales outside its own fold, so a model never sees the price it's judged on. A group with 6 or fewer sales to average has none (OpenAVMKit writes 0): let it borrow a group nearby.",
     },
     fillLede:
       "Blanks the models can't take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",
@@ -2220,7 +2239,6 @@ export const t = {
     foldLine: (name: string, values: number, parcels: number) =>
       `${name}: ${values.toLocaleString()} ${values === 1 ? "value" : "values"}, ${parcels.toLocaleString()} parcels`,
     looksRight: "Looks right › Variables",
-    toTests: "Test the variables ›",
     toModels: "On to the models ›",
     // The variable tests (F9): OpenAVMKit's own, one at a time: the evidence for the variable lists.
     vartest: {

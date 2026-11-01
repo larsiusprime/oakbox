@@ -5,6 +5,7 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { short, when } from "../lib/format";
 import { t } from "../strings";
 import { CollapseCard, FillCard } from "./CleanCards";
+import { LagStep } from "./LagStep";
 import { VarListsStep } from "./VarLists";
 import { TestPicker, TestStep, WhatToKeep } from "./VarTests";
 
@@ -12,8 +13,8 @@ const m = t.values;
 // The variable tests (SPEC F9): Test the variables is a major step, the tests the user picked its parts.
 const TESTS = ["represented", "corr", "vif"] as const;
 type Test = (typeof TESTS)[number];
-type VStep = "fill" | "rare" | "run" | "done" | "test" | Test | "verdict" | "lists";
-const V_STEPS: VStep[] = ["fill", "rare", "run", "done", "test", ...TESTS, "verdict", "lists"];
+type VStep = "fill" | "rare" | "run" | "done" | "lag" | "test" | Test | "verdict" | "lists";
+const V_STEPS: VStep[] = ["fill", "rare", "run", "done", "lag", "test", ...TESTS, "verdict", "lists"];
 const TESTED: VStep[] = [...TESTS, "verdict"];
 
 /** Step 5, Variables (SPEC F7, F9): preparing the fields for the models (fills for blanks they can't take, folding
@@ -82,14 +83,14 @@ export function VariablesTab({ projectId }: { projectId: string }) {
               ? vFresh
                 ? "done"
                 : "blank"
-              : key === "lists"
+              : key === "lists" || key === "lag"
                 ? prepared
                   ? "done"
                   : "blank"
                 : called,
     disabled:
       (key === "done" && !r) ||
-      ((key === "test" || key === "lists") && !prepared) ||
+      ((key === "test" || key === "lists" || key === "lag") && !prepared) ||
       (TESTED.includes(key) && !vr),
   }));
   const i = shown.indexOf(current);
@@ -181,14 +182,23 @@ export function VariablesTab({ projectId }: { projectId: string }) {
             note={v.stale ? m.stale : null}
             next={
               v.accepted
-                ? { label: m.toTests, onPress: () => go("test") }
+                ? onward
                 : {
                     label: m.looksRight,
                     disabled: v.stale || act.isPending,
-                    onPress: () => act.mutate("accept", { onSuccess: () => go("test") }),
+                    onPress: () => act.mutate("accept", { onSuccess: () => go("lag") }),
                   }
             }
           />
+        </>
+      )}
+      {current === "lag" && (
+        <>
+          <StepBody kicker={m.kicker} title={m.steps.lag} lede={m.lag.lede}>
+            {mu ? <LagStep setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
         </>
       )}
       {current === "test" && (

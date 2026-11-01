@@ -52,7 +52,7 @@ def prepared(tmp_path):
 
 def test_the_variables_found(prepared):
     vs = {v.field: v for v in model.variables(_project(), prepared)}
-    assert list(vs) == [
+    assert list(vs)[:8] == [
         "bldg_area_finished_sqft",
         "land_area_sqft",
         "bldg_age_years",
@@ -62,6 +62,16 @@ def test_the_variables_found(prepared):
         "latitude_norm",
         "land_class",
     ]
+    # Then the nearby averages (spatial lag, on to start): the sales' prices, and the parcels' fields that are there.
+    assert list(vs)[8:] == [
+        "spatial_lag_sale_price",
+        "spatial_lag_sale_price_impr_sqft",
+        "spatial_lag_bldg_area_finished_sqft",
+        "spatial_lag_land_area_sqft",
+        "spatial_lag_floor_area_ratio",
+        "spatial_lag_bldg_age_years",
+    ]
+    assert vs["spatial_lag_sale_price"].kind == "location" and vs["spatial_lag_sale_price"].name == "Nearby sale price"
     assert vs["land_class"].kind == "category" and not vs["land_class"].numeric
     assert vs["bldg_area_finished_sqft"].kind == "big_five" and not vs["bldg_area_finished_sqft"].trees_only
     assert vs["slope_mean_deg"].blanks == 1 and vs["slope_mean_deg"].trees_only
@@ -336,3 +346,103 @@ def test_layered_comps(prepared):
     # The list as it is: blanks don't take a variable out, as they do for a linear model.
     assert s["models"]["main"]["sf"]["layered_comps"] == {"model": "lcomp", "ind_vars": "$$variable_lists.comps"}
     assert "layered_comps" in s["instructions"]["main"]["run"]
+
+
+def test_nearby_sales_and_buildings(prepared):
+    """Spatial lag: on to start, each modeled group averaging its own sales; borrowing and more fields as asked. The
+    price averages are offered under a plain name and written as OpenAVMKit names them (after the price averaged)."""
+    from oakbox import bring_in, varlists
+
+    p = _project()
+    p.groups.append(projects.ModelGroup(id="th", name="Townhomes", color="#111"))
+    s = model.settings(p, prepared)
+    assert s["data"]["process"]["enrich"]["spatial_lag"] == {
+        "model_groups": {"sf": {"sample_from": ["sf"]}, "th": {"sample_from": ["th"]}}
+    }
+    model.change(
+        p, model.ModelPatch(lag_borrow=model.LagBorrow(group="th", sources=["sf", "th"]), lag_fields=["bath_half"])
+    )
+    lag = model.settings(p, prepared)["data"]["process"]["enrich"]["spatial_lag"]
+    assert lag["model_groups"]["th"] == {"sample_from": ["th", "sf"]} and lag["fields"] == {"bath_half": 5}
+    assert "spatial_lag_bath_half" in {v.field for v in model.variables(p, prepared)}
+    with pytest.raises(ValueError):
+        model.change(p, model.ModelPatch(lag_borrow=model.LagBorrow(group="th", sources=["nowhere"])))
+
+    # A list's price average, as OpenAVMKit names it: time adjusted when Check sales adjusts prices.
+    p.model.lists = varlists.check(
+        p,
+        [
+            model.VarList(
+                id="m", name="M", kind="ml", groups=["sf"], variables=["land_area_sqft", "spatial_lag_sale_price"]
+            )
+        ],
+    )
+    assert model.settings(p, prepared)["variable_lists"]["m"] == ["land_area_sqft", "spatial_lag_sale_price_time_adj"]
+    p.clean.time_adjust = False
+    assert model.settings(p, prepared)["variable_lists"]["m"] == ["land_area_sqft", "spatial_lag_sale_price"]
+
+    # Worked out as the models run: Bring in data's settings don't change with it.
+    on = {"data": {"load": {}, "process": {"enrich": {"census": {"enabled": True}}}}}
+    with_lag = {"data": {"load": {}, "process": {"enrich": {"census": {"enabled": True}, "spatial_lag": lag}}}}
+    assert bring_in.settings_key(on) == bring_in.settings_key(with_lag) and bring_in.changes(on, with_lag) == []
+    # Nor when it's the only enrichment (no enrich section before it).
+    bare = {"data": {"load": {}, "process": {}}}
+    only_lag = {"data": {"load": {}, "process": {"enrich": {"spatial_lag": lag}}}}
+    assert bring_in.settings_key(bare) == bring_in.settings_key(only_lag)
+
+    # Off: nothing written, nothing offered.
+    model.change(p, model.ModelPatch(lag_on=False))
+    assert "data" not in model.settings(p, prepared)
+    assert not [v for v in model.variables(p, prepared) if v.field.startswith(model.LAG)]
+
+
+def test_a_nearby_average_with_too_few_sales_is_named():
+    """OpenAVMKit writes 0 where there are too few sales to average: a model would read it as worth nothing."""
+    universe = pd.DataFrame({"model_group": ["sf", "sf", "th"], "spatial_lag_sale_price": [0.0, 0.0, 250_000.0]})
+    settings = {
+        "variable_lists": {"l": ["spatial_lag_sale_price", "land_area_sqft"]},
+        "modeling": {
+            "models": {
+                "main": {
+                    "sf": {"m": {"ind_vars": "$$variable_lists.l"}},
+                    "th": {"m": {"ind_vars": "$$variable_lists.l"}},
+                }
+            }
+        },
+    }
+    names = {"sf": "Single family", "th": "Townhomes"}
+    zeros = model.lag_zeros(None, universe, settings, names)
+    assert zeros == {"sf": ["spatial_lag_sale_price"]}
+    # Not worked out at all (every group too small to average): the same.
+    assert model.lag_zeros(None, universe[["model_group"]], settings, names) == {
+        "sf": ["spatial_lag_sale_price"],
+        "th": ["spatial_lag_sale_price"],
+    }
+    # Left out of that group's models only, for the run, and said; the other group keeps it.
+    lines = model.drop_lag_zeros(settings, zeros, names)
+    assert settings["modeling"]["models"]["main"]["sf"]["m"]["ind_vars"] == ["land_area_sqft"]
+    assert settings["modeling"]["models"]["main"]["th"]["m"]["ind_vars"] == "$$variable_lists.l"
+    assert lines[0].startswith("Single family: spatial_lag_sale_price left out of its models")
+    # A model left with nothing stops the run.
+    bare = {"modeling": {"models": {"main": {"sf": {"m": {"ind_vars": ["spatial_lag_sale_price"]}}}}}}
+    with pytest.raises(ValueError):
+        model.drop_lag_zeros(bare, zeros, names)
+
+
+def test_groups_too_small_to_average_are_left_out():
+    """OpenAVMKit looks up each parcel's 5 nearest in its group, and stops on a smaller one: such groups aren't
+    averaged (their models do without), nor borrowed from."""
+    universe = pd.DataFrame({"model_group": ["sf"] * 12 + ["tiny"] * 4})
+    settings = {
+        "data": {
+            "process": {
+                "enrich": {
+                    "spatial_lag": {
+                        "model_groups": {"sf": {"sample_from": ["sf", "tiny"]}, "tiny": {"sample_from": ["tiny"]}}
+                    }
+                }
+            }
+        }
+    }
+    assert model.lag_prune(settings, universe) == ["tiny"]
+    assert settings["data"]["process"]["enrich"]["spatial_lag"]["model_groups"] == {"sf": {"sample_from": ["sf"]}}

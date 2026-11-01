@@ -4205,6 +4205,88 @@ export interface components {
              */
             skipping: string[];
         };
+        /** LagBorrow */
+        LagBorrow: {
+            /** Group */
+            group: string;
+            /**
+             * Sources
+             * @description Other groups whose sales it also averages.
+             */
+            sources: string[];
+        };
+        /** LagChoice */
+        LagChoice: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+        };
+        /** LagGroup */
+        LagGroup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Sales */
+            sales: number;
+            /**
+             * Borrow
+             * @description Other groups whose sales it also averages.
+             */
+            borrow: string[];
+        };
+        /**
+         * LagState
+         * @description Nearby sales and buildings (OpenAVMKit's spatial lag): each parcel gets the distance-weighted average of its
+         *     nearest sales' prices, and of its nearest parcels' characteristics, offered as variables.
+         */
+        LagState: {
+            /**
+             * On
+             * @default true
+             */
+            on: boolean;
+            /**
+             * Borrow
+             * @description Model group -> other groups whose sales it also averages (its own always).
+             */
+            borrow: {
+                [key: string]: string[];
+            };
+            /**
+             * Fields
+             * @description Fields averaged besides OpenAVMKit's own.
+             */
+            fields: string[];
+        };
+        /** LagView */
+        LagView: {
+            /** On */
+            on: boolean;
+            /**
+             * Groups
+             * @description The modeled groups, each averaging its own sales and any it borrows.
+             */
+            groups: components["schemas"]["LagGroup"][];
+            /**
+             * Fields
+             * @description Fields averaged besides OpenAVMKit's own.
+             */
+            fields: string[];
+            /**
+             * Offered
+             * @description Numbers that can be averaged besides OpenAVMKit's own.
+             */
+            offered: components["schemas"]["LagChoice"][];
+            /**
+             * Adds
+             * @description The variables it adds.
+             */
+            adds: components["schemas"]["LagChoice"][];
+        };
         /** LayerMap */
         LayerMap: {
             /**
@@ -4728,6 +4810,18 @@ export interface components {
              * @description The variable tests to run, besides Represented.
              */
             tests?: string[] | null;
+            /**
+             * Lag On
+             * @description Nearby sales and buildings, on or off.
+             */
+            lag_on?: boolean | null;
+            /** @description A group's sales sources besides its own. */
+            lag_borrow?: components["schemas"]["LagBorrow"] | null;
+            /**
+             * Lag Fields
+             * @description Fields averaged besides OpenAVMKit's own.
+             */
+            lag_fields?: string[] | null;
         };
         /** ModelReceipt */
         ModelReceipt: {
@@ -4769,6 +4863,7 @@ export interface components {
         };
         /** ModelSetup */
         ModelSetup: {
+            lag: components["schemas"]["LagView"];
             /** Variables */
             variables: components["schemas"]["Variable"][];
             /** Engines */
@@ -4797,6 +4892,7 @@ export interface components {
         };
         /** ModelState */
         ModelState: {
+            lag: components["schemas"]["LagState"];
             /**
              * Tests
              * @description The variable tests to run (besides Represented); None: all of TESTS.

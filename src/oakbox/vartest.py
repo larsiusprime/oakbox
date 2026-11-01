@@ -202,6 +202,11 @@ def run(project_id: str) -> None:
         ] = False
         sup = pl.load_cleaned_data_for_modeling(settings)
         pl.write_canonical_splits(sup, settings, verbose=False)
+        if settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"):
+            steps.emit(step="lag", fraction=0.03, message="Averaging nearby sales and buildings")
+            model.lag_prune(settings, sup.universe)
+            sup = pl.enrich_sup_spatial_lag(sup, settings, verbose=False)
+            sup = model.lag_stable(sup, model.sale_field(project))
         sales = get_hydrated_sales_from_sup(sup)
         universe = sup.universe
         from oakbox import assemble
@@ -223,6 +228,15 @@ def run(project_id: str) -> None:
             # The tests fill a variable's blanks with its median; one with no value among the group's sales has none
             # (days to renovation where none of them had a permit, say), and would stop them: it's left out, named.
             vg.empty = [v for v in variables if v in df_s.columns and bool(df_s[v].isna().all())]
+            # A nearby average with too few sales to work from is 0 everywhere (OpenAVMKit's stand-in): left out too.
+            vg.empty += [
+                v
+                for v in variables
+                if v.startswith(model.LAG)
+                and v in df_s.columns
+                and v not in vg.empty
+                and bool(df_s[v].fillna(0).eq(0).all())
+            ]
             here = [v for v in variables if v not in vg.empty]
             if not here:
                 vg.skipped = "none of the variables has a value among its sales"
@@ -273,7 +287,8 @@ def run(project_id: str) -> None:
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(
-        json.dumps({"prepare": prepare.STEP.ran_at(pdir), "modeled": sorted(modeled)}), encoding="utf-8"
+        json.dumps({"prepare": prepare.STEP.ran_at(pdir), "modeled": sorted(modeled), "lag": _lag(project, pdir)}),
+        encoding="utf-8",
     )
     steps.publish(tmp, out_dir(pdir))
     tested = sum(1 for g in groups if g.tests)
@@ -287,10 +302,22 @@ class VarTestView(steps.RunView):
     receipt: VarTestReceipt | None
 
 
+def _lag(project, project_dir: Path) -> dict:
+    """The nearby sales and buildings it tests (spatial lag): what changes their values."""
+    from oakbox import assemble
+
+    modeled = assemble.modeled(project, project_dir)
+    return model.lag_settings(project, [g.id for g in project.groups if g.id in modeled])
+
+
 def _key(project, project_dir: Path) -> dict:
     from oakbox import assemble
 
-    return {"prepare": prepare.STEP.ran_at(project_dir), "modeled": sorted(assemble.modeled(project, project_dir))}
+    return {
+        "prepare": prepare.STEP.ran_at(project_dir),
+        "modeled": sorted(assemble.modeled(project, project_dir)),
+        "lag": _lag(project, project_dir),
+    }
 
 
 # The run keeps the Prepare run it tested, and the groups it tested (settings.json).
@@ -300,7 +327,9 @@ STEP = steps.Step(
     VarTestReceipt,
     key=_key,
     after=prepare.STEP,
-    ran_hash=lambda ran: steps.key_hash({"prepare": ran.get("prepare"), "modeled": ran.get("modeled", [])}),
+    ran_hash=lambda ran: steps.key_hash(
+        {"prepare": ran.get("prepare"), "modeled": ran.get("modeled", []), "lag": ran.get("lag", {})}
+    ),
     again="Test the variables again first: something changed since.",
 )
 
