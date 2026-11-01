@@ -10505,6 +10505,14 @@
       "title": "Fields",
       "description": "Fields averaged besides OpenAVMKit's own."
      },
+     "k": {
+      "type": "integer",
+      "maximum": 50.0,
+      "minimum": 1.0,
+      "title": "K",
+      "description": "How many of the nearest each average is of (OpenAVMKit's 5).",
+      "default": 5
+     },
      "skip": {
       "items": {
        "type": "string"
@@ -10519,6 +10527,7 @@
      "on",
      "borrow",
      "fields",
+     "k",
      "skip"
     ],
     "title": "LagState",
@@ -10537,6 +10546,11 @@
       "type": "array",
       "title": "Groups",
       "description": "The modeled groups, each averaging its own sales and any it borrows."
+     },
+     "k": {
+      "type": "integer",
+      "title": "K",
+      "description": "How many of the nearest each average is of."
      },
      "own": {
       "items": {
@@ -10583,6 +10597,7 @@
     "required": [
      "on",
      "groups",
+     "k",
      "own",
      "chosen",
      "fields",
@@ -11813,6 +11828,20 @@
       ],
       "title": "Lag Fields",
       "description": "Fields averaged besides OpenAVMKit's own."
+     },
+     "lag_k": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 50.0,
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lag K",
+      "description": "How many of the nearest each average is of."
      },
      "lag_own": {
       "anyOf": [

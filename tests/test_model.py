@@ -359,6 +359,7 @@ def test_nearby_sales_and_buildings(prepared):
     # Only what's offered is worked out (OpenAVMKit's spatial_lag.only): the sales' prices, the parcels' fields.
     assert s["data"]["process"]["enrich"]["spatial_lag"] == {
         "only": True,
+        "sale_price": 5,
         "sales": ["price", "price_impr"],
         "fields": {"bldg_area_finished_sqft": 5, "land_area_sqft": 5, "floor_area_ratio": 5, "bldg_age_years": 5},
         "model_groups": {"sf": {"sample_from": ["sf"]}, "th": {"sample_from": ["th"]}},
@@ -409,6 +410,10 @@ def test_nearby_sales_and_buildings(prepared):
         "spatial_lag_sale_price_impr_sqft",
         "spatial_lag_bldg_area_finished_sqft",
     ]
+    # How many nearest: one number for every average (OpenAVMKit's 5 to start).
+    model.change(p, model.ModelPatch(lag_k=8))
+    lag = model.settings(p, prepared)["data"]["process"]["enrich"]["spatial_lag"]
+    assert lag["sale_price"] == 8 and set(lag["fields"].values()) == {8}
     # Off: nothing written, nothing offered.
     model.change(p, model.ModelPatch(lag_on=False))
     assert "data" not in model.settings(p, prepared)
@@ -449,10 +454,10 @@ def test_a_nearby_average_with_too_few_sales_is_named():
 
 
 def test_groups_too_small_to_average_are_left_out():
-    """OpenAVMKit looks up each parcel's 5 nearest in its group, and stops on a smaller one: such groups aren't
+    """OpenAVMKit looks up each parcel's k nearest in its group, and stops on a smaller one: such groups aren't
     averaged (their models do without), nor borrowed from."""
     universe = pd.DataFrame({"model_group": ["sf"] * 12 + ["tiny"] * 4})
-    settings = {
+    settings: dict = {
         "data": {
             "process": {
                 "enrich": {
@@ -465,3 +470,6 @@ def test_groups_too_small_to_average_are_left_out():
     }
     assert model.lag_prune(settings, universe) == ["tiny"]
     assert settings["data"]["process"]["enrich"]["spatial_lag"]["model_groups"] == {"sf": {"sample_from": ["sf"]}}
+    # More nearest asks for more parcels: twice k, so 12 is too few for 8 nearest.
+    settings["data"]["process"]["enrich"]["spatial_lag"]["fields"] = {"land_area_sqft": 8}
+    assert model.lag_prune(settings, universe) == ["sf"]

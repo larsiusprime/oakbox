@@ -1283,6 +1283,7 @@ export const t = {
   },
 
   multiPick: {
+    plusOthers: (first: string, n: number) => `${first} + ${n} other field${n === 1 ? "" : "s"}`,
     choose: "Choose values…",
     none: "none chosen",
     blank: "(blank)",
@@ -2207,7 +2208,9 @@ export const t = {
     lag: {
       lede: "What's around a parcel says a lot about its value. Each parcel can get the average of its nearest sales' prices, and of its nearest parcels' size, age and quality, as variables of their own: put them in a variable list like any other.",
       on: "Average nearby sales and buildings",
-      how: "OpenAVMKit's spatial lag: the 5 nearest of each, weighted by distance, fading out by about half a mile.",
+      how: "OpenAVMKit's spatial lag: the nearest of each, however far, the closer ones weighted more.",
+      nearest: "How many nearest",
+      nearestWhy: (k: number) => `Averages the ${k} nearest of each (OpenAVMKit's default is 5).`,
       own: "Averages",
       noOwn: "None of these",
       ownWhy: "Only those picked are worked out and offered as variables.",
@@ -2221,8 +2224,8 @@ export const t = {
       fields: "Also average",
       noFields: "Nothing else",
       fieldsWhy: "Numbers of the parcels around each one, besides those above.",
-      split:
-        "Worked out as the models are tried, after the sales are split: a sale's nearby price comes only from sales outside its own fold, so a model never sees the price it's judged on. A group with 6 or fewer sales to average has none (OpenAVMKit writes 0): let it borrow a group nearby.",
+      split: (k: number) =>
+        `Worked out as the models are tried, after the sales are split: a sale's nearby price comes only from sales outside its own fold, so a model never sees the price it's judged on. A group with ${k + 1} or fewer sales to average has none (OpenAVMKit writes 0): let it borrow a group nearby.`,
     },
     fillLede:
       "Blanks the models can't take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",

@@ -20,6 +20,7 @@ export function MultiPick({
   onChange,
   countNoun,
   placeholder,
+  brief = false,
 }: {
   label: string;
   /** label: shown instead of the value (a field's name); note: beside it (its column); count: -1 or none for none. */
@@ -31,6 +32,8 @@ export function MultiPick({
   countNoun?: string;
   /** What the button says while nothing is chosen. */
   placeholder?: string;
+  /** The button says the first chosen and how many more ("Sale price + 6 others"), not every one. */
+  brief?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const listed = new Set(values.map((x) => x.value));
@@ -48,14 +51,16 @@ export function MultiPick({
   const canAdd = typed !== "" && !listed.has(typed) && !chosen.includes(typed);
   const labels = new Map(values.map((x) => [x.value, text(x)]));
   const named = values.some((x) => x.label);
-  const shown = chosen.map((c) => labels.get(c) ?? (c ? short(c) : m.blank)).join(", ");
+  const names = chosen.map((c) => labels.get(c) ?? (c ? short(c) : m.blank));
+  const shown = names.join(", ");
+  const said = brief && names.length > 1 ? m.plusOthers(names[0] ?? "", names.length - 1) : shown;
   return (
     <DialogTrigger onOpenChange={(open) => !open && setSearch("")}>
       <Button className="mp-button" aria-label={`${label}: ${chosen.length ? shown : m.none}`}>
         <span className={chosen.length ? (named ? "mp-text" : "mp-text mono") : "mp-text mp-placeholder"}>
-          {chosen.length ? shown : (placeholder ?? m.choose)}
+          {chosen.length ? said : (placeholder ?? m.choose)}
         </span>
-        {chosen.length > 1 && <span className="pill pill-info">{chosen.length}</span>}
+        {chosen.length > 1 && !brief && <span className="pill pill-info">{chosen.length}</span>}
         <ChevronDown aria-hidden="true" size="0.9em" />
       </Button>
       <Popover className="popover mp-popover" placement="bottom start">

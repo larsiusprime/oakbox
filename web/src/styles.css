@@ -4714,6 +4714,8 @@ table.tbl.dt > * > tr > :is(th, td) {
 /* Variables › Nearby sales and buildings (spatial lag). */
 .lag {
   display: grid;
+  /* The step's width, never its content's: a long summary of what's chosen can't push it past the window. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
 }
 .lag p {
@@ -4724,4 +4726,20 @@ table.tbl.dt > * > tr > :is(th, td) {
   flex-wrap: wrap;
   gap: 0.6rem;
   align-items: center;
+}
+/* The picker's summary of what's chosen is cut short rather than widening the step past the window; the note beside
+   it wraps. */
+.lag-fields > .mp-button {
+  flex: 0 1 30rem;
+  min-width: 12rem;
+}
+.lag-fields > .wiz-from {
+  flex: 1 1 14rem;
+}
+/* How many nearest: its note sits level with the box, under the box's label. */
+.lag-k {
+  align-items: end;
+}
+.lag-k > .wiz-from {
+  padding-bottom: 0.4rem;
 }

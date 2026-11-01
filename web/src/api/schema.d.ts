@@ -4262,6 +4262,12 @@ export interface components {
              */
             fields: string[];
             /**
+             * K
+             * @description How many of the nearest each average is of (OpenAVMKit's 5).
+             * @default 5
+             */
+            k: number;
+            /**
              * Skip
              * @description OpenAVMKit's own averages not wanted (stable names): not worked out (spatial_lag.only) nor offered as variables.
              */
@@ -4276,6 +4282,11 @@ export interface components {
              * @description The modeled groups, each averaging its own sales and any it borrows.
              */
             groups: components["schemas"]["LagGroup"][];
+            /**
+             * K
+             * @description How many of the nearest each average is of.
+             */
+            k: number;
             /**
              * Own
              * @description OpenAVMKit's own averages there can be here.
@@ -4837,6 +4848,11 @@ export interface components {
              * @description Fields averaged besides OpenAVMKit's own.
              */
             lag_fields?: string[] | null;
+            /**
+             * Lag K
+             * @description How many of the nearest each average is of.
+             */
+            lag_k?: number | null;
             /**
              * Lag Own
              * @description Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped.

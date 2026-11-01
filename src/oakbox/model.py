@@ -151,6 +151,7 @@ class LagState(BaseModel):
         default_factory=dict, description="Model group -> other groups whose sales it also averages (its own always)."
     )
     fields: list[str] = Field(default_factory=list, description="Fields averaged besides OpenAVMKit's own.")
+    k: int = Field(default=5, ge=1, le=50, description="How many of the nearest each average is of (OpenAVMKit's 5).")
     skip: list[str] = Field(
         default_factory=list,
         description="OpenAVMKit's own averages not wanted (stable names): not worked out (spatial_lag.only) nor"
@@ -419,7 +420,7 @@ def lag_stable(sup, sale: str):
 
 def lag_zeros(sales, universe, settings: dict, groups: dict[str, str]) -> dict[str, list[str]]:
     """Group -> the nearby averages its models use that are 0 for all its parcels: OpenAVMKit's stand-in when there
-    are too few sales to average (6 or fewer training sales), which a model would read as "nearby, it's worth
+    are too few sales to average (k + 1 or fewer training sales), which a model would read as "nearby, it's worth
     nothing"."""
     import numpy as np
     import pandas as pd
@@ -477,7 +478,8 @@ def drop_lag_zeros(
     ]
 
 
-# OpenAVMKit looks up each parcel's 5 nearest parcels in its group: a group with fewer stops it (an IndexError).
+# OpenAVMKit looks up each parcel's k nearest parcels in its group (outside the test sales): a group with fewer stops
+# it (an IndexError). At least this many, and twice k.
 LAG_MIN_PARCELS = 10
 
 
@@ -488,7 +490,8 @@ def lag_prune(settings: dict, universe) -> list[str]:
     lag = settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag") or {}
     groups = lag.get("model_groups") or {}
     counts = universe["model_group"].astype(str).value_counts() if "model_group" in universe else {}
-    few = [g for g in groups if int(counts.get(g, 0)) < LAG_MIN_PARCELS]
+    k = max([int(lag.get("sale_price", 5)), *(int(x) for x in (lag.get("fields") or {}).values())])
+    few = [g for g in groups if int(counts.get(g, 0)) < max(LAG_MIN_PARCELS, 2 * k)]
     for g in few:
         del groups[g]
     for g in groups.values():
@@ -499,8 +502,8 @@ def lag_prune(settings: dict, universe) -> list[str]:
 def lag_settings(project, modeled: list[str], columns: list[str] | set[str]) -> dict:
     """data.process.enrich.spatial_lag: each modeled group averages its own sales and any it borrows; and only the
     averages picked are worked out (`only`, OpenAVMKit's `engine/enrich-fixes`): the sales' prices as `sales`, the
-    parcels' fields (OpenAVMKit's own picked, and the user's) as `fields`, 5 nearest each. `columns`: the prepared
-    universe's, so a field it doesn't have isn't asked for."""
+    parcels' fields (OpenAVMKit's own picked, and the user's) as `fields`, the k nearest each (5 to start).
+    `columns`: the prepared universe's, so a field it doesn't have isn't asked for."""
     lag = project.model.lag
     if not lag.on or not modeled:
         return {}
@@ -509,8 +512,9 @@ def lag_settings(project, modeled: list[str], columns: list[str] | set[str]) -> 
     chosen = [f for f, _ in lag_fields(project, columns)]
     return {
         "only": True,
+        "sale_price": lag.k,  # OpenAVMKit's name for how many sales the price averages are of
         "sales": [price[f] for f in chosen if f in price],
-        "fields": {f.removeprefix(LAG): 5 for f in chosen if f not in price},
+        "fields": {f.removeprefix(LAG): lag.k for f in chosen if f not in price},
         "model_groups": {g: {"sample_from": [g, *[x for x in lag.borrow.get(g, []) if x != g]]} for g in modeled},
     }
 
@@ -752,6 +756,7 @@ class LagChoice(BaseModel):
 class LagView(BaseModel):
     on: bool
     groups: list[LagGroup] = Field(description="The modeled groups, each averaging its own sales and any it borrows.")
+    k: int = Field(description="How many of the nearest each average is of.")
     own: list[LagChoice] = Field(description="OpenAVMKit's own averages there can be here.")
     chosen: list[str] = Field(description="Those of OpenAVMKit's own offered as variables (the rest are dropped).")
     fields: list[str] = Field(description="Fields averaged besides OpenAVMKit's own.")
@@ -842,6 +847,7 @@ def setup(project, project_dir: Path) -> ModelSetup:
             for g in groups
             if g.modeled
         ],
+        k=project.model.lag.k,
         own=[LagChoice(field=f, name=n) for f, n in own_all],
         chosen=[f for f, _ in own_all if f not in project.model.lag.skip],
         fields=project.model.lag.fields,
@@ -887,6 +893,7 @@ class ModelPatch(BaseModel):
     lag_on: bool | None = Field(default=None, description="Nearby sales and buildings, on or off.")
     lag_borrow: LagBorrow | None = Field(default=None, description="A group's sales sources besides its own.")
     lag_fields: list[str] | None = Field(default=None, description="Fields averaged besides OpenAVMKit's own.")
+    lag_k: int | None = Field(default=None, ge=1, le=50, description="How many of the nearest each average is of.")
     lag_own: list[str] | None = Field(
         default=None, description="Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped."
     )
@@ -908,6 +915,8 @@ def change(project, body: ModelPatch) -> None:
             s.lag.borrow.pop(b.group, None)
     if body.lag_fields is not None:
         s.lag.fields = list(dict.fromkeys(body.lag_fields))
+    if body.lag_k is not None:
+        s.lag.k = body.lag_k
     if body.lag_own is not None:
         # Every average OpenAVMKit can make, whatever fields there are: the ones not chosen are skipped.
         every = [f for f, _ in lag_own(project, _ALL_COLUMNS)]
