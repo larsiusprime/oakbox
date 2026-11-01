@@ -1310,6 +1310,34 @@ def _crashed(
     return type(type(e).__name__, (Exception,), {})(" ".join(said))
 
 
+def for_models(project, modeled, own: dict[str, dict[str, str]]):
+    """The prepared hand-off as the models take it (in the project's folder, inside a run): the settings, the sales
+    split into folds, and the nearby averages worked out. (sup, settings, the notes on averages left out, the
+    modeled groups' names.) Try them and Finalize both start here."""
+    from openavmkit import pipeline as pl
+
+    dropped: list[str] = []
+    steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
+    settings = pl.load_settings()
+    sup = pl.load_cleaned_data_for_modeling(settings)
+    # A variable with infinite values stops every model with an error that names none: say which, before.
+    gnames = {g.id: g.name for g in project.groups if g.id in modeled}
+    found = not_finite(sup.sales, sup.universe, settings, gnames, own)
+    if found:
+        raise ValueError(_infinite_error(found))
+    steps.emit(step="split", fraction=0.05, message="Splitting the sales into folds")
+    pl.write_canonical_splits(sup, settings, verbose=False)
+    if settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"):
+        # After the split: a sale's nearby price is averaged from training sales only, and out of its own fold.
+        steps.emit(step="lag", fraction=0.07, message="Averaging nearby sales and buildings")
+        lag_prune(settings, sup.universe)
+        sup = pl.enrich_sup_spatial_lag(sup, settings, verbose=False)
+        sale = sale_field(project)
+        labels = {lag_actual(f, sale): n for f, n in lag_fields(project, list(sup.universe.columns))}
+        dropped = drop_lag_zeros(settings, lag_zeros(sup.sales, sup.universe, settings, gnames), gnames, labels)
+    return sup, settings, dropped, gnames
+
+
 def run(project_id: str) -> None:
     import warnings
     from importlib.metadata import version
@@ -1351,27 +1379,9 @@ def run(project_id: str) -> None:
         else:
             steps.emit(detail=e.message)
 
-    dropped: list[str] = []  # nearby averages left out of a group's models, said in the receipt
     with warnings.catch_warnings(record=True) as caught, progress.reporting(inside), steps.heartbeat():
         warnings.simplefilter("always")
-        steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
-        settings = pl.load_settings()
-        sup = pl.load_cleaned_data_for_modeling(settings)
-        # A variable with infinite values stops every model with an error that names none: say which, before.
-        gnames = {g.id: g.name for g in project.groups if g.id in modeled}
-        found = not_finite(sup.sales, sup.universe, settings, gnames, own)
-        if found:
-            raise ValueError(_infinite_error(found))
-        steps.emit(step="split", fraction=0.05, message="Splitting the sales into folds")
-        pl.write_canonical_splits(sup, settings, verbose=False)
-        if settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"):
-            # After the split: a sale's nearby price is averaged from training sales only, and out of its own fold.
-            steps.emit(step="lag", fraction=0.07, message="Averaging nearby sales and buildings")
-            lag_prune(settings, sup.universe)
-            sup = pl.enrich_sup_spatial_lag(sup, settings, verbose=False)
-            sale = sale_field(project)
-            labels = {lag_actual(f, sale): n for f, n in lag_fields(project, list(sup.universe.columns))}
-            dropped = drop_lag_zeros(settings, lag_zeros(sup.sales, sup.universe, settings, gnames), gnames, labels)
+        sup, settings, dropped, gnames = for_models(project, modeled, own)
         steps.emit(step="models", fraction=0.1, message="Training the models")
         try:
             results = pl.try_models(

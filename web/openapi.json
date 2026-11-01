@@ -3643,6 +3643,202 @@
     }
    }
   },
+  "/api/projects/{project_id}/model/accept": {
+   "post": {
+    "summary": "Model Accept",
+    "operationId": "model_accept_api_projects__project_id__model_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/final": {
+   "get": {
+    "summary": "Final State",
+    "operationId": "final_state_api_projects__project_id__final_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FinalView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/final/run": {
+   "post": {
+    "summary": "Final Run",
+    "description": "Finalize: OpenAVMKit's finalize_models, the groups Small groups leaves unvalued skipped, then the values checked against the sales (out of fold, held out, as valued) beside the roll's.",
+    "operationId": "final_run_api_projects__project_id__final_run_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FinalView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/final/stop": {
+   "post": {
+    "summary": "Final Stop",
+    "operationId": "final_stop_api_projects__project_id__final_stop_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FinalView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/final/accept": {
+   "post": {
+    "summary": "Final Accept",
+    "operationId": "final_accept_api_projects__project_id__final_accept_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FinalView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/bring-in/run": {
    "post": {
     "summary": "Bring In Run",
@@ -4215,7 +4411,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/GroupValues"
+         "$ref": "#/components/schemas/oakbox__groups__GroupValues"
         }
        }
       }
@@ -9255,6 +9451,154 @@
     ],
     "title": "Filled"
    },
+   "FinalReceipt": {
+    "properties": {
+     "ran_at": {
+      "type": "string",
+      "title": "Ran At"
+     },
+     "seconds": {
+      "type": "number",
+      "title": "Seconds"
+     },
+     "engine": {
+      "type": "string",
+      "title": "Engine"
+     },
+     "start": {
+      "type": "string",
+      "format": "date",
+      "title": "Start"
+     },
+     "end": {
+      "type": "string",
+      "format": "date",
+      "title": "End"
+     },
+     "price": {
+      "type": "string",
+      "enum": [
+       "sold",
+       "time_adjusted"
+      ],
+      "title": "Price"
+     },
+     "trim": {
+      "type": "boolean",
+      "title": "Trim"
+     },
+     "roll": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Roll",
+      "description": "The existing values beside the model's (their name); None: none loaded."
+     },
+     "sets": {
+      "items": {
+       "$ref": "#/components/schemas/SetResult"
+      },
+      "type": "array",
+      "title": "Sets"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/oakbox__final__GroupValues"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ran_at",
+     "seconds",
+     "engine",
+     "start",
+     "end",
+     "price",
+     "trim",
+     "roll",
+     "sets",
+     "groups",
+     "notes"
+    ],
+    "title": "FinalReceipt"
+   },
+   "FinalView": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "never",
+       "running",
+       "failed",
+       "stopped",
+       "done"
+      ],
+      "title": "Status"
+     },
+     "job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Job"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "stale": {
+      "type": "boolean",
+      "title": "Stale",
+      "description": "Something it depends on changed since it ran."
+     },
+     "blocked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Blocked",
+      "description": "What stops it running."
+     },
+     "receipt": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FinalReceipt"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "job",
+     "stale",
+     "blocked",
+     "receipt",
+     "accepted"
+    ],
+    "title": "FinalView"
+   },
    "Fold": {
     "properties": {
      "field": {
@@ -9844,33 +10188,6 @@
      "sales"
     ],
     "title": "GroupValue"
-   },
-   "GroupValues": {
-    "properties": {
-     "field": {
-      "type": "string",
-      "title": "Field"
-     },
-     "rows": {
-      "items": {
-       "$ref": "#/components/schemas/GroupValue"
-      },
-      "type": "array",
-      "title": "Rows"
-     },
-     "more": {
-      "type": "integer",
-      "title": "More",
-      "description": "GroupValues not shown."
-     }
-    },
-    "type": "object",
-    "required": [
-     "field",
-     "rows",
-     "more"
-    ],
-    "title": "GroupValues"
    },
    "GroupWhy": {
     "properties": {
@@ -16751,6 +17068,54 @@
     ],
     "title": "SetChoice"
    },
+   "SetResult": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "enum": [
+       "oof",
+       "held",
+       "valued"
+      ],
+      "title": "Key"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales in the window with a value in this set."
+     },
+     "model": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FieldResult"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The model values' study; None: no sales."
+     },
+     "roll": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FieldResult"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "The roll's on the same sales; None: no roll loaded."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "sales",
+     "model",
+     "roll"
+    ],
+    "title": "SetResult"
+   },
    "SmallChoice": {
     "properties": {
      "choice": {
@@ -21039,6 +21404,137 @@
      "per"
     ],
     "title": "GroupSetup"
+   },
+   "oakbox__final__GroupValues": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "color": {
+      "type": "string",
+      "title": "Color"
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "valued": {
+      "type": "integer",
+      "title": "Valued",
+      "description": "Parcels given a model value."
+     },
+     "unvalued": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unvalued",
+      "description": "Why it has no values: not modeled, left unvalued, too few sales."
+     },
+     "blanked": {
+      "type": "integer",
+      "title": "Blanked",
+      "description": "Parcels valued below zero: left blank."
+     },
+     "median_change": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median Change",
+      "description": "The median of model value \u00f7 the roll's, less 1."
+     },
+     "up": {
+      "type": "integer",
+      "title": "Up",
+      "description": "Parcels valued over 20% above the roll."
+     },
+     "down": {
+      "type": "integer",
+      "title": "Down",
+      "description": "Parcels valued over 20% below the roll."
+     },
+     "total": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total",
+      "description": "The model values summed."
+     },
+     "roll_total": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Roll Total",
+      "description": "The roll's values summed, on the same parcels."
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "color",
+     "parcels",
+     "valued",
+     "unvalued",
+     "blanked",
+     "median_change",
+     "up",
+     "down",
+     "total",
+     "roll_total"
+    ],
+    "title": "GroupValues"
+   },
+   "oakbox__groups__GroupValues": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/GroupValue"
+      },
+      "type": "array",
+      "title": "Rows"
+     },
+     "more": {
+      "type": "integer",
+      "title": "More",
+      "description": "GroupValues not shown."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "rows",
+     "more"
+    ],
+    "title": "GroupValues"
    },
    "oakbox__locstack__LocationField": {
     "properties": {

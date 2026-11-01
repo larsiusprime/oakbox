@@ -15,6 +15,7 @@ export type StepViews = {
   ratio: S["RatioView"];
   vartest: S["VarTestView"];
   model: S["ModelView"];
+  final: S["FinalView"];
 };
 export type StepId = keyof StepViews;
 export type StepAct = "run" | "stop" | "accept";
@@ -26,9 +27,10 @@ const NEXT: Record<StepId, StepId[]> = {
   assemble: ["clean"],
   clean: ["prepare", "ratio"],
   prepare: ["vartest", "model"],
-  ratio: [],
+  ratio: ["final"],
   vartest: [],
-  model: [],
+  model: ["final"],
+  final: [],
 };
 
 /** Every step after this one, however far down. */

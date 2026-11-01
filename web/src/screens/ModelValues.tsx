@@ -3,16 +3,21 @@ import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { when } from "../lib/format";
 import { t } from "../strings";
+import { FinalValues } from "./FinalValues";
 import { GroupModelsCard, HowTheyDid } from "./Models";
 import { SmallGroupsStep } from "./SmallGroups";
 
 const m = t.values;
-type MvStep = "models" | "try" | "how" | "small";
-const MV_STEPS: MvStep[] = ["models", "try", "how", "small"];
+type MvStep = "models" | "try" | "how" | "small" | "final" | "values";
+const MV_STEPS: MvStep[] = ["models", "try", "how", "small", "final", "values"];
+const f = m.final;
 
-/** Step 6, Model values (SPEC F9): each model group's models, a try, and how they did. */
-export function ValuesTab({ projectId }: { projectId: string }) {
+/** Step 6, Model values (SPEC F9): each model group's models, a try, how they did, the groups left unvalued, then
+ * the values made (Finalize) and checked. */
+export function ValuesTab({ projectId, currency }: { projectId: string; currency: string }) {
   const ms = useStep("model", projectId);
+  const fs = useStep("final", projectId);
+  const fAct = useStepAct("final", projectId);
   const mv = ms.data;
   const { setup: mSetup } = useStepSetup("model", projectId);
   const mAct = useStepAct("model", projectId);
@@ -26,8 +31,19 @@ export function ValuesTab({ projectId }: { projectId: string }) {
   const mFresh = !!mr && !mv.stale;
   const fallback: MvStep = trying ? "try" : mr ? (mFresh ? "how" : "try") : "models";
   const current: MvStep =
-    at.after && mv.status === "done" && at.step === "try" ? "how" : (at.step ?? fallback);
+    at.after && mv.status === "done" && at.step === "try"
+      ? "how"
+      : at.after && fs.data?.status === "done" && at.step === "final"
+        ? "values"
+        : (at.step ?? fallback);
   const go = nav.go;
+  const fv = fs.data;
+  const finalizing = fv?.status === "running";
+  const fr = fv?.receipt;
+  const fFresh = !!fr && !fv?.stale;
+  const finalize = () => fAct.mutate("run", { onSuccess: () => nav.ran("final") });
+  // Small groups' Looks right: the try is the one to finalize.
+  const keepTry = () => mAct.mutate("accept", { onSuccess: () => go("final") });
   const tryIt = () => mAct.mutate("run", { onSuccess: () => nav.ran("try") });
   const tried = mr ? (mv.stale ? "attention" : "done") : "blank";
   const modeled = (mSetup.data?.groups ?? []).filter((g) => g.modeled);
@@ -43,23 +59,33 @@ export function ValuesTab({ projectId }: { projectId: string }) {
     key,
     title: m.steps[key],
     status:
-      key === "try"
-        ? tried
-        : key === "how" || key === "small"
-          ? mr && !mv.stale
+      key === "final"
+        ? fr
+          ? fv?.stale || (fv?.blocked.length ?? 0) > 0
+            ? "attention"
+            : "done"
+          : "blank"
+        : key === "values"
+          ? fv?.accepted
             ? "done"
             : "blank"
-          : unlisted.length
-            ? "attention"
-            : "done",
-    disabled: (key === "how" || key === "small") && !mr,
+          : key === "try"
+            ? tried
+            : key === "how" || key === "small"
+              ? mr && !mv.stale
+                ? "done"
+                : "blank"
+              : unlisted.length
+                ? "attention"
+                : "done",
+    disabled: ((key === "how" || key === "small" || key === "final") && !mr) || (key === "values" && !fr),
   }));
   const i = MV_STEPS.indexOf(current);
   const prev = MV_STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
   const onward = { label: t.step.next, onPress: () => go(MV_STEPS[i + 1] ?? current) };
   const mu = mSetup.data;
-  const errors = [mAct.error, mSetup.error].map(
+  const errors = [mAct.error, mSetup.error, fAct.error].map(
     (e) =>
       e && (
         <p key={e.message} className="error" role="alert">
@@ -150,7 +176,69 @@ export function ValuesTab({ projectId }: { projectId: string }) {
             {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
             <SmallGroupsStep projectId={projectId} />
           </StepBody>
-          <StepFoot back={back} />
+          <StepFoot
+            back={back}
+            next={{ label: f.looksRight, onPress: keepTry, disabled: mv.stale || mAct.isPending }}
+          />
+          {errors}
+        </>
+      )}
+      {current === "final" && (
+        <>
+          <StepBody kicker={m.modelsKicker} title={m.steps.final} lede={f.lede}>
+            {(fv?.blocked.length ?? 0) > 0 && (
+              <div className="bi-warn">
+                <b>{m.blocked}</b> {fv?.blocked[0]}
+              </div>
+            )}
+            {finalizing ? (
+              <RunProgress job={fv?.job ?? null} lastSeconds={fr?.seconds ?? null} />
+            ) : (
+              <>
+                {fv?.status === "failed" && fv.job?.error && (
+                  <p className="error" role="alert">
+                    {t.step.failed} <span className="mono">{fv.job.error}</span>
+                  </p>
+                )}
+                {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+                {fFresh && fr && <p className="wiz-ok">{f.ran(when(fr.ran_at), fr.seconds)}</p>}
+                {!fr && !fv?.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
+              </>
+            )}
+            {errors}
+          </StepBody>
+          <StepFoot
+            back={finalizing ? null : back}
+            extra={fFresh && !finalizing ? [{ label: f.again, onPress: finalize }] : []}
+            next={
+              finalizing
+                ? { label: t.step.stop, onPress: () => fAct.mutate("stop"), primary: false }
+                : fFresh
+                  ? onward
+                  : {
+                      label: f.run,
+                      disabled: (fv?.blocked.length ?? 0) > 0 || fAct.isPending,
+                      onPress: finalize,
+                    }
+            }
+          />
+        </>
+      )}
+      {current === "values" && fr && (
+        <>
+          <StepBody kicker={m.modelsKicker} title={m.steps.values} lede={f.valuesLede}>
+            {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+            <FinalValues receipt={fr} currency={currency} />
+            {errors}
+          </StepBody>
+          <StepFoot
+            back={back}
+            next={{
+              label: f.looksRight,
+              disabled: !!fv?.stale || !!fv?.accepted || fAct.isPending,
+              onPress: () => fAct.mutate("accept"),
+            }}
+          />
         </>
       )}
     </StepFrame>

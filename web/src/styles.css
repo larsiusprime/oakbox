@@ -4743,3 +4743,36 @@ table.tbl.dt > * > tr > :is(th, td) {
 .lag-k > .wiz-from {
   padding-bottom: 0.4rem;
 }
+/* Model values: the finalized values checked, the roll's beside them, and what every parcel got. */
+.fv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+}
+.fv p {
+  margin: 0;
+}
+.fv-on {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+.fv-h {
+  margin: 0.8rem 0 0;
+  font-size: 1rem;
+}
+.fv-notes ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+}
+/* The model's scorecard and the roll's, one above the other: the same columns, the same widths. */
+.fv .rv-score {
+  table-layout: fixed;
+}
+.fv .rv-score th:first-child {
+  width: 24%;
+}
+.fv .rv-score th:nth-child(2) {
+  width: 7%;
+}

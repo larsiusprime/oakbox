@@ -2204,6 +2204,8 @@ export const t = {
       try: "Try them",
       how: "How they did",
       small: "Small groups",
+      final: "Finalize",
+      values: "Model values",
     },
     lag: {
       lede: "What's around a parcel says a lot about its value. Each parcel can get the average of its nearest sales' prices, and of its nearest parcels' size, age and quality, as variables of their own: put them in a variable list like any other.",
@@ -2433,6 +2435,51 @@ export const t = {
         `${n.toLocaleString()} ${n === 1 ? "parcel" : "parcels"} in groups modeled anyway came out below zero: left blank, and counted.`,
       neverBelow: "A value below zero never ships: the parcel stays blank and is counted.",
       applies: "Applies when the values are made (Finalize): the try models every group, to judge it.",
+    },
+    // Finalize and Model values (F9 slice 2): the values that ship, checked as step 4 checks the roll's.
+    final: {
+      lede: "Trains each group's models once more, on all of its sales, and values every parcel: the values that ship. The groups Small groups leaves unvalued are skipped; a value below zero is left blank.",
+      looksRight: "Looks right",
+      run: "Finalize",
+      again: "Finalize again",
+      stale:
+        "Something changed since the values were made (the try, a small group's choice, or Check my values' window or standards): finalize again.",
+      ran: (at: string, secs: number) => `Values made ${at}, in ${Math.round(secs)} s.`,
+      valuesLede:
+        "The model values against what parcels sold for, judged as Check my values judges the roll's, with the roll's on the same sales beside them.",
+      judgedOn: "Judged on",
+      sets: {
+        oof: "Out of fold",
+        held: "Held out",
+        valued: "As valued",
+      } as Record<string, string>,
+      setWhy: {
+        oof: "Each sale valued by a model that never saw it: the cross-validation's models, each trained without the sales it values. Every sale, honestly judged.",
+        held: "The sales the final models never trained on (after the valuation date), valued by the final models.",
+        valued:
+          "Every sale, valued by the final models, which trained on most of them: the values as they ship, but flattering.",
+      } as Record<string, string>,
+      noSales: (set: string) => `${set}: no sales in the window.`,
+      models: "Model values",
+      roll: (name: string) => `${name} (on the same sales)`,
+      noRoll: "No existing values loaded to compare with (Data › Assessed values).",
+      window: (n: number, start: string, end: string) =>
+        `${n.toLocaleString()} ${n === 1 ? "sale" : "sales"} from ${start} to ${end}.`,
+      groupsHead: "What every parcel got",
+      group: "Model group",
+      parcels: "Parcels",
+      valued: "Valued",
+      blank: "Left blank",
+      change: "Median change from the roll",
+      changeWhy: "The median of each parcel's model value over its roll value, less one.",
+      up: "Up over 20%",
+      down: "Down over 20%",
+      total: "Total value",
+      rollTotal: "The roll's, same parcels",
+      belowZero: (n: number) => `${n.toLocaleString()} below zero`,
+      totals: (valued: number, parcels: number) =>
+        `${valued.toLocaleString()} of ${parcels.toLocaleString()} parcels got a model value.`,
+      notes: "OpenAVMKit's notes",
     },
     // The models (F9): each model group's models, a try, and how they did.
     model: {

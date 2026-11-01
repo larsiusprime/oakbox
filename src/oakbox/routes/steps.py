@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from oakbox import assemble, bring_in, clean, model, prepare, projects, ratio, steps, vartest
+from oakbox import assemble, bring_in, clean, final, model, prepare, projects, ratio, steps, vartest
 from oakbox.routes.common import assemble_view, bring_in_view, clean_view, load_project
 
 router = APIRouter()
@@ -139,5 +139,17 @@ _step_routes(
     model.STEP,
     model.start,
     before=_write,
+    accept=model.STEP.accept,
     run_doc="Try the models: OpenAVMKit's try_models on the prepared fields, every model group.",
+)
+_step_routes(
+    "final",
+    final.FinalView,
+    lambda p: final.view(p, projects.project_dir(p.id)),
+    final.STEP,
+    final.start,
+    before=_write,
+    accept=final.accept,
+    run_doc="Finalize: OpenAVMKit's finalize_models, the groups Small groups leaves unvalued skipped, then the values"
+    " checked against the sales (out of fold, held out, as valued) beside the roll's.",
 )

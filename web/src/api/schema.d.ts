@@ -1373,6 +1373,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Model Accept */
+        post: operations["model_accept_api_projects__project_id__model_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Final State */
+        get: operations["final_state_api_projects__project_id__final_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Final Run
+         * @description Finalize: OpenAVMKit's finalize_models, the groups Small groups leaves unvalued skipped, then the values checked against the sales (out of fold, held out, as valued) beside the roll's.
+         */
+        post: operations["final_run_api_projects__project_id__final_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Final Stop */
+        post: operations["final_stop_api_projects__project_id__final_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Final Accept */
+        post: operations["final_accept_api_projects__project_id__final_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/bring-in/run": {
         parameters: {
             query?: never;
@@ -3668,6 +3756,65 @@ export interface components {
             /** How */
             how: string;
         };
+        /** FinalReceipt */
+        FinalReceipt: {
+            /** Ran At */
+            ran_at: string;
+            /** Seconds */
+            seconds: number;
+            /** Engine */
+            engine: string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /**
+             * Price
+             * @enum {string}
+             */
+            price: "sold" | "time_adjusted";
+            /** Trim */
+            trim: boolean;
+            /**
+             * Roll
+             * @description The existing values beside the model's (their name); None: none loaded.
+             */
+            roll: string | null;
+            /** Sets */
+            sets: components["schemas"]["SetResult"][];
+            /** Groups */
+            groups: components["schemas"]["oakbox__final__GroupValues"][];
+            /** Notes */
+            notes: string[];
+        };
+        /** FinalView */
+        FinalView: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "never" | "running" | "failed" | "stopped" | "done";
+            job: components["schemas"]["Job"] | null;
+            /**
+             * Stale
+             * @description Something it depends on changed since it ran.
+             */
+            stale: boolean;
+            /**
+             * Blocked
+             * @description What stops it running.
+             */
+            blocked: string[];
+            receipt: components["schemas"]["FinalReceipt"] | null;
+            /** Accepted */
+            accepted: boolean;
+        };
         /** Fold */
         Fold: {
             /** Field */
@@ -3938,18 +4085,6 @@ export interface components {
              * @description Valid sales of these parcels.
              */
             sales: number;
-        };
-        /** GroupValues */
-        GroupValues: {
-            /** Field */
-            field: string;
-            /** Rows */
-            rows: components["schemas"]["GroupValue"][];
-            /**
-             * More
-             * @description GroupValues not shown.
-             */
-            more: number;
         };
         /** GroupWhy */
         GroupWhy: {
@@ -6976,6 +7111,23 @@ export interface components {
             /** Roll */
             roll: boolean;
         };
+        /** SetResult */
+        SetResult: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "oof" | "held" | "valued";
+            /**
+             * Sales
+             * @description Sales in the window with a value in this set.
+             */
+            sales: number;
+            /** @description The model values' study; None: no sales. */
+            model: components["schemas"]["FieldResult"] | null;
+            /** @description The roll's on the same sales; None: no roll loaded. */
+            roll: components["schemas"]["FieldResult"] | null;
+        };
         /** SmallChoice */
         SmallChoice: {
             /**
@@ -8840,6 +8992,69 @@ export interface components {
              * @description What its index is of, as chosen; None: automatic.
              */
             per: ("impr" | "land") | null;
+        };
+        /** GroupValues */
+        oakbox__final__GroupValues: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string;
+            /** Parcels */
+            parcels: number;
+            /**
+             * Valued
+             * @description Parcels given a model value.
+             */
+            valued: number;
+            /**
+             * Unvalued
+             * @description Why it has no values: not modeled, left unvalued, too few sales.
+             */
+            unvalued: string | null;
+            /**
+             * Blanked
+             * @description Parcels valued below zero: left blank.
+             */
+            blanked: number;
+            /**
+             * Median Change
+             * @description The median of model value ÷ the roll's, less 1.
+             */
+            median_change: number | null;
+            /**
+             * Up
+             * @description Parcels valued over 20% above the roll.
+             */
+            up: number;
+            /**
+             * Down
+             * @description Parcels valued over 20% below the roll.
+             */
+            down: number;
+            /**
+             * Total
+             * @description The model values summed.
+             */
+            total: number | null;
+            /**
+             * Roll Total
+             * @description The roll's values summed, on the same parcels.
+             */
+            roll_total: number | null;
+        };
+        /** GroupValues */
+        oakbox__groups__GroupValues: {
+            /** Field */
+            field: string;
+            /** Rows */
+            rows: components["schemas"]["GroupValue"][];
+            /**
+             * More
+             * @description GroupValues not shown.
+             */
+            more: number;
         };
         /** LocationField */
         oakbox__locstack__LocationField: {
@@ -11424,6 +11639,161 @@ export interface operations {
             };
         };
     };
+    model_accept_api_projects__project_id__model_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_state_api_projects__project_id__final_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_run_api_projects__project_id__final_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_stop_api_projects__project_id__final_stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_accept_api_projects__project_id__final_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     bring_in_run_api_projects__project_id__bring_in_run_post: {
         parameters: {
             query?: never;
@@ -11780,7 +12150,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroupValues"];
+                    "application/json": components["schemas"]["oakbox__groups__GroupValues"];
                 };
             };
             /** @description Validation Error */

@@ -4,9 +4,20 @@ import { stepChanged, stepsAfter } from "./steps";
 
 describe("the steps after a step", () => {
   it("follows the pipeline down, however far", () => {
-    expect(stepsAfter("bring-in")).toEqual(["assemble", "clean", "prepare", "vartest", "model", "ratio"]);
-    expect(stepsAfter("clean").sort()).toEqual(["model", "prepare", "ratio", "vartest"]);
-    expect(stepsAfter("model")).toEqual([]);
+    expect(stepsAfter("bring-in")).toEqual([
+      "assemble",
+      "clean",
+      "prepare",
+      "vartest",
+      "model",
+      "final",
+      "ratio",
+    ]);
+    expect(stepsAfter("clean").sort()).toEqual(["final", "model", "prepare", "ratio", "vartest"]);
+    // Finalize follows the try, and is judged as Check my values judges.
+    expect(stepsAfter("model")).toEqual(["final"]);
+    expect(stepsAfter("ratio")).toEqual(["final"]);
+    expect(stepsAfter("final")).toEqual([]);
   });
 });
 

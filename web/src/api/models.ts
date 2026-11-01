@@ -93,6 +93,10 @@ export function useSetSmall(projectId: string) {
           body: { choice },
         }),
       ),
-    onSuccess: (data) => queryClient.setQueryData(smallKey(projectId), data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(smallKey(projectId), data);
+      // What Finalize leaves unvalued changed: it may be out of date.
+      stepChanged(queryClient, projectId, "model", false);
+    },
   });
 }
