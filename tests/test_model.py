@@ -356,14 +356,18 @@ def test_nearby_sales_and_buildings(prepared):
     p = _project()
     p.groups.append(projects.ModelGroup(id="th", name="Townhomes", color="#111"))
     s = model.settings(p, prepared)
+    # Only what's offered is worked out (OpenAVMKit's spatial_lag.only): the sales' prices, the parcels' fields.
     assert s["data"]["process"]["enrich"]["spatial_lag"] == {
-        "model_groups": {"sf": {"sample_from": ["sf"]}, "th": {"sample_from": ["th"]}}
+        "only": True,
+        "sales": ["price", "price_impr"],
+        "fields": {"bldg_area_finished_sqft": 5, "land_area_sqft": 5, "floor_area_ratio": 5, "bldg_age_years": 5},
+        "model_groups": {"sf": {"sample_from": ["sf"]}, "th": {"sample_from": ["th"]}},
     }
     model.change(
         p, model.ModelPatch(lag_borrow=model.LagBorrow(group="th", sources=["sf", "th"]), lag_fields=["bath_half"])
     )
     lag = model.settings(p, prepared)["data"]["process"]["enrich"]["spatial_lag"]
-    assert lag["model_groups"]["th"] == {"sample_from": ["th", "sf"]} and lag["fields"] == {"bath_half": 5}
+    assert lag["model_groups"]["th"] == {"sample_from": ["th", "sf"]} and lag["fields"]["bath_half"] == 5
     assert "spatial_lag_bath_half" in {v.field for v in model.variables(p, prepared)}
     with pytest.raises(ValueError):
         model.change(p, model.ModelPatch(lag_borrow=model.LagBorrow(group="th", sources=["nowhere"])))
@@ -393,6 +397,9 @@ def test_nearby_sales_and_buildings(prepared):
     # OpenAVMKit's own averages can't be turned off: unticked, they're computed but not offered (nor kept in lists).
     model.change(p, model.ModelPatch(lag_own=["spatial_lag_sale_price", "spatial_lag_land_area_sqft"]))
     assert "spatial_lag_bldg_age_years" in p.model.lag.skip and "spatial_lag_sale_price" not in p.model.lag.skip
+    # And not worked out: only the picked ones are asked of OpenAVMKit.
+    lag = model.settings(p, prepared)["data"]["process"]["enrich"]["spatial_lag"]
+    assert lag["sales"] == ["price"] and lag["fields"] == {"land_area_sqft": 5, "bath_half": 5}
     offered = {v.field for v in model.variables(p, prepared) if v.field.startswith(model.LAG)}
     assert offered == {"spatial_lag_sale_price", "spatial_lag_land_area_sqft", "spatial_lag_bath_half"}
     view = model.setup(p, prepared).lag

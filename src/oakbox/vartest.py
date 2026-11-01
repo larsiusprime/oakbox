@@ -307,7 +307,9 @@ def _lag(project, project_dir: Path) -> dict:
     from oakbox import assemble
 
     modeled = assemble.modeled(project, project_dir)
-    return model.lag_settings(project, [g.id for g in project.groups if g.id in modeled])
+    return model.lag_settings(
+        project, [g.id for g in project.groups if g.id in modeled], model._universe_fields(project_dir)
+    )
 
 
 def _key(project, project_dir: Path) -> dict:

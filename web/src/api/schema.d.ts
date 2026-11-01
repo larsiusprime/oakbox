@@ -4263,7 +4263,7 @@ export interface components {
             fields: string[];
             /**
              * Skip
-             * @description OpenAVMKit's own averages not wanted (stable names): it works them all out (they can't be turned off), but these aren't offered as variables.
+             * @description OpenAVMKit's own averages not wanted (stable names): not worked out (spatial_lag.only) nor offered as variables.
              */
             skip: string[];
         };

@@ -2210,7 +2210,7 @@ export const t = {
       how: "OpenAVMKit's spatial lag: the 5 nearest of each, weighted by distance, fading out by about half a mile.",
       own: "Averages",
       noOwn: "None of these",
-      ownWhy: "OpenAVMKit works them all out; those not picked aren't offered as variables.",
+      ownWhy: "Only those picked are worked out and offered as variables.",
       group: "Model group",
       sales: "Sales",
       averages: "Averages the sales of",

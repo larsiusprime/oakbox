@@ -153,8 +153,8 @@ class LagState(BaseModel):
     fields: list[str] = Field(default_factory=list, description="Fields averaged besides OpenAVMKit's own.")
     skip: list[str] = Field(
         default_factory=list,
-        description="OpenAVMKit's own averages not wanted (stable names): it works them all out (they can't be turned"
-        " off), but these aren't offered as variables.",
+        description="OpenAVMKit's own averages not wanted (stable names): not worked out (spatial_lag.only) nor"
+        " offered as variables.",
     )
 
 
@@ -496,15 +496,22 @@ def lag_prune(settings: dict, universe) -> list[str]:
     return few
 
 
-def lag_settings(project, modeled: list[str]) -> dict:
-    """data.process.enrich.spatial_lag: each modeled group averages its own sales and any it borrows; the user's
-    fields besides OpenAVMKit's own (5 nearest each)."""
+def lag_settings(project, modeled: list[str], columns: list[str] | set[str]) -> dict:
+    """data.process.enrich.spatial_lag: each modeled group averages its own sales and any it borrows; and only the
+    averages picked are worked out (`only`, OpenAVMKit's `engine/enrich-fixes`): the sales' prices as `sales`, the
+    parcels' fields (OpenAVMKit's own picked, and the user's) as `fields`, 5 nearest each. `columns`: the prepared
+    universe's, so a field it doesn't have isn't asked for."""
     lag = project.model.lag
     if not lag.on or not modeled:
         return {}
+    u = "sqft" if project.units == "imperial" else "sqm"
+    price = {LAG_PRICE: "price", f"{LAG_PRICE}_impr_{u}": "price_impr"}
+    chosen = [f for f, _ in lag_fields(project, columns)]
     return {
+        "only": True,
+        "sales": [price[f] for f in chosen if f in price],
+        "fields": {f.removeprefix(LAG): 5 for f in chosen if f not in price},
         "model_groups": {g: {"sample_from": [g, *[x for x in lag.borrow.get(g, []) if x != g]]} for g in modeled},
-        **({"fields": {f: 5 for f in lag.fields}} if lag.fields else {}),
     }
 
 
@@ -659,7 +666,11 @@ def settings(project, project_dir: Path) -> dict:
         "variable_lists": {x.id: [lag_actual(v, sale) for v in x.variables] for x in all_lists},
         **(
             {"data": {"process": {"enrich": {"spatial_lag": lag}}}}
-            if (lag := lag_settings(project, [g.id for g in project.groups if g.id in modeled]))
+            if (
+                lag := lag_settings(
+                    project, [g.id for g in project.groups if g.id in modeled], _universe_fields(project_dir)
+                )
+            )
             else {}
         ),
         "modeling": {
