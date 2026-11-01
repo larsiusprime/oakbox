@@ -981,26 +981,30 @@ a.row-title:hover {
   background: rgba(20, 22, 24, 0.45);
 }
 
-/* A dialog is a Manila folder handed to you: its title the tab, what it says on one sheet of paper in it (D21). The
-   folder's shape (tab and body) is drawn by the background, its edge and shadow follow that shape. */
+/* A dialog that blocks the screen is part of the box, not the papers (D21): a light oak frame, its title on a brass
+   plate on the frame (no text on bare wood), what it says on one sheet of white paper inside. */
 .modal {
-  --tab-h: 2.4rem;
   width: min(100%, 34rem);
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  background: none;
-  border: none;
-  filter: drop-shadow(0 0 0.6px #8f7a40) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+  padding: 0 9px 9px;
+  border: 1px solid #4a2e15;
+  border-radius: 4px;
+  background:
+    linear-gradient(rgba(255, 248, 235, 0.22), rgba(60, 30, 5, 0.18)),
+    url("./assets/oak-h.svg") 0 0 / 1280px 120px repeat,
+    #b98450;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 215, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.55);
 }
 
 .modal-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding: 0 0.6rem 0.6rem;
+  padding: 0;
   outline: none;
-  background: linear-gradient(transparent var(--tab-h), var(--manila) var(--tab-h));
-  border-radius: 0 5px 5px 5px;
 }
 
 .modal-body p {
@@ -5001,38 +5005,87 @@ table.tbl.dt > * > tr > :is(th, td) {
   margin: 0 var(--pad) var(--pad);
 }
 
-/* the tab */
+/* The dialog's title: a brass plate on its frame. */
 .modal-body > .modal-title {
   justify-self: start;
   display: flex;
   align-items: center;
-  height: var(--tab-h);
-  margin: 0 0 0.6rem -0.6rem;
-  padding: 0 1.1rem;
-  font-size: 1.2rem;
+  margin: 8px 0;
+  padding: 0.3rem 1.6rem;
+  font-size: 1.1rem;
   font-weight: 650;
-  background: var(--manila);
-  border-radius: 7px 7px 0 0;
+  color: var(--plate-text);
+  border: 1px solid var(--plate-edge);
+  border-radius: 3px;
+  background: linear-gradient(to bottom, var(--plate-hi), var(--plate-mid) 55%, var(--plate-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 1px rgba(30, 15, 0, 0.45),
+    0 2px 5px rgba(30, 15, 0, 0.2);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
-/* the sheet: everything after the title, one continuous piece of paper */
+/* The sheet: everything after the title, one continuous piece of paper set into the frame. */
 .modal-body > :not(.modal-title) {
   margin: 0;
   padding: 0.3rem 0.9rem;
   background: var(--paper);
-  box-shadow:
-    1px 0 0 var(--paper-edge),
-    -1px 0 0 var(--paper-edge);
+}
+
+.modal-body > :not(.modal-title):first-child,
+.modal-body > .modal-title + * {
+  margin-top: 9px;
+  padding-top: 0.8rem;
+  border-radius: 2px 2px 0 0;
 }
 
 .modal-body > .modal-title + * {
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--paper-edge);
-  border-radius: 2px 2px 0 0;
+  margin-top: 0;
 }
 
 .modal-body > :not(.modal-title):last-child {
   padding-bottom: 0.9rem;
-  border-bottom: 1px solid var(--paper-edge);
   border-radius: 0 0 2px 2px;
+  box-shadow: 0 1px 0 rgba(40, 20, 5, 0.35);
+}
+
+:root[data-contrast="high"] .modal {
+  background: #000000;
+  border-color: #ffffff;
+}
+
+/* A pop-up attached to something on the page (a value list, a picker, the parcel inspector on the map) belongs to the
+   papers: Manila, its heading on the Manila with no line under it, its list or table on white paper (D21). Plain
+   dropdown lists are controls, unchanged. */
+.vals-popover,
+.mp-popover,
+.popover:has(> .popover-body),
+.mg-pop {
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(40, 25, 5, 0.3);
+}
+
+.vals-popover .vals-scroll,
+.mp-popover .mp-list,
+.mg-pop .mg-pop-tbl,
+.mg-pop .mg-why {
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(70, 55, 20, 0.12);
+}
+
+.mp-popover .mp-list {
+  padding: 0.25rem 0.35rem;
+}
+
+.mg-pop .mg-why {
+  padding: 0.35rem 0.5rem 0.35rem 1.6rem;
+}
+
+.vals-title,
+.mg-pop-title {
+  font-size: 1.05rem;
 }
