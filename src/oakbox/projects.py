@@ -156,6 +156,16 @@ class Center(BaseModel):
     longitude: float = Field(ge=-180, le=180)
 
 
+class ReportState(BaseModel):
+    """Step 7, Report: its calls (report.py)."""
+
+    sets: list[Literal["oof", "held", "valued"]] = Field(
+        default_factory=lambda: ["oof", "held", "valued"],
+        description="The sets of sales the report judges the values on: out of fold, held out, as valued.",
+    )
+    title: str | None = Field(default=None, description="The report's title; None: made from the project's name.")
+
+
 class Project(BaseModel):
     id: str
     name: str
@@ -183,6 +193,9 @@ class Project(BaseModel):
     clean: CleanState = Field(default_factory=CleanState, description="Step 3, Check sales: its calls (F6).")
     ratio: RatioState = Field(default_factory=RatioState, description="Step 4, Check my values: its calls (F8).")
     model: ModelState = Field(default_factory=ModelState, description="Step 5, the models: variables and models (F9).")
+    report: ReportState = Field(
+        default_factory=ReportState, description="Step 7, Report: what it judges on, its title."
+    )
 
     @model_validator(mode="before")
     @classmethod

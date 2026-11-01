@@ -16,6 +16,7 @@ import { CheckValuesTab } from "./CheckValues";
 import { FieldsTab } from "./FieldsWizard";
 import { ModelGroupsTab } from "./ModelGroups";
 import { ValuesTab } from "./ModelValues";
+import { ReportTab } from "./ReportTab";
 import { VariablesTab } from "./Variables";
 
 export const TABS = [
@@ -27,9 +28,9 @@ export const TABS = [
   "check",
   "variables",
   "values",
+  "report",
 ] as const;
 export type TabId = (typeof TABS)[number];
-const PLACEHOLDERS = ["later-1"] as const;
 
 /** F3: the project view, one tabbed panel (SPEC §3.0). */
 export function ProjectScreen({
@@ -72,6 +73,8 @@ function ProjectView({
   const hasValues = useStep("ratio", projectId).data?.has_values ?? true;
   // Model values once the fields are prepared and Looks right pressed (Variables › What changed).
   const prepared = useStep("prepare", projectId).data?.accepted ?? false;
+  // Report once the model values have had Looks right (Model values › Model values).
+  const finalized = useStep("final", projectId).data?.accepted ?? false;
   // Asked for a tab that waits on an earlier step: shown that step's tab instead, and why, never silently.
   const views = {
     bring: useStep("bring-in", projectId).data,
@@ -90,7 +93,8 @@ function ProjectView({
     (tab === "sales" && !grouped) ||
     ((tab === "values" || tab === "variables" || tab === "check") && !checked) ||
     (tab === "check" && !hasValues) ||
-    (tab === "values" && !prepared);
+    (tab === "values" && !prepared) ||
+    (tab === "report" && !finalized);
   const loaded = order.every((k) => views[k] !== undefined);
   const selected = !tab
     ? "fields"
@@ -115,12 +119,12 @@ function ProjectView({
           .join(" ")
       : null;
   const locked = [
-    ...PLACEHOLDERS,
     ...(accepted ? [] : ["groups"]),
     ...(grouped ? [] : ["sales"]),
     ...(checked ? [] : ["check", "variables", "values"]),
     ...(hasValues ? [] : ["check"]),
     ...(prepared ? [] : ["values"]),
+    ...(finalized ? [] : ["report"]),
   ];
 
   return (
@@ -188,11 +192,13 @@ function ProjectView({
           >
             {t.tabs.values}
           </Tab>
-          {PLACEHOLDERS.map((id) => (
-            <Tab key={id} id={id} className="folder-tab" aria-label={t.tabs.later}>
-              <span aria-hidden="true">· · ·</span>
-            </Tab>
-          ))}
+          <Tab
+            id="report"
+            className="folder-tab"
+            aria-description={finalized ? undefined : t.tabs.reportLocked}
+          >
+            {t.tabs.report}
+          </Tab>
         </TabList>
         <TabPanel id="metadata" className="folder-panel">
           <MetadataTab detail={detail} />
@@ -221,6 +227,9 @@ function ProjectView({
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
           <ValuesTab projectId={projectId} currency={project.currency} units={project.units} />
+        </TabPanel>
+        <TabPanel id="report" className="folder-panel">
+          <ReportTab projectId={projectId} />
         </TabPanel>
       </Tabs>
     </div>

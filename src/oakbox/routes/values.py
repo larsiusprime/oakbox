@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
-from oakbox import final, projects, ratio
+from oakbox import final, projects, ratio, report
 from oakbox.routes.common import load_project
 
 router = APIRouter()
@@ -66,3 +68,82 @@ def ratio_points(project_id: str, field: str, group: str = "") -> list[tuple[flo
     """Each sale studied: its price, its ratio, and whether it was trimmed."""
     load_project(project_id)
     return ratio.points(projects.project_dir(project_id), field, group or None)
+
+
+# ---------- Step 7, Report (SPEC §4) ----------
+
+
+@router.get("/api/projects/{project_id}/report")
+def report_view(project_id: str) -> report.ReportView:
+    """Whether there are values to report, the sets the report judges them on, its title, the export formats."""
+    project = load_project(project_id)
+    return report.view(project, projects.project_dir(project_id))
+
+
+@router.patch("/api/projects/{project_id}/report")
+def report_change(project_id: str, body: report.ReportPatch) -> report.ReportView:
+    project = load_project(project_id)
+    try:
+        report.change(project, body)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    projects.save(project)
+    return report.view(project, projects.project_dir(project_id))
+
+
+class ExportBody(BaseModel):
+    format: report.Format
+
+
+@router.post("/api/projects/{project_id}/report/export")
+def report_export(project_id: str, body: ExportBody) -> report.ExportResult:
+    """Every parcel's model value, beside the roll's, written to out/oakbox/report/export/."""
+    project = load_project(project_id)
+    try:
+        return report.export(project, projects.project_dir(project_id), body.format)
+    except LookupError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@router.get("/api/projects/{project_id}/report/html", response_class=HTMLResponse)
+def report_html(project_id: str) -> HTMLResponse:
+    """The report as it is now (also written to out/oakbox/report/), to read, print or save as PDF."""
+    project = load_project(project_id)
+    try:
+        path = report.write(project, projects.project_dir(project_id))
+    except LookupError as e:
+        raise HTTPException(409, str(e)) from e
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+class ShowBody(BaseModel):
+    path: str
+
+
+@router.post("/api/projects/{project_id}/report/show")
+def report_show(project_id: str, body: ShowBody) -> None:
+    """Show a file the report step wrote in the file manager."""
+    load_project(project_id)
+    pdir = projects.project_dir(project_id)
+    path = (pdir / body.path).resolve()
+    if not path.is_relative_to(report.out_dir(pdir).resolve()):
+        raise HTTPException(422, "Only the report's own files.")
+    try:
+        projects.show_file(path)
+    except OSError as e:
+        raise HTTPException(500, str(e)) from e
+
+
+@router.post("/api/projects/{project_id}/report/open")
+def report_open(project_id: str) -> str:
+    """Write the report and open it in the computer's browser, to print or save as PDF. Its path, from the project."""
+    import webbrowser
+
+    project = load_project(project_id)
+    pdir = projects.project_dir(project_id)
+    try:
+        path = report.write(project, pdir)
+    except LookupError as e:
+        raise HTTPException(409, str(e)) from e
+    webbrowser.open(path.as_uri())
+    return str(path.relative_to(pdir))

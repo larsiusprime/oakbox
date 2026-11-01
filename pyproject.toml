@@ -20,6 +20,7 @@ dependencies = [
     "truststore>=0.10",
     # Already there for OSMnx: the online check asks as the downloads do.
     "requests>=2.31",
+    "openpyxl>=3.1",
 ]
 
 [dependency-groups]

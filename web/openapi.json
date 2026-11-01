@@ -5892,6 +5892,272 @@
      }
     }
    }
+  },
+  "/api/projects/{project_id}/report": {
+   "get": {
+    "summary": "Report View",
+    "description": "Whether there are values to report, the sets the report judges them on, its title, the export formats.",
+    "operationId": "report_view_api_projects__project_id__report_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReportView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "summary": "Report Change",
+    "operationId": "report_change_api_projects__project_id__report_patch",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReportPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReportView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/report/export": {
+   "post": {
+    "summary": "Report Export",
+    "description": "Every parcel's model value, beside the roll's, written to out/oakbox/report/export/.",
+    "operationId": "report_export_api_projects__project_id__report_export_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ExportBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ExportResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/report/html": {
+   "get": {
+    "summary": "Report Html",
+    "description": "The report as it is now (also written to out/oakbox/report/), to read, print or save as PDF.",
+    "operationId": "report_html_api_projects__project_id__report_html_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/report/show": {
+   "post": {
+    "summary": "Report Show",
+    "description": "Show a file the report step wrote in the file manager.",
+    "operationId": "report_show_api_projects__project_id__report_show_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ShowBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/report/open": {
+   "post": {
+    "summary": "Report Open",
+    "description": "Write the report and open it in the computer's browser, to print or save as PDF. Its path, from the project.",
+    "operationId": "report_open_api_projects__project_id__report_open_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "string",
+         "title": "Response Report Open Api Projects  Project Id  Report Open Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -8842,6 +9108,58 @@
     ],
     "title": "EntryWarning"
    },
+   "ExportBody": {
+    "properties": {
+     "format": {
+      "type": "string",
+      "enum": [
+       "csv",
+       "gpkg",
+       "xlsx",
+       "shp",
+       "parquet"
+      ],
+      "title": "Format"
+     }
+    },
+    "type": "object",
+    "required": [
+     "format"
+    ],
+    "title": "ExportBody"
+   },
+   "ExportResult": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path",
+      "description": "Where it was written, from the project's folder."
+     },
+     "rows": {
+      "type": "integer",
+      "title": "Rows"
+     },
+     "bytes": {
+      "type": "integer",
+      "title": "Bytes"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "rows",
+     "bytes",
+     "notes"
+    ],
+    "title": "ExportResult"
+   },
    "ExtraId": {
     "properties": {
      "field": {
@@ -9746,6 +10064,31 @@
      "parcels"
     ],
     "title": "Fold"
+   },
+   "FormatChoice": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "enum": [
+       "csv",
+       "gpkg",
+       "xlsx",
+       "shp",
+       "parquet"
+      ],
+      "title": "Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "label"
+    ],
+    "title": "FormatChoice"
    },
    "Funnel": {
     "properties": {
@@ -14408,6 +14751,10 @@
       "$ref": "#/components/schemas/ModelState",
       "description": "Step 5, the models: variables and models (F9)."
      },
+     "report": {
+      "$ref": "#/components/schemas/ReportState",
+      "description": "Step 7, Report: what it judges on, its title."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -14441,6 +14788,7 @@
      "clean",
      "ratio",
      "model",
+     "report",
      "accepted"
     ],
     "title": "Project"
@@ -15764,6 +16112,156 @@
     ],
     "title": "Repeats",
     "description": "What a file's ID column holds, for the duplicates notice and dialog (F3d)."
+   },
+   "ReportPatch": {
+    "properties": {
+     "sets": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string",
+         "enum": [
+          "oof",
+          "held",
+          "valued"
+         ]
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sets"
+     },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title",
+      "description": "\"\" back to the default."
+     }
+    },
+    "type": "object",
+    "title": "ReportPatch"
+   },
+   "ReportState": {
+    "properties": {
+     "sets": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "oof",
+        "held",
+        "valued"
+       ]
+      },
+      "type": "array",
+      "title": "Sets",
+      "description": "The sets of sales the report judges the values on: out of fold, held out, as valued."
+     },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title",
+      "description": "The report's title; None: made from the project's name."
+     }
+    },
+    "type": "object",
+    "required": [
+     "sets",
+     "title"
+    ],
+    "title": "ReportState",
+    "description": "Step 7, Report: its calls (report.py)."
+   },
+   "ReportView": {
+    "properties": {
+     "ready": {
+      "type": "boolean",
+      "title": "Ready",
+      "description": "Finalize has run: there are values to export and report."
+     },
+     "accepted": {
+      "type": "boolean",
+      "title": "Accepted",
+      "description": "Model values' Looks right was pressed on the values as they are."
+     },
+     "sets": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "oof",
+        "held",
+        "valued"
+       ]
+      },
+      "type": "array",
+      "title": "Sets"
+     },
+     "available": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "oof",
+        "held",
+        "valued"
+       ]
+      },
+      "type": "array",
+      "title": "Available",
+      "description": "The sets with sales to judge on."
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "default_title": {
+      "type": "string",
+      "title": "Default Title"
+     },
+     "formats": {
+      "items": {
+       "$ref": "#/components/schemas/FormatChoice"
+      },
+      "type": "array",
+      "title": "Formats"
+     },
+     "ran_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ran At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "ready",
+     "accepted",
+     "sets",
+     "available",
+     "title",
+     "default_title",
+     "formats",
+     "ran_at"
+    ],
+    "title": "ReportView"
    },
    "ReviewItem": {
     "properties": {
@@ -17322,6 +17820,19 @@
      "roll"
     ],
     "title": "SetResult"
+   },
+   "ShowBody": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path"
+    ],
+    "title": "ShowBody"
    },
    "SmallChoice": {
     "properties": {

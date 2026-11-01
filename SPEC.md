@@ -769,6 +769,19 @@ What stands between Prepare the fields (F7) and values a model made, and how ste
 
 **Settled (2026-10-29):** small groups are left unvalued; one variable list for every group in slice 1 (per-group lists in slice 3). **Revised 2026-10-31:** no Choose for me: every group starts with LightGBM, log MRA and Multi-MRA, each changeable; variable lists serve any groups.
 
+#### F10. Step 7, Report (its own tab, **7 Report**; built 2026-11-01, `report.py`, `ReportTab.tsx`)
+Opens once Model values has had Looks right (the tab waits for it, as the others do). Reads Finalize's output; runs nothing. Two steps:
+- **Export:** every parcel, one row each: key, model group, model value, the roll's value, change from the roll (%), value per finished area, why there's no value (not modeled, left unvalued, below zero…), the latest sale in the study window (price, date) and the ratio of the value as made to it, latitude and longitude. **Format** (a switch): CSV, GeoPackage, Excel, Shapefile, GeoParquet; GIS formats carry each parcel's shape (Bring in data's), or a point where there's none (said). Written to `out/oakbox/report/export/<project>_<year>_model_values.<ext>`, with **Show in folder**. Shapefile: names cut to 10 characters with a `_fields.csv` key, a warning over 2 GB. Excel: split across sheets past 1,048,575 rows. On the synthetic sample (9,354 parcels): CSV 0.1 s, Excel 1.3 s, GeoPackage 1.4 s (7 MB).
+- **Report:** a printable HTML page (settled 2026-11-01: HTML first, as good-looking as it can be made; Typst only if it falls short), previewed in the step, **Open in browser to print** (print, or save as PDF), and written to `out/oakbox/report/`. Calls: its **Title** (made from the project's name to start) and **Judge the values on** (the user decides: out of fold, held out, as valued; all three to start; at least one), saved as `project.report`. Its parts:
+  - **In brief** (a board member's page): how many parcels got a value, then per model group a sentence with the figures and targets ("Single-family: values sit at 0.945 of sale prices at the median (low; target 0.95 to 1.10), COD 13.2 (uniform; target 5 to 15), dearer and cheaper alike (VEI −2.1%); 158 sales. The roll on the same sales: 0.843, COD 14.1."), groups with too few sales or none said so, and the groups with no model value and why. A set chosen with no sales is said, not dropped.
+  - **Judged on … sales**, one per set chosen: per group, model values and the roll's on the same sales (in italics): sales, median ratio and its 90% interval, COD, PRD, PRB, VEI, CHD, vertical equity in words; marks that read in black and white (✓ met, ✗ missed, none: not judged).
+  - **Across prices:** the median ratio by fifths of the sales by price, per group, against the target band (SVG).
+  - **On the map:** each sale of the first set, by its ratio (SVG, no tiles: it prints).
+  - **What every parcel got:** as on Model values.
+  - **How the values were made:** the files, the sales kept and set aside, time adjustment, the ratio study's window and trimming, the standards, each group's models (and their variable lists), the variables, and what each statistic means.
+  - Letter pages, a page break before the long sections, system fonts; the footer names OpenAVMKit's version and when the values were finalized.
+- Not yet: picking sections, a logo and header text, filtering by location or class, saved presets and editable templates (§4.3).
+
 #### F4 onwards: building the joins (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
 
@@ -1225,7 +1238,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
   - sales scrutiny
   - variables
   - model summary
-- **Rendering:** Typst, replacing wkhtmltopdf, which OpenAVMKit still uses. Typst is open source, and its Python wheel needs no system install.
+- **Rendering:** printable HTML (built 2026-11-01, F10): the browser prints it or saves it as PDF. Typst (open source, a Python wheel with no system install) remains the fallback if HTML can't do what a report needs.
 - **For everyone:** pick sections, filter by location or class, add a logo and header text, choose a standards profile. Saved as a per-project report preset.
 - **For power users and consultants:** the reports are plain Typst template files. **Open template folder** copies them into the project. Edited templates are validated, with a fallback to the stock template on error. Jurisdiction packs ship as template sets.
 

@@ -2158,6 +2158,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report View
+         * @description Whether there are values to report, the sets the report judges them on, its title, the export formats.
+         */
+        get: operations["report_view_api_projects__project_id__report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Report Change */
+        patch: operations["report_change_api_projects__project_id__report_patch"];
+        trace?: never;
+    };
+    "/api/projects/{project_id}/report/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Export
+         * @description Every parcel's model value, beside the roll's, written to out/oakbox/report/export/.
+         */
+        post: operations["report_export_api_projects__project_id__report_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/report/html": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Report Html
+         * @description The report as it is now (also written to out/oakbox/report/), to read, print or save as PDF.
+         */
+        get: operations["report_html_api_projects__project_id__report_html_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/report/show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Show
+         * @description Show a file the report step wrote in the file manager.
+         */
+        post: operations["report_show_api_projects__project_id__report_show_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/report/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Open
+         * @description Write the report and open it in the computer's browser, to print or save as PDF. Its path, from the project.
+         */
+        post: operations["report_open_api_projects__project_id__report_open_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3493,6 +3594,28 @@ export interface components {
              */
             n: number;
         };
+        /** ExportBody */
+        ExportBody: {
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "csv" | "gpkg" | "xlsx" | "shp" | "parquet";
+        };
+        /** ExportResult */
+        ExportResult: {
+            /**
+             * Path
+             * @description Where it was written, from the project's folder.
+             */
+            path: string;
+            /** Rows */
+            rows: number;
+            /** Bytes */
+            bytes: number;
+            /** Notes */
+            notes: string[];
+        };
         /**
          * ExtraId
          * @description An extra ID of the parcel universe, for files that join on a different key (F3d).
@@ -3876,6 +3999,16 @@ export interface components {
              * @description Parcels whose value would become Other.
              */
             parcels: number;
+        };
+        /** FormatChoice */
+        FormatChoice: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "csv" | "gpkg" | "xlsx" | "shp" | "parquet";
+            /** Label */
+            label: string;
         };
         /** Funnel */
         Funnel: {
@@ -5991,6 +6124,8 @@ export interface components {
             ratio: components["schemas"]["RatioState"];
             /** @description Step 5, the models: variables and models (F9). */
             model: components["schemas"]["ModelState"];
+            /** @description Step 7, Report: what it judges on, its title. */
+            report: components["schemas"]["ReportState"];
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -6545,6 +6680,60 @@ export interface components {
              * @description The rows with no ID have been acknowledged.
              */
             blank_ok: boolean;
+        };
+        /** ReportPatch */
+        ReportPatch: {
+            /** Sets */
+            sets?: ("oof" | "held" | "valued")[] | null;
+            /**
+             * Title
+             * @description "" back to the default.
+             */
+            title?: string | null;
+        };
+        /**
+         * ReportState
+         * @description Step 7, Report: its calls (report.py).
+         */
+        ReportState: {
+            /**
+             * Sets
+             * @description The sets of sales the report judges the values on: out of fold, held out, as valued.
+             */
+            sets: ("oof" | "held" | "valued")[];
+            /**
+             * Title
+             * @description The report's title; None: made from the project's name.
+             */
+            title: string | null;
+        };
+        /** ReportView */
+        ReportView: {
+            /**
+             * Ready
+             * @description Finalize has run: there are values to export and report.
+             */
+            ready: boolean;
+            /**
+             * Accepted
+             * @description Model values' Looks right was pressed on the values as they are.
+             */
+            accepted: boolean;
+            /** Sets */
+            sets: ("oof" | "held" | "valued")[];
+            /**
+             * Available
+             * @description The sets with sales to judge on.
+             */
+            available: ("oof" | "held" | "valued")[];
+            /** Title */
+            title: string;
+            /** Default Title */
+            default_title: string;
+            /** Formats */
+            formats: components["schemas"]["FormatChoice"][];
+            /** Ran At */
+            ran_at: string | null;
         };
         /** ReviewItem */
         ReviewItem: {
@@ -7201,6 +7390,11 @@ export interface components {
             model: components["schemas"]["FieldResult"] | null;
             /** @description The roll's on the same sales; None: no roll loaded. */
             roll: components["schemas"]["FieldResult"] | null;
+        };
+        /** ShowBody */
+        ShowBody: {
+            /** Path */
+            path: string;
         };
         /** SmallChoice */
         SmallChoice: {
@@ -13165,6 +13359,204 @@ export interface operations {
                         number,
                         boolean
                     ][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_view_api_projects__project_id__report_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_change_api_projects__project_id__report_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_export_api_projects__project_id__report_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_html_api_projects__project_id__report_html_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_show_api_projects__project_id__report_show_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShowBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_open_api_projects__project_id__report_open_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Validation Error */

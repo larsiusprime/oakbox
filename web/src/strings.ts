@@ -1137,16 +1137,49 @@ export const t = {
     check: "4 Check my values",
     variables: "5 Variables",
     values: "6 Model values",
+    report: "7 Report",
+    reportLocked: "Press Looks right on Model values first",
     modelsLocked: "Press Looks right on Variables › What changed first",
     noValues: "No existing values to check: add them on Data › Existing values.",
     valuesLocked: "Press Looks right on Check sales first",
-    later: "Not available yet",
     waits: (asked: string, shown: string) =>
       `${asked.replace(/^\d+ /, "")} waits for ${shown.replace(/^\d+ /, "")}.`,
     runAgain: (step: string) =>
       `${step.replace(/^\d+ /, "")} is out of date: run it again, then press Looks right.`,
     pressLooksRight: (step: string) => `Press Looks right on ${step.replace(/^\d+ /, "")} first.`,
     bringChanged: (what: string) => `What changed: ${what}.`,
+  },
+
+  // Step 7, Report: the model values out of OAK box, as files and as a report to print.
+  report: {
+    kicker: "Step 7 of 7",
+    steps: { export: "Export", report: "Report" },
+    notReady: "Finalize the values first (Model values › Finalize).",
+    notAccepted:
+      "The values haven't had Looks right on Model values: what's exported and reported is as finalized.",
+    exportLede:
+      "Every parcel's model value beside the roll's, why a parcel has none, and for parcels that sold, the sale and its ratio. A file per format, in the project's folder.",
+    format: "Format",
+    write: "Write the file",
+    writing: "Writing…",
+    wrote: (rows: number, size: string, path: string) =>
+      `Wrote ${rows.toLocaleString()} parcels (${size}) to ${path}.`,
+    show: "Show in folder",
+    columns:
+      "Columns: key, model group, model value, the roll's value, change from the roll (%), value per finished area, why there's no value, the latest sale in the study window (price, date) and its ratio, latitude and longitude. GIS formats carry each parcel's shape.",
+    reportLede:
+      "One page to print, or save as PDF: what a board member needs first, then the values judged against the sales beside the roll's, across prices and on a map, what every parcel got, and how the values were made.",
+    title: "Title",
+    sets: "Judge the values on",
+    setNames: {
+      oof: "Out-of-fold sales: each valued by a model that never saw it",
+      held: "Held-out sales: never trained on, valued by the final models",
+      valued: "As valued: every sale, by the final models (flattering)",
+    } as Record<string, string>,
+    noSales: (names: string) => `No sales in the window for: ${names}. The report says so.`,
+    open: "Open in browser to print",
+    opened: (path: string) => `Opened ${path} in your browser: print it, or save it as PDF.`,
+    preview: "Report preview",
   },
 
   // Step 1, Bring in data: OpenAVMKit loads and joins the files into the parcel universe and the sales record.
@@ -1171,7 +1204,7 @@ export const t = {
       `ran ${when} · ${seconds.toLocaleString()} seconds · OpenAVMKit ${engine}`,
   },
   bringIn: {
-    kicker: "Step 1 of 6 · after Data",
+    kicker: "Step 1 of 7 · after Data",
     steps: {
       plan: "What runs",
       run: "Bring in data",
@@ -1299,7 +1332,7 @@ export const t = {
   },
 
   groups: {
-    kicker: "Step 2 of 6",
+    kicker: "Step 2 of 7",
     title: "Model groups",
     lede: "Parcels valued together: each group gets its own models. A parcel joins the first group whose rule it meets, so order matters. Vacant parcels stay in their group.",
     notReady: "Bring in data first: model groups are made from its parcel universe.",
@@ -1465,7 +1498,7 @@ export const t = {
 
   // Step 3, Check sales: notebook 2 (clean), each call shown before it runs and every sale set aside listed after.
   sales: {
-    kicker: "Step 3 of 6",
+    kicker: "Step 3 of 7",
     steps: {
       window: "Sales window",
       time: "Time adjustment",
@@ -1903,7 +1936,7 @@ export const t = {
 
   // Step 4, Check my values: the values on the roll now, against what parcels sold for (SPEC F8).
   ratio: {
-    kicker: "Step 4 of 6",
+    kicker: "Step 4 of 7",
     what: {
       title: "Check your existing values?",
       lede: "See how the values you have (the roll, a vendor's AVM) do against the sales, before modelling: OpenAVMKit's ratio and equity studies, per model group and overall. Or skip to Model values: they're compared with the models there either way.",
@@ -2198,8 +2231,8 @@ export const t = {
 
   // Step 5, Build model values: it begins by preparing the fields for the models.
   values: {
-    kicker: "Step 5 of 6",
-    modelsKicker: "Step 6 of 6",
+    kicker: "Step 5 of 7",
+    modelsKicker: "Step 6 of 7",
     steps: {
       fill: "Fill blanks",
       rare: "Rare categories",
