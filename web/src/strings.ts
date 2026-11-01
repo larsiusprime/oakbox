@@ -2021,6 +2021,17 @@ export const t = {
       uniformWhy:
         "The COD: how far ratios typically sit from the median, as a % of it. Each group's category sets its range (single-family 5 to 15, say); under the range is suspiciously even (sales chasing, or an unrepresentative sample).",
       vertical: "Cheaper vs dearer",
+      // Model values' headings: the statistics' own names.
+      median: "Median ratio",
+      cod: "COD",
+      horizontal: "Horizontal equity",
+      horizontalWhy:
+        "Similar parcels valued alike? The CHD: within each group of similar parcels (Check sales' equity clusters), every parcel, sold or not, the average distance of values from their median, percent: the middle group's. The IAAO sets no target for it: shown, not judged.",
+      verticalEquity: "Vertical equity",
+      noChd: "not figured",
+      chdTight: "alike",
+      chdSome: "some spread",
+      chdWide: "wide spread",
       verticalWhy:
         "Are dearer parcels valued relatively higher or lower than cheaper ones? The VEI (the IAAO's vertical equity test), or with too few sales for it, the PRB.",
       inRange: "in range",

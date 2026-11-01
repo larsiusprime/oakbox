@@ -246,7 +246,8 @@ def run(project_id: str) -> None:
                 mine = _look(sales["key"], by_key) if k == "valued" else sales[FIELDS[k]]
                 sales[ROLLS[k]] = on_sale.where(mine.notna())
                 universe[ROLLS[k]] = np.nan
-            study_fields += [ROLLS[k] for k in SETS]
+            # And the roll itself, for its horizontal equity: every parcel's value, sold or not.
+            study_fields += [ROLLS[k] for k in SETS] + [roll[0]]
         steps.emit(step="study", fraction=0.9, message="Checking the values against the sales")
         cls = ratio.classes(project)
         studies = run_value_field_studies(
@@ -288,10 +289,33 @@ def run(project_id: str) -> None:
             trimmed=[],
         )
 
+    def spread(field: str | None) -> dict[str, tuple[int | None, float | None]]:
+        """Horizontal equity is of the parcels' values, not the sales': the same whichever sales judge them. Group
+        ("" for all) -> (equity clusters, median CHD)."""
+        study = studies.get(field or "")
+        if not study:
+            return {}
+        out = {
+            gid: ((g.get("horizontal") or {}).get("clusters"), (g.get("horizontal") or {}).get("median_chd"))
+            for gid, g in study["groups"].items()
+        }
+        h = study["overall"].get("horizontal") or {}
+        out[""] = (h.get("clusters"), h.get("median_chd"))
+        return out
+
+    def with_spread(res: ratio.FieldResult | None, by: dict[str, tuple[int | None, float | None]]):
+        if res is not None:
+            for g in [*res.groups, res.overall]:
+                if g.id in by:
+                    g.clusters, g.median_chd = by[g.id]
+        return res
+
+    model_spread = spread(VALUE)
+    roll_spread = spread(roll[0] if roll else None)
     sets = []
     for k in SETS:
-        m = result(FIELDS[k], "Model values")
-        r = result(ROLLS[k], roll[1]) if roll is not None else None
+        m = with_spread(result(FIELDS[k], "Model values"), model_spread)
+        r = with_spread(result(ROLLS[k], roll[1]), roll_spread) if roll is not None else None
         sets.append(SetResult(key=k, sales=m.overall.sales + m.overall.trimmed if m else 0, model=m, roll=r))
 
     per = values.groupby("model_group").size().to_dict()

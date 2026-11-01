@@ -4776,3 +4776,6 @@ table.tbl.dt > * > tr > :is(th, td) {
 .fv .rv-score th:nth-child(2) {
   width: 7%;
 }
+.fv .rv-score-4 th:first-child {
+  width: 20%;
+}

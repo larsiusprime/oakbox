@@ -28,22 +28,48 @@ export function judged(g: RatioStudy) {
 
 /** One line per model group, its three questions in columns: a mark, the figure, a word, aligned down the table so
  * groups compare at a glance. */
-export function Scorecard({ groups }: { groups: RatioStudy[] }) {
+export function Scorecard({ groups, technical = false }: { groups: RatioStudy[]; technical?: boolean }) {
   const c = r.card;
+  // Model values names the statistics, and adds horizontal equity: similar parcels, sold or not, valued alike.
+  const cols = technical ? 4 : 3;
+  const horizontal = (g: RatioStudy) =>
+    technical && (
+      <td>
+        <Score
+          v={null}
+          figure={g.median_chd == null ? "—" : num(g.median_chd, 1)}
+          word={
+            g.median_chd == null
+              ? c.noChd
+              : g.median_chd < 20
+                ? c.chdTight
+                : g.median_chd < 40
+                  ? c.chdSome
+                  : c.chdWide
+          }
+          note="CHD"
+        />
+      </td>
+    );
   return (
-    <table className="tbl rv-score">
+    <table className={technical ? "tbl rv-score rv-score-4" : "tbl rv-score"}>
       <thead>
         <tr>
           <th>{r.table.group}</th>
           <th className="cs-n">{r.table.sales}</th>
           <th>
-            <InfoTip label={c.level} text={c.levelWhy} />
+            <InfoTip label={technical ? c.median : c.level} text={c.levelWhy} />
           </th>
           <th>
-            <InfoTip label={c.uniform} text={c.uniformWhy} />
+            <InfoTip label={technical ? c.cod : c.uniform} text={c.uniformWhy} />
           </th>
+          {technical && (
+            <th>
+              <InfoTip label={c.horizontal} text={c.horizontalWhy} />
+            </th>
+          )}
           <th>
-            <InfoTip label={c.vertical} text={c.verticalWhy} />
+            <InfoTip label={technical ? c.verticalEquity : c.vertical} text={c.verticalWhy} />
           </th>
         </tr>
       </thead>
@@ -61,7 +87,7 @@ export function Scorecard({ groups }: { groups: RatioStudy[] }) {
               <tr key={g.id}>
                 {name}
                 <td className="cs-n">0</td>
-                <td colSpan={3} className="wiz-from">
+                <td colSpan={cols} className="wiz-from">
                   {c.noSales}
                 </td>
               </tr>
@@ -74,7 +100,7 @@ export function Scorecard({ groups }: { groups: RatioStudy[] }) {
                 <td>
                   <Score v={null} figure={ratioText(g.median)} />
                 </td>
-                <td colSpan={2} className="wiz-from">
+                <td colSpan={cols - 1} className="wiz-from">
                   {c.tooFew}
                 </td>
               </tr>
@@ -103,6 +129,7 @@ export function Scorecard({ groups }: { groups: RatioStudy[] }) {
                   word={v.cod_low ? c.tooEven : v.cod === false ? c.varied : c.even}
                 />
               </td>
+              {horizontal(g)}
               <td>
                 <Score
                   v={byVei ? verdictOf(veiOk(g)) : prbVerdict(g)}

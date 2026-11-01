@@ -38,11 +38,11 @@ export function FinalValues({ receipt, currency }: { receipt: Receipt; currency:
         <>
           <p className="wiz-from">{f.window(set.sales, receipt.start, receipt.end)}</p>
           <h3 className="fv-h">{f.models}</h3>
-          <Scorecard groups={[...set.model.groups, set.model.overall]} />
+          <Scorecard groups={[...set.model.groups, set.model.overall]} technical />
           {receipt.roll && set.roll ? (
             <>
               <h3 className="fv-h">{f.roll(receipt.roll)}</h3>
-              <Scorecard groups={[...set.roll.groups, set.roll.overall]} />
+              <Scorecard groups={[...set.roll.groups, set.roll.overall]} technical />
             </>
           ) : (
             !receipt.roll && <p className="wiz-from">{f.noRoll}</p>
