@@ -1159,17 +1159,44 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 
 ### 3.14 Menus and window
 
+Inside a project: the oak band (▒) with the plate on it (D21), the folder tabs standing on its edge, and the open one (here Model groups) running into the page:
+
 ```
-┌ Travis County 2026 – OAK box ───────────────────────────── _ □ × ┐
-│ File  View  Project  Help                                        │
-├──────────────────────────────────────────────────────────────────┤
-│ ‹ Projects   Travis County 2026   Tax year 2026                  │
-│ [⚙ Metadata][🗃 Input files][···][···][···]                      │
+┌ Travis County 2026 – OAK box ───────────────────────────────────────── _ □ × ┐
+│ File  View  Project  Help                                                    │
+├──────────────────────────────────────────────────────────────────────────────┤
+│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+│▒ ╔═════════════════════════════════════════════════╗ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+│▒ ║ ⊘ OAK box │ Travis County 2026 · Tax year 2026 ⊘ ║ the plate: where you  ▒│
+│▒ ╚═════════════════════════════════════════════════╝ are, and home          ▒│
+│▒ ┌──────────┬──────┬────────────┬────────────────┬─────────┬──────────────┐ ▒│
+│▒ │ Metadata │ Data │ 1 Bring in │ 2 Model groups │ 3 Check │ 4 … 7 locked │ ▒│
+├──┴──────────┴──────┴────────────┘                └─────────┴──────────────┴──┤
+│  Model groups waits for Bring in data… (only when the tab asked for waits)   │
+│ ┌────────────────┬─────────────────────────────────────────────────────────┐ │
+│ │ ✓ How to start │ STEP 2 OF 7                                             │ │
+│ │ ▸ Build them   │ Model groups                                            │ │
+│ │   …            │ …                                                       │ │
+```
+
+On Projects and New project the band carries the plate alone, the page below it:
+
+```
+┌ OAK box ───────────────────────────────────────────────────────── _ □ × ┐
+│ File  View  Project  Help                                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+│▒ ╔══════════════════════════╗ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+│▒ ║ ⊘ OAK box │ Projects   ⊘ ║ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+│▒ ╚══════════════════════════╝ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+├─────────────────────────────────────────────────────────────────────────┤
+│ ┌ Projects ────────────────────────────────────────── [+ New project] ┐ │
+│ │ Travis County 2026 · Tax year 2026  [Open] [Show in folder] [Delete]│ │
 ```
 
 - **File:** New project… (Ctrl+N), Open recent ▸ (the last projects opened), Show project folder, Close project (back to Projects), Exit.
 - **View:** Density ▸ Compact · Comfortable; Large text; High contrast (the existing modes from §3.4, now switchable here).
-- **Project:** Metadata (Ctrl+1), Input files (Ctrl+2), Add a file…. Greyed out on the home screen.
+- **Project:** Metadata (Ctrl+1), Data (Ctrl+2), Add a file…. Greyed out on the home screen.
 - **Help:** OpenAVMKit documentation (opens in the browser), About OAK box (version, OpenAVMKit version, licences).
 - **No Edit menu.** Ctrl+C / V / X / A work in text boxes without one on Windows and Linux. On macOS, where the shortcuts need an Edit menu, pywebview adds the standard one itself; OAK box's own View menu replaces pywebview's default one there.
 - **No Undo or Save:** changes save as they are made, and a partial undo would mislead.
