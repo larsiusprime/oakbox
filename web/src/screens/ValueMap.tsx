@@ -1,11 +1,11 @@
 /** Check my values' map of each sale's ratio, and the median ratio by its region's price level. */
+
+import { ScatterplotLayer } from "@deck.gl/layers";
 import { useQuery } from "@tanstack/react-query";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
-import { addBasemap } from "../components/basemap";
 import { Choice } from "../components/Form";
+import { boundsOf, MapView, rgba } from "../components/MapView";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../strings";
 import { BandChart } from "./ValueCharts";
@@ -13,7 +13,7 @@ import { BandChart } from "./ValueCharts";
 const r = t.ratio;
 
 /** openratiostudy.com's colours: blue below 1 (deepest at 0.5), white at 1, red above (deepest at 2). */
-function ratioColor(q: number): string {
+export function ratioColor(q: number): string {
   if (!Number.isFinite(q)) return "#94a3b8";
   if (q <= 1) {
     const c = Math.round(255 * Math.max(0, Math.min(1, (q - 0.5) / 0.5)));
@@ -23,7 +23,7 @@ function ratioColor(q: number): string {
   return `rgb(255, ${c}, ${c})`;
 }
 
-function ratioStroke(q: number): string {
+export function ratioStroke(q: number): string {
   return q < 0.9 ? "#1d4ed8" : q > 1.1 ? "#b91c1c" : "#475569";
 }
 
@@ -48,34 +48,29 @@ export function RatioMap({
         }),
       ),
   });
-  const el = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const data = pts.data;
-    if (!el.current || !data || data.length === 0) return;
-    const m = L.map(el.current, { preferCanvas: true, zoomSnap: 0.25 });
-    addBasemap(m);
-    const renderer = L.canvas({ padding: 0.3 });
-    const fmt = (v: number) => money(v, currency);
-    for (const p of data) {
-      L.circleMarker([p.lat, p.lon], {
-        renderer,
-        radius: p.trimmed ? 3 : 4.5,
-        color: p.trimmed ? "#9a9a9a" : ratioStroke(p.ratio),
-        weight: 0.85,
-        fillColor: p.trimmed ? "#d0d0d0" : ratioColor(p.ratio),
-        fillOpacity: 0.85,
-      })
-        .bindTooltip(
-          `${r.map.ratio} ${num(p.ratio, 3)} · ${r.map.price} ${fmt(p.price)} · ${r.map.value} ${fmt(p.value)}${p.trimmed ? ` · ${r.map.trimmed}` : ""}`,
-        )
-        .addTo(m);
-    }
-    const b = L.latLngBounds(data.map((p) => [p.lat, p.lon] as [number, number]));
-    if (b.isValid()) m.fitBounds(b, { padding: [12, 12] });
-    return () => {
-      m.remove();
-    };
-  }, [pts.data, currency]);
+  const data = pts.data;
+  const layers = useMemo(
+    () =>
+      data
+        ? [
+            new ScatterplotLayer({
+              id: "sales",
+              data,
+              getPosition: (p) => [p.lon, p.lat],
+              getRadius: (p) => (p.trimmed ? 3 : 4.5),
+              radiusUnits: "pixels",
+              getFillColor: (p) => (p.trimmed ? rgba("#d0d0d0", 0.85) : rgba(ratioColor(p.ratio), 0.85)),
+              getLineColor: (p) => (p.trimmed ? rgba("#9a9a9a") : rgba(ratioStroke(p.ratio))),
+              stroked: true,
+              lineWidthUnits: "pixels",
+              getLineWidth: 0.85,
+              pickable: true,
+            }),
+          ]
+        : [],
+    [data],
+  );
+  const fmt = (v: number) => money(v, currency);
   const mp = r.map;
   return (
     <div className="rv-cards">
@@ -95,7 +90,18 @@ export function RatioMap({
       {pts.data && pts.data.length === 0 ? (
         <p className="wiz-from">{mp.none}</p>
       ) : (
-        <section ref={el} className="rv-map" aria-label={mp.label} />
+        <MapView
+          className="rv-map"
+          label={mp.label}
+          layers={layers}
+          bounds={data ? boundsOf(data.map((p) => [p.lon, p.lat] as const)) : null}
+          fitKey={`${gid}:${data?.length ?? 0}`}
+          tooltip={({ object: p }) =>
+            p
+              ? `${mp.ratio} ${num(p.ratio, 3)} · ${mp.price} ${fmt(p.price)} · ${mp.value} ${fmt(p.value)}${p.trimmed ? ` · ${mp.trimmed}` : ""}`
+              : null
+          }
+        />
       )}
       <div className="rv-legend">
         {mp.legend.map(([q, label]) => (

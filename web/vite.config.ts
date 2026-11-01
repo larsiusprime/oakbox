@@ -6,6 +6,8 @@ import { defineConfig } from "vite";
 // In development, `npm run dev` proxies /api to a running `python -m oakbox --no-window --port 8765`.
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  // MapLibre's worker is a module (it imports MapLibre's shared code): bundled as one, an ES module.
+  worker: { format: "es" },
   build: {
     outDir: "../src/oakbox/web",
     emptyOutDir: true,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from oakbox import projects, ratio
+from oakbox import final, projects, ratio
 from oakbox.routes.common import load_project
 
 router = APIRouter()
@@ -42,6 +42,23 @@ def ratio_map(project_id: str, field: str, group: str = "") -> list[ratio.MapPoi
     """Each sale studied with its place and ratio, for the map."""
     load_project(project_id)
     return ratio.map_points(projects.project_dir(project_id), field, group or None)
+
+
+@router.get("/api/projects/{project_id}/final/parcels")
+def final_parcels(project_id: str) -> final.ParcelPoints:
+    """Every parcel's place, model value, roll value and finished area, as columns, for Model values' map."""
+    load_project(project_id)
+    out = final.parcel_points(projects.project_dir(project_id))
+    if out is None:
+        raise HTTPException(404, "Finalize first: there are no model values yet.")
+    return out
+
+
+@router.get("/api/projects/{project_id}/final/sales")
+def final_sales(project_id: str, which: final.SetKey = "oof", group: str = "") -> list[ratio.MapPoint]:
+    """Each sale a set of sales judges the model values on, with its place and ratio, for the map."""
+    load_project(project_id)
+    return final.sale_points(projects.project_dir(project_id), which, group or None)
 
 
 @router.get("/api/projects/{project_id}/ratio/points")

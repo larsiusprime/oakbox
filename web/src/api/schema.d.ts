@@ -2098,6 +2098,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/final/parcels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Final Parcels
+         * @description Every parcel's place, model value, roll value and finished area, as columns, for Model values' map.
+         */
+        get: operations["final_parcels_api_projects__project_id__final_parcels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Final Sales
+         * @description Each sale a set of sales judges the model values on, with its place and ratio, for the map.
+         */
+        get: operations["final_sales_api_projects__project_id__final_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/ratio/points": {
         parameters: {
             query?: never;
@@ -5604,6 +5644,40 @@ export interface components {
             like_sold: number;
             /** Like Text */
             like_text: string;
+        };
+        /**
+         * ParcelPoints
+         * @description Every parcel with a place, as columns (compact for half a million): the map draws them as they come.
+         */
+        ParcelPoints: {
+            /**
+             * Groups
+             * @description Model group ids; `group` indexes into it.
+             */
+            groups: string[];
+            /** Lon */
+            lon: number[];
+            /** Lat */
+            lat: number[];
+            /** Group */
+            group: number[];
+            /**
+             * Value
+             * @description The model value; null: none (unvalued, or below zero).
+             */
+            value: (number | null)[];
+            /**
+             * Roll
+             * @description The roll's value; null: none, or no roll loaded.
+             */
+            roll: (number | null)[];
+            /**
+             * Area
+             * @description Finished area; null: none.
+             */
+            area: (number | null)[];
+            /** Key */
+            key: string[];
         };
         /** ParcelSale */
         ParcelSale: {
@@ -12971,6 +13045,71 @@ export interface operations {
         parameters: {
             query: {
                 field: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapPoint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_parcels_api_projects__project_id__final_parcels_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParcelPoints"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_sales_api_projects__project_id__final_sales_get: {
+        parameters: {
+            query?: {
+                which?: "oof" | "held" | "valued";
                 group?: string;
             };
             header?: never;

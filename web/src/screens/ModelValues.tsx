@@ -14,7 +14,15 @@ const f = m.final;
 
 /** Step 6, Model values (SPEC F9): each model group's models, a try, how they did, the groups left unvalued, then
  * the values made (Finalize) and checked. */
-export function ValuesTab({ projectId, currency }: { projectId: string; currency: string }) {
+export function ValuesTab({
+  projectId,
+  currency,
+  units,
+}: {
+  projectId: string;
+  currency: string;
+  units: string;
+}) {
   const ms = useStep("model", projectId);
   const fs = useStep("final", projectId);
   const fAct = useStepAct("final", projectId);
@@ -228,7 +236,7 @@ export function ValuesTab({ projectId, currency }: { projectId: string; currency
         <>
           <StepBody kicker={m.modelsKicker} title={m.steps.values} lede={f.valuesLede}>
             {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
-            <FinalValues receipt={fr} currency={currency} />
+            <FinalValues projectId={projectId} receipt={fr} currency={currency} units={units} />
             {errors}
           </StepBody>
           <StepFoot

@@ -20,7 +20,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import Field
 
@@ -266,6 +266,13 @@ def run(project_id: str) -> None:
         )
 
     steps.emit(step="receipt", fraction=0.97, message="Counting")
+    # For the map: where each parcel is, and its finished area (value per area).
+    area = "bldg_area_finished_sqft" if project.units == "imperial" else "bldg_area_finished_sqm"
+    for c in ("latitude", "longitude", area):
+        if c in universe:
+            values[c] = np.asarray(pd.to_numeric(universe[c], errors="coerce"), dtype=float)
+    if area in values:
+        values = values.rename(columns={area: "area"})
     values.to_parquet(tmp / "values.parquet", index=False)
     shown = [g for g in project.groups if g.id in modeled]
 
@@ -370,6 +377,76 @@ def run(project_id: str) -> None:
     steps.publish(tmp, out_dir(pdir))
     valued = sum(g.valued for g in out)
     steps.emit(step="done", fraction=1.0, message=f"{valued:,} of {len(values):,} parcels valued")
+
+
+# ---------- The map ----------
+
+
+class ParcelPoints(BaseModel):
+    """Every parcel with a place, as columns (compact for half a million): the map draws them as they come."""
+
+    groups: list[str] = Field(description="Model group ids; `group` indexes into it.")
+    lon: list[float]
+    lat: list[float]
+    group: list[int]
+    value: list[float | None] = Field(description="The model value; null: none (unvalued, or below zero).")
+    roll: list[float | None] = Field(description="The roll's value; null: none, or no roll loaded.")
+    area: list[float | None] = Field(description="Finished area; null: none.")
+    key: list[str]
+
+
+def parcel_points(project_dir: Path) -> ParcelPoints | None:
+    import numpy as np
+    import pandas as pd
+
+    path = out_dir(project_dir) / "values.parquet"
+    if not path.is_file():
+        return None
+    v = pd.read_parquet(path)
+    if "latitude" not in v or "longitude" not in v:
+        return ParcelPoints(groups=[], lon=[], lat=[], group=[], value=[], roll=[], area=[], key=[])
+    v = cast(pd.DataFrame, v[v["latitude"].notna() & v["longitude"].notna()])
+    groups = sorted(set(v["model_group"].astype(str)))
+    at = {g: i for i, g in enumerate(groups)}
+    rolls = [c for c in v.columns if c.endswith("_market_value")]
+
+    def col(name: str | None) -> list[float | None]:
+        if name is None or name not in v:
+            return [None] * len(v)
+        x = np.round(np.asarray(v[name], dtype=float), 2)
+        return [None if not np.isfinite(a) else float(a) for a in x]
+
+    return ParcelPoints(
+        groups=groups,
+        lon=np.round(np.asarray(v["longitude"], dtype=float), 6).tolist(),
+        lat=np.round(np.asarray(v["latitude"], dtype=float), 6).tolist(),
+        group=[at[g] for g in v["model_group"].astype(str)],
+        value=col(VALUE),
+        roll=col(rolls[0] if rolls else None),
+        area=col("area"),
+        key=v["key"].astype(str).tolist(),
+    )
+
+
+def sale_points(project_dir: Path, which: SetKey, group: str | None) -> list[ratio.MapPoint]:
+    """Each sale a set judges the values on, with its place and ratio (out of fold, held out, or as valued)."""
+    import pandas as pd
+
+    path = out_dir(project_dir) / "studies" / f"{FIELDS[which]}.sales.parquet"
+    if not path.is_file():
+        return []
+    t = pd.read_parquet(path)
+    if "latitude" not in t or "longitude" not in t:
+        return []
+    if group:
+        t = cast(pd.DataFrame, t[t["model_group"].astype(str) == group])
+    t = cast(pd.DataFrame, t[t["latitude"].notna() & t["longitude"].notna()])
+    return [
+        ratio.MapPoint(lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(x), trimmed=bool(m))
+        for a, b, r, p, x, m in zip(
+            t["latitude"], t["longitude"], t["ratio"], t["sale_price"], t["value"], t["trimmed"], strict=True
+        )
+    ]
 
 
 # ---------- The step's state ----------

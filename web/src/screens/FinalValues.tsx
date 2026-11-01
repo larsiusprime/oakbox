@@ -7,13 +7,24 @@ import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
 import { moneyShort, num, signed } from "../lib/format";
 import { t } from "../strings";
+import { FinalMap } from "./FinalMap";
 import { Scorecard } from "./ValueTables";
 
 type Receipt = components["schemas"]["FinalReceipt"];
 type SetKey = Receipt["sets"][number]["key"];
 const f = t.values.final;
 
-export function FinalValues({ receipt, currency }: { receipt: Receipt; currency: string }) {
+export function FinalValues({
+  projectId,
+  receipt,
+  currency,
+  units,
+}: {
+  projectId: string;
+  receipt: Receipt;
+  currency: string;
+  units: string;
+}) {
   const have = receipt.sets.filter((x) => x.model);
   const [key, setKey] = useState<SetKey>(have[0]?.key ?? "oof");
   const set = receipt.sets.find((x) => x.key === key);
@@ -51,6 +62,8 @@ export function FinalValues({ receipt, currency }: { receipt: Receipt; currency:
       ) : (
         <p className="wiz-from">{f.noSales(f.sets[key] ?? key)}</p>
       )}
+      <h3 className="fv-h">{f.map.head}</h3>
+      <FinalMap projectId={projectId} receipt={receipt} which={key} currency={currency} units={units} />
       <h3 className="fv-h">{f.groupsHead}</h3>
       <p className="wiz-from">{f.totals(valued, parcels)}</p>
       <table className="tbl fv-groups">

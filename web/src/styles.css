@@ -2737,11 +2737,9 @@ ul.mg-checks {
   position: relative;
   min-height: 0;
 }
-.mg-leaflet {
+.map-view.mg-mapview {
   position: absolute;
   inset: 0;
-  /* Leaflet's panes and controls use z-indexes up to 1000: kept inside the map, so dialogs stay on top. */
-  isolation: isolate;
   background: #eef0ea;
 }
 .mg-map-msg {
@@ -4229,24 +4227,6 @@ table.tbl > * > tr.rv-total > td {
   opacity: 1;
 }
 
-/* Every map: a plain background under the shapes when the street map is off, and its box small and quiet. */
-.leaflet-container {
-  background: #fafafa;
-}
-.leaflet-control-layers-expanded {
-  padding: 0.15rem 0.45rem;
-  font: inherit;
-  font-size: 0.8rem;
-}
-.leaflet-control-layers-overlays label {
-  display: flex;
-  gap: 0.3rem;
-  align-items: center;
-}
-.leaflet-control-layers-overlays input {
-  margin: 0;
-}
-
 /* Step 4's scorecard: pill, figure and word line up down each column. */
 .rv-score-cell {
   display: inline-grid;
@@ -4778,4 +4758,36 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .fv .rv-score-4 th:first-child {
   width: 20%;
+}
+
+/* Every map (MapView): the street map under deck.gl's drawing, kept inside its box so dialogs stay on top. */
+.map-view {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.map-canvas {
+  position: absolute;
+  inset: 0;
+}
+.map-street {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+.map-street input {
+  margin: 0;
+}
+.wiz-pin {
+  width: 22px;
+  height: 26px;
+  cursor: grab;
 }

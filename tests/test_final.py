@@ -48,3 +48,25 @@ def test_how_far_the_values_moved_from_the_roll():
 def test_finalize_follows_the_try():
     assert final.STEP.after is model.STEP
     assert set(final.FIELDS) == set(final.SETS) == set(final.ROLLS)
+
+
+def test_the_parcels_for_the_map(tmp_path):
+    d = final.out_dir(tmp_path)
+    d.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "key": ["1", "2", "3"],
+            "model_group": ["sf", "condo", "sf"],
+            final.VALUE: [200.0, float("nan"), 300.0],
+            "below_zero": [False, False, False],
+            "assr_market_value": [180.0, 90.0, None],
+            "latitude": [36.1, 36.2, None],  # no place: not on the map
+            "longitude": [-79.8, -79.9, -79.7],
+            "area": [1000.0, None, 1500.0],
+        }
+    ).to_parquet(d / "values.parquet")
+    p = final.parcel_points(tmp_path)
+    assert p is not None
+    assert p.key == ["1", "2"] and p.groups == ["condo", "sf"] and p.group == [1, 0]
+    assert p.value == [200.0, None] and p.roll == [180.0, 90.0] and p.area == [1000.0, None]
+    assert final.parcel_points(tmp_path / "nothing") is None

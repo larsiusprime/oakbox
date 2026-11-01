@@ -5708,6 +5708,115 @@
     }
    }
   },
+  "/api/projects/{project_id}/final/parcels": {
+   "get": {
+    "summary": "Final Parcels",
+    "description": "Every parcel's place, model value, roll value and finished area, as columns, for Model values' map.",
+    "operationId": "final_parcels_api_projects__project_id__final_parcels_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ParcelPoints"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/final/sales": {
+   "get": {
+    "summary": "Final Sales",
+    "description": "Each sale a set of sales judges the model values on, with its place and ratio, for the map.",
+    "operationId": "final_sales_api_projects__project_id__final_sales_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "which",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "oof",
+        "held",
+        "valued"
+       ],
+       "type": "string",
+       "default": "oof",
+       "title": "Which"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MapPoint"
+         },
+         "title": "Response Final Sales Api Projects  Project Id  Final Sales Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/ratio/points": {
    "get": {
     "summary": "Ratio Points",
@@ -13502,6 +13611,104 @@
      "like_text"
     ],
     "title": "ParcelInspect"
+   },
+   "ParcelPoints": {
+    "properties": {
+     "groups": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "Model group ids; `group` indexes into it."
+     },
+     "lon": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lon"
+     },
+     "lat": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lat"
+     },
+     "group": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Group"
+     },
+     "value": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Value",
+      "description": "The model value; null: none (unvalued, or below zero)."
+     },
+     "roll": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Roll",
+      "description": "The roll's value; null: none, or no roll loaded."
+     },
+     "area": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Area",
+      "description": "Finished area; null: none."
+     },
+     "key": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Key"
+     }
+    },
+    "type": "object",
+    "required": [
+     "groups",
+     "lon",
+     "lat",
+     "group",
+     "value",
+     "roll",
+     "area",
+     "key"
+    ],
+    "title": "ParcelPoints",
+    "description": "Every parcel with a place, as columns (compact for half a million): the map draws them as they come."
    },
    "ParcelSale": {
     "properties": {

@@ -220,7 +220,7 @@ function ProjectView({
           <VariablesTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
-          <ValuesTab projectId={projectId} currency={project.currency} />
+          <ValuesTab projectId={projectId} currency={project.currency} units={project.units} />
         </TabPanel>
       </Tabs>
     </div>

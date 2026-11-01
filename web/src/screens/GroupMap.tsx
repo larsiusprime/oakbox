@@ -1,12 +1,13 @@
 /** Model groups' map of the parcel shapes, coloured by group or by what moved, and the parcel inspector. */
+
+import type { Layer } from "@deck.gl/core";
+import { GeoJsonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useMemo } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
-import { addBasemap } from "../components/basemap";
+import { boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
 import { short } from "../lib/format";
 import { t } from "../strings";
@@ -44,10 +45,6 @@ export function ParcelMap({
   mode: MapMode;
   onPick: (i: number) => void;
 }) {
-  const el = useRef<HTMLDivElement>(null);
-  const map = useRef<L.Map | null>(null);
-  const layer = useRef<L.GeoJSON | null>(null);
-  const outline = useRef<L.GeoJSON | null>(null);
   const shapes = useQuery({
     queryKey: ["group-shapes", projectId],
     queryFn: async () => {
@@ -57,85 +54,80 @@ export function ParcelMap({
     },
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const style = useRef<(i: number) => L.PathOptions>(() => ({}));
-  const pick = useRef(onPick);
-  useEffect(() => {
-    pick.current = onPick;
-  });
+  const fc = shapes.data;
+  const bounds = useMemo(() => boundsOfGeoJson(fc), [fc]);
 
-  useEffect(() => {
-    if (!el.current || !shapes.data) return;
-    const m = L.map(el.current, { preferCanvas: true, zoomSnap: 0.25 });
-    addBasemap(m);
-    const renderer = L.canvas({ padding: 0.3 });
-    const gj = L.geoJSON(shapes.data, {
-      renderer,
-      style: (f) => style.current(Number(f?.id ?? -1)),
-      onEachFeature: (f, lyr) => lyr.on("click", () => pick.current(Number(f.id))),
-    } as L.GeoJSONOptions).addTo(m);
-    layer.current = gj;
-    const b = gj.getBounds();
-    if (b.isValid()) m.fitBounds(b, { padding: [8, 8] });
-    map.current = m;
-    return () => {
-      m.remove();
-      map.current = null;
-      layer.current = null;
-      outline.current = null;
-    };
-  }, [shapes.data]);
-
-  // Recolour without redrawing the shapes (and once they're drawn).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: shapes.data: the layer is new when the shapes are
-  useEffect(() => {
+  // Each parcel's look: its group's colour (grey when it didn't move), dimmed off the highlight, hidden when its
+  // legend entry is switched off.
+  const look = useMemo(() => {
     const assign = preview?.assign;
     const saved = preview?.saved;
     const hl = highlight ? new Set(highlight) : null;
-    style.current = (i: number) => {
+    return (i: number) => {
       const a = assign?.[i] ?? -1;
       let fill = a >= 0 ? (colours[a] ?? unassigned) : unassigned;
       const unchanged = colourBy === "changes" && a === (saved?.[i] ?? -1);
       if (unchanged) fill = CHANGE_GREY;
-      // Switched off in the legend: not drawn, and not clickable (canvas hits need a fill or a stroke).
       const key = unchanged ? SAME : a >= 0 ? (ids[a] ?? "") : "";
-      if (hidden.has(key)) return { fill: false, stroke: false };
-      const dim = hl && !hl.has(i);
+      if (hidden.has(key)) return null;
+      const dim = !!hl && !hl.has(i);
       return {
-        fill: true,
-        stroke: true,
-        fillColor: fill,
-        fillOpacity: dim ? 0.18 : 0.72,
-        color: hl?.has(i) ? "#111" : "#ffffff",
-        weight: hl?.has(i) ? 1.4 : 0.4,
-        opacity: dim ? 0.3 : 0.9,
+        fill: rgba(fill, dim ? 0.18 : 0.72),
+        line: hl?.has(i) ? rgba("#111111") : rgba("#ffffff", dim ? 0.3 : 0.9),
+        width: hl?.has(i) ? 1.4 : 0.4,
       };
     };
-    layer.current?.setStyle((f) => style.current(Number(f?.id ?? -1)));
-  }, [preview, colours, ids, hidden, unassigned, colourBy, highlight, shapes.data]);
+  }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
 
-  // The picked parcel, outlined on top.
-  useEffect(() => {
-    const m = map.current;
-    outline.current?.remove();
-    outline.current = null;
-    if (!m || picked == null || !shapes.data) return;
-    const f = shapes.data.features[picked];
-    if (!f?.geometry) return;
-    outline.current = L.geoJSON(f, {
-      style: { color: "#000", weight: 3, fill: false },
-      interactive: false,
-    }).addTo(m);
-  }, [picked, shapes.data]);
-
-  useEffect(() => {
-    void mode;
-    const id = setTimeout(() => map.current?.invalidateSize(), 50);
-    return () => clearTimeout(id);
-  }, [mode]);
+  const layers = useMemo(() => {
+    if (!fc) return [];
+    const idOf = (f: GeoJSON.Feature) => Number(f.id ?? -1);
+    const out: Layer[] = [
+      new GeoJsonLayer({
+        id: "parcels",
+        data: fc,
+        pickable: true,
+        stroked: true,
+        filled: true,
+        lineWidthUnits: "pixels",
+        getFillColor: (f) => look(idOf(f))?.fill ?? [0, 0, 0, 0],
+        getLineColor: (f) => look(idOf(f))?.line ?? [0, 0, 0, 0],
+        getLineWidth: (f) => look(idOf(f))?.width ?? 0,
+        updateTriggers: { getFillColor: look, getLineColor: look, getLineWidth: look },
+        onClick: ({ object }) => {
+          // A parcel switched off in the legend isn't there to click.
+          if (object && look(idOf(object))) onPick(idOf(object));
+        },
+      }),
+    ];
+    const f = picked == null ? undefined : fc.features[picked];
+    if (f?.geometry)
+      out.push(
+        new GeoJsonLayer({
+          id: "picked",
+          data: { type: "FeatureCollection", features: [f] } as GeoJSON.FeatureCollection,
+          stroked: true,
+          filled: false,
+          lineWidthUnits: "pixels",
+          getLineColor: [0, 0, 0, 255],
+          getLineWidth: 3,
+        }),
+      );
+    return out;
+  }, [fc, look, picked, onPick]);
 
   return (
     <div className="mg-map-body">
-      <div ref={el} className="mg-leaflet" />
+      {fc && (
+        <MapView
+          className="mg-mapview"
+          label={g.mapLabel}
+          layers={layers}
+          bounds={bounds}
+          fitKey="shapes"
+          resizeKey={mode}
+        />
+      )}
       {!shapes.data && <p className="mg-map-msg">{shapes.error?.message ?? g.loadingMap}</p>}
     </div>
   );

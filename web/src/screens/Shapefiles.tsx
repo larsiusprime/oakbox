@@ -1,7 +1,7 @@
+import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { useQuery } from "@tanstack/react-query";
-import L from "leaflet";
 import { ChevronDown, Map as MapIcon, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Dialog,
@@ -18,8 +18,8 @@ import { api, type LayerView, type Overlay, type Project, unwrap, type Wizard } 
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import { AddButton } from "../components/AddButton";
-import { addBasemap } from "../components/basemap";
 import { Choice, Tick } from "../components/Form";
+import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { t } from "../strings";
 import { FilePicker } from "./WizardFiles";
@@ -397,7 +397,6 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
 
 /** The layer's shapes over the parcel dots: does it line up? */
 function LayerMap({ projectId, name }: { projectId: string; name: string }) {
-  const el = useRef<HTMLDivElement>(null);
   const view = useQuery({
     queryKey: ["layer-map", projectId, name],
     queryFn: async () =>
@@ -408,32 +407,48 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
       ),
   });
   const v = view.data;
-  useEffect(() => {
-    if (!el.current || !v) return;
-    const m = L.map(el.current, { preferCanvas: true, scrollWheelZoom: false });
-    addBasemap(m);
-    const renderer = L.canvas();
-    const points = v.points as [number, number][];
-    for (const [lat, lon] of points) {
-      L.circleMarker([lat, lon], {
-        renderer,
-        radius: 2,
-        weight: 0,
-        fillOpacity: 0.6,
-        fillColor: "#1d5bb8",
-      }).addTo(m);
-    }
-    const shapes = L.geoJSON(v.shapes as unknown as GeoJSON.GeoJsonObject, {
-      style: { color: "#a3231b", weight: 2, fillOpacity: 0.08 },
-      pointToLayer: (_f, at) => L.circleMarker(at, { renderer, radius: 5, color: "#a3231b", weight: 2 }),
-    }).addTo(m);
-    const bounds = shapes.getBounds();
-    if (points.length) bounds.extend(L.latLngBounds(points));
-    if (bounds.isValid()) m.fitBounds(bounds, { padding: [12, 12] });
-    return () => {
-      m.remove();
-    };
-  }, [v]);
+  const points = useMemo(
+    () => ((v?.points ?? []) as [number, number][]).map(([lat, lon]) => [lon, lat] as const),
+    [v],
+  );
+  const shapes = v?.shapes as unknown as GeoJSON.FeatureCollection | undefined;
+  const layers = useMemo(
+    () => [
+      new ScatterplotLayer({
+        id: "parcels",
+        data: points,
+        getPosition: (p) => [p[0], p[1]],
+        getRadius: 2,
+        radiusUnits: "pixels",
+        getFillColor: rgba("#1d5bb8", 0.6),
+      }),
+      ...(shapes
+        ? [
+            new GeoJsonLayer({
+              id: "layer",
+              data: shapes,
+              getFillColor: rgba("#a3231b", 0.08),
+              getLineColor: rgba("#a3231b"),
+              getLineWidth: 2,
+              lineWidthUnits: "pixels",
+              pointType: "circle",
+              getPointRadius: 5,
+              pointRadiusUnits: "pixels",
+            }),
+          ]
+        : []),
+    ],
+    [points, shapes],
+  );
   if (view.error) return <p className="error">{view.error.message}</p>;
-  return <div ref={el} className="wiz-map" role="img" aria-label={s.mapLabel(name)} />;
+  return (
+    <MapView
+      className="wiz-map"
+      label={s.mapLabel(name)}
+      layers={layers}
+      bounds={boundsOf(points, [boundsOfGeoJson(shapes)])}
+      fitKey={v ? name : ""}
+      scrollZoom={false}
+    />
+  );
 }

@@ -1360,6 +1360,7 @@ export const t = {
     hide: "Hide the map",
     showMap: "Show the map",
     clickHint: "Click a parcel to inspect",
+    mapLabel: "Map of the parcels, coloured by model group",
     loadingMap: "Drawing the parcels…",
     legend: "Shown on the map",
     shown: "shown",
@@ -2491,6 +2492,43 @@ export const t = {
       totals: (valued: number, parcels: number) =>
         `${valued.toLocaleString()} of ${parcels.toLocaleString()} parcels got a model value.`,
       notes: "OpenAVMKit's notes",
+      map: {
+        head: "On the map",
+        label: "Map of the model values",
+        show: "Show",
+        views: {
+          ratio: "Ratio (the sales)",
+          value: "Value per finished area",
+          change: "Change from the roll",
+        } as Record<string, string>,
+        why: {
+          ratio:
+            "Each sale in the set judged on, coloured by its ratio: model value ÷ price. Clusters of red or blue show where the values are off.",
+          value:
+            "Every parcel, coloured by its model value per finished area, in tenths of the parcels shown: cheap to dear.",
+          change: "Every parcel, coloured by its model value against the roll's: blue lower, red higher.",
+        } as Record<string, string>,
+        all: "All model groups",
+        unvalued: "No model value",
+        noArea: "No finished area",
+        loading: "Drawing the parcels…",
+        none: "Nothing to show here.",
+        changeLegend: [
+          [0.5, "half or less"],
+          [0.8, "20% lower"],
+          [1, "the same"],
+          [1.25, "25% higher"],
+          [2, "double or more"],
+        ] as [number, string][],
+        tip: {
+          value: "Model value",
+          roll: "Roll",
+          change: "Change",
+          perArea: (unit: string) => `Per ${unit}`,
+          group: "Group",
+          noValue: "none",
+        },
+      },
     },
     // The models (F9): each model group's models, a try, and how they did.
     model: {

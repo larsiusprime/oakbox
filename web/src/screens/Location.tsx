@@ -1,12 +1,12 @@
-import "leaflet/dist/leaflet.css";
+import { ScatterplotLayer } from "@deck.gl/layers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import L from "leaflet";
 import { ChevronUp, Map as MapIcon, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import * as maplibregl from "maplibre-gl";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
-import { addBasemap } from "../components/basemap";
 import { Choice } from "../components/Form";
+import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { ValuesButton } from "../components/ValuesButton";
 import { t } from "../strings";
 
@@ -122,64 +122,76 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
   );
 }
 
-const PIN = L.divIcon({
-  className: "wiz-pin",
-  html: "<span></span>",
-  iconSize: [22, 22],
-  iconAnchor: [11, 22],
-});
+/** The pin's look: a drop, its point on the place. */
+function pinElement(): HTMLElement {
+  const el = document.createElement("div");
+  el.className = "wiz-pin";
+  el.title = l.pinTitle;
+  el.appendChild(document.createElement("span"));
+  return el;
+}
 
 /** The parcels as dots on a street map, and the centre as a pin to drag. */
 function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon: number) => void }) {
-  const el = useRef<HTMLDivElement>(null);
-  const map = useRef<L.Map | null>(null);
-  const pin = useRef<L.Marker | null>(null);
+  const [m, setM] = useState<maplibregl.Map | null>(null);
+  const pin = useRef<maplibregl.Marker | null>(null);
   const move = useRef(onMove);
   useEffect(() => {
     move.current = onMove;
   }, [onMove]);
-
-  // The map and its dots, once.
-  useEffect(() => {
-    if (!el.current || map.current) return;
-    const m = L.map(el.current, { preferCanvas: true, scrollWheelZoom: false });
-    addBasemap(m);
-    const renderer = L.canvas();
-    for (const [lat, lon] of view.points) {
-      L.circleMarker([lat, lon], {
-        renderer,
-        radius: 2,
-        weight: 0,
-        fillOpacity: 0.7,
-        fillColor: "#1d5bb8",
-      }).addTo(m);
-    }
-    m.fitBounds(L.latLngBounds(view.points), { padding: [12, 12] });
-    map.current = m;
-    return () => {
-      m.remove();
-      map.current = null;
-      pin.current = null;
-    };
-  }, [view.points]);
+  const points = useMemo(() => view.points.map(([lat, lon]) => [lon, lat] as const), [view.points]);
+  const layers = useMemo(
+    () => [
+      new ScatterplotLayer({
+        id: "parcels",
+        data: points,
+        getPosition: (p) => [p[0], p[1]],
+        getRadius: 2,
+        radiusUnits: "pixels",
+        getFillColor: rgba("#1d5bb8", 0.7),
+      }),
+    ],
+    [points],
+  );
 
   // The pin: where the centre is now.
   const at = view.center ?? view.middle;
+  const lat = at?.[0];
+  const lon = at?.[1];
   useEffect(() => {
-    const m = map.current;
-    if (!m || !at) return;
+    if (!m || lat == null || lon == null) return;
     if (!pin.current) {
-      pin.current = L.marker(at, { draggable: true, icon: PIN, title: l.pinTitle, keyboard: true }).addTo(m);
-      pin.current.on("dragend", () => {
-        const p = pin.current?.getLatLng();
-        if (p) move.current(p.lat, p.lng);
+      const p = new maplibregl.Marker({ element: pinElement(), draggable: true, anchor: "bottom" })
+        .setLngLat([lon, lat])
+        .addTo(m);
+      p.on("dragend", () => {
+        const q = p.getLngLat();
+        move.current(q.lat, q.lng);
       });
+      pin.current = p;
     } else {
-      pin.current.setLatLng(at);
+      pin.current.setLngLat([lon, lat]);
     }
-  }, [at]);
+  }, [m, lat, lon]);
+  useEffect(
+    () => () => {
+      pin.current?.remove();
+      pin.current = null;
+    },
+    [],
+  );
 
-  return <div ref={el} className="wiz-map" role="img" aria-label={l.mapLabel} />;
+  return (
+    <MapBox
+      className="wiz-map"
+      label={l.mapLabel}
+      layers={layers}
+      bounds={boundsOf(points)}
+      fitKey={String(points.length)}
+      scrollZoom={false}
+      onMap={setM}
+    />
+  );
 }
 
 /** "market_area" from "MARKET AREA": a starting name the user can change. */
