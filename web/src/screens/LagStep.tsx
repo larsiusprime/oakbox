@@ -18,6 +18,7 @@ export function LagStep({
     lag_on?: boolean;
     lag_borrow?: { group: string; sources: string[] };
     lag_fields?: string[];
+    lag_own?: string[];
   }) => void;
 }) {
   const v = setup.lag;
@@ -30,9 +31,28 @@ export function LagStep({
       <p className="wiz-from">{l.how}</p>
       {v.on && (
         <>
-          <p>
-            <b>{l.adds}</b> {v.adds.map((x) => x.name).join(", ")}
-          </p>
+          <div className="lag-fields">
+            <span className="mo-label">{l.own}</span>
+            <MultiPick
+              label={l.own}
+              values={v.own.map((x) => ({ value: x.field, label: x.name }))}
+              chosen={v.chosen}
+              onChange={(lag_own) => set({ lag_own })}
+              placeholder={l.noOwn}
+            />
+            <span className="wiz-from">{l.ownWhy}</span>
+          </div>
+          <div className="lag-fields">
+            <span className="mo-label">{l.fields}</span>
+            <MultiPick
+              label={l.fields}
+              values={v.offered.map((x) => ({ value: x.field, label: x.name }))}
+              chosen={v.fields}
+              onChange={(lag_fields) => set({ lag_fields })}
+              placeholder={l.noFields}
+            />
+            <span className="wiz-from">{l.fieldsWhy}</span>
+          </div>
           <table className="tbl lag-groups">
             <thead>
               <tr>
@@ -70,17 +90,6 @@ export function LagStep({
               ))}
             </tbody>
           </table>
-          <div className="lag-fields">
-            <span className="mo-label">{l.fields}</span>
-            <MultiPick
-              label={l.fields}
-              values={v.offered.map((x) => ({ value: x.field, label: x.name }))}
-              chosen={v.fields}
-              onChange={(lag_fields) => set({ lag_fields })}
-              placeholder={l.noFields}
-            />
-            <span className="wiz-from">{l.fieldsWhy}</span>
-          </div>
           <p className="wiz-from">{l.split}</p>
         </>
       )}

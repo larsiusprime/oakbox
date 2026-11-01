@@ -390,6 +390,18 @@ def test_nearby_sales_and_buildings(prepared):
     only_lag = {"data": {"load": {}, "process": {"enrich": {"spatial_lag": lag}}}}
     assert bring_in.settings_key(bare) == bring_in.settings_key(only_lag)
 
+    # OpenAVMKit's own averages can't be turned off: unticked, they're computed but not offered (nor kept in lists).
+    model.change(p, model.ModelPatch(lag_own=["spatial_lag_sale_price", "spatial_lag_land_area_sqft"]))
+    assert "spatial_lag_bldg_age_years" in p.model.lag.skip and "spatial_lag_sale_price" not in p.model.lag.skip
+    offered = {v.field for v in model.variables(p, prepared) if v.field.startswith(model.LAG)}
+    assert offered == {"spatial_lag_sale_price", "spatial_lag_land_area_sqft", "spatial_lag_bath_half"}
+    view = model.setup(p, prepared).lag
+    assert view.chosen == ["spatial_lag_sale_price", "spatial_lag_land_area_sqft"]
+    assert [x.field for x in view.own][:3] == [
+        "spatial_lag_sale_price",
+        "spatial_lag_sale_price_impr_sqft",
+        "spatial_lag_bldg_area_finished_sqft",
+    ]
     # Off: nothing written, nothing offered.
     model.change(p, model.ModelPatch(lag_on=False))
     assert "data" not in model.settings(p, prepared)

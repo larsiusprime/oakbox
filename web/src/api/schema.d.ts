@@ -4261,6 +4261,11 @@ export interface components {
              * @description Fields averaged besides OpenAVMKit's own.
              */
             fields: string[];
+            /**
+             * Skip
+             * @description OpenAVMKit's own averages not wanted (stable names): it works them all out (they can't be turned off), but these aren't offered as variables.
+             */
+            skip: string[];
         };
         /** LagView */
         LagView: {
@@ -4271,6 +4276,16 @@ export interface components {
              * @description The modeled groups, each averaging its own sales and any it borrows.
              */
             groups: components["schemas"]["LagGroup"][];
+            /**
+             * Own
+             * @description OpenAVMKit's own averages there can be here.
+             */
+            own: components["schemas"]["LagChoice"][];
+            /**
+             * Chosen
+             * @description Those of OpenAVMKit's own offered as variables (the rest are dropped).
+             */
+            chosen: string[];
             /**
              * Fields
              * @description Fields averaged besides OpenAVMKit's own.
@@ -4822,6 +4837,11 @@ export interface components {
              * @description Fields averaged besides OpenAVMKit's own.
              */
             lag_fields?: string[] | null;
+            /**
+             * Lag Own
+             * @description Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped.
+             */
+            lag_own?: string[] | null;
         };
         /** ModelReceipt */
         ModelReceipt: {

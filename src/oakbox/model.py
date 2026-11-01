@@ -151,6 +151,11 @@ class LagState(BaseModel):
         default_factory=dict, description="Model group -> other groups whose sales it also averages (its own always)."
     )
     fields: list[str] = Field(default_factory=list, description="Fields averaged besides OpenAVMKit's own.")
+    skip: list[str] = Field(
+        default_factory=list,
+        description="OpenAVMKit's own averages not wanted (stable names): it works them all out (they can't be turned"
+        " off), but these aren't offered as variables.",
+    )
 
 
 class ModelState(BaseModel):
@@ -330,6 +335,15 @@ def _has_roll(project_dir: Path) -> bool:
 # sale_price_time_adj with time adjustment), so OAK box offers them under the plain name and writes the one it is.
 LAG = "spatial_lag_"
 LAG_PRICE = "spatial_lag_sale_price"
+
+
+# Any column at all: for listing every average OpenAVMKit can make, whatever the data has.
+class _Everything(set):
+    def __contains__(self, item: object) -> bool:
+        return True
+
+
+_ALL_COLUMNS = _Everything()
 # OpenAVMKit's own parcel fields it averages (5 nearest each), with what they need to be there.
 LAG_OWN = (
     "floor_area_ratio",
@@ -341,12 +355,13 @@ LAG_OWN = (
 )
 
 
-def lag_fields(project, columns: list[str] | set[str]) -> list[tuple[str, str]]:
+def lag_fields(project, columns: list[str] | set[str], everything: bool = False) -> list[tuple[str, str]]:
     """(field, name) of each nearby-average variable offered, by its stable name: the sales' price and price per
-    finished area, then the parcels' fields OpenAVMKit averages that are there, then the user's own."""
+    finished area, then the parcels' fields OpenAVMKit averages that are there, then the user's own. Those of
+    OpenAVMKit's own the user unticked are left out, unless `everything`."""
     u = "sqft" if project.units == "imperial" else "sqm"
     unit = "sq ft" if u == "sqft" else "m²"
-    have = set(columns)
+    have = columns if isinstance(columns, set) else set(columns)
     names = fields.names() | NAMES
     out = [(LAG_PRICE, "Nearby sale price"), (f"{LAG_PRICE}_impr_{u}", f"Nearby price per finished {unit}")]
     own = [f"bldg_area_finished_{u}", f"land_area_{u}", *LAG_OWN]
@@ -367,7 +382,17 @@ def lag_fields(project, columns: list[str] | set[str]) -> list[tuple[str, str]]:
     for f in [*own, *project.model.lag.fields]:
         if all(x in have for x in needs.get(f, [f])) and (LAG + f) not in [x for x, _ in out]:
             out.append((LAG + f, f"Nearby {short.get(f) or (names.get(f) or f.replace('_', ' ')).lower()}"))
-    return out
+    if everything:
+        return out
+    mine = {LAG + f for f in project.model.lag.fields}
+    return [(f, n) for f, n in out if f in mine or f not in project.model.lag.skip]
+
+
+def lag_own(project, columns: list[str] | set[str]) -> list[tuple[str, str]]:
+    """OpenAVMKit's own nearby averages there can be here (whether ticked or not): the prices, and the parcels' fields
+    it averages that are there."""
+    plain = project.model_copy(update={"model": project.model.model_copy(update={"lag": LagState()})})
+    return lag_fields(plain, columns, everything=True)
 
 
 def lag_actual(field: str, sale_field: str) -> str:
@@ -716,6 +741,8 @@ class LagChoice(BaseModel):
 class LagView(BaseModel):
     on: bool
     groups: list[LagGroup] = Field(description="The modeled groups, each averaging its own sales and any it borrows.")
+    own: list[LagChoice] = Field(description="OpenAVMKit's own averages there can be here.")
+    chosen: list[str] = Field(description="Those of OpenAVMKit's own offered as variables (the rest are dropped).")
     fields: list[str] = Field(description="Fields averaged besides OpenAVMKit's own.")
     offered: list[LagChoice] = Field(description="Numbers that can be averaged besides OpenAVMKit's own.")
     adds: list[LagChoice] = Field(description="The variables it adds.")
@@ -795,12 +822,8 @@ def setup(project, project_dir: Path) -> ModelSetup:
                 custom=x.id in project.model.groups,
             )
         )
-    own = {
-        f
-        for f, _ in lag_fields(
-            project.model_copy(update={"model": project.model.model_copy(update={"lag": LagState()})}), columns
-        )
-    }
+    own_all = lag_own(project, columns)
+    own = {f for f, _ in own_all}
     lag = LagView(
         on=project.model.lag.on,
         groups=[
@@ -808,6 +831,8 @@ def setup(project, project_dir: Path) -> ModelSetup:
             for g in groups
             if g.modeled
         ],
+        own=[LagChoice(field=f, name=n) for f, n in own_all],
+        chosen=[f for f, _ in own_all if f not in project.model.lag.skip],
         fields=project.model.lag.fields,
         offered=[
             LagChoice(field=v.field, name=v.name)
@@ -851,6 +876,9 @@ class ModelPatch(BaseModel):
     lag_on: bool | None = Field(default=None, description="Nearby sales and buildings, on or off.")
     lag_borrow: LagBorrow | None = Field(default=None, description="A group's sales sources besides its own.")
     lag_fields: list[str] | None = Field(default=None, description="Fields averaged besides OpenAVMKit's own.")
+    lag_own: list[str] | None = Field(
+        default=None, description="Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped."
+    )
 
 
 def change(project, body: ModelPatch) -> None:
@@ -869,6 +897,10 @@ def change(project, body: ModelPatch) -> None:
             s.lag.borrow.pop(b.group, None)
     if body.lag_fields is not None:
         s.lag.fields = list(dict.fromkeys(body.lag_fields))
+    if body.lag_own is not None:
+        # Every average OpenAVMKit can make, whatever fields there are: the ones not chosen are skipped.
+        every = [f for f, _ in lag_own(project, _ALL_COLUMNS)]
+        s.lag.skip = [f for f in every if f not in body.lag_own]
     if body.tests is not None:
         unknown = [x for x in body.tests if x not in TESTS]
         if unknown:
