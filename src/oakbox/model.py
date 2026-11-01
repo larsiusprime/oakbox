@@ -44,8 +44,15 @@ ENGINES: dict[str, tuple[str, str]] = {
     "multi_mra": ("Multi-MRA", "A linear model per neighbourhood, on log price. Uses only variables with no blanks."),
     "gwr": ("GWR", "A linear model that varies smoothly over the map: slow. Uses only variables with no blanks."),
     "local_area": ("Local area", "The neighbourhood's price per area: a baseline to beat."),
+    "lcomp": (
+        "Layered comps",
+        "Comparable sales as a model: sales split into ever-closer groups by their variables, a parcel valued from"
+        " the trimmed mean prices of the groups it falls in, the closest weighted most. Explainable. Takes blanks.",
+    ),
 }
-TREES = {"lightgbm", "xgboost", "catboost"}
+# Machine-learning engines: they take a machine-learning list, blanks and all (the linear ones leave out
+# variables with blanks).
+ML = {"lightgbm", "xgboost", "catboost", "lcomp"}
 # Each engine's own settings (Model values › Models › Configuration), as OpenAVMKit reads them from its entry, and
 # their defaults. Locations are the stack (LOCATED); interactions only for the linear ones (trees find their own).
 OPTIONS: dict[str, list[str]] = {
@@ -92,8 +99,9 @@ ListKind = Literal["regression", "ml"]
 
 
 def kind_of(engine: str) -> ListKind:
-    """The type of variable list an engine is made for: trees take a machine-learning list, the rest a regression's."""
-    return "ml" if engine in TREES else "regression"
+    """The type of variable list an engine is made for: machine-learning engines (trees, layered comps) take a
+    machine-learning list, the rest a regression's."""
+    return "ml" if engine in ML else "regression"
 
 
 class VarList(BaseModel):
@@ -421,7 +429,7 @@ def settings(project, project_dir: Path) -> dict:
                 blanks = [v for v in (lst.variables if lst else []) if v in by_field and by_field[v].trees_only]
                 if lst is None:
                     entry["ind_vars"] = []
-                elif blanks and e.engine not in TREES:
+                elif blanks and e.engine not in ML:
                     # A linear model can't take a blank: the list without its variables with blanks.
                     entry["ind_vars"] = [v for v in lst.variables if v not in blanks]
                 else:
@@ -528,7 +536,7 @@ def _entry_view(e: ModelEntry, raw: ModelEntry | None, lists: dict[str, VarList]
             w.append(EntryWarning(code="no_list"))
         elif not lst.variables:
             w.append(EntryWarning(code="list_empty"))
-        elif e.engine not in TREES:
+        elif e.engine not in ML:
             n = sum(1 for v in lst.variables if v in by_field and by_field[v].trees_only)
             if n:
                 w.append(EntryWarning(code="blanks_left_out", n=n))

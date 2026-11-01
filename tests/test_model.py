@@ -312,3 +312,27 @@ def test_far_out_variables_and_where_it_stopped():
         inner()
     except ValueError as e:
         assert _stack(e).endswith("test_model.py:" + str(inner.__code__.co_firstlineno + 1) + " inner")
+
+
+def test_layered_comps(prepared):
+    """Layered comps (OpenAVMKit's lcomp): a machine-learning engine like the trees: it takes a machine-learning list,
+    blanks and all, and has no settings of its own (it isn't tuned)."""
+    from oakbox import varlists
+
+    assert model.kind_of("lcomp") == "ml" and "lcomp" in model.TAKES_LIST and "lcomp" not in model.OPTIONS
+    p = _project()
+    p.model.lists = varlists.check(
+        p,
+        [
+            model.VarList(
+                id="comps", name="Comps", kind="ml", groups=["sf"], variables=["land_area_sqft", "slope_mean_deg"]
+            )
+        ],
+    )
+    model.set_group(p, prepared, "sf", [model.ModelEntry(engine="lcomp", list_id="comps", n_trials=9)])
+    (e,) = p.model.groups["sf"]
+    assert (e.key, e.name, e.n_trials) == ("layered_comps", "Layered comps", None)
+    s = model.settings(p, prepared)["modeling"]
+    # The list as it is: blanks don't take a variable out, as they do for a linear model.
+    assert s["models"]["main"]["sf"]["layered_comps"] == {"model": "lcomp", "ind_vars": "$$variable_lists.comps"}
+    assert "layered_comps" in s["instructions"]["main"]["run"]
