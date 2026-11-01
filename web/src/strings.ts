@@ -2225,7 +2225,7 @@ export const t = {
       noFields: "Nothing else",
       fieldsWhy: "Numbers of the parcels around each one, besides those above.",
       split: (k: number) =>
-        `Worked out as the models are tried, after the sales are split: a sale's nearby price comes only from sales outside its own fold, so a model never sees the price it's judged on. A group with ${k + 1} or fewer sales to average has none (OpenAVMKit writes 0): let it borrow a group nearby.`,
+        `Worked out as the models are tried, after the sales are split: a sale's nearby price comes only from sales outside its own fold, so a model never sees the price it's judged on. A group with ${k + 1} or fewer sales to average has none (OpenAVMKit writes 0): let it borrow another group's sales.`,
     },
     fillLede:
       "Blanks the models can't take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",

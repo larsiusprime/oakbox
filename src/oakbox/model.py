@@ -345,7 +345,7 @@ class _Everything(set):
 
 
 _ALL_COLUMNS = _Everything()
-# OpenAVMKit's own parcel fields it averages (5 nearest each), with what they need to be there.
+# OpenAVMKit's own parcel fields it averages (k nearest each), with what they need to be there.
 LAG_OWN = (
     "floor_area_ratio",
     "bedroom_density",
@@ -471,8 +471,8 @@ def drop_lag_zeros(
             entry["ind_vars"] = kept
     said = labels or {}
     return [
-        f"{names.get(g, g)}: {', '.join(said.get(v, v) for v in gone)} left out of its models: too few sales"
-        " nearby to average (0 for every parcel). Let it borrow another group's sales (Variables › Nearby sales"
+        f"{names.get(g, g)}: {', '.join(said.get(v, v) for v in gone)} left out of its models: too few of"
+        " its sales to average (0 for every parcel). Let it borrow another group's sales (Variables › Nearby sales"
         " and buildings)."
         for g, gone in zeros.items()
     ]
