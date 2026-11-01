@@ -143,7 +143,9 @@ def app(port: int, data_file: Path) -> None:
         files = detail["files"]
         assert files and files[0]["size_bytes"] > 0, "the added file isn't in the project"
         settings = json.loads((Path(detail["folder"]) / "in" / "settings.json").read_text(encoding="utf-8"))
-        assert settings["data"]["load"][files[0]["name"]] == {"filename": data_file.name}
+        entry = settings["data"]["load"][files[0]["name"]]
+        # The file is loaded under its name; other keys (a parcel layer's dupes rule, say) are OAK box's own calls.
+        assert entry["filename"] == data_file.name, f"settings.json loads {entry} for {data_file.name}"
         print(f"APP OK: project created, {data_file.name} added as {files[0]['name']}", flush=True)
     finally:
         server.terminate()
