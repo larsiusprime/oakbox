@@ -138,78 +138,73 @@ function ProjectView({
   return (
     <div className="project">
       <h1 className="visually-hidden">{project.name}</h1>
+      <OakBand
+        here={
+          <>
+            <b>{project.name}</b>
+            <span className="plate-sep">·</span>
+            {t.project.taxYear(project.tax_year)}
+          </>
+        }
+      />
       <Tabs
         className="folder-tabs"
         selectedKey={selected}
         onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
         disabledKeys={locked}
       >
-        <OakBand
-          here={
-            <>
-              <b>{project.name}</b>
-              <span className="plate-sep">·</span>
-              {t.project.taxYear(project.tax_year)}
-            </>
-          }
-        >
-          <TabList className="folder-tab-list" aria-label={project.name}>
-            <Tab id="metadata" className="folder-tab">
-              <img src={gear} alt="" className="tab-icon" />
-              {t.tabs.metadata}
-            </Tab>
-            <Tab id="fields" className="folder-tab">
-              <img src={clipboard} alt="" className="tab-icon" />
-              {t.tabs.fields}
-            </Tab>
-            <Tab id="bring" className="folder-tab">
-              {t.tabs.bring}
-            </Tab>
-            <Tab
-              id="groups"
-              className="folder-tab"
-              aria-description={accepted ? undefined : t.tabs.groupsLocked}
-            >
-              {t.tabs.groups}
-            </Tab>
-            <Tab
-              id="sales"
-              className="folder-tab"
-              aria-description={grouped ? undefined : t.tabs.salesLocked}
-            >
-              {t.tabs.sales}
-            </Tab>
-            <Tab
-              id="check"
-              className="folder-tab"
-              aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
-              {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
-            >
-              {t.tabs.check}
-            </Tab>
-            <Tab
-              id="variables"
-              className="folder-tab"
-              aria-description={checked ? undefined : t.tabs.valuesLocked}
-            >
-              {t.tabs.variables}
-            </Tab>
-            <Tab
-              id="values"
-              className="folder-tab"
-              aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
-            >
-              {t.tabs.values}
-            </Tab>
-            <Tab
-              id="report"
-              className="folder-tab"
-              aria-description={finalized ? undefined : t.tabs.reportLocked}
-            >
-              {t.tabs.report}
-            </Tab>
-          </TabList>
-        </OakBand>
+        <TabList className="folder-tab-list" aria-label={project.name}>
+          <Tab id="metadata" className="folder-tab">
+            <img src={gear} alt="" className="tab-icon" />
+            {t.tabs.metadata}
+          </Tab>
+          <Tab id="fields" className="folder-tab">
+            <img src={clipboard} alt="" className="tab-icon" />
+            {t.tabs.fields}
+          </Tab>
+          <Tab id="bring" className="folder-tab">
+            {t.tabs.bring}
+          </Tab>
+          <Tab
+            id="groups"
+            className="folder-tab"
+            aria-description={accepted ? undefined : t.tabs.groupsLocked}
+          >
+            {t.tabs.groups}
+          </Tab>
+          <Tab id="sales" className="folder-tab" aria-description={grouped ? undefined : t.tabs.salesLocked}>
+            {t.tabs.sales}
+          </Tab>
+          <Tab
+            id="check"
+            className="folder-tab"
+            aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
+            {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
+          >
+            {t.tabs.check}
+          </Tab>
+          <Tab
+            id="variables"
+            className="folder-tab"
+            aria-description={checked ? undefined : t.tabs.valuesLocked}
+          >
+            {t.tabs.variables}
+          </Tab>
+          <Tab
+            id="values"
+            className="folder-tab"
+            aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
+          >
+            {t.tabs.values}
+          </Tab>
+          <Tab
+            id="report"
+            className="folder-tab"
+            aria-description={finalized ? undefined : t.tabs.reportLocked}
+          >
+            {t.tabs.report}
+          </Tab>
+        </TabList>
         <TabPanel id="metadata" className="folder-panel">
           {notice}
           <MetadataTab detail={detail} />
@@ -288,43 +283,45 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
     [m.valuationDate, project.valuation_date ?? ""],
   ] as const;
   return (
-    <dl className="facts">
-      {rows.map(([k, v]) => (
-        <div key={k} className="fact">
-          <dt>{k}</dt>
-          <dd>{v}</dd>
+    <div className="sheet meta-sheet">
+      <dl className="facts">
+        {rows.map(([k, v]) => (
+          <div key={k} className="fact">
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+        <div className="fact">
+          <dt>{m.locale}</dt>
+          <dd className="facts-locale">
+            <LocaleFields
+              regions={regions.data}
+              value={{ units: project.units, currency: project.currency, numbers: project.numbers }}
+              onChange={(patch) => locale.mutate(patch)}
+            />
+            {locale.error && (
+              <span className="error" role="alert">
+                {locale.error.message}
+              </span>
+            )}
+          </dd>
         </div>
-      ))}
-      <div className="fact">
-        <dt>{m.locale}</dt>
-        <dd className="facts-locale">
-          <LocaleFields
-            regions={regions.data}
-            value={{ units: project.units, currency: project.currency, numbers: project.numbers }}
-            onChange={(patch) => locale.mutate(patch)}
-          />
-          {locale.error && (
-            <span className="error" role="alert">
-              {locale.error.message}
-            </span>
-          )}
-        </dd>
-      </div>
-      <div className="fact">
-        <dt>{m.folder}</dt>
-        <dd>
-          <span className="mono folder-path">{detail.folder}</span>
-          <Button className="button" isDisabled={show.isPending} onPress={() => show.mutate()}>
-            <FolderOpen aria-hidden="true" size="1em" />
-            {m.showInFolder}
-          </Button>
-          {show.error && (
-            <span className="error" role="alert">
-              {show.error.message}
-            </span>
-          )}
-        </dd>
-      </div>
-    </dl>
+        <div className="fact">
+          <dt>{m.folder}</dt>
+          <dd>
+            <span className="mono folder-path">{detail.folder}</span>
+            <Button className="button" isDisabled={show.isPending} onPress={() => show.mutate()}>
+              <FolderOpen aria-hidden="true" size="1em" />
+              {m.showInFolder}
+            </Button>
+            {show.error && (
+              <span className="error" role="alert">
+                {show.error.message}
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+    </div>
   );
 }

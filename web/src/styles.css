@@ -14,12 +14,12 @@
   --bg: #e8e8e8;
   --panel: #ffffff;
   --panel-edge: #a5a5a5;
-  --head: #f3f3f3;
+  --head: #eaf1fa; /* table headings and highlighted rows: light blue */
   --text: #1c1e20;
   --muted: #565b61;
   --rule: #d9d9d9;
   --cell-line: #e2e4e6; /* every table's cell lines */
-  --zebra: #f5f6f7; /* every table's alternate rows */
+  --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
 
   --btn-top: #ffffff;
   --btn-bottom: #dadada;
@@ -51,6 +51,17 @@
   --info-edge: #b9cdee;
   --select: #dce9fd;
 
+  /* The box's inside (D21): Manila folders, creamy but still Manila, and white paper on them. */
+  --manila: #f8f0d4;
+  --manila-back: #efe3bd; /* a folder's tab behind the open one */
+  --manila-edge: #c8b277;
+  --manila-ink: #4a3b1c;
+  --paper: #ffffff;
+  --paper-edge: #d8d2c0;
+  --paper-rule: #e6e1d3;
+  --paper-shadow: 0 1px 1px rgba(70, 55, 20, 0.16), 0 3px 8px rgba(70, 55, 20, 0.12);
+  --folder-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --rim: 8px; /* the frame's sides and bottom */
   --radius: 4px;
   --btn-radius: 4px;
   /* Density (D43): compact by default; comfortable on touch screens or when chosen. */
@@ -160,19 +171,33 @@ a {
   color: var(--link);
 }
 
-/* ---------- The top of every screen (OakBand, D21): polished oak, the plate on it, the folder tabs on its edge ---- */
+/* ---------- The box (D21): the lid, the frame, the boards inside ---------- */
 
+/* The inside: dark oak boards (assets/oak-planks.svg), still as the page scrolls. */
+html,
+body {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 220, 170, 0.05), rgba(0, 0, 0, 0.25) 90%),
+    url("./assets/oak-planks.svg") 0 0 / 2400px 880px repeat,
+    #3a2818;
+  background-attachment: fixed;
+}
+
+/* The lid: polished oak with the plate on it (OakBand), full width, staying at the top as the page scrolls. Above
+   the frame's sides (they butt flat against its underside), below dialogs and popovers. */
 .oak-nav {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
   align-items: center;
-  /* full width: out to the page's edges, over its top padding */
-  margin: -0.6rem -0.9rem 0;
-  padding: 0.55rem 0.9rem 0;
+  /* full width: out to the window's edges, over the page's top padding */
+  margin: -0.6rem calc(-0.9rem - 5px) 0.9rem;
+  padding: 0.55rem calc(0.9rem + 5px);
   border-bottom: 1px solid #4a2e15;
   box-shadow:
     0 1px 0 rgba(255, 240, 215, 0.35) inset,
-    0 2px 4px rgba(40, 25, 10, 0.35);
+    0 3px 8px rgba(0, 0, 0, 0.55);
   background:
     /* varnish: a soft highlight up top, a little depth below */
     linear-gradient(
@@ -182,17 +207,88 @@ a {
       rgba(60, 30, 5, 0.04) 58%,
       rgba(60, 30, 5, 0.2)
     ),
-    /* the oak itself: procedural flat-sawn grain, see assets/oak-grain.svg */ url("./assets/oak-grain.svg") 0
-    50% / 2560px max(120px, 100%) no-repeat,
+    /* the oak itself: flat-sawn grain that tiles across (assets/oak-h.svg) */ url("./assets/oak-h.svg") 0 50%
+    / 1280px max(120px, 100%) repeat-x,
     linear-gradient(to bottom, #d1a26b, #b98450 60%, #a8723f);
 }
 
-/* No tabs (Home, New project): the band alone, the page below it. */
-.oak-nav-bare {
-  margin-bottom: 0.9rem;
-  padding-bottom: 0.55rem;
+/* The frame (OakFrame): pinned to the window's edges, so it stretches with it; over the page, never in the way. */
+.rim > div {
+  position: fixed;
+  z-index: 4;
+  pointer-events: none;
 }
-
+.rim-l,
+.rim-r {
+  top: 0;
+  bottom: 0;
+  width: var(--rim);
+  background-color: #b98450;
+  background-size: 60px 640px;
+  background-repeat: repeat-y;
+}
+/* The sides: grain running down (assets/oak-v.svg), mitred at the bottom. */
+.rim-l {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--rim)), 0 100%);
+  background-image:
+    linear-gradient(to right, rgba(255, 248, 235, 0.25), rgba(60, 30, 5, 0.18)), url("./assets/oak-v.svg");
+}
+.rim-r {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--rim)));
+  background-position: 0 -333px;
+  background-image:
+    linear-gradient(to left, rgba(255, 248, 235, 0.25), rgba(60, 30, 5, 0.18)), url("./assets/oak-v.svg");
+}
+/* The bottom rail: grain running across, mitred at both ends. */
+.rim-b {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--rim);
+  clip-path: polygon(0 100%, var(--rim) 0, calc(100% - var(--rim)) 0, 100% 100%);
+  background:
+    linear-gradient(rgba(255, 248, 235, 0.2), rgba(60, 30, 5, 0.25)),
+    url("./assets/oak-h.svg") -300px 50% / 640px 60px repeat-x,
+    #b98450;
+}
+/* The mitres: a hairline along each joint. */
+.rim-jl,
+.rim-jr {
+  bottom: 0;
+  width: var(--rim);
+  height: var(--rim);
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.6px),
+    rgba(40, 20, 5, 0.75) 50%,
+    transparent calc(50% + 0.6px)
+  );
+}
+.rim-jl {
+  left: 0;
+}
+.rim-jr {
+  right: 0;
+  transform: scaleX(-1);
+}
+/* Where the frame meets the boards: a dark seam, the boards a touch shaded under it; and its outer edge, lit. */
+.rim-in {
+  top: 0;
+  left: var(--rim);
+  right: var(--rim);
+  bottom: var(--rim);
+  box-shadow:
+    0 0 0 1px rgba(25, 12, 3, 0.85),
+    inset 0 0 10px rgba(0, 0, 0, 0.35);
+}
+.rim-out {
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(60, 35, 12, 0.9),
+    inset 0 0 0 2px rgba(255, 240, 215, 0.3);
+}
 
 /*
  * The nameplate: brushed metal fixed to the oak, so the name never sits on a dark
@@ -322,6 +418,21 @@ a {
   box-shadow: none;
 }
 
+/* High contrast: no wood, no Manila; plain black round white sheets. */
+:root[data-contrast="high"] body,
+:root[data-contrast="high"] html {
+  background: #000000;
+}
+:root[data-contrast="high"] .rim {
+  display: none;
+}
+:root[data-contrast="high"] {
+  --manila: #ffffff;
+  --manila-back: #ffffff;
+  --manila-edge: #000000;
+  --paper-edge: #000000;
+}
+
 :root[data-contrast="high"] .plate {
   color: #ffffff;
   background: #000000;
@@ -339,7 +450,8 @@ a {
 
 .content {
   margin: 0 auto;
-  padding: 0.6rem 0.9rem 1.5rem;
+  /* clear of the frame's sides and bottom */
+  padding: 0.6rem calc(0.9rem + 5px) calc(1.5rem + var(--rim));
 }
 
 .home {
@@ -351,11 +463,13 @@ a {
 
 /* ---------- Panels and rows ---------- */
 
+/* A panel without a heading is a sheet of paper; with one, a Manila folder whose tab is its heading, the sheets in
+   it on paper (D21). */
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--panel-edge);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: var(--paper-shadow);
 }
 
 .panel-head {
@@ -783,7 +897,8 @@ a.row-title:hover {
 }
 
 .settings-body {
-  padding: 0 var(--pad) var(--pad);
+  margin: 0.2rem var(--pad) var(--pad);
+  padding: var(--pad);
 }
 
 .setting-line {
@@ -866,22 +981,26 @@ a.row-title:hover {
   background: rgba(20, 22, 24, 0.45);
 }
 
+/* A dialog is a Manila folder handed to you: its title the tab, what it says on one sheet of paper in it (D21). The
+   folder's shape (tab and body) is drawn by the background, its edge and shadow follow that shape. */
 .modal {
+  --tab-h: 2.4rem;
   width: min(100%, 34rem);
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  background: var(--panel);
-  border: 1px solid var(--panel-edge);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  background: none;
+  border: none;
+  filter: drop-shadow(0 0 0.6px #8f7a40) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
 }
 
 .modal-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.6rem;
-  padding: 0.9rem;
+  gap: 0;
+  padding: 0 0.6rem 0.6rem;
   outline: none;
+  background: linear-gradient(transparent var(--tab-h), var(--manila) var(--tab-h));
+  border-radius: 0 5px 5px 5px;
 }
 
 .modal-body p {
@@ -924,9 +1043,11 @@ a.row-title:hover {
   max-width: 62rem;
 }
 
+/* The project is one Manila folder lying in the box, its tabs along its top edge, on the wood. */
 .folder-tab-list {
   display: flex;
-  margin-bottom: -1px; /* the selected tab sits on the panel's top edge */
+  flex-wrap: wrap;
+  margin-bottom: -1px; /* the open tab runs into its folder: no edge between them */
 }
 
 .folder-tab {
@@ -934,11 +1055,10 @@ a.row-title:hover {
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.7rem;
-  border: 1px solid var(--panel-edge);
-  border-bottom-color: var(--panel-edge);
-  border-radius: 5px 5px 0 0;
-  background: linear-gradient(#f6f6f6, #dcdcdc);
-  color: var(--muted);
+  border: 1px solid var(--manila-edge);
+  border-radius: 7px 7px 0 0;
+  background: var(--manila-back);
+  color: var(--manila-ink);
   cursor: default;
   outline: none;
 }
@@ -950,8 +1070,8 @@ a.row-title:hover {
 
 .folder-tab[data-selected] {
   position: relative; /* its edges sit over its neighbours' */
-  background: var(--panel);
-  border-bottom-color: var(--panel);
+  background: var(--manila);
+  border-bottom-color: var(--manila);
   color: var(--text);
   font-weight: 600;
 }
@@ -966,10 +1086,8 @@ a.row-title:hover {
 }
 
 .folder-tab[data-disabled] {
-  background: var(--well);
-  border-color: var(--rule);
-  border-bottom-color: var(--panel-edge);
-  color: var(--well-edge);
+  background: #e9dcb4;
+  color: #8a7650;
   min-width: 3.5rem;
   justify-content: center;
 }
@@ -980,10 +1098,10 @@ a.row-title:hover {
 }
 
 .folder-panel {
-  background: var(--panel);
-  border: 1px solid var(--panel-edge);
-  border-radius: 0 var(--radius) var(--radius) var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-radius: 0 5px 5px 5px;
+  box-shadow: var(--folder-shadow);
   padding: var(--pad);
   min-height: 6rem;
   outline: none;
@@ -1178,8 +1296,14 @@ a.row-title:hover {
   }
 
   .oak-nav,
+  .rim,
   .button {
     display: none;
+  }
+
+  html,
+  body {
+    background: #ffffff;
   }
 
   .content {
@@ -1195,12 +1319,12 @@ a.row-title:hover {
 
 /* ---------- F3d: the Fields wizard ---------- */
 
+/* A step frame inside a folder: its list of steps lies on the Manila; the step itself is a sheet of paper on it. */
 .wiz {
   display: grid;
   grid-template-columns: 13rem 1fr;
+  gap: 0.6rem;
   min-height: 25rem;
-  background: var(--panel);
-  border: 1px solid var(--panel-edge);
 }
 
 .wiz-steps {
@@ -1208,8 +1332,6 @@ a.row-title:hover {
   margin: 0;
   padding: 0.4rem 0;
   font-size: 0.92rem;
-  background: linear-gradient(90deg, #f4f4f4, #ebebeb);
-  border-right: 1px solid var(--panel-edge);
 }
 
 .wiz-step button {
@@ -1263,6 +1385,10 @@ a.row-title:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: var(--paper-shadow);
 }
 
 .wiz-body {
@@ -1393,8 +1519,8 @@ a.row-title:hover {
   gap: 0.45rem;
   align-items: center;
   padding: 0.45rem 0.7rem;
-  background: linear-gradient(#f7f7f7, #e9e9e9);
-  border-top: 1px solid var(--panel-edge);
+  background: var(--paper);
+  border-top: 1px solid var(--paper-rule);
 }
 
 .wiz-grow {
@@ -4806,26 +4932,107 @@ table.tbl.dt > * > tr > :is(th, td) {
   background: #f3f3f0;
 }
 
-/* The folder tabs stand on the band's bottom edge, paper on wood; the open one runs into the page. */
-.oak-nav > .folder-tab-list {
-  grid-column: 1 / -1;
-  margin: 0.5rem 0 -1px;
-}
-.oak-nav .folder-tab {
-  background: linear-gradient(#f4efe4, #d9cfbd);
-  border-color: #6b4a2a;
-  color: #4a3a2a;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-.oak-nav .folder-tab[data-selected] {
-  background: var(--panel);
-  border-bottom-color: var(--panel);
-  color: var(--text);
+/* On paper already (a step's sheet, a dialog's): a container with a heading is a titled section of the document, not
+   another folder: no box, its heading over a hairline (D21). */
+:is(.wiz-main, .modal-body) :is(.bi-card, .rc-card, .mg-card):has(> :is(h3, h4, .bi-head):first-child) {
+  padding: 0.2rem 0 0.4rem;
+  background: none;
+  border: none;
+  border-radius: 0;
   box-shadow: none;
 }
-.oak-nav .folder-tab[data-disabled] {
-  background: rgba(240, 232, 218, 0.55);
-  border-color: rgba(80, 50, 20, 0.5);
-  border-bottom-color: #6b4a2a;
-  color: #7a6650;
+
+:is(.wiz-main, .modal-body) :is(.bi-card, .rc-card, .mg-card) > :is(h3, h4, .bi-head):first-child {
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--paper-rule);
+}
+
+/* A dialog's sheet is one piece: its parts spaced by their own padding, not gaps of folder between them. */
+.modal-body.rc-body {
+  gap: 0;
+}
+
+.meta-sheet {
+  padding: 0.8rem 1rem;
+}
+
+/* ---------- D21: folders and sheets (after the rules they refine) ---------- */
+
+.panel:has(> .panel-head) {
+  position: relative;
+  margin-top: calc(2.1rem + 2px);
+  background: var(--manila);
+  border-color: var(--manila-edge);
+  border-radius: 0 5px 5px 5px;
+  box-shadow: var(--folder-shadow);
+}
+
+/* The heading is the folder's tab: one piece with it, no edge between (one pixel lower than the gap, over the
+   folder's top edge). */
+.panel > .panel-head > :is(h1, h2):first-child {
+  position: absolute;
+  z-index: 1;
+  top: calc(-2.1rem - 1px);
+  left: -1px;
+  height: calc(2.1rem + 2px);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 1.1rem 1px;
+  font-size: 1.2rem;
+  font-weight: 650;
+  color: var(--text);
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+}
+
+/* What a folder holds: sheets of paper. */
+.panel > .rows,
+.sheet {
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: var(--paper-shadow);
+}
+
+.panel > .rows {
+  margin: 0 var(--pad) var(--pad);
+}
+
+/* the tab */
+.modal-body > .modal-title {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  height: var(--tab-h);
+  margin: 0 0 0.6rem -0.6rem;
+  padding: 0 1.1rem;
+  font-size: 1.2rem;
+  font-weight: 650;
+  background: var(--manila);
+  border-radius: 7px 7px 0 0;
+}
+
+/* the sheet: everything after the title, one continuous piece of paper */
+.modal-body > :not(.modal-title) {
+  margin: 0;
+  padding: 0.3rem 0.9rem;
+  background: var(--paper);
+  box-shadow:
+    1px 0 0 var(--paper-edge),
+    -1px 0 0 var(--paper-edge);
+}
+
+.modal-body > .modal-title + * {
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--paper-edge);
+  border-radius: 2px 2px 0 0;
+}
+
+.modal-body > :not(.modal-title):last-child {
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--paper-edge);
+  border-radius: 0 0 2px 2px;
 }

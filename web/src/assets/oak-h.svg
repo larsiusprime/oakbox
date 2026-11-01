@@ -1,0 +1,44 @@
+<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="1280" height="120" viewBox="0 0 1280 120">
+  <!--
+    Flat-sawn oak, drawn procedurally (no bitmap). The browser renders it once
+    and caches it.
+    Tiles across without a seam (OakBand, the frame's bottom rail): every feTurbulence stitches to the tile's
+    width, and the slope runs straight down, so the left and right edges match. 1280 x 120.
+
+    1. Height field: a vertical slope (the rect's gradient fill) plus
+       horizontally stretched noise. Growth rings are its contour lines.
+       (No feDisplacementMap: Chromium applies its scale in device pixels, so
+       the grain would change with Windows display scaling.)
+    2. Rings: a lookup table maps height to a repeating ring profile. Each ring
+       darkens slowly (earlywood to latewood) then drops back sharply, and ring
+       widths vary like real years. A slight blur anti-aliases the edges.
+    3. Colour: light honey earlywood to dark latewood.
+    4. Pores: short dark flecks along the grain, stronger in the latewood.
+    5. Figure: a broad, faint tint so the board isn't uniform.
+  -->
+  <defs>
+    <linearGradient id="slope" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    <filter id="oak" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence stitchTiles="stitch" type="fractalNoise" baseFrequency="0.0012 0.016" numOctaves="3" seed="41" result="noise"/>
+      <feComposite in="SourceGraphic" in2="noise" operator="arithmetic" k2="0.4" k3="0.9" k4="-0.1" result="height"/>
+      <feComponentTransfer in="height" result="ringsSharp">
+        <feFuncR type="table" tableValues="0.0 0.026 0.12 0.292 0.55 0.898 0.404 0.0 0.024 0.112 0.274 0.516 0.842 0.379 0.0 0.009 0.041 0.1 0.189 0.309 0.461 0.647 0.869 0.391 0.0 0.008 0.036 0.089 0.167 0.273 0.407 0.571 0.766 0.345 0.0 0.046 0.213 0.519 0.977 0.44 0.0 0.011 0.052 0.126 0.238 0.389 0.58 0.815 0.367 0.0 0.023 0.106 0.259 0.488 0.798 0.359 0.0 0.005 0.025 0.061 0.116 0.189 0.282 0.396 0.531 0.688 0.868 0.39 0.0 0.009 0.041 0.1 0.189 0.309 0.462 0.648 0.869 0.391 0.0 0.006 0.028 0.068 0.129 0.21 0.314 0.44 0.591 0.766 0.965 0.434 0.0 0.026 0.121 0.295 0.556 0.909 0.409 0.0 0.009 0.04 0.098 0.184 0.301 0.45 0.632 0.847 0.381 0.0 0.043 0.2 0.487 0.918 0.413 0.0 0.037 0.172 0.419 0.79 0.355"/>
+      </feComponentTransfer>
+      <feGaussianBlur in="ringsSharp" stdDeviation="1.1 0.3" result="rings"/>
+      <feColorMatrix in="rings" values="-0.27 0 0 0 0.82  -0.25 0 0 0 0.60  -0.19 0 0 0 0.36  0 0 0 0 1" result="wood"/>
+      <feTurbulence stitchTiles="stitch" type="fractalNoise" baseFrequency="0.012 0.7" numOctaves="2" seed="42" result="poreNoise"/>
+      <feColorMatrix in="poreNoise" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  5 0 0 0 -3.6" result="pores"/>
+      <feComposite in="pores" in2="rings" operator="arithmetic" k1="0.6" k2="0.35" result="poreMask"/>
+      <feFlood flood-color="#5a3315" result="ink"/>
+      <feComposite in="ink" in2="poreMask" operator="in" result="poreInk"/>
+      <feTurbulence stitchTiles="stitch" type="fractalNoise" baseFrequency="0.0008 0.006" numOctaves="1" seed="43" result="figureNoise"/>
+      <feColorMatrix in="figureNoise" values="0 0 0 0 0.45  0 0 0 0 0.22  0 0 0 0 0.05  1.2 0 0 0 -0.45" result="figure"/>
+      <feComposite in="poreInk" in2="wood" operator="over" result="porous"/>
+      <feComposite in="figure" in2="porous" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#slope)" filter="url(#oak)"/>
+</svg>

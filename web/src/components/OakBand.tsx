@@ -1,11 +1,11 @@
-/** The top of every screen (SPEC D21): an oak band with the brass plate, which says where you are and takes you
- * home; inside a project, the folder tabs stand on its bottom edge and the open one runs into the page. No text
- * sits on the bare wood: what's said is on the plate. */
+/** The top of every screen (SPEC D21): the box's lid, polished oak with the brass plate on it, which says where you
+ * are and takes you home. It stays at the top as the page scrolls, so the box's frame is always whole (the frame's
+ * sides butt flat against its underside). No text sits on the bare wood: what's said is on the plate. */
 import { t } from "../strings";
 
-export function OakBand({ here, children }: { here: React.ReactNode; children?: React.ReactNode }) {
+export function OakBand({ here }: { here: React.ReactNode }) {
   return (
-    <header className={children ? "oak-nav" : "oak-nav oak-nav-bare"}>
+    <header className="oak-nav">
       <a className="plate" href="#/" title={t.nav.home}>
         <span className="wordmark">
           <span className="wordmark-strong">OAK</span>
@@ -14,7 +14,6 @@ export function OakBand({ here, children }: { here: React.ReactNode; children?: 
         <span className="plate-rule" aria-hidden="true" />
         <span className="plate-here">{here}</span>
       </a>
-      {children}
     </header>
   );
 }

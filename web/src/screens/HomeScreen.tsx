@@ -188,7 +188,7 @@ function StorageLocation() {
       <header className="panel-head">
         <h2 id="storage-title">{t.home.storageTitle}</h2>
       </header>
-      <div className="settings-body">
+      <div className="settings-body sheet">
         {editing === null ? (
           <div className="setting-line">
             <span className="mono">{settings.data.storage_location}</span>

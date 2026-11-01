@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
+import { OakFrame } from "./components/OakFrame";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
 import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
@@ -46,6 +47,7 @@ export function App() {
           <ProjectScreen projectId={route.id} tab={route.tab ?? null} step={route.step ?? null} />
         )}
       </main>
+      <OakFrame />
       <AppMenus route={route} />
     </div>
   );
