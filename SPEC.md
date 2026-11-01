@@ -1159,7 +1159,7 @@ Real extracts rarely match OpenAVMKit's fields as-is. There's no free-form edito
 
 ### 3.14 Menus and window
 
-Inside a project: the oak band (▒) with the plate on it (D21), the folder tabs standing on its edge, and the open one (here Model groups) running into the page:
+Inside a project: the oak band (▒) with the plate on it (D21: where you are, and home when clicked; nothing written on the bare wood), the folder tabs standing on its edge, and the open one (here Model groups) running into the page:
 
 ```
 ┌ Travis County 2026 – OAK box ───────────────────────────────────────── _ □ × ┐
@@ -1167,8 +1167,8 @@ Inside a project: the oak band (▒) with the plate on it (D21), the folder tabs
 ├──────────────────────────────────────────────────────────────────────────────┤
 │▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
 │▒ ╔═════════════════════════════════════════════════╗ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
-│▒ ║ ⊘ OAK box │ Travis County 2026 · Tax year 2026 ⊘ ║ the plate: where you  ▒│
-│▒ ╚═════════════════════════════════════════════════╝ are, and home          ▒│
+│▒ ║ ⊘ OAK box │ Travis County 2026 · Tax year 2026 ⊘ ║ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
+│▒ ╚═════════════════════════════════════════════════╝ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
 │▒ ┌──────────┬──────┬────────────┬────────────────┬─────────┬──────────────┐ ▒│
 │▒ │ Metadata │ Data │ 1 Bring in │ 2 Model groups │ 3 Check │ 4 … 7 locked │ ▒│
 ├──┴──────────┴──────┴────────────┘                └─────────┴──────────────┴──┤
