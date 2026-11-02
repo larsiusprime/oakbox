@@ -44,7 +44,7 @@ def judge(kind: Kind, var: model.Variable, rows: dict[str, list[vartest.TestRow]
         if rep is not None and not any(r.passed for r in rep):
             return "not_represented"
         return None
-    if var.trees_only:
+    if var.ml_only:
         return "blanks"
     if var.values and var.values > MAX_REGRESSION_VALUES:
         return "many_values"
@@ -202,7 +202,7 @@ def _warnings(x: VarList, variables: dict[str, model.Variable], sales: dict[str,
             n = sales.get(g)
             if n is not None and x.variables and n < SALES_PER_VARIABLE * len(x.variables):
                 out.append(ListWarning(code="few_sales", group=g, n=n))
-        blanks = [v for v in x.variables if v in variables and variables[v].trees_only]
+        blanks = [v for v in x.variables if v in variables and variables[v].ml_only]
         if blanks:
             out.append(ListWarning(code="blanks", variables=blanks))
     limit = MAX_REGRESSION_VALUES if x.kind == "regression" else MAX_ML_VALUES

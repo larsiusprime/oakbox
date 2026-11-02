@@ -12,7 +12,7 @@ may have been made with those very sales.
 
 The variables and models are written as OpenAVMKit's settings (`modeling.models.main`,
 `modeling.instructions.main`): the default list is the linear-safe one (numbers with no blanks left), which
-OpenAVMKit prunes per group by its own variable tests before a linear model uses it; trees get the whole list.
+OpenAVMKit prunes per group by its own variable tests before a linear model uses it; ML models get the whole list.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ ENGINES: dict[str, tuple[str, str]] = {
 # variables with blanks).
 ML = {"lightgbm", "xgboost", "catboost", "lcomp"}
 # Each engine's own settings (Model values › Models › Configuration), as OpenAVMKit reads them from its entry, and
-# their defaults. Locations are the stack (LOCATED); interactions only for the linear ones (trees find their own).
+# their defaults. Locations are the stack (LOCATED); interactions only for the linear ones (ML models find their own).
 OPTIONS: dict[str, list[str]] = {
     "mra": ["log", "intercept", "interactions"],
     "multi_mra": ["locations", "log", "intercept", "interactions", "optimize_vars"],
@@ -99,7 +99,7 @@ ListKind = Literal["regression", "ml"]
 
 
 def kind_of(engine: str) -> ListKind:
-    """The type of variable list an engine is made for: machine-learning engines (trees, layered comps) take a
+    """The type of variable list an engine is made for: ML engines (LightGBM, XGBoost, CatBoost, layered comps) take a
     machine-learning list, the rest a regression's."""
     return "ml" if engine in ML else "regression"
 
@@ -133,7 +133,7 @@ class ModelEntry(BaseModel):
         default=None, description="Linear models: default multiplies each land and building category by its area."
     )
     optimize_vars: bool | None = Field(default=None, description="Multi-MRA: drop unhelpful variables per area.")
-    n_trials: int | None = Field(default=None, ge=1, le=500, description="Trees: tuning trials.")
+    n_trials: int | None = Field(default=None, ge=1, le=500, description="LightGBM, XGBoost, CatBoost: tuning trials.")
     use_gpu: bool | None = Field(default=None, description="CatBoost: the graphics card if there is one.")
 
     def option(self, name: str):
@@ -197,7 +197,7 @@ class Variable(BaseModel):
     numeric: bool
     parcels: int = Field(description="Parcels with a value.")
     blanks: int = Field(description="Parcels with none, after Prepare the fields.")
-    trees_only: bool = Field(description="A number with blanks: linear models leave it out.")
+    ml_only: bool = Field(description="A number with blanks: ML models only (linear models leave it out).")
     values: int | None = Field(
         default=None,
         description="A category's values: each becomes a column of its own to the models (one-hot), which slows them.",
@@ -536,7 +536,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
                 numeric=numeric,
                 parcels=parcels,
                 blanks=blanks,
-                trees_only=blanks > 0,
+                ml_only=blanks > 0,
                 values=values,
             )
         )
@@ -548,9 +548,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
         columns = pq.ParquetFile(path).schema_arrow.names
         n = max(v.parcels + v.blanks for v in out)
         for f, name in lag_fields(project, columns):
-            out.append(
-                Variable(field=f, name=name, kind="location", numeric=True, parcels=n, blanks=0, trees_only=False)
-            )
+            out.append(Variable(field=f, name=name, kind="location", numeric=True, parcels=n, blanks=0, ml_only=False))
     return out
 
 
@@ -642,7 +640,7 @@ def settings(project, project_dir: Path) -> dict:
             entry: dict = {"model": e.engine}
             lst = lists.get(e.list_id or "")
             if e.engine in TAKES_LIST:
-                blanks = [v for v in (lst.variables if lst else []) if v in by_field and by_field[v].trees_only]
+                blanks = [v for v in (lst.variables if lst else []) if v in by_field and by_field[v].ml_only]
                 if lst is None:
                     entry["ind_vars"] = []
                 elif blanks and e.engine not in ML:
@@ -788,7 +786,7 @@ def _entry_view(e: ModelEntry, raw: ModelEntry | None, lists: dict[str, VarList]
         elif not lst.variables:
             w.append(EntryWarning(code="list_empty"))
         elif e.engine not in ML:
-            n = sum(1 for v in lst.variables if v in by_field and by_field[v].trees_only)
+            n = sum(1 for v in lst.variables if v in by_field and by_field[v].ml_only)
             if n:
                 w.append(EntryWarning(code="blanks_left_out", n=n))
     if e.engine in LOCATED and not e.locations:

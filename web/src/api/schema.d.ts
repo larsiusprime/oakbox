@@ -3590,7 +3590,7 @@ export interface components {
             optimize_vars: boolean | null;
             /**
              * N Trials
-             * @description Trees: tuning trials.
+             * @description LightGBM, XGBoost, CatBoost: tuning trials.
              */
             n_trials: number | null;
             /**
@@ -4984,7 +4984,7 @@ export interface components {
             optimize_vars?: boolean | null;
             /**
              * N Trials
-             * @description Trees: tuning trials.
+             * @description LightGBM, XGBoost, CatBoost: tuning trials.
              */
             n_trials?: number | null;
             /**
@@ -5044,7 +5044,7 @@ export interface components {
             optimize_vars: boolean | null;
             /**
              * N Trials
-             * @description Trees: tuning trials.
+             * @description LightGBM, XGBoost, CatBoost: tuning trials.
              */
             n_trials: number | null;
             /**
@@ -8709,10 +8709,10 @@ export interface components {
              */
             blanks: number;
             /**
-             * Trees Only
-             * @description A number with blanks: linear models leave it out.
+             * Ml Only
+             * @description A number with blanks: ML models only (linear models leave it out).
              */
-            trees_only: boolean;
+            ml_only: boolean;
             /**
              * Values
              * @description A category's values: each becomes a column of its own to the models (one-hot), which slows them.

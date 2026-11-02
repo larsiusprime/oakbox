@@ -66,7 +66,7 @@ def test_other_values_are_pass_through_models_judged_like_the_roll(client, pid, 
         model,
         "variables",
         lambda p, d: [
-            model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, trees_only=False)
+            model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, ml_only=False)
         ],
     )
     monkeypatch.setattr(model, "_universe_fields", lambda d: ["vset1_market_value"])

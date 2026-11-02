@@ -32,7 +32,7 @@ def test_a_group_not_modeled_skips_every_model(client, monkeypatch):
         model,
         "variables",
         lambda p, d: [
-            model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, trees_only=False)
+            model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, ml_only=False)
         ],
     )
     monkeypatch.setattr(model, "_universe_fields", lambda d: [])

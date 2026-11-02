@@ -2373,7 +2373,7 @@ export const t = {
       rule: {
         regression:
           "Recommended for a regression: in the sales, moves with price (0.10 or more either way), overlaps nothing much (VIF 10 or under), no blanks, and not a category with many values.",
-        ml: "Recommended for machine learning: anything that's in the sales. Trees find their own way with weak or overlapping variables; a category with many values is the one thing to spare: CatBoost slows with each.",
+        ml: "Recommended for machine learning: anything that's in the sales. ML models find their own way with weak or overlapping variables; a category with many values is the one thing to spare: CatBoost slows with each.",
       } as Record<string, string>,
       scoresFor: "Scores for",
       tickRecommended: "Tick the recommended",

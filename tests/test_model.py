@@ -73,8 +73,8 @@ def test_the_variables_found(prepared):
     ]
     assert vs["spatial_lag_sale_price"].kind == "location" and vs["spatial_lag_sale_price"].name == "Nearby sale price"
     assert vs["land_class"].kind == "category" and not vs["land_class"].numeric
-    assert vs["bldg_area_finished_sqft"].kind == "big_five" and not vs["bldg_area_finished_sqft"].trees_only
-    assert vs["slope_mean_deg"].blanks == 1 and vs["slope_mean_deg"].trees_only
+    assert vs["bldg_area_finished_sqft"].kind == "big_five" and not vs["bldg_area_finished_sqft"].ml_only
+    assert vs["slope_mean_deg"].blanks == 1 and vs["slope_mean_deg"].ml_only
     assert model.big_five_missing(list(vs), "imperial") == ["quality", "condition"]
 
 

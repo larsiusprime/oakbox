@@ -9065,7 +9065,7 @@
        }
       ],
       "title": "N Trials",
-      "description": "Trees: tuning trials."
+      "description": "LightGBM, XGBoost, CatBoost: tuning trials."
      },
      "use_gpu": {
       "anyOf": [
@@ -12206,7 +12206,7 @@
        }
       ],
       "title": "N Trials",
-      "description": "Trees: tuning trials."
+      "description": "LightGBM, XGBoost, CatBoost: tuning trials."
      },
      "use_gpu": {
       "anyOf": [
@@ -12337,7 +12337,7 @@
        }
       ],
       "title": "N Trials",
-      "description": "Trees: tuning trials."
+      "description": "LightGBM, XGBoost, CatBoost: tuning trials."
      },
      "use_gpu": {
       "anyOf": [
@@ -20684,10 +20684,10 @@
       "title": "Blanks",
       "description": "Parcels with none, after Prepare the fields."
      },
-     "trees_only": {
+     "ml_only": {
       "type": "boolean",
-      "title": "Trees Only",
-      "description": "A number with blanks: linear models leave it out."
+      "title": "Ml Only",
+      "description": "A number with blanks: ML models only (linear models leave it out)."
      },
      "values": {
       "anyOf": [
@@ -20710,7 +20710,7 @@
      "numeric",
      "parcels",
      "blanks",
-     "trees_only",
+     "ml_only",
      "values"
     ],
     "title": "Variable"

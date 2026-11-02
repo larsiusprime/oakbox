@@ -704,7 +704,7 @@ What stands between Prepare the fields (F7) and values a model made, and how ste
 
 **The spike** (2026-10-29, the sample: 7,994 parcels, 1,477 sales; Prepare's output; a hand-written variable list of finished area, land area, effective age, units, normalized latitude and longitude, polar coordinates, elevation and slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-fold nested cross-validation): `write_canonical_splits`, then `model_runner.run_models` (try, no vacant models), ran headless in **29 s** and wrote `out/models/`. The plumbing works. What it showed:
 1. **No variables, no models.** OpenAVMKit has no default list: `modeling.models.main.default.ind_vars` must be written, or every model raises. Nothing in OAK box writes it yet.
-2. **Linear models refuse blanks.** MRA stopped on `slope_mean_deg`, blank on 1 of 359 small multi-family parcels. Trees take blanks; linear models need every variable filled (F7's Fill blanks), so the variable list and the fills must agree before running.
+2. **Linear models refuse blanks.** MRA stopped on `slope_mean_deg`, blank on 1 of 359 small multi-family parcels. ML models take blanks; linear models need every variable filled (F7's Fill blanks), so the variable list and the fills must agree before running.
 3. **Small groups get no values.** Groups under 15 sales are skipped with a warning: apartments (106 parcels) and public & exempt (564) got no value at all, and Unassigned (22) none either.
 4. **Tiny groups get nonsense.** Commercial & industrial, 9 sales for 1,217 parcels: LightGBM's holdout median ratio was −0.12 (COD −2,610); 118 parcels got **negative** values, and the ensemble kept them.
 5. **The results are in memory.** `run_models` returns each group's benchmark (per model: sales, median ratio, COD, PRD, PRB, VEI and its significance, trimmed versions; out-of-fold, the holdout); the pipeline's `try_models` and `finalize_models` return nothing, and nothing machine-readable about them is written. `out/models/all_model_groups/universe.parquet` has `model_group_x` and `model_group_y` (a merge that keeps both).
@@ -724,7 +724,7 @@ What stands between Prepare the fields (F7) and values a model made, and how ste
 **Steps** (the tab continues after What changed): Fill blanks › Rare categories › Prepare the fields › What changed › **Variables** › **Models** › **Try them** (the run) › **How they did** › **Small groups** › **Finalize** (the run) › **Model values** (Looks right).
 - **Variables.** One table: each candidate with what it is, its coverage after Prepare, and whether it has blanks left. Ticked by default:
   - **The big five:** finished area, land area, effective age (else age), quality, condition; units for multi-family.
-  - **Location:** normalized latitude and longitude, polar radius and angle; the location fields as categories (trees only).
+  - **Location:** normalized latitude and longitude, polar radius and angle; the location fields as categories (ML models only).
   - **Public data:** elevation, slope, distances (`dist_to_*`), census fields, when brought in.
 
   Missing ones are skipped and named ("No quality: Data › Building"). Written as `modeling.models.main.default.ind_vars`. Said plainly: OpenAVMKit prunes the default list per group by its own variable tests (`feature_selection`: correlation, VIF, p-value, coefficient sign) before linear models use it; trees keep it all. A variable with blanks is **trees only** unless filled, said on its row with **Fill it…**.
@@ -995,11 +995,11 @@ Rules for both screens:
   - **The "big five":** building size (finished area), land size, building age (effective age if available, otherwise age), building quality, building condition.
   - **Location:** latitude, longitude, and neighbourhood characteristics. These are the neighbourhood or other location fields, plus their spatial-lag and area-statistic features from step 5.
 
-  Missing ones are skipped with a note. Tree models such as LightGBM get this list plus any other well-covered fields.
+  Missing ones are skipped with a note. ML models (LightGBM, layered comps…) get this list plus any other well-covered fields.
 - **Test variables first.** Oakbox runs variable analysis per model group on the candidate list and shows a review:
   - One row per variable with a plain verdict: *Drives value*, *Weak*, *Redundant with ___* or *Counter-intuitive*. Today `try_variables` only runs correlation and R²; the last two verdicts need VIF and coefficient-sign tests (upstream A5).
   - A **Details** expander shows the statistics, worded from the existing `variables.md`.
-  - An include/exclude toggle per variable. Per the OpenAVMKit tutorial, the pruned list is applied to **linear** models only; tree models keep the broad list.
+  - An include/exclude toggle per variable. Per the OpenAVMKit tutorial, the pruned list is applied to **linear** models only; ML models keep the broad list.
 
 **Models.**
 - **Picker.** Pick model(s), or **Choose for me**: LightGBM.
@@ -1106,7 +1106,7 @@ OpenAVMKit has two separate features, and Oakbox keeps them apart, with differen
 | What it does | Predicts a value from similar nearby parcels with a model | Puts in a stand-in: model group median/mean/mode, zero, min/max, "UNKNOWN", or a fixed value. *Can be limited to improved or vacant parcels* |
 | When | Step 1, after the other enrichments but **before** lookup tables, formulas and the vacancy rule | Step 3 (clean), per model group |
 | Screen | Its card on the Enrichment screen | **"Fill blanks"** panel in step 3 |
-| Typical use | Important characteristics with sizable gaps | Making every model input complete. Linear models crash on any blank; tree models tolerate them |
+| Typical use | Important characteristics with sizable gaps | Making every model input complete. Linear models crash on any blank; ML models tolerate them |
 | Cost | Model training per field | Negligible |
 | Label in UI | **"Estimate"** | **"Default"** |
 
