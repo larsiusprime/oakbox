@@ -253,14 +253,15 @@ body {
     url("./assets/oak-h.svg") -300px 50% / 640px 60px repeat-x,
     #b98450;
 }
-/* The mitres: a hairline along each joint. */
+/* The mitres: a hairline along each joint, inner top corner to outer bottom corner (a corner-to-corner gradient's
+   midline runs between the other two corners, so "to bottom right" draws it bottom-left to top-right). */
 .rim-jl,
 .rim-jr {
   bottom: 0;
   width: var(--rim);
   height: var(--rim);
   background: linear-gradient(
-    to top right,
+    to bottom right,
     transparent calc(50% - 0.6px),
     rgba(40, 20, 5, 0.75) 50%,
     transparent calc(50% + 0.6px)
