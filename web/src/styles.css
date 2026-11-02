@@ -192,7 +192,8 @@ body {
   display: flex;
   align-items: center;
   /* full width: out to the window's edges, over the page's top padding */
-  margin: -0.6rem calc(-0.9rem - 5px) 0.9rem;
+  /* below it, the same gap as at the sides: the page's side padding less the frame */
+  margin: -0.6rem calc(-0.9rem - 5px) calc(0.9rem + 5px - var(--rim));
   padding: 0.55rem calc(0.9rem + 5px);
   border-bottom: 1px solid #4a2e15;
   box-shadow:
@@ -210,6 +211,10 @@ body {
     /* the oak itself: flat-sawn grain that tiles across (assets/oak-h.svg) */ url("./assets/oak-h.svg") 0 50%
     / 1280px max(120px, 100%) repeat-x,
     linear-gradient(to bottom, #d1a26b, #b98450 60%, #a8723f);
+}
+/* A project's tabs: the same gap under the lid as at the sides (the grid's gap counted in). */
+.project > .oak-nav {
+  margin-bottom: calc(0.9rem + 5px - var(--rim) - 0.5rem);
 }
 
 /* The frame (OakFrame): pinned to the window's edges, so it stretches with it; over the page, never in the way. */
@@ -1014,6 +1019,7 @@ a.row-title:hover {
   display: grid;
   gap: 0.5rem;
 }
+
 /* Tables and other elements use all the width; running text is capped for reading. */
 .project p {
   max-width: 62rem;
@@ -5342,4 +5348,10 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 .wiz-unit .choice {
   min-width: 0;
+}
+
+/* The first folder under the lid: its tab, not the folder's edge, at the gap the sides have (the tab is placed from
+   inside the folder's 1px border, and stands 2.1rem + 1px above it). */
+.home-main > .panel:first-child:has(> .panel-head) {
+  margin-top: 2.1rem;
 }
