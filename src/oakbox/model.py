@@ -1391,6 +1391,8 @@ def run(project_id: str) -> None:
                 run_main=True,
                 run_vacant=False,
                 run_ensemble=True,
+                # How they did is read from them (a try keeps nothing otherwise).
+                return_results=True,
             )
         except Exception as e:
             raise _crashed(e, project, pdir, at, sup, settings, gnames, own) from e
