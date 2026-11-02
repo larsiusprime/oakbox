@@ -2975,6 +2975,11 @@ export const t = {
     } as Record<string, Landing>,
   },
 
+  combo: {
+    none: "Nothing matches.",
+    count: (n: number, of: number, typed: string) => `${n} of ${of} match “${typed}”`,
+  },
+
   nav: {
     label: "Where you are",
     projects: "Projects",

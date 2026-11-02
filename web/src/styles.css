@@ -5266,3 +5266,80 @@ table.tbl.dt > * > tr > :is(th, td) {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- D43: a dropdown you can type in (Combo) ---------- */
+
+/* The box is the dropdown's: the text field inside it borderless, the arrow its button. */
+.combo-field {
+  cursor: text;
+  align-items: stretch;
+}
+
+.combo-field[data-focus-within] {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+  border-color: var(--focus);
+}
+
+.combo-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.wiz-choice .combo-input {
+  width: 100%;
+}
+
+.combo-arrow[data-hovered] {
+  background: #f7f7f5;
+}
+
+.combo-arrow[data-pressed] {
+  background: #e0e0de;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff;
+}
+
+.combo-mark {
+  padding: 0;
+  color: inherit;
+  background: #fde68a;
+  border-radius: 2px;
+}
+
+.combo-count,
+.combo-none {
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.combo-count {
+  position: sticky;
+  bottom: 0;
+  background: var(--paper, #fff);
+  border-top: 1px solid var(--paper-rule);
+}
+
+.combo-input.mono {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+/* Where the row sets the dropdown's width (a column and its unit, a table cell), the box fills it. */
+:is(.wiz-pair, .wiz-unit, .wiz-table, .wiz-choice) .combo-input {
+  width: 0;
+}
+
+.wiz-unit .choice {
+  min-width: 0;
+}

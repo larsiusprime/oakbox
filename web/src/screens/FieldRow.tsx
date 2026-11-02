@@ -1,22 +1,17 @@
-/** The Fields wizard's row for one field: its column (in any file, or assumed) and its checks, with their dialogs. */
-import { ChevronDown } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Dialog,
   Header,
   Heading,
-  ListBox,
   ListBoxItem,
   ListBoxSection,
   Modal,
   ModalOverlay,
-  Popover,
-  Select,
-  SelectValue,
 } from "react-aria-components";
 import type { Project, Wizard, WizardField, WizardFile } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
+import { Combo, Marked, matches } from "../components/Combo";
 import { Choice } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
@@ -399,56 +394,66 @@ function ColumnChoice({
       if (as && as !== field.key && !shares(field.key, as, types)) disabled.push(`${f.name}\u0000${c.name}`);
     }
   }
+  const special = value === NONE || value === ASSUME || value === ABSENT;
+  const columns = (q: string) => files.map((f) => ({ f, cols: f.columns.filter((c) => matches(c.name, q)) }));
+  const all = files.reduce((n, f) => n + f.columns.length, 0);
   return (
-    <Select
+    <Combo
+      label={w.columnFor(field.name)}
+      hideLabel
       className="field choice wiz-choice"
+      popoverClassName="popover choice-popover wiz-popover"
       selectedKey={value}
-      onSelectionChange={(k) => k !== null && onChange(String(k))}
+      onChange={onChange}
       disabledKeys={disabled}
-      aria-label={w.columnFor(field.name)}
+      mono={!special}
+      muted={value === NONE}
+      count={(q) => [columns(q).reduce((n, x) => n + x.cols.length, 0), all]}
+      first={(q) => {
+        const x = columns(q).find((y) =>
+          y.cols.some((c) => !disabled.includes(`${y.f.name}\u0000${c.name}`)),
+        );
+        const c = x?.cols.find((y) => !disabled.includes(`${x.f.name}\u0000${y.name}`));
+        return x && c ? `${x.f.name}\u0000${c.name}` : null;
+      }}
     >
-      <Button className="choice-button">
-        <SelectValue className="choice-value">
-          {({ selectedText }) => selectedValue(value, selectedText, many)}
-        </SelectValue>
-        <span className="combo-arrow" aria-hidden="true">
-          <ChevronDown size="0.9em" />
-        </span>
-      </Button>
-      <Popover className="popover choice-popover wiz-popover">
-        <ListBox className="choice-list">
+      {(q) => (
+        <>
           <ListBoxItem id={NONE} className="choice-item" textValue={w.none}>
             {w.none}
           </ListBoxItem>
-          {files.map((f) => (
-            <ListBoxSection key={f.name} className="wiz-section">
-              <Header className="wiz-section-head">{f.name}</Header>
-              {f.columns.map((c) => {
-                const as = used[f.name]?.[c.name];
-                const other = as && as !== field.key;
-                const taken = other && !shares(field.key, as, types);
-                return (
-                  <ListBoxItem
-                    key={c.name}
-                    id={`${f.name}\u0000${c.name}`}
-                    className="choice-item wiz-item"
-                    textValue={c.name}
-                  >
-                    <span className="mono" title={c.name}>
-                      {c.name}
-                    </span>
-                    <span className="wiz-item-note">
-                      {taken
-                        ? w.used(nameOf(as))
-                        : other
-                          ? w.alsoRead(nameOf(as))
-                          : c.samples.slice(0, 3).join(", ")}
-                    </span>
-                  </ListBoxItem>
-                );
-              })}
-            </ListBoxSection>
-          ))}
+          {columns(q)
+            .filter((x) => x.cols.length > 0)
+            .map(({ f, cols }) => (
+              <ListBoxSection key={f.name} className="wiz-section">
+                <Header className="wiz-section-head">{f.name}</Header>
+                {cols.map((c) => {
+                  const as = used[f.name]?.[c.name];
+                  const other = as && as !== field.key;
+                  const taken = other && !shares(field.key, as, types);
+                  return (
+                    <ListBoxItem
+                      key={c.name}
+                      id={`${f.name}\u0000${c.name}`}
+                      className="choice-item wiz-item"
+                      // The box shows the column, and its file when there are several.
+                      textValue={many ? `${c.name} · ${f.name}` : c.name}
+                    >
+                      <span className="mono" title={c.name}>
+                        <Marked text={c.name} query={q} />
+                      </span>
+                      <span className="wiz-item-note">
+                        {taken
+                          ? w.used(nameOf(as))
+                          : other
+                            ? w.alsoRead(nameOf(as))
+                            : c.samples.slice(0, 3).join(", ")}
+                      </span>
+                    </ListBoxItem>
+                  );
+                })}
+              </ListBoxSection>
+            ))}
           {elsewhere && (
             <ListBoxItem id={ELSEWHERE} className="choice-item wiz-elsewhere" textValue={w.elsewhere}>
               {w.elsewhere}
@@ -460,26 +465,13 @@ function ColumnChoice({
             </ListBoxItem>
           )}
           {ASSUMABLE.includes(field.key) && (
-            <ListBoxItem id={ASSUME} className="choice-item" textValue={w.assume[field.key] ?? ""}>
+            <ListBoxItem id={ASSUME} className="choice-item" textValue={w.assumed}>
               {w.assume[field.key]}
             </ListBoxItem>
           )}
-        </ListBox>
-      </Popover>
-    </Select>
-  );
-}
-
-function selectedValue(value: string, text: string, many: boolean): ReactNode {
-  if (value === NONE) return <span className="wiz-none">{w.none}</span>;
-  if (value === ASSUME) return w.assumed;
-  if (value === ABSENT) return w.quality.absent;
-  const [file, column] = value.split("\u0000");
-  return (
-    <>
-      <span className="mono">{column ?? text}</span>
-      {many && <span className="wiz-from"> · {file}</span>}
-    </>
+        </>
+      )}
+    </Combo>
   );
 }
 

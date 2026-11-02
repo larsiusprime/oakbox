@@ -15,6 +15,7 @@ import {
   Text,
   TextField,
 } from "react-aria-components";
+import { Combo, Marked, matches, TYPE_FROM } from "./Combo";
 import { Tip } from "./Tip";
 
 /** A labelled text input. Inputs look sunken; they are filled, not pressed. */
@@ -59,7 +60,7 @@ export function Field(props: {
   );
 }
 
-/** A dropdown. Options are [value, label] pairs. */
+/** A dropdown. Options are [value, label] pairs. With 7 or more, it can be typed in to narrow the list (Combo). */
 export function Choice<V extends string>(props: {
   label: string;
   value: V | null;
@@ -69,6 +70,30 @@ export function Choice<V extends string>(props: {
   hideLabel?: boolean;
   isDisabled?: boolean;
 }) {
+  if (props.options.length >= TYPE_FROM) {
+    const pick = (q: string) => props.options.filter(([, label]) => matches(label, q));
+    return (
+      <Combo
+        label={props.label}
+        selectedKey={props.value}
+        onChange={(k) => props.onChange(k as V)}
+        placeholder={props.placeholder ?? ""}
+        size={Math.min(40, Math.max(...props.options.map(([, l]) => l.length)) + 1)}
+        {...(props.hideLabel ? { hideLabel: true } : {})}
+        {...(props.isDisabled ? { isDisabled: true } : {})}
+        count={(q) => [pick(q).length, props.options.length]}
+        first={(q) => pick(q)[0]?.[0] ?? null}
+      >
+        {(q) =>
+          pick(q).map(([value, label]) => (
+            <ListBoxItem key={value} id={value} className="choice-item" textValue={label}>
+              <Marked text={label} query={q} />
+            </ListBoxItem>
+          ))
+        }
+      </Combo>
+    );
+  }
   return (
     <Select
       className="field choice"
