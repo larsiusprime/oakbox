@@ -1,9 +1,11 @@
+import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import type { Job } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { clock } from "../lib/format";
+import { type FrameStep, publishFrame } from "../lib/place";
 import { t } from "../strings";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
@@ -36,6 +38,7 @@ export function StepFrame({
 }) {
   const tops = steps.filter((s) => !s.parent);
   const open = steps.find((s) => s.key === current)?.parent ?? current;
+  useFrame(steps, current, go);
   return (
     <div className={wide ? "wiz wiz-wide" : "wiz"}>
       <ol className="wiz-steps">
@@ -217,4 +220,38 @@ function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: stri
       {job.part && !skipping && <span className="bi-skip-note">{t.step.skipNote}</span>}
     </div>
   );
+}
+
+/** Tells the plate (lib/place) which steps are on screen and which is open, and remembers it as the tab's place; a
+ * remembered step that can't be opened now falls back to the first that can. */
+export function useFrame(steps: FrameStep[], current: string, go: (key: string) => void): void {
+  const goRef = useRef(go);
+  const [me] = useState(() => ({}));
+  useEffect(() => {
+    goRef.current = go;
+  });
+  const sig = JSON.stringify([
+    steps.map((s) => [s.key, s.title, s.status, !!s.disabled, s.parent ?? ""]),
+    current,
+  ]);
+  useEffect(() => {
+    const [list, now] = JSON.parse(sig) as [[string, string, string, boolean, string][], string];
+    const shown: FrameStep[] = list.map(([key, title, status, disabled, parent]) => ({
+      key,
+      title,
+      status,
+      disabled,
+      ...(parent ? { parent } : {}),
+    }));
+    const open = shown.find((s) => s.key === now);
+    if (!open || open.disabled) {
+      const first = shown.find((s) => !s.disabled);
+      if (first && first.key !== now) {
+        goRef.current(first.key);
+        return;
+      }
+    }
+    publishFrame({ steps: shown, current: now, go: (k) => goRef.current(k) }, me);
+  }, [sig, me]);
+  useEffect(() => () => publishFrame(null, me), [me]);
 }

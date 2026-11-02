@@ -8,6 +8,7 @@ import type { components } from "../api/schema";
 import { CheckList, Field } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { lastStep } from "../lib/place";
 import { t } from "../strings";
 
 type View = components["schemas"]["ReportView"];
@@ -31,7 +32,9 @@ export function ReportTab({ projectId }: { projectId: string }) {
         await api.GET("/api/projects/{project_id}/report", { params: { path: { project_id: projectId } } }),
       ),
   });
-  const [at, setAt] = useState<RStep>("export");
+  const [at, setAt] = useState<RStep>(
+    () => (lastStep(projectId, "report")?.key as RStep | undefined) ?? "export",
+  );
   const v = q.data;
   if (!v) return <p className="empty">{q.error?.message ?? t.project.loading}</p>;
   const steps: Step[] = STEPS.map((k) => ({

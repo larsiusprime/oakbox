@@ -115,6 +115,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Running Projects
+         * @description The projects with a run going now (any step), for the plate's project list.
+         */
+        get: operations["running_projects_api_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects": {
         parameters: {
             query?: never;
@@ -9531,6 +9551,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Regions"];
+                };
+            };
+        };
+    };
+    running_projects_api_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
         };

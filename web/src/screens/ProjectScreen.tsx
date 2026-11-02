@@ -10,6 +10,7 @@ import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
 import { desktop } from "../desktop";
+import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { t } from "../strings";
 import { BringInTab, useAccepted } from "./BringIn";
 import { SalesTab, useSalesAccepted } from "./CheckSales";
@@ -97,8 +98,11 @@ function ProjectView({
     (tab === "values" && !prepared) ||
     (tab === "report" && !finalized);
   const loaded = order.every((k) => views[k] !== undefined);
+  // Opened without a tab: the one last open in this project here (if it's open to you), else Data.
+  const last = lastTab(projectId) as TabId | null;
+  const resume = last && (TABS as readonly string[]).includes(last) ? last : null;
   const selected = !tab
-    ? "fields"
+    ? (resume ?? "fields")
     : !tabLocked || !loaded
       ? tab
       : tab === "check" && checked && !hasValues
@@ -128,6 +132,29 @@ function ProjectView({
     ...(finalized ? [] : ["report"]),
   ];
 
+  // The plate: where you are, and the tabs it lists (each one's name, whether it waits, whether it's done).
+  setWhere({ projectId, tab: selected });
+  const done: Record<string, boolean> = {
+    bring: !!views.bring?.accepted,
+    groups: !!views.groups?.accepted,
+    sales: !!views.sales?.accepted,
+    variables: !!views.variables?.accepted,
+    values: finalized,
+  };
+  const tabList = TABS.map((id) => ({
+    id,
+    title: name(id),
+    locked: locked.includes(id),
+    done: !!done[id],
+  }));
+  useEffect(() => {
+    rememberTab(projectId, selected);
+    setTabs(tabList);
+    // A tab with no steps (Metadata) is a stop on the path too.
+    if (selected === "metadata") record({ projectId, tab: selected, step: "" });
+  });
+  useEffect(() => () => setWhere(null), []);
+
   // Why the tab asked for isn't the one shown: at the top of the page, under the tabs.
   const notice = why && (
     <p className="bi-warn tab-waits" role="status">
@@ -138,15 +165,7 @@ function ProjectView({
   return (
     <div className="project">
       <h1 className="visually-hidden">{project.name}</h1>
-      <OakBand
-        here={
-          <>
-            <b>{project.name}</b>
-            <span className="plate-sep">·</span>
-            {t.project.taxYear(project.tax_year)}
-          </>
-        }
-      />
+      <OakBand page={{ kind: "project", id: projectId, name: project.name, year: project.tax_year }} />
       <Tabs
         className="folder-tabs"
         selectedKey={selected}

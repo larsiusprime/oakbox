@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
 import { OakFrame } from "./components/OakFrame";
+import { back, record } from "./lib/place";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
 import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
@@ -31,6 +32,31 @@ export function navigate(route: Route): void {
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+
+  // Back (Alt+←, or the mouse's back button): one stop back along the path you took, steps included.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        back();
+      }
+    };
+    const onMouse = (e: MouseEvent) => {
+      if (e.button === 3) {
+        e.preventDefault();
+        back();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouse);
+    };
+  }, []);
+  useEffect(() => {
+    if (route.name === "home") record({ home: true });
+  }, [route]);
 
   useEffect(() => {
     const onChange = () => setRoute(parseHash(window.location.hash));

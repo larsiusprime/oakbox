@@ -2760,7 +2760,20 @@ export const t = {
   },
 
   nav: {
-    home: "Back to the projects",
+    label: "Where you are",
+    projects: "Projects",
+    newProject: "New project",
+    here: "here",
+    running: "running",
+    notOpened: "not opened yet",
+    allProjects: "All projects",
+    projectsHere: "switch project",
+    tabsHere: "switch tab",
+    stepsHere: "switch step",
+    waits: "waits for an earlier step",
+    waitsShort: "waits",
+    projectsFoot: "Each opens where you last were in it. Nothing in this one stops or is lost.",
+    tabsFoot: "Each tab opens on the step you last had open in it.",
   },
 
   project: {

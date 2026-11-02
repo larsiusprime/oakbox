@@ -157,6 +157,11 @@ def job(project_id: str, module: str) -> Job | None:
     return j
 
 
+def running_projects() -> list[str]:
+    """The ids of the projects with a run going now, whichever step."""
+    return sorted({key.split(":", 1)[1] for key, j in _jobs.items() if j.status == "running"})
+
+
 def skip_path(project_dir: Path, module: str) -> Path:
     """Where the app asks a running run to skip a part (one name per line): the run checks it at each checkpoint."""
     return project_dir / "out" / "oakbox" / f"{module}.skip"

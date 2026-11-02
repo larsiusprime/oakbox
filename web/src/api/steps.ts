@@ -1,5 +1,6 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { currentWhere, lastStep } from "../lib/place";
 import { api, unwrap } from "./client";
 import type { components } from "./schema";
 
@@ -137,7 +138,11 @@ export function useStepSetup<K extends SetupId>(id: K, projectId: string, enable
 /** Which task a step's tab shows: the one chosen, else the tab's own pick; and once a run started here is done,
  * its results. */
 export function useStepNav<T extends string>() {
-  const [at, setAt] = useState<{ step: T | null; after: boolean }>({ step: null, after: false });
+  // Opens on the step last open in this tab here (lib/place), else the tab's own pick.
+  const [at, setAt] = useState<{ step: T | null; after: boolean }>(() => {
+    const w = currentWhere();
+    return { step: ((w && lastStep(w.projectId, w.tab)?.key) as T | undefined) ?? null, after: false };
+  });
   return {
     /** The task chosen (null: the tab's own pick), and whether a run was started from it. */
     at,

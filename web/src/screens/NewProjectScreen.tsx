@@ -43,7 +43,7 @@ export function NewProjectScreen() {
 
   return (
     <>
-      <OakBand here={<b>{s.title}</b>} />
+      <OakBand page={{ kind: "new" }} />
       <div className="narrow">
         <h1 className="visually-hidden">{s.title}</h1>
         <form

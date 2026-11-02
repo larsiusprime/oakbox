@@ -9,7 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
-from oakbox import datafiles, projects, wizard
+from oakbox import datafiles, projects, steps, wizard
 from oakbox.datafiles import BaseModel
 from oakbox.routes.common import load_project
 
@@ -115,6 +115,12 @@ def _view(in_dir: Path, f: datafiles.DataFile) -> InputFile:
 @router.get("/api/regions")
 def regions() -> Regions:
     return _regions()
+
+
+@router.get("/api/running")
+def running_projects() -> list[str]:
+    """The projects with a run going now (any step), for the plate's project list."""
+    return steps.running_projects()
 
 
 @router.get("/api/projects")

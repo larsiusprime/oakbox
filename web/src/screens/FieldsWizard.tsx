@@ -26,7 +26,9 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
+import { useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
+import { lastStep } from "../lib/place";
 import { t } from "../strings";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
@@ -74,7 +76,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const flat = order(data.steps);
   // Opens at the first step not done yet, or at Review (SPEC F3d).
   const [opening] = useState(() => flat.find((s) => s.status !== "done")?.key ?? "review");
-  const wanted = step ? firstPart(data.steps, step) : step;
+  // No step asked for: the one last open here, else the first not done.
+  const asked = step ?? lastStep(projectId, "fields")?.key ?? null;
+  const wanted = asked ? firstPart(data.steps, asked) : asked;
   const current = flat.find((s) => s.key === wanted) ?? flat.find((s) => s.key === opening) ?? flat[0];
   const change = useChange(projectId);
   const [unfinished, setUnfinished] = useState(false);
@@ -268,6 +272,16 @@ const STATUS_ICONS: Record<string, string | null> = {
 
 function StepList({ steps, current, go }: { steps: WizardStep[]; current: string; go: (k: string) => void }) {
   const tops = steps.filter((s) => !s.parent);
+  useFrame(
+    steps.map((s) => ({
+      key: s.key,
+      title: w.steps[s.key]?.title ?? s.key,
+      status: s.status,
+      ...(s.parent ? { parent: s.parent } : {}),
+    })),
+    current,
+    (k) => go(firstPart(steps, k)),
+  );
   return (
     <ol className="wiz-steps">
       {steps.map((s) => {

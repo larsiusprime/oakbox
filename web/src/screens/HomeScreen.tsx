@@ -19,7 +19,7 @@ export function HomeScreen() {
 
   return (
     <>
-      <OakBand here={<b>{t.home.projectsTitle}</b>} />
+      <OakBand page={{ kind: "projects" }} />
       <div className="home">
         <div className="home-main">
           <section className="panel" aria-labelledby="projects-title">
