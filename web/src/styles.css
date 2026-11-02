@@ -849,10 +849,12 @@ a.row-title:hover {
 
 /* ---------- Home: projects, settings, new project ---------- */
 
+/* The projects list: a name kept near its buttons, not stretched across a wide window (left, under the plate). */
 .home-main {
   display: grid;
   gap: 1.25rem;
   align-content: start;
+  max-width: 52rem;
 }
 
 .panel-head .add-button {
