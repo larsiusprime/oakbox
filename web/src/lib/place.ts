@@ -4,6 +4,9 @@
  * tab at its own pick. */
 import { useSyncExternalStore } from "react";
 
+/** The key of a major step's landing page in its step list (SPEC D21). */
+export const OVERVIEW = "overview";
+
 export type FrameStep = { key: string; title: string; status: string; disabled?: boolean; parent?: string };
 export type Frame = { steps: FrameStep[]; current: string; go: (key: string) => void };
 export type TabInfo = { id: string; title: string; locked: boolean; done: boolean };
@@ -62,13 +65,15 @@ export function publishFrame(frame: Frame | null, by: object): void {
   const w = state.where;
   const now = frame?.steps.find((s) => s.key === frame.current);
   if (!w || !frame || !now) return;
-  remember(w.projectId, w.tab, now.key, now.title);
   record({ projectId: w.projectId, tab: w.tab, step: now.key });
+  // A tab opens on its landing page only the first time: the place kept is the step under it.
+  if (now.key === OVERVIEW) return;
+  remember(w.projectId, w.tab, now.key, now.title);
 }
 
 // ---------- Last places, per project and per tab ----------
 
-type Place = { tab?: string; steps?: Record<string, { key: string; title: string }> };
+type Place = { tab?: string; steps?: Record<string, { key: string; title: string }>; seen?: string[] };
 const KEY = (projectId: string) => `oakbox.place.${projectId}`;
 
 function read(projectId: string): Place {
@@ -108,6 +113,16 @@ export function lastStep(projectId: string, tab: string): { key: string; title: 
   return read(projectId).steps?.[tab] ?? null;
 }
 
+/** Whether a landing page (a tab's, or a major step's) has been shown in this project here. */
+export function seen(projectId: string, landing: string): boolean {
+  return read(projectId).seen?.includes(landing) ?? false;
+}
+
+export function markSeen(projectId: string, landing: string): void {
+  const p = read(projectId);
+  if (!p.seen?.includes(landing)) write(projectId, { ...p, seen: [...(p.seen ?? []), landing] });
+}
+
 // ---------- The path, for Back ----------
 
 type Stop = { projectId: string; tab: string; step: string } | { home: true };
@@ -142,6 +157,6 @@ export function back(): void {
     return;
   }
   const title = lastStep(to.projectId, to.tab)?.title ?? "";
-  remember(to.projectId, to.tab, to.step, title);
+  if (to.step !== OVERVIEW) remember(to.projectId, to.tab, to.step, title);
   window.location.hash = `#/projects/${to.projectId}/${to.tab}${to.tab === "fields" ? `/${to.step}` : ""}`;
 }

@@ -4926,7 +4926,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 .meta-sheet {
-  padding: 0.8rem 1rem;
+  padding: 0.4rem 0 0;
 }
 
 /* ---------- D21: folders and sheets (after the rules they refine) ---------- */
@@ -5209,4 +5209,57 @@ table.tbl.dt > * > tr > :is(th, td) {
   padding: 0.35rem 0.4rem 0.1rem;
   font-size: 0.78rem;
   color: var(--manila-ink);
+}
+
+/* ---------- D21: a major step's landing page ---------- */
+
+.land {
+  max-width: 60rem;
+}
+
+.land .wiz-q {
+  font-size: 1.6rem;
+  margin: 0.1rem 0 0.5rem;
+}
+
+.land .wiz-lede {
+  font-size: 1.08rem;
+  line-height: 1.55;
+  max-width: 44rem;
+}
+
+.land-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.6rem;
+  margin: 1.4rem 0 1rem;
+}
+
+.land-sec h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--paper-rule);
+}
+
+.land-sec ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.land-sec li {
+  margin: 0.3rem 0;
+}
+
+.land-needs {
+  margin: 0.6rem 0 0;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .land-cols {
+    grid-template-columns: 1fr;
+  }
 }

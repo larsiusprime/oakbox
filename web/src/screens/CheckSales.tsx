@@ -139,7 +139,7 @@ export function SalesTab({
   );
 
   return (
-    <StepFrame steps={steps} current={current} go={go} wide={current === "aside"}>
+    <StepFrame steps={steps} current={current} go={go} landing="sales" wide={current === "aside"}>
       {current === "window" && callStep(u && <WindowCard v={u} set={set} />, s.window.sub)}
       {current === "time" &&
         callStep(

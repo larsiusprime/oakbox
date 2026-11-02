@@ -26,9 +26,9 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
-import { useFrame } from "../components/Steps";
+import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
-import { lastStep } from "../lib/place";
+import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { t } from "../strings";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
@@ -43,6 +43,7 @@ import { CheckText, FileHeader, FilePicker, IdCheck, IdRow, isMainSales } from "
 import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 const w = t.wizard;
+const L = t.landing.pages;
 const MAKE = "__make";
 
 /** F3d: the Fields tab, a guided wizard over all of the project's files (SPEC §3.0). */
@@ -66,37 +67,79 @@ function order(steps: WizardStep[]): WizardStep[] {
   return steps.filter((s) => !steps.some((x) => x.parent === s.key));
 }
 
-/** A step with parts opens at its first. */
-function firstPart(steps: WizardStep[], key: string): string {
-  return steps.find((s) => s.parent === key)?.key ?? key;
+/** A step with parts (More details, Condo units): it opens on its landing page, Start goes on to its first part. */
+function firstPart(steps: WizardStep[], key: string): string | null {
+  return steps.find((s) => s.parent === key)?.key ?? null;
 }
 
 function WizardView({ project, data, step }: { project: Project; data: Wizard; step: string | null }) {
+  // Reads which landing pages have been seen (localStorage) as it draws.
+  "use no memo";
   const projectId = project.id;
   const flat = order(data.steps);
   // Opens at the first step not done yet, or at Review (SPEC F3d).
   const [opening] = useState(() => flat.find((s) => s.status !== "done")?.key ?? "review");
-  // No step asked for: the one last open here, else the first not done.
-  const asked = step ?? lastStep(projectId, "fields")?.key ?? null;
-  const wanted = asked ? firstPart(data.steps, asked) : asked;
-  const current = flat.find((s) => s.key === wanted) ?? flat.find((s) => s.key === opening) ?? flat[0];
+  // No step asked for: the one last open here, else the tab's landing page the first time, else the first not done.
+  const asked = step ?? lastStep(projectId, "fields")?.key ?? (seen(projectId, "fields") ? null : OVERVIEW);
+  const landing = asked === OVERVIEW;
+  // Back and Next go through every step, a major step's landing page before its parts.
+  const seq = data.steps;
+  const current = seq.find((s) => s.key === asked) ?? seq.find((s) => s.key === opening) ?? seq[0];
   const change = useChange(projectId);
   const [unfinished, setUnfinished] = useState(false);
   const go = (key: string) => navigate({ name: "project", id: projectId, tab: "fields", step: key });
 
   // Showing a step fills in its guesses, once (the server keeps track).
-  const key = current?.key;
+  const key = landing ? null : current?.key;
   const visit = change.mutate;
   useEffect(() => {
     if (key) visit({ kind: "visit", step: key });
   }, [key, visit]);
+  useEffect(() => {
+    if (landing) markSeen(projectId, "fields");
+  }, [landing, projectId]);
 
   if (!current) return null;
-  const index = flat.indexOf(current);
-  const prev = flat[index - 1];
-  const next = flat[index + 1];
+  const index = seq.indexOf(current);
+  const prev = seq[index - 1];
+  const next = seq[index + 1];
   const tops = data.steps.filter((s) => !s.parent);
   const top = current.parent ?? current.key;
+  const list = <StepList steps={data.steps} current={landing ? OVERVIEW : current.key} go={go} />;
+  const tabPage = L.fields;
+  if (landing && tabPage) {
+    const first = seq.find((s) => s.key === opening) ?? current;
+    return (
+      <div className="wiz">
+        {list}
+        <div className="wiz-main">
+          <LandingPage
+            page={tabPage}
+            start={w.steps[first.key]?.title ?? first.key}
+            onStart={() => go(first.key)}
+          />
+        </div>
+      </div>
+    );
+  }
+  const part = firstPart(data.steps, current.key);
+  const page = L[current.key];
+  if (part && page) {
+    return (
+      <div className="wiz">
+        {list}
+        <div className="wiz-main">
+          <LandingPage
+            page={page}
+            kicker={`${t.tabs.fields} · ${w.stepOf(tops.indexOf(current) + 1, tops.length)}`}
+            start={w.steps[part]?.title ?? part}
+            onStart={() => go(part)}
+            back={prev ? () => go(prev.key) : null}
+          />
+        </div>
+      </div>
+    );
+  }
   const copy = w.steps[current.key] ?? { title: current.key, question: "", lede: "" };
   const kicker = [
     w.stepOf(tops.findIndex((s) => s.key === top) + 1, tops.length),
@@ -122,7 +165,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
 
   return (
     <div className="wiz">
-      <StepList steps={data.steps} current={current.key} go={go} />
+      {list}
       <div className="wiz-main">
         <div className="wiz-body">
           <p className="wiz-kicker">{kicker}</p>
@@ -273,17 +316,32 @@ const STATUS_ICONS: Record<string, string | null> = {
 function StepList({ steps, current, go }: { steps: WizardStep[]; current: string; go: (k: string) => void }) {
   const tops = steps.filter((s) => !s.parent);
   useFrame(
-    steps.map((s) => ({
-      key: s.key,
-      title: w.steps[s.key]?.title ?? s.key,
-      status: s.status,
-      ...(s.parent ? { parent: s.parent } : {}),
-    })),
+    [
+      { key: OVERVIEW, title: t.landing.overview, status: "blank" },
+      ...steps.map((s) => ({
+        key: s.key,
+        title: w.steps[s.key]?.title ?? s.key,
+        status: s.status,
+        ...(s.parent ? { parent: s.parent } : {}),
+      })),
+    ],
     current,
-    (k) => go(firstPart(steps, k)),
+    go,
   );
   return (
     <ol className="wiz-steps">
+      <li className={current === OVERVIEW ? "wiz-step now blank" : "wiz-step blank"}>
+        <button
+          type="button"
+          onClick={() => go(OVERVIEW)}
+          aria-current={current === OVERVIEW ? "step" : undefined}
+        >
+          <span className="n" aria-hidden="true">
+            {LANDING_MARK}
+          </span>
+          {t.landing.overview}
+        </button>
+      </li>
       {steps.map((s) => {
         const n = tops.indexOf(s) + 1;
         const icon = STATUS_ICONS[s.status];
@@ -294,7 +352,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
           <li key={s.key} className={classes}>
             <button
               type="button"
-              onClick={() => go(firstPart(steps, s.key))}
+              onClick={() => go(s.key)}
               aria-current={s.key === current ? "step" : undefined}
             >
               <span className="n" aria-hidden="true">

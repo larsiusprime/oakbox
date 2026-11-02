@@ -164,7 +164,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("write") });
 
   return (
-    <StepFrame steps={steps} current={current} go={go} wide={current === "build"}>
+    <StepFrame steps={steps} current={current} go={go} landing="groups" wide={current === "build"}>
       {current === "start" && (
         <>
           <StepBody kicker={kicker} title={g.startTitle} lede={g.lede}>

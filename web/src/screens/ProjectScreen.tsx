@@ -9,6 +9,7 @@ import clipboard from "../assets/noto/emoji_u1f4cb.svg";
 import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
+import { StepBody, StepFrame } from "../components/Steps";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { t } from "../strings";
@@ -302,45 +303,54 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
     [m.valuationDate, project.valuation_date ?? ""],
   ] as const;
   return (
-    <div className="sheet meta-sheet">
-      <dl className="facts">
-        {rows.map(([k, v]) => (
-          <div key={k} className="fact">
-            <dt>{k}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
-        <div className="fact">
-          <dt>{m.locale}</dt>
-          <dd className="facts-locale">
-            <LocaleFields
-              regions={regions.data}
-              value={{ units: project.units, currency: project.currency, numbers: project.numbers }}
-              onChange={(patch) => locale.mutate(patch)}
-            />
-            {locale.error && (
-              <span className="error" role="alert">
-                {locale.error.message}
-              </span>
-            )}
-          </dd>
+    <StepFrame
+      steps={[{ key: "details", title: m.details, status: "blank" }]}
+      current="details"
+      go={() => {}}
+      landing="metadata"
+    >
+      <StepBody kicker={m.kicker} title={m.details}>
+        <div className="meta-sheet">
+          <dl className="facts">
+            {rows.map(([k, v]) => (
+              <div key={k} className="fact">
+                <dt>{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+            <div className="fact">
+              <dt>{m.locale}</dt>
+              <dd className="facts-locale">
+                <LocaleFields
+                  regions={regions.data}
+                  value={{ units: project.units, currency: project.currency, numbers: project.numbers }}
+                  onChange={(patch) => locale.mutate(patch)}
+                />
+                {locale.error && (
+                  <span className="error" role="alert">
+                    {locale.error.message}
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div className="fact">
+              <dt>{m.folder}</dt>
+              <dd>
+                <span className="mono folder-path">{detail.folder}</span>
+                <Button className="button" isDisabled={show.isPending} onPress={() => show.mutate()}>
+                  <FolderOpen aria-hidden="true" size="1em" />
+                  {m.showInFolder}
+                </Button>
+                {show.error && (
+                  <span className="error" role="alert">
+                    {show.error.message}
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
         </div>
-        <div className="fact">
-          <dt>{m.folder}</dt>
-          <dd>
-            <span className="mono folder-path">{detail.folder}</span>
-            <Button className="button" isDisabled={show.isPending} onPress={() => show.mutate()}>
-              <FolderOpen aria-hidden="true" size="1em" />
-              {m.showInFolder}
-            </Button>
-            {show.error && (
-              <span className="error" role="alert">
-                {show.error.message}
-              </span>
-            )}
-          </dd>
-        </div>
-      </dl>
-    </div>
+      </StepBody>
+    </StepFrame>
   );
 }

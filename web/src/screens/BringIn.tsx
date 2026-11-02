@@ -77,7 +77,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const staleNote = v.stale && r ? <p className="wiz-warn">{b.staleNote}</p> : null;
 
   return (
-    <StepFrame steps={steps} current={current} go={go}>
+    <StepFrame steps={steps} current={current} go={go} landing="bring">
       {current === "plan" && (
         <>
           <StepBody kicker={b.kicker} title={b.title} lede={b.lede}>

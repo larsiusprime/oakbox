@@ -116,7 +116,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
   );
 
   return (
-    <StepFrame steps={steps} current={current} go={go}>
+    <StepFrame steps={steps} current={current} go={go} landing="variables">
       {current === "fill" && (
         <>
           <StepBody kicker={m.kicker} title={m.steps.fill} lede={m.fillLede}>

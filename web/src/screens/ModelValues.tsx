@@ -103,7 +103,7 @@ export function ValuesTab({
   );
 
   return (
-    <StepFrame steps={steps} current={current} go={go}>
+    <StepFrame steps={steps} current={current} go={go} landing="values">
       {current === "models" && (
         <>
           <StepBody kicker={m.modelsKicker} title={m.steps.models} lede={m.model.modelsLede}>

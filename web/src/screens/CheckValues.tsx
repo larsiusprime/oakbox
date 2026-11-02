@@ -123,7 +123,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   );
   if (v.blocked.length)
     return (
-      <StepFrame steps={steps} current="sales" go={() => {}}>
+      <StepFrame steps={steps} current="sales" go={() => {}} landing="check">
         <StepBody kicker={r.kicker} title={r.sales.title}>
           <div className="bi-warn">
             <b>{r.blocked}</b> {v.blocked[0]}
@@ -143,7 +143,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   );
 
   return (
-    <StepFrame steps={steps} current={current} go={go}>
+    <StepFrame steps={steps} current={current} go={go} landing="check">
       {current === "what" && (
         <>
           <StepBody kicker={r.kicker} title={r.what.title} lede={r.what.lede}>

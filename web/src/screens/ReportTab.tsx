@@ -45,7 +45,7 @@ export function ReportTab({ projectId }: { projectId: string }) {
   }));
   const i = STEPS.indexOf(at);
   return (
-    <StepFrame steps={steps} current={at} go={(k) => setAt(k as RStep)}>
+    <StepFrame steps={steps} current={at} go={(k) => setAt(k as RStep)} landing="report">
       {!v.ready ? (
         <StepBody kicker={r.kicker} title={r.steps[at]}>
           <p className="wiz-from">{r.notReady}</p>
