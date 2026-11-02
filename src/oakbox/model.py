@@ -1382,17 +1382,20 @@ def run(project_id: str) -> None:
         sup, settings, dropped, gnames = for_models(project, modeled, own)
         steps.emit(step="models", fraction=0.1, message="Training the models")
         try:
-            results = pl.try_models(
-                sup,
-                settings,
-                save_params=True,
-                use_saved_params=True,
-                verbose=False,
-                run_main=True,
-                run_vacant=False,
-                run_ensemble=True,
-                # How they did is read from them (a try keeps nothing otherwise).
-                return_results=True,
+            results = (
+                pl.try_models(
+                    sup,
+                    settings,
+                    save_params=True,
+                    use_saved_params=True,
+                    verbose=False,
+                    run_main=True,
+                    run_vacant=False,
+                    run_ensemble=True,
+                    # How they did is read from them (a try keeps nothing otherwise).
+                    return_results=True,
+                )
+                or {}
             )
         except Exception as e:
             raise _crashed(e, project, pdir, at, sup, settings, gnames, own) from e
