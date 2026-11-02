@@ -164,7 +164,8 @@ def settings(project) -> dict:
         ta["from_file"] = {g: f.path for g, f in sorted(c.time_files.items())}
         # A comment to OpenAVMKit ("__"), but part of what the steps' hashes see: a new file with the same name.
         ta["__file_digests"] = {g: f.digest for g, f in sorted(c.time_files.items())}
-    process: dict[str, Any] = {"time_adjustment": ta}
+    # Which values were filled (out/filled.parquet): Fill blanks and the receipts mark them.
+    process: dict[str, Any] = {"time_adjustment": ta, "write_filled": True}
     if fill:
         process["fill"] = fill
     if c.collapse and c.collapse_fields:
@@ -180,6 +181,8 @@ def settings(project) -> dict:
         # Each sale set aside diagnosed as the five-pattern table reads; one fitting none is flagged, left in.
         "patterns": "strict",
         "nominal_price": {"below": c.nominal_below},
+        # Every flagged sale with its reason (out/sales_scrutiny/flags.parquet): Sales set aside reads it.
+        "write_flags": True,
     }
     pattern = names.pattern(project)
     if pattern:

@@ -97,7 +97,7 @@ class Receipt(BaseModel):
 
 
 # Parts of data.process the clean stage reads (step 3): they don't change what Bring in data does.
-CLEAN_PROCESS = ("fill", "time_adjustment", "collapse_sparse_categories")
+CLEAN_PROCESS = ("fill", "write_filled", "time_adjustment", "collapse_sparse_categories")
 
 
 def settings_key(settings: dict) -> dict:
