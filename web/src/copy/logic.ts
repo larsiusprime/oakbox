@@ -4,8 +4,11 @@
 import { t } from "./catalog";
 
 const lower = (s: string) => s.toLowerCase();
+// A message's own text can start with the live editor's invisible markers (npm run dev:copy): they're kept in front.
+const LEAD = "[\u200C\u200D\u2060-\u2064\uFEFF]*";
+const dropLead = (s: string, word: string) => s.replace(new RegExp(`^(${LEAD})${word}`), "$1");
 // "4 Check sales" → "Check sales": a step's name without its number.
-const unnumbered = (s: string) => s.replace(/^\d+ /, "");
+const unnumbered = (s: string) => dropLead(s, "\\d+ ");
 const list = (xs: string[]) => xs.join(", ");
 
 type Kinds = typeof t.wizard.reconcile.kinds;
@@ -98,7 +101,9 @@ export const say = {
       byPriceLede: (type: string, field: string) =>
         type ? t.wizard.quality.byPriceLede.within({ type, field }) : t.wizard.quality.byPriceLede.all,
       rises: (basis: string) =>
-        t.wizard.quality.rises({ basis: `${basis[0]?.toUpperCase() ?? ""}${basis.slice(1)}` }),
+        t.wizard.quality.rises({
+          basis: basis.replace(new RegExp(`^(${LEAD})(.)`), (_, lead, c) => lead + c.toUpperCase()),
+        }),
     },
     notLoaded: (file: string, columns: string[]) => {
       const shown = list(columns.slice(0, 4));
@@ -127,7 +132,7 @@ export const say = {
     time: {
       perYear: (p: number) => t.sales.time.perYear({ sign: p >= 0 ? "+" : "−", p: Math.abs(p).toFixed(1) }),
       tip: (price: string, per: string, perWhat: string) =>
-        t.sales.time.tip({ price, per, perWhat: perWhat.replace(/^price /, "") }),
+        t.sales.time.tip({ price, per, perWhat: dropLead(perWhat, "price ") }),
     },
     fill: { auto: (n: number) => t.sales.fill.auto({ n: n + 1 }) },
     review: {

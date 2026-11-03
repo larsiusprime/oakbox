@@ -5,6 +5,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import type { Copy } from "./copy.gen";
 import catalog from "./en.json";
+import { mark } from "./marks";
 
 export type { Copy };
 
@@ -15,7 +16,11 @@ const PLAIN = /^[^{}']*$/;
 
 type Args = Record<string, unknown>;
 
-function message(source: string): string | ((args: Args) => string) {
+/** Every message's source as it is now, by key ("wizard.steps.basics.title"): the live editor reads it. */
+export const sources = new Map<string, string>();
+
+function message(key: string, source: string): string | ((args: Args) => string) {
+  if (__COPY_EDIT__) return marked(key, source);
   if (PLAIN.test(source)) return source;
   // `ignoreTag`: copy has angle brackets (<surname>) that aren't markup.
   const format = new IntlMessageFormat(source, locale, undefined, { ignoreTag: true });
@@ -24,15 +29,58 @@ function message(source: string): string | ((args: Args) => string) {
   return (args: Args) => format.format(args) as string;
 }
 
-function build(value: unknown): unknown {
-  if (typeof value === "string") return message(value);
-  if (Array.isArray(value)) return value.map(build);
+function build(value: unknown, key: string): unknown {
+  if (typeof value === "string") return message(key, value);
+  if (Array.isArray(value)) return value.map((v, i) => build(v, `${key}.${i}`));
   if (value && typeof value === "object")
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, build(v)]));
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, build(v, key ? `${key}.${k}` : k)]));
   return value;
 }
 
-export const t = build(catalog) as Copy;
+export const t = build(catalog, "") as Copy;
+
+// Live editing (`npm run dev:copy` only; every other build drops this): each message carries its markers, and when
+// en.json changes (saved from the editor, or in a text editor) `t` is refilled in place, so what holds a part of it
+// sees the new words, and the editor puts them on the screen.
+function marked(key: string, source: string): string | ((args: Args) => string) {
+  sources.set(key, source);
+  let format: IntlMessageFormat;
+  try {
+    format = new IntlMessageFormat(source, locale, undefined, { ignoreTag: true });
+  } catch (e) {
+    const said = `⚠ ${key}: ${(e as Error).message}`;
+    return () => mark(key, null, said);
+  }
+  if (format.getAst().every((e) => e.type === 0)) return mark(key, null, format.format() as string);
+  return (args: Args) => mark(key, args, format.format(args) as string);
+}
+
+function refill(into: Record<string, unknown>, next: Record<string, unknown>, key: string) {
+  for (const [k, v] of Object.entries(next)) {
+    const at = key ? `${key}.${k}` : k;
+    const was = into[k];
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      was &&
+      typeof was === "object" &&
+      !Array.isArray(was)
+    )
+      refill(was as Record<string, unknown>, v as Record<string, unknown>, at);
+    else into[k] = build(v, at);
+  }
+}
+
+if (__COPY_EDIT__ && import.meta.hot) {
+  import.meta.hot.accept("./en.json", (next) => {
+    if (!next) return;
+    const before = new Map(sources);
+    refill(t as unknown as Record<string, unknown>, next.default as Record<string, unknown>, "");
+    const changed = [...sources].filter(([k, v]) => before.get(k) !== v).map(([k]) => k);
+    window.dispatchEvent(new CustomEvent("oakbox-copy-changed", { detail: changed }));
+  });
+}
 
 /** A major step's landing page (SPEC D21): what it's for, before its first part. */
 export type Landing = {

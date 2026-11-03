@@ -1,3 +1,5 @@
+// First: in `npm run dev:copy` only, the live copy editor (empty in every other build).
+import "./copy/edit/install";
 import "@fontsource-variable/ibm-plex-sans/wght.css";
 import "@fontsource-variable/ibm-plex-sans/wght-italic.css";
 import "@fontsource/ibm-plex-mono/400.css";

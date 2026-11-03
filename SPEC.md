@@ -1433,7 +1433,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - plain CSS with design tokens (custom properties) for density and zoom
 - a typed string table (D13), so a missing translation key is a type error: the copy catalog, §6.6
 
-### 6.6 Copy: the catalog and live editing (catalog done 2026-11-03; live editing planned)
+### 6.6 Copy: the catalog and live editing (done 2026-11-03)
 
 **Why:** the copy needs a big clean-up (about 15,100 words in the UI, half of it in 246 paragraph-length entries), done fastest by editing it in the running app and reviewing the result in git. The same move readies the copy for translation (D13).
 
@@ -1451,6 +1451,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 - **The editor:** the message's key, its text with its arguments as fixed chips (moved, not added or removed), each plural or select case as a line of its own, the values it was last shown with, and how many places use it. Saving updates the screen at once, with no reload (nothing open is lost).
 - **Writing back:** a dev-server plugin writes the change into `en.json` (that key only, re-reading the file first, so an edit made in an editor meanwhile is kept), checks the message parses as ICU, and regenerates the types. `git diff` shows every change, for review.
 - **Markers never leave the page:** stripped from every request to the backend (copy can be saved into projects, e.g. a default name), from the clipboard, and from the window title.
+- **As built (2026-11-03):** `copy/marks.ts` (the markers: a number per message and the arguments it was shown with), `copy/edit/install.ts` (first on the page: takes markers out of requests, the clipboard and the title, then loads the editor), `copy/edit/editor.tsx` (Alt+click, the editor, the ✎ Copy panel, putting new words on the screen), `scripts/copy-edit-plugin.mjs` (the dev server's writer; a message must keep the same arguments, the same types, and isn't overwritten if it was changed in the file since it was opened). The editor shows apostrophes single (ICU's `''`) and each plural or select case on its own line, and writes them back as ICU. Text that isn't copy (the user's data) says so when Alt+clicked. A click on a message inside another (a tab's name in "Model groups waits for Bring in data") edits the inner one and offers the outer. "Named in N places" counts the code that names the key's end (approximate: code often reaches a message through a shorter name). Not done: the arguments as chips (the editor checks instead that they're unchanged). `npm run build` fails if the bundle has any of it (`scripts/no-copy-edit.mjs`). In this mode only, code that compares or slices a message's text sees the markers; the `say` helpers allow for them.
 - **Not editable here:** OpenAVMKit's own messages (shown as "from OpenAVMKit"), the user's data, and the native menus' labels (`menus.py`, few and short).
 
 ## 7. Engine: OpenAVMKit changes

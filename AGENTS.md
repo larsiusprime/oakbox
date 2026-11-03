@@ -99,7 +99,9 @@ Every word the UI shows is in `web/src/copy/en.json` (ICU MessageFormat, SPEC §
 `{mode, select, move {…} other {…}}`), never a `?:` in the screen. What needs code first (joining a list, changing
 case, arithmetic, picking between messages) is `say` in `copy/logic.ts`; a message never computes. After changing
 `en.json`, `npm run copy:types` (CI checks `copy.gen.ts` is up to date). A lookup keyed by an id from the backend is
-listed in `copy/records.json`.
+listed in `copy/records.json`. To edit copy in the running app: `npm run dev:copy` (with the
+app service on port 8765), then Alt+click text; it writes `en.json`. Nothing of the editor may reach other builds:
+keep it behind `__COPY_EDIT__`.
 
 ## Going online
 

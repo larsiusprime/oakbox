@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/copy-types.mjs --check && tsc --noEmit && vite build",
+    "dev:copy": "vite --mode copyedit",
+    "build": "node scripts/copy-types.mjs --check && tsc --noEmit && vite build && node scripts/no-copy-edit.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src && eslint src",
     "format": "biome format --write src",
