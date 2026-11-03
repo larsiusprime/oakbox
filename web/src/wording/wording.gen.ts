@@ -2134,18 +2134,6 @@ export type Wording = {
       kicker: string;
       title: string;
       lede: string;
-      happens: [string, string];
-      decide: [string, string];
-      end: [string];
-      needs: string;
-    }) | ({
-      kicker: string;
-      title: string;
-      lede: string;
-      happens: [string, string, string];
-      decide: [string, string, string];
-      end: [string];
-      needs: string;
     }) | ({
       kicker: string;
       title: string;
@@ -2168,6 +2156,22 @@ export type Wording = {
       lede: string;
       happens: [string, string, string];
       decide: [string];
+      end: [string];
+      needs: string;
+    }) | ({
+      kicker: string;
+      title: string;
+      lede: string;
+      happens: [string, string, string];
+      decide: [string, string, string];
+      end: [string];
+      needs: string;
+    }) | ({
+      kicker: string;
+      title: string;
+      lede: string;
+      happens: [string, string];
+      decide: [string, string];
       end: [string];
       needs: string;
     })>;

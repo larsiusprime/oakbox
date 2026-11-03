@@ -7,7 +7,7 @@ import { api, type ProjectDetail, unwrap } from "../api/client";
 import { useStep } from "../api/steps";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
-import { StepBody, StepFrame } from "../components/Steps";
+import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
@@ -357,6 +357,12 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
           </dl>
         </div>
       </StepBody>
+      <StepFoot
+        next={{
+          label: t.step.next,
+          onPress: () => navigate({ name: "project", id: project.id, tab: "fields" }),
+        }}
+      />
     </StepFrame>
   );
 }

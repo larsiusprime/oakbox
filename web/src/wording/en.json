@@ -2705,38 +2705,12 @@
       "metadata": {
         "kicker": "The project",
         "title": "Metadata",
-        "lede": "This is where you set basic details concerning the project, such as the valuation date, the jurisdiction''s location, units, etc.",
-        "happens": [
-          "One page of facts about the project; the money and measures are saved as you change them.",
-          "Every step reads these: the valuation date is the date sales are adjusted to, the units are how sizes are shown and written."
-        ],
-        "decide": [
-          "Units: square feet or square metres.",
-          "How money and numbers are written: the currency, and the separators."
-        ],
-        "end": [
-          "The project''s identity, on the plate and on the report''s first page, and where its files are on this computer."
-        ],
-        "needs": "Nothing: this is where a project begins."
+        "lede": "What the project is: where, for which tax year, and valued as of which date, set when it was made; and the money and measures every size, price and value is shown in."
       },
       "fields": {
         "kicker": "Before step 1",
-        "title": "Data",
-        "lede": "Add your files and tell OAK box what''s in them.",
-        "happens": [
-          "You add the parcel file, then the sales, then anything else you have: buildings, deeds, permits, condo units, map layers.",
-          "For each, you pick which column is the parcel ID, the price, the date, the finished area and so on. OAK box guesses first; you confirm or correct.",
-          "Each answer is checked against the file straight away: how many rows match, what the values look like, what''s blank."
-        ],
-        "decide": [
-          "Which file holds the parcels, and which the sales.",
-          "Which column is which, and how odd values should be read (dates, money written as text, codes).",
-          "What extra you want: public data (distances, elevation), existing values to compare with."
-        ],
-        "end": [
-          "A complete description of your data that OpenAVMKit can load. Review lists anything that still blocks a run."
-        ],
-        "needs": "Your files, wherever they are on this computer. They''re copied into the project; the originals aren''t changed."
+        "title": "Data: describe your files",
+        "lede": "Everything OAK box values comes from your county''s own files. Here you add them, one kind at a time, and say what each column means. Nothing runs yet: each answer is checked as you give it, so problems show up now rather than halfway through a run."
       },
       "details": {
         "kicker": "",
