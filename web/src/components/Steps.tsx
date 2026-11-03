@@ -133,30 +133,35 @@ export function LandingPage({
   back?: (() => void) | null;
 }) {
   const l = t.landing;
-  const list = (title: string, items: string[]) => (
-    <section className="land-sec">
-      <h3>{title}</h3>
-      <ul>
-        {items.map((x) => (
-          <li key={x}>{x}</li>
-        ))}
-      </ul>
-    </section>
-  );
+  const list = (title: string, items: string[] | undefined) =>
+    items?.length ? (
+      <section className="land-sec">
+        <h3>{title}</h3>
+        <ul>
+          {items.map((x) => (
+            <li key={x}>{x}</li>
+          ))}
+        </ul>
+      </section>
+    ) : null;
   return (
     <>
       <div className="wiz-body land">
         <p className="wiz-kicker">{kicker ?? page.kicker}</p>
         <h2 className="wiz-q">{page.title}</h2>
         <p className="wiz-lede">{page.lede}</p>
-        <div className="land-cols">
-          {list(l.happens, page.happens)}
-          {list(l.decide, page.decide)}
-          {list(l.end, page.end)}
-        </div>
-        <p className="land-needs">
-          <b>{l.needs}</b> {page.needs}
-        </p>
+        {Boolean(page.happens?.length || page.decide?.length || page.end?.length) && (
+          <div className="land-cols">
+            {list(l.happens, page.happens)}
+            {list(l.decide, page.decide)}
+            {list(l.end, page.end)}
+          </div>
+        )}
+        {page.needs && (
+          <p className="land-needs">
+            <b>{l.needs}</b> {page.needs}
+          </p>
+        )}
       </div>
       <StepFoot back={back ?? null} next={{ label: l.start({ step: start }), onPress: onStart }} />
     </>

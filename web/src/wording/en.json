@@ -2705,19 +2705,7 @@
       "metadata": {
         "kicker": "The project",
         "title": "Metadata",
-        "lede": "What the project is: where, for which tax year, and valued as of which date, set when it was made; and the money and measures every size, price and value is shown in.",
-        "happens": [
-          "One page of facts about the project; the money and measures are saved as you change them.",
-          "Every step reads these: the valuation date is the date sales are adjusted to, the units are how sizes are shown and written."
-        ],
-        "decide": [
-          "Units: square feet or square metres.",
-          "How money and numbers are written: the currency, and the separators."
-        ],
-        "end": [
-          "The project''s identity, on the plate and on the report''s first page, and where its files are on this computer."
-        ],
-        "needs": "Nothing: this is where a project begins."
+        "lede": "What the project is: where, for which tax year, and valued as of which date, set when it was made; and the money and measures every size, price and value is shown in."
       },
       "fields": {
         "kicker": "Before step 1",
