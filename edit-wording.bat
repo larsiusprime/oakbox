@@ -5,13 +5,14 @@ rem Runs the Vite dev server in wording-edit mode (in its own minimised window) 
 rem with its window showing the dev server's page. Close the app window to stop both.
 setlocal
 cd /d "%~dp0"
-where uv >/dev/null 2>/dev/null || (echo uv is needed: https://docs.astral.sh/uv/ & pause & exit /b 1)
-where npm >/dev/null 2>/dev/null || (echo Node.js ^(npm^) is needed: https://nodejs.org/ & pause & exit /b 1)
+rem Each check runs the tool itself, as run.bat would; its output goes to NUL (Windows' null device).
+uv --version >NUL 2>&1 || (echo uv is needed: https://docs.astral.sh/uv/ & pause & exit /b 1)
+call npm --version >NUL 2>&1 || (echo Node.js ^(npm^) is needed: https://nodejs.org/ & pause & exit /b 1)
 if not exist web\node_modules (
   echo Installing the web dependencies...
   pushd web & call npm ci & popd
 )
 start "OAK box wording (Vite)" /min /d "%~dp0web" cmd /c npm run dev:wording -- --port 5173 --strictPort --host 127.0.0.1
 uv run python -X utf8 -m oakbox --port 8765 --ui-url http://127.0.0.1:5173
-taskkill /fi "WINDOWTITLE eq OAK box wording (Vite)*" /t /f >/dev/null 2>nul
+taskkill /fi "WINDOWTITLE eq OAK box wording (Vite)*" /t /f >NUL 2>&1
 endlocal
