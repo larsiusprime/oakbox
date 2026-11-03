@@ -17,8 +17,8 @@ router = APIRouter()
 class Display(BaseModel):
     """How the app looks (SPEC D43, View menu)."""
 
-    density: Literal["compact", "comfortable"] | None = Field(
-        default=None, description="None: compact, or comfortable on touch screens."
+    density: Literal["default", "compact"] | None = Field(
+        default=None, description="None: default. Compact: a Windows 2000 dialog's density."
     )
     large_text: bool = False
     high_contrast: bool = False

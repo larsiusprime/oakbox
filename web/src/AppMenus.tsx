@@ -20,7 +20,7 @@ export function AppMenus({ route }: { route: Route }) {
   // Display settings live on <html>, where the styles read them.
   useEffect(() => {
     const root = document.documentElement.dataset;
-    if (display?.density) root.density = display.density;
+    if (display?.density === "compact") root.density = "compact";
     else delete root.density;
     if (display?.large_text) root.text = "large";
     else delete root.text;

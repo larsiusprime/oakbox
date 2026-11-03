@@ -22,7 +22,7 @@ from typing import Any
 
 from oakbox import appsettings, projects
 
-OPENAVMKIT_DOCS = "https://www.openavmkit.com/"
+OPENAVMKIT_DOCS = "https://www.openavmkit.com/docs/"
 RECENT = 8
 
 # Commands the page carries out (web/src/menu.ts). "open-project:<id>" and "display" too.
@@ -88,15 +88,8 @@ MENUS: tuple[Submenu, ...] = (
             Submenu(
                 "&Density",
                 (
-                    Item(
-                        "density-compact", "&Compact", radio=True, checked=lambda c: c.settings.density != "comfortable"
-                    ),
-                    Item(
-                        "density-comfortable",
-                        "C&omfortable",
-                        radio=True,
-                        checked=lambda c: c.settings.density == "comfortable",
-                    ),
+                    Item("density-default", "&Default", radio=True, checked=lambda c: c.settings.density != "compact"),
+                    Item("density-compact", "&Compact", radio=True, checked=lambda c: c.settings.density == "compact"),
                 ),
             ),
             Item("large-text", "&Large text", checked=lambda c: c.settings.large_text),
@@ -153,7 +146,7 @@ class Controller:
             self.close()
         elif command == "docs":
             self.open_url(OPENAVMKIT_DOCS)
-        elif command in ("density-compact", "density-comfortable", "large-text", "high-contrast"):
+        elif command in ("density-default", "density-compact", "large-text", "high-contrast"):
             with self._lock:
                 s = appsettings.load()
                 if command.startswith("density-"):

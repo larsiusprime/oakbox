@@ -16,15 +16,22 @@ import sys
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AppSettings(BaseModel):
     storage_location: str | None = Field(default=None, description="None: the default, Documents/OAK box.")
     projects: dict[str, str] = Field(default_factory=dict, description="Project id -> project folder.")
-    density: Literal["compact", "comfortable"] | None = Field(
-        default=None, description="None: compact, or comfortable on touch screens (SPEC D43)."
+    density: Literal["default", "compact"] | None = Field(
+        default=None, description="None: default. Compact: a Windows 2000 dialog's density (SPEC D43)."
     )
+
+    @field_validator("density", mode="before")
+    @classmethod
+    def _gone_density(cls, v: object) -> object:
+        """Comfortable is gone (2026-11-03): a setting that still says it reads as the default."""
+        return None if v == "comfortable" else v
+
     large_text: bool = False
     high_contrast: bool = False
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")

@@ -3284,9 +3284,9 @@ export interface components {
         "Display-Input": {
             /**
              * Density
-             * @description None: compact, or comfortable on touch screens.
+             * @description None: default. Compact: a Windows 2000 dialog's density.
              */
-            density?: ("compact" | "comfortable") | null;
+            density?: ("default" | "compact") | null;
             /**
              * Large Text
              * @default false
@@ -3305,9 +3305,9 @@ export interface components {
         "Display-Output": {
             /**
              * Density
-             * @description None: compact, or comfortable on touch screens.
+             * @description None: default. Compact: a Windows 2000 dialog's density.
              */
-            density: ("compact" | "comfortable") | null;
+            density: ("default" | "compact") | null;
             /**
              * Large Text
              * @default false

@@ -64,7 +64,11 @@
   --rim: 8px; /* the frame's sides and bottom */
   --radius: 4px;
   --btn-radius: 4px;
-  /* Density (D43): compact by default; comfortable on touch screens or when chosen. */
+  /* Density (D43): Default, or Compact (View › Density). Every padding, margin and gap is a multiple of --sp. */
+  --sp: 1rem;
+  --gap-min: 0px; /* the least gap between things side by side (Compact's floor) */
+  --indent-min: 0px; /* the least indent of a list (Compact keeps its bullets' room) */
+  --tab-h: 2.1rem; /* a folder's tab */
   --ctl-h: 1.75rem;
   --cell-y: 0.1rem;
   --pad: 0.5rem;
@@ -74,18 +78,16 @@
   --font-size: 18px;
 }
 
-:root[data-density="comfortable"] {
-  --ctl-h: 2.6rem;
-  --cell-y: 0.3rem;
-  --pad: 0.9rem;
-}
-
-@media (pointer: coarse) {
-  :root:not([data-density="compact"]) {
-    --ctl-h: 2.6rem;
-    --cell-y: 0.3rem;
-    --pad: 0.9rem;
-  }
+:root[data-density="compact"] {
+  /* Compact (D43): a Windows 2000 dialog's density. Spacing at a fifth, controls only as tall as their text,
+     nothing between a box's edge and what's in it, table rows as tall as their tallest control. */
+  --sp: 0.2rem;
+  --gap-min: 0.2rem;
+  --indent-min: 1.1rem;
+  --tab-h: 1.55rem;
+  --ctl-h: 1.45rem;
+  --cell-y: 0px;
+  --pad: 0px;
 }
 
 :root[data-contrast="high"] {
@@ -193,8 +195,9 @@ body {
   align-items: center;
   /* full width: out to the window's edges, over the page's top padding */
   /* below it, the same gap as at the sides: the page's side padding less the frame */
-  margin: -0.6rem calc(-0.9rem - 5px) calc(0.9rem + 5px - var(--rim));
-  padding: 0.55rem calc(0.9rem + 5px);
+  margin: calc(-0.6 * var(--sp)) calc(calc(-0.9 * var(--sp)) - 5px)
+    calc(calc(0.9 * var(--sp)) + 5px - var(--rim));
+  padding: calc(0.55 * var(--sp)) calc(calc(0.9 * var(--sp)) + 5px);
   border-bottom: 1px solid #4a2e15;
   box-shadow:
     0 1px 0 rgba(255, 240, 215, 0.35) inset,
@@ -214,7 +217,7 @@ body {
 }
 /* A project's tabs: the same gap under the lid as at the sides (the grid's gap counted in). */
 .project > .oak-nav {
-  margin-bottom: calc(0.9rem + 5px - var(--rim) - 0.5rem);
+  margin-bottom: calc(calc(0.9 * var(--sp)) + 5px - var(--rim) - calc(0.5 * var(--sp)));
 }
 
 /* The frame (OakFrame): pinned to the window's edges, so it stretches with it; over the page, never in the way. */
@@ -313,8 +316,9 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.3rem 1.75rem;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  /* the ends clear the screws (1rem in) whatever the density */
+  padding: calc(0.3 * var(--sp)) max(calc(1.75 * var(--sp)), 1.2rem);
   text-decoration: none;
   color: var(--plate-text);
   border: 1px solid var(--plate-edge);
@@ -344,7 +348,7 @@ body {
   top: 50%;
   width: 0.5rem;
   height: 0.5rem;
-  margin-top: -0.25rem;
+  margin-top: -0.25rem; /* centred on its own size, not spacing */
   border-radius: 50%;
   background:
     linear-gradient(55deg, transparent 40%, rgba(0, 0, 0, 0.5) 40% 60%, transparent 60%),
@@ -426,13 +430,13 @@ body {
 .content {
   margin: 0 auto;
   /* clear of the frame's sides and bottom */
-  padding: 0.6rem calc(0.9rem + 5px) calc(1.5rem + var(--rim));
+  padding: calc(0.6 * var(--sp)) calc(calc(0.9 * var(--sp)) + 5px) calc(calc(1.5 * var(--sp)) + var(--rim));
 }
 
 .home {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
-  gap: 1.25rem;
+  gap: max(calc(1.25 * var(--sp)), min(1.25rem, var(--gap-min)));
   align-items: start;
 }
 
@@ -451,8 +455,9 @@ body {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  padding: 0.45rem var(--pad) 0.35rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
+    max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
+  padding: calc(0.45 * var(--sp)) var(--pad) calc(0.35 * var(--sp));
 }
 
 .panel-head h1 {
@@ -468,7 +473,7 @@ body {
 .row {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
   padding: var(--cell-y) var(--pad);
   border-top: 1px solid var(--rule);
   min-height: calc(var(--ctl-h) + 0.25rem);
@@ -479,7 +484,7 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
 }
 
 .row-title {
@@ -514,9 +519,9 @@ a.row-title:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   min-height: var(--ctl-h);
-  padding: 0 0.85rem;
+  padding: 0 calc(0.85 * var(--sp));
   color: var(--btn-text);
   background: #efefed;
   border: 1px solid #505357;
@@ -599,11 +604,11 @@ a.row-title:hover {
 }
 
 .step > .button {
-  margin-top: 0.1rem;
+  margin-top: calc(0.1 * var(--sp));
 }
 
 .step .progress {
-  margin-top: 0.35rem;
+  margin-top: calc(0.35 * var(--sp));
 }
 
 /* ---------- Status and verdicts: icon + word ---------- */
@@ -612,7 +617,7 @@ a.row-title:hover {
 .mark {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
@@ -651,7 +656,7 @@ a.row-title:hover {
 }
 
 .popover-body {
-  padding: 0.7rem 0.9rem;
+  padding: calc(0.7 * var(--sp)) calc(0.9 * var(--sp));
   outline: none;
 }
 
@@ -665,13 +670,13 @@ a.row-title:hover {
 .error {
   color: var(--bad);
   font-weight: 600;
-  margin: 0.25rem 0 0;
+  margin: calc(0.25 * var(--sp)) 0 0;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
 }
 
 .field-short {
@@ -696,7 +701,7 @@ a.row-title:hover {
 .input {
   font: inherit;
   min-height: var(--ctl-h);
-  padding: 0 0.4rem;
+  padding: 0 calc(0.4 * var(--sp));
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--well-edge);
@@ -721,9 +726,9 @@ a.row-title:hover {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   min-height: var(--ctl-h);
-  padding: 2px 2px 2px 0.5rem;
+  padding: 2px 2px 2px calc(0.5 * var(--sp));
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--well-edge);
@@ -782,11 +787,11 @@ a.row-title:hover {
 
 .choice-list {
   outline: none;
-  padding: 0.25rem 0;
+  padding: calc(0.25 * var(--sp)) 0;
 }
 
 .choice-item {
-  padding: 0.2rem 0.6rem;
+  padding: calc(0.2 * var(--sp)) calc(0.6 * var(--sp));
   cursor: pointer;
   outline: none;
 }
@@ -802,14 +807,15 @@ a.row-title:hover {
 .checklist-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1.25rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(1.25 * var(--sp)), min(1.25rem, var(--gap-min)));
 }
 
 .tick,
 .radio {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   cursor: pointer;
   min-height: var(--ctl-h);
 }
@@ -849,7 +855,7 @@ a.row-title:hover {
 }
 
 .radios {
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
 }
 
 /* ---------- Home: projects, settings, new project ---------- */
@@ -857,7 +863,7 @@ a.row-title:hover {
 /* The projects list: a name kept near its buttons, not stretched across a wide window (left, under the plate). */
 .home-main {
   display: grid;
-  gap: 1.25rem;
+  gap: max(calc(1.25 * var(--sp)), min(1.25rem, var(--gap-min)));
   align-content: start;
   max-width: 52rem;
 }
@@ -869,12 +875,12 @@ a.row-title:hover {
 .row-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   justify-content: flex-end;
 }
 
 .settings-body {
-  margin: 0.2rem var(--pad) var(--pad);
+  margin: calc(0.2 * var(--sp)) var(--pad) var(--pad);
   padding: var(--pad);
 }
 
@@ -882,7 +888,7 @@ a.row-title:hover {
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 
 .mono {
@@ -901,8 +907,8 @@ a.row-title:hover {
 
 .form-panel {
   display: grid;
-  gap: 0.7rem;
-  padding: 0.8rem var(--pad);
+  gap: max(calc(0.7 * var(--sp)), min(0.7rem, var(--gap-min)));
+  padding: calc(0.8 * var(--sp)) var(--pad);
 }
 
 .form-panel > .row-meta {
@@ -913,13 +919,14 @@ a.row-title:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 1rem 1.5rem;
+  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)))
+    max(calc(1.5 * var(--sp)), min(1.5rem, var(--gap-min)));
 }
 
 .form-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
 }
 
 .button-danger {
@@ -954,7 +961,7 @@ a.row-title:hover {
   /* The column is the screen's width, never the content's: a long value can't push the dialog off screen. */
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding: 1rem;
+  padding: calc(1 * var(--sp));
   background: rgba(20, 22, 24, 0.45);
 }
 
@@ -997,7 +1004,8 @@ a.row-title:hover {
   margin: 0;
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.2rem 1.25rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)))
+    max(calc(1.25 * var(--sp)), min(1.25rem, var(--gap-min)));
 }
 
 .fact {
@@ -1017,7 +1025,7 @@ a.row-title:hover {
 
 .project {
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 
 /* Tables and other elements use all the width; running text is capped for reading. */
@@ -1035,8 +1043,8 @@ a.row-title:hover {
 .folder-tab {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.7rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
+  padding: calc(0.2 * var(--sp)) calc(0.7 * var(--sp));
   border: 1px solid var(--manila-edge);
   border-radius: 7px 7px 0 0;
   background: var(--manila-back);
@@ -1094,7 +1102,7 @@ a.row-title:hover {
 }
 
 .folder-path {
-  margin-right: 0.75rem;
+  margin-right: calc(0.75 * var(--sp));
   font-weight: 400;
 }
 
@@ -1118,8 +1126,8 @@ a.row-title:hover {
 
 .add-file {
   display: grid;
-  gap: 0.6rem;
-  padding: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  padding: calc(0.6 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--head);
@@ -1129,12 +1137,12 @@ a.row-title:hover {
 .pick-line {
   display: flex;
   align-items: flex-end;
-  gap: 0.75rem;
+  gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
 }
 
 .pick-file {
   display: grid;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   width: min(100%, 34rem);
 }
 
@@ -1142,20 +1150,20 @@ a.row-title:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   min-height: 1.5rem;
 }
 
 .pills {
   display: flex;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
 }
 
 /* The one pill: a short word or mark in a rounded box, grey unless it says ok, warn, bad or info (and never by
  * colour alone: it says so in its mark or word). */
 .pill {
   display: inline-block;
-  padding: 0 0.4rem;
+  padding: 0 calc(0.4 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: 999px;
   background: var(--zebra);
@@ -1165,7 +1173,7 @@ a.row-title:hover {
   white-space: nowrap;
 }
 .pill + .pill {
-  margin-left: 0.25rem;
+  margin-left: calc(0.25 * var(--sp));
 }
 .pill-ok {
   background: var(--ok-tint);
@@ -1193,7 +1201,7 @@ a.row-title:hover {
   box-sizing: border-box;
   height: var(--ctl-h);
   line-height: calc(var(--ctl-h) - 2px);
-  padding: 0 0.4rem;
+  padding: 0 calc(0.4 * var(--sp));
   background: var(--head);
   border: 1px solid var(--well-edge);
   border-radius: 2px;
@@ -1218,7 +1226,7 @@ a.row-title:hover {
 
 .tooltip {
   max-width: 24rem;
-  padding: 0.4rem 0.65rem;
+  padding: calc(0.4 * var(--sp)) calc(0.65 * var(--sp));
   font-size: 0.85rem;
   color: #ffffff;
   background: #2a2d31;
@@ -1240,12 +1248,13 @@ a.row-title:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 1rem 2.5rem;
+  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)))
+    max(calc(2.5 * var(--sp)), min(2.5rem, var(--gap-min)));
 }
 
 .choice-column {
   display: grid;
-  gap: 0.9rem;
+  gap: max(calc(0.9 * var(--sp)), min(0.9rem, var(--gap-min)));
 }
 
 .already {
@@ -1257,7 +1266,7 @@ a.row-title:hover {
 
 .file-choices {
   display: grid;
-  gap: 0.9rem;
+  gap: max(calc(0.9 * var(--sp)), min(0.9rem, var(--gap-min)));
   justify-items: start;
 }
 
@@ -1305,23 +1314,26 @@ a.row-title:hover {
 .wiz {
   display: grid;
   grid-template-columns: 13rem 1fr;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   min-height: 25rem;
 }
 
 .wiz-steps {
   list-style: none;
   margin: 0;
-  padding: 0.4rem 0;
+  padding: calc(0.4 * var(--sp)) 0;
   font-size: 0.92rem;
 }
 
 .wiz-step button {
   display: flex;
-  gap: 0.45rem;
+  gap: max(
+    max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min))),
+    0.25rem
+  ); /* a mark and its name never touch */
   align-items: baseline;
   width: 100%;
-  padding: 0.16rem 0.75rem 0.16rem 0.6rem;
+  padding: calc(0.16 * var(--sp)) calc(0.75 * var(--sp)) calc(0.16 * var(--sp)) calc(0.6 * var(--sp));
   font: inherit;
   color: var(--text);
   text-align: left;
@@ -1344,7 +1356,7 @@ a.row-title:hover {
 }
 
 .wiz-step.sub button {
-  padding-left: 2.25rem;
+  padding-left: calc(2.25 * var(--sp));
   font-size: 0.88rem;
 }
 
@@ -1375,11 +1387,11 @@ a.row-title:hover {
 
 .wiz-body {
   flex: 1;
-  padding: 0.8rem 1.1rem;
+  padding: calc(0.8 * var(--sp)) calc(1.1 * var(--sp));
 }
 
 .wiz-kicker {
-  margin: 0 0 0.15rem;
+  margin: 0 0 calc(0.15 * var(--sp));
   font-size: 0.8rem;
   color: var(--muted);
   text-transform: uppercase;
@@ -1387,25 +1399,26 @@ a.row-title:hover {
 }
 
 .wiz-q {
-  margin: 0 0 0.25rem;
+  margin: 0 0 calc(0.25 * var(--sp));
   font-size: 1.15rem;
 }
 
 .wiz-lede {
-  margin: 0 0 0.8rem;
+  margin: 0 0 calc(0.8 * var(--sp));
   max-width: 46rem;
   color: var(--muted);
 }
 
 .wiz-sub {
-  margin: 0.9rem 0 0.35rem;
+  margin: calc(0.9 * var(--sp)) 0 calc(0.35 * var(--sp));
   font-size: 1rem;
 }
 
 .wiz-grid {
   display: grid;
   grid-template-columns: 12rem 16rem minmax(0, 1fr);
-  gap: 0.4rem 0.8rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
   max-width: 56rem;
 }
@@ -1447,7 +1460,7 @@ a.row-title:hover {
 }
 
 .wiz-note {
-  margin: 0.8rem 0 0;
+  margin: calc(0.8 * var(--sp)) 0 0;
   max-width: 46rem;
   font-size: 0.88rem;
   color: var(--muted);
@@ -1466,7 +1479,7 @@ a.row-title:hover {
 }
 
 .wiz-more {
-  margin-top: 0.6rem;
+  margin-top: calc(0.6 * var(--sp));
 }
 
 /* Greyed until the step is done, but still clickable: it explains what's left. */
@@ -1477,7 +1490,7 @@ a.row-title:hover {
 
 .wiz-left {
   margin: 0;
-  padding: 0 1.1rem 0.45rem;
+  padding: 0 calc(1.1 * var(--sp)) calc(0.45 * var(--sp));
   font-size: 0.85rem;
   color: var(--muted);
   text-align: right;
@@ -1489,7 +1502,7 @@ a.row-title:hover {
 
 .wiz-left-list {
   margin: 0;
-  padding-left: 1.2rem;
+  padding-left: calc(1.2 * var(--sp));
 }
 
 .wiz-unfinished-actions {
@@ -1498,9 +1511,9 @@ a.row-title:hover {
 
 .wiz-foot {
   display: flex;
-  gap: 0.45rem;
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
   align-items: center;
-  padding: 0.45rem 0.7rem;
+  padding: calc(0.45 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--paper);
   border-top: 1px solid var(--paper-rule);
 }
@@ -1518,7 +1531,7 @@ a.row-title:hover {
 }
 
 .wiz-section-head {
-  padding: 0.3rem 0.6rem 0.1rem;
+  padding: calc(0.3 * var(--sp)) calc(0.6 * var(--sp)) calc(0.1 * var(--sp));
   font-size: 0.78rem;
   color: var(--muted);
   text-transform: uppercase;
@@ -1532,9 +1545,9 @@ a.row-title:hover {
 
 .wiz-item {
   display: flex;
-  gap: 1rem;
+  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
   justify-content: space-between;
-  padding-left: 1.1rem;
+  padding-left: calc(1.1 * var(--sp));
 }
 
 .wiz-item > .mono {
@@ -1562,8 +1575,8 @@ a.row-title:hover {
 }
 
 .wiz-problems {
-  margin: 0 0 0.6rem;
-  padding-left: 1.2rem;
+  margin: 0 0 calc(0.6 * var(--sp));
+  padding-left: calc(1.2 * var(--sp));
 }
 
 .wiz-review {
@@ -1573,19 +1586,19 @@ a.row-title:hover {
 }
 
 .wiz-review-head th {
-  padding: 0.45rem 0.4rem 0.15rem;
+  padding: calc(0.45 * var(--sp)) calc(0.4 * var(--sp)) calc(0.15 * var(--sp));
   text-align: left;
   border-bottom: 1px solid var(--rule);
 }
 
 .wiz-review td {
-  padding: 0.1rem 0.4rem;
+  padding: calc(0.1 * var(--sp)) calc(0.4 * var(--sp));
   border-bottom: 1px solid var(--cell-line);
 }
 
 .wiz-warn-title {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 
@@ -1599,29 +1612,29 @@ a.row-title:hover {
 }
 
 .wiz-welcome p {
-  margin: 0 0 0.6rem;
+  margin: 0 0 calc(0.6 * var(--sp));
 }
 
 .wiz-pick {
   display: flex;
-  gap: 1.5rem;
+  gap: max(calc(1.5 * var(--sp)), min(1.5rem, var(--gap-min)));
   align-items: flex-end;
 }
 
 .wiz-file {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: baseline;
-  margin-bottom: 0.4rem;
+  margin-bottom: calc(0.4 * var(--sp));
 }
 
 .wiz-file .wiz-link {
-  margin-left: 0.8rem;
+  margin-left: calc(0.8 * var(--sp));
 }
 
 .wiz-pair {
   display: flex;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
 }
 
 .wiz-pair .choice {
@@ -1630,7 +1643,7 @@ a.row-title:hover {
 }
 
 .wiz-rule {
-  margin: 0.8rem 0;
+  margin: calc(0.8 * var(--sp)) 0;
   border: 0;
   border-top: 1px solid var(--cell-line);
 }
@@ -1650,12 +1663,12 @@ a.row-title:hover {
 
 .wiz-group {
   grid-column: 1 / -1;
-  margin: 0.2rem 0 -0.2rem;
+  margin: calc(0.2 * var(--sp)) 0 calc(-0.2 * var(--sp));
   font-size: 1rem;
 }
 
 .wiz-in-group {
-  padding-left: 1.1rem;
+  padding-left: calc(1.1 * var(--sp));
   font-weight: 400;
 }
 
@@ -1671,7 +1684,7 @@ a.row-title:hover {
 }
 
 .wiz-resolve {
-  margin-left: 0.6rem;
+  margin-left: calc(0.6 * var(--sp));
 }
 
 .wiz-modal-wide {
@@ -1684,17 +1697,17 @@ a.row-title:hover {
 }
 
 .wiz-indent {
-  margin: 0 0 0.3rem 1.6rem;
+  margin: 0 0 calc(0.3 * var(--sp)) calc(1.6 * var(--sp));
 }
 
 .wiz-review-ids {
-  margin-bottom: 0.4rem;
+  margin-bottom: calc(0.4 * var(--sp));
 }
 
 .wiz-check-lines {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
   white-space: normal;
 }
 
@@ -1720,20 +1733,20 @@ a.row-title:hover {
 
 .wiz-section-head-row {
   display: flex;
-  gap: 0.8rem;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: baseline;
   flex-wrap: wrap;
 }
 
 .wiz-section-head-row .wiz-sub {
-  margin: 0.2rem 0;
+  margin: calc(0.2 * var(--sp)) 0;
 }
 
 /* The call to action in a dialog: set apart so it isn't missed. */
 .wiz-act {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.5rem 0.7rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--info-tint);
   border: 1px solid var(--info-edge);
   border-left: 4px solid var(--link);
@@ -1745,7 +1758,7 @@ a.row-title:hover {
 
 .wiz-body > .add-button,
 .wiz-body > span > .add-button {
-  margin-top: 0.5rem;
+  margin-top: calc(0.5 * var(--sp));
 }
 
 .wiz-step-icon {
@@ -1772,7 +1785,7 @@ a.row-title:hover {
 
 .rc-body {
   display: grid;
-  gap: 0.65rem;
+  gap: max(calc(0.65 * var(--sp)), min(0.65rem, var(--gap-min)));
 }
 
 .rc-sub,
@@ -1789,8 +1802,8 @@ a.row-title:hover {
 .rc-meter {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
-  padding: 0.5rem 0.7rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--head);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -1816,7 +1829,7 @@ a.row-title:hover {
 .rc-samplebar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   font-size: 0.9rem;
 }
@@ -1829,7 +1842,7 @@ a.row-title:hover {
 }
 
 .rc-seg-btn {
-  padding: 0.1rem 0.55rem;
+  padding: calc(0.1 * var(--sp)) calc(0.55 * var(--sp));
   font: inherit;
   font-size: 0.82rem;
   background: var(--panel);
@@ -1845,15 +1858,15 @@ a.row-title:hover {
 .rc-cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
-  gap: 0.8rem;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
 
 .rc-card {
   display: grid;
-  gap: 0.45rem;
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
   align-content: start;
   min-width: 0;
-  padding: 0.55rem 0.65rem;
+  padding: calc(0.55 * var(--sp)) calc(0.65 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -1864,14 +1877,14 @@ a.row-title:hover {
 }
 
 .rc-caption {
-  margin: 0.2rem 0 0;
+  margin: calc(0.2 * var(--sp)) 0 0;
   font-size: 0.82rem;
   color: var(--muted);
 }
 
 .rc-steps {
   display: grid;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1879,9 +1892,9 @@ a.row-title:hover {
 
 .rc-steps li {
   display: flex;
-  gap: 0.45rem;
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
   align-items: center;
-  padding: 0.2rem 0.45rem;
+  padding: calc(0.2 * var(--sp)) calc(0.45 * var(--sp));
   font-size: 0.9rem;
   background: var(--info-tint);
   border: 1px solid var(--info-edge);
@@ -1910,13 +1923,13 @@ a.row-title:hover {
 }
 
 .rc-input {
-  padding: 0 0.25rem;
+  padding: 0 calc(0.25 * var(--sp));
   font-family: var(--mono);
 }
 
 .rc-x {
   display: inline-flex;
-  padding: 0.1rem;
+  padding: calc(0.1 * var(--sp));
   color: var(--muted);
   background: none;
   border: 0;
@@ -1940,7 +1953,7 @@ a.row-title:hover {
 }
 
 .rc-th {
-  padding: 0.15rem 0.3rem;
+  padding: calc(0.15 * var(--sp)) calc(0.3 * var(--sp));
   font-family: var(--font);
   font-size: 0.78rem;
   font-weight: 600;
@@ -1951,7 +1964,7 @@ a.row-title:hover {
 
 .rc-td {
   max-width: 32ch;
-  padding: 0.12rem 0.3rem;
+  padding: calc(0.12 * var(--sp)) calc(0.3 * var(--sp));
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1982,8 +1995,8 @@ a.row-title:hover {
 }
 
 .rc-writes pre {
-  margin: 0.3rem 0 0;
-  padding: 0.4rem 0.55rem;
+  margin: calc(0.3 * var(--sp)) 0 0;
+  padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
   font-size: 0.78rem;
   white-space: pre-wrap;
   color: var(--text);
@@ -2005,13 +2018,13 @@ a.row-title:hover {
 .rl-join {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 
 .rl-tests {
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2019,7 +2032,7 @@ a.row-title:hover {
 
 .rl-head {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 
@@ -2031,7 +2044,7 @@ a.row-title:hover {
 /* Units, currency and number style under Metadata: editable in place (SPEC F1). */
 .facts-locale {
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 
 /* An area column's unit, beside it (F3d). */
@@ -2046,15 +2059,15 @@ a.row-title:hover {
 }
 
 .wiz-another {
-  margin: 0 0 0.6rem;
+  margin: 0 0 calc(0.6 * var(--sp));
 }
 
 /* More files (F3d): a card per file. */
 .wiz-extra {
   display: grid;
-  gap: 0.5rem;
-  margin: 0 0 0.7rem;
-  padding: 0.55rem 0.7rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  margin: 0 0 calc(0.7 * var(--sp));
+  padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -2065,11 +2078,11 @@ a.row-title:hover {
 
 /* Location step (F3d): coordinates, the map, the user's location fields. */
 .wiz-section {
-  margin: 1rem 0 0;
+  margin: calc(1 * var(--sp)) 0 0;
 }
 
 .wiz-auto {
-  margin: 0 0 0.5rem;
+  margin: 0 0 calc(0.5 * var(--sp));
   padding: 0;
   list-style: none;
   font-size: 0.9rem;
@@ -2096,21 +2109,21 @@ a.row-title:hover {
 .wiz-loc {
   display: flex;
   grid-column: 1 / -1;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: baseline;
   min-width: 0;
 }
 
 .wiz-loc-add {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
-  margin-top: 0.4rem;
+  margin-top: calc(0.4 * var(--sp));
 }
 
 .wiz-map-toggle {
   justify-self: start;
-  margin: 0 0 0.5rem;
+  margin: 0 0 calc(0.5 * var(--sp));
 }
 
 .wiz-num {
@@ -2120,7 +2133,7 @@ a.row-title:hover {
 /* F3d: how to read money written as text */
 .nm-opts {
   flex-wrap: wrap;
-  row-gap: var(--space-2, 0.5rem);
+  row-gap: var(--space-2, max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min))));
 }
 .nm-warn {
   color: var(--warn, var(--warn));
@@ -2131,7 +2144,7 @@ a.row-title:hover {
 .rl-adds {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 
 /* F3d: quality and condition */
@@ -2148,7 +2161,7 @@ a.row-title:hover {
   background: #9db7df;
   border-radius: 2px;
   vertical-align: middle;
-  margin-right: 0.4rem;
+  margin-right: calc(0.4 * var(--sp));
 }
 .qc-arrows {
   white-space: nowrap;
@@ -2156,7 +2169,7 @@ a.row-title:hover {
 .qc-move {
   border: 0;
   background: none;
-  padding: 0 0.15rem;
+  padding: 0 calc(0.15 * var(--sp));
   color: var(--muted);
   cursor: pointer;
 }
@@ -2170,18 +2183,18 @@ a.row-title:hover {
 }
 .qc-radio {
   display: grid;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .qc-pick {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: baseline;
   width: 100%;
   text-align: left;
-  padding: 0.3rem 0.5rem;
+  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: none;
@@ -2218,15 +2231,15 @@ a.row-title:hover {
 }
 .qc-row {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   flex-wrap: wrap;
 }
 /* Step 1, Bring in data */
 .bi {
   display: grid;
-  gap: 0.85rem;
-  padding: 0.9rem 1.1rem 1.1rem;
+  gap: max(calc(0.85 * var(--sp)), min(0.85rem, var(--gap-min)));
+  padding: calc(0.9 * var(--sp)) calc(1.1 * var(--sp)) calc(1.1 * var(--sp));
 }
 
 .bi-lede {
@@ -2238,14 +2251,14 @@ a.row-title:hover {
   border: 1px solid var(--warn-edge);
   background: var(--warn-tint);
   border-radius: var(--radius);
-  padding: 0.5rem 0.7rem;
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
 }
 .bi-card {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  padding: 0.6rem 0.8rem;
+  padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   background: var(--panel);
 }
 .bi-card h3 {
@@ -2255,14 +2268,14 @@ a.row-title:hover {
 .bi-head {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .bi-head h3 {
   flex: 1;
 }
 .bi-plan {
   margin: 0;
-  padding-left: 1.1rem;
+  padding-left: calc(1.1 * var(--sp));
 }
 .bi-prog {
   height: 0.8rem;
@@ -2281,7 +2294,7 @@ a.row-title:hover {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
 }
 .bi-steps .done {
   color: var(--ok);
@@ -2291,13 +2304,14 @@ a.row-title:hover {
 }
 .bi-receipt {
   display: grid;
-  gap: 0.85rem;
+  gap: max(calc(0.85 * var(--sp)), min(0.85rem, var(--gap-min)));
 }
 
 .bi-funnels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
-  gap: 0.4rem 1.2rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(1.2 * var(--sp)), min(1.2rem, var(--gap-min)));
 }
 /* A funnel: its lines share one grid (subgrid), the text column only as wide as the longest line, so "see them"
    sits beside it, not at the far edge. */
@@ -2305,8 +2319,8 @@ a.row-title:hover {
   display: grid;
   grid-template-columns: 1.2rem auto auto auto;
   justify-content: start;
-  column-gap: 0.4rem;
-  row-gap: 0.1rem;
+  column-gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  row-gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
   align-content: start;
 }
 .bi-fn > * {
@@ -2316,7 +2330,7 @@ a.row-title:hover {
 .bi-line {
   display: grid;
   grid-template-columns: 1.2rem 5rem 1fr auto;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: baseline;
   font-size: 0.9rem;
 }
@@ -2333,10 +2347,10 @@ a.row-title:hover {
 }
 .bi-rule {
   border-top: 1px solid var(--rule);
-  padding-top: 0.15rem;
+  padding-top: calc(0.15 * var(--sp));
 }
 .bi-note {
-  margin: 0.15rem 0 0 6.6rem;
+  margin: calc(0.15 * var(--sp)) 0 0 calc(6.6 * var(--sp));
   color: var(--muted);
   font-size: 0.82rem;
 }
@@ -2351,10 +2365,10 @@ a.row-title:hover {
   color: var(--muted);
   font-size: 0.78rem;
   border-bottom: 1px solid var(--rule);
-  padding: var(--cell-y) 0.35rem;
+  padding: var(--cell-y) calc(0.35 * var(--sp));
 }
 .tbl tr :where(td) {
-  padding: var(--cell-y) 0.35rem;
+  padding: var(--cell-y) calc(0.35 * var(--sp));
   border-bottom: 1px solid var(--cell-line);
   vertical-align: middle;
 }
@@ -2385,7 +2399,7 @@ a.row-title:hover {
   border-radius: 2px;
   position: relative;
   vertical-align: middle;
-  margin-right: 0.4rem;
+  margin-right: calc(0.4 * var(--sp));
 }
 .bi-bar i {
   position: absolute;
@@ -2401,13 +2415,13 @@ a.row-title:hover {
   font-size: 0.86rem;
 }
 .bi-details ul {
-  margin: 0.3rem 0 0 1.1rem;
+  margin: calc(0.3 * var(--sp)) 0 0 calc(1.1 * var(--sp));
   padding: 0;
   font-size: 0.86rem;
 }
 .bi-details pre {
-  margin: 0.3rem 0 0;
-  padding: 0.4rem 0.55rem;
+  margin: calc(0.3 * var(--sp)) 0 0;
+  padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
   background: var(--head);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -2423,7 +2437,7 @@ a.row-title:hover {
 }
 .bi-pager {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 .bi-pager a.button {
@@ -2441,34 +2455,34 @@ a.row-title:hover {
   background: var(--panel);
 }
 .bi-cell {
-  padding: 0.15rem 0.6rem;
+  padding: calc(0.15 * var(--sp)) calc(0.6 * var(--sp));
 }
 
 /* ---------- Step 2, Model groups (SPEC §3.5) ---------- */
 .mg-pad {
-  padding: 0.8rem;
+  padding: calc(0.8 * var(--sp));
 }
 .mg-start {
   display: grid;
-  gap: 0.7rem;
-  padding: 0.6rem 0.6rem 1rem;
+  gap: max(calc(0.7 * var(--sp)), min(0.7rem, var(--gap-min)));
+  padding: calc(0.6 * var(--sp)) calc(0.6 * var(--sp)) calc(1 * var(--sp));
   max-width: 56rem;
 }
 .mg-start-q {
-  margin: 0.4rem 0 0;
+  margin: calc(0.4 * var(--sp)) 0 0;
   font-size: 1rem;
 }
 .mg-start-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.8rem;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
 .mg-start-card {
   display: grid;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   align-content: start;
   text-align: left;
-  padding: 0.8rem 0.9rem;
+  padding: calc(0.8 * var(--sp)) calc(0.9 * var(--sp));
   font: inherit;
   color: var(--text);
   background: var(--panel);
@@ -2503,13 +2517,13 @@ a.row-title:hover {
 .mg-list {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.7rem 0.5rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  padding: calc(0.7 * var(--sp)) calc(0.5 * var(--sp));
   border-right: 1px solid var(--rule);
   overflow-y: auto;
 }
 .mg-h {
-  margin: 0 0.3rem 0.3rem;
+  margin: 0 calc(0.3 * var(--sp)) calc(0.3 * var(--sp));
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
@@ -2518,7 +2532,7 @@ a.row-title:hover {
 }
 .mg-items {
   display: grid;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2538,8 +2552,9 @@ a.row-title:hover {
   flex: 1;
   display: grid;
   grid-template-columns: 0.9rem 1fr;
-  gap: 0.05rem 0.45rem;
-  padding: 0.35rem 0.4rem;
+  gap: max(calc(0.05 * var(--sp)), min(0.05rem, var(--gap-min)))
+    max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
+  padding: calc(0.35 * var(--sp)) calc(0.4 * var(--sp));
   font: inherit;
   text-align: left;
   color: var(--text);
@@ -2550,7 +2565,7 @@ a.row-title:hover {
 .mg-sw {
   width: 0.8rem;
   height: 0.8rem;
-  margin-top: 0.2rem;
+  margin-top: calc(0.2 * var(--sp));
   border-radius: 2px;
 }
 .mg-sw.big {
@@ -2580,8 +2595,8 @@ a.row-title:hover {
   color: var(--bad);
 }
 .mg-delta {
-  margin-left: 0.35rem;
-  padding: 0 0.3rem;
+  margin-left: calc(0.35 * var(--sp));
+  padding: 0 calc(0.3 * var(--sp));
   font-size: 0.75rem;
   border-radius: 3px;
 }
@@ -2595,11 +2610,11 @@ a.row-title:hover {
 }
 .mg-order {
   display: grid;
-  padding: 0.25rem 0.2rem 0 0;
+  padding: calc(0.25 * var(--sp)) calc(0.2 * var(--sp)) 0 0;
 }
 .mg-arrow {
   display: inline-flex;
-  padding: 0.1rem;
+  padding: calc(0.1 * var(--sp));
   color: var(--muted);
   background: none;
   border: 0;
@@ -2610,20 +2625,20 @@ a.row-title:hover {
   cursor: default;
 }
 .mg-sep {
-  margin: 0.2rem 0;
+  margin: calc(0.2 * var(--sp)) 0;
   border-top: 1px solid var(--rule);
 }
 .mg-adds,
 .mg-save {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: center;
-  margin-top: 0.4rem;
+  margin-top: calc(0.4 * var(--sp));
 }
 .mg-save {
   margin-top: auto;
-  padding-top: 0.6rem;
+  padding-top: calc(0.6 * var(--sp));
   border-top: 1px solid var(--rule);
 }
 .mg-saved {
@@ -2632,22 +2647,22 @@ a.row-title:hover {
 }
 .mg-help {
   margin: 0;
-  padding: 0 0.3rem;
+  padding: 0 calc(0.3 * var(--sp));
   color: var(--muted);
   font-size: 0.78rem;
 }
 .mg-ed {
   min-width: 0;
-  padding: 0.7rem 0.9rem;
+  padding: calc(0.7 * var(--sp)) calc(0.9 * var(--sp));
   overflow-y: auto;
 }
 .mg-editor {
   display: grid;
-  gap: 0.7rem;
+  gap: max(calc(0.7 * var(--sp)), min(0.7rem, var(--gap-min)));
 }
 .mg-ed-head {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 .mg-name-input {
@@ -2661,7 +2676,7 @@ a.row-title:hover {
 }
 .mg-colours {
   display: flex;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
 }
 .mg-colour {
   width: 1.1rem;
@@ -2677,10 +2692,10 @@ a.row-title:hover {
 .mg-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .mg-stats > div {
-  padding: 0.35rem 0.55rem;
+  padding: calc(0.35 * var(--sp)) calc(0.55 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -2695,8 +2710,8 @@ a.row-title:hover {
 }
 .mg-card {
   display: grid;
-  gap: 0.45rem;
-  padding: 0.55rem 0.7rem;
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
+  padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -2706,21 +2721,21 @@ a.row-title:hover {
 }
 .mg-join {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   font-weight: 600;
 }
 .mg-conds {
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .mg-cond {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.3rem 0.45rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
+  padding: calc(0.3 * var(--sp)) calc(0.45 * var(--sp));
   background: var(--head);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -2743,13 +2758,13 @@ a.row-title:hover {
 }
 .mg-card-foot {
   display: flex;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
 }
 .mg-live {
   display: grid;
-  gap: 0.25rem;
-  padding: 0.45rem 0.65rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
+  padding: calc(0.45 * var(--sp)) calc(0.65 * var(--sp));
   font-size: 0.88rem;
   background: var(--info-tint);
   border: 1px solid var(--info-edge);
@@ -2763,17 +2778,17 @@ a.row-title:hover {
 }
 ul.mg-checks {
   display: grid;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   font-size: 0.88rem;
   list-style: none;
 }
 .mg-ed-foot {
-  padding-top: 0.4rem;
+  padding-top: calc(0.4 * var(--sp));
 }
 .mg-showmap {
-  margin-top: 0.8rem;
+  margin-top: calc(0.8 * var(--sp));
 }
 .mg-map {
   position: relative;
@@ -2785,9 +2800,9 @@ ul.mg-checks {
 .mg-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: center;
-  padding: 0.3rem 0.5rem;
+  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
   font-size: 0.85rem;
   background: var(--head);
   border-bottom: 1px solid var(--rule);
@@ -2806,7 +2821,7 @@ ul.mg-checks {
   border-radius: var(--radius);
 }
 .seg-b {
-  padding: 0.05rem 0.5rem;
+  padding: calc(0.05 * var(--sp)) calc(0.5 * var(--sp));
   font: inherit;
   color: var(--text);
   background: var(--panel);
@@ -2828,7 +2843,7 @@ ul.mg-checks {
 }
 .mg-x {
   display: inline-flex;
-  padding: 0.2rem;
+  padding: calc(0.2 * var(--sp));
   color: var(--muted);
   background: none;
   border: 0;
@@ -2854,8 +2869,9 @@ ul.mg-checks {
 .mg-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0.8rem;
-  padding: 0.35rem 0.6rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  padding: calc(0.35 * var(--sp)) calc(0.6 * var(--sp));
   font-size: 0.8rem;
   border-top: 1px solid var(--rule);
 }
@@ -2864,7 +2880,7 @@ ul.mg-checks {
   box-sizing: border-box;
   width: 0.8rem;
   height: 0.8rem;
-  margin-right: 0.3rem;
+  margin-right: calc(0.3 * var(--sp));
   vertical-align: -1px;
   background: var(--panel);
   border: 2px solid;
@@ -2892,10 +2908,10 @@ ul.mg-checks {
   right: 0.6rem;
   z-index: 1000;
   display: grid;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   width: 23rem;
   max-height: calc(100% - 5.5rem);
-  padding: 0.55rem 0.7rem;
+  padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
   overflow-y: auto;
   font-size: 0.85rem;
   background: var(--panel);
@@ -2905,7 +2921,7 @@ ul.mg-checks {
 }
 .mg-pop-head {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 .mg-pop-title {
@@ -2913,7 +2929,7 @@ ul.mg-checks {
   font-size: 0.95rem;
 }
 .mg-tag {
-  padding: 0 0.35rem;
+  padding: 0 calc(0.35 * var(--sp));
   color: var(--text);
   font-size: 0.75rem;
   border-radius: 3px;
@@ -2923,7 +2939,7 @@ ul.mg-checks {
 }
 .mg-pop-k,
 .mg-pop-v {
-  padding: 0.08rem 0.25rem;
+  padding: calc(0.08 * var(--sp)) calc(0.25 * var(--sp));
   vertical-align: top;
   border-bottom: 1px solid var(--cell-line);
 }
@@ -2937,7 +2953,7 @@ ul.mg-checks {
 .mg-why,
 .mg-pop-sales {
   display: grid;
-  gap: 0.12rem;
+  gap: max(calc(0.12 * var(--sp)), min(0.12rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2971,7 +2987,7 @@ ul.mg-checks {
 }
 .mg-ff-pick {
   display: inline-flex;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   align-items: center;
 }
 .mg-ff-pick i {
@@ -2985,7 +3001,7 @@ ul.mg-checks {
 /* A field as its own name: the way into its details, on every row the same. */
 .fd-name {
   display: inline-flex;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
   padding: 0;
   font: inherit;
@@ -3005,10 +3021,10 @@ ul.mg-checks {
 }
 .vals-button {
   display: inline-flex;
-  margin-left: 0.4rem;
-  gap: 0.2rem;
+  margin-left: calc(0.4 * var(--sp));
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
   align-items: center;
-  padding: 0 0.45rem;
+  padding: 0 calc(0.45 * var(--sp));
   font: inherit;
   font-size: 0.82rem;
   color: var(--link);
@@ -3032,9 +3048,9 @@ ul.mg-checks {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   min-height: 0;
-  padding: 0.6rem 0.7rem;
+  padding: calc(0.6 * var(--sp)) calc(0.7 * var(--sp));
   overflow: hidden;
   outline: none;
 }
@@ -3067,7 +3083,7 @@ ul.mg-checks {
 }
 .vals-sort {
   display: inline-flex;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
   align-items: center;
   padding: 0;
   font: inherit;
@@ -3091,7 +3107,7 @@ ul.mg-checks {
 .vals-th {
   position: sticky;
   top: 0;
-  padding: 0.15rem 0.3rem;
+  padding: calc(0.15 * var(--sp)) calc(0.3 * var(--sp));
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
@@ -3099,7 +3115,7 @@ ul.mg-checks {
   background: var(--panel);
 }
 .vals-td {
-  padding: 0.1rem 0.3rem;
+  padding: calc(0.1 * var(--sp)) calc(0.3 * var(--sp));
   border-bottom: 1px solid var(--cell-line);
 }
 .vals-v {
@@ -3127,7 +3143,7 @@ ul.mg-checks {
   font-size: 0.9rem;
 }
 .cf-th {
-  padding: 0.15rem 0.5rem 0.25rem 0;
+  padding: calc(0.15 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp)) 0;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -3135,12 +3151,12 @@ ul.mg-checks {
   border-bottom: 1px solid var(--rule);
 }
 .cf-td {
-  padding: 0.25rem 0.5rem 0.25rem 0;
+  padding: calc(0.25 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp)) 0;
   vertical-align: middle;
   border-bottom: 1px solid var(--cell-line);
 }
 .cf-add-td {
-  padding-top: 0.5rem;
+  padding-top: calc(0.5 * var(--sp));
   border-bottom: 0;
 }
 .cf-td .choice {
@@ -3148,7 +3164,7 @@ ul.mg-checks {
 }
 .cf-vals {
   display: inline-flex;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: center;
 }
 .cf-name-input {
@@ -3158,9 +3174,9 @@ ul.mg-checks {
 /* ---------- Shapefiles: one compact card per map layer ---------- */
 .ly {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.45rem 0.6rem;
-  margin-bottom: 0.5rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
+  padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
+  margin-bottom: calc(0.5 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -3169,7 +3185,8 @@ ul.mg-checks {
 .ly-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   font-size: 0.9rem;
 }
@@ -3181,7 +3198,7 @@ ul.mg-checks {
 }
 .ly-icon {
   display: inline-flex;
-  padding: 0.2rem;
+  padding: calc(0.2 * var(--sp));
   color: var(--muted);
   background: none;
   border: 1px solid transparent;
@@ -3196,7 +3213,7 @@ ul.mg-checks {
 }
 .ly-left {
   display: grid;
-  gap: 0.1rem;
+  gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   font-size: 0.86rem;
@@ -3207,18 +3224,18 @@ ul.mg-checks {
 }
 .ly-chip {
   display: inline-flex;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
-  padding: 0.05rem 0.2rem 0.05rem 0.5rem;
+  padding: calc(0.05 * var(--sp)) calc(0.2 * var(--sp)) calc(0.05 * var(--sp)) calc(0.5 * var(--sp));
   background: var(--head);
   border: 1px solid var(--rule);
   border-radius: 999px;
 }
 .ly-kind {
   display: inline-flex;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
   align-items: center;
-  padding: 0 0.3rem;
+  padding: 0 calc(0.3 * var(--sp));
   font: inherit;
   color: var(--link);
   background: none;
@@ -3231,14 +3248,14 @@ ul.mg-checks {
 }
 .ly-x {
   display: inline-flex;
-  padding: 0.1rem;
+  padding: calc(0.1 * var(--sp));
   color: var(--muted);
   background: none;
   border: 0;
   cursor: pointer;
 }
 .ly-prefix {
-  margin-right: -0.4rem;
+  margin-right: calc(-0.4 * var(--sp));
 }
 .ly-feature .ly-input {
   width: 9rem;
@@ -3254,7 +3271,7 @@ ul.mg-checks {
 }
 .ly-form {
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .ly-help {
   margin: 0;
@@ -3267,19 +3284,19 @@ ul.mg-checks {
 }
 .ab-sw {
   display: inline-block;
-  margin: 0 0.4rem 0 0;
+  margin: 0 calc(0.4 * var(--sp)) 0 0;
   vertical-align: -1px;
 }
 .ab-unknown {
   color: var(--muted);
 }
 .ab-h {
-  margin: 0.4rem 0 0;
+  margin: calc(0.4 * var(--sp)) 0 0;
   font-size: 0.92rem;
 }
 .ab-files {
   display: grid;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
   margin: 0;
   padding: 0;
   font-size: 0.86rem;
@@ -3290,11 +3307,11 @@ ul.mg-checks {
 .fd-stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   margin: 0;
 }
 .fd-stat {
-  padding: 0.15rem 0.3rem;
+  padding: calc(0.15 * var(--sp)) calc(0.3 * var(--sp));
   background: var(--head);
   border-radius: var(--radius);
 }
@@ -3312,11 +3329,11 @@ ul.mg-checks {
 .mp-button {
   display: inline-flex;
   flex: 1 1 14rem;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   align-items: center;
   min-width: 10rem;
   min-height: var(--ctl-h);
-  padding: 0 0.4rem;
+  padding: 0 calc(0.4 * var(--sp));
   font: inherit;
   color: var(--text);
   text-align: left;
@@ -3342,13 +3359,13 @@ ul.mg-checks {
 }
 .mp-body {
   display: grid;
-  gap: 0.4rem;
-  padding: 0.55rem 0.65rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  padding: calc(0.55 * var(--sp)) calc(0.65 * var(--sp));
   outline: none;
 }
 .mp-head {
   display: flex;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
   font-size: 0.82rem;
   color: var(--muted);
@@ -3358,7 +3375,7 @@ ul.mg-checks {
 }
 .mp-list {
   display: grid;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
   max-height: 18rem;
   overflow-y: auto;
 }
@@ -3366,7 +3383,7 @@ ul.mg-checks {
   font-size: 0.85rem;
 }
 .mp-n {
-  margin-left: 0.4rem;
+  margin-left: calc(0.4 * var(--sp));
   color: var(--muted);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
@@ -3379,9 +3396,10 @@ ul.mg-checks {
 .un-offer {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.8rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
-  padding: 0.45rem 0.6rem;
+  padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
   font-size: 0.9rem;
   background: var(--warn-tint);
   border: 1px solid var(--warn-edge);
@@ -3390,28 +3408,28 @@ ul.mg-checks {
 /* ---------- Condo units: one decision per part, each choice a card (F3d condos) ---------- */
 .cu {
   display: grid;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   max-width: 46rem;
   font-size: 0.92rem;
 }
 .cu-kinds ul,
 .cu-ev ul {
-  margin: 0.2rem 0 0.3rem;
-  padding-left: 1.1rem;
+  margin: calc(0.2 * var(--sp)) 0 calc(0.3 * var(--sp));
+  padding-left: max(calc(1.1 * var(--sp)), min(1.1rem, var(--indent-min)));
 }
 .cu-ev {
-  padding: 0.5rem 0.7rem;
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   font-size: 0.88rem;
   background: var(--info-tint);
   border: 1px solid var(--info-edge);
   border-radius: var(--radius);
 }
 .cu-ev p {
-  margin: 0.2rem 0 0;
+  margin: calc(0.2 * var(--sp)) 0 0;
 }
 .cu-choices {
   display: grid;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
 }
 .cu-big {
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
@@ -3419,14 +3437,14 @@ ul.mg-checks {
 .radio.cu-choice {
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
-  padding: 0.5rem 0.7rem;
+  gap: max(calc(0.55 * var(--sp)), min(0.55rem, var(--gap-min)));
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
 .radio.cu-choice .radio-dot {
-  margin-top: 0.2rem;
+  margin-top: calc(0.2 * var(--sp));
 }
 .radio.cu-choice[data-selected] {
   background: var(--info-tint);
@@ -3434,7 +3452,7 @@ ul.mg-checks {
 }
 .cu-text {
   display: grid;
-  gap: 0.1rem;
+  gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
 }
 .cu-sub {
   font-size: 0.86rem;
@@ -3443,13 +3461,14 @@ ul.mg-checks {
 .cu-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.55rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(0.55 * var(--sp)), min(0.55rem, var(--gap-min)));
   align-items: center;
   margin: 0;
 }
 .cu-guess {
   margin: 0;
-  padding: 0.45rem 0.7rem;
+  padding: calc(0.45 * var(--sp)) calc(0.7 * var(--sp));
   font-size: 0.88rem;
   background: var(--warn-tint);
   border: 1px solid var(--warn-edge);
@@ -3463,40 +3482,41 @@ ul.mg-checks {
   list-style: none;
 }
 .cu-ex li {
-  padding: 0.12rem 0;
+  padding: calc(0.12 * var(--sp)) 0;
   border-bottom: 1px solid var(--rule);
 }
 .cu-sum li {
-  margin: 0.2rem 0;
+  margin: calc(0.2 * var(--sp)) 0;
 }
 
 .un-rule {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 
 .un-rules {
-  margin-left: 11.5rem;
+  margin-left: calc(11.5 * var(--sp));
 }
 .un-rules {
   display: grid;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   justify-items: start;
 }
 
 /* F3e Enrichments: one compact card per kind of public data. */
 .en {
   display: grid;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .en-note {
   display: flex;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: flex-start;
   margin: 0;
-  padding: 0.5rem 0.7rem;
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   font-size: 0.88rem;
   background: var(--info-tint);
   border: 1px solid var(--info-edge);
@@ -3504,8 +3524,8 @@ ul.mg-checks {
 }
 .en-card {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.45rem 0.6rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
+  padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
@@ -3515,7 +3535,8 @@ ul.mg-checks {
 .en-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.55rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(0.55 * var(--sp)), min(0.55rem, var(--gap-min)));
   align-items: center;
 }
 .en-sub {
@@ -3527,13 +3548,14 @@ ul.mg-checks {
 }
 .en-body {
   display: grid;
-  gap: 0.3rem;
-  padding-left: 1.4rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  padding-left: calc(1.4 * var(--sp));
 }
 .en-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem 0.5rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
 .en-lab {
@@ -3542,7 +3564,7 @@ ul.mg-checks {
 }
 .en-chip {
   display: inline-block;
-  padding: 0 0.4rem;
+  padding: 0 calc(0.4 * var(--sp));
   font-family: var(--mono);
   font-size: 0.78rem;
   background: var(--head);
@@ -3551,7 +3573,7 @@ ul.mg-checks {
 }
 .en-fields {
   display: grid;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   max-width: 26rem;
 }
 .en-fields .tick {
@@ -3562,18 +3584,19 @@ ul.mg-checks {
 }
 .en-feats {
   display: grid;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
 }
 .en-feat {
   display: grid;
   grid-template-columns: 13rem 11rem 8rem 1fr;
-  gap: 0.2rem 0.5rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   font-size: 0.9rem;
 }
 .en-dist {
   display: inline-flex;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
 }
 .en-key-input {
@@ -3583,19 +3606,19 @@ ul.mg-checks {
   color: var(--link);
 }
 .bi-feats {
-  margin: 0.1rem 0 0;
-  padding-left: 1.1rem;
+  margin: calc(0.1 * var(--sp)) 0 0;
+  padding-left: calc(1.1 * var(--sp));
   color: var(--muted);
   font-size: 0.85rem;
 }
 
 /* F3g Permits: what each kind of permit means. */
 .pm-tbl {
-  margin: 0.4rem 0 0.6rem;
+  margin: calc(0.4 * var(--sp)) 0 calc(0.6 * var(--sp));
   font-size: 0.9rem;
 }
 .pm-head {
-  padding: 0.15rem 0.8rem 0.15rem 0;
+  padding: calc(0.15 * var(--sp)) calc(0.8 * var(--sp)) calc(0.15 * var(--sp)) 0;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--muted);
@@ -3603,7 +3626,7 @@ ul.mg-checks {
   border-bottom: 1px solid var(--rule);
 }
 .pm-cell {
-  padding: 0.15rem 0.8rem 0.15rem 0;
+  padding: calc(0.15 * var(--sp)) calc(0.8 * var(--sp)) calc(0.15 * var(--sp)) 0;
   border-bottom: 1px solid var(--cell-line);
 }
 .pm-n {
@@ -3613,16 +3636,16 @@ ul.mg-checks {
 .pm-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: center;
-  margin: 0.35rem 0;
+  margin: calc(0.35 * var(--sp)) 0;
 }
 
 /* Rows for parcels missing from the parcel universe: a note, not a to-do (F3d). */
 .wiz-missing {
   max-width: 34rem;
-  margin-top: 0.2rem;
-  padding: 0.3rem 0.5rem;
+  margin-top: calc(0.2 * var(--sp));
+  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
   font-size: 0.85rem;
   color: var(--text);
   background: var(--warn-tint);
@@ -3630,18 +3653,18 @@ ul.mg-checks {
   border-radius: var(--radius);
 }
 .wiz-missing p {
-  margin: 0 0 0.25rem;
+  margin: 0 0 calc(0.25 * var(--sp));
 }
 .wiz-missing p:last-child {
   margin-bottom: 0;
 }
 
 .cu-h {
-  margin: 0.9rem 0 0.35rem;
+  margin: calc(0.9 * var(--sp)) 0 calc(0.35 * var(--sp));
   font-size: 0.95rem;
 }
 .cu-h:first-child {
-  margin-top: 0.2rem;
+  margin-top: calc(0.2 * var(--sp));
 }
 .cu > .mp-button {
   max-width: 28.8rem;
@@ -3649,14 +3672,14 @@ ul.mg-checks {
 .cu-fields {
   grid-template-columns: 12rem 16rem auto;
   justify-content: start;
-  margin-top: 0.5rem;
+  margin-top: calc(0.5 * var(--sp));
 }
 .cu-sub-h {
-  margin: 0.6rem 0 0.15rem;
+  margin: calc(0.6 * var(--sp)) 0 calc(0.15 * var(--sp));
 }
 .cu-shape {
   margin: 0;
-  padding-left: 1.2rem;
+  padding-left: calc(1.2 * var(--sp));
 }
 
 /* Repeated IDs: the rows of one ID share a background, and IDs alternate (sorted by the ID). */
@@ -3674,9 +3697,10 @@ tr.bi-kept > td {
 .bi-busy {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.7rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
+    max(calc(0.7 * var(--sp)), min(0.7rem, var(--gap-min)));
   align-items: center;
-  margin: 0.25rem 0 0.15rem 1.2rem;
+  margin: calc(0.25 * var(--sp)) 0 calc(0.15 * var(--sp)) calc(1.2 * var(--sp));
   font-weight: 400;
   font-size: 0.88rem;
 }
@@ -3700,7 +3724,7 @@ tr.bi-kept > td {
   display: inline-block;
   width: 0.55rem;
   height: 0.55rem;
-  margin: 0 0.45rem 0.08rem 0.1rem;
+  margin: 0 calc(0.45 * var(--sp)) calc(0.08 * var(--sp)) calc(0.1 * var(--sp));
   background: var(--link);
   border-radius: 50%;
   animation: bi-pulse 1.2s ease-in-out infinite;
@@ -3744,7 +3768,7 @@ tr.bi-kept > td {
 .cs-head {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .cs-head h3 {
   margin: 0;
@@ -3756,7 +3780,8 @@ tr.bi-kept > td {
 .cs-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.8rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: end;
 }
 .cs-row.bi-warn {
@@ -3768,7 +3793,7 @@ tr.bi-kept > td {
 }
 
 .cs-notices {
-  margin: 0.3rem 0 0 1.1rem;
+  margin: calc(0.3 * var(--sp)) 0 0 calc(1.1 * var(--sp));
   padding: 0;
 }
 /* The sales per year: as wide as the text above it, not the whole panel. */
@@ -3809,28 +3834,30 @@ tr.bi-kept > td {
 }
 .cs-checks {
   display: grid;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
 }
 .cs-check {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0.6rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)))
+    max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: baseline;
 }
 .cs-receipt {
   display: grid;
-  gap: 0.85rem;
+  gap: max(calc(0.85 * var(--sp)), min(0.85rem, var(--gap-min)));
 }
 
 .cs-meter {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem 0.8rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: baseline;
   border: 1px solid var(--rule);
   background: var(--ok-tint);
   border-radius: var(--radius);
-  padding: 0.5rem 0.7rem;
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   box-sizing: border-box;
 }
 .cs-meter .wiz-ok {
@@ -3841,15 +3868,15 @@ tr.bi-kept > td {
   display: grid;
   grid-template-columns: 1.2rem auto auto auto;
   justify-content: start;
-  column-gap: 0.5rem;
-  row-gap: 0.1rem;
+  column-gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  row-gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
   font-size: 0.9rem;
 }
 .cs-fl {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: 1.2rem 5rem 1fr auto;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: baseline;
 }
 .cs-fl .cs-op {
@@ -3863,21 +3890,21 @@ tr.bi-kept > td {
 .cs-fl.tot {
   font-weight: 700;
   border-top: 1px solid var(--rule);
-  padding-top: 0.15rem;
+  padding-top: calc(0.15 * var(--sp));
 }
 .cs-charts {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .cs-chart {
   margin: 0;
   border: 1px solid var(--cell-line);
   border-radius: var(--radius);
-  padding: 0.35rem 0.5rem;
+  padding: calc(0.35 * var(--sp)) calc(0.5 * var(--sp));
   font-size: 0.8rem;
   display: grid;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
 }
 .cs-curve {
   width: 100%;
@@ -3913,7 +3940,7 @@ tr.bi-kept > td {
 .cs-tchart {
   position: relative;
   display: grid;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
 }
 .cs-tsvg {
   display: block;
@@ -3929,7 +3956,7 @@ tr.bi-kept > td {
   position: absolute;
   top: 2.2rem;
   right: 0.6rem;
-  padding: 0.3rem 0.5rem;
+  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
   font-size: 0.8rem;
   background: var(--panel);
   border: 1px solid var(--rule);
@@ -3937,26 +3964,27 @@ tr.bi-kept > td {
   pointer-events: none;
 }
 .cs-none {
-  margin-top: 0.6rem;
+  margin-top: calc(0.6 * var(--sp));
 }
 .cs-list-plain {
-  margin: 0 0 0 1.1rem;
+  margin: 0 0 0 calc(1.1 * var(--sp));
   padding: 0;
 }
 .cs-review {
   display: grid;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .cs-filters {
   display: flex;
-  gap: 0.4rem 0.6rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   flex-wrap: wrap;
   align-items: center;
 }
 .cs-split {
   display: grid;
   grid-template-columns: minmax(16rem, 22rem) 1fr;
-  gap: 0.8rem;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: start;
 }
 .cs-list {
@@ -3971,12 +3999,12 @@ tr.bi-kept > td {
 }
 .cs-item {
   display: grid;
-  gap: 0.1rem;
+  gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
   width: 100%;
   text-align: left;
   font: inherit;
   font-size: 0.85rem;
-  padding: 0.4rem 0.55rem;
+  padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
   border: 0;
   border-bottom: 1px solid var(--cell-line);
   background: transparent;
@@ -3994,7 +4022,7 @@ tr.bi-kept > td {
   background: var(--select);
 }
 .cs-more {
-  padding: 0.4rem 0.55rem;
+  padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
 }
 .cs-detail h3 {
   font-size: 1rem;
@@ -4017,7 +4045,7 @@ tr.bi-kept > td {
   min-height: 2.6rem;
   border: 1px solid var(--well-edge);
   border-radius: var(--radius);
-  padding: 0.3rem 0.45rem;
+  padding: calc(0.3 * var(--sp)) calc(0.45 * var(--sp));
   font: inherit;
   font-size: 0.86rem;
 }
@@ -4026,9 +4054,9 @@ tr.bi-kept > td {
   bottom: 0;
   z-index: 2;
   display: grid;
-  gap: 0.5rem;
-  margin: 0 -0.8rem -0.6rem;
-  padding: 0.5rem 0.8rem 0.6rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  margin: 0 calc(-0.8 * var(--sp)) calc(-0.6 * var(--sp));
+  padding: calc(0.5 * var(--sp)) calc(0.8 * var(--sp)) calc(0.6 * var(--sp));
   border-radius: 0 0 var(--radius) var(--radius);
   background: var(--panel);
   border-top: 1px solid var(--rule);
@@ -4036,7 +4064,7 @@ tr.bi-kept > td {
 }
 .cs-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   flex-wrap: wrap;
 }
@@ -4057,14 +4085,14 @@ tr.bi-kept > td {
 }
 .ab-formats-inline {
   border: 0;
-  margin: 0.6rem 0 0;
+  margin: calc(0.6 * var(--sp)) 0 0;
   padding: 0;
   display: grid;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
 }
 .ab-results {
   display: grid;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   justify-items: start;
 }
 .mg-checks .mg-check {
@@ -4077,11 +4105,11 @@ tr.bi-kept > td {
 .mg-checks {
   font-family: var(--font);
   font-size: 0.88rem;
-  margin: 0.4rem 0;
+  margin: calc(0.4 * var(--sp)) 0;
 }
 .mg-checks .rc-td,
 .mg-checks .rc-th {
-  padding: 0.25rem 0.6rem;
+  padding: calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
   white-space: normal;
   vertical-align: top;
 }
@@ -4092,12 +4120,12 @@ tr.bi-kept > td {
   font-family: var(--font);
 }
 .mg-replace {
-  margin-top: 0.6rem;
+  margin-top: calc(0.6 * var(--sp));
 }
 .cs-step {
   display: grid;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  margin: 0 0 calc(1 * var(--sp));
 }
 .cs-step .cs-head .tick {
   font-weight: 600;
@@ -4124,12 +4152,12 @@ tr.bi-kept > td {
   min-width: 0;
 }
 .cs-format {
-  margin: 0 0 0 1.1rem;
+  margin: 0 0 0 calc(1.1 * var(--sp));
   padding: 0;
 }
 .cs-example {
   margin: 0;
-  padding: 0.4rem 0.55rem;
+  padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
   background: var(--head);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -4138,17 +4166,17 @@ tr.bi-kept > td {
 }
 .dn {
   display: grid;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  margin-top: calc(1 * var(--sp));
 }
 .dn-formats {
   display: grid;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
 }
 .radio.dn-format {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .tbl.dn-tbl > tbody > tr > td {
   white-space: normal;
@@ -4158,13 +4186,13 @@ tr.bi-kept > td {
 }
 .cs-diag {
   display: grid;
-  gap: 0.25rem;
-  padding: 0.5rem 0.7rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
 }
 .cs-todo {
-  margin: 0 0 0 1.1rem;
+  margin: 0 0 0 calc(1.1 * var(--sp));
   padding: 0;
 }
 .cs-small {
@@ -4221,11 +4249,11 @@ tr.bi-kept > td {
 /* ---------- Step 4, Check my values (F8) ---------- */
 .rv-cards {
   display: grid;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .rv-choices {
   display: grid;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
 }
 
 .rv-head {
@@ -4239,25 +4267,25 @@ tr.bi-kept > td {
 /* A standard's two figures, side by side in their cell ("0.9 – 1.1", "± 0.05"). */
 .rv-pair {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   align-items: center;
   white-space: nowrap;
 }
 .rv-numcell .input {
   width: 4.2rem;
   min-height: 1.6rem;
-  padding: 0.1rem 0.3rem;
+  padding: calc(0.1 * var(--sp)) calc(0.3 * var(--sp));
 }
 .rv-namecell .input {
   width: 16rem;
   min-height: 1.6rem;
-  padding: 0.1rem 0.3rem;
+  padding: calc(0.1 * var(--sp)) calc(0.3 * var(--sp));
 }
 .rv-start {
   display: flex;
-  gap: 1rem;
+  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
   align-items: center;
-  margin-left: 1.6rem;
+  margin-left: calc(1.6 * var(--sp));
 }
 .rv-assign .mp-button {
   width: 100%;
@@ -4275,12 +4303,13 @@ table.tbl > * > tr.rv-total > td {
 .rv-figure {
   margin: 0;
   display: grid;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
 }
 .rv-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem 1rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)))
+    max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
   font-size: 0.82rem;
   color: var(--muted);
 }
@@ -4290,19 +4319,19 @@ table.tbl > * > tr.rv-total > td {
   height: 0.8rem;
   border-radius: 50%;
   border: 1px solid;
-  margin-right: 0.3rem;
+  margin-right: calc(0.3 * var(--sp));
   vertical-align: -1px;
 }
 /* A figure and its pill: the pill at the left edge, the figure at the right, whatever the pill says. */
 .rv-cell {
   display: flex;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: baseline;
   justify-content: space-between;
 }
 .rv-cell-pill {
   display: inline-flex;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
 }
 .rv-every {
   display: block;
@@ -4332,7 +4361,7 @@ table.tbl > * > tr.rv-total > td {
 .rv-score-cell {
   display: inline-grid;
   grid-template-columns: 1.8em 5.5em auto;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   align-items: baseline;
 }
 .rv-score-pill {
@@ -4348,7 +4377,8 @@ table.tbl > * > tr.rv-total > td {
 .md-engines {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.35rem 0.8rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: baseline;
 }
 @supports (grid-template-columns: subgrid) {
@@ -4389,18 +4419,18 @@ table.tbl > * > tr.rv-total > td {
 
 /* Step 5's variables: each kind a heading that stands out and folds its rows away. */
 .tbl.md-vars > tbody > tr.md-kind > td {
-  padding: 0.5rem 0.4rem 0.35rem;
+  padding: calc(0.5 * var(--sp)) calc(0.4 * var(--sp)) calc(0.35 * var(--sp));
   background: #e9edf3;
   border-top: 2px solid var(--rule);
 }
 .md-kind-row {
   display: flex;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: center;
 }
 .md-kind-name {
   display: inline-flex;
-  gap: 0.35rem;
+  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   align-items: center;
   padding: 0;
   font: inherit;
@@ -4418,59 +4448,60 @@ table.tbl > * > tr.rv-total > td {
 }
 .vt-name {
   display: flex;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: baseline;
   flex-wrap: wrap;
 }
 .vt-values {
   display: inline-flex;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
   align-items: center;
   font-size: 0.82rem;
 }
 tr.vt-level > td:first-child {
-  padding-left: 2.2rem;
+  padding-left: calc(2.2 * var(--sp));
 }
 .tbl.vt-tbl > tbody > tr.vt-how > td {
   background: var(--info-tint);
-  padding: 0.5rem 0.8rem 0.6rem 2.2rem;
+  padding: calc(0.5 * var(--sp)) calc(0.8 * var(--sp)) calc(0.6 * var(--sp)) calc(2.2 * var(--sp));
 }
 .vt-how-body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem 1.2rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(1.2 * var(--sp)), min(1.2rem, var(--gap-min)));
 }
 .vt-how-fig {
   display: grid;
-  gap: 0.15rem;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
 }
 .vt-how-line {
-  margin: 0.4rem 0 0;
+  margin: calc(0.4 * var(--sp)) 0 0;
 }
 
 /* ---------- How they did: OpenAVMKit's benchmark, a table per set ---------- */
 .md-how-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
   align-items: flex-end;
-  margin-bottom: 0.4rem;
+  margin-bottom: calc(0.4 * var(--sp));
 }
 .md-sec {
-  margin-top: 0.7rem;
+  margin-top: calc(0.7 * var(--sp));
 }
 .md-sec > summary {
   cursor: pointer;
-  padding: 0.15rem 0;
+  padding: calc(0.15 * var(--sp)) 0;
 }
 .md-sec-title {
   font-weight: 600;
 }
 .md-sec-note {
-  margin: 0.15rem 0 0.35rem;
+  margin: calc(0.15 * var(--sp)) 0 calc(0.35 * var(--sp));
 }
 .md-empty {
-  padding: 0.45rem 0.6rem;
+  padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
   background: var(--zebra);
   border: 1px dashed var(--rule);
   border-radius: var(--radius);
@@ -4524,11 +4555,11 @@ table.tbl.dt > * > tr > :is(th, td) {
 /* ---------- Existing values: a card per set (Data › Existing values) ---------- */
 .vs {
   display: grid;
-  gap: 0.8rem;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   max-width: 62rem;
 }
 .vs-set {
-  padding: 0.6rem 0.8rem;
+  padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -4536,9 +4567,10 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vs-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.8rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: calc(0.5 * var(--sp));
 }
 .vs-name .input {
   width: 14rem;
@@ -4549,11 +4581,11 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .vs-remove {
   display: inline-flex;
-  gap: 0.2rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
   align-items: center;
 }
 .rv-what {
-  margin-top: 0.4rem;
+  margin-top: calc(0.4 * var(--sp));
 }
 
 /* Read aloud, not shown: a control's name where its row already shows it. */
@@ -4580,7 +4612,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 /* Where the sale stands now, above what can be done with it (Sales set aside). */
 .cs-now {
-  margin: 0.3rem 0 0;
+  margin: calc(0.3 * var(--sp)) 0 0;
   font-weight: 600;
 }
 
@@ -4612,30 +4644,31 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .tbl.vl-lists > tbody > tr.vl-detail > td,
 .tbl.gm-models > tbody > tr.gm-detail > td {
-  padding: 0.4rem 0.6rem 0.8rem;
+  padding: calc(0.4 * var(--sp)) calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   background: var(--zebra);
 }
 .vl-chip {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   align-items: center;
-  margin-right: 0.6rem;
+  margin-right: calc(0.6 * var(--sp));
   white-space: nowrap;
 }
 .vl-edit {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .vl-editrow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)))
+    max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
   align-items: center;
 }
 .vl-label {
   display: inline-flex;
-  gap: 0.4rem;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
   align-items: center;
   font-weight: 600;
 }
@@ -4661,10 +4694,11 @@ table.tbl.dt > * > tr > :is(th, td) {
 .gm-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0.8rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: baseline;
-  margin: 0.2rem 0 0.7rem;
-  padding: 0.5rem 0.7rem;
+  margin: calc(0.2 * var(--sp)) 0 calc(0.7 * var(--sp));
+  padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--zebra);
   border: 1px solid var(--cell-line);
   border-radius: var(--radius);
@@ -4678,30 +4712,30 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .gm-title {
   display: inline-flex;
-  gap: 0.45rem;
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
   align-items: center;
   margin: 0;
   font-size: 1.35rem;
 }
 .gm-stackline {
-  margin-top: 0.2rem;
+  margin-top: calc(0.2 * var(--sp));
 }
 .gm-warn {
-  margin: 0.2rem 0 0;
+  margin: calc(0.2 * var(--sp)) 0 0;
 }
 .tbl.gm-models > tbody > tr.gm-adding > td {
   background: var(--select);
 }
 .gm-addtools {
   display: flex;
-  gap: 0.9rem;
+  gap: max(calc(0.9 * var(--sp)), min(0.9rem, var(--gap-min)));
   align-items: center;
   white-space: nowrap;
 }
 
 /* A location stack: broadest first, its levels moved up and down. */
 .ls-title {
-  margin: 0.2rem 0;
+  margin: calc(0.2 * var(--sp)) 0;
   font-weight: 600;
 }
 .ls-tools {
@@ -4710,8 +4744,8 @@ table.tbl.dt > * > tr > :is(th, td) {
 .ls-move {
   display: inline-flex;
   align-items: center;
-  margin-right: 0.15rem;
-  padding: 0.05rem 0.3rem;
+  margin-right: calc(0.15 * var(--sp));
+  padding: calc(0.05 * var(--sp)) calc(0.3 * var(--sp));
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--btn-edge);
@@ -4723,7 +4757,7 @@ table.tbl.dt > * > tr > :is(th, td) {
   cursor: default;
 }
 .vl-warns > .wiz-warn {
-  margin: 0.15rem 0;
+  margin: calc(0.15 * var(--sp)) 0;
 }
 
 /* Model values › Small groups. */
@@ -4732,7 +4766,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .sg-flags {
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
 }
 /* An open list's variables scroll in a box of their own: the other lists stay in sight. */
 .vl-scroll {
@@ -4751,18 +4785,19 @@ table.tbl.dt > * > tr > :is(th, td) {
 .mo-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.2rem 0.4rem;
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
+  padding: calc(0.2 * var(--sp)) calc(0.4 * var(--sp));
 }
 .mo-option {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem 0.7rem;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)))
+    max(calc(0.7 * var(--sp)), min(0.7rem, var(--gap-min)));
   align-items: center;
 }
 .mo-option > .wiz-from {
   flex-basis: 100%;
-  padding-left: 1.6rem;
+  padding-left: calc(1.6 * var(--sp));
   font-size: 0.88rem;
 }
 .mo-label {
@@ -4774,12 +4809,12 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 /* More files: how a file joins, under what it's about; a file appended as rows, against the file it adds to. */
 .wiz-how {
-  margin-left: 1.6rem;
-  padding-left: 0.8rem;
+  margin-left: calc(1.6 * var(--sp));
+  padding-left: calc(0.8 * var(--sp));
   border-left: 2px solid var(--info-edge);
 }
 .wiz-appended > p {
-  margin: 0.3rem 0;
+  margin: calc(0.3 * var(--sp)) 0;
   max-width: 60rem;
 }
 
@@ -4797,7 +4832,7 @@ table.tbl.dt > * > tr > :is(th, td) {
   display: grid;
   /* The step's width, never its content's: a long summary of what's chosen can't push it past the window. */
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .lag p {
   margin: 0;
@@ -4805,7 +4840,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 .lag-fields {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
 }
 /* The picker's summary of what's chosen is cut short rather than widening the step past the window; the note beside
@@ -4822,13 +4857,13 @@ table.tbl.dt > * > tr > :is(th, td) {
   align-items: end;
 }
 .lag-k > .wiz-from {
-  padding-bottom: 0.4rem;
+  padding-bottom: calc(0.4 * var(--sp));
 }
 /* Model values: the finalized values checked, the roll's beside them, and what every parcel got. */
 .fv {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
 .fv p {
   margin: 0;
@@ -4836,16 +4871,16 @@ table.tbl.dt > * > tr > :is(th, td) {
 .fv-on {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
 }
 .fv-h {
-  margin: 0.8rem 0 0;
+  margin: calc(0.8 * var(--sp)) 0 0;
   font-size: 1rem;
 }
 .fv-notes ul {
-  margin: 0.3rem 0 0;
-  padding-left: 1.2rem;
+  margin: calc(0.3 * var(--sp)) 0 0;
+  padding-left: max(calc(1.2 * var(--sp)), min(1.2rem, var(--indent-min)));
 }
 /* The model's scorecard and the roll's, one above the other: the same columns, the same widths. */
 .fv .rv-score {
@@ -4876,9 +4911,9 @@ table.tbl.dt > * > tr > :is(th, td) {
   top: 0.5rem;
   right: 0.5rem;
   display: flex;
-  gap: 0.3rem;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
-  padding: 0.15rem 0.45rem;
+  padding: calc(0.15 * var(--sp)) calc(0.45 * var(--sp));
   font-size: 0.8rem;
   background: rgba(255, 255, 255, 0.92);
   border-radius: var(--radius);
@@ -4896,19 +4931,19 @@ table.tbl.dt > * > tr > :is(th, td) {
 .rp-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
-  margin: 0.4rem 0;
+  margin: calc(0.4 * var(--sp)) 0;
 }
 .rp-opts {
   display: grid;
-  gap: 0.6rem;
-  margin-bottom: 0.4rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  margin-bottom: calc(0.4 * var(--sp));
 }
 .rp-preview {
   width: 100%;
   height: 70vh;
-  margin-top: 0.6rem;
+  margin-top: calc(0.6 * var(--sp));
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: #f3f3f0;
@@ -4917,7 +4952,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 /* On paper already (a step's sheet, a dialog's): a container with a heading is a titled section of the document, not
    another folder: no box, its heading over a hairline (D21). */
 :is(.wiz-main, .modal-body) :is(.bi-card, .rc-card, .mg-card):has(> :is(h3, h4, .bi-head):first-child) {
-  padding: 0.2rem 0 0.4rem;
+  padding: calc(0.2 * var(--sp)) 0 calc(0.4 * var(--sp));
   background: none;
   border: none;
   border-radius: 0;
@@ -4925,7 +4960,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 :is(.wiz-main, .modal-body) :is(.bi-card, .rc-card, .mg-card) > :is(h3, h4, .bi-head):first-child {
-  padding-bottom: 0.2rem;
+  padding-bottom: calc(0.2 * var(--sp));
   border-bottom: 1px solid var(--paper-rule);
 }
 
@@ -4935,14 +4970,14 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 .meta-sheet {
-  padding: 0.4rem 0 0;
+  padding: calc(0.4 * var(--sp)) 0 0;
 }
 
 /* ---------- D21: folders and sheets (after the rules they refine) ---------- */
 
 .panel:has(> .panel-head) {
   position: relative;
-  margin-top: calc(2.1rem + 2px);
+  margin-top: calc(var(--tab-h) + 2px);
   background: var(--manila);
   border-color: var(--manila-edge);
   border-radius: 0 5px 5px 5px;
@@ -4954,13 +4989,13 @@ table.tbl.dt > * > tr > :is(th, td) {
 .panel > .panel-head > :is(h1, h2):first-child {
   position: absolute;
   z-index: 1;
-  top: calc(-2.1rem - 1px);
+  top: calc(-1 * var(--tab-h) - 1px);
   left: -1px;
-  height: calc(2.1rem + 2px);
+  height: calc(var(--tab-h) + 2px);
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 0 1.1rem 1px;
+  padding: 0 calc(1.1 * var(--sp)) 1px;
   font-size: 1.2rem;
   font-weight: 650;
   color: var(--text);
@@ -4989,7 +5024,7 @@ table.tbl.dt > * > tr > :is(th, td) {
   display: flex;
   align-items: center;
   margin: 8px 0;
-  padding: 0.3rem 1.6rem;
+  padding: calc(0.3 * var(--sp)) calc(1.6 * var(--sp));
   font-size: 1.1rem;
   font-weight: 650;
   color: var(--plate-text);
@@ -5006,14 +5041,14 @@ table.tbl.dt > * > tr > :is(th, td) {
 /* The sheet: everything after the title, one continuous piece of paper set into the frame. */
 .modal-body > :not(.modal-title) {
   margin: 0;
-  padding: 0.3rem 0.9rem;
+  padding: calc(0.3 * var(--sp)) calc(0.9 * var(--sp));
   background: var(--paper);
 }
 
 .modal-body > :not(.modal-title):first-child,
 .modal-body > .modal-title + * {
   margin-top: 9px;
-  padding-top: 0.8rem;
+  padding-top: calc(0.8 * var(--sp));
   border-radius: 2px 2px 0 0;
 }
 
@@ -5022,7 +5057,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 .modal-body > :not(.modal-title):last-child {
-  padding-bottom: 0.9rem;
+  padding-bottom: calc(0.9 * var(--sp));
   border-radius: 0 0 2px 2px;
   box-shadow: 0 1px 0 rgba(40, 20, 5, 0.35);
 }
@@ -5056,11 +5091,11 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 .mp-popover .mp-list {
-  padding: 0.25rem 0.35rem;
+  padding: calc(0.25 * var(--sp)) calc(0.35 * var(--sp));
 }
 
 .mg-pop .mg-why {
-  padding: 0.35rem 0.5rem 0.35rem 1.6rem;
+  padding: calc(0.35 * var(--sp)) calc(0.5 * var(--sp)) calc(0.35 * var(--sp)) calc(1.6 * var(--sp));
 }
 
 .vals-title,
@@ -5088,16 +5123,16 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 .crumb-li + .crumb-li::before {
   content: "›";
-  padding: 0 0.2rem;
+  padding: 0 calc(0.2 * var(--sp));
   font-weight: 700;
   opacity: 0.5;
 }
 
 .crumb {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   align-items: center;
-  padding: 0.22rem 0.4rem;
+  padding: calc(0.22 * var(--sp)) calc(0.4 * var(--sp));
   font: inherit;
   color: var(--plate-text);
   white-space: nowrap;
@@ -5139,7 +5174,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 .crumb-pop {
   min-width: 20rem;
   max-width: 28rem;
-  padding: 0.35rem;
+  padding: calc(0.35 * var(--sp));
   background: var(--manila);
   border: 1px solid var(--manila-edge);
   border-radius: 6px;
@@ -5149,7 +5184,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 .crumb-list {
   max-height: 70vh;
   overflow-y: auto;
-  padding: 0.25rem 0;
+  padding: calc(0.25 * var(--sp)) 0;
   background: var(--paper);
   border: 1px solid var(--paper-edge);
   border-radius: 2px;
@@ -5158,15 +5193,15 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 .crumb-item {
   display: flex;
-  gap: 0.6rem;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: baseline;
-  padding: 0.28rem 0.7rem;
+  padding: calc(0.28 * var(--sp)) calc(0.7 * var(--sp));
   cursor: pointer;
   outline: none;
 }
 
 .crumb-item.sub {
-  padding-left: 1.6rem;
+  padding-left: calc(1.6 * var(--sp));
 }
 
 .crumb-item[data-focused],
@@ -5187,7 +5222,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 .crumb-item-t {
   display: grid;
-  gap: 0.05rem;
+  gap: max(calc(0.05 * var(--sp)), min(0.05rem, var(--gap-min)));
 }
 
 .crumb-item-t small {
@@ -5209,13 +5244,13 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 .crumb-sep {
   height: 1px;
-  margin: 0.25rem 0;
+  margin: calc(0.25 * var(--sp)) 0;
   background: var(--paper-rule);
 }
 
 .crumb-foot {
   margin: 0;
-  padding: 0.35rem 0.4rem 0.1rem;
+  padding: calc(0.35 * var(--sp)) calc(0.4 * var(--sp)) calc(0.1 * var(--sp));
   font-size: 0.78rem;
   color: var(--manila-ink);
 }
@@ -5228,7 +5263,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 
 .land .wiz-q {
   font-size: 1.6rem;
-  margin: 0.1rem 0 0.5rem;
+  margin: calc(0.1 * var(--sp)) 0 calc(0.5 * var(--sp));
 }
 
 .land .wiz-lede {
@@ -5240,30 +5275,30 @@ table.tbl.dt > * > tr > :is(th, td) {
 .land-cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.6rem;
-  margin: 1.4rem 0 1rem;
+  gap: max(calc(1.6 * var(--sp)), min(1.6rem, var(--gap-min)));
+  margin: calc(1.4 * var(--sp)) 0 calc(1 * var(--sp));
 }
 
 .land-sec h3 {
   font-size: 0.95rem;
-  margin: 0 0 0.45rem;
-  padding-bottom: 0.3rem;
+  margin: 0 0 calc(0.45 * var(--sp));
+  padding-bottom: calc(0.3 * var(--sp));
   border-bottom: 1px solid var(--paper-rule);
 }
 
 .land-sec ul {
   margin: 0;
-  padding-left: 1.1rem;
+  padding-left: max(calc(1.1 * var(--sp)), min(1.1rem, var(--indent-min)));
   font-size: 0.92rem;
   line-height: 1.45;
 }
 
 .land-sec li {
-  margin: 0.3rem 0;
+  margin: calc(0.3 * var(--sp)) 0;
 }
 
 .land-needs {
-  margin: 0.6rem 0 0;
+  margin: calc(0.6 * var(--sp)) 0 0;
   font-size: 0.88rem;
 }
 
@@ -5324,7 +5359,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 .combo-count,
 .combo-none {
   margin: 0;
-  padding: 0.3rem 0.6rem;
+  padding: calc(0.3 * var(--sp)) calc(0.6 * var(--sp));
   font-size: 0.8rem;
   color: var(--muted);
 }
@@ -5351,7 +5386,7 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 
 /* The first folder under the lid: its tab, not the folder's edge, at the gap the sides have (the tab is placed from
-   inside the folder's 1px border, and stands 2.1rem + 1px above it). */
+   inside the folder's 1px border, and stands its height + 1px above it). */
 .home-main > .panel:first-child:has(> .panel-head) {
-  margin-top: 2.1rem;
+  margin-top: var(--tab-h);
 }
