@@ -4,7 +4,7 @@ import { type ReactNode, useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } from "react-aria-components";
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
 import { Choice, Tick } from "../components/Form";
-import { say, t } from "../copy";
+import { say, t } from "../wording";
 
 const e = t.wizard.enrich;
 const KEY_URL = "https://api.census.gov/data/key_signup.html";

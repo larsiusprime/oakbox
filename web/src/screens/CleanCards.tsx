@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Input, TextField } from "react-aria-components";
 import type { CleanPatch, CleanSetup, FillRow } from "../api/client";
 import { Choice, Tick } from "../components/Form";
-import { say, t } from "../copy";
 import { num, short } from "../lib/format";
+import { say, t } from "../wording";
 
 const s = t.sales;
 type Patch = CleanPatch;

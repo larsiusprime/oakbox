@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { t } from "../copy";
+import { t } from "../wording";
 import { Val } from "./Val";
 
 const v = t.wizard.values;

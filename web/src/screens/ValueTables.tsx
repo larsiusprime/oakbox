@@ -2,8 +2,8 @@
 import type { FieldResult, RatioStudy } from "../api/client";
 import { Pill, type Verdict, verdictOf } from "../components/Pill";
 import { InfoTip } from "../components/Tip";
-import { t } from "../copy";
 import { num, ratioText, signed } from "../lib/format";
+import { t } from "../wording";
 
 const r = t.ratio;
 

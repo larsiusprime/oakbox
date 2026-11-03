@@ -1,7 +1,7 @@
 /** Check my values' charts: ratios by price band, and each sale's ratio against its price. */
 import type { RatioStudy } from "../api/client";
-import { t } from "../copy";
 import { useWidth } from "../lib/hooks";
+import { t } from "../wording";
 
 const r = t.ratio;
 

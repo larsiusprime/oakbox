@@ -5,8 +5,8 @@ import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "
 import { api, type Scale, type Source, unwrap, type Wizard, type WizardField } from "../api/client";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
-import { say, t } from "../copy";
 import { amount, pct, short } from "../lib/format";
+import { say, t } from "../wording";
 
 const q = t.wizard.quality;
 type Kind = NonNullable<Scale["kind"]>;

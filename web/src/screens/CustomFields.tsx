@@ -4,7 +4,7 @@ import { Button, Input, TextField } from "react-aria-components";
 import type { Wizard } from "../api/client";
 import { Choice } from "../components/Form";
 import { ValuesButton } from "../components/ValuesButton";
-import { t } from "../copy";
+import { t } from "../wording";
 
 const c = t.wizard.custom;
 type Group = "land" | "building" | "other";

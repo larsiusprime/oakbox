@@ -17,9 +17,9 @@ import {
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
-import { say, t } from "../copy";
 import { pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
+import { say, t } from "../wording";
 
 const r = t.wizard.reconcile;
 type Step = CleanStep;

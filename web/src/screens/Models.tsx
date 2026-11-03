@@ -8,8 +8,8 @@ import { type Column, DataTable, useWidths, type Widths } from "../components/Da
 import { Choice } from "../components/Form";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
-import { t } from "../copy";
 import { day, num, signed } from "../lib/format";
+import { t } from "../wording";
 import { ConfigSummary, ModelOptions } from "./ModelOptions";
 
 const m = t.values.model;

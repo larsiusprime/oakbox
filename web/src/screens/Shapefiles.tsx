@@ -21,7 +21,7 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
-import { t } from "../copy";
+import { t } from "../wording";
 import { FilePicker } from "./WizardFiles";
 
 const s = t.wizard.shapefiles;

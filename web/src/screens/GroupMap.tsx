@@ -9,8 +9,8 @@ import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
-import { t } from "../copy";
 import { short } from "../lib/format";
+import { t } from "../wording";
 
 const g = t.groups;
 

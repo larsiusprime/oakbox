@@ -4,8 +4,8 @@ import { Button } from "react-aria-components";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
-import { t } from "../copy";
 import { size, when } from "../lib/format";
+import { t } from "../wording";
 
 const r = t.groups.run;
 type Format = AssembleView["exports"][number];

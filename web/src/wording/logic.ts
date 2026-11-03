@@ -4,7 +4,7 @@
 import { t } from "./catalog";
 
 const lower = (s: string) => s.toLowerCase();
-// A message's own text can start with the live editor's invisible markers (npm run dev:copy): they're kept in front.
+// A message's own text can start with the live editor's invisible markers (npm run dev:wording): they're kept in front.
 const LEAD = "[\u200C\u200D\u2060-\u2064\uFEFF]*";
 const dropLead = (s: string, word: string) => s.replace(new RegExp(`^(${LEAD})${word}`), "$1");
 // "4 Check sales" → "Check sales": a step's name without its number.

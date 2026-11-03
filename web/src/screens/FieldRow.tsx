@@ -15,7 +15,7 @@ import { Combo, Marked, matches } from "../components/Combo";
 import { Choice } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
-import { say, t } from "../copy";
+import { say, t } from "../wording";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
 import { CheckText, FilePicker, matchOptions } from "./WizardFiles";

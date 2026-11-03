@@ -7,8 +7,8 @@ import { ChevronDown } from "lucide-react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { navigate } from "../App";
 import { api, unwrap } from "../api/client";
-import { t } from "../copy";
 import { lastStep, lastTab, usePlace } from "../lib/place";
+import { t } from "../wording";
 
 const n = t.nav;
 

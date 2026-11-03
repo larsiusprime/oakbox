@@ -8,7 +8,7 @@ import { api, type Project, unwrap, type Wizard } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { ValuesButton } from "../components/ValuesButton";
-import { say, t } from "../copy";
+import { say, t } from "../wording";
 
 const l = t.wizard.location;
 const MAP_KEY = "oakbox.locationMap";

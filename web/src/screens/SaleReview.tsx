@@ -13,10 +13,10 @@ import {
 import { stepChanged, stepKey } from "../api/steps";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
-import { say, t } from "../copy";
 import { desktop } from "../desktop";
 import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
+import { say, t } from "../wording";
 
 const s = t.sales;
 type Unit = "sqft" | "sqm";

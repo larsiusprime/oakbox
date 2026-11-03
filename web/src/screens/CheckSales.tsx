@@ -7,9 +7,9 @@ import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } 
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
-import { t } from "../copy";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
+import { t } from "../wording";
 import { Card, type CardProps, NumberBox } from "./CleanCards";
 import { Review, useReviewCounts } from "./SaleReview";
 import { SalesResult, TimePreviewPanel, useTimePreview } from "./SalesResults";

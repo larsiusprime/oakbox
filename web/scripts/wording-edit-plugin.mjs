@@ -1,12 +1,12 @@
-// The live copy editor's half on the dev server (SPEC §6.6; vite.config.ts adds it in `npm run dev:copy` only).
-//   POST /__copy/save {key, source, was}  writes one message into src/copy/en.json
-//   GET  /__copy/uses?key=…               where the code names it (by its last part)
+// The live wording editor's half on the dev server (SPEC §6.6; vite.config.ts adds it in `npm run dev:wording` only).
+//   POST /__wording/save {key, source, was}  writes one message into src/wording/en.json
+//   GET  /__wording/uses?key=…               where the code names it (by its last part)
 // The file is read again before each save, so what was changed in it meanwhile is kept; a message changed in the
 // file since the editor opened it isn't overwritten. A message must stay valid ICU with the same arguments (the
-// same types: copy.gen.ts, regenerated after). Vite sees en.json change, and the page refills its copy (catalog.ts).
+// same types: wording.gen.ts, regenerated after). Vite sees en.json change, and the page refills its wording (catalog.ts).
 import fs from "node:fs";
 import path from "node:path";
-import { DIR, messageType, write as writeTypes } from "./copy-types.mjs";
+import { DIR, messageType, write as writeTypes } from "./wording-types.mjs";
 
 const FILE = path.join(DIR, "en.json");
 const SRC = path.join(DIR, "..");
@@ -77,12 +77,12 @@ function uses(key) {
   }
 }
 
-export function copyEdit() {
+export function wordingEdit() {
   return {
-    name: "oakbox-copy-edit",
+    name: "oakbox-wording-edit",
     apply: "serve",
     configureServer(server) {
-      server.middlewares.use("/__copy/save", async (req, res) => {
+      server.middlewares.use("/__wording/save", async (req, res) => {
         if (req.method !== "POST") return reply(res, 405, { error: "POST only" });
         try {
           const [status, value] = save(JSON.parse(await body(req)));
@@ -91,7 +91,7 @@ export function copyEdit() {
           reply(res, 500, { error: String(e?.message ?? e) });
         }
       });
-      server.middlewares.use("/__copy/uses", (req, res) => {
+      server.middlewares.use("/__wording/uses", (req, res) => {
         const key = new URL(req.url ?? "", "http://x").searchParams.get("key") ?? "";
         reply(res, 200, uses(key));
       });

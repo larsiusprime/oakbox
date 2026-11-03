@@ -4,7 +4,7 @@ import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-componen
 import { api, type NamesView, unwrap } from "../api/client";
 import { setupKey, stepChanged } from "../api/steps";
 import { Val } from "../components/Val";
-import { t } from "../copy";
+import { t } from "../wording";
 
 const n = t.wizard.names;
 type FormatId = NamesView["formats"][number]["id"];

@@ -9,7 +9,7 @@ import type { EntryView, ModelEntry, ModelSetup } from "../api/client";
 import { Tick } from "../components/Form";
 import { LocationStack } from "../components/LocationStack";
 import { Seg } from "../components/Seg";
-import { t } from "../copy";
+import { t } from "../wording";
 
 const c = t.values.model.config;
 type Option = "log" | "intercept" | "interactions" | "optimize_vars" | "n_trials" | "use_gpu";

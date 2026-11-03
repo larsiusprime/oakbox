@@ -1,5 +1,5 @@
-// First: in `npm run dev:copy` only, the live copy editor (empty in every other build).
-import "./copy/edit/install";
+// First: in `npm run dev:wording` only, the live wording editor (empty in every other build).
+import "./wording/edit/install";
 import "@fontsource-variable/ibm-plex-sans/wght.css";
 import "@fontsource-variable/ibm-plex-sans/wght-italic.css";
 import "@fontsource/ibm-plex-mono/400.css";

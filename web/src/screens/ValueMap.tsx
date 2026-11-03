@@ -6,8 +6,8 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
-import { t } from "../copy";
 import { money, num, ratioText, signed } from "../lib/format";
+import { t } from "../wording";
 import { BandChart } from "./ValueCharts";
 
 const r = t.ratio;

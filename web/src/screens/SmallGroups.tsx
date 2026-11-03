@@ -2,8 +2,8 @@
  * be trusted, and for each flagged one, Leave unvalued or Model it anyway. */
 import { useSetSmall, useSmallGroups } from "../api/models";
 import { Seg } from "../components/Seg";
-import { say, t } from "../copy";
 import { num } from "../lib/format";
+import { say, t } from "../wording";
 
 const s = t.values.small;
 // A group's flag, said with its count and median ratio where the wording has them.

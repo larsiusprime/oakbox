@@ -8,8 +8,8 @@ import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { InfoTip } from "../components/Tip";
-import { t } from "../copy";
 import { num } from "../lib/format";
+import { t } from "../wording";
 
 const s = t.ratio.standards;
 type Props = { v: RatioSetup; set: (body: RatioPatch) => void };

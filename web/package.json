@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:copy": "vite --mode copyedit",
-    "build": "node scripts/copy-types.mjs --check && tsc --noEmit && vite build && node scripts/no-copy-edit.mjs",
+    "dev:wording": "vite --mode wordingedit",
+    "build": "node scripts/wording-types.mjs --check && tsc --noEmit && vite build && node scripts/no-wording-edit.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "biome check src && eslint src",
     "format": "biome format --write src",
     "api": "openapi-typescript openapi.json -o src/api/schema.d.ts",
-    "copy:types": "node scripts/copy-types.mjs",
+    "wording:types": "node scripts/wording-types.mjs",
     "test": "vitest run"
   },
   "dependencies": {

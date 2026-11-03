@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, unwrap } from "../api/client";
-import { say, t } from "../copy";
 import { day, money, num } from "../lib/format";
 import { useWidth } from "../lib/hooks";
+import { say, t } from "../wording";
 
 const s = t.sales.time;
 const units = t.sales.unit;

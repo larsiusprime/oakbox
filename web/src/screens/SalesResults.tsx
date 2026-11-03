@@ -8,8 +8,8 @@ import { POLL } from "../api/steps";
 import { Choice } from "../components/Form";
 import { RunProgress } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
-import { say, t } from "../copy";
 import { num, when } from "../lib/format";
+import { say, t } from "../wording";
 import { TimeChart } from "./TimeChart";
 
 const s = t.sales;

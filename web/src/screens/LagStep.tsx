@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { ModelSetup } from "../api/client";
 import { Field, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
-import { say, t } from "../copy";
+import { say, t } from "../wording";
 
 const l = t.values.lag;
 

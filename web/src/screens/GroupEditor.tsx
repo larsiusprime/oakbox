@@ -13,8 +13,8 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
-import { t } from "../copy";
 import { moneyShort } from "../lib/format";
+import { t } from "../wording";
 import type { Move } from "./ModelGroups";
 
 const g = t.groups;

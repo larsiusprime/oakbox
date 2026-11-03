@@ -16,8 +16,8 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
-import { say, t } from "../copy";
 import { short } from "../lib/format";
+import { say, t } from "../wording";
 
 const u = t.wizard.units;
 

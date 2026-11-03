@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, type Histogram, unwrap } from "../api/client";
-import { say, t } from "../copy";
+import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
 const d = t.bringIn.detail;

@@ -8,8 +8,8 @@ import type { components } from "../api/schema";
 import { CheckList, Field } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
-import { t } from "../copy";
 import { lastStep } from "../lib/place";
+import { t } from "../wording";
 
 type View = components["schemas"]["ReportView"];
 type Format = components["schemas"]["ExportBody"]["format"];

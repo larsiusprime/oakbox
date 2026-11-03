@@ -7,7 +7,7 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
-import { t } from "../copy";
+import { t } from "../wording";
 
 // MapLibre looks for its worker beside its own file, which the bundle doesn't keep: here it is, bundled.
 maplibregl.setWorkerUrl(workerUrl);

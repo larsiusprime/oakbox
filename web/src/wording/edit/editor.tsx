@@ -1,6 +1,6 @@
-/** The live copy editor (SPEC §6.6), `npm run dev:copy` only: Alt+click any text to edit the message it came from;
- * the ✎ Copy button lists the messages on the screen (and finds any other). Saving writes en.json through the dev
- * server (scripts/copy-edit-plugin.mjs); the catalog then refills `t` (catalog.ts) and the words change on the screen
+/** The live wording editor (SPEC §6.6), `npm run dev:wording` only: Alt+click any text to edit the message it came from;
+ * the ✎ Wording button lists the messages on the screen (and finds any other). Saving writes en.json through the dev
+ * server (scripts/wording-edit-plugin.mjs); the catalog then refills `t` (catalog.ts) and the words change on the screen
  * here, with nothing reloaded. */
 import { parse, TYPE } from "@formatjs/icu-messageformat-parser";
 import { IntlMessageFormat } from "intl-messageformat";
@@ -9,7 +9,7 @@ import { createRoot } from "react-dom/client";
 import { sources, t } from "../catalog";
 import { allSpans, around, hasMarks, SENTINEL, type Span, shown, spans, strip } from "../marks";
 
-const HOST = "copy-edit";
+const HOST = "wording-edit";
 const ATTRS = ["title", "aria-label", "placeholder", "alt", "aria-description"];
 const locale = new Intl.NumberFormat().resolvedOptions().locale;
 
@@ -34,7 +34,7 @@ function markedAttrs(): [Element, string][] {
   return out;
 }
 
-const title = () => (window as { __copyTitle?: string }).__copyTitle ?? "";
+const title = () => (window as { __wordingTitle?: string }).__wordingTitle ?? "";
 
 /** The marker numbers on the screen now, in page order, once each. */
 function onScreen(): number[] {
@@ -119,7 +119,7 @@ function caretAt(x: number, y: number): { node: Node; offset: number } | null {
   return r ? { node: r.startContainer, offset: r.startOffset } : null;
 }
 
-/** The messages at a click, innermost first (then the ones it's part of). Text without markers isn't copy (the
+/** The messages at a click, innermost first (then the ones it's part of). Text without markers isn't wording (the
  * user's data, OpenAVMKit's own words): nothing. Off text (an icon, a field), the element's own labels. */
 function clicked(e: MouseEvent): number[] {
   const out: number[] = [];
@@ -141,7 +141,7 @@ function clicked(e: MouseEvent): number[] {
 
 // ── Showing a message's source for editing ───────────────────────────────────────────────────────────────────────
 
-/** Each plural or select case on a line of its own; `flat` puts it back (the copy has no line breaks of its own). */
+/** Each plural or select case on a line of its own; `flat` puts it back (the wording has no line breaks of its own). */
 function pretty(src: string): string {
   let ast: ReturnType<typeof parse>;
   try {
@@ -224,7 +224,7 @@ function EditBox({ open, close, pick }: { open: Open; close: () => void; pick: (
   const preview = render(src, open.args);
 
   useEffect(() => {
-    void fetch(`/__copy/uses?key=${encodeURIComponent(open.key)}`)
+    void fetch(`/__wording/uses?key=${encodeURIComponent(open.key)}`)
       .then((r) => r.json())
       .then(setUses)
       .catch(() => setUses(null));
@@ -247,7 +247,7 @@ function EditBox({ open, close, pick }: { open: Open; close: () => void; pick: (
     if (!sameArgs || preview.error) return;
     if (src === original) return close();
     setState({ saving: true });
-    const r = await fetch("/__copy/save", {
+    const r = await fetch("/__wording/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ key: open.key, source: src, was: original }),
@@ -266,7 +266,7 @@ function EditBox({ open, close, pick }: { open: Open; close: () => void; pick: (
       ref={box}
       style={pos}
       role="dialog"
-      aria-label="Edit copy"
+      aria-label="Edit wording"
       onKeyDown={(e) => {
         if (e.key === "Escape") close();
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void save();
@@ -418,11 +418,11 @@ function Editor() {
     for (const k of kinds) window.addEventListener(k, stop, true);
     window.addEventListener("click", onClick, true);
     const changed = (e: Event) => refresh((e as CustomEvent<string[]>).detail);
-    window.addEventListener("oakbox-copy-changed", changed);
+    window.addEventListener("oakbox-wording-changed", changed);
     return () => {
       for (const k of kinds) window.removeEventListener(k, stop, true);
       window.removeEventListener("click", onClick, true);
-      window.removeEventListener("oakbox-copy-changed", changed);
+      window.removeEventListener("oakbox-wording-changed", changed);
     };
   }, []);
 
@@ -436,12 +436,12 @@ function Editor() {
   return (
     <>
       <button type="button" className="ce-toggle" onClick={() => setPanel(!panel)} aria-expanded={panel}>
-        ✎ Copy
+        ✎ Wording
       </button>
       {panel && <Panel edit={edit} />}
       {note && (
         <div className="ce-note" style={{ left: note.x + 8, top: note.y + 8 }}>
-          Not from the copy: your data, or OpenAVMKit's own words
+          Not from the wording: your data, or OpenAVMKit's own words
         </div>
       )}
       {open && (

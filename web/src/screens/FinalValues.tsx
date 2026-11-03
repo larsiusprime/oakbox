@@ -5,8 +5,8 @@ import { useState } from "react";
 import type { components } from "../api/schema";
 import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
-import { t } from "../copy";
 import { moneyShort, num, signed } from "../lib/format";
+import { t } from "../wording";
 import { FinalMap } from "./FinalMap";
 import { Scorecard } from "./ValueTables";
 

@@ -4,8 +4,8 @@ import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
-import { say, t } from "../copy";
 import { num, short } from "../lib/format";
+import { say, t } from "../wording";
 
 const vt = t.values.vartest;
 

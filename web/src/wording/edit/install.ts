@@ -1,9 +1,9 @@
-/** The live copy editor's start (SPEC §6.6), first thing on the page; in every build but `npm run dev:copy` this
- * is empty (`__COPY_EDIT__` is false, and the code below is dropped). Markers never leave the page: they're taken
+/** The live wording editor's start (SPEC §6.6), first thing on the page; in every build but `npm run dev:wording` this
+ * is empty (`__WORDING_EDIT__` is false, and the code below is dropped). Markers never leave the page: they're taken
  * out of every request, of what's copied, and of the window title. The editor itself loads after. */
 import { hasMarks, strip } from "../marks";
 
-if (__COPY_EDIT__) {
+if (__WORDING_EDIT__) {
   const fetch0 = window.fetch.bind(window);
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     let i: RequestInfo | URL = input;
@@ -32,7 +32,7 @@ if (__COPY_EDIT__) {
   const title = () => {
     const now = document.title;
     if (!hasMarks(now)) return;
-    (window as { __copyTitle?: string }).__copyTitle = now;
+    (window as { __wordingTitle?: string }).__wordingTitle = now;
     document.title = strip(now);
   };
   new MutationObserver(title).observe(document.head, { subtree: true, childList: true, characterData: true });

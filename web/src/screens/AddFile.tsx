@@ -5,8 +5,8 @@ import { Button, Label, Radio, RadioGroup } from "react-aria-components";
 import { api, type FileCheck, type Project, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
 import { TipOn } from "../components/Tip";
-import { t } from "../copy";
 import { size } from "../lib/format";
+import { t } from "../wording";
 
 /** Pick-then-add (SPEC F2), also used inside the Data wizard (F3d), which learns the new entry's name. */
 export function AddFile(props: {

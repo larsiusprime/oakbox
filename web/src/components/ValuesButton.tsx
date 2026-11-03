@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, unwrap } from "../api/client";
-import { say, t } from "../copy";
+import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
 const v = t.wizard.values;

@@ -15,9 +15,9 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Val } from "../components/Val";
-import { say, t } from "../copy";
 import { amount, pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
+import { say, t } from "../wording";
 
 const r = t.wizard.rule;
 const d = t.wizard.dates;

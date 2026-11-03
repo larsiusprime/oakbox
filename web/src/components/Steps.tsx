@@ -4,9 +4,9 @@ import type { Job } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
-import { type Landing, say, t } from "../copy";
 import { clock } from "../lib/format";
 import { currentWhere, type FrameStep, markSeen, OVERVIEW, publishFrame, seen } from "../lib/place";
+import { type Landing, say, t } from "../wording";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
 export type StepStatus = "done" | "attention" | "blocked" | "blank";

@@ -6,7 +6,7 @@ import { Button, Input, TextField } from "react-aria-components";
 import type { Project, Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
-import { t } from "../copy";
+import { t } from "../wording";
 import { FieldRow } from "./FieldRow";
 import type { MutateAsync } from "./wizardChange";
 

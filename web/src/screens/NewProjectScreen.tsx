@@ -6,7 +6,7 @@ import { api, type NewProject, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
 import { countryLocale, LocaleFields } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
-import { t } from "../copy";
+import { t } from "../wording";
 
 export function NewProjectScreen() {
   const regions = useQuery({

@@ -7,9 +7,9 @@ import { api, type Project, unwrap } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Field } from "../components/Form";
 import { OakBand } from "../components/OakBand";
-import { t } from "../copy";
 import { desktop } from "../desktop";
 import { size } from "../lib/format";
+import { t } from "../wording";
 
 export function HomeScreen() {
   const projects = useQuery({

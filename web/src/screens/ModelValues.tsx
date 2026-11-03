@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
-import { say, t } from "../copy";
 import { when } from "../lib/format";
+import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
 import { GroupModelsCard, HowTheyDid } from "./Models";
 import { SmallGroupsStep } from "./SmallGroups";

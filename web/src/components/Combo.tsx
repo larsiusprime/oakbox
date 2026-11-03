@@ -14,7 +14,7 @@ import {
   ListBox,
   Popover,
 } from "react-aria-components";
-import { t } from "../copy";
+import { t } from "../wording";
 
 /** Dropdowns with this many choices or more can be typed in. */
 export const TYPE_FROM = 7;

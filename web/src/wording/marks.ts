@@ -1,8 +1,8 @@
-/** Live copy editing's markers (SPEC §6.6; `npm run dev:copy` only, `__COPY_EDIT__`): each message the app shows
+/** Live wording editing's markers (SPEC §6.6; `npm run dev:wording` only, `__WORDING_EDIT__`): each message the app shows
  * carries invisible characters naming which message it is, and with which arguments, so Alt+click finds it.
  *   START, its number in base 4 (four zero-width characters), SEP, the text, END
  * Messages nest (one message's argument can be another's text); the innermost is the one clicked. Every other build
- * has none of this: the bundle is checked for it (scripts/no-copy-edit.mjs). */
+ * has none of this: the bundle is checked for it (scripts/no-wording-edit.mjs). */
 
 const ch = String.fromCharCode;
 const START = ch(0x2063); // invisible separator
@@ -11,7 +11,7 @@ const END = ch(0x2062); // invisible times
 // Zero-width, and none of them a line-break opportunity.
 const DIGITS = [ch(0x200c), ch(0x200d), ch(0x2060), ch(0xfeff)];
 
-export const SENTINEL = "oakbox-copy-edit";
+export const SENTINEL = "oakbox-wording-edit";
 
 /** What each marker number stands for: a message and the arguments it was shown with. */
 export const shown: { key: string; args: Record<string, unknown> | null }[] = [];

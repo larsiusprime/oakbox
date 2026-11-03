@@ -5,8 +5,8 @@
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { useStack } from "../api/models";
-import { t } from "../copy";
 import { num } from "../lib/format";
+import { t } from "../wording";
 import { AddButton } from "./AddButton";
 
 const s = t.values.stack;

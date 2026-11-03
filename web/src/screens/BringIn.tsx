@@ -8,8 +8,8 @@ import { FieldDetail, openRow } from "../components/FieldDetail";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
-import { t } from "../copy";
 import { band, pct, when } from "../lib/format";
+import { t } from "../wording";
 
 const b = t.bringIn;
 

@@ -11,8 +11,8 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
-import { say, t } from "../copy";
 import { num } from "../lib/format";
+import { say, t } from "../wording";
 
 const s = t.values.lists;
 type Kind = "regression" | "ml";
