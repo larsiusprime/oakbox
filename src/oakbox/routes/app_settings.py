@@ -21,7 +21,6 @@ class Display(BaseModel):
         default=None, description="None: default. Compact: a Windows 2000 dialog's density."
     )
     large_text: bool = False
-    high_contrast: bool = False
 
 
 class AppSettingsView(BaseModel):
@@ -43,15 +42,15 @@ def _settings_view() -> AppSettingsView:
     return AppSettingsView(
         storage_location=str(appsettings.storage_location()),
         default_storage_location=str(appsettings.default_storage()),
-        display=Display(density=s.density, large_text=s.large_text, high_contrast=s.high_contrast),
+        display=Display(density=s.density, large_text=s.large_text),
     )
 
 
 @router.put("/api/app-settings/display")
 def put_display(body: Display) -> AppSettingsView:
-    """Density, large text and high contrast (SPEC D43, View menu)."""
+    """Density and large text (SPEC D43, View menu)."""
     s = appsettings.load()
-    s.density, s.large_text, s.high_contrast = body.density, body.large_text, body.high_contrast
+    s.density, s.large_text = body.density, body.large_text
     appsettings.save(s)
     return _settings_view()
 

@@ -24,8 +24,6 @@ export function AppMenus({ route }: { route: Route }) {
     else delete root.density;
     if (display?.large_text) root.text = "large";
     else delete root.text;
-    if (display?.high_contrast) root.contrast = "high";
-    else delete root.contrast;
   }, [display]);
 
   // Projects and New project say "OAK box"; a project sets its own title (ProjectScreen).

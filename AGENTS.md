@@ -69,7 +69,7 @@ name that says what it is.
 - **Pills and colours:** a short status word or mark is `.pill` (`pill-ok`, `pill-warn`, `pill-bad`, `pill-info`;
   grey without), or `components/Pill.tsx` for a verdict. Colours are the `:root` tokens (`--ok`, `--ok-tint`,
   `--ok-edge`, the same for warn, bad and info; `--select`, `--zebra`, `--cell-line`, `--rule`), never a hex in a
-  rule, so the high-contrast view reaches them; the buttons' and titlebar's bevels are the exception.
+  rule; the buttons' and titlebar's bevels are the exception.
   A chart is drawn at its own width in pixels (a `ResizeObserver`), not scaled, so its text stays its size.
 - **Funnels and other line lists** (a count, a phrase, a link): columns only as wide as their content, so a link
   sits beside its line, not at the far edge (`.cs-funnel`, `.bi-fn`: one grid, the lines on it by `subgrid`).

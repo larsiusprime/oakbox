@@ -31,7 +31,7 @@ export interface paths {
         get?: never;
         /**
          * Put Display
-         * @description Density, large text and high contrast (SPEC D43, View menu).
+         * @description Density and large text (SPEC D43, View menu).
          */
         put: operations["put_display_api_app_settings_display_put"];
         post?: never;
@@ -3292,11 +3292,6 @@ export interface components {
              * @default false
              */
             large_text: boolean;
-            /**
-             * High Contrast
-             * @default false
-             */
-            high_contrast: boolean;
         };
         /**
          * Display
@@ -3313,11 +3308,6 @@ export interface components {
              * @default false
              */
             large_text: boolean;
-            /**
-             * High Contrast
-             * @default false
-             */
-            high_contrast: boolean;
         };
         /** Engine */
         Engine: {
