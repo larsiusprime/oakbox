@@ -102,7 +102,7 @@ def test_exit_and_documentation_run_here_the_rest_in_the_page():
 
 
 def test_every_menu_command_is_handled():
-    handled_here = {"exit", "docs", "density-default", "density-compact", "large-text", "high-contrast"}
+    handled_here = {"exit", "docs", "density-default", "density-compact", "large-text"}
     commands = {item.command for _, item in menus.walk()}
     assert commands == handled_here | set(menus.PAGE_COMMANDS)
 
@@ -146,9 +146,8 @@ def test_display_settings_are_kept(client):
     assert client.get("/api/app-settings").json()["display"] == {
         "density": None,
         "large_text": False,
-        "high_contrast": False,
     }
-    body = {"density": "compact", "large_text": True, "high_contrast": False}
+    body = {"density": "compact", "large_text": True}
     assert client.put("/api/app-settings/display", json=body).json()["display"] == body
     assert client.get("/api/app-settings").json()["display"] == body
     assert client.put("/api/app-settings/display", json=body | {"density": "huge"}).status_code == 422

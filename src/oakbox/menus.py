@@ -93,7 +93,6 @@ MENUS: tuple[Submenu, ...] = (
                 ),
             ),
             Item("large-text", "&Large text", checked=lambda c: c.settings.large_text),
-            Item("high-contrast", "&High contrast", checked=lambda c: c.settings.high_contrast),
         ),
     ),
     Submenu(
@@ -146,15 +145,13 @@ class Controller:
             self.close()
         elif command == "docs":
             self.open_url(OPENAVMKIT_DOCS)
-        elif command in ("density-default", "density-compact", "large-text", "high-contrast"):
+        elif command in ("density-default", "density-compact", "large-text"):
             with self._lock:
                 s = appsettings.load()
                 if command.startswith("density-"):
                     s.density = command.removeprefix("density-")  # type: ignore[assignment]
-                elif command == "large-text":
-                    s.large_text = not s.large_text
                 else:
-                    s.high_contrast = not s.high_contrast
+                    s.large_text = not s.large_text
                 appsettings.save(s)
             self.send("display")  # the page re-reads the settings and restyles
         else:

@@ -33,7 +33,6 @@ class AppSettings(BaseModel):
         return None if v == "comfortable" else v
 
     large_text: bool = False
-    high_contrast: bool = False
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
     census_api_key: str | None = Field(default=None, description="The user's own, for the Census enrichment (F3e).")
 
