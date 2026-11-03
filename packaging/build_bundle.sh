@@ -39,10 +39,11 @@ mkdir -p "$OUT" build
 tar -xzf "build/cpython-$PLATFORM.tar.gz" -C "$OUT"   # unpacks to $OUT/python
 
 # Exact dependency set from the lockfile. openavmkit is pure Python and is built
-# here from its pinned commit (CI checks the engine branch out into build/engine).
+# here from its pinned commit (pyproject.toml's [tool.uv.sources]: OpenAVMKit's repo and commit).
+ENGINE_URL=$(grep -o '^openavmkit = { git = "[^"]*"' pyproject.toml | cut -d'"' -f2)
 ENGINE_REV=$(grep -o 'rev = "[0-9a-f]*"' pyproject.toml | cut -d'"' -f2)
-if [ ! -d build/engine ]; then
-  git clone -q https://github.com/larsiusprime/oakbox build/engine
+if [ ! -d build/engine/.git ] || [ "$(git -C build/engine remote get-url origin)" != "$ENGINE_URL" ]; then
+  rm -rf build/engine && git clone -q "$ENGINE_URL" build/engine
 fi
 git -C build/engine fetch -q origin "$ENGINE_REV" && git -C build/engine checkout -q "$ENGINE_REV"
 rm -rf build/wheels && uv build -q --wheel --out-dir build/wheels build/engine

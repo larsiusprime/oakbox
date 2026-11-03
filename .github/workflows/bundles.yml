@@ -13,11 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          ref: openavmkit-oakbox
-          path: build/engine
-          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: actions/setup-node@v4
         with:
@@ -25,10 +20,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Python dependencies
-        # The engine is a git dependency on this private repo; point uv at the checked-out copy.
-        run: |
-          git config --global url."$(pwd)/build/engine".insteadOf https://github.com/larsiusprime/oakbox
-          uv sync
+        # The engine is a git dependency on OpenAVMKit's public repo, pinned by commit (pyproject.toml).
+        run: uv sync
       - name: Python lint, format, types, tests
         run: |
           uv run ruff check src tests
@@ -64,11 +57,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          ref: openavmkit-oakbox
-          path: build/engine
-          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: actions/setup-node@v4
         with:
@@ -76,11 +64,7 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Python dependencies
-        shell: pwsh
-        run: |
-          $engine = (Join-Path (Get-Location) "build/engine") -replace '\\', '/'
-          git config --global url."$engine".insteadOf https://github.com/larsiusprime/oakbox
-          uv sync
+        run: uv sync
       - name: Build the UI
         working-directory: web
         run: |
@@ -96,11 +80,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          ref: openavmkit-oakbox
-          path: build/engine
-          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: actions/setup-node@v4
         with:
@@ -114,9 +93,7 @@ jobs:
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
             libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libnss3 libasound2t64
       - name: Python dependencies
-        run: |
-          git config --global url."$(pwd)/build/engine".insteadOf https://github.com/larsiusprime/oakbox
-          uv sync
+        run: uv sync
       - name: Build the UI
         working-directory: web
         run: |
@@ -137,12 +114,6 @@ jobs:
         platform: [windows, linux]
     steps:
       - uses: actions/checkout@v4
-      # The engine branch lives in this (private) repo; check it out with the job token.
-      - uses: actions/checkout@v4
-        with:
-          ref: openavmkit-oakbox
-          path: build/engine
-          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: actions/setup-node@v4
         with:
