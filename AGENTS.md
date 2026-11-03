@@ -99,8 +99,9 @@ Every word the UI shows is in `web/src/wording/en.json` (ICU MessageFormat, SPEC
 `{mode, select, move {…} other {…}}`), never a `?:` in the screen. What needs code first (joining a list, changing
 case, arithmetic, picking between messages) is `say` in `wording/logic.ts`; a message never computes. After changing
 `en.json`, `npm run wording:types` (CI checks `wording.gen.ts` is up to date). A lookup keyed by an id from the backend is
-listed in `wording/records.json`. To edit copy in the running app: `npm run dev:wording` (with the
-app service on port 8765), then Alt+click text; it writes `en.json`. Nothing of the editor may reach other builds:
+listed in `wording/records.json`. To edit wording in the running app: `edit-wording.bat` (Windows: the
+app window, its page from the dev server), or `npm run dev:wording` with
+`python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
 
 ## Going online

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -62,8 +63,15 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--browser", action="store_true", help="open in a browser instead of a window")
     parser.add_argument("--no-window", action="store_true", help="only run the server")
+    parser.add_argument(
+        "--ui-url",
+        help="developers: show the page from this local address (the Vite dev server, e.g. npm run dev:wording)"
+        " instead of the built one; the app service still runs on --port",
+    )
     parser.add_argument("--selftest-menus", action="store_true", help="open the window, check its menus, and exit (CI)")
     args = parser.parse_args()
+    if args.ui_url and not re.match(r"^http://(127\.0\.0\.1|localhost)(:\d+)?/?$", args.ui_url):
+        parser.error("--ui-url must be a local address, http://127.0.0.1:<port>")
     if args.selftest_menus:
         os.environ.setdefault("OAKBOX_HOME", tempfile.mkdtemp(prefix="oakbox-menus-"))
 
@@ -78,12 +86,17 @@ def main() -> None:
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     _wait_until_up(url)
+    # The page itself: the built one, or (developers) a dev server's, which proxies /api to this service.
+    page = url
+    if args.ui_url:
+        page = args.ui_url.rstrip("/")
+        _wait_until_up(page, timeout=90)
 
-    if not args.browser and _window(url, selftest=args.selftest_menus):
+    if not args.browser and _window(page, selftest=args.selftest_menus):
         server.should_exit = True
         return
-    _open_browser(url)
-    print(f"OAK box is running at {url}. Close this window to quit.")
+    _open_browser(page)
+    print(f"OAK box is running at {page}. Close this window to quit.")
     try:
         thread.join()
     except KeyboardInterrupt:

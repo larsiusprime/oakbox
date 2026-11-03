@@ -139,10 +139,16 @@ export function AppMenus({ route }: { route: Route }) {
       }
       altAlone = false;
     };
+    // A click while Alt is down (Alt+click) isn't Alt alone: Windows doesn't open the menu bar after it either.
+    const onPointer = () => {
+      altAlone = false;
+    };
+    window.addEventListener("pointerdown", onPointer, true);
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKeyUp);
     return () => {
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onPointer, true);
       window.removeEventListener("keyup", onKeyUp);
     };
   }, [zoom]);

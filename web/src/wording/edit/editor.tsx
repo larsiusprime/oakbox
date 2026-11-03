@@ -415,13 +415,14 @@ function Editor() {
       if (s) setOpen({ key: s.key, args: s.args, around: hits.slice(1), x: e.clientX, y: e.clientY });
     };
     const kinds = ["pointerdown", "pointerup", "mousedown", "mouseup", "dblclick", "auxclick"] as const;
-    for (const k of kinds) window.addEventListener(k, stop, true);
-    window.addEventListener("click", onClick, true);
+    // On the document, not the window: the app's own window listeners (AppMenus' Alt) still see the click.
+    for (const k of kinds) document.addEventListener(k, stop, true);
+    document.addEventListener("click", onClick, true);
     const changed = (e: Event) => refresh((e as CustomEvent<string[]>).detail);
     window.addEventListener("oakbox-wording-changed", changed);
     return () => {
-      for (const k of kinds) window.removeEventListener(k, stop, true);
-      window.removeEventListener("click", onClick, true);
+      for (const k of kinds) document.removeEventListener(k, stop, true);
+      document.removeEventListener("click", onClick, true);
       window.removeEventListener("oakbox-wording-changed", changed);
     };
   }, []);
