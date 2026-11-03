@@ -101,7 +101,8 @@ case, arithmetic, picking between messages) is `say` in `wording/logic.ts`; a me
 `en.json`, `npm run wording:types` (CI checks `wording.gen.ts` is up to date). A lookup keyed by an id from the backend is
 listed in `wording/records.json`. To edit wording in the running app: `edit-wording.bat` (Windows: the
 app window, its page from the dev server), or `npm run dev:wording` with
-`python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. Nothing of the editor may reach other builds:
+`python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. A message may have line breaks (`\n`) and paragraph breaks (`\n\n`): show
+wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
 
 ## Going online

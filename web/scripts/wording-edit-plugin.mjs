@@ -28,7 +28,8 @@ function reply(res, status, value) {
 
 function save({ key, source, was }) {
   if (typeof key !== "string" || typeof source !== "string") return [400, { error: "Needs a key and a source." }];
-  if (/[\r\n]/.test(source)) return [400, { error: "A message is one line." }];
+  // Line breaks are the wording's own: \n a line break, \n\n between paragraphs (shown as such, styles.css).
+  source = source.replace(/\r\n?/g, "\n");
   const catalog = JSON.parse(fs.readFileSync(FILE, "utf8"));
   const keys = key.split(".");
   const last = keys.pop();

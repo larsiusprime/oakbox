@@ -141,7 +141,9 @@ function clicked(e: MouseEvent): number[] {
 
 // ── Showing a message's source for editing ───────────────────────────────────────────────────────────────────────
 
-/** Each plural or select case on a line of its own; `flat` puts it back (the wording has no line breaks of its own). */
+/** Each plural or select case on a line of its own; `flat` puts it back. A layout break is a line break, an indent of
+ * two or more spaces and a case's name and brace: any other line break is the wording's own (a blank line between
+ * paragraphs, \n\n in en.json; one line break, \n), kept. */
 function pretty(src: string): string {
   let ast: ReturnType<typeof parse>;
   try {
@@ -168,7 +170,11 @@ function pretty(src: string): string {
     out = `${out.slice(0, b.at)}\n${"  ".repeat(b.depth)}${out.slice(b.at + 1)}`;
   return out;
 }
-const flat = (s: string) => s.replace(/\n */g, " ");
+const flat = (s: string) =>
+  s
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]*\n {2,}(?=[=\w-]+ ?\{)/g, " ")
+    .replace(/[ \t]+\n/g, "\n");
 // ICU doubles an apostrophe (''); the editor shows one, and doubles each again on save. A quoted brace or # ('{')
 // stays as it is.
 const unquote = (s: string) => s.replace(/''|'([{}#])'/g, (m, q) => (q ? m : "'"));

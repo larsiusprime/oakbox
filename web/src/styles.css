@@ -1222,6 +1222,12 @@ a.row-title:hover {
   outline: 3px solid var(--focus);
 }
 
+/* The wording's own line breaks (en.json: \n, and \n\n between paragraphs) show where text is read: a blank line is
+   a paragraph's gap. Nothing else in these has line breaks (JSX's text never does); :where, so a rule of its own wins. */
+:where(p, li, dd, .tooltip, .wiz-lede) {
+  white-space: pre-line;
+}
+
 .tip-target {
   display: inline-flex;
   outline: none;
