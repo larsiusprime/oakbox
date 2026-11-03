@@ -1431,7 +1431,26 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
 **Styling and strings:**
 - plain CSS with design tokens (custom properties) for density and zoom
-- a typed string table (D13), so a missing translation key is a type error
+- a typed string table (D13), so a missing translation key is a type error: the copy catalog, §6.6
+
+### 6.6 Copy: the catalog and live editing (planned 2026-11-03)
+
+**Why:** the copy needs a big clean-up (about 15,100 words in the UI, half of it in 246 paragraph-length entries), done fastest by editing it in the running app and reviewing the result in git. The same move readies the copy for translation (D13).
+
+**The catalog.** The UI's copy moves out of `strings.ts` (TypeScript: 1,800 strings, 336 functions, 63 lists) into a data file, `web/src/copy/en.json`, with the same nesting as today's `t`. Each value is an **ICU MessageFormat** message (the format translation tools read): `"Add field"`; `"{first} + {n, plural, one {# other field} other {# other fields}}"`; `"{mode, select, move {Moving…} other {Copying…}}"`; numbers as `{n, number}` (in the user's locale, as `toLocaleString` did). Lists stay JSON lists.
+- **Runtime:** `intl-messageformat` (FormatJS) formats each message, compiled once and cached.
+- **Types:** a generator reads `en.json` and writes `copy.gen.ts`: a message with no arguments is a `string`; one with arguments is a function of a named-argument object, typed from its placeholders (`plural` and `number` arguments are numbers, `select` a union of its cases, others strings). So `t.wizard.custom.title` stays a string and `t.x.plusOthers({ first, n })` is type-checked. CI checks the generated file is up to date, as it does for the API types.
+- **Lookup tables** (`checkNames`, `checkWhy`…: keys are ids from the backend) stay objects keyed by id; only their values are copy.
+- **What stays in code:** logic that isn't wording. About 20 of today's functions join lists, change case or do arithmetic; the code does that and passes the result in as an argument. A message never computes.
+- **The move is mechanical and checked:** a converter writes `en.json` from `strings.ts` (about 300 of the 336 functions convert automatically; the rest are listed for a hand pass), a codemod rewrites the call sites to named arguments, and the app must render the same text as before: every message is rendered with sample arguments before and after and compared, and screenshots of the main screens are compared pixel for pixel.
+- **Python's copy** (about 5,600 words: receipt notes, check wording, errors, the report) is the next bite, not this one.
+
+**Live editing (developer builds only).** `npm run dev:copy` runs the Vite dev server in `copyedit` mode. Only that mode compiles the editor in (`__COPY_EDIT__`); every other build has none of it (CI checks the shipped bundle).
+- **Finding the text:** in this mode each message carries an invisible marker (zero-width characters) naming its key; **Alt+click** any text to edit the message it came from. Text that isn't clickable (tooltips, placeholders, labels for screen readers, the window title, text on maps and charts) is reached from a panel listing the messages on the screen, with a search over the whole catalog.
+- **The editor:** the message's key, its text with its arguments as fixed chips (moved, not added or removed), each plural or select case as a line of its own, the values it was last shown with, and how many places use it. Saving updates the screen at once, with no reload (nothing open is lost).
+- **Writing back:** a dev-server plugin writes the change into `en.json` (that key only, re-reading the file first, so an edit made in an editor meanwhile is kept), checks the message parses as ICU, and regenerates the types. `git diff` shows every change, for review.
+- **Markers never leave the page:** stripped from every request to the backend (copy can be saved into projects, e.g. a default name), from the clipboard, and from the window title.
+- **Not editable here:** OpenAVMKit's own messages (shown as "from OpenAVMKit"), the user's data, and the native menus' labels (`menus.py`, few and short).
 
 ## 7. Engine: OpenAVMKit changes
 
