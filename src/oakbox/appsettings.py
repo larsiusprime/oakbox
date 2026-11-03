@@ -13,10 +13,25 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+# One change to the settings at a time (the menus' thread and the app's requests both write them).
+LOCK = threading.Lock()
+
+# Zoom levels in percent, as browsers step them (View › Zoom in / Zoom out, Ctrl+mouse wheel).
+ZOOMS = (67, 75, 80, 90, 100, 110, 125, 150, 175, 200)
+
+
+def zoom_step(zoom: int, by: int) -> int:
+    """The level `by` steps from `zoom` (0: actual size), within the levels."""
+    if by == 0:
+        return 100
+    nearest = min(range(len(ZOOMS)), key=lambda i: abs(ZOOMS[i] - zoom))
+    return ZOOMS[max(0, min(len(ZOOMS) - 1, nearest + by))]
 
 
 class AppSettings(BaseModel):
@@ -32,7 +47,22 @@ class AppSettings(BaseModel):
         """Comfortable is gone (2026-11-03): a setting that still says it reads as the default."""
         return None if v == "comfortable" else v
 
-    large_text: bool = False
+    zoom: int = Field(default=100, description="Text and layout size, in percent (one of ZOOMS; SPEC D43).")
+
+    @field_validator("zoom", mode="before")
+    @classmethod
+    def _a_level(cls, v: object) -> object:
+        """Any number reads as the nearest level."""
+        return min(ZOOMS, key=lambda z: abs(z - int(v)))  # type: ignore[arg-type]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _large_text_is_zoom(cls, data: object) -> object:
+        """Large text is gone (2026-11-03): a setting that had it on opens at 125%."""
+        if isinstance(data, dict) and data.get("large_text") and "zoom" not in data:
+            data = {**data, "zoom": 125}
+        return data
+
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
     census_api_key: str | None = Field(default=None, description="The user's own, for the Census enrichment (F3e).")
 

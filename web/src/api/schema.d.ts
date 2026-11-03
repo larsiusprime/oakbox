@@ -31,10 +31,30 @@ export interface paths {
         get?: never;
         /**
          * Put Display
-         * @description Density and large text (SPEC D43, View menu).
+         * @description Density and zoom (SPEC D43, View menu).
          */
         put: operations["put_display_api_app_settings_display_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/app-settings/zoom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Zoom
+         * @description A zoom level larger, smaller, or actual size (View menu, Ctrl+= / Ctrl+- / Ctrl+0, Ctrl+mouse wheel).
+         */
+        post: operations["post_zoom_api_app_settings_zoom_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3288,10 +3308,11 @@ export interface components {
              */
             density?: ("default" | "compact") | null;
             /**
-             * Large Text
-             * @default false
+             * Zoom
+             * @description Text and layout size, in percent.
+             * @default 100
              */
-            large_text: boolean;
+            zoom: number;
         };
         /**
          * Display
@@ -3304,10 +3325,11 @@ export interface components {
              */
             density: ("default" | "compact") | null;
             /**
-             * Large Text
-             * @default false
+             * Zoom
+             * @description Text and layout size, in percent.
+             * @default 100
              */
-            large_text: boolean;
+            zoom: number;
         };
         /** Engine */
         Engine: {
@@ -9234,6 +9256,15 @@ export interface components {
             /** Vacant */
             vacant: number;
         };
+        /** ZoomStep */
+        ZoomStep: {
+            /**
+             * By
+             * @description A level larger (1) or smaller (-1), or actual size (0).
+             * @enum {integer}
+             */
+            by: -1 | 0 | 1;
+        };
         /** GroupSetup */
         oakbox__clean__GroupSetup: {
             /** Id */
@@ -9416,6 +9447,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["Display-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_zoom_api_app_settings_zoom_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoomStep"];
             };
         };
         responses: {

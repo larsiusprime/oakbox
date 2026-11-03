@@ -254,13 +254,13 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
         menu.click("File", "New project…")
         check("New project… opens the form", wait("location.hash", "#/new") == "#/new")
 
-        menu.click("View", "Large text")
-        got = wait("document.documentElement.dataset.text || ''", "large")
-        check("Large text restyles the page", got == "large", got)
-        check("Large text saved", appsettings.load().large_text)
-        items = {path: (enabled, checked) for path, enabled, checked in menu.snapshot()}
-        check("Large text checked", items.get(("View", "Large text")) == (True, True))
-        menu.click("View", "Large text")
+        menu.click("View", "Zoom in")
+        got = wait("document.documentElement.style.getPropertyValue('--zoom')", "1.1")
+        check("Zoom in restyles the page", got == "1.1", got)
+        check("Zoom in saved", appsettings.load().zoom == 110)
+        menu.click("View", "Actual size")
+        got = wait("document.documentElement.style.getPropertyValue('--zoom')", "1")
+        check("Actual size puts it back", got == "1", got)
 
         body = {
             "name": "Menu test",

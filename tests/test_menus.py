@@ -66,15 +66,34 @@ def test_view_items_save_the_setting_check_it_and_restyle_the_page():
     r = Recorder()
     c = r.controller()
     items = _items()
-    large, default = items[("View", "Large text")], items[("View", "Density", "Default")]
-    assert not large.checked(c.context()) and default.checked(c.context())
-    c.run("large-text")
+    default = items[("View", "Density", "Default")]
+    assert default.checked(c.context())
+    c.run("zoom-in")
+    c.run("zoom-in")
     c.run("density-compact")
     s = appsettings.load()
-    assert s.large_text and s.density == "compact"
-    assert large.checked(c.context()) and not default.checked(c.context())
-    assert items[("View", "Density", "Compact")].checked(c.context())
-    assert r.sent == ["display", "display"]  # the page re-reads the settings
+    assert s.zoom == 125 and s.density == "compact"
+    assert not default.checked(c.context()) and items[("View", "Density", "Compact")].checked(c.context())
+    c.run("zoom-reset")
+    assert appsettings.load().zoom == 100
+    assert r.sent == ["display"] * 4  # the page re-reads the settings
+
+
+def test_zoom_steps_through_the_levels_and_stops_at_the_ends():
+    assert appsettings.zoom_step(100, 1) == 110 and appsettings.zoom_step(100, -1) == 90
+    assert appsettings.zoom_step(200, 1) == 200 and appsettings.zoom_step(67, -1) == 67
+    assert appsettings.zoom_step(150, 0) == 100
+    # Any number reads as the nearest level; Large text (gone) opens at 125%.
+    assert appsettings.AppSettings(zoom=118).zoom == 125
+    assert appsettings.AppSettings.model_validate({"large_text": True}).zoom == 125
+    assert appsettings.AppSettings.model_validate({"large_text": True, "zoom": 90}).zoom == 90
+
+
+def test_the_page_zooms_a_step_at_a_time(client):
+    assert client.post("/api/app-settings/zoom", json={"by": 1}).json()["display"]["zoom"] == 110
+    assert client.post("/api/app-settings/zoom", json={"by": -1}).json()["display"]["zoom"] == 100
+    assert client.post("/api/app-settings/zoom", json={"by": 0}).json()["display"]["zoom"] == 100
+    assert client.post("/api/app-settings/zoom", json={"by": 2}).status_code == 422
 
 
 def test_open_recent_lists_projects_most_recent_first(client):
@@ -102,7 +121,7 @@ def test_exit_and_documentation_run_here_the_rest_in_the_page():
 
 
 def test_every_menu_command_is_handled():
-    handled_here = {"exit", "docs", "density-default", "density-compact", "large-text"}
+    handled_here = {"exit", "docs", "density-default", "density-compact", "zoom-in", "zoom-out", "zoom-reset"}
     commands = {item.command for _, item in menus.walk()}
     assert commands == handled_here | set(menus.PAGE_COMMANDS)
 
@@ -127,7 +146,7 @@ def test_fallback_pywebview_menus_mirror_the_definition():
                 yield item
 
     titles = [a.title for a in actions(built)]
-    assert "New project…" in titles and "Large text" in titles and "&" not in "".join(titles)
+    assert "New project…" in titles and "Zoom in" in titles and "&" not in "".join(titles)
 
 
 def test_page_sender_runs_the_command_in_the_page():
@@ -145,9 +164,9 @@ def test_page_sender_runs_the_command_in_the_page():
 def test_display_settings_are_kept(client):
     assert client.get("/api/app-settings").json()["display"] == {
         "density": None,
-        "large_text": False,
+        "zoom": 100,
     }
-    body = {"density": "compact", "large_text": True}
+    body = {"density": "compact", "zoom": 150}
     assert client.put("/api/app-settings/display", json=body).json()["display"] == body
     assert client.get("/api/app-settings").json()["display"] == body
     assert client.put("/api/app-settings/display", json=body | {"density": "huge"}).status_code == 422

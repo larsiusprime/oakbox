@@ -1,6 +1,7 @@
 /** Every user-facing string lives here (SPEC D13), so a missing key is a type error. */
 export const t = {
   appTitle: "OAK box",
+  zoomLevel: (percent: number) => `${percent}%`,
   tagline: "OpenAVMKit in a box",
 
   home: {

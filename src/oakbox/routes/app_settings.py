@@ -20,7 +20,11 @@ class Display(BaseModel):
     density: Literal["default", "compact"] | None = Field(
         default=None, description="None: default. Compact: a Windows 2000 dialog's density."
     )
-    large_text: bool = False
+    zoom: int = Field(default=100, description="Text and layout size, in percent.")
+
+
+class ZoomStep(BaseModel):
+    by: Literal[-1, 0, 1] = Field(description="A level larger (1) or smaller (-1), or actual size (0).")
 
 
 class AppSettingsView(BaseModel):
@@ -42,16 +46,26 @@ def _settings_view() -> AppSettingsView:
     return AppSettingsView(
         storage_location=str(appsettings.storage_location()),
         default_storage_location=str(appsettings.default_storage()),
-        display=Display(density=s.density, large_text=s.large_text),
+        display=Display(density=s.density, zoom=s.zoom),
     )
 
 
 @router.put("/api/app-settings/display")
 def put_display(body: Display) -> AppSettingsView:
-    """Density and large text (SPEC D43, View menu)."""
+    """Density and zoom (SPEC D43, View menu)."""
     s = appsettings.load()
-    s.density, s.large_text = body.density, body.large_text
+    s.density, s.zoom = body.density, appsettings.AppSettings(zoom=body.zoom).zoom
     appsettings.save(s)
+    return _settings_view()
+
+
+@router.post("/api/app-settings/zoom")
+def post_zoom(body: ZoomStep) -> AppSettingsView:
+    """A zoom level larger, smaller, or actual size (View menu, Ctrl+= / Ctrl+- / Ctrl+0, Ctrl+mouse wheel)."""
+    with appsettings.LOCK:
+        s = appsettings.load()
+        s.zoom = appsettings.zoom_step(s.zoom, body.by)
+        appsettings.save(s)
     return _settings_view()
 
 

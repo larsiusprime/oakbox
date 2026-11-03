@@ -9,7 +9,10 @@
   /* Plex covers Latin, Cyrillic and Greek; Noto picks up every other script. */
   --font: "IBM Plex Sans Variable", "IBM Plex Sans", "Noto Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", "Noto Sans Mono", Consolas, monospace;
-  --font-size: 14px;
+  --font-size: calc(
+    14px *
+    var(--zoom, 1)
+  ); /* View › Zoom (--zoom on <html>, set from the settings): everything in rem follows */
 
   --bg: #e8e8e8;
   --panel: #ffffff;
@@ -72,10 +75,6 @@
   --ctl-h: 1.75rem;
   --cell-y: 0.1rem;
   --pad: 0.5rem;
-}
-
-:root[data-text="large"] {
-  --font-size: 18px;
 }
 
 :root[data-density="compact"] {
@@ -5329,4 +5328,20 @@ table.tbl.dt > * > tr > :is(th, td) {
    inside the folder's 1px border, and stands its height + 1px above it). */
 .home-main > .panel:first-child:has(> .panel-head) {
   margin-top: var(--tab-h);
+}
+
+/* The zoom level, for a moment after it changes (View › Zoom, Ctrl+wheel): top right, under the lid. */
+.zoom-flash {
+  position: fixed;
+  top: 3.2rem;
+  right: 1.2rem;
+  z-index: 20;
+  padding: calc(0.25 * var(--sp)) calc(0.7 * var(--sp));
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  background: rgba(20, 14, 6, 0.82);
+  border-radius: var(--radius);
+  pointer-events: none;
 }

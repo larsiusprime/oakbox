@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate, type Route } from "./App";
 import { api, unwrap } from "./api/client";
@@ -11,6 +11,7 @@ import { t } from "./strings";
 export function AppMenus({ route }: { route: Route }) {
   const queryClient = useQueryClient();
   const [about, setAbout] = useState(false);
+  const [flash, setFlash] = useState<number | null>(null); // the zoom level, shown for a moment after it changes
   const settings = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => unwrap(await api.GET("/api/app-settings")),
@@ -22,9 +23,34 @@ export function AppMenus({ route }: { route: Route }) {
     const root = document.documentElement.dataset;
     if (display?.density === "compact") root.density = "compact";
     else delete root.density;
-    if (display?.large_text) root.text = "large";
-    else delete root.text;
+    document.documentElement.style.setProperty("--zoom", String((display?.zoom ?? 100) / 100));
   }, [display]);
+
+  // Show the level for a moment when it changes (not on opening the app).
+  const shown = useRef<number | null>(null);
+  useEffect(() => {
+    const z = display?.zoom;
+    if (z === undefined) return;
+    if (shown.current !== null && shown.current !== z) {
+      setFlash(z);
+      const timer = window.setTimeout(() => setFlash(null), 1200);
+      shown.current = z;
+      return () => window.clearTimeout(timer);
+    }
+    shown.current = z;
+  }, [display?.zoom]);
+
+  // Zoom in, out, or to actual size: one step at a time, in order (the wheel sends them fast).
+  const zoomQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const zoom = useCallback(
+    (by: -1 | 0 | 1) => {
+      zoomQueue.current = zoomQueue.current.then(async () => {
+        const view = unwrap(await api.POST("/api/app-settings/zoom", { body: { by } }));
+        queryClient.setQueryData(["app-settings"], view);
+      });
+    },
+    [queryClient],
+  );
 
   // Projects and New project say "OAK box"; a project sets its own title (ProjectScreen).
   useEffect(() => {
@@ -62,12 +88,39 @@ export function AppMenus({ route }: { route: Route }) {
   };
   useMenu(run);
 
+  // Ctrl+mouse wheel zooms, as in a browser (never the web view's own zoom): a step per notch, a trackpad's small
+  // movements added up to one.
+  useEffect(() => {
+    let sum = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      sum += e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+      if (Math.abs(sum) >= 50) {
+        zoom(sum < 0 ? 1 : -1);
+        sum = 0;
+      }
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [zoom]);
+
   // The web view has the keyboard, so the page handles the shortcuts the menus show, and passes
   // Alt (+ a letter) on to the Windows menu bar, as Windows would.
   useEffect(() => {
     let altAlone = false;
     const onKey = (e: KeyboardEvent) => {
       altAlone = e.key === "Alt" && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+      // Zoom: Ctrl+= or Ctrl++ (with or without Shift, as keyboards differ), Ctrl+-, Ctrl+0.
+      const by =
+        (e.ctrlKey || e.metaKey) && !e.altKey
+          ? ({ "=": 1, "+": 1, "-": -1, _: -1, "0": 0 } as const)[e.key]
+          : undefined;
+      if (by !== undefined) {
+        e.preventDefault();
+        zoom(by);
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
         const command = ({ n: "new-project", "1": "tab-metadata", "2": "tab-data" } as const)[e.key];
         if (command) {
@@ -92,9 +145,18 @@ export function AppMenus({ route }: { route: Route }) {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [zoom]);
 
-  return <About isOpen={about} onClose={() => setAbout(false)} />;
+  return (
+    <>
+      <About isOpen={about} onClose={() => setAbout(false)} />
+      {flash !== null && (
+        <output className="zoom-flash" aria-live="polite">
+          {t.zoomLevel(flash)}
+        </output>
+      )}
+    </>
+  );
 }
 
 function About({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

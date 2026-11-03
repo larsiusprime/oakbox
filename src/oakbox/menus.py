@@ -14,10 +14,9 @@ Commands the page carries out are sent to it (window.oakboxMenu, web/src/menu.ts
 from __future__ import annotations
 
 import json
-import threading
 import webbrowser
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from oakbox import appsettings, projects
@@ -70,6 +69,8 @@ def _recent(c: Context) -> list[Item]:
     return [Item(f"open-project:{pid}", f"&{i + 1} {name}") for i, (pid, name) in enumerate(c.recent)]
 
 
+ZOOM_STEPS = {"zoom-in": 1, "zoom-out": -1, "zoom-reset": 0}
+
 MENUS: tuple[Submenu, ...] = (
     Submenu(
         "&File",
@@ -92,7 +93,10 @@ MENUS: tuple[Submenu, ...] = (
                     Item("density-compact", "&Compact", radio=True, checked=lambda c: c.settings.density == "compact"),
                 ),
             ),
-            Item("large-text", "&Large text", checked=lambda c: c.settings.large_text),
+            None,
+            Item("zoom-in", "Zoom &in", "Ctrl+="),
+            Item("zoom-out", "Zoom &out", "Ctrl+-"),
+            Item("zoom-reset", "&Actual size", "Ctrl+0"),
         ),
     ),
     Submenu(
@@ -122,7 +126,6 @@ class Controller:
     set_title: Callable[[str], None]
     open_url: Callable[[str], Any] = webbrowser.open
     project_id: str | None = None
-    _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def context(self) -> Context:
         s = appsettings.load()
@@ -135,7 +138,7 @@ class Controller:
         self.set_title(title)
         self.project_id = project_id
         if project_id:
-            with self._lock:
+            with appsettings.LOCK:
                 s = appsettings.load()
                 s.recent = [project_id, *[p for p in s.recent if p != project_id]][:RECENT]
                 appsettings.save(s)
@@ -145,13 +148,13 @@ class Controller:
             self.close()
         elif command == "docs":
             self.open_url(OPENAVMKIT_DOCS)
-        elif command in ("density-default", "density-compact", "large-text"):
-            with self._lock:
+        elif command in ("density-default", "density-compact", *ZOOM_STEPS):
+            with appsettings.LOCK:
                 s = appsettings.load()
                 if command.startswith("density-"):
                     s.density = command.removeprefix("density-")  # type: ignore[assignment]
                 else:
-                    s.large_text = not s.large_text
+                    s.zoom = appsettings.zoom_step(s.zoom, ZOOM_STEPS[command])
                 appsettings.save(s)
             self.send("display")  # the page re-reads the settings and restyles
         else:
