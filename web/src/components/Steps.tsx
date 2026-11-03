@@ -65,6 +65,8 @@ export function StepFrame({
   const open = steps.find((s) => s.key === current)?.parent ?? current;
   useFrame(listed, now, goTo);
   const page = landing ? t.landing.pages[landing] : undefined;
+  // Start goes to the next item in the list, the first step (not the one open, or the first not done).
+  const first = steps.find((s) => !s.disabled);
   return (
     <div className={wide && !showing ? "wiz wiz-wide" : "wiz"}>
       <ol className="wiz-steps">
@@ -103,8 +105,8 @@ export function StepFrame({
         {showing && page ? (
           <LandingPage
             page={page}
-            start={steps.find((s) => s.key === current)?.title ?? ""}
-            onStart={() => setOver(false)}
+            start={first?.title ?? ""}
+            onStart={() => (first ? goTo(first.key) : setOver(false))}
           />
         ) : (
           children

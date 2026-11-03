@@ -108,7 +108,8 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const list = <StepList steps={data.steps} current={landing ? OVERVIEW : current.key} go={go} />;
   const tabPage = L.fields;
   if (landing && tabPage) {
-    const first = seq.find((s) => s.key === opening) ?? current;
+    // Start goes to the list's next item, its first step, not to the first one not done.
+    const first = seq.find((s) => !s.parent) ?? current;
     return (
       <div className="wiz">
         {list}
