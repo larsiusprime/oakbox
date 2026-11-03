@@ -501,7 +501,7 @@ def lag_prune(settings: dict, universe) -> list[str]:
 
 def lag_settings(project, modeled: list[str], columns: list[str] | set[str]) -> dict:
     """data.process.enrich.spatial_lag: each modeled group averages its own sales and any it borrows; and only the
-    averages picked are worked out (`only`, OpenAVMKit's `engine/enrich-fixes`): the sales' prices as `sales`, the
+    averages picked are worked out (`only`, OpenAVMKit #414): the sales' prices as `sales`, the
     parcels' fields (OpenAVMKit's own picked, and the user's) as `fields`, the k nearest each (5 to start).
     `columns`: the prepared universe's, so a field it doesn't have isn't asked for."""
     lag = project.model.lag
