@@ -69,7 +69,7 @@ export function AppMenus({ route }: { route: Route }) {
     const onKey = (e: KeyboardEvent) => {
       altAlone = e.key === "Alt" && !e.ctrlKey && !e.metaKey && !e.shiftKey;
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
-        const command = ({ n: "new-project", "1": "tab-metadata", "2": "tab-files" } as const)[e.key];
+        const command = ({ n: "new-project", "1": "tab-metadata", "2": "tab-data" } as const)[e.key];
         if (command) {
           e.preventDefault();
           window.oakboxMenu?.(command);

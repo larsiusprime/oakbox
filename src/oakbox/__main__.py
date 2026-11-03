@@ -249,7 +249,7 @@ def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str])
         check("File, View, Project, Help", tops == ["File", "View", "Project", "Help"], tops)
         check("File > New project… enabled", items.get(("File", "New project…")) == (True, False))
         check("Project > Metadata greyed out on Projects", items.get(("Project", "Metadata")) == (False, False))
-        check("View > Density > Compact checked", items.get(("View", "Density", "Compact")) == (True, True))
+        check("View > Density > Default checked", items.get(("View", "Density", "Default")) == (True, True))
 
         menu.click("File", "New project…")
         check("New project… opens the form", wait("location.hash", "#/new") == "#/new")
