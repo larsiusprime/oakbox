@@ -1174,15 +1174,15 @@
     "metadata": "Metadata",
     "inputFiles": "Input files",
     "fields": "Data",
-    "bring": "1 Bring in data",
-    "groups": "2 Model groups",
+    "bring": "1. Inputs",
+    "groups": "2. Model groups",
     "groupsLocked": "Press Looks right on Bring in data first",
-    "sales": "3 Check sales",
+    "sales": "3. Sales",
     "salesLocked": "Press Looks right on Model groups first",
-    "check": "4 Check my values",
-    "variables": "5 Variables",
-    "values": "6 Model values",
-    "report": "7 Report",
+    "check": "4. Evaluate",
+    "variables": "5. Variables",
+    "values": "6. Models",
+    "report": "7. Report",
     "reportLocked": "Press Looks right on Model values first",
     "modelsLocked": "Press Looks right on Variables › What changed first",
     "noValues": "No existing values to check: add them on Data › Existing values.",
@@ -2705,7 +2705,7 @@
       "metadata": {
         "kicker": "The project",
         "title": "Metadata",
-        "lede": "What the project is: where, for which tax year, and valued as of which date, set when it was made; and the money and measures every size, price and value is shown in.",
+        "lede": "This is where you set basic details concerning the project, such as the valuation date, the jurisdiction''s location, units, etc.",
         "happens": [
           "One page of facts about the project; the money and measures are saved as you change them.",
           "Every step reads these: the valuation date is the date sales are adjusted to, the units are how sizes are shown and written."
@@ -2721,8 +2721,8 @@
       },
       "fields": {
         "kicker": "Before step 1",
-        "title": "Data: describe your files",
-        "lede": "Everything OAK box values comes from your county''s own files. Here you add them, one kind at a time, and say what each column means. Nothing runs yet: each answer is checked as you give it, so problems show up now rather than halfway through a run.",
+        "title": "Data",
+        "lede": "Add your files and tell OAK box what''s in them.",
         "happens": [
           "You add the parcel file, then the sales, then anything else you have: buildings, deeds, permits, condo units, map layers.",
           "For each, you pick which column is the parcel ID, the price, the date, the finished area and so on. OAK box guesses first; you confirm or correct.",
