@@ -1,0 +1,5357 @@
+/*
+ * OAK box visual language: form follows function.
+ * Pressable things are raised and move when pressed; tracks are sunken; nothing
+ * else pretends to be physical, except the oak titlebar. Colour is never the only
+ * signal (icons + words). Panels are flat and edged, and never nest.
+ */
+
+:root {
+  /* Plex covers Latin, Cyrillic and Greek; Noto picks up every other script. */
+  --font: "IBM Plex Sans Variable", "IBM Plex Sans", "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "Noto Sans Mono", Consolas, monospace;
+  --font-size: 14px;
+
+  --bg: #e8e8e8;
+  --panel: #ffffff;
+  --panel-edge: #a5a5a5;
+  --head: #eaf1fa; /* table headings and highlighted rows: light blue */
+  --text: #1c1e20;
+  --muted: #565b61;
+  --rule: #d9d9d9;
+  --cell-line: #e2e4e6; /* every table's cell lines */
+  --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
+
+  --btn-top: #ffffff;
+  --btn-bottom: #dadada;
+  --btn-edge: #9a9a9a;
+  --btn-text: #1c1e20;
+  --primary-top: #4a86d8;
+  --primary-bottom: #2c62b4;
+  --primary-edge: #1f4b8e;
+  --focus: #1f6fe0;
+  --link: #1d5bb8;
+
+  --well: #e3e3e3;
+  --well-edge: #a3a6aa;
+  --fill-top: #5b95e3;
+  --fill-bottom: #2f68ba;
+
+  --ok: #1b6a32;
+  --warn: #8a4b00;
+  --bad: #a3231b;
+  --active: #1f4b8e;
+  /* The background and edge of a box, a pill or a row that says ok, warn, bad or info; a selected or hovered row. */
+  --ok-tint: #e7f5ec;
+  --ok-edge: #a6d8b8;
+  --warn-tint: #fff4e0;
+  --warn-edge: #f0c78a;
+  --bad-tint: #fde8e8;
+  --bad-edge: #f3b4b4;
+  --info-tint: #eef3fb;
+  --info-edge: #b9cdee;
+  --select: #dce9fd;
+
+  /* The box's inside (D21): Manila folders, creamy but still Manila, and white paper on them. */
+  --manila: #f8f0d4;
+  --manila-back: #efe3bd; /* a folder's tab behind the open one */
+  --manila-edge: #c8b277;
+  --manila-ink: #4a3b1c;
+  --paper: #ffffff;
+  --paper-edge: #d8d2c0;
+  --paper-rule: #e6e1d3;
+  --paper-shadow: 0 1px 1px rgba(70, 55, 20, 0.16), 0 3px 8px rgba(70, 55, 20, 0.12);
+  --folder-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --rim: 8px; /* the frame's sides and bottom */
+  --radius: 4px;
+  --btn-radius: 4px;
+  /* Density (D43): compact by default; comfortable on touch screens or when chosen. */
+  --ctl-h: 1.75rem;
+  --cell-y: 0.1rem;
+  --pad: 0.5rem;
+}
+
+:root[data-text="large"] {
+  --font-size: 18px;
+}
+
+:root[data-density="comfortable"] {
+  --ctl-h: 2.6rem;
+  --cell-y: 0.3rem;
+  --pad: 0.9rem;
+}
+
+@media (pointer: coarse) {
+  :root:not([data-density="compact"]) {
+    --ctl-h: 2.6rem;
+    --cell-y: 0.3rem;
+    --pad: 0.9rem;
+  }
+}
+
+:root[data-contrast="high"] {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-edge: #000000;
+  --head: #ffffff;
+  --text: #000000;
+  --muted: #222222;
+  --btn-edge: #000000;
+  --rule: #000000;
+  --cell-line: #000000;
+  --zebra: #ffffff;
+  --ok-tint: #ffffff;
+  --ok-edge: #000000;
+  --warn-tint: #ffffff;
+  --warn-edge: #000000;
+  --bad-tint: #ffffff;
+  --bad-edge: #000000;
+  --info-tint: #ffffff;
+  --info-edge: #000000;
+  --select: #ffe97a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  /* Values and column names come from the user's files, and some are hundreds of characters with no space (a
+     county export's "#####…", say): a word too long for its box breaks rather than widening the box, its
+     dialog or the page. Not in tables, whose columns would then be squeezed to a letter or two: values in
+     tables are cut short instead (short() in lib/format.ts, .clip, .rc-td). */
+  overflow-wrap: anywhere;
+}
+
+table {
+  overflow-wrap: break-word;
+}
+
+/* One line, cut with an ellipsis at the width given (the full value in its title). For values from a file. */
+.clip {
+  display: block;
+  max-width: var(--clip, 32ch);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+a {
+  color: var(--link);
+}
+
+/* ---------- The box (D21): the lid, the frame, the boards inside ---------- */
+
+/* The inside: dark oak boards (assets/oak-planks.svg), still as the page scrolls. */
+html,
+body {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 220, 170, 0.05), rgba(0, 0, 0, 0.25) 90%),
+    url("./assets/oak-planks.svg") 0 0 / 2400px 880px repeat,
+    #3a2818;
+  background-attachment: fixed;
+}
+
+/* The lid: polished oak with the plate on it (OakBand), full width, staying at the top as the page scrolls. Above
+   the frame's sides (they butt flat against its underside), below dialogs and popovers. */
+.oak-nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  /* full width: out to the window's edges, over the page's top padding */
+  /* below it, the same gap as at the sides: the page's side padding less the frame */
+  margin: -0.6rem calc(-0.9rem - 5px) calc(0.9rem + 5px - var(--rim));
+  padding: 0.55rem calc(0.9rem + 5px);
+  border-bottom: 1px solid #4a2e15;
+  box-shadow:
+    0 1px 0 rgba(255, 240, 215, 0.35) inset,
+    0 3px 8px rgba(0, 0, 0, 0.55);
+  background:
+    /* varnish: a soft highlight up top, a little depth below */
+    linear-gradient(
+      to bottom,
+      rgba(255, 248, 235, 0.3),
+      rgba(255, 248, 235, 0.06) 42%,
+      rgba(60, 30, 5, 0.04) 58%,
+      rgba(60, 30, 5, 0.2)
+    ),
+    /* the oak itself: flat-sawn grain that tiles across (assets/oak-h.svg) */ url("./assets/oak-h.svg") 0 50%
+    / 1280px max(120px, 100%) repeat-x,
+    linear-gradient(to bottom, #d1a26b, #b98450 60%, #a8723f);
+}
+/* A project's tabs: the same gap under the lid as at the sides (the grid's gap counted in). */
+.project > .oak-nav {
+  margin-bottom: calc(0.9rem + 5px - var(--rim) - 0.5rem);
+}
+
+/* The frame (OakFrame): pinned to the window's edges, so it stretches with it; over the page, never in the way. */
+.rim > div {
+  position: fixed;
+  z-index: 4;
+  pointer-events: none;
+}
+.rim-l,
+.rim-r {
+  top: 0;
+  bottom: 0;
+  width: var(--rim);
+  background-color: #b98450;
+  background-size: 60px 640px;
+  background-repeat: repeat-y;
+}
+/* The sides: grain running down (assets/oak-v.svg), mitred at the bottom. */
+.rim-l {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--rim)), 0 100%);
+  background-image:
+    linear-gradient(to right, rgba(255, 248, 235, 0.25), rgba(60, 30, 5, 0.18)), url("./assets/oak-v.svg");
+}
+.rim-r {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--rim)));
+  background-position: 0 -333px;
+  background-image:
+    linear-gradient(to left, rgba(255, 248, 235, 0.25), rgba(60, 30, 5, 0.18)), url("./assets/oak-v.svg");
+}
+/* The bottom rail: grain running across, mitred at both ends. */
+.rim-b {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--rim);
+  clip-path: polygon(0 100%, var(--rim) 0, calc(100% - var(--rim)) 0, 100% 100%);
+  background:
+    linear-gradient(rgba(255, 248, 235, 0.2), rgba(60, 30, 5, 0.25)),
+    url("./assets/oak-h.svg") -300px 50% / 640px 60px repeat-x,
+    #b98450;
+}
+/* The mitres: a hairline along each joint, inner top corner to outer bottom corner (a corner-to-corner gradient's
+   midline runs between the other two corners, so "to bottom right" draws it bottom-left to top-right). */
+.rim-jl,
+.rim-jr {
+  bottom: 0;
+  width: var(--rim);
+  height: var(--rim);
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.6px),
+    rgba(40, 20, 5, 0.75) 50%,
+    transparent calc(50% + 0.6px)
+  );
+}
+.rim-jl {
+  left: 0;
+}
+.rim-jr {
+  right: 0;
+  transform: scaleX(-1);
+}
+/* Where the frame meets the boards: a dark seam, the boards a touch shaded under it; and its outer edge, lit. */
+.rim-in {
+  top: 0;
+  left: var(--rim);
+  right: var(--rim);
+  bottom: var(--rim);
+  box-shadow:
+    0 0 0 1px rgba(25, 12, 3, 0.85),
+    inset 0 0 10px rgba(0, 0, 0, 0.35);
+}
+.rim-out {
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(60, 35, 12, 0.9),
+    inset 0 0 0 2px rgba(255, 240, 215, 0.3);
+}
+
+/*
+ * The nameplate: brushed metal fixed to the oak, so the name never sits on a dark
+ * ring. It links home, so it is slightly raised and presses in like a button.
+ */
+:root {
+  --plate-hi: #f5e7b4;
+  --plate-mid: #d6b86e;
+  --plate-lo: #a98a42;
+  --plate-edge: #6a5220;
+  --plate-text: #2a1d06;
+}
+
+.plate {
+  cursor: default;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.3rem 1.75rem;
+  text-decoration: none;
+  color: var(--plate-text);
+  border: 1px solid var(--plate-edge);
+  border-radius: 3px;
+  background:
+    /* brushing: fine horizontal scratches */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='60'%3E%3Cfilter id='b' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.8' numOctaves='2' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 -0.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E")
+    0 0 / 600px 60px,
+    /* polish: a bright band above centre, shade below */
+    linear-gradient(to bottom, var(--plate-hi), var(--plate-mid) 55%, var(--plate-lo));
+  /* a thin sheet screwed flat to the wood, lit from above: bevel catches the light
+     on top, a crisp contact shadow, and a short soft one */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    0 1px 1px rgba(30, 15, 0, 0.45),
+    0 2px 5px rgba(30, 15, 0, 0.2);
+  /* engraved: a light edge below each cut */
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* two slotted screws */
+.plate::before,
+.plate::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.25rem;
+  border-radius: 50%;
+  background:
+    linear-gradient(55deg, transparent 40%, rgba(0, 0, 0, 0.5) 40% 60%, transparent 60%),
+    radial-gradient(circle at 35% 30%, var(--plate-hi), var(--plate-lo) 75%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.plate::before {
+  left: 0.5rem;
+}
+
+.plate::after {
+  right: 0.5rem;
+  transform: rotate(70deg);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  font-size: 1.1rem;
+  /* Plex's capitals sit centred in a 1em line box, on the screws' centreline */
+  line-height: 1;
+}
+
+.wordmark-strong {
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.wordmark-light {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* an engraved rule between the name and what it is */
+.plate-rule {
+  width: 2px;
+  height: 1.2rem;
+  border-left: 1px solid rgba(0, 0, 0, 0.35);
+  border-right: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+:root[data-contrast="high"] .oak-nav {
+  background: #000000;
+  box-shadow: none;
+}
+
+/* High contrast: no wood, no Manila; plain black round white sheets. */
+:root[data-contrast="high"] body,
+:root[data-contrast="high"] html {
+  background: #000000;
+}
+:root[data-contrast="high"] .rim {
+  display: none;
+}
+:root[data-contrast="high"] {
+  --manila: #ffffff;
+  --manila-back: #ffffff;
+  --manila-edge: #000000;
+  --paper-edge: #000000;
+}
+
+:root[data-contrast="high"] .plate {
+  color: #ffffff;
+  background: #000000;
+  border-color: #ffffff;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+:root[data-contrast="high"] .plate::before,
+:root[data-contrast="high"] .plate::after {
+  display: none;
+}
+
+/* ---------- Layout ---------- */
+
+.content {
+  margin: 0 auto;
+  /* clear of the frame's sides and bottom */
+  padding: 0.6rem calc(0.9rem + 5px) calc(1.5rem + var(--rim));
+}
+
+.home {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* ---------- Panels and rows ---------- */
+
+/* A panel without a heading is a sheet of paper; with one, a Manila folder whose tab is its heading, the sheets in
+   it on paper (D21). */
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: var(--paper-shadow);
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding: 0.45rem var(--pad) 0.35rem;
+}
+
+.panel-head h1 {
+  font-size: 1.15rem;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: var(--cell-y) var(--pad);
+  border-top: 1px solid var(--rule);
+  min-height: calc(var(--ctl-h) + 0.25rem);
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.row-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+a.row-title {
+  text-decoration: none;
+}
+
+a.row-title:hover {
+  text-decoration: underline;
+}
+
+.row-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 0 var(--pad) var(--pad);
+  margin: 0;
+}
+
+/* ---------- Buttons: raised, and visibly pressed ---------- */
+
+.button {
+  font: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: var(--ctl-h);
+  padding: 0 0.85rem;
+  color: var(--btn-text);
+  background: #efefed;
+  border: 1px solid #505357;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8e9195,
+    inset 2px 2px 0 #f6f6f4,
+    inset -2px -2px 0 #b9bbbe;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: none;
+}
+
+/* Add something (components/AddButton.tsx): on its own line, as wide as its words. */
+.add-button {
+  justify-self: start;
+  align-self: start;
+}
+
+.button[data-hovered] {
+  background: #f7f7f5;
+}
+
+.button[data-pressed] {
+  background: #e0e0de;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff,
+    inset 2px 2px 0 #b9bbbe;
+  transform: translate(1px, 1px);
+}
+
+.button[data-focus-visible] {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.button[data-disabled] {
+  cursor: default;
+  color: var(--muted);
+  background: #ececea;
+  border-color: #b9bbbe;
+  box-shadow: inset 1px 1px 0 #ffffff;
+  transform: none;
+}
+
+.button-primary {
+  color: #ffffff;
+  background: #2f6bc0;
+  border-color: #0f2f5c;
+  text-shadow: none;
+  box-shadow:
+    inset 1px 1px 0 #82b0ee,
+    inset -1px -1px 0 #173f78,
+    inset 2px 2px 0 #4d84d2,
+    inset -2px -2px 0 #22559f;
+}
+
+.button-primary[data-hovered] {
+  background: #3a77cd;
+}
+
+.button-primary[data-pressed] {
+  background: #285ea9;
+  box-shadow:
+    inset 1px 1px 0 #173f78,
+    inset -1px -1px 0 #82b0ee,
+    inset 2px 2px 0 #22559f;
+}
+
+.button-primary[data-disabled] {
+  text-shadow: none;
+}
+
+/* ---------- Steps ---------- */
+
+.step {
+  align-items: flex-start;
+}
+
+.step > .button {
+  margin-top: 0.1rem;
+}
+
+.step .progress {
+  margin-top: 0.35rem;
+}
+
+/* ---------- Status and verdicts: icon + word ---------- */
+
+.status,
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status svg,
+.mark svg {
+  flex: none;
+}
+
+.mark {
+  font-size: 0.8rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes stripes {
+  to {
+    background-position:
+      28px 0,
+      0 0;
+  }
+}
+
+.popover {
+  max-width: 22rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  font-size: 0.9rem;
+}
+
+.popover-body {
+  padding: 0.7rem 0.9rem;
+  outline: none;
+}
+
+/* ---------- Errors ---------- */
+
+.warning {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.error {
+  color: var(--bad);
+  font-weight: 600;
+  margin: 0.25rem 0 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-short {
+  width: 9rem;
+}
+
+.field-long {
+  width: min(100%, 28rem);
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.field-help {
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-width: 28rem;
+}
+
+.input {
+  font: inherit;
+  min-height: var(--ctl-h);
+  padding: 0 0.4rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--well-edge);
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
+}
+
+.input[data-focused] {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+  border-color: var(--focus);
+}
+
+.choice {
+  min-width: 14rem;
+}
+
+/* Every dropdown is a classic combo box: a sunken white field, like a text input, with a
+   bevelled arrow button inside its right edge (SPEC D43). Pick-lists and searchable lists alike. */
+.choice-button {
+  font: inherit;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: var(--ctl-h);
+  padding: 2px 2px 2px 0.5rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--well-edge);
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
+  cursor: pointer;
+  text-align: left;
+}
+
+.choice-button .choice-value {
+  align-self: center;
+}
+
+.combo-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: calc(var(--ctl-h) - 0.4rem);
+  padding: 0;
+  color: var(--text);
+  background: #efefed;
+  border: 1px solid #6f7276;
+  border-radius: 1px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #8e9195;
+  cursor: pointer;
+}
+
+.choice-button[data-hovered] .combo-arrow {
+  background: #f7f7f5;
+}
+
+.choice-button[data-pressed] .combo-arrow {
+  background: #e0e0de;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff;
+}
+
+.choice-button[data-focus-visible] {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.choice-value[data-placeholder] {
+  color: var(--muted);
+}
+
+.choice-popover {
+  min-width: var(--trigger-width);
+  max-height: 20rem;
+  overflow: auto;
+}
+
+.choice-list {
+  outline: none;
+  padding: 0.25rem 0;
+}
+
+.choice-item {
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.choice-item[data-focused] {
+  background: var(--head);
+}
+
+.choice-item[data-selected] {
+  font-weight: 600;
+}
+
+.checklist-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+}
+
+.tick,
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  min-height: var(--ctl-h);
+}
+
+.tick-box,
+.radio-dot {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 1px solid var(--well-edge);
+  border-radius: 3px;
+  box-shadow: none;
+  color: #ffffff;
+}
+
+.radio-dot {
+  border-radius: 50%;
+}
+
+.tick[data-selected] .tick-box {
+  background: linear-gradient(to bottom, var(--primary-top), var(--primary-bottom));
+  border-color: var(--primary-edge);
+  box-shadow: none;
+}
+
+.radio[data-selected] .radio-dot {
+  border: 0.32rem solid var(--primary-bottom);
+}
+
+.tick[data-focus-visible] .tick-box,
+.radio[data-focus-visible] .radio-dot {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.radios {
+  gap: 0.15rem;
+}
+
+/* ---------- Home: projects, settings, new project ---------- */
+
+/* The projects list: a name kept near its buttons, not stretched across a wide window (left, under the plate). */
+.home-main {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+  max-width: 52rem;
+}
+
+.panel-head .add-button {
+  margin-left: auto;
+}
+
+.row-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.settings-body {
+  margin: 0.2rem var(--pad) var(--pad);
+  padding: var(--pad);
+}
+
+.setting-line {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.setting-line > .mono {
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.narrow {
+  max-width: 44rem;
+}
+
+.form-panel {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.8rem var(--pad);
+}
+
+.form-panel > .row-meta {
+  margin: 0;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.button-danger {
+  color: #ffffff;
+  background: #b53a30;
+  border-color: #541510;
+  text-shadow: none;
+  box-shadow:
+    inset 1px 1px 0 #ea8a80,
+    inset -1px -1px 0 #6c1d17,
+    inset 2px 2px 0 #c95348,
+    inset -2px -2px 0 #922b23;
+}
+
+.button-danger[data-hovered] {
+  background: #c1453b;
+}
+
+.button-danger[data-pressed] {
+  background: #a1332a;
+  box-shadow:
+    inset 1px 1px 0 #6c1d17,
+    inset -1px -1px 0 #ea8a80,
+    inset 2px 2px 0 #922b23;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  /* The column is the screen's width, never the content's: a long value can't push the dialog off screen. */
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 1rem;
+  background: rgba(20, 22, 24, 0.45);
+}
+
+/* A dialog that blocks the screen is part of the box, not the papers (D21): a light oak frame, its title on a brass
+   plate on the frame (no text on bare wood), what it says on one sheet of white paper inside. */
+.modal {
+  width: min(100%, 34rem);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 0 9px 9px;
+  border: 1px solid #4a2e15;
+  border-radius: 4px;
+  background:
+    linear-gradient(rgba(255, 248, 235, 0.22), rgba(60, 30, 5, 0.18)),
+    url("./assets/oak-h.svg") 0 0 / 1280px 120px repeat,
+    #b98450;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 215, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  outline: none;
+}
+
+.modal-body p {
+  margin: 0;
+}
+
+.modal-title {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 1.25rem;
+}
+
+.fact {
+  display: contents;
+}
+
+.fact dt {
+  color: var(--muted);
+}
+
+.fact dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ---------- Project view: one tabbed panel (F3) ---------- */
+
+.project {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* Tables and other elements use all the width; running text is capped for reading. */
+.project p {
+  max-width: 62rem;
+}
+
+/* The project is one Manila folder lying in the box, its tabs along its top edge, on the wood. */
+.folder-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: -1px; /* the open tab runs into its folder: no edge between them */
+}
+
+.folder-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--manila-edge);
+  border-radius: 7px 7px 0 0;
+  background: var(--manila-back);
+  color: var(--manila-ink);
+  cursor: default;
+  outline: none;
+}
+
+/* Tabs touch: each shares its left edge with the one before, and the first is flush with the panel. */
+.folder-tab + .folder-tab {
+  margin-left: -1px;
+}
+
+.folder-tab[data-selected] {
+  position: relative; /* its edges sit over its neighbours' */
+  background: var(--manila);
+  border-bottom-color: var(--manila);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.folder-tab[data-hovered]:not([data-selected]):not([data-disabled]) {
+  color: var(--text);
+}
+
+.folder-tab[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+
+.folder-tab[data-disabled] {
+  background: #e9dcb4;
+  color: #8a7650;
+  min-width: 3.5rem;
+  justify-content: center;
+}
+
+.tab-icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.folder-panel {
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-radius: 0 5px 5px 5px;
+  box-shadow: var(--folder-shadow);
+  padding: var(--pad);
+  min-height: 6rem;
+  outline: none;
+}
+
+.folder-panel[data-focus-visible] {
+  outline: 2px solid var(--focus);
+}
+
+.folder-path {
+  margin-right: 0.75rem;
+  font-weight: 400;
+}
+
+.fact dd .button {
+  vertical-align: middle;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.samples {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.add-file {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--head);
+}
+
+/* The picked file: label and pills above a fixed-width path, so the buttons never move. */
+.pick-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.pick-file {
+  display: grid;
+  gap: 0.25rem;
+  width: min(100%, 34rem);
+}
+
+.pick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+}
+
+.pills {
+  display: flex;
+  gap: 0.35rem;
+}
+
+/* The one pill: a short word or mark in a rounded box, grey unless it says ok, warn, bad or info (and never by
+ * colour alone: it says so in its mark or word). */
+.pill {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--zebra);
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.pill + .pill {
+  margin-left: 0.25rem;
+}
+.pill-ok {
+  background: var(--ok-tint);
+  border-color: var(--ok-edge);
+  color: var(--ok);
+}
+.pill-warn {
+  background: var(--warn-tint);
+  border-color: var(--warn-edge);
+  color: var(--warn);
+}
+.pill-bad {
+  background: var(--bad-tint);
+  border-color: var(--bad-edge);
+  color: var(--bad);
+}
+.pill-info {
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+  color: var(--link);
+}
+
+.path-box {
+  display: block;
+  box-sizing: border-box;
+  height: var(--ctl-h);
+  line-height: calc(var(--ctl-h) - 2px);
+  padding: 0 0.4rem;
+  background: var(--head);
+  border: 1px solid var(--well-edge);
+  border-radius: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl; /* the "…" cuts the start of the path, so the file name stays visible */
+  text-align: left;
+  outline: none;
+}
+
+.path-box[data-focus-visible],
+.path-box:focus-visible,
+.tip-target:focus-visible {
+  outline: 3px solid var(--focus);
+}
+
+.tip-target {
+  display: inline-flex;
+  outline: none;
+}
+
+.tooltip {
+  max-width: 24rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.85rem;
+  color: #ffffff;
+  background: #2a2d31;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  overflow-wrap: anywhere;
+}
+
+.tooltip-arrow svg {
+  display: block;
+  fill: #2a2d31;
+}
+
+.tooltip[data-placement="bottom"] .tooltip-arrow svg {
+  transform: rotate(180deg);
+}
+
+.choice-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 2.5rem;
+}
+
+.choice-column {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.already {
+  min-height: 2.4rem;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.file-choices {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+}
+
+.file-choices p {
+  margin: 0;
+}
+
+/* ---------- Print: just the content, black on white ---------- */
+
+@media print {
+  :root {
+    --font-size: 10.5pt;
+    --bg: #ffffff;
+    --muted: #333333;
+    --rule: #999999;
+    --panel-edge: #666666;
+    --head: #ffffff;
+  }
+
+  .oak-nav,
+  .rim,
+  .button {
+    display: none;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  .content {
+    max-width: none;
+    padding: 0;
+  }
+
+  .panel {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
+/* ---------- F3d: the Fields wizard ---------- */
+
+/* A step frame inside a folder: its list of steps lies on the Manila; the step itself is a sheet of paper on it. */
+.wiz {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: 0.6rem;
+  min-height: 25rem;
+}
+
+.wiz-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0;
+  font-size: 0.92rem;
+}
+
+.wiz-step button {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.16rem 0.75rem 0.16rem 0.6rem;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.wiz-step .n {
+  flex: none;
+  width: 1.3rem;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wiz-step.done .n {
+  color: var(--ok);
+}
+
+.wiz-step.sub button {
+  padding-left: 2.25rem;
+  font-size: 0.88rem;
+}
+
+.wiz-step.now button {
+  color: #ffffff;
+  font-weight: 600;
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+}
+
+.wiz-step.now .n {
+  color: #ffffff;
+}
+
+.wiz-step button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.wiz-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: var(--paper-shadow);
+}
+
+.wiz-body {
+  flex: 1;
+  padding: 0.8rem 1.1rem;
+}
+
+.wiz-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wiz-q {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.wiz-lede {
+  margin: 0 0 0.8rem;
+  max-width: 46rem;
+  color: var(--muted);
+}
+
+.wiz-sub {
+  margin: 0.9rem 0 0.35rem;
+  font-size: 1rem;
+}
+
+.wiz-grid {
+  display: grid;
+  grid-template-columns: 12rem 16rem minmax(0, 1fr);
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+  max-width: 56rem;
+}
+
+.wiz-label {
+  font-weight: 600;
+}
+
+.wiz-label small {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.wiz-choice .choice-button {
+  width: 100%;
+}
+
+/* The check line beside a field: wraps rather than hiding the end (its values are behind "N values"). */
+.wiz-samples {
+  font-size: 0.88rem;
+}
+
+.wiz-from,
+.wiz-none {
+  color: var(--muted);
+}
+
+.wiz-ok {
+  color: var(--ok);
+}
+
+.wiz-bad {
+  color: var(--bad);
+}
+.wiz-warn {
+  color: var(--warn);
+}
+
+.wiz-note {
+  margin: 0.8rem 0 0;
+  max-width: 46rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.wiz-more,
+.wiz-link {
+  padding: 0;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--link);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.wiz-more {
+  margin-top: 0.6rem;
+}
+
+/* Greyed until the step is done, but still clickable: it explains what's left. */
+.button.is-gated {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.wiz-left {
+  margin: 0;
+  padding: 0 1.1rem 0.45rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.wiz-unfinished {
+  width: min(100%, 30rem);
+}
+
+.wiz-left-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.wiz-unfinished-actions {
+  justify-content: flex-end;
+}
+
+.wiz-foot {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  background: var(--paper);
+  border-top: 1px solid var(--paper-rule);
+}
+
+.wiz-grow {
+  flex: 1;
+}
+
+.wiz-table .choice {
+  min-width: 0;
+}
+
+.wiz-table .choice-button {
+  width: 9.5rem;
+}
+
+.wiz-section-head {
+  padding: 0.3rem 0.6rem 0.1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-top: 1px solid var(--cell-line);
+}
+
+.wiz-popover {
+  max-width: 26rem;
+}
+
+.wiz-item {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-left: 1.1rem;
+}
+
+.wiz-item > .mono {
+  flex: 0 0 auto;
+  max-width: 65%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wiz-item-note {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: right;
+  overflow: hidden;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.wiz-item[data-disabled] {
+  color: var(--muted);
+  cursor: default;
+}
+
+.wiz-problems {
+  margin: 0 0 0.6rem;
+  padding-left: 1.2rem;
+}
+
+.wiz-review {
+  width: 100%;
+  max-width: 40rem;
+  font-size: 0.92rem;
+}
+
+.wiz-review-head th {
+  padding: 0.45rem 0.4rem 0.15rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+
+.wiz-review td {
+  padding: 0.1rem 0.4rem;
+  border-bottom: 1px solid var(--cell-line);
+}
+
+.wiz-warn-title {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wiz-warn-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.wiz-welcome {
+  max-width: 44rem;
+}
+
+.wiz-welcome p {
+  margin: 0 0 0.6rem;
+}
+
+.wiz-pick {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.wiz-file {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+
+.wiz-file .wiz-link {
+  margin-left: 0.8rem;
+}
+
+.wiz-pair {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.wiz-pair .choice {
+  min-width: 0;
+  flex: 1;
+}
+
+.wiz-rule {
+  margin: 0.8rem 0;
+  border: 0;
+  border-top: 1px solid var(--cell-line);
+}
+
+.wiz-elsewhere {
+  font-style: italic;
+  border-top: 1px solid var(--cell-line);
+}
+
+.wiz-modal {
+  width: min(100%, 40rem);
+}
+
+.wiz-grid-dialog {
+  grid-template-columns: 9rem 16rem minmax(0, 1fr);
+}
+
+.wiz-group {
+  grid-column: 1 / -1;
+  margin: 0.2rem 0 -0.2rem;
+  font-size: 1rem;
+}
+
+.wiz-in-group {
+  padding-left: 1.1rem;
+  font-weight: 400;
+}
+
+.wiz-caution {
+  color: var(--warn);
+}
+
+.wiz-inline-icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.12em;
+}
+
+.wiz-resolve {
+  margin-left: 0.6rem;
+}
+
+.wiz-modal-wide {
+  width: min(100%, 52rem);
+}
+
+.wiz-dupes-table {
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.wiz-indent {
+  margin: 0 0 0.3rem 1.6rem;
+}
+
+.wiz-review-ids {
+  margin-bottom: 0.4rem;
+}
+
+.wiz-check-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  white-space: normal;
+}
+
+.wiz-result {
+  color: var(--text);
+}
+
+.wiz-issues {
+  font-size: 0.86rem;
+}
+
+.wiz-sep {
+  color: var(--muted);
+}
+
+.wiz-resolved {
+  color: var(--ok);
+}
+
+.wiz-blocking {
+  color: var(--bad);
+}
+
+.wiz-section-head-row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.wiz-section-head-row .wiz-sub {
+  margin: 0.2rem 0;
+}
+
+/* The call to action in a dialog: set apart so it isn't missed. */
+.wiz-act {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-left: 4px solid var(--link);
+}
+
+.wiz-act-label {
+  font-weight: 700;
+}
+
+.wiz-body > .add-button,
+.wiz-body > span > .add-button {
+  margin-top: 0.5rem;
+}
+
+.wiz-step-icon {
+  width: 0.95em;
+  height: 0.95em;
+  vertical-align: -0.1em;
+}
+
+/* The add-file panel's Import sits on the right, like the wizard's Next, so it isn't skipped. */
+.add-file .form-actions {
+  justify-self: stretch;
+  justify-content: flex-end;
+}
+
+/* ---------- Reconcile (F3d): clean up IDs so the sales find their parcels ---------- */
+
+.wiz-cleaned {
+  color: var(--muted);
+}
+
+.rc {
+  width: min(100%, 62rem);
+}
+
+.rc-body {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.rc-sub,
+.rc-suggest,
+.rc-same {
+  margin: 0;
+}
+
+.rc-sub,
+.rc-same {
+  color: var(--muted);
+}
+
+.rc-meter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-meter b {
+  font-size: 1.15rem;
+}
+
+.rc-meter.bad b {
+  color: var(--bad);
+}
+
+.rc-meter.ok b {
+  color: var(--ok);
+}
+
+.rc-was {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.rc-samplebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.rc-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-seg-btn {
+  padding: 0.1rem 0.55rem;
+  font: inherit;
+  font-size: 0.82rem;
+  background: var(--panel);
+  border: 0;
+  cursor: pointer;
+}
+
+.rc-seg-btn[aria-pressed="true"] {
+  color: #ffffff;
+  background: var(--active);
+}
+
+.rc-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 0.8rem;
+}
+
+.rc-card {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.rc-caption {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.rc-steps {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-steps li {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.9rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-radius: var(--radius);
+}
+
+.rc-steps li.rc-none {
+  color: var(--muted);
+  background: none;
+  border-style: dashed;
+  border-color: var(--rule);
+}
+
+.rc-n {
+  width: 1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.rc-grow {
+  flex: 1;
+}
+
+.rc-mini {
+  display: inline-block;
+}
+
+.rc-input {
+  padding: 0 0.25rem;
+  font-family: var(--mono);
+}
+
+.rc-x {
+  display: inline-flex;
+  padding: 0.1rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.rc-menu {
+  min-width: 17rem;
+}
+
+.rc-menu-item small {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.rc-tbl {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.rc-th {
+  padding: 0.15rem 0.3rem;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+}
+
+.rc-td {
+  max-width: 32ch;
+  padding: 0.12rem 0.3rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--cell-line);
+}
+
+.rc-arrow,
+.rc-m {
+  font-family: var(--font);
+}
+
+.rc-arrow,
+.rc-dim {
+  color: var(--muted);
+}
+
+.rc-hit {
+  color: var(--ok);
+}
+
+.rc-miss {
+  color: var(--bad);
+}
+
+.rc-writes {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.rc-writes pre {
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  color: var(--text);
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.rc-actions {
+  justify-content: flex-end;
+}
+
+/* ---------- Yes/no rules and date formats (F3d) ---------- */
+
+.rl {
+  width: min(100%, 46rem);
+}
+
+.rl-join {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rl-tests {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rl-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rl-input {
+  width: 12rem;
+  font-family: var(--mono);
+}
+
+/* Units, currency and number style under Metadata: editable in place (SPEC F1). */
+.facts-locale {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* An area column's unit, beside it (F3d). */
+.wiz-unit {
+  flex: 0 0 6.5rem;
+}
+
+.wiz-pair .choice-value {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wiz-another {
+  margin: 0 0 0.6rem;
+}
+
+/* More files (F3d): a card per file. */
+.wiz-extra {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.wiz-holds {
+  margin: 0;
+}
+
+/* Location step (F3d): coordinates, the map, the user's location fields. */
+.wiz-section {
+  margin: 1rem 0 0;
+}
+
+.wiz-auto {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.wiz-map {
+  isolation: isolate;
+  height: 18rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.wiz-pin span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: var(--bad);
+  border: 2px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transform: rotate(-45deg);
+}
+
+.wiz-loc {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.6rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.wiz-loc-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+.wiz-map-toggle {
+  justify-self: start;
+  margin: 0 0 0.5rem;
+}
+
+.wiz-num {
+  width: 6rem;
+}
+
+/* F3d: how to read money written as text */
+.nm-opts {
+  flex-wrap: wrap;
+  row-gap: var(--space-2, 0.5rem);
+}
+.nm-warn {
+  color: var(--warn, var(--warn));
+}
+.nm-raw {
+  white-space: pre;
+}
+.rl-adds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* F3d: quality and condition */
+.qc {
+  width: min(100%, 62rem);
+}
+.qc-num {
+  width: 3.6rem;
+  text-align: right;
+}
+.qc-bar {
+  display: inline-block;
+  height: 0.6rem;
+  background: #9db7df;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+.qc-arrows {
+  white-space: nowrap;
+}
+.qc-move {
+  border: 0;
+  background: none;
+  padding: 0 0.15rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qc-move[data-disabled] {
+  opacity: 0.3;
+  cursor: default;
+}
+.qc-flag {
+  color: var(--warn, var(--warn));
+  font-size: 0.8rem;
+}
+.qc-radio {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.qc-pick {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.qc-radio li.on .qc-pick {
+  border-color: #7fa3d9;
+  background: var(--info-tint);
+}
+.qc-radio .dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1px solid var(--panel-edge);
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  top: 0.1rem;
+  flex: none;
+}
+.qc-radio li.on .dot {
+  background: radial-gradient(#1d5bb8 45%, #fff 50%);
+  border-color: var(--link);
+}
+.qc-radio small {
+  color: var(--muted);
+}
+.qc-radio .tag {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--ok);
+  white-space: nowrap;
+}
+.qc-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+/* Step 1, Bring in data */
+.bi {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem 1.1rem;
+}
+
+.bi-lede {
+  margin: 0;
+  color: var(--muted);
+  max-width: 52rem;
+}
+.bi-warn {
+  border: 1px solid var(--warn-edge);
+  background: var(--warn-tint);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+}
+.bi-card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  display: grid;
+  gap: 0.5rem;
+  background: var(--panel);
+}
+.bi-card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.bi-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.bi-head h3 {
+  flex: 1;
+}
+.bi-plan {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.bi-prog {
+  height: 0.8rem;
+  background: #e8e8e8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bi-prog i {
+  display: block;
+  height: 100%;
+  background: var(--link);
+  transition: width 0.4s;
+}
+.bi-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.bi-steps .done {
+  color: var(--ok);
+}
+.bi-steps .now {
+  font-weight: 600;
+}
+.bi-receipt {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.bi-funnels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 0.4rem 1.2rem;
+}
+/* A funnel: its lines share one grid (subgrid), the text column only as wide as the longest line, so "see them"
+   sits beside it, not at the far edge. */
+.bi-fn {
+  display: grid;
+  grid-template-columns: 1.2rem auto auto auto;
+  justify-content: start;
+  column-gap: 0.4rem;
+  row-gap: 0.1rem;
+  align-content: start;
+}
+.bi-fn > * {
+  grid-column: 1 / -1;
+}
+
+.bi-line {
+  display: grid;
+  grid-template-columns: 1.2rem 5rem 1fr auto;
+  gap: 0.4rem;
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+.bi-op {
+  color: var(--muted);
+  text-align: center;
+}
+.bi-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.bi-tot {
+  font-weight: 600;
+}
+.bi-rule {
+  border-top: 1px solid var(--rule);
+  padding-top: 0.15rem;
+}
+.bi-note {
+  margin: 0.15rem 0 0 6.6rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+/* The table every table of results is (and the lines and grey rows of :where(table) below): full width, its head
+ * quiet, its cells padded alike. A table's own class only adds what's its own. */
+.tbl {
+  width: 100%;
+  font-size: 0.86rem;
+}
+.tbl th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--rule);
+  padding: var(--cell-y) 0.35rem;
+}
+.tbl tr :where(td) {
+  padding: var(--cell-y) 0.35rem;
+  border-bottom: 1px solid var(--cell-line);
+  vertical-align: middle;
+}
+/* A row chosen (on), or one to look at (Quality and condition). */
+.tbl tr.on :where(td) {
+  background: var(--info-tint);
+}
+.tbl tr.qc-bad :where(td) {
+  background: var(--warn-tint);
+}
+.tbl tr.bi-grp :where(td) {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.78rem;
+  background: var(--zebra);
+}
+.bi-has {
+  white-space: nowrap;
+}
+.bi-src {
+  font-size: 0.8rem;
+}
+.bi-bar {
+  display: inline-block;
+  width: 4rem;
+  height: 0.55rem;
+  background: #e8e8e8;
+  border-radius: 2px;
+  position: relative;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+.bi-bar i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #7fa3d9;
+  border-radius: 2px;
+}
+.bi-details summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+.bi-details ul {
+  margin: 0.3rem 0 0 1.1rem;
+  padding: 0;
+  font-size: 0.86rem;
+}
+.bi-details pre {
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.55rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.bi-grow {
+  flex: 1;
+}
+.bi-rows {
+  width: min(96vw, 80rem);
+}
+.bi-pager {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.bi-pager a.button {
+  text-decoration: none;
+}
+.bi-scroll {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.bi-data th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+.bi-cell {
+  padding: 0.15rem 0.6rem;
+}
+
+/* ---------- Step 2, Model groups (SPEC §3.5) ---------- */
+.mg-pad {
+  padding: 0.8rem;
+}
+.mg-start {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.6rem 0.6rem 1rem;
+  max-width: 56rem;
+}
+.mg-start-q {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+}
+.mg-start-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+.mg-start-card {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  text-align: left;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.mg-start-card[data-hovered] {
+  border-color: var(--focus);
+  background: var(--info-tint);
+}
+.mg-start-card[data-disabled] {
+  cursor: default;
+  opacity: 0.65;
+}
+.mg-start-card span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.mg {
+  display: grid;
+  grid-template-columns: 17rem minmax(24rem, 1fr) minmax(26rem, 42%);
+  height: calc(100vh - 13.5rem);
+  min-height: 34rem;
+}
+.mg-full {
+  grid-template-columns: 17rem 1fr;
+}
+.mg-hidden {
+  grid-template-columns: 17rem 1fr;
+}
+.mg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.5rem;
+  border-right: 1px solid var(--rule);
+  overflow-y: auto;
+}
+.mg-h {
+  margin: 0 0.3rem 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mg-items {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mg-item {
+  display: flex;
+  align-items: flex-start;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  list-style: none;
+}
+.mg-item.sel {
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+}
+.mg-item-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.9rem 1fr;
+  gap: 0.05rem 0.45rem;
+  padding: 0.35rem 0.4rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mg-sw {
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-top: 0.2rem;
+  border-radius: 2px;
+}
+.mg-sw.big {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0;
+}
+.mg-nm {
+  font-weight: 600;
+}
+.mg-ct,
+.mg-item-main .mg-check {
+  grid-column: 2;
+  font-size: 0.8rem;
+}
+.mg-ct {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mg-check.ok {
+  color: var(--ok);
+}
+.mg-check.warn {
+  color: var(--warn);
+}
+.mg-check.bad {
+  color: var(--bad);
+}
+.mg-delta {
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  font-size: 0.75rem;
+  border-radius: 3px;
+}
+.mg-delta.up {
+  color: var(--ok);
+  background: var(--ok-tint);
+}
+.mg-delta.dn {
+  color: var(--bad);
+  background: var(--bad-tint);
+}
+.mg-order {
+  display: grid;
+  padding: 0.25rem 0.2rem 0 0;
+}
+.mg-arrow {
+  display: inline-flex;
+  padding: 0.1rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mg-arrow[data-disabled] {
+  opacity: 0.25;
+  cursor: default;
+}
+.mg-sep {
+  margin: 0.2rem 0;
+  border-top: 1px solid var(--rule);
+}
+.mg-adds,
+.mg-save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+.mg-save {
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+}
+.mg-saved {
+  color: var(--ok);
+  font-size: 0.85rem;
+}
+.mg-help {
+  margin: 0;
+  padding: 0 0.3rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.mg-ed {
+  min-width: 0;
+  padding: 0.7rem 0.9rem;
+  overflow-y: auto;
+}
+.mg-editor {
+  display: grid;
+  gap: 0.7rem;
+}
+.mg-ed-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.mg-name-input {
+  width: 18rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.mg-nth {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.mg-colours {
+  display: flex;
+  gap: 0.3rem;
+}
+.mg-colour {
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.mg-colour.on {
+  border-color: #111;
+}
+.mg-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+.mg-stats > div {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.mg-stat-n {
+  display: block;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+.mg-stat-l {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.mg-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.mg-card-h {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.mg-join {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 600;
+}
+.mg-conds {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mg-cond {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+/* A test of a yes/no rule on one line too (column, test, values, ×). */
+.rl-test .rl-head {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.2fr) minmax(7rem, 0.9fr) minmax(9rem, 2fr) auto;
+}
+.rl-test .choice {
+  min-width: 0;
+}
+/* A condition on one line (field, test, values, ×). */
+.mg-cond .rl-head {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1.4fr) minmax(6rem, 0.8fr) minmax(8rem, 2fr) auto;
+}
+.mg-cond .choice {
+  min-width: 0;
+}
+.mg-card-foot {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.mg-live {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.88rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-radius: var(--radius);
+}
+.mg-live-t {
+  color: var(--link);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+ul.mg-checks {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+  list-style: none;
+}
+.mg-ed-foot {
+  padding-top: 0.4rem;
+}
+.mg-showmap {
+  margin-top: 0.8rem;
+}
+.mg-map {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+  border-left: 1px solid var(--rule);
+}
+.mg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  background: var(--head);
+  border-bottom: 1px solid var(--rule);
+}
+.mg-grow {
+  flex: 1;
+}
+.mg-hint,
+.mg-hl {
+  color: var(--muted);
+}
+.seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--radius);
+}
+.seg-b {
+  padding: 0.05rem 0.5rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 0;
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+}
+.seg-b:last-child {
+  border-right: 0;
+}
+.seg-b.on {
+  font-weight: 600;
+  background: var(--select);
+}
+.seg-b[data-disabled] {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.6;
+}
+.mg-x {
+  display: inline-flex;
+  padding: 0.2rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mg-map-body {
+  position: relative;
+  min-height: 0;
+}
+.map-view.mg-mapview {
+  position: absolute;
+  inset: 0;
+  background: #eef0ea;
+}
+.mg-map-msg {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--muted);
+}
+.mg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  border-top: 1px solid var(--rule);
+}
+.mg-legend i {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.3rem;
+  vertical-align: -1px;
+  background: var(--panel);
+  border: 2px solid;
+  border-radius: 2px;
+}
+/* Each colour is a checkbox: filled when its parcels are shown, hollow when hidden. */
+.mg-key {
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.mg-key:not([data-selected]) {
+  color: var(--muted);
+}
+.mg-key[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.mg-pop {
+  position: absolute;
+  top: 2.6rem;
+  right: 0.6rem;
+  z-index: 1000;
+  display: grid;
+  gap: 0.35rem;
+  width: 23rem;
+  max-height: calc(100% - 5.5rem);
+  padding: 0.55rem 0.7rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.mg-pop-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.mg-pop-title {
+  flex: 1;
+  font-size: 0.95rem;
+}
+.mg-tag {
+  padding: 0 0.35rem;
+  color: var(--text);
+  font-size: 0.75rem;
+  border-radius: 3px;
+}
+.mg-pop-tbl {
+  width: 100%;
+}
+.mg-pop-k,
+.mg-pop-v {
+  padding: 0.08rem 0.25rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--cell-line);
+}
+.mg-pop-k {
+  width: 42%;
+  color: var(--muted);
+}
+.mg-pop-sub {
+  font-size: 0.82rem;
+}
+.mg-why,
+.mg-pop-sales {
+  display: grid;
+  gap: 0.12rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mg-why li {
+  display: grid;
+  grid-template-columns: 1.1rem 1fr;
+}
+.mg-why .no {
+  color: var(--muted);
+}
+.mg-why .yes {
+  font-weight: 600;
+}
+.mg-why .also {
+  color: var(--warn);
+}
+.mg-dim {
+  color: var(--muted);
+}
+.mg-ff {
+  width: min(52rem, 94vw);
+}
+.mg-ff-scroll {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.mg-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mg-ff-pick {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+.mg-ff-pick i {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+}
+
+/* ---------- A column's values, behind "N values ▾" ---------- */
+/* A field as its own name: the way into its details, on every row the same. */
+.fd-name {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.fd-name[data-hovered],
+.fd-name[data-focus-visible] {
+  text-decoration: underline;
+}
+.fd-icon {
+  flex: none;
+  opacity: 0.45;
+}
+.vals-button {
+  display: inline-flex;
+  margin-left: 0.4rem;
+  gap: 0.2rem;
+  align-items: center;
+  padding: 0 0.45rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--link);
+  white-space: nowrap;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.vals-button[data-hovered] {
+  border-color: var(--focus);
+}
+/* The popover is never taller than the room it has (react-aria sets its max-height): the list scrolls inside. */
+.vals-popover {
+  display: flex;
+  flex-direction: column;
+  width: 24rem;
+  max-width: 92vw;
+}
+.vals-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 0;
+  padding: 0.6rem 0.7rem;
+  overflow: hidden;
+  outline: none;
+}
+.vals-body > * {
+  flex: none;
+}
+.vals-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.vals-file {
+  color: var(--muted);
+  font-weight: 400;
+}
+.vals-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.vals-search-input {
+  width: 100%;
+}
+/* The list is the one part that shrinks. */
+.vals-body > .vals-scroll {
+  flex: 1 1 auto;
+  min-height: 4rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--rule);
+}
+.vals-sort {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.vals-sort:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.vals-n .vals-sort {
+  justify-content: flex-end;
+  width: 100%;
+}
+.vals-tbl {
+  width: 100%;
+  font-size: 0.85rem;
+}
+.vals-th {
+  position: sticky;
+  top: 0;
+  padding: 0.15rem 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  background: var(--panel);
+}
+.vals-td {
+  padding: 0.1rem 0.3rem;
+  border-bottom: 1px solid var(--cell-line);
+}
+.vals-v {
+  overflow-wrap: anywhere;
+}
+.vals-n {
+  position: relative;
+  isolation: isolate;
+  width: 6rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.vals-bar {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0;
+  z-index: -1;
+  background: var(--select);
+  border-radius: 2px;
+}
+
+/* Your own fields (Land use & building type): one table, the add row last. */
+.cf-tbl {
+  font-size: 0.9rem;
+}
+.cf-th {
+  padding: 0.15rem 0.5rem 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+.cf-td {
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--cell-line);
+}
+.cf-add-td {
+  padding-top: 0.5rem;
+  border-bottom: 0;
+}
+.cf-td .choice {
+  min-width: 9.5rem;
+}
+.cf-vals {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.cf-name-input {
+  width: 10rem;
+}
+
+/* ---------- Shapefiles: one compact card per map layer ---------- */
+.ly {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.ly-head,
+.ly-body,
+.ly-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.ly-name {
+  font-weight: 600;
+}
+.ly-grow {
+  flex: 1;
+}
+.ly-icon {
+  display: inline-flex;
+  padding: 0.2rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ly-icon[data-hovered],
+.ly-icon.on {
+  color: var(--text);
+  border-color: var(--rule);
+  background: var(--head);
+}
+.ly-left {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  list-style: none;
+}
+.ly-label {
+  color: var(--muted);
+}
+.ly-chip {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.05rem 0.2rem 0.05rem 0.5rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+.ly-kind {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  padding: 0 0.3rem;
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ly-kind[data-hovered] {
+  background: var(--info-tint);
+}
+.ly-x {
+  display: inline-flex;
+  padding: 0.1rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.ly-prefix {
+  margin-right: -0.4rem;
+}
+.ly-feature .ly-input {
+  width: 9rem;
+}
+.ly-max .ly-input {
+  width: 5rem;
+}
+.ly-unit .choice {
+  min-width: 6.5rem;
+}
+.ly-pop {
+  width: 20rem;
+}
+.ly-form {
+  display: grid;
+  gap: 0.5rem;
+}
+.ly-help {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.ab-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ab-sw {
+  display: inline-block;
+  margin: 0 0.4rem 0 0;
+  vertical-align: -1px;
+}
+.ab-unknown {
+  color: var(--muted);
+}
+.ab-h {
+  margin: 0.4rem 0 0;
+  font-size: 0.92rem;
+}
+.ab-files {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  list-style: none;
+}
+
+/* A number field's statistics, in the field detail popover. */
+.fd-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+  margin: 0;
+}
+.fd-stat {
+  padding: 0.15rem 0.3rem;
+  background: var(--head);
+  border-radius: var(--radius);
+}
+.fd-stat dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.fd-stat dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Pick several values in one line (a condition's values) ---------- */
+.mp-button {
+  display: inline-flex;
+  flex: 1 1 14rem;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 10rem;
+  min-height: var(--ctl-h);
+  padding: 0 0.4rem;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--well-edge);
+  border-radius: var(--radius);
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+.mp-text {
+  flex: 1;
+  overflow: hidden;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.mp-placeholder {
+  color: var(--muted);
+}
+.mp-popover {
+  width: 26rem;
+  max-width: 92vw;
+}
+.mp-body {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  outline: none;
+}
+.mp-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.mp-grow {
+  flex: 1;
+}
+.mp-list {
+  display: grid;
+  gap: 0.15rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.mp-value {
+  font-size: 0.85rem;
+}
+.mp-n {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.mp-noun {
+  font-size: 0.75rem;
+}
+
+/* ---------- A parcel file's rows without a shape, as units of a shared parcel (condos) ---------- */
+.un-offer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
+  border-radius: var(--radius);
+}
+/* ---------- Condo units: one decision per part, each choice a card (F3d condos) ---------- */
+.cu {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 46rem;
+  font-size: 0.92rem;
+}
+.cu-kinds ul,
+.cu-ev ul {
+  margin: 0.2rem 0 0.3rem;
+  padding-left: 1.1rem;
+}
+.cu-ev {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.88rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-radius: var(--radius);
+}
+.cu-ev p {
+  margin: 0.2rem 0 0;
+}
+.cu-choices {
+  display: grid;
+  gap: 0.4rem;
+}
+.cu-big {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+.radio.cu-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.radio.cu-choice .radio-dot {
+  margin-top: 0.2rem;
+}
+.radio.cu-choice[data-selected] {
+  background: var(--info-tint);
+  border-color: var(--primary-edge);
+}
+.cu-text {
+  display: grid;
+  gap: 0.1rem;
+}
+.cu-sub {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.cu-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+  margin: 0;
+}
+.cu-guess {
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.88rem;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
+  border-radius: var(--radius);
+}
+.cu-ex {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  list-style: none;
+}
+.cu-ex li {
+  padding: 0.12rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.cu-sum li {
+  margin: 0.2rem 0;
+}
+
+.un-rule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+
+.un-rules {
+  margin-left: 11.5rem;
+}
+.un-rules {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+}
+
+/* F3e Enrichments: one compact card per kind of public data. */
+.en {
+  display: grid;
+  gap: 0.5rem;
+}
+.en-note {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.88rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-radius: var(--radius);
+}
+.en-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.en-card.is-off {
+  background: #fafafa;
+}
+.en-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+}
+.en-sub {
+  color: var(--muted);
+}
+.en-online {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.en-body {
+  display: grid;
+  gap: 0.3rem;
+  padding-left: 1.4rem;
+}
+.en-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  align-items: center;
+}
+.en-lab {
+  min-width: 9rem;
+  color: var(--muted);
+}
+.en-chip {
+  display: inline-block;
+  padding: 0 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+.en-fields {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 26rem;
+}
+.en-fields .tick {
+  align-items: flex-start;
+}
+.en-field {
+  display: grid;
+}
+.en-feats {
+  display: grid;
+  gap: 0.15rem;
+}
+.en-feat {
+  display: grid;
+  grid-template-columns: 13rem 11rem 8rem 1fr;
+  gap: 0.2rem 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.en-dist {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.en-key-input {
+  width: 18rem;
+}
+.en-link {
+  color: var(--link);
+}
+.bi-feats {
+  margin: 0.1rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* F3g Permits: what each kind of permit means. */
+.pm-tbl {
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.9rem;
+}
+.pm-head {
+  padding: 0.15rem 0.8rem 0.15rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+.pm-cell {
+  padding: 0.15rem 0.8rem 0.15rem 0;
+  border-bottom: 1px solid var(--cell-line);
+}
+.pm-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0.35rem 0;
+}
+
+/* Rows for parcels missing from the parcel universe: a note, not a to-do (F3d). */
+.wiz-missing {
+  max-width: 34rem;
+  margin-top: 0.2rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
+  border-radius: var(--radius);
+}
+.wiz-missing p {
+  margin: 0 0 0.25rem;
+}
+.wiz-missing p:last-child {
+  margin-bottom: 0;
+}
+
+.cu-h {
+  margin: 0.9rem 0 0.35rem;
+  font-size: 0.95rem;
+}
+.cu-h:first-child {
+  margin-top: 0.2rem;
+}
+.cu > .mp-button {
+  max-width: 28.8rem;
+}
+.cu-fields {
+  grid-template-columns: 12rem 16rem auto;
+  justify-content: start;
+  margin-top: 0.5rem;
+}
+.cu-sub-h {
+  margin: 0.6rem 0 0.15rem;
+}
+.cu-shape {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+/* Repeated IDs: the rows of one ID share a background, and IDs alternate (sorted by the ID). */
+tr.band-a > td {
+  background: var(--panel);
+}
+tr.band-b > td {
+  background: var(--zebra);
+}
+tr.bi-kept > td {
+  font-weight: 600;
+}
+
+/* The step that's running: what it's doing, its own bar, that the run is alive, Skip. */
+.bi-busy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  align-items: center;
+  margin: 0.25rem 0 0.15rem 1.2rem;
+  font-weight: 400;
+  font-size: 0.88rem;
+}
+.bi-detail {
+  color: var(--text);
+}
+.bi-sub {
+  display: inline-block;
+  width: 9rem;
+  height: 0.5rem;
+}
+.bi-alive,
+.bi-skip-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.bi-skip-note {
+  flex-basis: 100%;
+}
+.bi-pulse {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: 0 0.45rem 0.08rem 0.1rem;
+  background: var(--link);
+  border-radius: 50%;
+  animation: bi-pulse 1.2s ease-in-out infinite;
+}
+@keyframes bi-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bi-pulse {
+    animation: none;
+  }
+}
+
+/* A number's spread, in its details. */
+.fd-hist {
+  margin: 0;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: the chart's own svg, not an icon's */
+.fd-hist svg {
+  display: block;
+  width: 100%;
+  height: 4.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.fd-hist rect {
+  fill: #7a9fd6;
+}
+.fd-hist rect:hover {
+  fill: var(--link);
+}
+.fd-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.cs-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.cs-head .tick {
+  font-weight: 600;
+}
+.cs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+  align-items: end;
+}
+.cs-row.bi-warn {
+  align-items: center;
+}
+.cs-text {
+  margin: 0;
+  max-width: 58rem;
+}
+
+.cs-notices {
+  margin: 0.3rem 0 0 1.1rem;
+  padding: 0;
+}
+/* The sales per year: as wide as the text above it, not the whole panel. */
+.cs-bars {
+  display: flex;
+  max-width: 58rem;
+  gap: 3px;
+  height: 5rem;
+  align-items: stretch;
+}
+.cs-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+}
+.cs-bar i {
+  display: block;
+  background: #7fa3d9;
+  border-radius: 2px 2px 0 0;
+  min-height: 1px;
+}
+.cs-bar i.out {
+  background: #d9dde3;
+}
+.cs-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tbl tbody tr.cs-self :where(td) {
+  background: var(--bad-tint);
+}
+.tbl tbody tr.cs-muted :where(td) {
+  color: var(--muted);
+}
+.cs-checks {
+  display: grid;
+  gap: 0.2rem;
+}
+.cs-check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+.cs-receipt {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.cs-meter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  align-items: baseline;
+  border: 1px solid var(--rule);
+  background: var(--ok-tint);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  box-sizing: border-box;
+}
+.cs-meter .wiz-ok {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.cs-funnel {
+  display: grid;
+  grid-template-columns: 1.2rem auto auto auto;
+  justify-content: start;
+  column-gap: 0.5rem;
+  row-gap: 0.1rem;
+  font-size: 0.9rem;
+}
+.cs-fl {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 1.2rem 5rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+.cs-fl .cs-op {
+  color: var(--muted);
+  text-align: center;
+}
+.cs-fl .cs-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cs-fl.tot {
+  font-weight: 700;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.15rem;
+}
+.cs-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.6rem;
+}
+.cs-chart {
+  margin: 0;
+  border: 1px solid var(--cell-line);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  display: grid;
+  gap: 0.2rem;
+}
+.cs-curve {
+  width: 100%;
+  height: 4.5rem;
+  display: block;
+}
+.cs-chart-foot {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+}
+.cs-chart .wiz-link {
+  justify-self: start;
+}
+/* A group's small chart is a button: pressed, it's shown larger in its place (one at a time). */
+.cs-chart-button {
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--panel);
+  cursor: pointer;
+}
+.cs-chart-button[data-hovered],
+.cs-chart-button[data-focus-visible] {
+  border-color: var(--link);
+}
+.cs-chart-cap {
+  display: block;
+}
+.cs-chart-open {
+  grid-column: 1 / -1;
+}
+.cs-tchart {
+  position: relative;
+  display: grid;
+  gap: 0.3rem;
+}
+.cs-tsvg {
+  display: block;
+}
+.cs-tgrid {
+  stroke: var(--cell-line);
+}
+.cs-taxis {
+  font-size: 0.72rem;
+  fill: var(--muted);
+}
+.cs-ttip {
+  position: absolute;
+  top: 2.2rem;
+  right: 0.6rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+.cs-none {
+  margin-top: 0.6rem;
+}
+.cs-list-plain {
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+.cs-review {
+  display: grid;
+  gap: 0.6rem;
+}
+.cs-filters {
+  display: flex;
+  gap: 0.4rem 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cs-split {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  gap: 0.8rem;
+  align-items: start;
+}
+.cs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  max-height: 70vh;
+  overflow: auto;
+}
+.cs-item {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-bottom: 1px solid var(--cell-line);
+  background: transparent;
+  cursor: pointer;
+}
+/* A sale's date stays on one line (it breaks at its hyphens otherwise). */
+.cs-date {
+  white-space: nowrap;
+}
+
+.cs-item:hover {
+  background: var(--info-tint);
+}
+.cs-item.sel {
+  background: var(--select);
+}
+.cs-more {
+  padding: 0.4rem 0.55rem;
+}
+.cs-detail h3 {
+  font-size: 1rem;
+}
+.cs-why {
+  margin: 0;
+  line-height: 1.45;
+}
+.cs-dots {
+  width: 100%;
+  height: 92px;
+  display: block;
+}
+.cs-note-field {
+  display: block;
+}
+.cs-note {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.6rem;
+  border: 1px solid var(--well-edge);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.45rem;
+  font: inherit;
+  font-size: 0.86rem;
+}
+.cs-decide {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 -0.8rem -0.6rem;
+  padding: 0.5rem 0.8rem 0.6rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--panel);
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -4px 8px -6px rgb(0 0 0 / 0.25);
+}
+.cs-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cs-receipt > .cs-row {
+  min-width: 0;
+}
+
+/* Tabs as steps (SPEC §3.2): the Data wizard's frame */
+.wiz-wide {
+  grid-template-columns: 11rem 1fr;
+}
+.wiz-flush {
+  padding: 0;
+}
+.wiz-foot-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.ab-formats-inline {
+  border: 0;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.ab-results {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+.mg-checks .mg-check {
+  font-size: 0.82rem;
+}
+.wiz-step button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.mg-checks {
+  font-family: var(--font);
+  font-size: 0.88rem;
+  margin: 0.4rem 0;
+}
+.mg-checks .rc-td,
+.mg-checks .rc-th {
+  padding: 0.25rem 0.6rem;
+  white-space: normal;
+  vertical-align: top;
+}
+.mg-checks .rc-td:first-child {
+  white-space: nowrap;
+}
+.ab-results .ab-tbl {
+  font-family: var(--font);
+}
+.mg-replace {
+  margin-top: 0.6rem;
+}
+.cs-step {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+.cs-step .cs-head .tick {
+  font-weight: 600;
+}
+.cs-step + .bi-warn {
+  max-width: 62rem;
+  box-sizing: border-box;
+}
+.cs-why-fill {
+  font-size: 0.8rem;
+  max-width: 24rem;
+  white-space: normal;
+}
+.cs-folds {
+  font-size: 0.82rem;
+  max-width: 30rem;
+}
+.cs-ta-note {
+  font-size: 0.82rem;
+  min-width: 14rem;
+  white-space: normal;
+}
+.cs-import {
+  min-width: 0;
+}
+.cs-format {
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+.cs-example {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  background: var(--head);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  justify-self: start;
+}
+.dn {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.dn-formats {
+  display: grid;
+  gap: 0.3rem;
+}
+.radio.dn-format {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.tbl.dn-tbl > tbody > tr > td {
+  white-space: normal;
+}
+.tbl.dn-tbl > tbody > tr.dn-hit > td {
+  background: var(--warn-tint);
+}
+.cs-diag {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.cs-todo {
+  margin: 0 0 0 1.1rem;
+  padding: 0;
+}
+.cs-small {
+  font-size: 0.85rem;
+}
+.cs-look {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cs-patterns .wiz-link,
+.cs-patterns .cs-n {
+  white-space: nowrap;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
+.tbl.cs-patterns > tbody > tr > td {
+  white-space: normal;
+  vertical-align: top;
+}
+.info-tip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  cursor: help;
+}
+.info-tip-icon {
+  color: var(--muted);
+  align-self: center;
+  flex: none;
+}
+
+/* ---------- Every table: cell lines, alternate rows, headers aligned with their columns (AGENTS.md) ---------- */
+/* :where keeps these at no specificity: a table's own colours and highlights (a selected row, this sale) win. */
+:where(table) {
+  border-collapse: collapse;
+}
+:where(table) :where(th, td) {
+  border: 1px solid var(--cell-line);
+}
+:where(table) :where(th) {
+  text-align: left;
+}
+:where(tbody > tr:nth-child(even) > td) {
+  background: var(--zebra);
+}
+/* A numbers column: its header lines up with its numbers. */
+:where(table) :where(th.cs-n, th.num, th.mg-num, th.ab-n, th.pm-n) {
+  text-align: right;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
+.tbl > tfoot > tr.cs-total > td {
+  font-weight: 600;
+  border-top: 2px solid var(--rule);
+}
+/* ---------- Step 4, Check my values (F8) ---------- */
+.rv-cards {
+  display: grid;
+  gap: 0.6rem;
+}
+.rv-choices {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.rv-head {
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.rv-chart {
+  width: 100%;
+  display: block;
+}
+/* A standard's two figures, side by side in their cell ("0.9 – 1.1", "± 0.05"). */
+.rv-pair {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  white-space: nowrap;
+}
+.rv-numcell .input {
+  width: 4.2rem;
+  min-height: 1.6rem;
+  padding: 0.1rem 0.3rem;
+}
+.rv-namecell .input {
+  width: 16rem;
+  min-height: 1.6rem;
+  padding: 0.1rem 0.3rem;
+}
+.rv-start {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: 1.6rem;
+}
+.rv-assign .mp-button {
+  width: 100%;
+  max-width: 28rem;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: a different table from .dn-tbl */
+table.tbl > * > tr.rv-total > td {
+  font-weight: 600;
+}
+.rv-map {
+  height: 520px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.rv-figure {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.rv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.rv-swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  border: 1px solid;
+  margin-right: 0.3rem;
+  vertical-align: -1px;
+}
+/* A figure and its pill: the pill at the left edge, the figure at the right, whatever the pill says. */
+.rv-cell {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.rv-cell-pill {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+.rv-every {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+/* The funnels' lines on their funnel's columns, where the web view can (an older one keeps each line's own). */
+@supports (grid-template-columns: subgrid) {
+  .bi-line,
+  .cs-fl {
+    grid-template-columns: subgrid;
+  }
+}
+
+/* Field rows open their details: after the zebra rules, so the hover wins. */
+.fd-tbl > tbody > tr:not(.bi-grp) {
+  cursor: pointer;
+}
+.fd-tbl > tbody > tr:not(.bi-grp):hover > td {
+  background: var(--info-tint);
+}
+.fd-tbl > tbody > tr:not(.bi-grp):hover .fd-icon {
+  opacity: 1;
+}
+
+/* Step 4's scorecard: pill, figure and word line up down each column. */
+.rv-score-cell {
+  display: inline-grid;
+  grid-template-columns: 1.8em 5.5em auto;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+.rv-score-pill {
+  display: flex;
+}
+.rv-fig {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Step 5's models (F9): a model per line, sized to content; the roll's row set apart from the models'. */
+.md-engines {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 0.8rem;
+  align-items: baseline;
+}
+@supports (grid-template-columns: subgrid) {
+  .md-engine {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+}
+
+/* The variable tests (F9): each result as a bar against the test's threshold; an unticked variable greyed. */
+.vt-bar-cell {
+  width: 40%;
+}
+.vt-bar {
+  position: relative;
+  display: block;
+  height: 0.7rem;
+  background: #f1f2f4;
+  border-radius: 2px;
+}
+.vt-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: #6f9be0;
+  border-radius: 2px;
+}
+.vt-fill-bad {
+  background: #e8a0a0;
+}
+.vt-mark {
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  width: 2px;
+  background: #333;
+}
+
+/* Step 5's variables: each kind a heading that stands out and folds its rows away. */
+.tbl.md-vars > tbody > tr.md-kind > td {
+  padding: 0.5rem 0.4rem 0.35rem;
+  background: #e9edf3;
+  border-top: 2px solid var(--rule);
+}
+.md-kind-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.md-kind-name {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--ink, var(--text));
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.md-kind-count {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.vt-name {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.vt-values {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  font-size: 0.82rem;
+}
+tr.vt-level > td:first-child {
+  padding-left: 2.2rem;
+}
+.tbl.vt-tbl > tbody > tr.vt-how > td {
+  background: var(--info-tint);
+  padding: 0.5rem 0.8rem 0.6rem 2.2rem;
+}
+.vt-how-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem 1.2rem;
+}
+.vt-how-fig {
+  display: grid;
+  gap: 0.15rem;
+}
+.vt-how-line {
+  margin: 0.4rem 0 0;
+}
+
+/* ---------- How they did: OpenAVMKit's benchmark, a table per set ---------- */
+.md-how-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.4rem;
+}
+.md-sec {
+  margin-top: 0.7rem;
+}
+.md-sec > summary {
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+.md-sec-title {
+  font-weight: 600;
+}
+.md-sec-note {
+  margin: 0.15rem 0 0.35rem;
+}
+.md-empty {
+  padding: 0.45rem 0.6rem;
+  background: var(--zebra);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+}
+.dt-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+/* Fixed: columns take their set widths, or share what's left equally, whatever is in them; so tables with the
+   same columns line up. */
+table.dt {
+  table-layout: fixed;
+}
+table.tbl.dt > * > tr > :is(th, td) {
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dt-th {
+  position: relative;
+}
+.dt-sort {
+  width: 100%;
+}
+.cs-n .dt-sort {
+  justify-content: flex-end;
+}
+.dt-arrow {
+  font-size: 0.65rem;
+  color: var(--muted);
+  min-width: 0.6rem;
+}
+.dt-grip {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1;
+  touch-action: none;
+}
+.dt-grip:hover {
+  background: rgba(26, 86, 184, 0.25);
+}
+.tbl tbody tr.md-roll :where(td) {
+  background: var(--info-tint);
+}
+
+/* ---------- Existing values: a card per set (Data › Existing values) ---------- */
+.vs {
+  display: grid;
+  gap: 0.8rem;
+  max-width: 62rem;
+}
+.vs-set {
+  padding: 0.6rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.vs-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.vs-name .input {
+  width: 14rem;
+  font-weight: 600;
+}
+.vs-grow {
+  flex: 1;
+}
+.vs-remove {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+}
+.rv-what {
+  margin-top: 0.4rem;
+}
+
+/* Read aloud, not shown: a control's name where its row already shows it. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A model group not modeled (Model groups › Check them): greyed wherever it's listed after. */
+.not-modeled {
+  color: var(--muted);
+}
+.not-modeled .mg-sw {
+  opacity: 0.45;
+}
+.mg-model {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Where the sale stands now, above what can be done with it (Sales set aside). */
+.cs-now {
+  margin: 0.3rem 0 0;
+  font-weight: 600;
+}
+
+/* Variables › Variable lists: the lists, one open at a time, its variables with their test scores. */
+.vl-lists,
+.vl-vars,
+.gm-models,
+.ls-table {
+  width: 100%;
+}
+.vl-arrow {
+  width: 1.6rem;
+}
+.vl-toggle,
+.vl-name {
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.vl-name {
+  font-weight: 600;
+}
+.tbl.vl-lists > tbody > tr.vl-open > td {
+  background: var(--select);
+}
+.tbl.vl-lists > tbody > tr.vl-detail > td,
+.tbl.gm-models > tbody > tr.gm-detail > td {
+  padding: 0.4rem 0.6rem 0.8rem;
+  background: var(--zebra);
+}
+.vl-chip {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  margin-right: 0.6rem;
+  white-space: nowrap;
+}
+.vl-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.vl-editrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+.vl-label {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 600;
+}
+.vl-grow {
+  flex: 1;
+}
+.vl-namefield .input,
+.gm-name .input {
+  width: 14rem;
+}
+.vl-tick {
+  width: 2.4rem;
+  text-align: center;
+}
+.tbl.vl-vars > tbody > tr.vl-out > td:not(.vl-tick) {
+  color: var(--muted);
+}
+.vl-bad {
+  color: var(--bad);
+}
+
+/* Model values › Models: a tab per model group, its models, a location stack opened under its model. */
+.gm-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  align-items: baseline;
+  margin: 0.2rem 0 0.7rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--zebra);
+  border: 1px solid var(--cell-line);
+  border-radius: var(--radius);
+}
+.gm-of {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gm-title {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0;
+  font-size: 1.35rem;
+}
+.gm-stackline {
+  margin-top: 0.2rem;
+}
+.gm-warn {
+  margin: 0.2rem 0 0;
+}
+.tbl.gm-models > tbody > tr.gm-adding > td {
+  background: var(--select);
+}
+.gm-addtools {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* A location stack: broadest first, its levels moved up and down. */
+.ls-title {
+  margin: 0.2rem 0;
+  font-weight: 600;
+}
+.ls-tools {
+  white-space: nowrap;
+}
+.ls-move {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.15rem;
+  padding: 0.05rem 0.3rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.ls-move[data-disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+.vl-warns > .wiz-warn {
+  margin: 0.15rem 0;
+}
+
+/* Model values › Small groups. */
+.sg-table {
+  width: 100%;
+}
+.sg-flags {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+/* An open list's variables scroll in a box of their own: the other lists stay in sight. */
+.vl-scroll {
+  max-height: 26rem;
+  overflow-y: auto;
+  border: 1px solid var(--cell-line);
+}
+.vl-scroll > .tbl.vl-vars > thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+}
+
+/* Models › Configuration: a model's own settings, under its row. */
+.mo-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.2rem 0.4rem;
+}
+.mo-option {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  align-items: center;
+}
+.mo-option > .wiz-from {
+  flex-basis: 100%;
+  padding-left: 1.6rem;
+  font-size: 0.88rem;
+}
+.mo-label {
+  font-weight: 600;
+}
+.mo-trials .input {
+  width: 5rem;
+}
+
+/* More files: how a file joins, under what it's about; a file appended as rows, against the file it adds to. */
+.wiz-how {
+  margin-left: 1.6rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--info-edge);
+}
+.wiz-appended > p {
+  margin: 0.3rem 0;
+  max-width: 60rem;
+}
+
+/* The models table's cells line up on their first line (a dropdown's text, a name, a link): a note under one
+   cell's dropdown grows the row downwards, and the dropdowns stay on one line across the row. */
+.tbl.gm-models > tbody > tr:not(.gm-detail) > td {
+  vertical-align: baseline;
+}
+.tbl.gm-models > tbody > tr:not(.gm-detail) > td:first-child .input {
+  width: 100%;
+}
+
+/* Variables › Nearby sales and buildings (spatial lag). */
+.lag {
+  display: grid;
+  /* The step's width, never its content's: a long summary of what's chosen can't push it past the window. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+}
+.lag p {
+  margin: 0;
+}
+.lag-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+/* The picker's summary of what's chosen is cut short rather than widening the step past the window; the note beside
+   it wraps. */
+.lag-fields > .mp-button {
+  flex: 0 1 30rem;
+  min-width: 12rem;
+}
+.lag-fields > .wiz-from {
+  flex: 1 1 14rem;
+}
+/* How many nearest: its note sits level with the box, under the box's label. */
+.lag-k {
+  align-items: end;
+}
+.lag-k > .wiz-from {
+  padding-bottom: 0.4rem;
+}
+/* Model values: the finalized values checked, the roll's beside them, and what every parcel got. */
+.fv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+}
+.fv p {
+  margin: 0;
+}
+.fv-on {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+.fv-h {
+  margin: 0.8rem 0 0;
+  font-size: 1rem;
+}
+.fv-notes ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+}
+/* The model's scorecard and the roll's, one above the other: the same columns, the same widths. */
+.fv .rv-score {
+  table-layout: fixed;
+}
+.fv .rv-score th:first-child {
+  width: 24%;
+}
+.fv .rv-score th:nth-child(2) {
+  width: 7%;
+}
+.fv .rv-score-4 th:first-child {
+  width: 20%;
+}
+
+/* Every map (MapView): the street map under deck.gl's drawing, kept inside its box so dialogs stay on top. */
+.map-view {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.map-canvas {
+  position: absolute;
+  inset: 0;
+}
+.map-street {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+.map-street input {
+  margin: 0;
+}
+.wiz-pin {
+  width: 22px;
+  height: 26px;
+  cursor: grab;
+}
+/* Step 7, Report: the format and the file written; the report's calls over its preview. */
+.rp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.4rem 0;
+}
+.rp-opts {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+.rp-preview {
+  width: 100%;
+  height: 70vh;
+  margin-top: 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #f3f3f0;
+}
+
+/* On paper already (a step's sheet, a dialog's): a container with a heading is a titled section of the document, not
+   another folder: no box, its heading over a hairline (D21). */
+:is(.wiz-main, .modal-body) :is(.bi-card, .rc-card, .mg-card):has(> :is(h3, h4, .bi-head):first-child) {
+  padding: 0.2rem 0 0.4rem;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:is(.wiz-main, .modal-body) :is(.bi-card, .rc-card, .mg-card) > :is(h3, h4, .bi-head):first-child {
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--paper-rule);
+}
+
+/* A dialog's sheet is one piece: its parts spaced by their own padding, not gaps of folder between them. */
+.modal-body.rc-body {
+  gap: 0;
+}
+
+.meta-sheet {
+  padding: 0.4rem 0 0;
+}
+
+/* ---------- D21: folders and sheets (after the rules they refine) ---------- */
+
+.panel:has(> .panel-head) {
+  position: relative;
+  margin-top: calc(2.1rem + 2px);
+  background: var(--manila);
+  border-color: var(--manila-edge);
+  border-radius: 0 5px 5px 5px;
+  box-shadow: var(--folder-shadow);
+}
+
+/* The heading is the folder's tab: one piece with it, no edge between (one pixel lower than the gap, over the
+   folder's top edge). */
+.panel > .panel-head > :is(h1, h2):first-child {
+  position: absolute;
+  z-index: 1;
+  top: calc(-2.1rem - 1px);
+  left: -1px;
+  height: calc(2.1rem + 2px);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 1.1rem 1px;
+  font-size: 1.2rem;
+  font-weight: 650;
+  color: var(--text);
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+}
+
+/* What a folder holds: sheets of paper. */
+.panel > .rows,
+.sheet {
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: var(--paper-shadow);
+}
+
+.panel > .rows {
+  margin: 0 var(--pad) var(--pad);
+}
+
+/* The dialog's title: a brass plate on its frame. */
+.modal-body > .modal-title {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  padding: 0.3rem 1.6rem;
+  font-size: 1.1rem;
+  font-weight: 650;
+  color: var(--plate-text);
+  border: 1px solid var(--plate-edge);
+  border-radius: 3px;
+  background: linear-gradient(to bottom, var(--plate-hi), var(--plate-mid) 55%, var(--plate-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 1px 1px rgba(30, 15, 0, 0.45),
+    0 2px 5px rgba(30, 15, 0, 0.2);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* The sheet: everything after the title, one continuous piece of paper set into the frame. */
+.modal-body > :not(.modal-title) {
+  margin: 0;
+  padding: 0.3rem 0.9rem;
+  background: var(--paper);
+}
+
+.modal-body > :not(.modal-title):first-child,
+.modal-body > .modal-title + * {
+  margin-top: 9px;
+  padding-top: 0.8rem;
+  border-radius: 2px 2px 0 0;
+}
+
+.modal-body > .modal-title + * {
+  margin-top: 0;
+}
+
+.modal-body > :not(.modal-title):last-child {
+  padding-bottom: 0.9rem;
+  border-radius: 0 0 2px 2px;
+  box-shadow: 0 1px 0 rgba(40, 20, 5, 0.35);
+}
+
+:root[data-contrast="high"] .modal {
+  background: #000000;
+  border-color: #ffffff;
+}
+
+/* A pop-up attached to something on the page (a value list, a picker, the parcel inspector on the map) belongs to the
+   papers: Manila, its heading on the Manila with no line under it, its list or table on white paper (D21). Plain
+   dropdown lists are controls, unchanged. */
+.vals-popover,
+.mp-popover,
+.popover:has(> .popover-body),
+.mg-pop {
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(40, 25, 5, 0.3);
+}
+
+.vals-popover .vals-scroll,
+.mp-popover .mp-list,
+.mg-pop .mg-pop-tbl,
+.mg-pop .mg-why {
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(70, 55, 20, 0.12);
+}
+
+.mp-popover .mp-list {
+  padding: 0.25rem 0.35rem;
+}
+
+.mg-pop .mg-why {
+  padding: 0.35rem 0.5rem 0.35rem 1.6rem;
+}
+
+.vals-title,
+.mg-pop-title {
+  font-size: 1.05rem;
+}
+
+/* The plate's trail (OakBand): Projects › project › tab › step. Crumbs above you are links, underlined like
+   engraving; the one you're on is bold; a crumb with a list opens it (Manila, its entries on paper). */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.crumb-li {
+  display: flex;
+  align-items: center;
+}
+
+.crumb-li + .crumb-li::before {
+  content: "›";
+  padding: 0 0.2rem;
+  font-weight: 700;
+  opacity: 0.5;
+}
+
+.crumb {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.22rem 0.4rem;
+  font: inherit;
+  color: var(--plate-text);
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: rgba(42, 29, 6, 0.35);
+  text-underline-offset: 3px;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.crumb.here {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.crumb:is(:hover, [data-hovered], [data-pressed], [aria-expanded="true"]) {
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(106, 82, 32, 0.45);
+}
+
+.crumb:focus-visible,
+.crumb[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.crumb-li > span.crumb.here {
+  cursor: default;
+}
+
+.crumb-li > span.crumb.here:hover {
+  background: none;
+  box-shadow: none;
+}
+
+.crumb-pop {
+  min-width: 20rem;
+  max-width: 28rem;
+  padding: 0.35rem;
+  background: var(--manila);
+  border: 1px solid var(--manila-edge);
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.crumb-list {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  outline: none;
+}
+
+.crumb-item {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.crumb-item.sub {
+  padding-left: 1.6rem;
+}
+
+.crumb-item[data-focused],
+.crumb-item[data-hovered] {
+  background: var(--select);
+}
+
+.crumb-item.on {
+  font-weight: 700;
+  background: var(--head);
+}
+
+.crumb-item.off,
+.crumb-item[data-disabled] {
+  color: #9a9a9a;
+  cursor: default;
+}
+
+.crumb-item-t {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.crumb-item-t small {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.crumb-item-s {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.crumb-item-s.run {
+  font-weight: 600;
+  color: var(--active);
+}
+
+.crumb-sep {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--paper-rule);
+}
+
+.crumb-foot {
+  margin: 0;
+  padding: 0.35rem 0.4rem 0.1rem;
+  font-size: 0.78rem;
+  color: var(--manila-ink);
+}
+
+/* ---------- D21: a major step's landing page ---------- */
+
+.land {
+  max-width: 60rem;
+}
+
+.land .wiz-q {
+  font-size: 1.6rem;
+  margin: 0.1rem 0 0.5rem;
+}
+
+.land .wiz-lede {
+  font-size: 1.08rem;
+  line-height: 1.55;
+  max-width: 44rem;
+}
+
+.land-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.6rem;
+  margin: 1.4rem 0 1rem;
+}
+
+.land-sec h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.45rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--paper-rule);
+}
+
+.land-sec ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.land-sec li {
+  margin: 0.3rem 0;
+}
+
+.land-needs {
+  margin: 0.6rem 0 0;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .land-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- D43: a dropdown you can type in (Combo) ---------- */
+
+/* The box is the dropdown's: the text field inside it borderless, the arrow its button. */
+.combo-field {
+  cursor: text;
+  align-items: stretch;
+}
+
+.combo-field[data-focus-within] {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+  border-color: var(--focus);
+}
+
+.combo-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.wiz-choice .combo-input {
+  width: 100%;
+}
+
+.combo-arrow[data-hovered] {
+  background: #f7f7f5;
+}
+
+.combo-arrow[data-pressed] {
+  background: #e0e0de;
+  box-shadow:
+    inset 1px 1px 0 #8e9195,
+    inset -1px -1px 0 #ffffff;
+}
+
+.combo-mark {
+  padding: 0;
+  color: inherit;
+  background: #fde68a;
+  border-radius: 2px;
+}
+
+.combo-count,
+.combo-none {
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.combo-count {
+  position: sticky;
+  bottom: 0;
+  background: var(--paper, #fff);
+  border-top: 1px solid var(--paper-rule);
+}
+
+.combo-input.mono {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+/* Where the row sets the dropdown's width (a column and its unit, a table cell), the box fills it. */
+:is(.wiz-pair, .wiz-unit, .wiz-table, .wiz-choice) .combo-input {
+  width: 0;
+}
+
+.wiz-unit .choice {
+  min-width: 0;
+}
+
+/* The first folder under the lid: its tab, not the folder's edge, at the gap the sides have (the tab is placed from
+   inside the folder's 1px border, and stands 2.1rem + 1px above it). */
+.home-main > .panel:first-child:has(> .panel-head) {
+  margin-top: 2.1rem;
+}

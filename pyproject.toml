@@ -1,0 +1,51 @@
+[project]
+name = "oakbox"
+version = "0.0.1"
+description = "OpenAVMKit in a box: a desktop app for assessors"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "openavmkit",
+    "psutil>=6",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    # The native menus use pywebview's window internals (oakbox/winmenu.py, qtmenu.py): keep to one series.
+    "pywebview>=6.2.1,<6.3",
+    # Linux: Qt for the native window and its menus (SPEC §3.14); Windows uses WebView2.
+    "PySide6>=6.12; sys_platform == 'linux'",  # needs glibc 2.34+ (Ubuntu 22.04, Debian 12)
+    "QtPy>=2.4; sys_platform == 'linux'",
+    "send2trash>=2.1.0",
+    # HTTPS certificates checked as the computer does (Windows' own verifier): oakbox/net.py.
+    "truststore>=0.10",
+    # Already there for OSMnx: the online check asks as the downloads do.
+    "requests>=2.31",
+    "openpyxl>=3.1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.8", "pyright>=1.1.390"]
+
+[tool.uv.sources]
+openavmkit = { git = "https://github.com/larsiusprime/openavmkit", rev = "4e417de678a8e4623bee537864652e91dc62548a" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oakbox"]
+# The built UI is git-ignored but must ship in the wheel.
+artifacts = ["src/oakbox/web/**"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"

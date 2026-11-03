@@ -1,0 +1,33 @@
+name: clean-artifacts
+
+# Delete old bundle artifacts to free the repository's artifact storage (each Windows
+# bundle is ~550 MB). Runs when this file changes, and by hand from the Actions tab
+# (once this file is on the default branch). Bundles can always be rebuilt.
+on:
+  push:
+    paths: [.github/workflows/clean-artifacts.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, per_page: 100,
+            });
+            let freed = 0;
+            for (const a of artifacts) {
+              if (!a.name.startsWith("bundle-") || a.expired) continue;
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner, repo: context.repo.repo, artifact_id: a.id,
+              });
+              freed += a.size_in_bytes;
+              core.info(`Deleted ${a.name} from run ${a.workflow_run?.id} (${Math.round(a.size_in_bytes / 1e6)} MB)`);
+            }
+            core.info(`Freed ${Math.round(freed / 1e6)} MB. GitHub recalculates the quota every 6-12 hours.`);

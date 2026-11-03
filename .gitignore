@@ -1,0 +1,11 @@
+*.pyc
+.venv/
+/bench-data/
+/build/
+/dist/
+__pycache__/
+/src/oakbox/web/
+/web/node_modules/
+
+work/
+/sample/*/.cache/

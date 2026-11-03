@@ -1,0 +1,717 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Button, Radio, RadioGroup } from "react-aria-components";
+import { navigate } from "../App";
+import {
+  api,
+  type FieldResult,
+  type RatioPatch,
+  type RatioSetup,
+  type RatioView,
+  unwrap,
+} from "../api/client";
+import { stepKey, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
+import { Choice, Field } from "../components/Form";
+import { MultiPick } from "../components/MultiPick";
+import { Seg } from "../components/Seg";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { InfoTip } from "../components/Tip";
+import { Val } from "../components/Val";
+import { day, money, num, ratioText, signed, when } from "../lib/format";
+import { t } from "../strings";
+import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
+import { BandChart, Scatter } from "./ValueCharts";
+import { RatioMap, Regions } from "./ValueMap";
+import { GroupsTable, judged, Scorecard } from "./ValueTables";
+
+const r = t.ratio;
+type RStep =
+  | "what"
+  | "sales"
+  | "whose"
+  | "standards"
+  | "assign"
+  | "run"
+  | "summary"
+  | "groups"
+  | "prices"
+  | "map"
+  | "regions"
+  | "similar"
+  | "extreme";
+const STEPS: RStep[] = [
+  "what",
+  "sales",
+  "whose",
+  "standards",
+  "assign",
+  "run",
+  "summary",
+  "groups",
+  "prices",
+  "map",
+  "regions",
+  "similar",
+  "extreme",
+];
+const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
+
+/** Whether Looks right was pressed on an up-to-date Check my values. */
+export function useValuesChecked(projectId: string): boolean {
+  return useStep("ratio", projectId).data?.accepted ?? false;
+}
+
+const pct = (v: number) => Math.round(100 * v);
+
+/** Step 4, Check my values (SPEC F8): the values on the roll against what parcels sold for, judged against the
+ * IAAO's targets (or the user's), one task at a time. */
+export function CheckValuesTab({ projectId, currency }: { projectId: string; currency: string }) {
+  const state = useStep("ratio", projectId);
+  const v = state.data;
+  const { setup, change } = useStepSetup("ratio", projectId, !!v && v.blocked.length === 0);
+  const act = useStepAct("ratio", projectId);
+  const nav = useStepNav<RStep>();
+  // Several sets of values checked: the results show one at a time, the same one from part to part.
+  const [shown, setShown] = useState<string | null>(null);
+  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  const running = v.status === "running";
+  const rc = v.receipt;
+  const fresh = !!rc && !v.stale;
+  const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "what";
+  const current = nav.current(v.status, fallback, "summary");
+  const go = nav.go;
+  const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
+  const result: FieldResult | undefined = rc?.results.find((x) => x.field === shown) ?? rc?.results[0];
+  const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
+  const called = rc ? (v.stale ? "attention" : "done") : "blank";
+  const steps: Step[] = STEPS.map((key) => ({
+    key,
+    title: r.steps[key],
+    status: AFTER.includes(key)
+      ? !rc
+        ? "blank"
+        : key === "extreme" && nominal.length
+          ? "attention"
+          : key === "extreme" && v.accepted
+            ? "done"
+            : "blank"
+      : key === "run"
+        ? called
+        : key === "what" && v.skipped
+          ? "done"
+          : key === "sales" && setup.data && setup.data.year_before === 0
+            ? "attention"
+            : setup.data
+              ? "done"
+              : "blank",
+    disabled: (AFTER.includes(key) && !rc) || (v.skipped && key !== "what"),
+  }));
+  const i = STEPS.indexOf(current);
+  const prev = STEPS[i - 1];
+  const back = prev ? () => go(prev) : null;
+  const toValues = () => navigate({ name: "project", id: projectId, tab: "values" });
+  const onward = { label: t.step.next, onPress: () => go(STEPS[i + 1] ?? current) };
+  const u = setup.data;
+  const set = (body: RatioPatch) => change.mutate(body);
+  const errors = [change.error, act.error, setup.error].map(
+    (e) =>
+      e && (
+        <p key={e.message} className="error" role="alert">
+          {e.message}
+        </p>
+      ),
+  );
+  if (v.blocked.length)
+    return (
+      <StepFrame steps={steps} current="sales" go={() => {}} landing="check">
+        <StepBody kicker={r.kicker} title={r.sales.title}>
+          <div className="bi-warn">
+            <b>{r.blocked}</b> {v.blocked[0]}
+          </div>
+        </StepBody>
+      </StepFrame>
+    );
+  const loading = <p className="empty">{t.project.loading}</p>;
+
+  const which = rc && rc.results.length > 1 && result && (
+    <Seg
+      label={r.what.shown}
+      value={result.field}
+      options={rc.results.map((x) => [x.field, x.name] as const)}
+      onChange={setShown}
+    />
+  );
+
+  return (
+    <StepFrame steps={steps} current={current} go={go} landing="check">
+      {current === "what" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.what.title} lede={r.what.lede}>
+            {u ? <WhatCard v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot
+            next={
+              v.skipped
+                ? { label: r.what.toValues, onPress: toValues }
+                : {
+                    label: t.step.next,
+                    onPress: () =>
+                      u?.check === null
+                        ? change.mutate({ check: true }, { onSuccess: () => go("sales") })
+                        : go("sales"),
+                  }
+            }
+          />
+        </>
+      )}
+      {current === "sales" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.sales.title} lede={r.sales.lede}>
+            {u ? <SalesCard key={`${u.start}|${u.end}`} v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot next={onward} />
+        </>
+      )}
+      {current === "whose" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.standards.whose} lede={r.standards.whoseLede}>
+            {u ? <WhoseCard v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "standards" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.standards.title} lede={r.standards.lede}>
+            {u ? <StandardsTable v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "assign" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.standards.assignTitle} lede={r.standards.assignLede}>
+            {u ? <AssignTable v={u} set={set} /> : loading}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "run" && (
+        <>
+          <StepBody kicker={r.kicker} title={r.steps.run} lede={r.run.lede}>
+            {running ? (
+              <RunProgress job={v.job} lastSeconds={rc?.seconds ?? null} />
+            ) : (
+              <>
+                {v.status === "failed" && v.job?.error && (
+                  <p className="error" role="alert">
+                    {t.step.failed} <span className="mono">{v.job.error}</span>
+                  </p>
+                )}
+                {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
+                {fresh && rc && <p className="wiz-ok">{r.run.ran(when(rc.ran_at), rc.seconds)}</p>}
+                {!rc && <p className="wiz-from">{t.step.notRun}</p>}
+              </>
+            )}
+            {errors}
+          </StepBody>
+          <StepFoot
+            back={running ? null : back}
+            extra={fresh && !running ? [{ label: r.run.again, onPress: runIt }] : []}
+            next={
+              running
+                ? { label: t.step.stop, onPress: () => act.mutate("stop"), primary: false }
+                : fresh
+                  ? onward
+                  : { label: rc ? r.run.againNext : r.run.next, disabled: act.isPending, onPress: runIt }
+            }
+          />
+        </>
+      )}
+      {AFTER.includes(current) && rc && result && (
+        <>
+          <StepBody kicker={r.kicker} {...(current === "prices" ? {} : { title: r.steps[current] })}>
+            {which}
+            {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
+            {current === "summary" && (
+              <Summary result={result} receipt={rc} nominal={nominal.length} see={() => go("extreme")} />
+            )}
+            {current === "groups" && <GroupsTable result={result} />}
+            {current === "prices" && <Prices projectId={projectId} result={result} currency={currency} />}
+            {current === "map" && <RatioMap projectId={projectId} result={result} currency={currency} />}
+            {current === "regions" && (
+              <Regions
+                result={result}
+                setup={u}
+                currency={currency}
+                choose={(region) => change.mutate({ region }, { onSuccess: runIt })}
+                busy={change.isPending || act.isPending}
+              />
+            )}
+            {current === "similar" && <Similar result={result} />}
+            {current === "extreme" && <Extreme projectId={projectId} result={result} currency={currency} />}
+          </StepBody>
+          <StepFoot
+            back={back}
+            note={v.stale ? r.run.stale : null}
+            next={
+              current !== "extreme"
+                ? onward
+                : v.accepted
+                  ? { label: r.toValues, onPress: toValues }
+                  : {
+                      label: r.looksRight,
+                      disabled: v.stale || act.isPending,
+                      onPress: () => act.mutate("accept", { onSuccess: toValues }),
+                    }
+            }
+          />
+        </>
+      )}
+    </StepFrame>
+  );
+}
+
+type CardProps = { v: RatioSetup; set: (body: RatioPatch) => void };
+
+/** Check the existing values, or skip to the models; which sets and which model groups. */
+function WhatCard({ v, set }: CardProps) {
+  const checking = v.check !== false;
+  return (
+    <div className="rv-cards">
+      <RadioGroup
+        aria-label={r.what.title}
+        className="cu-choices"
+        value={checking ? "check" : "skip"}
+        onChange={(x) => set({ check: x === "check" })}
+      >
+        {(["check", "skip"] as const).map((k) => (
+          <Radio key={k} value={k} className="radio cu-choice">
+            <span className="radio-dot" aria-hidden="true" />
+            <span className="cu-text">
+              <b>{r.what[k][0]}</b>
+              <span className="cu-sub">{r.what[k][1]}</span>
+            </span>
+          </Radio>
+        ))}
+      </RadioGroup>
+      {checking && (
+        <div className="wiz-grid rv-what">
+          <span className="wiz-label">{r.what.sets}</span>
+          <MultiPick
+            label={r.what.sets}
+            values={v.sets.map((x) => ({ value: x.id, label: x.name }))}
+            chosen={v.chosen_sets}
+            onChange={(sets) => sets.length && set({ sets })}
+          />
+          <span />
+          <span className="wiz-label">{r.what.groups}</span>
+          <MultiPick
+            label={r.what.groups}
+            values={v.all_groups.map((g) => ({ value: g.value, label: g.label }))}
+            chosen={v.chosen_groups}
+            onChange={(groups) => groups.length && set({ groups })}
+          />
+          <span />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SalesCard({ v, set }: CardProps) {
+  // Typed until the box loses focus; the card is remounted (keyed on the window) when the window changes.
+  const [start, setStart] = useState(v.start);
+  const [end, setEnd] = useState(v.end);
+  const commit = (key: "start" | "end", value: string) => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value) && value !== v[key]) set({ [key]: value });
+  };
+  return (
+    <div className="rv-cards">
+      <section className="cs-step">
+        <h3 className="wiz-group">{r.sales.window}</h3>
+        <div className="cs-row">
+          <Field
+            label={r.sales.from}
+            type="date"
+            width="short"
+            value={start}
+            onChange={setStart}
+            onBlur={() => commit("start", start)}
+          />
+          <Field
+            label={r.sales.to}
+            type="date"
+            width="short"
+            value={end}
+            onChange={setEnd}
+            onBlur={() => commit("end", end)}
+          />
+        </div>
+        {v.window_proposed ? (
+          <p className="wiz-from">{r.sales.proposed(v.proposed_start)}</p>
+        ) : (
+          <Button className="wiz-link" onPress={() => set({ reset_window: true })}>
+            {r.sales.reset}
+          </Button>
+        )}
+        {v.year_before === 0 && v.last_sale && <div className="bi-warn">{r.sales.none(v.last_sale)}</div>}
+      </section>
+      <section className="cs-step">
+        <h3 className="wiz-group">{r.sales.price}</h3>
+        <RadioGroup
+          aria-label={r.sales.price}
+          className="rv-choices"
+          value={v.price}
+          onChange={(price) => set({ price: price as "sold" | "time_adjusted" })}
+        >
+          <Radio value="sold" className="radio dn-format">
+            <span className="radio-dot" aria-hidden="true" />
+            <span>{r.sales.sold}</span>
+          </Radio>
+          <Radio value="time_adjusted" className="radio dn-format" isDisabled={!v.time_adjusted}>
+            <span className="radio-dot" aria-hidden="true" />
+            <span>
+              {r.sales.timeAdjusted}
+              {!v.time_adjusted && <span className="wiz-from"> · {r.sales.noTime}</span>}
+            </span>
+          </Radio>
+        </RadioGroup>
+      </section>
+      <table className="tbl">
+        <tbody>
+          {v.funnel.map((l) => (
+            <tr key={l.text} className={l.sign === "=" ? "rv-total" : undefined}>
+              <td className="cs-n">{l.sign === "-" ? "−" : l.sign}</td>
+              <td className="cs-n">{num(l.count)}</td>
+              <td>{l.text}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <section className="cs-step">
+        <h3 className="wiz-group">{r.sales.perGroup}</h3>
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>{r.table.group}</th>
+              <th className="cs-n">{r.table.sales}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {v.groups.map((g) => (
+              <tr key={g.id}>
+                <td>
+                  <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                  {g.name}
+                </td>
+                <td className="cs-n">{num(g.sales)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
+/** The first page a board member can read: one paragraph, then a card per model group. */
+function Summary({
+  result,
+  receipt,
+  nominal,
+  see,
+}: {
+  result: FieldResult;
+  receipt: NonNullable<RatioView["receipt"]>;
+  nominal: number;
+  see: () => void;
+}) {
+  const o = result.overall;
+  const js = result.groups.filter(judged);
+  const levelOk = js.filter((g) => g.verdict?.level);
+  const lo = "90%";
+  const hi = "110%";
+  let text = o.median ? r.summary.head(result.name, pct(o.median), receipt.start, receipt.end) : "";
+  if (js.length)
+    text +=
+      levelOk.length === 0
+        ? r.summary.levelAll(lo, hi)
+        : levelOk.length === js.length
+          ? r.summary.levelNone(lo, hi)
+          : r.summary.levelSome(levelOk.length, js.length, lo, hi);
+  const loose = js.filter((g) => g.verdict?.cod === false).map((g) => `${g.name} (COD ${num(g.cod, 1)})`);
+  if (js.length) text += loose.length ? r.summary.notUniform(loose.join(", ")) : r.summary.uniform;
+  const tight = js.filter((g) => g.verdict?.cod_low).map((g) => `${g.name} (COD ${num(g.cod, 1)})`);
+  if (tight.length) text += r.summary.suspect(tight.join(", "));
+  const tilted = js
+    .filter((g) => g.vei_verdict === "regressive" || g.vei_verdict === "progressive")
+    .map((g) => `${g.name} (${r.table.verdicts[g.vei_verdict ?? ""]})`);
+  if (js.length) text += tilted.length ? r.summary.vertical(tilted.join(", ")) : r.summary.noVertical;
+  const names = result.trimmed
+    .filter((x) => x.nominal)
+    .map((x) => x.address ?? x.key_sale)
+    .slice(0, 4)
+    .join(", ");
+  return (
+    <div className="rv-cards">
+      <p className="rv-head">{text}</p>
+      <Scorecard groups={result.groups} />
+      {nominal > 0 && (
+        <div className="bi-warn">
+          {r.summary.nominal(nominal, names)}{" "}
+          <Button className="wiz-link" onPress={see}>
+            {r.summary.see}
+          </Button>
+        </div>
+      )}
+      <p className="wiz-from">
+        {r.summary.ran(
+          when(receipt.ran_at),
+          o.sales,
+          receipt.start,
+          receipt.end,
+          receipt.price === "sold" ? r.summary.asSold : r.summary.adjusted,
+        )}
+      </p>
+    </div>
+  );
+}
+
+function Prices({
+  projectId,
+  result,
+  currency,
+}: {
+  projectId: string;
+  result: FieldResult;
+  currency: string;
+}) {
+  const studied = result.groups.filter((g) => g.sales > 0);
+  const [gid, setGid] = useState(studied.slice().sort((a, b) => b.sales - a.sales)[0]?.id ?? "");
+  const g = result.groups.find((x) => x.id === gid) ?? result.overall;
+  const pts = useQuery({
+    queryKey: ["ratio-points", projectId, result.field, gid],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/ratio/points", {
+          params: { path: { project_id: projectId }, query: { field: result.field, group: gid } },
+        }),
+      ),
+  });
+  const p = r.prices;
+  return (
+    <div className="rv-cards">
+      <h2 className="wiz-q">{p.title(g.name)}</h2>
+      <div className="cs-row">
+        <Choice
+          label={r.table.group}
+          hideLabel
+          value={gid}
+          options={[
+            ...studied.map((x) => [x.id, x.name] as [string, string]),
+            ["", result.overall.name] as [string, string],
+          ]}
+          onChange={setGid}
+        />
+        <span className="wiz-from">{p.lede}</span>
+      </div>
+      <Scatter
+        points={(pts.data ?? []) as [number, number, boolean][]}
+        fifths={g.fifths}
+        currency={currency}
+      />
+      <p className="wiz-from">{p.trimmedDot}</p>
+      {g.fifths.length > 0 && (
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>{p.fifth}</th>
+              <th className="cs-n">{r.table.sales}</th>
+              <th className="cs-n">{r.table.median}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {g.fifths.map((f) => (
+              <tr key={f.low}>
+                <td>
+                  {money(f.low, currency)} to {money(f.high, currency)}
+                </td>
+                <td className="cs-n">{num(f.sales)}</td>
+                <td className="cs-n">{ratioText(f.median)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="wiz-from">{p.flat}</p>
+      <section className="cs-step">
+        <h3 className="wiz-group">{p.strata}</h3>
+        {g.strata.length ? (
+          <>
+            <p>
+              {p.vei(
+                g.vei == null ? "—" : `${signed(g.vei, 1)}%`,
+                g.vei_significance == null ? "—" : `${signed(g.vei_significance, 1)}%`,
+                r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
+              )}
+            </p>
+            <BandChart series={[{ label: p.bySale, color: "#d4566f", bands: g.strata }]} />
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>{p.stratum}</th>
+                  <th className="cs-n">{r.table.sales}</th>
+                  <th className="cs-n">{r.table.median}</th>
+                  <th className="cs-n">{r.table.range}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.strata.map((x, k) => (
+                  <tr key={`${x.n}-${x.median}-${x.low}-${x.high}`}>
+                    <td>{k + 1}</td>
+                    <td className="cs-n">{num(x.n)}</td>
+                    <td className="cs-n">{ratioText(x.median)}</td>
+                    <td className="cs-n">
+                      {ratioText(x.low)} to {ratioText(x.high)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ) : (
+          <p className="wiz-from">{p.noVei}</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Similar({ result }: { result: FieldResult }) {
+  const sm = r.similar;
+  const reads = (c: number | null | undefined) =>
+    c == null ? "—" : c < 20 ? sm.tight : c < 40 ? sm.some : sm.wide;
+  return (
+    <>
+      <p className="wiz-lede">{sm.lede}</p>
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>{r.table.group}</th>
+            <th className="cs-n">{sm.parcels}</th>
+            <th className="cs-n">{sm.clusters}</th>
+            <th className="cs-n">
+              <InfoTip label={sm.chd} text={sm.chdWhy} />
+            </th>
+            <th>{sm.reads}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.groups.map((g) => (
+            <tr key={g.id}>
+              <td>
+                <span className="mg-sw ab-sw" style={{ background: g.color }} />
+                {g.name}
+              </td>
+              <td className="cs-n">{num(g.parcels)}</td>
+              <td className="cs-n">{num(g.clusters)}</td>
+              <td className="cs-n">{num(g.median_chd, 1)}</td>
+              <td>{reads(g.median_chd)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function Extreme({
+  projectId,
+  result,
+  currency,
+}: {
+  projectId: string;
+  result: FieldResult;
+  currency: string;
+}) {
+  const queryClient = useQueryClient();
+  const [done, setDone] = useState<Set<string>>(new Set());
+  const exclude = useMutation({
+    mutationFn: async (m: { key: string; note: string }) =>
+      unwrap(
+        await api.PUT("/api/projects/{project_id}/clean/marks/{key_sale}", {
+          params: { path: { project_id: projectId, key_sale: m.key } },
+          body: { action: "exclude", note: m.note },
+        }),
+      ),
+    onSuccess: (_, m) => {
+      setDone((d) => new Set(d).add(m.key));
+      // Check sales is now out of date; this step's results are left on screen, so several can be marked.
+      void queryClient.invalidateQueries({ queryKey: stepKey("clean", projectId) });
+      void queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
+    },
+  });
+  const e = r.extreme;
+  if (!result.trimmed.length) return <p className="wiz-from">{e.none}</p>;
+  return (
+    <>
+      <p className="wiz-lede">{e.lede}</p>
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>{e.address}</th>
+            <th>{e.group}</th>
+            <th>{e.sold}</th>
+            <th className="cs-n">{e.price}</th>
+            <th className="cs-n">{e.value}</th>
+            <th className="cs-n">{e.ratio}</th>
+            <th>{e.likely}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {result.trimmed.map((x) => (
+            <tr key={x.key_sale}>
+              <td>{x.address ?? <Val v={x.key_sale} />}</td>
+              <td>{x.group_name}</td>
+              <td>{day(x.sale_date)}</td>
+              <td className="cs-n">{money(x.price, currency)}</td>
+              <td className="cs-n">{money(x.value, currency)}</td>
+              <td className="cs-n">{num(x.ratio, x.ratio >= 100 ? 0 : 2)}</td>
+              <td>{x.nominal ? e.nominal : x.ratio > 1 ? e.high : e.low}</td>
+              <td>
+                {done.has(x.key_sale) ? (
+                  <span className="wiz-ok">{e.excluded}</span>
+                ) : (
+                  <Button
+                    className="wiz-link"
+                    isDisabled={exclude.isPending}
+                    onPress={() =>
+                      exclude.mutate({
+                        key: x.key_sale,
+                        note: x.nominal ? e.note(money(x.price, currency)) : "",
+                      })
+                    }
+                  >
+                    {e.exclude}
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {exclude.error && (
+        <p className="error" role="alert">
+          {exclude.error.message}
+        </p>
+      )}
+    </>
+  );
+}

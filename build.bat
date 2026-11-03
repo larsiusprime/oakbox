@@ -1,0 +1,1 @@
+cd web && npm install --no-audit --no-fund && npm run build && cd ..

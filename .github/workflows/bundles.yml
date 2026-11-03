@@ -1,0 +1,194 @@
+name: bundles
+
+# Checks, then build the portable Windows and Linux bundles on Linux and prove each
+# runs on a clean machine of its platform using only the bundled Python: download
+# the sample county and run steps 1-4 through the real app service.
+on:
+  push:
+    branches: [claude/openavmkit-desktop-wrapper-639lvu, main]
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Python dependencies
+        # The engine is a git dependency on OpenAVMKit's public repo, pinned by commit (pyproject.toml).
+        run: uv sync
+      - name: Python lint, format, types, tests
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+          uv run pyright
+          uv run pytest -q tests
+      - name: Tests with a non-UTF-8 default encoding (as on Windows)
+        # Windows reads and writes text in its code page (cp1252) unless told otherwise. Plain ASCII is stricter,
+        # so anything that leans on the default encoding fails here first (AGENTS.md, "Windows").
+        env:
+          PYTHONUTF8: "0"
+          PYTHONCOERCECLOCALE: "0"
+          LC_ALL: C
+          LANG: C
+        run: uv run python -c "import locale; assert locale.getpreferredencoding(False).lower() != 'utf-8'" && uv run pytest -q tests
+      - name: Web lint, types, tests
+        working-directory: web
+        run: |
+          npm ci
+          npx biome check src
+          npx eslint src
+          npx tsc --noEmit
+          npm test
+      - name: Generated API types are up to date
+        run: |
+          uv run python -c "import json; from oakbox.app import create_app; print(json.dumps(create_app().openapi(), indent=1))" > web/openapi.json
+          (cd web && npm run -s api)
+          git diff --exit-code web/openapi.json web/src/api/schema.d.ts
+
+  # The real window and its Win32 menu bar, from source, so it doesn't wait on the bundle.
+  menus-windows:
+    needs: checks
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Python dependencies
+        run: uv sync
+      - name: Build the UI
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Native menus (opens the real window, checks and clicks its Win32 menu bar)
+        timeout-minutes: 5
+        run: uv run python -m oakbox --selftest-menus
+
+  # The same on Linux: the Qt window and its menu bar, under a virtual display.
+  menus-linux:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Display libraries Qt needs (a desktop has them already)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1 libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libnss3 libasound2t64
+      - name: Python dependencies
+        run: uv sync
+      - name: Build the UI
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Native menus (opens the real window, checks and clicks its Qt menu bar)
+        timeout-minutes: 5
+        run: xvfb-run -a uv run python -m oakbox --selftest-menus
+
+  build:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # to delete older bundle artifacts before uploading this one
+    strategy:
+      matrix:
+        platform: [windows, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: packaging/build_bundle.sh ${{ matrix.platform }}
+      - name: Delete older bundle artifacts (the storage quota fits only a few)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const name = "bundle-${{ matrix.platform }}";
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, name, per_page: 100,
+            });
+            const hourAgo = Date.now() - 60 * 60 * 1000;
+            for (const a of artifacts) {
+              // Leave this run's and any other run's from the last hour, which may still be in use.
+              if (a.expired || a.workflow_run?.id === context.runId || Date.parse(a.created_at) > hourAgo) continue;
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner, repo: context.repo.repo, artifact_id: a.id,
+              });
+              core.info(`Deleted ${a.name} from run ${a.workflow_run?.id}`);
+            }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.platform }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          retention-days: 1  # each Windows bundle is ~550 MB; the artifact quota is shared
+
+  smoke-windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bundle-windows
+      - name: Unpack
+        shell: pwsh
+        run: Expand-Archive oakbox-win64.zip -DestinationPath C:\oak
+      - name: Smoke test (bundled Python only)
+        shell: cmd
+        run: |
+          set PATH=C:\Windows\system32;C:\Windows
+          C:\oak\oakbox-win64\smoke.cmd
+
+  smoke-linux:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bundle-linux
+      - name: Unpack
+        run: mkdir -p /tmp/oak && tar -xzf oakbox-linux-x86_64.tar.gz -C /tmp/oak
+      - name: Smoke test (bundled Python only, empty environment)
+        run: env -i HOME=/tmp/oak PATH=/usr/bin:/bin /tmp/oak/oakbox-linux-x86_64/smoke.sh
+      - name: Models train from the bundle (it leaves out xgboost's multi-GPU library, NCCL)
+        run: |
+          /tmp/oak/oakbox-linux-x86_64/python/bin/python3 -c "
+          import numpy as np, xgboost, lightgbm, catboost
+          X, y = np.random.rand(500, 4), np.random.rand(500)
+          xgboost.XGBRegressor(n_estimators=10).fit(X, y)
+          lightgbm.LGBMRegressor(n_estimators=10, verbose=-1).fit(X, y)
+          catboost.CatBoostRegressor(iterations=10, verbose=0, allow_writing_files=False).fit(X, y)
+          print('xgboost, lightgbm, catboost train')"
+      # The bundle's Qt is pruned (packaging/prune_qt.py): check the window and menus still work from it.
+      - name: Display libraries Qt needs (a desktop has them already)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1 libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libnss3 libasound2t64
+      - name: Native menus from the bundle
+        timeout-minutes: 5
+        run: xvfb-run -a /tmp/oak/oakbox-linux-x86_64/python/bin/python3 -m oakbox --selftest-menus

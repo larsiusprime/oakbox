@@ -1,0 +1,261 @@
+{
+  "__generated_by": "OAK box smoke test: Petersburg settings, as the M1a settings generator wrote them.",
+  "locality": {
+    "name": "City of Petersburg",
+    "state": "VA",
+    "slug": "us-va-cityofpetersburg",
+    "units": "imperial",
+    "center": {
+      "latitude": 37.22725078472471,
+      "longitude": -77.40228060036787
+    }
+  },
+  "data": {
+    "load": {
+      "geo_parcels": {
+        "filename": "parcels.geoparquet",
+        "load": {
+          "key": [
+            "PAR_ID",
+            "string"
+          ]
+        },
+        "dupes": {
+          "subset": [
+            "key"
+          ],
+          "sort_by": [
+            "key",
+            "asc"
+          ],
+          "drop": true
+        }
+      },
+      "parcels": {
+        "filename": "petersburg-dbo-cama-fix.parquet",
+        "load": {
+          "key": [
+            "Parcel",
+            "string"
+          ],
+          "assr_market_value": [
+            "Total_Value",
+            "float"
+          ],
+          "bldg_area_finished_sqft": [
+            "Finished_Square_Feet",
+            "float"
+          ],
+          "bldg_year_built": [
+            "Year_Built",
+            "float"
+          ],
+          "bldg_effective_year_built": [
+            "Effective_Age",
+            "float"
+          ],
+          "bldg_quality_num": [
+            "Quality",
+            "float"
+          ],
+          "neighborhood": [
+            "Assessment_Neighborhood_Name",
+            "string"
+          ]
+        },
+        "dupes": {
+          "subset": [
+            "key"
+          ],
+          "sort_by": [
+            "key",
+            "asc"
+          ],
+          "drop": true
+        },
+        "calc": {
+          "land_area_sqft": [
+            "*",
+            "Legal_Acres",
+            43560.0
+          ]
+        }
+      },
+      "sales": {
+        "filename": "petersburg-dbo-cama-fix.parquet",
+        "load": {
+          "key": [
+            "Parcel",
+            "string"
+          ],
+          "sale_date": [
+            "Sale_Date",
+            "datetime",
+            "%m/%d/%Y"
+          ],
+          "sale_price": [
+            "Sale_Price",
+            "float"
+          ],
+          "sale_type": [
+            "Sale_Type",
+            "string"
+          ]
+        },
+        "calc": {
+          "valid_sale": [
+            "?",
+            [
+              "and",
+              [
+                ">",
+                "sale_price",
+                0
+              ],
+              [
+                "isin",
+                "sale_type",
+                [
+                  "Q",
+                  "00",
+                  "L"
+                ]
+              ]
+            ]
+          ],
+          "vacant_sale": [
+            "?",
+            [
+              "isin",
+              "sale_type",
+              [
+                "L"
+              ]
+            ]
+          ],
+          "key_sale": [
+            "join",
+            [
+              "values",
+              "Parcel",
+              "Document",
+              [
+                "asstr",
+                [
+                  "datetimestr",
+                  "Sale_Date",
+                  "str:%m/%d/%Y"
+                ]
+              ]
+            ],
+            "str:---"
+          ]
+        },
+        "dupes": {
+          "subset": [
+            "key_sale"
+          ],
+          "sort_by": [
+            "key_sale",
+            "asc"
+          ],
+          "drop": true
+        }
+      }
+    },
+    "process": {
+      "merge": {
+        "universe": [
+          "parcels"
+        ],
+        "sales": [
+          "sales"
+        ]
+      },
+      "enrich": {
+        "spatial_lag": {
+          "model_groups": {
+            "all": {
+              "sample_from": [
+                "all"
+              ]
+            }
+          }
+        },
+        "area_stats": {
+          "locations": [
+            "neighborhood"
+          ],
+          "fields": [
+            "bldg_area_finished_sqft",
+            "sale_price"
+          ],
+          "stats": [
+            "median"
+          ]
+        }
+      }
+    }
+  },
+  "modeling": {
+    "metadata": {
+      "modeler": "OAK box",
+      "valuation_date": "2026-01-01",
+      "use_sales_from": 2023
+    },
+    "model_groups": {
+      "all": {
+        "name": "All properties",
+        "filter": [
+          "not",
+          [
+            "isempty",
+            "key"
+          ]
+        ]
+      }
+    },
+    "instructions": {
+      "main": {
+        "run": [
+          "lightgbm"
+        ]
+      }
+    },
+    "models": {
+      "main": {
+        "default": {
+          "ind_vars": [
+            "bldg_area_finished_sqft",
+            "land_area_sqft",
+            "bldg_effective_age_years",
+            "bldg_age_years",
+            "bldg_quality_num",
+            "latitude",
+            "longitude",
+            "spatial_lag_sale_price_time_adj",
+            "spatial_lag_sale_price_time_adj_impr_sqft",
+            "spatial_lag_sale_price_time_adj_land_sqft",
+            "neighborhood",
+            "area_stat_neighborhood_sale_price_time_adj_median"
+          ]
+        }
+      }
+    }
+  },
+  "analysis": {
+    "ratio_study": {
+      "look_back_years": 1
+    }
+  },
+  "field_classification": {
+    "important": {
+      "fields": {
+        "loc_neighborhood": "neighborhood"
+      },
+      "locations": [
+        "neighborhood"
+      ]
+    }
+  }
+}
