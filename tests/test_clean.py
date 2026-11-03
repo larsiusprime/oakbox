@@ -46,6 +46,9 @@ def test_the_calls_are_openavmkit_settings():
     assert s["analysis"]["sales_scrutiny"]["location"] is None
     assert s["analysis"]["horizontal_equity"] == {"location": None}
     assert s["analysis"]["sales_scrutiny"]["heuristics"]["dupe_date_price"] is False
+    # OpenAVMKit's bulk-deed check (a deed for several parcels, the others' sales not valid) is on unless turned off.
+    assert s["analysis"]["sales_scrutiny"]["heuristics"]["bulk_deed"] is True
+    assert "bulk_deed" in clean.CHECK_WORDS
     # Merged into the rest, dicts all the way down.
     merged = clean.merge({"analysis": {"sales_scrutiny": {"deed_id": "deed_id"}}}, s)
     assert merged["analysis"]["sales_scrutiny"]["deed_id"] == "deed_id"

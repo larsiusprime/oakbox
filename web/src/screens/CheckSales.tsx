@@ -563,6 +563,7 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
     ["cluster", s.scrutiny.checks.cluster, s.scrutiny.checks.clusterWhy],
     ["dupe_deed_date", s.scrutiny.checks.deed, v.deed ? s.scrutiny.checks.deedWhy : s.scrutiny.checks.noDeed],
     ["dupe_date_price", s.scrutiny.checks.datePrice, ""],
+    ["bulk_deed", s.scrutiny.checks.bulk, v.deed ? s.scrutiny.checks.bulkWhy : s.scrutiny.checks.noDeed],
     ["false_vacant", s.scrutiny.checks.vacant, v.year_built ? "" : s.scrutiny.checks.noYear],
     ["built_after_sale", s.scrutiny.checks.builtAfter, v.year_built ? "" : s.scrutiny.checks.noYear],
     ["vacant_priced_improved", s.scrutiny.checks.vacantPriced, s.scrutiny.checks.vacantPricedWhy],
@@ -574,7 +575,7 @@ function ScrutinyCard({ v, set, projectId }: CardProps & { projectId: string }) 
   ];
   const can = (key: string) =>
     !(
-      (key === "dupe_deed_date" && !v.deed) ||
+      ((key === "dupe_deed_date" || key === "bulk_deed") && !v.deed) ||
       (key === "same_surname" && !v.names) ||
       ((key === "false_vacant" || key === "built_after_sale") && !v.year_built)
     );

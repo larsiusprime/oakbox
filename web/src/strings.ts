@@ -1656,6 +1656,8 @@ export const t = {
         deedWhy: "one sale of several parcels",
         noDeed: "needs a deed ID: Data › Deeds",
         datePrice: "Same day, same price",
+        bulk: "A deed for several parcels, its other sales not valid",
+        bulkWhy: "the one left still carries the whole deed's price",
         vacant: "Sold as vacant, but the building is older than the sale",
         nominal: "A nominal price (a $10 deed), not a price",
         nominalBelow: "Under",
@@ -1744,6 +1746,7 @@ export const t = {
         cluster: "far from its group",
         dupe_deed_date: "same deed, same day",
         dupe_date_price: "same day, same price",
+        bulk_deed: "deed for several parcels",
         false_vacant: "vacant, building older",
         nominal_price: "nominal price",
         built_after_sale: "built after the sale",
@@ -1906,6 +1909,8 @@ export const t = {
           "Sold on the same deed, the same day, as other sales: likely one sale of several parcels, its price for all of them.",
         dupe_date_price:
           "Sold the same day for the same price as another sale: likely one sale of several parcels.",
+        bulk_deed:
+          "Its deed was for several parcels, but the other parcels' sales weren't valid sales: its price is likely the whole deed's.",
         false_vacant: "Sold as vacant, but its building was built before the sale.",
       } as Record<string, string>,
       second:
