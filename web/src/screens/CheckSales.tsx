@@ -7,9 +7,9 @@ import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } 
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { t } from "../copy";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
-import { t } from "../strings";
 import { Card, type CardProps, NumberBox } from "./CleanCards";
 import { Review, useReviewCounts } from "./SaleReview";
 import { SalesResult, TimePreviewPanel, useTimePreview } from "./SalesResults";
@@ -183,8 +183,10 @@ export function SalesTab({
                 {v.stale && <p className="wiz-warn">{s.stale}</p>}
                 {fresh && r && (
                   <p className="wiz-ok">
-                    {s.meter(r.used, r.set_aside)}{" "}
-                    <span className="wiz-from">{t.step.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+                    {s.meter({ used: r.used, aside: r.set_aside })}{" "}
+                    <span className="wiz-from">
+                      {t.step.ran({ when: when(r.ran_at), seconds: r.seconds, engine: r.engine })}
+                    </span>
                   </p>
                 )}
                 {!r && <p className="wiz-from">{t.step.notRun}</p>}
@@ -249,7 +251,7 @@ function WindowCard({ v, set }: CardProps) {
   const first = v.years[0]?.year ?? v.default_from;
   const options: [string, string][] = [];
   for (let y = Math.min(first, v.default_from); y <= v.valuation_year; y++) {
-    options.push([String(y), y === v.default_from ? s.window.default(y) : String(y)]);
+    options.push([String(y), y === v.default_from ? s.window.default({ y }) : String(y)]);
   }
   const top = Math.max(1, ...v.years.map((y) => y.improved + y.vacant));
   return (
@@ -262,7 +264,9 @@ function WindowCard({ v, set }: CardProps) {
           onChange={(y) => set({ sales_from: Number(y) === v.default_from ? null : Number(y) })}
         />
       </div>
-      <p className="cs-text">{s.window.text(v.in_window, v.total, v.valuation_year - v.sales_from)}</p>
+      <p className="cs-text">
+        {s.window.text({ n: v.in_window, total: v.total, years: v.valuation_year - v.sales_from })}
+      </p>
       <div className="cs-bars" role="img" aria-label={s.window.chart}>
         {v.years.map((y) => {
           const n = y.improved + y.vacant;
@@ -272,7 +276,7 @@ function WindowCard({ v, set }: CardProps) {
               <i
                 className={inside ? "" : "out"}
                 style={{ height: `${(100 * n) / top}%` }}
-                title={s.window.bar(y.year, n)}
+                title={s.window.bar({ y: y.year, n })}
               />
               <span>{y.year}</span>
             </div>
@@ -311,7 +315,9 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
   const autoLabel = (gid: string) => {
     const w = worked.find((x) => x.id === gid);
     return w?.per && !w.per_chosen
-      ? s.time.autoWas(w.per === "land" ? s.time.onLandArea.toLowerCase() : s.time.onImpr.toLowerCase())
+      ? s.time.autoWas({
+          what: w.per === "land" ? s.time.onLandArea.toLowerCase() : s.time.onImpr.toLowerCase(),
+        })
       : s.time.auto;
   };
   return (
@@ -359,7 +365,7 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                     ["own", s.time.ownSales],
                     ...v.groups
                       .filter((o) => o.id !== g.id && o.id !== "UNKNOWN" && o.modeled)
-                      .map((o) => [o.id, s.time.borrowFrom(o.name)] as [string, string]),
+                      .map((o) => [o.id, s.time.borrowFrom({ name: o.name })] as [string, string]),
                     ["file", s.time.ownFile],
                   ];
                   if (!g.modeled)
@@ -416,7 +422,12 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                       <td className="wiz-from cs-ta-note">
                         {g.file ? (
                           <>
-                            {s.time.fileSays(g.file.name, g.file.periods, g.file.first, g.file.last)}{" "}
+                            {s.time.fileSays({
+                              name: g.file.name,
+                              periods: g.file.periods,
+                              first: g.file.first,
+                              last: g.file.last,
+                            })}{" "}
                             <Button className="wiz-link" onPress={() => setImporting(g.id)}>
                               {s.time.replace}
                             </Button>
@@ -492,8 +503,8 @@ function TimeFileImport({
   };
   const result = check.data;
   return (
-    <section className="bi-card cs-import" aria-label={s.time.importTitle(name)}>
-      <h3>{s.time.importTitle(name)}</h3>
+    <section className="bi-card cs-import" aria-label={s.time.importTitle({ name })}>
+      <h3>{s.time.importTitle({ name })}</h3>
       <p className="cs-text">{s.time.formatLede}</p>
       <ul className="cs-format">
         <li>

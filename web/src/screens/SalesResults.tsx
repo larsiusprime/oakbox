@@ -8,8 +8,8 @@ import { POLL } from "../api/steps";
 import { Choice } from "../components/Form";
 import { RunProgress } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { say, t } from "../copy";
 import { num, when } from "../lib/format";
-import { t } from "../strings";
 import { TimeChart } from "./TimeChart";
 
 const s = t.sales;
@@ -46,8 +46,10 @@ export function SalesResult({
     <div className={view.stale ? "cs-receipt cs-stale" : "cs-receipt"}>
       {view.stale && <p className="wiz-warn">{s.stale}</p>}
       <div className="cs-meter">
-        <span className="wiz-ok">{s.meter(r.used, r.set_aside)}</span>
-        <span className="wiz-from">{t.step.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+        <span className="wiz-ok">{s.meter({ used: r.used, aside: r.set_aside })}</span>
+        <span className="wiz-from">
+          {t.step.ran({ when: when(r.ran_at), seconds: r.seconds, engine: r.engine })}
+        </span>
       </div>
       <section className="cs-step">
         <h3 className="wiz-group">{s.funnel.title}</h3>
@@ -70,7 +72,7 @@ export function SalesResult({
         <p className="wiz-from cs-text">{s.funnel.once}</p>
         {r.flagged_in > 0 && (
           <p className="cs-text">
-            {s.funnel.flaggedIn(r.flagged_in)}{" "}
+            {s.funnel.flaggedIn({ n: r.flagged_in })}{" "}
             <Button className="wiz-link" onPress={() => look("pattern:other")}>
               {s.funnel.see}
             </Button>
@@ -103,14 +105,16 @@ export function SalesResult({
                 <td className="cs-n">{num(g.used)}</td>
                 <td className="cs-n">{num(g.clusters)}</td>
                 <td className="cs-n">
-                  {g.per_year !== null && g.per_year !== undefined ? s.time.perYear(g.per_year) : "—"}
+                  {g.per_year !== null && g.per_year !== undefined ? say.sales.time.perYear(g.per_year) : "—"}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {few.length > 0 && <div className="bi-warn">{s.groups.few(few.map((g) => g.name).join(", "))}</div>}
-        {orphans && <p className="wiz-from cs-text">{s.groups.orphans(orphans.used)}</p>}
+        {few.length > 0 && (
+          <div className="bi-warn">{s.groups.few({ names: few.map((g) => g.name).join(", ") })}</div>
+        )}
+        {orphans && <p className="wiz-from cs-text">{s.groups.orphans({ n: orphans.used })}</p>}
       </section>
       <section className="cs-step">
         <h3 className="wiz-group">{s.written}</h3>
@@ -124,7 +128,7 @@ export function SalesResult({
         </ul>
         {r.notes.length > 0 && (
           <details className="bi-details">
-            <summary>{t.groups.run.notes(r.notes.length)}</summary>
+            <summary>{t.groups.run.notes({ n: r.notes.length })}</summary>
             <ul>
               {r.notes.map((n) => (
                 <li key={n}>{n}</li>
@@ -165,7 +169,7 @@ function Patterns({ tables, look }: { tables: PatternTable[]; look: (check: stri
           options={tables.map((x) => [x.group, x.name] as [string, string])}
           onChange={setGroup}
         />
-        <span className="wiz-from">{p.lede(flagged, table.sales, table.name)}</span>
+        <span className="wiz-from">{p.lede({ flagged, sales: table.sales, name: table.name })}</span>
       </div>
       <table className="tbl cs-patterns">
         <thead>
@@ -267,7 +271,7 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
       ) : result ? (
         <>
           <p className="wiz-from cs-text">
-            {v.stale ? s.time.previewStale : s.time.previewNote(result.seconds)}
+            {v.stale ? s.time.previewStale : s.time.previewNote({ sec: result.seconds })}
           </p>
           <div className="cs-charts">
             {curves.map((g) =>
@@ -275,7 +279,7 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
                 <figure key={g.id} className="cs-chart cs-chart-open">
                   <figcaption>
                     <span className="mg-sw ab-sw" style={{ background: g.color }} />
-                    <b>{g.name}</b> {g.per_year !== null && s.time.perYear(g.per_year)}{" "}
+                    <b>{g.name}</b> {g.per_year !== null && say.sales.time.perYear(g.per_year)}{" "}
                     <Button className="wiz-link" onPress={() => setOpen(null)}>
                       {s.time.collapse}
                     </Button>
@@ -287,7 +291,7 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
                 <Button key={g.id} className="cs-chart cs-chart-button" onPress={() => setOpen(g.id)}>
                   <span className="cs-chart-cap">
                     <span className="mg-sw ab-sw" style={{ background: g.color }} />
-                    <b>{g.name}</b> {g.per_year !== null && s.time.perYear(g.per_year)}
+                    <b>{g.name}</b> {g.per_year !== null && say.sales.time.perYear(g.per_year)}
                   </span>
                   <Curve points={g.curve} color={g.color} />
                   <span className="cs-chart-foot">

@@ -1,0 +1,2938 @@
+{
+  "appTitle": "OAK box",
+  "zoomLevel": "{percent}%",
+  "tagline": "OpenAVMKit in a box",
+  "home": {
+    "projectsTitle": "Projects",
+    "noProjects": "No projects yet.",
+    "newProject": "New project",
+    "open": "Open",
+    "showInFolder": "Show in folder",
+    "delete": "Delete",
+    "taxYear": "Tax year {year}",
+    "storageTitle": "Where projects are kept",
+    "storageNote": "New projects go here. Existing projects stay where they are.",
+    "change": "Change…",
+    "useDefault": "Use the default",
+    "save": "Save",
+    "cancel": "Cancel",
+    "folderLabel": "Folder"
+  },
+  "newProject": {
+    "title": "New project",
+    "intro": "Tell OAK box which jurisdiction and tax year this is. You''ll add data files next.",
+    "name": "Project name",
+    "nameHelp": "Your name for it, e.g. Travis County 2026. It also names the project''s folder.",
+    "country": "Country",
+    "state": "State",
+    "region": "State, province or region",
+    "jurisdiction": "Jurisdiction",
+    "jurisdictionHelp": "What your office calls itself, e.g. Travis County. It appears on reports.",
+    "taxYear": "Tax year",
+    "valuationDate": "Valuation date",
+    "valuationHelp": "Everything is valued as of this date. To check an existing roll, use that roll''s valuation date.",
+    "units": "Units",
+    "imperial": "Imperial (square feet, acres)",
+    "metric": "Metric (square metres, hectares)",
+    "currency": "Currency",
+    "numbers": "Numbers are written",
+    "numberStyles": {
+      "1,234.56": "1,234.56",
+      "1.234,56": "1.234,56",
+      "1 234,56": "1 234,56",
+      "1'234.56": "1''234.56",
+      "1 234.56": "1 234.56"
+    },
+    "create": "Create project",
+    "cancel": "Cancel",
+    "where": "It will be kept in {folder}"
+  },
+  "inputFiles": {
+    "none": "No input files yet.",
+    "add": "Add a file",
+    "path": "File",
+    "browse": "Browse…",
+    "cancel": "Cancel",
+    "companions": "+ {exts}",
+    "layer": "Layer",
+    "name": "Name",
+    "nameHelp": "What this file is called in OAK box and in settings.json (data.load).",
+    "newFilename": "New file name",
+    "newFilenameHelp": "The project already has a file called {taken}. Give this one another name.",
+    "already": "Already in the project folder",
+    "how": "How to import",
+    "copy": "Copy it (a new copy is made for the project)",
+    "move": "Move it (the original moves into the project)",
+    "addButton": "Import",
+    "adding": "{mode, select, move {Moving…} other {Copying…}}",
+    "file": "{layer, select, null {{filename}} other {{filename}, layer {layer}}}",
+    "missing": "Missing",
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "size": "Size",
+      "geometry": "Geometry",
+      "fields": "Data",
+      "actions": "Actions"
+    },
+    "noFields": "None yet",
+    "yes": "Yes",
+    "no": "No",
+    "newName": "New name for {name}",
+    "save": "Save",
+    "remove": "Remove"
+  },
+  "about": {
+    "version": "OAK box",
+    "openavmkit": "OpenAVMKit",
+    "licences": "OAK box is free software under the MIT licence. Fonts: IBM Plex (SIL Open Font License). Icons: Noto Color Emoji (Apache 2.0).",
+    "close": "Close"
+  },
+  "deleteProject": {
+    "title": "Delete {name}?",
+    "body": "Its folder ({size}, {files, number} files) goes to the Recycle Bin. You can restore it from there.",
+    "measuring": "Measuring the folder…",
+    "confirm": "Move to Recycle Bin",
+    "cancel": "Cancel"
+  },
+  "wizard": {
+    "names": {
+      "title": "Buyers and sellers: their surnames",
+      "lede": "Sales scrutiny sets aside a sale whose buyer and seller share a surname: possibly between family, not a market sale. How are the names written?",
+      "none": "Load the seller and buyer names (above) to check for sales between family.",
+      "surnameFields": "Seller and buyer surnames are loaded: they''re used as given. The format below reads the names that have none.",
+      "how": "How the names are written",
+      "looks": "looks like this: {why}",
+      "custom": "My own pattern (a regular expression)",
+      "patternLabel": "Pattern",
+      "patternPlaceholder": "^\\s*(?P<surname>[^,]+),",
+      "patternHelp": "A regular expression with a group named surname around the surname: (?P<surname>…). Case doesn''t matter. Each person in a name joined by & ; / or AND is read on their own.",
+      "counts": "Of {sales, number} sales with both names{sampled, select, true { (the first 5,000)} other {}}: {read, number} names read as people, {companies, number} skipped as companies, trusts, banks or governments, {unread, number} with no surname found. {shared, number} {shared, plural, =1 {sale shares} other {sales share}} a surname.",
+      "seller": "Seller (grantor)",
+      "buyer": "Buyer (grantee)",
+      "surname": "Surname read",
+      "shared": "Shared",
+      "noSurname": "none",
+      "inUse": "✓ In use",
+      "confirm": "That''s right",
+      "use": "Use this",
+      "cancel": "Cancel",
+      "outside": "Names too irregular for any pattern are better split before they come in: give the sales file clear seller and buyer surname columns, and load them as Seller surname and Buyer surname (above). They''re used as given."
+    },
+    "loading": "Reading the files…",
+    "stepOf": "Step {n} of {of}",
+    "back": "‹ Back",
+    "toBringIn": "Bring in data ›",
+    "left": {
+      "listed": "{n, plural, =1 {1 thing} other {{n} things}} left: {what}",
+      "count": "{n, plural, =1 {1 thing left on this step} other {{n} things left on this step}}"
+    },
+    "unfinished": {
+      "title": "This step isn''t finished",
+      "body": "You can come back to it: the step list keeps its mark until it''s done.",
+      "skip": "Skip ahead anyway",
+      "finish": "Finish this step"
+    },
+    "unfinishedRun": {
+      "title": "OpenAVMKit can''t run yet",
+      "body": "These stop Bring in data. You can look at it anyway: it lists what will run.",
+      "skip": "Go to Bring in data anyway",
+      "finish": "Fix them first"
+    },
+    "skip": "I don''t have these",
+    "more": "{n} more {n, plural, =1 {field} other {fields}}",
+    "fewer": "Fewer fields",
+    "none": "(none)",
+    "used": "used: {field}",
+    "alsoRead": "also read by {field}",
+    "idNames": {
+      "key": "Parcel ID",
+      "key2": "Second ID",
+      "key_sale": "Sale ID"
+    },
+    "columnFor": "Column for {field}",
+    "steps": {
+      "welcome": {
+        "title": "Welcome",
+        "question": "Welcome to OAK box",
+        "lede": ""
+      },
+      "universe": {
+        "title": "Parcel universe",
+        "question": "Let''s start with your parcel universe",
+        "lede": "Two things first: the parcel shapes, and the main parcel ID. Add the file that has both. Have more files to join to it? Those come later: just pick the main file for now."
+      },
+      "sales": {
+        "title": "Sales",
+        "question": "Now your sales",
+        "lede": "Add the file that holds the sales record. Each sale must find its parcel in the parcel universe. Files with more about each sale (deeds, say) come next: just pick the main one for now."
+      },
+      "more_files": {
+        "title": "More files",
+        "question": "Any more files to join?",
+        "lede": "Building details, sale details, more sales… Add each file, say what it''s about and how it joins. Permits have a step of their own, later. None? Just go on."
+      },
+      "details": {
+        "title": "More details",
+        "question": "",
+        "lede": ""
+      },
+      "big_five": {
+        "title": "Big five",
+        "question": "What a model needs most",
+        "lede": "Building size is required. Land size is worked out from the shapes if you leave it out. Age, quality and condition are strongly recommended."
+      },
+      "location": {
+        "title": "Location",
+        "question": "Where is each parcel?",
+        "lede": "The site address, where each parcel is, and the areas it belongs to."
+      },
+      "land": {
+        "title": "Land",
+        "question": "What about the land?",
+        "lede": "Zoning and land class."
+      },
+      "building": {
+        "title": "Building",
+        "question": "What kind of buildings are they?",
+        "lede": "Type, class and how many."
+      },
+      "rooms_features": {
+        "title": "Rooms & features",
+        "question": "Rooms and features",
+        "lede": "Bedrooms, bathrooms, style, materials and systems."
+      },
+      "property_type": {
+        "title": "Land use & building type",
+        "question": "What kind of property is each parcel?",
+        "lede": "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have, and add any other field you want to use, saying whether it''s a land/location, improvement or other field."
+      },
+      "assessed": {
+        "title": "Existing values",
+        "question": "Do you have values to compare the models with?",
+        "lede": "The roll, a vendor''s AVM, last year''s values: each set is judged beside the models, on the same sales. A market value is enough; land and improvement values are kept for later."
+      },
+      "shapefiles": {
+        "title": "Shapefiles",
+        "question": "Any map layers?",
+        "lede": "Zoning, school zones, flood zones, parks, schools… Each layer either stamps its areas onto the parcels inside them, or gives each parcel its distance to the nearest feature."
+      },
+      "condos": {
+        "title": "Condo units",
+        "question": "",
+        "lede": ""
+      },
+      "condo_ask": {
+        "title": "Do you have condos?",
+        "question": "Do you have condos?",
+        "lede": "Or anything else on the roll but not on the map: a unit with a parcel ID of its own but no parcel shape, because it sits on a parcel it shares. OAK box can give each unit the shape of the parcel it''s on, so it''s valued like any other parcel."
+      },
+      "condo_file": {
+        "title": "Units file",
+        "question": "Which file has the units?",
+        "lede": "The file whose rows are the units: each with a parcel ID of its own, and no shape of its own. It''s joined on More files like any file with more about each parcel."
+      },
+      "condo_rows": {
+        "title": "Which rows",
+        "question": "Which rows are units?",
+        "lede": "Usually every row of the units file without a shape. If the file mixes units with other things that have no shape (mineral or air rights, business property, a building''s common areas), say which rows are units: the rest are left out."
+      },
+      "condo_link": {
+        "title": "The parcel they''re on",
+        "question": "How does each unit find the parcel it''s on?",
+        "lede": "A unit takes the shape of the parcel it sits on: its building, complex or park. Often the unit''s ID starts with that parcel''s; sometimes a column names it."
+      },
+      "condo_land": {
+        "title": "Land",
+        "question": "How much land is each unit''s?",
+        "lede": "Land is a big part of a parcel''s value. Say how the shared parcel''s land (its shape''s area) is split among its units, or whether they have none of their own. The examples show what each unit gets."
+      },
+      "condo_fields": {
+        "title": "Their fields",
+        "question": "What should the units carry?",
+        "lede": "A unit sits on a parcel it shares: where it is and the land it''s on are the parcel''s. What its building is like comes from the units file."
+      },
+      "condo_location": {
+        "title": "As a location",
+        "question": "Treat each shared parcel as a location?",
+        "lede": "Units on one parcel share a lot: the building, its amenities, an association. As a location, like a neighborhood, models can learn what being on each one is worth."
+      },
+      "condo_summary": {
+        "title": "Summary",
+        "question": "Here''s what happens to the units",
+        "lede": "When Bring in data runs, OpenAVMKit does this, in this order. Change any part from the steps on the left."
+      },
+      "deeds": {
+        "title": "Deeds",
+        "question": "Which deed was each sale recorded under?",
+        "lede": "The deed ID, or the deed book and page. Several sales on one deed, on the same day, are usually one sale of several parcels: sales scrutiny (notebook 2) finds them this way and sets them aside. No deeds? Skip it."
+      },
+      "permits": {
+        "title": "Permits",
+        "question": "Do you have building permits?",
+        "lede": "A sale followed soon by a demolition permit was really a sale of the land: it''s counted as a vacant sale. A major renovation can reset the effective year built. Add the permits file, one row per permit, with the parcel ID. None? Skip it."
+      },
+      "enrich": {
+        "title": "Enrichments",
+        "question": "Add public data about each parcel?",
+        "lede": "Distances to parks and water, building footprints, census figures and elevation, from public sources. Each is optional: turn on what helps your models. Bring in data downloads them as it runs; one that fails is skipped and said so, never stopping the run."
+      },
+      "review": {
+        "title": "Review",
+        "question": "Here''s what will load",
+        "lede": ""
+      }
+    },
+    "welcome": [
+      "OAK box helps you build models. It needs two datasets for that: a SALES RECORD and a PARCEL UNIVERSE",
+      "",
+      "The SALES RECORD is what every parcel sold for and when (and ideally, what each parcel was like when it sold)",
+      "",
+      "The PARCEL UNIVERSE is every parcel, sold and unsold, as it is now.",
+      "Both are needed to build a model. We''ll start with the parcel universe."
+    ],
+    "start": "Start ›",
+    "addFile": "Add a file…",
+    "addOther": "Use a different file",
+    "orExisting": "Or use a file already in the project",
+    "noPicker": "Adding a file needs the file picker, which is only in the OAK box window.",
+    "fileLabel": "{name} ({filename})",
+    "geometryFound": "✓ Geometry detected",
+    "parcelId": "Parcel ID",
+    "parcelIdTip": "The column that identifies each parcel. Every value must be different.",
+    "idOrdinal": {
+      "key2": "2nd ID",
+      "key3": "3rd ID"
+    },
+    "addId": "Add {ordinal}",
+    "extraIdTip": "Optional. Only needed when another data file identifies parcels by a different ID, and has to join on that.",
+    "optional": "Optional",
+    "removeId": "(remove)",
+    "matchBy": "Matches the parcel universe by",
+    "idColumnIn": "ID column in {file}",
+    "saleIdTip": "The same parcel can sell more than once, so each sale needs its own ID.",
+    "elsewhere": "In another file…",
+    "otherTitle": "{field} from another file",
+    "otherFile": "File",
+    "otherKey": "Its ID column",
+    "otherColumn": "Column for {field}",
+    "save": "Save",
+    "warnings": "Recommended",
+    "rule": {
+      "choose": "Choose values…",
+      "edit": "Edit rule…",
+      "make": "Use a rule…",
+      "title": {
+        "valid_sale": "Which sales are valid?",
+        "vacant_sale": "Which sales are vacant?"
+      },
+      "titleFor": "When is it {name}?",
+      "lede": "Pick the values that mean yes. Add more tests for other columns if one isn''t enough.",
+      "addPrice": "Sale price is at least {amount}",
+      "noPrice": "Choose the sale price column first to test prices here.",
+      "priceCounts": "{column}, as read: {counts}.",
+      "zero": "{n, number} zero",
+      "nominal": "{n, number} under {amount}",
+      "negative": "{n, number} negative",
+      "asRead": "{column}, as read",
+      "word": {
+        "valid_sale": "valid",
+        "vacant_sale": "vacant"
+      },
+      "meter": "{yes, number} of {total, number} {word} ({pct})",
+      "incomplete": "Choose at least one value for each test.",
+      "where": "Sales where",
+      "all": "all of these are true",
+      "any": "any of these is true",
+      "column": "Column",
+      "op": "Test",
+      "ops": {
+        "isin": "is one of",
+        "notin": "is not one of",
+        "==": "equals",
+        "!=": "doesn''t equal",
+        "contains": "contains",
+        "isempty": "is blank",
+        "notempty": "isn''t blank",
+        ">": "is more than",
+        "<": "is less than",
+        ">=": "is at least",
+        "<=": "is at most"
+      },
+      "value": "Value",
+      "countRows": "rows of the file",
+      "blank": "(blank)",
+      "addTest": "Add a test",
+      "removeTest": "Remove this test",
+      "rows": "Some sales",
+      "result": "Result",
+      "yes": "yes",
+      "no": "no",
+      "writes": "What this writes to the settings",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "dates": {
+      "change": "Change format…",
+      "check": "Check format…",
+      "title": "How to read {column}",
+      "lede": "Pick the format the dates are written in. They''re read exactly as OpenAVMKit will read them.",
+      "format": "Format",
+      "custom": "Custom…",
+      "customLabel": "Custom format (Python strftime, e.g. %d.%m.%Y)",
+      "read": "{read, number} of {total, number} read",
+      "range": "{a} to {b}",
+      "blank": "{n, number} blank",
+      "failed": "{n, number} don''t read",
+      "also": "These also read as",
+      "useIt": "use that",
+      "asIs": "As written",
+      "asRead": "Read as",
+      "notRead": "doesn''t read",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "numbers": {
+      "change": "Change how it''s read…",
+      "check": "Check amounts…",
+      "title": "How to read {column}",
+      "lede": "Amounts are read exactly as OpenAVMKit will read them. Currency signs, spaces and the thousands separator are dropped, (10) is −10, and N/A, TBD, - and blanks are missing.",
+      "decimal": "Decimal mark",
+      "decimals": {
+        ".": "point: 1,234.56",
+        ",": "comma: 1.234,56"
+      },
+      "guessed": "The amounts don''t settle the decimal mark (1.234 could be one or a thousand), so it''s the project''s number style.",
+      "suffixes": "K and M mean thousands and millions ($250K, $1.2M)",
+      "scale": "Amounts are",
+      "scales": {
+        "asWritten": "as written",
+        "thousands": "in thousands (× 1,000)",
+        "millions": "in millions (× 1,000,000)",
+        "cents": "in cents (÷ 100)",
+        "times": "× {by}",
+        "divided": "÷ {by}"
+      },
+      "read": "{read, number} of {total, number} read",
+      "spread": "median {median} · most between {low} and {high}",
+      "blank": "{n, number} blank or N/A",
+      "failed": "{n, number} don''t read",
+      "readAs": "Read them {s}",
+      "assessed": "A typical sale is {ratio} × the {field, select, assr_land_value {assessed land value} other {assessed value}}: the scale looks right.",
+      "excel": "{n, number} were rounded by Excel (1.11E+06): the exact amount is lost and can''t be recovered. Re-export the file with the column formatted as a number.",
+      "asIs": "As written",
+      "asRead": "Read as",
+      "notRead": "doesn''t read",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "areaUnitFor": "Unit of {name} in the file",
+    "areaUnits": {
+      "sqft": "sq ft",
+      "sqm": "m²",
+      "acres": "acres",
+      "hectares": "hectares",
+      "sqyd": "sq yd",
+      "tsubo": "tsubo (坪)",
+      "pyeong": "pyeong (평)",
+      "mu": "mu (亩)"
+    },
+    "anotherFileHint": "Building details in a separate file, like a CAMA export? Add it on the More files step (or choose “In another file…” below), and its columns are offered for every field.",
+    "saleIdLabel": "Sale ID",
+    "shapefiles": {
+      "first": "Add a layer",
+      "another": "Add another layer",
+      "formats": "Shapefile (.shp with its .dbf, .shx and .prj), GeoPackage, GeoJSON or GeoParquet.",
+      "drop": "Don''t use this layer",
+      "empty": "no shapes",
+      "polygons": "{n, number} {n, plural, =1 {shape} other {shapes}}",
+      "points": "{n, number} {n, plural, =1 {point} other {points}}",
+      "lines": "{n, number} {n, plural, =1 {line} other {lines}}",
+      "how": "Use it to…",
+      "stamp": "Stamp its areas onto parcels: the shape each parcel''s centre falls in",
+      "onlyPoints": "(not for this layer: it''s points, and a parcel can only fall inside a shape; use distances)",
+      "onlyLines": "(not for this layer: it''s lines, and a parcel can only fall inside a shape; use distances)",
+      "noShapes": "(not for this layer: it has no shapes)",
+      "distance": "Measure distances: how far each parcel is from the nearest feature",
+      "stampShort": "Stamp onto parcels",
+      "distanceShort": "Distance to",
+      "copies": "Copies",
+      "addField": "Field",
+      "gives": "Gives",
+      "upTo": "up to",
+      "options": "Options",
+      "namesFrom": "names from {column}",
+      "topShort": "largest {n}",
+      "showMap": "Show it on a map",
+      "hideMap": "Hide the map",
+      "kindsShort": {
+        "location": "location",
+        "category": "category",
+        "number": "number"
+      },
+      "column": "Column",
+      "pickColumn": "Choose a column…",
+      "name": "Name",
+      "namePlaceholder": "e.g. zoning_district",
+      "kind": "Use as",
+      "kinds": {
+        "location": "a location (an area)",
+        "category": "a category",
+        "number": "a number"
+      },
+      "add": "Add",
+      "remove": "Remove {name}",
+      "named": "Name",
+      "featureName": "Name of the distance",
+      "columns": "Gives dist_to_{n}, proximity_to_{n} and within_{n}",
+      "maxDistance": "No further than",
+      "none": "no limit",
+      "unit": "Unit",
+      "units": {
+        "m": "metres",
+        "km": "km",
+        "ft": "feet",
+        "mile": "miles"
+      },
+      "maxHelp": "Past it a parcel has no distance (and proximity 0). Recommended: it''s also much faster.",
+      "save": "Save",
+      "nameColumn": "Each feature''s name",
+      "noNames": "(none: unnamed)",
+      "top": "Also a distance to each of the largest",
+      "topN": "How many",
+      "sortBy": "Largest by",
+      "byArea": "area",
+      "byLength": "length",
+      "mapLabel": "Map of {name} over the parcels"
+    },
+    "permits": {
+      "date": "Date issued",
+      "type": "What each permit is",
+      "noFormat": "Pick a column that reads as a date",
+      "kinds": "{n, number} kinds of permit",
+      "permits": "Permits",
+      "means": "Means",
+      "teardown": "Teardown (demolition)",
+      "major": "Major renovation",
+      "minor": "Minor renovation",
+      "none": "— not a renovation",
+      "guessed": "(guessed)",
+      "more": "{n, number} rarer kinds not listed: not renovations.",
+      "teardownSale": "A sale demolished within",
+      "teardownSaleEnd": "days after it is a teardown sale: counted as vacant (a land sale).",
+      "days": "Days",
+      "effectiveAge": "Major renovations reset the effective year built",
+      "needsYearBuilt": "needs the year built (Big five)",
+      "gives": "Gives each sale is_teardown_sale and days_to_demo, and each parcel last_permit_was_teardown, is_renovated, reno_date, renovation_num (3 major, 1 minor) and renovation_txt.",
+      "stop": "Don''t use this file for permits"
+    },
+    "enrich": {
+      "online": "Four of these use the internet: each sends only the rectangle around your parcels{km2, select, null {} other { ({km2, number} km²)}} to a public service, and downloads what''s there. Your parcel data never leaves this computer. Downloads are kept, so running again reuses them.",
+      "onlineShort": "Uses the internet",
+      "distances": "Distances to features",
+      "distancesFrom": "from OpenStreetMap",
+      "distancesSends": "Sends the rectangle around your parcels to OpenStreetMap''s Overpass service.",
+      "footprints": "Building footprints",
+      "footprintsFrom": "from Overture Maps",
+      "footprintsSends": "Downloads Overture''s buildings in that rectangle from its public Amazon S3 bucket.",
+      "census": "Census",
+      "censusFrom": "US Census Bureau, ACS 5-year",
+      "censusSends": "Sends your county''s code and your free API key to the Census API.",
+      "elevation": "Elevation",
+      "elevationFrom": "USGS 3DEP",
+      "elevationSends": "Downloads elevation tiles for that rectangle from USGS.",
+      "adds": "Adds",
+      "addsByBlockGroup": "Adds, by block group",
+      "change": "Change…",
+      "done": "Done",
+      "upTo": "up to",
+      "largest": "{n, plural, =0 {} other {and to each of the {n} largest by name}}",
+      "largestLabel": "Also measured to each of the largest, by name",
+      "noneLargest": "none",
+      "summary": {
+        "none": "No features chosen"
+      },
+      "maxDistance": "Farthest distance measured to {label}",
+      "units": {
+        "mile": "miles",
+        "km": "km",
+        "m": "m",
+        "ft": "ft"
+      },
+      "taken": "{label}: a map layer already uses this name, so it''s measured from the layer instead",
+      "addsPerFeature": "Adds, for each feature",
+      "noneTicked": "None chosen: nothing is downloaded",
+      "fieldsOf": {
+        "all": "{all} {all, plural, =1 {field} other {fields}}",
+        "some": "{on} of {all} fields"
+      },
+      "fieldsTitle": "Fields from {name}",
+      "fieldsNote": "Fields you untick are left out of the parcel data. With none ticked, nothing is downloaded.",
+      "key": "API key",
+      "keySaved": "saved on this computer, not in the project (…{end})",
+      "keyGet": "Get a key",
+      "keyPlaceholder": "Paste your key",
+      "keySave": "Save",
+      "keyForget": "Forget",
+      "county": "County",
+      "countyPick": "Pick the county",
+      "countyGuess": "where the parcels are",
+      "useCounty": "Use it",
+      "year": "Survey",
+      "yearOf": "ACS 5-year {y}",
+      "detail": "Detail",
+      "resolution": "{m} m",
+      "suggested": "{km2, select, null {{m} m suggested} other {{m} m suggested for an area this size ({km2, number} km²)}}",
+      "censusOff": "Needs a free API key from the Census Bureau."
+    },
+    "values": {
+      "button": {
+        "values": "{n, number} {n, plural, =1 {value} other {values}}",
+        "named": "{n, number} {noun}"
+      },
+      "title": "{column} · {file}",
+      "summary": "{distinct, number} different {distinct, plural, =1 {value} other {values}} in {rows, number} rows{blank, plural, =0 {} other {, {blank, number} blank}}",
+      "search": "Search values",
+      "value": "Value",
+      "rows": "Rows",
+      "more": "{n, number} more: search to find them",
+      "none": "No value matches",
+      "loading": "Reading the values…"
+    },
+    "units": {
+      "kinds": [
+        "Condos of any kind: homes, offices, shops, warehouse and flex units",
+        "Parking spaces, storage units, boat slips and hangars sold as condos",
+        "Timeshares, where each share has a parcel ID of its own",
+        "Homes in a mobile-home park, on land the park owns",
+        "Buildings on leased land: ground leases, hangars at an airport, cabins on public land"
+      ],
+      "kindsTitle": "Like these:",
+      "notThese": "Not these: townhomes and other units on a lot of their own already have a shape, and a co-op is usually one parcel for its whole building.",
+      "evidence": "What the files suggest",
+      "noEvidence": "Nothing in the files so far suggests units: every parcel file''s rows find a parcel shape.",
+      "answer": "Do you have condos?",
+      "yes": "Yes, some parcels are units",
+      "yesSub": "Next: which file has them, how each finds the parcel it''s on, and its land.",
+      "no": "No",
+      "noSub": "Every parcel has a shape of its own. This step is done.",
+      "noLeft": "The rows above are left out; Review keeps a note of them.",
+      "fileLabel": "The units file",
+      "rowsOf": "{rows, select, null {} other { · {rows, number} rows}}",
+      "fileMostly": {
+        "all": "All {rows, number} rows have no shape of their own: likely the units.",
+        "some": "{n, number} of {rows, number} rows have no shape of their own: likely the units."
+      },
+      "fileSome": "{n, number} of {rows, number} rows have no shape: more likely more about the units (their building cards, say) than the units themselves.",
+      "fileNone": "Every row has a shape: not units.",
+      "notListed": "Not listed? Add it on More files, as more about each parcel, joined on the parcel ID.",
+      "toMoreFiles": "More files…",
+      "oneFile": "OpenAVMKit takes one units file: units in more than one file (condos in one, mobile homes in another) need combining first.",
+      "units": "{n, number} {n, plural, =1 {unit} other {units}}",
+      "which": "Which rows are units",
+      "every": "Every row",
+      "everySub": "Every row of the file without a shape.",
+      "where": "Rows where…",
+      "whereSub": "A test on a column, like LAND_CLASS is CONDO.",
+      "addCondition": "Add a condition",
+      "column": "Column",
+      "remove": "Remove",
+      "finds": "Each finds the parcel it''s on by",
+      "byPrefix": "The start of an ID",
+      "byParent": "A column naming it",
+      "first": "first",
+      "characters": "characters of",
+      "match": "match",
+      "inUniverse": "in the parcel universe",
+      "holds": "holds the parcel ID of the parcel it''s on",
+      "guess": "Guess again",
+      "onParcel": "→ parcel",
+      "noParcel": "→ no parcel on the map: left out",
+      "matched": "{column, select, null {(matches {v})} other {(its {column} is {v})}}",
+      "land": "Land",
+      "landChoices": {
+        "equal": [
+          "Equal shares",
+          "The parcel''s land split equally, one share per unit. Needs nothing from the units. Usual for condos."
+        ],
+        "floor_area": [
+          "Shared by finished area",
+          "Bigger units get more. Uses each unit''s finished area, as loaded on More details › Big five."
+        ],
+        "field": [
+          "Each unit''s own land size",
+          "From a column of the units file: some rolls record each unit''s share."
+        ],
+        "none": [
+          "No land of their own",
+          "The land is the shared parcel''s, not the units'': homes in a mobile-home park, buildings on leased land. The parcel keeps its land; units are valued on what''s theirs."
+        ]
+      },
+      "landColumn": "Land size column",
+      "share": "land",
+      "fromFile": "From the units file",
+      "fieldsPick": "Fields from the units file",
+      "chooseFields": "Choose fields…",
+      "pickColumn": "Pick its column",
+      "fromParcelTitle": "From the parcel they''re on",
+      "inheritPick": "Fields from the parcel",
+      "inheritNote": "Each unit takes these from the parcel it''s on, where its own is blank: the land''s and the location''s (zoning, a district), never its address, size or values.",
+      "inheritNone": "The parcels have no land or location fields to give (zoning, a district…). Add them on More details or as a location.",
+      "shapeTitle": "And from its shape, as every parcel does:",
+      "location": "Yes: the parcel each unit is on is a location (condo_group)",
+      "locationOff": "Without it, models see units only by their own fields and where they are.",
+      "locationEg": "For example:",
+      "summary": {
+        "rows": "{n, number} {n, plural, =1 {row} other {rows}} of {file} {n, plural, =1 {is a unit} other {are units}}{every, select, true { (every row without a shape)} other { (the rows the test picks)}}.",
+        "link": "Each finds the parcel it''s on by {how}: {linked, number} of {units, number}, on {parcels, number} {parcels, plural, =1 {parcel} other {parcels}}.",
+        "prefix": "the first {n} characters of {column}",
+        "parent": "the parcel ID in {column}",
+        "shape": "Each takes that parcel''s shape, so it joins the parcel universe as a parcel of its own: {linked, number} more parcels.",
+        "land": {
+          "equal": "Its land is an equal share of the parcel''s.",
+          "floor_area": "Its land is a share of the parcel''s, by finished area.",
+          "field": "Its land is its own land size, from its file.",
+          "none": "It has no land of its own: the land is the parcel''s."
+        },
+        "carries": {
+          "some": "It carries {names} from {file}.",
+          "none": "It carries nothing from {file} yet."
+        },
+        "location": "{on, select, true {Its parcel is a location (condo_group).} other {Its parcel isn''t used as a location.}}",
+        "sales": "Sales: {text}."
+      },
+      "pointer": "{n, number} {n, plural, =1 {row has} other {rows have}} no shape of their own: condos or other units? They''re set up on Condo units.",
+      "pointerUnits": "Its rows are the units: they''re set up on Condo units.",
+      "toCondos": "Condo units…",
+      "pickFirst": "Pick the file with the units first.",
+      "toFile": "Units file…"
+    },
+    "custom": {
+      "title": "Your own fields",
+      "lede": "Any other column of a parcel file, under a name you choose. Say whether it''s a land/location, improvement or other field, and whether it''s a category or a number: OpenAVMKit treats them that way when it models.",
+      "column": "Column",
+      "pickColumn": "Pick a column…",
+      "name": "Name",
+      "namePlaceholder": "name_like_this",
+      "clear": "Clear this line without adding a field",
+      "group": "Class",
+      "groups": {
+        "land": "Land/location",
+        "building": "Improvement",
+        "other": "Other"
+      },
+      "type": "Kind",
+      "types": {
+        "category": "a category",
+        "number": "a number"
+      },
+      "values": "Values",
+      "actions": "Remove",
+      "add": "Add field",
+      "remove": "Remove {name}"
+    },
+    "location": {
+      "areas": "{n, plural, =1 {area} other {areas}}",
+      "coordinates": "Coordinates",
+      "latlon": "Latitude and longitude",
+      "latlonHow": "worked out by OpenAVMKit from each parcel''s shape (its centre point). Nothing to load.",
+      "polar": "Polar coordinates",
+      "polarHow": "each parcel''s distance and direction from the centre point (the pin), also worked out by OpenAVMKit.",
+      "noShapes": "Add the parcel universe (with shapes) to see the map.",
+      "noMap": "The parcel shapes have no coordinate system, so they can''t be placed on a map.",
+      "loading": "Loading the map…",
+      "mapLabel": "Map of the parcels, with the centre point",
+      "pinTitle": "The centre: drag to move it",
+      "centerMiddle": "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
+      "centerMiddleHidden": "The centre is the middle of the parcels. Show the map to move it (downtown, say).",
+      "showMap": "Show map",
+      "hideMap": "Hide map",
+      "centerSet": "The centre is at {lat}, {lon}.",
+      "useMiddle": "Use the middle of the parcels",
+      "fields": "Location fields",
+      "fieldsLede": "Areas each parcel belongs to: neighborhood, market area, school district, zoning district… Pick the column and give it a name; models use them as categories. Add as many as you like, one at a time.",
+      "column": "Column",
+      "pickColumn": "Choose a column…",
+      "name": "Name",
+      "namePlaceholder": "e.g. market_area",
+      "add": "Add",
+      "remove": "Remove {name}"
+    },
+    "extraFiles": {
+      "first": "Add a file",
+      "another": "Add another file",
+      "drop": "Don''t use this file",
+      "what": "What''s in it?",
+      "parcels": "More about each parcel",
+      "sales": "More about each sale",
+      "how": "How does it join?",
+      "joinedParcels": "Joined to each parcel, on the parcel ID",
+      "joinedSales": "Joined to each sale, on the sale ID",
+      "rowsParcels": "Appended as extra rows: more parcels",
+      "rowsSales": "Appended as extra rows: more sales",
+      "needsShapes": "(needs shapes: the universe''s parcels have theirs)",
+      "needsSales": "(add the sales record first)",
+      "madeId": "Its sale ID is made as the sales record''s: from its parcel ID and sale date.",
+      "saleDate": "Sale date",
+      "has": "Has {have} of the {what} {of} fields.",
+      "missing": " Not in it: {names} (blank for its rows).",
+      "few": "Half of them or fewer: likely the wrong file, or a different layout.",
+      "salesRecord": "sales record''s",
+      "universe": "parcel universe''s",
+      "notIn": "(not in it)",
+      "overlapSales": "{n, number} of its sales {n, plural, =1 {is} other {are}} in the sales record already (the same sale ID): each kept once, the sales record''s row.",
+      "overlapParcels": "{n, number} of its parcels {n, plural, =1 {is} other {are}} in the parcel universe already: each kept once, the universe''s row.",
+      "appendedSales": "Its {rows, number} rows are added to the sales record. Written as OpenAVMKit''s data.process.merge.sales, \"how\": \"append\".",
+      "appendedParcels": "Its {rows, number} rows are added to the parcel universe. Written as OpenAVMKit''s data.process.merge.universe, \"how\": \"append\".",
+      "ruleNote": "the sales record''s rule, on this column",
+      "assumedNote": "no column: assumed, as the sales record assumes it"
+    },
+    "valueSets": {
+      "market": "Market value",
+      "land": "Land value",
+      "impr": "Improvement value",
+      "roll": "The assessor''s roll",
+      "rollNote": "checked on Check my values, and beside the models as OpenAVMKit''s assessor",
+      "otherNote": "beside the models, and on Check my values",
+      "remove": "Remove",
+      "name": "Name of the set",
+      "add": "Add a set of values",
+      "none": "No existing values: the models are judged on their own."
+    },
+    "reconcile": {
+      "open": "Reconcile…",
+      "seeThem": "See them…",
+      "cleaned": "IDs cleaned: {what}",
+      "kinds": {
+        "sales": {
+          "title": "Reconcile parcel IDs",
+          "lede": "Clean up the IDs so the sales find their parcels. The steps run when the data loads; your files aren''t changed.",
+          "meter": "{pct} of sales match a parcel",
+          "target": "Parcels",
+          "mine": "Sales",
+          "targetCol": "Sold?",
+          "targetHit": "has a sale",
+          "targetMiss": "no sale",
+          "mineCol": "Finds a parcel?",
+          "targetShown": "{n} random parcels of {total, number}",
+          "mineShown": "{n} random sales of {total, number}",
+          "unmatched": {
+            "all": "The {left, number} {left, plural, =1 {sale} other {sales}} that still don''t find a parcel",
+            "some": "{n} of the {left, number} sales that still don''t find a parcel"
+          }
+        },
+        "parcels": {
+          "title": "Reconcile parcel IDs",
+          "lede": "Clean up the IDs so the rows of {file} find their parcels. The steps run when the data loads; your files aren''t changed.",
+          "meter": "{pct} of {file} rows match a parcel",
+          "target": "Parcels",
+          "mine": "{file}",
+          "targetCol": "In {file}?",
+          "targetHit": "yes",
+          "targetMiss": "no",
+          "mineCol": "Finds a parcel?",
+          "targetShown": "{n} random parcels of {total, number}",
+          "mineShown": "{n} random rows of {total, number}",
+          "unmatched": {
+            "all": "The {left, number} {left, plural, =1 {row} other {rows}} that still don''t find a parcel",
+            "some": "{n} of the {left, number} rows that still don''t find a parcel"
+          }
+        },
+        "more_sales": {
+          "title": "Reconcile sale IDs",
+          "lede": "Clean up the sale IDs so the rows of {file} find their sales. The steps run when the data loads; your files aren''t changed.",
+          "meter": "{pct} of {file} rows match a sale",
+          "target": "Sales",
+          "mine": "{file}",
+          "targetCol": "In {file}?",
+          "targetHit": "yes",
+          "targetMiss": "no",
+          "mineCol": "Finds a sale?",
+          "targetShown": "{n} random sales of {total, number}",
+          "mineShown": "{n} random rows of {total, number}",
+          "unmatched": {
+            "all": "The {left, number} {left, plural, =1 {row} other {rows}} that still don''t find a sale",
+            "some": "{n} of the {left, number} rows that still don''t find a sale"
+          }
+        }
+      },
+      "counts": "{matched, number} of {total, number}",
+      "was": "was {pct}",
+      "suggest": "Suggestion:",
+      "tryIt": "Try it ({pct})",
+      "samples": "Samples",
+      "unmatched": "Unmatched",
+      "random": "Random",
+      "newSamples": "↻ New samples",
+      "same": "Same steps for both files",
+      "none": "No clean-up: used as is",
+      "sameAsParcels": "Same steps as the parcels",
+      "add": "Add a step",
+      "remove": "Remove this step",
+      "asIs": "As is",
+      "cleanedCol": "Cleaned",
+      "same_": "same",
+      "blank": "(blank)",
+      "matches": "matches",
+      "noMatch": "no match",
+      "noUnmatched": "Nothing left unmatched.",
+      "writes": "What this writes to the settings",
+      "nothing": "Nothing yet: no clean-up steps.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "menu": {
+        "zeros": [
+          "Remove leading zeros",
+          "0001234 → 1234"
+        ],
+        "hyphens": [
+          "Remove hyphens",
+          "7864-123 → 7864123"
+        ],
+        "spaces": [
+          "Remove spaces",
+          "12 34 → 1234"
+        ],
+        "other": [
+          "Remove other characters…",
+          "pick the characters"
+        ],
+        "trim": [
+          "Trim spaces at the ends",
+          "\" 1234 \" → \"1234\""
+        ],
+        "upper": [
+          "Make letters capitals",
+          "r0123456 → R0123456"
+        ],
+        "replace": [
+          "Replace text…",
+          "find this, put that"
+        ],
+        "first": [
+          "Keep the first characters…",
+          "first N"
+        ],
+        "last": [
+          "Keep the last characters…",
+          "last N"
+        ],
+        "before": [
+          "Keep the text before…",
+          "cut at a character, e.g. \"-\""
+        ],
+        "after": [
+          "Keep the text after…",
+          "cut at a character"
+        ]
+      },
+      "step": {
+        "zeros": "Remove leading zeros",
+        "trim": "Trim spaces at the ends",
+        "upper": "Make letters capitals",
+        "remove": "Remove these characters",
+        "replace": "Replace",
+        "with": "with",
+        "first": "Keep the first",
+        "last": "Keep the last",
+        "chars": "characters",
+        "before": "Keep the text before",
+        "after": "Keep the text after"
+      },
+      "describe": {
+        "zeros": "remove leading zeros",
+        "trim": "trim spaces",
+        "upper": "make letters capitals",
+        "remove": {
+          "hyphens": "remove hyphens",
+          "spaces": "remove spaces",
+          "chars": "remove \"{chars}\""
+        },
+        "replace": "replace \"{a}\" with \"{b}\"",
+        "first": "keep the first {n}",
+        "last": "keep the last {n}",
+        "before": "text before \"{c}\"",
+        "after": "text after \"{c}\""
+      }
+    },
+    "dupes": {
+      "resolve": "Resolve…",
+      "title": "{column} in {file}",
+      "repeatsTitle": "Repeated IDs: {n, number}",
+      "fewMeans": "A few strays. Usually safe to keep the first.",
+      "manyMeans": "Many. Likely several rows per parcel, or the wrong ID column.",
+      "blanksTitle": "Blank IDs: {n, number}",
+      "blankMeans": "{sales, select, true {These sales can''t be matched to a parcel.} other {Can''t be joined. Many may mean the wrong ID column.}}",
+      "confirm": "Confirm",
+      "blankOk": "{sales, select, true {I understand: {n, number} {n, plural, =1 {sale} other {sales}} won''t be matched} other {Drop the {n, number} {n, plural, =1 {row} other {rows}} with no ID}}",
+      "what": "Choose",
+      "first": "Keep the first row of each",
+      "sortBy": "Sorted by",
+      "order": "Order",
+      "asc": "Ascending",
+      "desc": "Descending",
+      "all": "Drop every row with a repeated ID",
+      "result": "{rows, number} rows → {kept, number} parcels"
+    },
+    "bigFive": [
+      [
+        "Building size",
+        [
+          "bldg_area_finished_sqft"
+        ]
+      ],
+      [
+        "Land size",
+        [
+          "land_area_sqft"
+        ]
+      ],
+      [
+        "Age",
+        [
+          "bldg_year_built",
+          "bldg_effective_year_built",
+          "bldg_age_years",
+          "bldg_effective_age_years"
+        ]
+      ],
+      [
+        "Quality",
+        [
+          "bldg_quality_num",
+          "bldg_quality_txt"
+        ]
+      ],
+      [
+        "Condition",
+        [
+          "bldg_condition_num",
+          "bldg_condition_txt"
+        ]
+      ]
+    ],
+    "rowNames": {
+      "bldg_quality_num": "Number",
+      "bldg_quality_txt": "Category",
+      "bldg_condition_num": "Number",
+      "bldg_condition_txt": "Category"
+    },
+    "numberUsed": "Not loaded: the number is used",
+    "quality": {
+      "whichWay": "which way?",
+      "means": "means…",
+      "meaningOf": "What {name} means",
+      "kinds": {
+        "higher": "higher is better",
+        "lower": "lower is better",
+        "pct_good": "% good",
+        "pct_depr": "% depreciation",
+        "life": "years of life left"
+      },
+      "kindHints": {
+        "higher": "e.g. 0 terrible … 7 excellent",
+        "lower": "e.g. C1 new … C6 poor; flipped, so higher is better",
+        "pct_good": "0 = worn out, 100 = like new",
+        "pct_depr": "0 = like new, 100 = worn out; written as 100 − it",
+        "life": "remaining economic life, in years"
+      },
+      "checkMeaning": "Check meaning…",
+      "checkDirection": "Check direction…",
+      "rank": "Rank the tiers…",
+      "reRank": "Change ranking…",
+      "compare": "Compare columns…",
+      "absent": "No condition: effective age carries it",
+      "absentNote": "Effective age (or age) stands in for condition",
+      "compareQuality": "Which quality columns to load?",
+      "compareCondition": "Which condition columns to load?",
+      "compareLede": "Columns in the parcel universe and the files joined to it that look like it, each checked over every row. The number is used for modelling; load the category too if you want it as text, for reports or grouping. A category can be the number too, once its tiers are ranked.",
+      "loading": "Checking the columns…",
+      "noneQualityLike": "No column''s name looks like quality or grade. Pick one on the row instead.",
+      "noneConditionLike": "No column''s name looks like condition or depreciation. Pick one on the row instead.",
+      "column": "Column",
+      "looksLike": "Looks like",
+      "filled": "Filled",
+      "values": "Values",
+      "samples": "Samples",
+      "notes": "Notes",
+      "loadedAs": "Loaded as",
+      "loadedAsWord": {
+        "number": "number",
+        "category": "category"
+      },
+      "numbers": "numbers {lo}–{hi}",
+      "text": "text",
+      "number": "Number",
+      "category": "Category",
+      "preferNumber": "Only the number is loaded unless you pick a category too.",
+      "meaningTitle": "What do {column}''s numbers mean?",
+      "directionTitle": "Which way does {column} run?",
+      "meaningLede": "OpenAVMKit wants condition with higher meaning better. Say how this column writes it and it''s converted as it loads. % good and % depreciation are written as % good, 0–100.",
+      "directionLede": "OpenAVMKit wants quality with higher meaning better. Say which way this column runs; lower-is-better numbers are flipped within their range as they load.",
+      "fits": "fits: loaded this way, newer is better by {basis}",
+      "writtenAs": "Written as",
+      "fractions": "fractions, 0–1 (× 100)",
+      "percents": "percent, 0–100",
+      "found": "found: every value is between {lo} and {hi}",
+      "newerBetter": "✓ Loaded this way, newer buildings come out in better condition",
+      "olderBetter": "Loaded this way, older buildings come out in better condition: is it the other way round?",
+      "ageSilent": "Age doesn''t tell: condition is about the same at every age (median {m} in the file). Go by what the values mean, and what they sell for below.",
+      "loadedLede": "In the file: the numbers as the file writes them. Loaded as: what OpenAVMKit gets, where higher is always better.",
+      "median": "median {m}",
+      "effectiveAge": "Effective age",
+      "age": "Age (year built)",
+      "buildings": "Buildings",
+      "asWritten": "In the file (median)",
+      "asRead": "Loaded as (median)",
+      "asReadBand": "Loaded as",
+      "sales": "Sales",
+      "medianOf": "Median {basis}",
+      "writtenText": "Text beside it",
+      "samplesLine": "In the file → loaded as:",
+      "medianPrice": "Median price",
+      "typeOnly": "{type} sales",
+      "byPriceLede": {
+        "within": "Better should sell for more. Compare within {type} alone (its {field}): a grade is often tied to a kind and size of building, and price per area falls as buildings get bigger, so across every sale it can run the wrong way.",
+        "all": "Better should sell for more. Price per area falls as buildings get bigger, so if better buildings are bigger it can run the wrong way: go by the median price too."
+      },
+      "writes": "What this writes to the settings",
+      "nothingYet": "Nothing until you say what the numbers mean.",
+      "tiersTitle": "Rank {column}''s tiers",
+      "tiersLede": "Each tier of {column} gets a number for modelling. Put them in order from worst to best: moving one renumbers them in equal steps (1, 2, 3…), and you can type any number instead.",
+      "savedOrder": "Your saved order",
+      "recognised": "Order recognised: {name}",
+      "notRecognised": "Order not recognised: put them in order",
+      "unplaced": "Not recognised, put last: {names}",
+      "reverse": "Reverse",
+      "equalSteps": "Equal steps",
+      "tier": "Tier",
+      "rows": "Rows",
+      "up": "Move {v} up",
+      "down": "Move {v} down",
+      "numberFor": "Number for {v}",
+      "fewSales": "only {n, number} sale{n, plural, =1 {} other {s}}",
+      "sellsForLess": "sells for less than {v}, ranked above it",
+      "stepsDown": "{n} step{n, plural, =1 {} other {s}} down in {basis}",
+      "rises": "✓ {basis} rises with every step up",
+      "evidenceOnly": "shown to check the order, not used to set the numbers",
+      "basedOn": "Based on {notes}.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "hints": {
+      "bldg_year_built": "e.g. 1987",
+      "bldg_effective_year_built": "After major renovation",
+      "bldg_quality_num": "Used for modelling",
+      "bldg_quality_txt": "Kept as text, for reports",
+      "bldg_condition_num": "Used for modelling",
+      "bldg_condition_txt": "Kept as text, for reports",
+      "bldg_area_finished_sqft": "Required",
+      "bldg_age_years": "Only if there''s no year built",
+      "bldg_effective_age_years": "Only if there''s no effective year built",
+      "land_area_sqft": "Worked out from shapes if left out",
+      "valid_sale": "Arm''s-length, usable",
+      "vacant_sale": "Vacant land when sold"
+    },
+    "file": "File",
+    "idColumn": "Parcel ID column",
+    "choose": "Choose…",
+    "saleIdColumn": "Sale ID column",
+    "makeSaleId": "Make one: parcel ID + date",
+    "assume": {
+      "valid_sale": "I don''t have this: treat all sales as valid",
+      "vacant_sale": "I don''t have this: treat no sales as vacant"
+    },
+    "assumed": "Assumed",
+    "assumedValue": {
+      "valid_sale": "all sales valid",
+      "vacant_sale": "no sales vacant"
+    },
+    "warnTitle": {
+      "valid_sale": "Treat every sale as valid?",
+      "vacant_sale": "Treat no sale as vacant?"
+    },
+    "warnBody": {
+      "valid_sale": "Every sale will be used to build and test the models, including ones that aren''t arm''s-length. Results will be less reliable.",
+      "vacant_sale": "Sales of vacant land will be treated as sales of improved property, which skews land values."
+    },
+    "warnConfirm": "Treat them that way",
+    "cancel": "Cancel",
+    "problems": "Before OpenAVMKit can run",
+    "noProblems": "Nothing missing.",
+    "summary": "{fields} fields from {columns} columns.",
+    "notLoaded": {
+      "few": "Not loaded from {file}: {columns}.",
+      "more": "Not loaded from {file}: {columns} and {more} more."
+    },
+    "change": "Change",
+    "nothing": "—",
+    "from": "{column} · {file}"
+  },
+  "tabs": {
+    "scrollLeft": "Tabs to the left",
+    "scrollRight": "Tabs to the right",
+    "metadata": "Metadata",
+    "inputFiles": "Input files",
+    "fields": "Data",
+    "bring": "1 Bring in data",
+    "groups": "2 Model groups",
+    "groupsLocked": "Press Looks right on Bring in data first",
+    "sales": "3 Check sales",
+    "salesLocked": "Press Looks right on Model groups first",
+    "check": "4 Check my values",
+    "variables": "5 Variables",
+    "values": "6 Model values",
+    "report": "7 Report",
+    "reportLocked": "Press Looks right on Model values first",
+    "modelsLocked": "Press Looks right on Variables › What changed first",
+    "noValues": "No existing values to check: add them on Data › Existing values.",
+    "valuesLocked": "Press Looks right on Check sales first",
+    "waits": "{asked} waits for {shown}.",
+    "runAgain": "{step} is out of date: run it again, then press Looks right.",
+    "pressLooksRight": "Press Looks right on {step} first.",
+    "bringChanged": "What changed: {what}."
+  },
+  "report": {
+    "kicker": "Step 7 of 7",
+    "steps": {
+      "export": "Export",
+      "report": "Report"
+    },
+    "notReady": "Finalize the values first (Model values › Finalize).",
+    "notAccepted": "The values haven''t had Looks right on Model values: what''s exported and reported is as finalized.",
+    "exportLede": "Every parcel''s model value beside the roll''s, why a parcel has none, and for parcels that sold, the sale and its ratio. A file per format, in the project''s folder.",
+    "format": "Format",
+    "write": "Write the file",
+    "writing": "Writing…",
+    "wrote": "Wrote {rows, number} parcels ({size}) to {path}.",
+    "show": "Show in folder",
+    "columns": "Columns: key, model group, model value, the roll''s value, change from the roll (%), value per finished area, why there''s no value, the latest sale in the study window (price, date) and its ratio, latitude and longitude. GIS formats carry each parcel''s shape.",
+    "reportLede": "One page to print, or save as PDF: what a board member needs first, then the values judged against the sales beside the roll''s, across prices and on a map, what every parcel got, and how the values were made.",
+    "title": "Title",
+    "sets": "Judge the values on",
+    "setNames": {
+      "oof": "Out-of-fold sales: each valued by a model that never saw it",
+      "held": "Held-out sales: never trained on, valued by the final models",
+      "valued": "As valued: every sale, by the final models (flattering)"
+    },
+    "noSales": "No sales in the window for: {names}. The report says so.",
+    "open": "Open in browser to print",
+    "opened": "Opened {path} in your browser: print it, or save it as PDF.",
+    "preview": "Report preview"
+  },
+  "step": {
+    "next": "Next ›",
+    "notRun": "Not run yet",
+    "running": "Running · {elapsed} so far{left, select, null {} other {, about {left} left}}",
+    "stop": "Stop",
+    "stopped": "Stopped before it finished. The last receipt, if there is one, is unchanged.",
+    "alive": "working · {inStep} on this step",
+    "silent": "No word from the run for {quiet}: it may be stuck. Stop it, or wait a little longer.",
+    "starting": "Starting Python and OpenAVMKit (it can take a few seconds)",
+    "skip": "Skip this step",
+    "skipping": "Skipping…",
+    "skipNote": "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
+    "failed": "It stopped with an error:",
+    "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"
+  },
+  "bringIn": {
+    "kicker": "Step 1 of 7 · after Data",
+    "steps": {
+      "plan": "What runs",
+      "run": "Bring in data",
+      "universe": "The parcel universe",
+      "sales": "The sales",
+      "more": "Public data and checks"
+    },
+    "runTitle": "Bring in data",
+    "runLede": "OpenAVMKit loads your files, joins them and adds what it works out. It runs in a process of its own: you can leave this tab while it runs.",
+    "runAgainNext": "Bring in data again ›",
+    "noEnrich": "No public data was asked for (Data › Enrichments).",
+    "looksRightNext": "Looks right › Model groups",
+    "toGroups": "Model groups ›",
+    "title": "Bring in data",
+    "lede": "OpenAVMKit loads your files as Data set them up, joins them into the parcel universe and the sales record, and adds what it works out itself: coordinates, ages, distances and the map layers. Model groups come next.",
+    "blocked": "{n, plural, =1 {1 thing} other {{n} things}} to fix on Data first:",
+    "toData": "Go to Data",
+    "whatRuns": "What runs",
+    "files": "Files",
+    "layers": "Map layers",
+    "fields": "{n, number} fields from Data, and what OpenAVMKit works out: coordinates, ages, distances, shape measures",
+    "run": "Bring in data ›",
+    "runAgain": "Run again",
+    "failedLog": "The full log is in out/oakbox/bring_in.log in the project folder.",
+    "stale": "Out of date: Data changed since this ran:",
+    "staleNote": "This receipt is from the last run, greyed until it runs again.",
+    "meter": "✓ {parcels, number} parcels in the parcel universe and {sales, number} valid sales in the sales record",
+    "universe": "Parcel universe",
+    "sales": "Sales record",
+    "seeThem": "see them",
+    "viewRows": "View all {n, number} rows",
+    "fieldsTitle": "Fields",
+    "field": "Field",
+    "fieldTip": "Click a field, or anywhere on its row, for its values: how numbers spread, or every category with its count.",
+    "has": "Has it",
+    "summary": "Summary",
+    "from": "From",
+    "notes": "Notes",
+    "enrich": {
+      "title": "Enrichments",
+      "what": "Public data",
+      "result": "Result",
+      "fields": "New fields",
+      "names": {
+        "distances": "Distances to features",
+        "footprints": "Building footprints",
+        "census": "Census",
+        "elevation": "Elevation"
+      },
+      "reused": "reused from last time",
+      "seconds": "{s} s",
+      "more": "+{n} more",
+      "retry": "Run again",
+      "osmCredit": "Distances to features: map data © OpenStreetMap contributors, available under the",
+      "osmLicence": "Open Database License (ODbL)",
+      "skippedNote": "A skipped enrichment never stops Bring in data: its fields are simply missing until it runs. Running again tries it again; the rest is reused."
+    },
+    "groups": {
+      "files": "From your files",
+      "layers": "From map layers",
+      "public": "Public data (Enrichments)",
+      "engine": "Worked out by OpenAVMKit"
+    },
+    "checks": "Checked against Data",
+    "said": "Data said",
+    "got": "OpenAVMKit got",
+    "engineNotes": "{n, plural, =1 {1 note} other {{n} notes}} from OpenAVMKit · {hidden, number} notices from the libraries it uses, hidden",
+    "underHood": "Under the hood",
+    "hood": "OpenAVMKit''s 1-assemble, up to model groups:",
+    "looksRight": "Looks right ›",
+    "accepted": "✓ Looks right",
+    "next": "Next: model groups",
+    "rowsTitle": "{what}",
+    "keptNote": "{kept, plural, =0 {Every row of each repeated ID: all {out, number} left out.} other {Every row of each repeated ID: {out, number} left out, and the {kept, number} kept (marked ✓ kept, in bold) to compare them with.}}",
+    "rowsOf": "Rows {from, number}–{to, number} of {total, number}",
+    "first": "First",
+    "prev": "Previous",
+    "nextPage": "Next",
+    "exportCsv": "Export CSV",
+    "detail": {
+      "histogram": "How the values spread",
+      "bin": "{from} to {to}: {n, number} rows",
+      "outside": "{n, number} outside the range shown (the lowest and highest 1%)",
+      "zeros": "{n, number} zeros not shown",
+      "log": "log scale",
+      "label": "Details of {field}",
+      "universe": "parcel universe",
+      "sales": "sales record",
+      "year": "Year",
+      "summary": "{kind, select, number {Numbers} date {Dates} yesno {Yes/no} other {Categories}} · {rows, number} rows{blank, plural, =0 {} other {, {blank, number} blank}} · {distinct, number} different {distinct, plural, =1 {value} other {values}}"
+    },
+    "close": "Close"
+  },
+  "map": {
+    "basemap": "Street map"
+  },
+  "multiPick": {
+    "plusOthers": "{first} + {n} other field{n, plural, =1 {} other {s}}",
+    "choose": "Choose values…",
+    "none": "none chosen",
+    "blank": "(blank)",
+    "search": "Search",
+    "chosen": "{n, number} of {of, number} chosen",
+    "all": "All",
+    "allShown": "All shown",
+    "clear": "Clear",
+    "noMatch": "Nothing matches",
+    "add": "Add “{v}”",
+    "more": "{n, number} more values not listed: search, or type one to add it",
+    "counts": "Counts are {noun}."
+  },
+  "groups": {
+    "kicker": "Step 2 of 7",
+    "title": "Model groups",
+    "lede": "Parcels valued together: each group gets its own models. A parcel joins the first group whose rule it meets, so order matters. Vacant parcels stay in their group.",
+    "notReady": "Bring in data first: model groups are made from its parcel universe.",
+    "startTitle": "How do you want to start?",
+    "suggested": "Start with suggested groups",
+    "suggestedHelp": "Single-family, condos and townhomes, multi-family, commercial, public… made from the words in your land use and building type values. Change anything after.",
+    "noSuggest": "Needs a land use or building type field in the parcel universe: add one on Data, under Property type, then bring in data again.",
+    "scratch": "Define my own from scratch",
+    "scratchHelp": "Start with no groups. Add them one by one, or send each value of a field to a group.",
+    "listTitle": "Model groups · first match wins",
+    "unassigned": "Unassigned",
+    "parcels": "{n, number} {n, plural, =1 {parcel} other {parcels}}",
+    "sales": "{n, number} {n, plural, =1 {sale} other {sales}}{v, plural, =0 {} other { + {v, number} vacant}}",
+    "addGroup": "Add a group",
+    "fromField": "Start from a field…",
+    "orderHelp": "Move a group up or down to change the order. A parcel joins the first group whose rule it meets.",
+    "up": "Move {name} up",
+    "down": "Move {name} down",
+    "newName": "Group {n}",
+    "name": "Name",
+    "colour": "Colour",
+    "nth": "{n, selectordinal, one {{n}st} two {{n}nd} few {{n}rd} other {{n}th}} in order",
+    "statParcels": "parcels ({v, number} vacant)",
+    "statSales": "improved sales",
+    "statVacant": "vacant sales",
+    "statMedian": "median sale price",
+    "joinsIf": "A parcel joins this group if",
+    "any": "any of these is true",
+    "all": "all of these are true",
+    "field": "Field",
+    "op": "Test",
+    "addCondition": "Add a condition",
+    "removeCondition": "Remove this condition",
+    "counts": "Counts are parcels in the parcel universe.",
+    "countParcels": "parcels in the parcel universe",
+    "checks": "Checks",
+    "live": "Live · not saved yet",
+    "moveIn": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} here from {from} ({sold, number} sold)",
+    "moveOut": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} to {to} ({sold, number} sold)",
+    "showMoves": "Show them on the map",
+    "deleteGroup": "Delete group",
+    "undo": "Undo changes",
+    "save": "Save groups",
+    "saved": "✓ Saved",
+    "pickGroup": "Pick a group to edit its rule, or click a parcel on the map to see why it''s where it is.",
+    "map": "Map",
+    "byGroup": "Group",
+    "byChanges": "Changes",
+    "docked": "Docked",
+    "full": "Full",
+    "hide": "Hide the map",
+    "showMap": "Show the map",
+    "clickHint": "Click a parcel to inspect",
+    "mapLabel": "Map of the parcels, coloured by model group",
+    "loadingMap": "Drawing the parcels…",
+    "legend": "Shown on the map",
+    "shown": "shown",
+    "hiddenOnMap": "hidden",
+    "showAll": "Show all",
+    "noChanges": "no change",
+    "movesTo": "moves to",
+    "highlighted": "{n, number} highlighted",
+    "clearHighlight": "Clear",
+    "parcel": "Parcel {key}",
+    "whyIn": "Why {name}",
+    "whyNone": "Why no group",
+    "alsoMeets": "also meets its rule (comes later)",
+    "noSales": "No valid sales",
+    "salesTitle": "Valid sales",
+    "vacantSale": "vacant",
+    "like": "{n, number} {n, plural, =1 {parcel is} other {parcels are}} like this ({what}); {sold, number} sold.",
+    "showLike": "Show them on the map",
+    "close": "Close",
+    "steps": {
+      "start": "How to start",
+      "build": "Build the groups",
+      "check": "Check them",
+      "write": "Tag and write",
+      "results": "What each group got"
+    },
+    "startedWith": "You started {how, select, suggested {from the suggested groups} other {from scratch}}. Starting again replaces the groups you have.",
+    "pickStart": "Pick one to start.",
+    "replaceWarn": "This replaces your {n} {n, plural, =1 {group} other {groups}}.",
+    "replaceYes": "Replace them",
+    "replaceNo": "Keep mine",
+    "saveNext": "Save and continue ›",
+    "unsavedNote": "Unsaved changes: Next saves them.",
+    "checkTitle": "Check the groups",
+    "checkLede": "Each group''s parcels and sales, as saved, with what needs a look. A group needs enough sales to model; parcels in no group aren''t valued.",
+    "modelIt": "Model it",
+    "modelItTip": "Model this group: values are worked out for its parcels. Proposed for groups with enough improved sales to model (15 or more); a group not modeled is shown greyed, as not modeled, in the steps after.",
+    "notModeled": "Not modeled",
+    "checksCol": "To look at",
+    "checkFix": "To change a group, go back to the builder.",
+    "backToBuild": "Build the groups",
+    "writeTitle": "Tag the parcels and write notebook 1''s output",
+    "looksRightNext": "Looks right › Check sales",
+    "toSales": "Check sales ›",
+    "run": {
+      "what": "Notebook 1 ends here: OpenAVMKit tags every parcel with its model group and writes the output that cleaning starts from.",
+      "never": "Not written yet.",
+      "dirty": "Save the groups first: it runs on the saved ones.",
+      "stale": "Out of date: the groups or the data changed since it ran.",
+      "written": "✓ Written {when}: {parcels, number} parcels in {groups} model {groups, plural, =1 {group} other {groups}}.",
+      "accepted": "✓ Looks right: notebook 1 is done.",
+      "run": "Tag and write ›",
+      "runAgain": "Tag and write again ›",
+      "again": "Tag and write again",
+      "stop": "Stop",
+      "receipt": "Receipt",
+      "failed": "It stopped: {e}",
+      "formats": "Formats",
+      "formatsHelp": "Parquet is always written. Also write, for map viewers and spreadsheets:",
+      "formatNames": {
+        "gpkg": "GeoPackage (QGIS, ArcGIS)",
+        "shp": "Shapefile, zipped",
+        "csv": "CSV (no shapes)"
+      },
+      "title": "Model groups: what OpenAVMKit tagged",
+      "group": "Model group",
+      "parcels": "Parcels",
+      "vacant": "Vacant",
+      "sales": "Improved sales",
+      "vacantSales": "Vacant sales",
+      "preview": "Preview",
+      "unassigned": "Unassigned (UNKNOWN: not valued)",
+      "matches": "✓ Every count matches the builder''s preview.",
+      "differs": "Some counts differ from the builder''s preview: the column on the right is the preview''s.",
+      "writtenTitle": "Written",
+      "show": "Show in folder",
+      "notes": "{n, plural, =1 {1 note} other {{n} notes}} from OpenAVMKit",
+      "close": "Close",
+      "looksRight": "Looks right ›"
+    },
+    "ffTitle": "Start from a field",
+    "ffLede": "Pick the field that best says what each property is, then send each of its values to a group. Each group gets a condition on this field; its other conditions stay.",
+    "ffField": "Field",
+    "ffValue": "Value",
+    "ffParcels": "Parcels",
+    "ffVacant": "Vacant",
+    "ffSales": "Valid sales",
+    "ffGroup": "Group",
+    "ffNone": "— none",
+    "ffNew": "+ New group",
+    "ffMore": "{n, number} more values not shown",
+    "ffApply": "Make these groups",
+    "cancel": "Cancel",
+    "blank": "(blank)"
+  },
+  "sales": {
+    "kicker": "Step 3 of 7",
+    "steps": {
+      "window": "Sales window",
+      "time": "Time adjustment",
+      "fill": "Fill blanks",
+      "scrutiny": "Sales scrutiny",
+      "rare": "Rare categories",
+      "run": "Check sales",
+      "sales": "The sales",
+      "aside": "Sales set aside"
+    },
+    "runNext": "Check sales ›",
+    "runAgainNext": "Check sales again ›",
+    "parts": {
+      "before": "before running",
+      "running": "running",
+      "after": "after running",
+      "review": "the sales set aside"
+    },
+    "title": "Check sales",
+    "lede": "Which sales count, how their prices are brought to one date, and what stands in for blanks: the calls that decide what the models learn from. Each one is shown before it runs, and every sale set aside is listed after, for you to keep or exclude.",
+    "blocked": "Not yet:",
+    "toGroups": "Go to Model groups",
+    "failedLog": "The full log is in out/oakbox/clean.log in the project folder.",
+    "noSkip": "No part can be skipped: each one''s output is needed by the next.",
+    "toData": "Data…",
+    "links": {
+      "sales": "Data › Sales…",
+      "condos": "Data › Condo units…"
+    },
+    "run": "Check sales",
+    "runAgain": "Check sales again",
+    "runNote": "Nothing is dropped without your look: every sale set aside is listed after, to keep or exclude.",
+    "group": "Model group",
+    "unit": {
+      "sqft": "sq ft",
+      "sqm": "m²"
+    },
+    "window": {
+      "title": "Sales window",
+      "sub": "which sales count",
+      "from": "Sales from",
+      "default": "{y} (5 years before)",
+      "text": "{n, number} of {total, number} valid sales are in the window: {years} {years, plural, =1 {year} other {years}} before the valuation date.",
+      "chart": "Valid sales a year; the years before the window are grey.",
+      "bar": "{y}: {n, number} sales"
+    },
+    "time": {
+      "title": "Time adjustment",
+      "on": "on",
+      "off": "off: prices as sold",
+      "what": "Prices change over time. Each sale''s price is brought forward to the latest sale in its model group, by how much prices of similar property moved since it sold. OpenAVMKit doesn''t carry it past the latest sale; a group with too few sales gets none.",
+      "start": "Start from",
+      "quarters": "quarters",
+      "months": "months",
+      "coarser": "It goes coarser (to years) where most periods have fewer than 5 sales.",
+      "sales": "Sales in the window",
+      "last": "Found last time",
+      "perYear": "{sign}{p}% a year",
+      "from": "Time adjustment from",
+      "ownSales": "its own sales",
+      "borrowFrom": "same as {name}",
+      "ownFile": "my own file…",
+      "borrowing": "Uses that group''s index, held level outside its dates.",
+      "fewSales": "Few sales: its own index may be rough. Another group''s, or your own file, may do better.",
+      "fileSays": "{name}: {periods} periods, {first} to {last}.",
+      "replace": "Replace…",
+      "importTitle": "{name}: your own time adjustment",
+      "formatLede": "A CSV file with these two columns (more columns are ignored):",
+      "formatPeriod": "the date each price level is for: a day (2023-04-15), a month (2023-04), a quarter (2023-Q2) or a year (2023). One row each, at least two.",
+      "formatIndex": "the price level then, at any base (100 in the first period, or 1.0). Positive numbers.",
+      "formatMore": "Between periods the level is interpolated day by day; each sale is brought to the last period. Sales before the first period get its level, sales after the last get the last one''s. A schedule OpenAVMKit wrote (period, start_indexed, end_indexed, correction_factor) works too.",
+      "chooseFile": "Choose the file…",
+      "pathLabel": "The file''s path",
+      "pathPlaceholder": "C:\\Data\\time_index.csv",
+      "checkFile": "Check it",
+      "cancel": "Cancel",
+      "cantUse": "It can''t be used as it is:",
+      "preview": "How prices moved",
+      "previewNote": "Worked out with the calls as they are ({sec} s), before running: Check sales does the same.",
+      "previewStale": "The calls changed since this was worked out.",
+      "previewAgain": "Work it out again",
+      "previewFirst": "See how prices moved with these calls before going on: Work it out runs OpenAVMKit''s time adjustment (a few seconds to a minute).",
+      "noDots": "No sale with a size to draw.",
+      "perImpr": "price per {unit} finished",
+      "perLand": "price per {unit} of land",
+      "by": {
+        "M": "month",
+        "Q": "quarter",
+        "Y": "year"
+      },
+      "chartNote": "Each dot is a sale''s {per}, as sold ({n} sales); the line is the index OpenAVMKit works out from them, drawn through their median.",
+      "periodsNote": "By {by}: {ok} of {of} {of, plural, =1 {{by}} other {{by}s}} have 5 sales or more, and the index is from those (the rest are interpolated).",
+      "chartLabel": "{name}: prices per area over time, and the time adjustment index",
+      "tip": "Sold for {price}: {per} {perWhat}",
+      "tipAdjusted": "Time-adjusted: {price}",
+      "outside": "{n, number} far-off {n, plural, =1 {sale isn''t} other {sales aren''t}} drawn.",
+      "expand": "Show it larger, with its sales",
+      "collapse": "Show it smaller",
+      "none": "No time adjustment",
+      "onLand": "Indexed on price per area of land, not finished area: OpenAVMKit chose it for this group. For condos, whose land is a small share of their parcel''s, it''s rarely right: choose Finished area under Index on.",
+      "indexOn": "Index on",
+      "indexOnTip": "What a group''s index is of: its sales'' price per finished area, or per area of land. Automatic: OpenAVMKit works it out from the sales (land when prices per land area are close to those per finished area and many sales are of land).",
+      "auto": "Automatic",
+      "autoWas": "Automatic ({what})",
+      "onImpr": "Finished area",
+      "onLandArea": "Land area",
+      "previewRun": "Work it out",
+      "working": "Working it out…"
+    },
+    "fill": {
+      "title": "Fill blanks",
+      "sub": "stand-ins so the models can run",
+      "what": "A filled value is a simple stand-in, not a fact about the property: it''s used for modeling only. OpenAVMKit records which values were filled (out/filled.parquet).",
+      "field": "Field",
+      "blank": "Blank",
+      "with": "Fill with",
+      "puts": "Puts in",
+      "for": "For",
+      "methods": {
+        "median": "median",
+        "mean": "mean",
+        "mode": "most common",
+        "zero": "zero",
+        "min": "smallest",
+        "max": "largest",
+        "leave": "leave blank"
+      },
+      "scopes": {
+        "all": "every parcel",
+        "impr": "only improved",
+        "vacant": "only vacant"
+      },
+      "example": "its model group''s {method}, e.g. {v}",
+      "leaveNote": "stays blank (some models can''t use a field with blanks)",
+      "none": "✓ Every number the models can use is filled in already.",
+      "auto": "What OpenAVMKit always does ({n})",
+      "area": "Finished area isn''t filled here: 0 already means no building (Data)."
+    },
+    "scrutiny": {
+      "title": "Sales scrutiny",
+      "sub": "sales that stand apart, set aside for you to look at",
+      "what": "Similar properties sold near each other should sell for similar prices per square foot. A sale far from its group may not be a market sale, or the property''s data may be wrong. Every one is listed with its reason; you keep or exclude each.",
+      "near": "Where is \"near\"?",
+      "none": "nowhere (the whole county)",
+      "noLocation": "No location: sales are compared across the whole county, by size only. Neighborhoods, school districts, census tracts or block groups (Enrichments › Census) all work.",
+      "nearHelp": "The same location groups parcels for the equity studies.",
+      "addLocation": "Add a location on Data…",
+      "similar": "Similar by:",
+      "checksTitle": "Checks",
+      "checks": {
+        "cluster": "Far from its group''s price per area",
+        "clusterWhy": "outside the median ± 2 deviations, or 4× / 0.35× the median; each diagnosed as one of five patterns (one fitting none is flagged but left in); looked at twice, so one far-off sale can''t hide another",
+        "deed": "Same deed, same day",
+        "deedWhy": "one sale of several parcels",
+        "noDeed": "needs a deed ID: Data › Deeds",
+        "datePrice": "Same day, same price",
+        "bulk": "A deed for several parcels, its other sales not valid",
+        "bulkWhy": "the one left still carries the whole deed''s price",
+        "vacant": "Sold as vacant, but the building is older than the sale",
+        "nominal": "A nominal price (a $10 deed), not a price",
+        "nominalBelow": "Under",
+        "builtAfter": "Sold as improved, but the building was built after the sale",
+        "noYear": "needs year built: Data",
+        "vacantPriced": "Sold as vacant, but priced like the improved sales near it",
+        "vacantPricedWhy": "at least half the median improved sale in its model group and location",
+        "surname": "Buyer and seller share a surname",
+        "surnameWhy": "possibly between family; how names are read: Data › Deeds",
+        "noNames": "needs buyer and seller names: Data › Deeds"
+      },
+      "always": "Every sale a check sets aside is left out of modeling until you keep it: none is dropped without being listed. A sale far from its group that fits none of the five patterns is flagged but left in: you decide."
+    },
+    "collapse": {
+      "title": "Rare categories",
+      "on": "on",
+      "off": "off · Advanced",
+      "what": "Folds category values with very few sales into \"Other\", so a model can''t learn from one or two sales. Location fields aren''t folded (that would change what they mean).",
+      "salesMin": "Fewer sales than",
+      "univMin": "or fewer parcels than",
+      "fields": "Fields: {f}.",
+      "values": "Values",
+      "fold": "Folded",
+      "parcels": "Parcels",
+      "which": "Become Other",
+      "none": "none",
+      "more": ", and {n, number} more",
+      "noFields": "No category fields to fold."
+    },
+    "stale": "Out of date: something changed since this ran (a call, a keep or an exclusion, or an earlier step).",
+    "meter": "✓ {used, number} sales for modeling, {aside, number} set aside for you to look at",
+    "looksRight": "Looks right › Check my values",
+    "toValues": "Check my values ›",
+    "patterns": {
+      "title": "Far from their group, by pattern",
+      "lede": "{flagged, number} of {sales, number} sales flagged ({name}). Each pattern says what''s likely wrong and what to check first.",
+      "pattern": "Pattern",
+      "sales": "Sales",
+      "share": "% of sales",
+      "cause": "Likely cause",
+      "action": "Check first",
+      "more": "More",
+      "flagged": "Flagged"
+    },
+    "funnel": {
+      "title": "The sales",
+      "sub": "from Data to modeling",
+      "see": "See them",
+      "flaggedIn": "{n, number} more {n, plural, =1 {sale is} other {sales are}} flagged but left in: far from {n, plural, =1 {its} other {their}} group, fitting none of the five patterns. {n, plural, =1 {It counts} other {They count}} unless you exclude {n, plural, =1 {it} other {them}}.",
+      "once": "A sale set aside by more than one check is counted once, at the first."
+    },
+    "groups": {
+      "title": "By model group",
+      "inWindow": "Sales in the window",
+      "aside": "Set aside",
+      "used": "For modeling",
+      "clusters": "Groups compared",
+      "perYear": "Time",
+      "few": "No time adjustment: {names}. Too few sales; their prices stay as sold.",
+      "orphans": "{n, number} sales are for parcels not in the parcel universe, so no model can use them (condo units: Data › Condo units)."
+    },
+    "filled": {
+      "title": "Filled",
+      "line": "{name}: {n, number} values ({how})",
+      "none": "Nothing needed filling."
+    },
+    "written": "Written",
+    "showScrutiny": "Show the sales scrutiny files",
+    "review": {
+      "title": "{n, number} sales set aside",
+      "allGroups": "All model groups",
+      "check": "Check",
+      "everyCheck": "Every check",
+      "status": "Status",
+      "anyStatus": "Any status",
+      "undecided": "Not decided: out for now ({n, number})",
+      "kept": "Put back ({n, number})",
+      "excluded": "Left out for good ({n, number})",
+      "checkNames": {
+        "cluster": "far from its group",
+        "dupe_deed_date": "same deed, same day",
+        "dupe_date_price": "same day, same price",
+        "bulk_deed": "deed for several parcels",
+        "false_vacant": "vacant, building older",
+        "nominal_price": "nominal price",
+        "built_after_sale": "built after the sale",
+        "vacant_priced_improved": "vacant, priced like improved",
+        "same_surname": "same surname"
+      },
+      "apply": "What you decide applies when you check sales again (seconds).",
+      "applyLater": "What you decide applies on the next Check sales.",
+      "lede": "Every sale here is out: the models don''t learn from it and the ratio studies leave it out, because a check flagged it. Look at each and decide. Put it back if it''s a real market sale (say why), or leave it out for good if it isn''t, so it stays out whatever the checks say later. A sale you don''t decide stays out for as long as a check flags it.",
+      "nowUndecided": "Now: out, set aside by the checks. Not decided.",
+      "nowKept": "Now: put back. It counts from the next Check sales.",
+      "nowExcluded": "Now: left out for good, whatever the checks say.",
+      "empty": "No sales match.",
+      "listLabel": "Sales set aside",
+      "itsGroupShort": "its group",
+      "theMedian": "the median",
+      "more": "… {n, number} more: narrow the filters",
+      "keptPill": "put back",
+      "excludedPill": "left out",
+      "high": "high price per area",
+      "low": "low price per area",
+      "oddSize": "odd size",
+      "secondPill": "second look",
+      "head": "{group} · sold {date} · sale {key}",
+      "with": "with {area} {unit} {vacant, select, true {of land} other {finished}}",
+      "sold": "Sold for {price} (time-adjusted){area}: {per} per {unit}, ",
+      "vs": "{ratio} of the {n} similar {n, plural, =1 {sale} other {sales}} it was compared with ({median}).",
+      "soldFor": "Sold for {price}.",
+      "diagnosis": {
+        "1": {
+          "name": "Odd price per area, odd size",
+          "short": "Size recorded wrong",
+          "check": "The size",
+          "why": "The size recorded is likely wrong: too small makes the price per area look high, too big makes it look low.",
+          "actions": [
+            "Check the size and the characteristics as they were when it sold.",
+            "If the size is right, look for what else sets it apart: better materials, a better spot."
+          ]
+        },
+        "2": {
+          "name": "Low price, low per area",
+          "short": "Not a market sale, or worse condition",
+          "check": "Age, condition, the deed",
+          "why": "Likely not a market sale: a foreclosure, a short sale, between family, a share of a property sold as the whole; or its condition is worse than recorded.",
+          "actions": [
+            "Check the building''s age and condition.",
+            "Look at it in Street View beside its group: do the recorded characteristics match?",
+            "Check the deed for a foreclosure, a related party or a partial interest."
+          ]
+        },
+        "3": {
+          "name": "High price, high per area",
+          "short": "More than this parcel sold",
+          "check": "The deed, related sales",
+          "why": "Likely more than this parcel: several parcels on one deed, business assets or personal property in the price, a related party, or a partial interest''s price scaled to the whole.",
+          "actions": [
+            "Check the deed for business assets or personal property, and the buyer and seller for a related party.",
+            "Check it wasn''t a sale of several parcels with this one''s size only (the related sales below).",
+            "For a partial interest: look for a control premium, which inflates a share''s price scaled to the whole."
+          ]
+        },
+        "4": {
+          "name": "Ordinary price, high per area",
+          "short": "Area under-recorded, or upgrades",
+          "check": "Finished area, quality",
+          "why": "The finished area may be under-recorded, or there are upgrades not on record (a renovation, an addition).",
+          "actions": [
+            "Check the finished area.",
+            "Check the quality and condition.",
+            "If they''re right, it may be ordinary variation: keep it."
+          ]
+        },
+        "5": {
+          "name": "Ordinary price, low per area",
+          "short": "Area over-recorded",
+          "check": "Finished area, related sales",
+          "why": "The finished area may be over-recorded, or the area includes another parcel''s (a sale of several parcels, the other way round).",
+          "actions": [
+            "Check the finished area.",
+            "Check it wasn''t a sale of several parcels whose areas were added together (the related sales below)."
+          ]
+        },
+        "other": {
+          "name": "No pattern fits (left in)",
+          "short": "Unclear",
+          "check": "Characteristics, the sale’s terms",
+          "why": "Far from its group by the ratio rules, but its price, price per area and size don''t fit any of the five patterns. It counts unless you exclude it.",
+          "actions": [
+            "Check its characteristics and the sale''s terms; exclude it if they''re wrong."
+          ]
+        }
+      },
+      "checkFor": "What to check",
+      "readings": {
+        "title": "Against its group",
+        "what": "",
+        "thisSale": "This sale",
+        "median": "Group median",
+        "sd": "Std devs from median",
+        "reading": "Reading",
+        "price": "Price",
+        "perArea": "Price per {unit}",
+        "size": "{vacant, select, true {Land {unit}} other {Finished {unit}}}",
+        "low": "low",
+        "in": "in range",
+        "high": "high",
+        "note": "Low or high: more than 2 standard deviations from its group''s median, or 0.35× / 4× the median (in a small group, a far-off sale stretches the spread itself)."
+      },
+      "flagOnly": "flagged, still in",
+      "sellerBuyer": "Seller {seller} → buyer {buyer}.",
+      "details": {
+        "nominal_price": "Sold for {d}: a nominal price (a deed of gift, a transfer), not a market price.",
+        "built_after_sale": "Sold as improved, but the building was {d}, after the sale: likely land when it sold.",
+        "vacant_priced_improved": "Sold as vacant for {d} nearby: likely there was a building.",
+        "same_surname": "Buyer and seller share a surname ({d}): possibly between family."
+      },
+      "together": {
+        "onDeed": "On deed {deed}, {date}: {n} sales",
+        "samePrice": "Sold {date} at the same price: {n} sales",
+        "sale": "Sale",
+        "price": "Price",
+        "open": "Open it",
+        "kept": "not set aside",
+        "each": "Each recorded at {price}: likely the price of all {n} parcels together, not of each.",
+        "sum": "Together {total}: if the prices are shares of one sale, the {n} parcels sold for that."
+      },
+      "related": {
+        "title": "Related sales",
+        "none": "No sales on the same deed, the same day nearby, or to the same buyer within a year.",
+        "why": {
+          "deed": "same deed",
+          "day_near": "same day, nearby",
+          "day_buyer": "same day, same buyer",
+          "buyer_year": "same buyer, within a year"
+        },
+        "address": "Sale",
+        "sold": "Sold",
+        "price": "Price",
+        "away": "Away",
+        "buyer": "Buyer",
+        "how": "Related by",
+        "feet": "{n, number} ft",
+        "metres": "{n, number} m"
+      },
+      "look": {
+        "title": "Look at it",
+        "streetView": "Street View",
+        "aerial": "Aerial",
+        "zillow": "Zillow",
+        "redfin": "Redfin",
+        "note": "Opens in a viewer window beside this one; the next sale''s opens in the same window."
+      },
+      "checkWhy": {
+        "dupe_deed_date": "Sold on the same deed, the same day, as other sales: likely one sale of several parcels, its price for all of them.",
+        "dupe_date_price": "Sold the same day for the same price as another sale: likely one sale of several parcels.",
+        "bulk_deed": "Its deed was for several parcels, but the other parcels'' sales weren''t valid sales: its price is likely the whole deed''s.",
+        "false_vacant": "Sold as vacant, but its building was built before the sale."
+      },
+      "second": "Found on a second look: another sale in its group was so far off that it stretched the group''s spread and hid this one.",
+      "dotsNote": "Price per {unit} of the sales it was compared with (log scale). Red: this sale; orange: others set aside.",
+      "dotsLabel": "Prices per area of the sales compared",
+      "median": "median {m}",
+      "itsGroup": "Its group",
+      "perArea": "Price per {unit}",
+      "land": "Land {unit}",
+      "finished": "Finished {unit}",
+      "soldOn": "Sold",
+      "thisSale": "this sale",
+      "setAside": "set aside",
+      "data": "Its data: {area} {unit} {vacant, select, true {of land} other {finished}}{year, select, null {} other {, built {year}}}; price as sold {raw}.",
+      "noteLabel": "Note",
+      "notePlaceholder": "Note: why it''s a market sale (needed to put it back), or why it stays out (e.g. finished area is wrong: the building is 2,230 sq ft)",
+      "keep": "Put it back",
+      "exclude": "Leave it out for good",
+      "keepNote": "Putting it back needs a note: why it''s a market sale.",
+      "undo": "Undo",
+      "next": "Next ›"
+    }
+  },
+  "ratio": {
+    "kicker": "Step 4 of 7",
+    "what": {
+      "title": "Check your existing values?",
+      "lede": "See how the values you have (the roll, a vendor''s AVM) do against the sales, before modelling: OpenAVMKit''s ratio and equity studies, per model group and overall. Or skip to Model values: they''re compared with the models there either way.",
+      "check": [
+        "Check them",
+        "A few seconds. Judged against the standards you set next."
+      ],
+      "skip": [
+        "Skip this step",
+        "Go straight to Model values. You can come back to it."
+      ],
+      "sets": "Values to check",
+      "groups": "Model groups",
+      "shown": "Values shown",
+      "toValues": "Go to Model values ›"
+    },
+    "steps": {
+      "what": "What to check",
+      "sales": "Which sales",
+      "whose": "Whose standards",
+      "standards": "The standards",
+      "assign": "Which groups",
+      "run": "Check my values",
+      "summary": "Summary",
+      "groups": "By model group",
+      "prices": "Across prices",
+      "map": "On the map",
+      "regions": "Neighbourhood price levels",
+      "similar": "Similar parcels",
+      "extreme": "Extreme ratios"
+    },
+    "blocked": "Not yet:",
+    "sales": {
+      "title": "Which sales does the market value answer to?",
+      "lede": "The assessed market value on the roll now, against what the parcels sold for, checked the way a state reviewer would: the sales Check sales kept for modeling, sold in the window, whose parcel looks now as it did when sold.",
+      "window": "The window",
+      "from": "From",
+      "to": "To",
+      "proposed": "Proposed: from {start}, the shortest window reaching back from the valuation date with enough sales.",
+      "reset": "Back to the proposed window",
+      "none": "The year before the valuation date (the IAAO''s window) has no sales: the latest sale is {last}. The window reaches back further.",
+      "price": "The price",
+      "sold": "As sold (the IAAO''s formal ratio study)",
+      "timeAdjusted": "Brought to the valuation date with Check sales'' time adjustment",
+      "noTime": "Time adjustment is off in Check sales.",
+      "count": "Count",
+      "perGroup": "Sales studied, by model group"
+    },
+    "standards": {
+      "whose": "Whose standards?",
+      "whoseLede": "What the values are judged against. The IAAO''s fill in the next part, every figure changeable; or set your own (a state''s, or your office''s).",
+      "iaao": [
+        "The IAAO''s",
+        "Standard on Ratio Studies, exposure draft of May 2026: a standard per property category, each with its targets."
+      ],
+      "custom": [
+        "Custom",
+        "A state''s standards, your office''s, or any you set: add as many as you need."
+      ],
+      "startWith": "Custom starts",
+      "startIaao": "from the IAAO''s figures",
+      "startEmpty": "empty",
+      "title": "The standards",
+      "lede": "Each standard is a set of targets, judged on the model groups you give it next. Change any figure, add or remove a standard.",
+      "assignTitle": "Which model groups each standard judges",
+      "assignLede": "Proposed from the groups'' names until you choose; a group is in one standard at most. A group in none is shown, not judged.",
+      "source": "The IAAO''s are from its Standard on Ratio Studies, exposure draft of May 2026 (sections 8.2 and 11, Appendices C and E).",
+      "reset": "Back to the IAAO''s",
+      "standard": "Standard",
+      "name": "Name of the standard",
+      "newName": "Standard {n}",
+      "none": "No standards yet: add one.",
+      "noneToAssign": "No standards to give groups to: add one in the part before.",
+      "remove": "Remove",
+      "add": "Add a standard",
+      "prdNote": "The PRD is reported, not judged: the draft no longer uses it for compliance. Hover a heading for what its target means.",
+      "groups": "Model groups",
+      "salesCol": "Sales",
+      "chooseGroups": "Choose model groups…",
+      "notJudged": "Not judged: {names} (shown, not judged).",
+      "proposedNote": "Once you choose a standard''s groups, every standard''s are as you see them here, no longer proposed.",
+      "level": "Level: median ratio",
+      "levelWhy": "Values are, on the whole, near what parcels sell for. Missed only when the median''s whole 90% range is outside: a finding needs a high degree of confidence.",
+      "cod": "Uniformity: COD",
+      "codWhy": "How far ratios stray from the median, on average, in percent. Above the range: not uniform enough. Below it: suspect, possibly sales chasing or a sample that isn''t representative.",
+      "vei": "VEI within",
+      "veiWhy": "The primary vertical equity test: the highest-valued group''s median ratio less the lowest''s, percent of the median. Missed only when it''s significantly outside (the groups'' 90% ranges apart by more than the limit).",
+      "prbGood": "PRB good within",
+      "prbBad": "PRB unacceptable outside",
+      "prbWhy": "How much ratios change when value doubles: negative, dearer parcels are valued relatively lower. Between the two ranges, neither met nor missed.",
+      "minSales": "Judged with at least",
+      "minSalesWhy": "Fewer sales: shown, not judged. (The VEI needs 20.)",
+      "from": "from",
+      "to": "to",
+      "trim": "Trim outlying ratios (beyond 1.5 × the interquartile range, at most a tenth of a group): the statistics without them are judged, every sale''s are shown beside them, and the trimmed sales are listed under Extreme ratios"
+    },
+    "run": {
+      "lede": "OpenAVMKit''s ratio and equity studies on the values, per model group and overall: a few seconds.",
+      "next": "Check my values ›",
+      "again": "Check again",
+      "againNext": "Check again ›",
+      "ran": "✓ Checked {when} · {seconds} s",
+      "stale": "Out of date: Check sales ran again, or a call changed since."
+    },
+    "card": {
+      "level": "Level",
+      "levelWhy": "The median ratio (value ÷ sale price): are values near what parcels sell for? The standard asks for 0.90 to 1.10 (the whole confidence interval outside it fails).",
+      "uniform": "Uniformity",
+      "uniformWhy": "The COD: how far ratios typically sit from the median, as a % of it. Each group''s category sets its range (single-family 5 to 15, say); under the range is suspiciously even (sales chasing, or an unrepresentative sample).",
+      "vertical": "Cheaper vs dearer",
+      "median": "Median ratio",
+      "cod": "COD",
+      "horizontal": "Horizontal equity",
+      "horizontalWhy": "Similar parcels valued alike? The CHD: within each group of similar parcels (Check sales'' equity clusters), every parcel, sold or not, the average distance of values from their median, percent: the middle group''s. The IAAO sets no target for it: shown, not judged.",
+      "verticalEquity": "Vertical equity",
+      "noChd": "not figured",
+      "chdTight": "alike",
+      "chdSome": "some spread",
+      "chdWide": "wide spread",
+      "verticalWhy": "Are dearer parcels valued relatively higher or lower than cheaper ones? The VEI (the IAAO''s vertical equity test), or with too few sales for it, the PRB.",
+      "inRange": "in range",
+      "low": "too low",
+      "high": "too high",
+      "even": "uniform",
+      "varied": "too varied",
+      "tooEven": "suspiciously even",
+      "alike": "alike",
+      "notSignificant": "no significant difference",
+      "dearerHigher": "dearer valued higher",
+      "dearerLower": "dearer valued lower",
+      "notJudged": "not judged",
+      "tooFew": "Too few sales to judge: shown, not judged.",
+      "noSales": "No sales in the window: not checked."
+    },
+    "summary": {
+      "share": "about {pct}%",
+      "head": "{name}''s values are about {pct}% of what parcels sold for, {start} to {end}.",
+      "levelAll": " That''s outside the {lo} to {hi} the standard asks for in every model group judged.",
+      "levelNone": " Every model group judged is within the {lo} to {hi} the standard asks for.",
+      "levelSome": " {n} of {of} model groups judged are within the {lo} to {hi} the standard asks for.",
+      "uniform": " Within each group, values are uniform enough.",
+      "notUniform": " Not uniform enough: {names}.",
+      "suspect": " Suspiciously uniform: {names}, under the category''s range: check for sales chasing or an unrepresentative sample.",
+      "vertical": " Significant vertical inequity: {names}.",
+      "noVertical": " No significant vertical inequity.",
+      "nominal": "{n, plural, =1 {A trimmed sale has a nominal price ({names}): likely not a sale, but Check sales kept it.} other {{n} trimmed sales have nominal prices ({names}): likely not sales, but Check sales kept them.}}",
+      "see": "See them",
+      "ran": "Checked {when} · {n, number} sales, {start} to {end}, {price} · the IAAO''s targets",
+      "asSold": "as sold",
+      "adjusted": "time-adjusted"
+    },
+    "table": {
+      "group": "Model group",
+      "sales": "Sales",
+      "trimmed": "Trimmed",
+      "median": "Median ratio",
+      "range": "90% range",
+      "cod": "COD",
+      "prd": "PRD",
+      "prb": "PRB",
+      "vei": "VEI",
+      "noSales": "no sales in the window",
+      "note": "✓ / ✗ against the targets, on the sales left after trimming. \"all\" is every sale''s figure, beside it but never compared: the Standard says trimmed and untrimmed statistics can''t be read the same way. PRD and MKI are reported, not judged. Each header explains itself on hover.",
+      "mki": "MKI",
+      "mkiWhy": "Modified Kakwani Index: the share of value against the share of price; 1 equitable, under 1 regressive. Reported, not judged.",
+      "low": "low",
+      "every": "all: {x}",
+      "medianWhy": "Value over sale price: the middle one. 1.00 is values at what parcels sell for.",
+      "rangeWhy": "The range the median is likely in, 90% confidence (the IAAO''s order statistics).",
+      "codWhy": "Average distance of ratios from the median, percent of the median: above the category''s range, not uniform enough; below it, suspect.",
+      "prdWhy": "Mean ratio over the price-weighted mean ratio: above 1, cheaper parcels valued relatively higher. Reported, not judged: the draft no longer uses it for compliance.",
+      "prbWhy": "How much ratios change when value doubles: negative, dearer parcels valued relatively lower.",
+      "veiWhy": "The primary vertical equity test: the highest-valued group''s median ratio less the lowest''s, percent of the median; needs 20 sales. Missed only when significantly outside ±10%.",
+      "trimmedWhy": "Ratios far from the rest, left out: listed under Extreme ratios.",
+      "verdicts": {
+        "compliant": "compliant",
+        "not_significant": "not significant",
+        "regressive": "regressive",
+        "progressive": "progressive",
+        "insufficient": "too few sales"
+      }
+    },
+    "prices": {
+      "title": "Across prices: {name}",
+      "lede": "Each dot a sale: its ratio against its price. Black: the median ratio of each fifth of sales, by price. Green: the level the standard asks for.",
+      "fifth": "Sale price",
+      "flat": "Flat would be even: rising, dearer parcels are valued relatively higher; falling, lower.",
+      "strata": "The VEI''s groups, by value",
+      "bySale": "By each sale''s price level",
+      "stratum": "Group",
+      "vei": "VEI {vei}, significance {sig}: {verdict}.",
+      "noVei": "Too few sales for the VEI (it needs 20).",
+      "trimmedDot": "Grey: trimmed."
+    },
+    "similar": {
+      "title": "Similar parcels, similar values?",
+      "lede": "Every parcel, sold or not: within each group of similar parcels (the equity clusters from Check sales), how far apart their values are. The IAAO sets no target for it: shown, not judged.",
+      "parcels": "Parcels",
+      "clusters": "Groups of similar parcels",
+      "chd": "Median spread (CHD)",
+      "reads": "Reads",
+      "tight": "similar parcels valued alike",
+      "some": "some spread",
+      "wide": "wide spread: groups too broad, or values uneven",
+      "chdWhy": "Within each group of similar parcels, the average distance of values from their median, percent: the middle group''s."
+    },
+    "extreme": {
+      "title": "Extreme ratios",
+      "lede": "Ratios far from the rest are left out of the statistics and listed here: each is a sale to question, or a value to fix.",
+      "none": "No ratio was far enough from the rest to leave out.",
+      "address": "Sale",
+      "group": "Model group",
+      "sold": "Sold",
+      "price": "Price",
+      "value": "Value",
+      "ratio": "Ratio",
+      "likely": "Likely",
+      "nominal": "a nominal price: not a sale",
+      "high": "value well over the price",
+      "low": "value well under the price",
+      "exclude": "Exclude in Check sales",
+      "excluded": "excluded: applies when Check sales runs again",
+      "note": "Nominal price ({price}): not a market sale",
+      "untrimmed": "Untrimmed, these would swing the statistics: a $10 deed makes a ratio in the tens of thousands."
+    },
+    "map": {
+      "lede": "Each sale where its parcel is, coloured by its ratio. Clusters of red or blue show where values are off; scattered colour is noise or invalid sales.",
+      "label": "Map of sales by ratio",
+      "none": "The sales have no coordinates: the parcel universe needs shapes or latitude and longitude.",
+      "ratio": "Ratio",
+      "price": "price",
+      "value": "value",
+      "trimmed": "trimmed",
+      "legend": [
+        [
+          0.5,
+          "0.5 or less: value far under the price"
+        ],
+        [
+          0.8,
+          "0.8"
+        ],
+        [
+          1,
+          "1.0: value at the price"
+        ],
+        [
+          1.3,
+          "1.3"
+        ],
+        [
+          2,
+          "2 or more: value far over the price"
+        ]
+      ]
+    },
+    "regions": {
+      "lede": "Comparing ratios across sale prices can''t tell an over-assessed house in a poor neighbourhood from a sale at a low price that wasn''t a market sale. Here sales are grouped by how dear their whole neighbourhood is (its median price level), not by their own price. If low-priced neighbourhoods have higher ratios too, the inequity is real; if this is flat while the VEI by sale isn''t, invalid sales are the likelier cause.",
+      "field": "Neighbourhoods by",
+      "noField": "none",
+      "choose": "Choose a location field to group sales by neighbourhood.",
+      "noLocations": "There''s no location field yet: add one on Data › Location (a neighbourhood, a school district, a census block group), then check again.",
+      "notRun": "Check again to see it.",
+      "few": "Too few to compare: {sales, number} sales in {regions, number} neighbourhoods (it needs 20 sales in 2 or more).",
+      "reading": "{sales, number} sales in {regions, number} neighbourhoods. From the cheapest neighbourhoods to the dearest, the median ratio moves {vei}: {verdict}.",
+      "compare": "By each sale''s own price, the VEI is {vei}.",
+      "group": "Price level group",
+      "regionsCol": "Neighbourhoods",
+      "byLevel": "By its neighbourhood''s price level",
+      "bySale": "By its own price level (the VEI)",
+      "level": "Price level",
+      "lowest": "Cheapest",
+      "highest": "Dearest"
+    },
+    "looksRight": "Looks right › Model values",
+    "toValues": "Model values ›"
+  },
+  "values": {
+    "kicker": "Step 5 of 7",
+    "modelsKicker": "Step 6 of 7",
+    "steps": {
+      "fill": "Fill blanks",
+      "rare": "Rare categories",
+      "run": "Prepare the fields",
+      "done": "What changed",
+      "lag": "Nearby sales and buildings",
+      "test": "Test the variables",
+      "represented": "Represented",
+      "corr": "Correlation",
+      "vif": "Redundancy (VIF)",
+      "verdict": "What to keep",
+      "lists": "Variable lists",
+      "models": "Models",
+      "try": "Try them",
+      "how": "How they did",
+      "small": "Small groups",
+      "final": "Finalize",
+      "values": "Model values"
+    },
+    "lag": {
+      "lede": "What''s around a parcel says a lot about its value. Each parcel can get the average of its nearest sales'' prices, and of its nearest parcels'' size, age and quality, as variables of their own: put them in a variable list like any other.",
+      "on": "Average nearby sales and buildings",
+      "how": "OpenAVMKit''s spatial lag: the nearest of each, however far, the closer ones weighted more.",
+      "nearest": "How many nearest",
+      "nearestWhy": "Averages the {k} nearest of each (OpenAVMKit''s default is 5).",
+      "own": "Averages",
+      "noOwn": "None of these",
+      "ownWhy": "Only those picked are worked out and offered as variables.",
+      "group": "Model group",
+      "sales": "Sales",
+      "averages": "Averages the sales of",
+      "borrowFor": "Other groups'' sales {group} averages",
+      "ownOnly": "Its own only",
+      "plusOwn": "its own, and {others}''s",
+      "salesNoun": "sales",
+      "fields": "Also average",
+      "noFields": "Nothing else",
+      "fieldsWhy": "Numbers of the parcels around each one, besides those above.",
+      "split": "Worked out as the models are tried, after the sales are split: a sale''s nearby price comes only from sales outside its own fold, so a model never sees the price it''s judged on. A group with {k} or fewer sales to average has none (OpenAVMKit writes 0): let it borrow another group''s sales."
+    },
+    "fillLede": "Blanks the models can''t take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",
+    "blocked": "Not yet:",
+    "runLede": "Fills the blanks and folds the rare categories as set, on what Check sales wrote, then writes notebook 2''s output again (out/2-clean-sup.pickle): what the models start from.",
+    "runNext": "Prepare the fields ›",
+    "runAgain": "Prepare again",
+    "runAgainNext": "Prepare again ›",
+    "stale": "Out of date: Check sales ran again, or a fill or the folding changed.",
+    "ran": "✓ Prepared {when} · {seconds} s",
+    "filled": "Filled",
+    "noneFilled": "Nothing was filled.",
+    "folded": "Folded into Other",
+    "noneFolded": "Nothing was folded.",
+    "foldLine": "{name}: {values, number} {values, plural, =1 {value} other {values}}, {parcels, number} parcels",
+    "looksRight": "Looks right › Variables",
+    "toModels": "On to the models ›",
+    "vartest": {
+      "runLede": "Runs OpenAVMKit''s variable tests on each model group''s sales, every variable: then they''re shown one at a time, the evidence for the variable lists. A few seconds.",
+      "runNext": "Test them ›",
+      "runAgain": "Test again",
+      "runAgainNext": "Test again ›",
+      "stale": "Out of date: the fields were prepared again, the tests to run changed, or a variable was ticked that wasn''t tested.",
+      "ran": "✓ Tested {when} · {seconds} s",
+      "group": "Model group",
+      "keep": "Keep",
+      "variable": "Variable",
+      "value": "Result",
+      "skipped": "{name}: {why}.",
+      "pickTitle": "Tests to run",
+      "pick": {
+        "represented": "Always: does it have values among the sales and the parcels?",
+        "corr": "Related to price?",
+        "vif": "How much of it do the other variables already explain?"
+      },
+      "reasons": {
+        "no_correlation": "too weak"
+      },
+      "withPrice": "|r| {r}",
+      "how": "how ›",
+      "howStrength": "With price",
+      "howFloor": "(passes at {t} or more, either way)",
+      "howOverlaps": "Moves most with (the VIF test judges overlap):",
+      "values": "{passing, number} of {of, number} {of, plural, =1 {value passes} other {values pass}}",
+      "empty": "Not tested in this model group: none of its sales has a value for {names}, so there''s nothing to test (and nothing for a model to learn from it here).",
+      "noneFail": "Every variable passes this test in this model group.",
+      "failing": "{n, number} {n, plural, =1 {variable fails} other {variables fail}} in this model group.",
+      "pass": "pass",
+      "fail": "fail",
+      "dropped": "dropped",
+      "level": "{variable}: {level}",
+      "tests": {
+        "represented": {
+          "lede": "Does the variable have values (not zero, not blank) among the sales and among the parcels? One missing from either can''t be learned from, or can''t be applied.",
+          "rule": "Passes with any value in both the sales and the parcels.",
+          "figure": "Sales with a value"
+        },
+        "corr": {
+          "lede": "Does the variable move with price? Its correlation with sale price, either way: whether it overlaps other variables isn''t judged here, the VIF test does that. Press how › on a row to see what it moves with most.",
+          "rule": "Passes with a correlation with price of {t} or more, either way.",
+          "figure": "Correlation with price"
+        },
+        "vif": {
+          "lede": "Variance inflation: how much of it the other variables already explain (1: none; 5 to 10: high; over 10: very high). Redundant variables make a model unstable and hard to read. The worst is dropped, again and again; yes/no variables aren''t tested.",
+          "rule": "Passes if it survives the drops (VIF under {t}).",
+          "figure": "VIF (first fit)"
+        }
+      },
+      "thresholdKey": {
+        "corr": "correlation",
+        "vif": "vif"
+      },
+      "verdictLede": "OpenAVMKit scores each variable on the tests (each weighted), then keeps the set that predicts best in cross-validation: its pick per model group.",
+      "score": "Score",
+      "recommended": "recommended"
+    },
+    "lists": {
+      "lede": "Each model takes its variables from a list. A list has a name, a type (regression or machine learning) and the model groups it''s for; one list can serve several. Beside each variable, its test scores and what''s recommended for the list''s type.",
+      "list": "Variable list",
+      "type": "Type",
+      "groups": "Model groups",
+      "count": "Variables",
+      "usedBy": "Used by",
+      "notUsed": "not used yet",
+      "name": "Name",
+      "kinds": {
+        "regression": "Regression",
+        "ml": "Machine learning"
+      },
+      "kindShort": {
+        "regression": "Regression",
+        "ml": "ML"
+      },
+      "rule": {
+        "regression": "Recommended for a regression: in the sales, moves with price (0.10 or more either way), overlaps nothing much (VIF 10 or under), no blanks, and not a category with many values.",
+        "ml": "Recommended for machine learning: anything that''s in the sales. ML models find their own way with weak or overlapping variables; a category with many values is the one thing to spare: CatBoost slows with each."
+      },
+      "scoresFor": "Scores for",
+      "tickRecommended": "Tick the recommended",
+      "tickRecommendedFor": "Tick the recommended for {group}",
+      "notTestedIn": "Not tested: {groups}.",
+      "untickAll": "Untick all",
+      "remove": "Remove",
+      "add": "Add a variable list",
+      "newName": "List {n}",
+      "written": "Written to OpenAVMKit''s settings as variable_lists, each model pointing at its list. A list''s ticks are the same for every model group it''s for: for a group''s own variables, make it a list of its own.",
+      "notTested": "The variables haven''t been tested yet: the recommendations go by blanks and categories alone until they are (Test the variables).",
+      "in": "In",
+      "variable": "Variable",
+      "kind": "Kind",
+      "number": "number",
+      "category": "category · {n, number} values",
+      "represented": "Represented",
+      "corr": "Correlation with price",
+      "vif": "VIF",
+      "forType": {
+        "regression": "For a regression model",
+        "ml": "For a machine-learning model"
+      },
+      "recommended": "recommended",
+      "reasons": {
+        "blanks": "has blanks",
+        "not_represented": "barely in the sales",
+        "weak": "weak with price",
+        "overlaps": "overlaps others",
+        "many_values": "too many values"
+      },
+      "warn": {
+        "few_sales": "{group} has {sales, number} sales for this list''s {vars, number} variables: a regression wants about 10 sales a variable. A shorter list of its own would suit it better.",
+        "blanks": "Has blanks, so a regression leaves it out: {names}. Fill them (Fill blanks) to use them.",
+        "many_values": "{ml, select, true {Categories with many values (CatBoost slows with each): {names}.} other {Categories with many values (each value a column of its own, few sales behind each): {names}.}}"
+      },
+      "none": "No variable lists yet. Each model takes its variables from one: add a list, choose its type and the model groups it''s for, then tick its variables (Tick the recommended starts you off).",
+      "chooseGroups": "Choose the model groups it''s for: their models can take it.",
+      "missing": "Not loaded: {fields}. The models do better with them (Data › Building).",
+      "noVariables": "No variables found yet: prepare the fields first."
+    },
+    "stack": {
+      "title": "Locations, broadest first",
+      "how": "{engine, select, local_area {Local area values each parcel by its area''s median price per area, at the finest level with enough sales; an area with too few falls back to the level above it.} other {Multi-MRA fits a regression in each area of the finest level with 15 or more sales; an area with fewer falls back to the level above it, and the whole model group last.}}",
+      "level": "Level",
+      "areas": "Areas",
+      "medianSales": "Sales per area (median)",
+      "enough": "Areas with 15+ sales",
+      "nesting": "Nesting",
+      "whole": "Whole model group",
+      "nests": "✓ nests in {above}",
+      "splits": "{n, number} {n, plural, =1 {area spans} other {areas span}} more than one {above}",
+      "up": "Move {name} up (broader)",
+      "down": "Move {name} down (finer)",
+      "remove": "Remove",
+      "add": "Add a level",
+      "noneLeft": "Every location field is in the stack.",
+      "noFields": "No location fields: add a neighborhood or district on Data › Locations, a map layer, or census areas (Data › Enrichments).",
+      "written": "Written finest first, as OpenAVMKit reads it: {fields}."
+    },
+    "small": {
+      "lede": "Groups the models can''t be trusted on: too few sales to learn from or to judge them by, or values that make no sense (a holdout median ratio outside 0.5 to 2, or a value below zero). Left unvalued unless you choose to model them anyway: their parcels get no model value, and the report says so.",
+      "notTried": "Try the models first: the groups are judged by the try.",
+      "group": "Model group",
+      "parcels": "Parcels",
+      "sales": "Sales",
+      "median": "Median ratio (holdout)",
+      "cod": "COD",
+      "belowZero": "Values below zero",
+      "fromTry": "From the try",
+      "todo": "What to do",
+      "fine": "fine",
+      "modeled": "Modeled",
+      "notModeled": "Not modeled (Model groups › Check them)",
+      "leave": "Leave unvalued",
+      "model": "Model it anyway",
+      "flags": {
+        "too_few": "{n, number} {n, plural, =1 {sale} other {sales}}: too few to model",
+        "no_values": "no model produced values for it",
+        "no_holdout": "no sales held out to judge it by",
+        "implausible": "median ratio {median}: makes no sense",
+        "below_zero": "{n, number} {n, plural, =1 {value} other {values}} below zero"
+      },
+      "cantModel": "No model produced values for it: it can only be left unvalued.",
+      "unvalued": "Left unvalued: {parcels, number} {parcels, plural, =1 {parcel} other {parcels}} in {n, number} {n, plural, =1 {group} other {groups}} ({groups}). Their model value is blank; the report and the export list them.",
+      "noneUnvalued": "Every modeled group gets model values.",
+      "blanked": "{n, number} {n, plural, =1 {parcel} other {parcels}} in groups modeled anyway came out below zero: left blank, and counted.",
+      "neverBelow": "A value below zero never ships: the parcel stays blank and is counted.",
+      "applies": "Applies when the values are made (Finalize): the try models every group, to judge it."
+    },
+    "final": {
+      "lede": "Trains each group''s models once more, on all of its sales, and values every parcel: the values that ship. The groups Small groups leaves unvalued are skipped; a value below zero is left blank.",
+      "looksRight": "Looks right",
+      "run": "Finalize",
+      "again": "Finalize again",
+      "stale": "Something changed since the values were made (the try, a small group''s choice, or Check my values'' window or standards): finalize again.",
+      "ran": "Values made {at}, in {secs} s.",
+      "valuesLede": "The model values against what parcels sold for, judged as Check my values judges the roll''s, with the roll''s on the same sales beside them.",
+      "judgedOn": "Judged on",
+      "sets": {
+        "oof": "Out of fold",
+        "held": "Held out",
+        "valued": "As valued"
+      },
+      "setWhy": {
+        "oof": "Each sale valued by a model that never saw it: the cross-validation''s models, each trained without the sales it values. Every sale, honestly judged.",
+        "held": "The sales the final models never trained on (after the valuation date), valued by the final models.",
+        "valued": "Every sale, valued by the final models, which trained on most of them: the values as they ship, but flattering."
+      },
+      "noSales": "{set}: no sales in the window.",
+      "models": "Model values",
+      "roll": "{name} (on the same sales)",
+      "noRoll": "No existing values loaded to compare with (Data › Assessed values).",
+      "window": "{n, number} {n, plural, =1 {sale} other {sales}} from {start} to {end}.",
+      "groupsHead": "What every parcel got",
+      "group": "Model group",
+      "parcels": "Parcels",
+      "valued": "Valued",
+      "blank": "Left blank",
+      "change": "Median change from the roll",
+      "changeWhy": "The median of each parcel''s model value over its roll value, less one.",
+      "up": "Up over 20%",
+      "down": "Down over 20%",
+      "total": "Total value",
+      "rollTotal": "The roll''s, same parcels",
+      "belowZero": "{n, number} below zero",
+      "totals": "{valued, number} of {parcels, number} parcels got a model value.",
+      "notes": "OpenAVMKit''s notes",
+      "map": {
+        "head": "On the map",
+        "label": "Map of the model values",
+        "show": "Show",
+        "views": {
+          "ratio": "Ratio (the sales)",
+          "value": "Value per finished area",
+          "change": "Change from the roll"
+        },
+        "why": {
+          "ratio": "Each sale in the set judged on, coloured by its ratio: model value ÷ price. Clusters of red or blue show where the values are off.",
+          "value": "Every parcel, coloured by its model value per finished area, in tenths of the parcels shown: cheap to dear.",
+          "change": "Every parcel, coloured by its model value against the roll''s: blue lower, red higher."
+        },
+        "all": "All model groups",
+        "unvalued": "No model value",
+        "noArea": "No finished area",
+        "loading": "Drawing the parcels…",
+        "none": "Nothing to show here.",
+        "changeLegend": [
+          [
+            0.5,
+            "half or less"
+          ],
+          [
+            0.8,
+            "20% lower"
+          ],
+          [
+            1,
+            "the same"
+          ],
+          [
+            1.25,
+            "25% higher"
+          ],
+          [
+            2,
+            "double or more"
+          ]
+        ],
+        "tip": {
+          "value": "Model value",
+          "roll": "Roll",
+          "change": "Change",
+          "perArea": "Per {unit}",
+          "group": "Group",
+          "noValue": "none"
+        }
+      }
+    },
+    "model": {
+      "fillIt": "Fill it…",
+      "modelsLede": "Each modeled group has its own models, one group at a time: the button at the bottom right goes on to the next. Every group starts with LightGBM, MRA and Multi-MRA; add, remove or rename them. Each takes its variables from a variable list; Multi-MRA and Local area read a stack of locations too. The ensemble is the median of a group''s models, leaving out any that don''t help; the roll is audited beside them on the study set, never in it.",
+      "configuration": "Configuration",
+      "noSettings": "No settings of its own",
+      "configLater": "Its defaults; change them once it''s added.",
+      "config": {
+        "title": "{name}: its own settings",
+        "log": "Fit on log price",
+        "logWhy": "Its values can''t come out below zero, and an extra square foot adds a percentage rather than a fixed amount.",
+        "intercept": "Intercept",
+        "interceptWhy": "A base value every parcel gets. Without it, a parcel with every variable at zero is worth zero.",
+        "interactions": "Interactions",
+        "interactionsNone": "None",
+        "interactionsDefault": "Categories × size",
+        "interactionsWhy": "Categories × size multiplies each land category by land area, and each building category by finished area: a category then changes the price per square foot, not a flat amount.",
+        "optimizeVars": "Trim variables in each area",
+        "optimizeVarsWhy": "In each area with enough sales, drops the variables that don''t help that area''s regression. Slower.",
+        "trials": "Tuning trials",
+        "trialsWhy": "How many settings it tries while tuning itself: fewer is faster, more can fit better.",
+        "gpu": "Use the graphics card if there is one",
+        "gpuWhy": "Faster where there''s a suitable one; the processor otherwise.",
+        "warnLog": "Without log price it can value parcels below zero.",
+        "warnIntercept": "Only if a parcel with nothing (no land, no building) is worth nothing.",
+        "warnTrials": "Few trials: quick, but it may not tune well.",
+        "summary": {
+          "locations": "Locations: {names}",
+          "noLocations": "no locations",
+          "log": "log price",
+          "noLog": "price, not log",
+          "intercept": "intercept",
+          "noIntercept": "no intercept",
+          "interactionsNone": "no interactions",
+          "interactionsDefault": "categories × size",
+          "optimizeVars": "trims variables per area",
+          "trials": "{n, number} tuning trials",
+          "noGpu": "no graphics card"
+        }
+      },
+      "groupOf": "Model group {n, number} of {of, number}",
+      "nextGroup": "{name} ›",
+      "unlisted": "Still without a variable list: {groups}.",
+      "salesTab": "{n, number} {n, plural, =1 {sale} other {sales}}",
+      "engine": "Engine",
+      "variables": "Variables",
+      "list": "{name} · {n, number} {n, plural, =1 {variable} other {variables}}",
+      "change": "Change…",
+      "done": "Done",
+      "remove": "Remove",
+      "add": "Add a model",
+      "addIt": "Add",
+      "cancel": "Cancel",
+      "namePlaceholder": "The engine''s name",
+      "nameLabel": "Name",
+      "copy": "Copy these models to…",
+      "everyOther": "Every other modeled group",
+      "backToDefault": "Back to the default models",
+      "noModels": "No models: add one, or untick the group on Model groups › Check them.",
+      "takesNoList": "its areas'' price per area",
+      "chooseList": "Choose a list",
+      "warn": {
+        "kind_mismatch": "{kind, select, ml {{engine} is a regression; this is a machine-learning list: overlapping variables and many categories make its coefficients unreliable.} other {{engine} is a machine-learning model on a regression list: it''ll run, but it could use more variables than this.}}",
+        "list_missing": "Its list was removed: it takes the group''s first list of its type.",
+        "list_empty": "Its variable list has no variables: tick some on Variables › Variable lists.",
+        "no_list": "No variable list: make one on Variables › Variable lists.",
+        "blanks_left_out": "Leaves out {n, number} {n, plural, =1 {variable} other {variables}} of its list with blanks: a regression can''t take a blank.",
+        "no_locations": "{engine, select, local_area {Local area needs at least one location level.} other {No location levels: it fits one regression for the whole group, as MRA does.}}"
+      },
+      "written": "Written to OpenAVMKit''s settings under modeling.models.main.{group}; the models'' lists as $$variable_lists.<list>.",
+      "group": "Model group",
+      "parcels": "Parcels",
+      "sales": "Sales",
+      "tooFew": "too few to model: no model values",
+      "salesCount": "{n, number} {n, plural, =1 {sale} other {sales}} to learn from",
+      "tryLede": "Trains each model on each model group and checks it on sales it never saw (5-fold cross-validation). Nothing is written to the roll: this is a try.",
+      "tryNext": "Try them ›",
+      "tryAgain": "Try again",
+      "tryAgainNext": "Try again ›",
+      "stale": "Out of date: the fields were prepared again, or a variable or model changed.",
+      "ran": "✓ Tried {when} · {seconds} s",
+      "howLede": "OpenAVMKit''s benchmark for each model group: the IAAO figures on each set of sales, or the academic ones, each untrimmed then trimmed. Click a heading to sort; drag a column''s edge to widen it. The ensemble is what would ship.",
+      "model": "Model",
+      "salesCount2": "{n, number} {n, plural, =1 {sale} other {sales}}",
+      "how": {
+        "which": "Figures",
+        "iaao": "IAAO",
+        "academic": "Academic",
+        "notModeled": "not modeled",
+        "set": {
+          "holdout": "Holdout",
+          "post_val": "After the valuation date",
+          "study": "Study set"
+        },
+        "setWhy": {
+          "holdout": "Each sale valued by a model that never saw it (5-fold cross-validation). The roll isn''t here: this holdout is OpenAVMKit''s own draw, and the roll''s values may have been made with these very sales.",
+          "post_val": "Sales after the valuation date: no model saw them.",
+          "study": "Sales in the year before the valuation date: the IAAO frame for auditing a roll. The roll is here, beside the models; each model is judged by its holdout predictions, on sales it never saw, so like for like."
+        },
+        "empty": {
+          "holdout": "No sales to hold out.",
+          "post_val": "No sales after the valuation date.",
+          "study": "No sales in the year before the valuation date, so the roll can''t be audited beside the models. Move the valuation date, or bring in later sales."
+        },
+        "trimmed": "{what}, trimmed",
+        "trimmedWhy": "outlying ratios left out",
+        "academicTitle": "Academic figures, on the holdout",
+        "academicWhy": "How far each prediction is from its price, as a statistician would judge it: in percent and in dollars.",
+        "timings": "Timings",
+        "timingsWhy": "seconds",
+        "verdict": {
+          "ok": "In IAAO''s range",
+          "slight": "Just outside IAAO''s good range",
+          "bad": "Outside IAAO''s range"
+        },
+        "col": {
+          "utility": "Utility",
+          "sales": "Sales",
+          "parcels": "Parcels",
+          "median": "Median ratio",
+          "mean": "Mean ratio",
+          "cod": "COD",
+          "prd": "PRD",
+          "prb": "PRB",
+          "vei": "VEI",
+          "veiSig": "VEI sig.",
+          "chd": "CHD",
+          "mape": "MAPE",
+          "mse": "MSE",
+          "rmse": "RMSE",
+          "slope": "Slope",
+          "total": "Total",
+          "param": "Tuning",
+          "train": "Training",
+          "test": "Sales",
+          "univ": "Parcels"
+        },
+        "tip": {
+          "utility": "OpenAVMKit''s score for choosing between models (utility_score): lower is better.",
+          "sales": "The sales the figures are on.",
+          "salesTrimmed": "The sales left once the outlying ratios (beyond 1.5 × the interquartile range) are left out.",
+          "parcels": "Parcels in the model group the model values.",
+          "median": "Value ÷ price, the middle one: the level. IAAO''s range: 0.90 to 1.10.",
+          "mean": "Value ÷ price, averaged.",
+          "cod": "Coefficient of dispersion: how far ratios stray from the median, in percent. Its range depends on the model group''s property category (Check my values).",
+          "prd": "Price-related differential: the mean ratio over the value-weighted mean. Reported, not judged.",
+          "prb": "Price-related bias: how ratios change as value doubles. Good within ±0.05; unacceptable beyond ±0.10.",
+          "vei": "Vertical equity index: how ratios drift from the cheapest sales to the dearest, in percent. Near 0 is even.",
+          "veiSig": "How sure the VEI''s drift is real (vei_sig).",
+          "chd": "Coefficient of horizontal dispersion: how the values of alike parcels spread. Figured on all the parcels, so only on the study set.",
+          "mape": "Mean absolute percentage error: how far, on average, a value is from its price.",
+          "mse": "Mean squared error, in dollars squared.",
+          "rmse": "Root mean squared error: a typical miss, in dollars.",
+          "slope": "Value against price, through the origin: 1 is no tilt.",
+          "param": "Searching for the model''s settings.",
+          "test": "Predicting the holdout sales.",
+          "univ": "Predicting every parcel.",
+          "chdTime": "Figuring the CHD."
+        }
+      },
+      "shipped": "what would ship",
+      "skipped": "{why}.",
+      "slight": "a slight tilt",
+      "notesTitle": "Notes from OpenAVMKit",
+      "nextSlice": "Finalizing (the values written, and checked as step 4 checks the roll''s) comes next."
+    }
+  },
+  "metadata": {
+    "kicker": "The project",
+    "details": "Project details",
+    "jurisdiction": "Jurisdiction",
+    "region": "Region",
+    "taxYear": "Tax year",
+    "valuationDate": "Valuation date",
+    "units": "Units",
+    "locale": "Money and measures",
+    "folder": "Project folder",
+    "showInFolder": "Show in folder"
+  },
+  "landing": {
+    "overview": "Overview",
+    "happens": "What happens",
+    "decide": "What you decide",
+    "end": "What you end with",
+    "needs": "Needs:",
+    "start": "Start: {step} ›",
+    "pages": {
+      "metadata": {
+        "kicker": "The project",
+        "title": "Metadata",
+        "lede": "What the project is: where, for which tax year, and valued as of which date, set when it was made; and the money and measures every size, price and value is shown in.",
+        "happens": [
+          "One page of facts about the project; the money and measures are saved as you change them.",
+          "Every step reads these: the valuation date is the date sales are adjusted to, the units are how sizes are shown and written."
+        ],
+        "decide": [
+          "Units: square feet or square metres.",
+          "How money and numbers are written: the currency, and the separators."
+        ],
+        "end": [
+          "The project''s identity, on the plate and on the report''s first page, and where its files are on this computer."
+        ],
+        "needs": "Nothing: this is where a project begins."
+      },
+      "fields": {
+        "kicker": "Before step 1",
+        "title": "Data: describe your files",
+        "lede": "Everything OAK box values comes from your county''s own files. Here you add them, one kind at a time, and say what each column means. Nothing runs yet: each answer is checked as you give it, so problems show up now rather than halfway through a run.",
+        "happens": [
+          "You add the parcel file, then the sales, then anything else you have: buildings, deeds, permits, condo units, map layers.",
+          "For each, you pick which column is the parcel ID, the price, the date, the finished area and so on. OAK box guesses first; you confirm or correct.",
+          "Each answer is checked against the file straight away: how many rows match, what the values look like, what''s blank."
+        ],
+        "decide": [
+          "Which file holds the parcels, and which the sales.",
+          "Which column is which, and how odd values should be read (dates, money written as text, codes).",
+          "What extra you want: public data (distances, elevation), existing values to compare with."
+        ],
+        "end": [
+          "A complete description of your data that OpenAVMKit can load. Review lists anything that still blocks a run."
+        ],
+        "needs": "Your files, wherever they are on this computer. They''re copied into the project; the originals aren''t changed."
+      },
+      "details": {
+        "kicker": "",
+        "title": "More details",
+        "lede": "A parcel file can have hundreds of columns; a handful matter most. In five short parts you point OAK box at them: what the models lean on, where each parcel is, what kind of property it is, the values it has now, and any map layers.",
+        "happens": [
+          "Five parts, one screen each: Big five, Location, Land use & building type, Existing values, Shapefiles.",
+          "OAK box guesses each from the columns'' names and values; you confirm, or pick another.",
+          "Each pick is checked against the file as you make it: units, ranges, how many parcels have it."
+        ],
+        "decide": [
+          "Which columns hold building size, land size, age, quality and condition, with their units and which way is better.",
+          "The address, and the areas parcels belong to (neighbourhoods, districts).",
+          "Which columns say what each parcel is: land use, building type.",
+          "Which existing values to compare the models with: the roll, and any others.",
+          "Which map layers to add, and whether each stamps its areas on parcels or measures distance to them."
+        ],
+        "end": [
+          "The fields every later step names: the models'' main variables, the rules model groups are made from, and the values the models are judged beside."
+        ],
+        "needs": "Parcel universe and Sales. A part you don''t have can be left: I don''t have these."
+      },
+      "condos": {
+        "kicker": "",
+        "title": "Condo units",
+        "lede": "Condos, and anything else on the roll that isn''t on the map: units with a parcel ID of their own but no shape, because they share a parcel. Here OAK box learns how to find each unit''s parcel, so the unit is placed, measured and valued like any other parcel.",
+        "happens": [
+          "One question first: do you have them? If not, that''s the whole step.",
+          "If you do, a part for each decision: the file, which rows, how each finds its parcel, its land, its fields, and whether its parcel is a location.",
+          "A summary shows, in order, what Bring in data will do to the units."
+        ],
+        "decide": [
+          "Which file holds the units, and which of its rows are units.",
+          "How each unit finds its parcel: its ID starts with the parcel''s, or a column names it.",
+          "How the parcel''s land is split among its units, or whether they have none.",
+          "What each unit takes from its parcel, and whether being on that parcel is a location the models can learn from."
+        ],
+        "end": [
+          "Every unit with a place, land and fields of its own, ready to be grouped, modeled and mapped like the parcels."
+        ],
+        "needs": "Parcel universe, and the units file added on More files."
+      },
+      "bring": {
+        "kicker": "Step 1 of 7",
+        "title": "Bring in data",
+        "lede": "OpenAVMKit reads the files as Data describes them and joins them into one table of every parcel (the parcel universe) and one of every sale. It also works out what it can on its own: coordinates, building ages, land areas, and the public data you asked for.",
+        "happens": [
+          "A run, a few minutes for a county, on its own in the background. You can stop it, and leave this tab while it runs.",
+          "Files are joined on the parcel ID; each sale is matched to its parcel.",
+          "Distances, elevation and other public data are fetched. One that can''t be reached is skipped, never fatal."
+        ],
+        "decide": [
+          "Nothing before it runs. After, you check what came out: parcel and sale counts against what Data said, the fields that came through, anything skipped."
+        ],
+        "end": [
+          "The parcel universe and the sales record every later step starts from. Press Looks right when the counts make sense."
+        ],
+        "needs": "Data, once Review shows nothing blocking."
+      },
+      "groups": {
+        "kicker": "Step 2 of 7",
+        "title": "Model groups",
+        "lede": "Not every parcel sells the same way: a condo isn''t valued like a farm. Model groups split the parcels into kinds that sell alike, so each kind gets its own models, and its own ratio study.",
+        "happens": [
+          "You build the groups from rules on the parcels'' fields (land use is one of these codes, say). A parcel joins the first group whose rule it meets.",
+          "A map shows every parcel coloured by group as you go, with the sales each group has.",
+          "A short run tags every parcel with its group."
+        ],
+        "decide": [
+          "Start from OAK box''s suggestion, or from scratch.",
+          "Each group''s rule, and their order.",
+          "Which groups to model: one with too few sales can be left out and kept at its existing value."
+        ],
+        "end": [
+          "Every parcel tagged with a model group, and checks that each group has the sales to model."
+        ],
+        "needs": "Bring in data, once you''ve pressed Looks right."
+      },
+      "sales": {
+        "kicker": "Step 3 of 7",
+        "title": "Check sales",
+        "lede": "Only fair, open-market sales are evidence of what parcels are worth. This step decides which sales count, and brings their prices to the valuation date.",
+        "happens": [
+          "OpenAVMKit''s checks set aside sales that aren''t fair evidence: nominal deeds, one sale of several parcels, sales between family, prices far out of line with similar parcels.",
+          "Time adjustment works out how prices moved in each group, so a sale from three years ago speaks for today.",
+          "You look at what was set aside, with the reason and the parcel''s details beside it."
+        ],
+        "decide": [
+          "Which years of sales to use.",
+          "Time adjustment, per group: worked out from its own sales, or borrowed from another group.",
+          "For each sale set aside: leave it out, or put it back with a note why it''s a market sale."
+        ],
+        "end": [
+          "The sales the models learn from and are judged by. Nothing is deleted: a sale left out stays on file with its reason."
+        ],
+        "needs": "Model groups, once you''ve pressed Looks right."
+      },
+      "check": {
+        "kicker": "Step 4 of 7",
+        "title": "Check my values",
+        "lede": "Before modeling anything, how good are the values you have now? This step checks the existing roll, and any other values you loaded, against what parcels actually sold for: the IAAO ratio study.",
+        "happens": [
+          "Each sale''s value ÷ its price, studied per model group: the level (median ratio), uniformity (COD), and whether dearer and cheaper parcels are valued alike (PRD, PRB, VEI).",
+          "Each is judged against a standard: the IAAO''s, or your own.",
+          "A map and charts show where values sit high or low."
+        ],
+        "decide": [
+          "Which values to check.",
+          "Which sales, and whether prices are as sold or time-adjusted.",
+          "Whose standards, and which standard judges each group."
+        ],
+        "end": [
+          "A baseline: how the roll does today. The model values are judged the same way later, side by side with it."
+        ],
+        "needs": "Check sales, once you''ve pressed Looks right. Skipped if you have no existing values."
+      },
+      "variables": {
+        "kicker": "Step 5 of 7",
+        "title": "Variables",
+        "lede": "Models learn from the parcels'' characteristics: size, age, quality, location. This step gets those fields ready, finds which ones carry information about price, and puts them into the lists the models use.",
+        "happens": [
+          "Blanks are filled where a model can''t take them, and rare categories folded together.",
+          "Nearby averages are worked out: each parcel gets the average price and characteristics of its neighbours.",
+          "Each variable is tested: is it there for enough parcels, does it move with price, does it repeat another."
+        ],
+        "decide": [
+          "How blanks are filled, field by field.",
+          "Which nearby averages to work out.",
+          "The variable lists: which variables, for regression or machine-learning models, for which groups."
+        ],
+        "end": [
+          "Variable lists, each with the evidence for every variable in it. Models are built from them next."
+        ],
+        "needs": "Check sales (and Check my values, if you have values), each with Looks right pressed."
+      },
+      "values": {
+        "kicker": "Step 6 of 7",
+        "title": "Model values",
+        "lede": "This is where the values are made. Each model group gets its models; they''re tried, judged as Check my values judges the roll, and the best are combined into one value for every parcel.",
+        "happens": [
+          "You choose each group''s models (LightGBM, regression, comparable sales…) and the variable list each one uses.",
+          "A try trains them with cross-validation: each sale is valued by a model that never saw it, so the figures are honest.",
+          "Finalize trains them once more on every sale and values every parcel; the values are checked against the sales, beside the roll''s."
+        ],
+        "decide": [
+          "The models for each group, and their settings.",
+          "What to do with groups the models can''t be trusted on: leave them unvalued, or model them anyway.",
+          "Whether the values look right."
+        ],
+        "end": [
+          "A model value for every parcel in the groups modeled, checked against the sales and compared with the roll."
+        ],
+        "needs": "Variables, once What changed has Looks right."
+      },
+      "report": {
+        "kicker": "Step 7 of 7",
+        "title": "Report",
+        "lede": "The values out of OAK box: as a file for your CAMA system or GIS, and as a report that says plainly how good they are.",
+        "happens": [
+          "Export writes every parcel''s model value beside the roll''s, with the change and, where it sold, its sale and ratio.",
+          "The report is one page to print or save as PDF: a first page a board member can read, the ratio study, charts, a map, and how the values were made."
+        ],
+        "decide": [
+          "The file format: CSV, GeoPackage, Excel, Shapefile or GeoParquet.",
+          "The report''s title, and which sales it judges the values on."
+        ],
+        "end": [
+          "The files and report in the project''s folder, ready to hand on."
+        ],
+        "needs": "Model values, once you''ve pressed Looks right."
+      }
+    }
+  },
+  "combo": {
+    "none": "Nothing matches.",
+    "count": "{n} of {of} match “{typed}”"
+  },
+  "nav": {
+    "label": "Where you are",
+    "projects": "Projects",
+    "newProject": "New project",
+    "here": "here",
+    "running": "running",
+    "notOpened": "not opened yet",
+    "allProjects": "All projects",
+    "projectsHere": "switch project",
+    "tabsHere": "switch tab",
+    "stepsHere": "switch step",
+    "waits": "waits for an earlier step",
+    "waitsShort": "waits",
+    "projectsFoot": "Each opens where you last were in it. Nothing in this one stops or is lost.",
+    "tabsFoot": "Each tab opens on the step you last had open in it."
+  },
+  "project": {
+    "title": "{name} – OAK box",
+    "taxYear": "Tax year {year}",
+    "loading": "Loading…"
+  }
+}

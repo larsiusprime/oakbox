@@ -17,9 +17,9 @@ import {
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
+import { say, t } from "../copy";
 import { pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
-import { t } from "../strings";
 
 const r = t.wizard.reconcile;
 type Step = CleanStep;
@@ -52,16 +52,16 @@ export function describeSteps(steps: Step[]): string {
           : s.kind === "upper"
             ? d.upper
             : s.kind === "remove"
-              ? d.remove(s.text)
+              ? say.wizard.reconcile.describe.remove(s.text)
               : s.kind === "replace"
-                ? d.replace(s.text, s.to)
+                ? d.replace({ a: s.text, b: s.to })
                 : s.kind === "first"
-                  ? d.first(s.n)
+                  ? d.first({ n: s.n })
                   : s.kind === "last"
-                    ? d.last(s.n)
+                    ? d.last({ n: s.n })
                     : s.kind === "before"
-                      ? d.before(s.text)
-                      : d.after(s.text),
+                      ? d.before({ c: s.text })
+                      : d.after({ c: s.text }),
     )
     .join(", then ");
 }
@@ -84,10 +84,10 @@ export function ReconcileDialog({
   // What joins to what: the wording follows it.
   const k =
     file.match === "key_sale"
-      ? r.kinds.more_sales(file.name)
+      ? say.wizard.reconcile.kinds.more_sales(file.name)
       : file.holds === "sales"
-        ? r.kinds.sales()
-        : r.kinds.parcels(file.name);
+        ? say.wizard.reconcile.kinds.sales()
+        : say.wizard.reconcile.kinds.parcels(file.name);
   const [baseSteps, setBaseSteps] = useState<Step[]>(base.clean[field] ?? []);
   const [fileSteps, setFileSteps] = useState<Step[]>(file.clean[field] ?? []);
   const [same, setSame] = useState(
@@ -138,8 +138,8 @@ export function ReconcileDialog({
                   {k.meter(pct(v.share))}
                 </b>
                 <span className="rc-was">
-                  {r.counts(v.matched, v.total)}
-                  {Math.abs(v.share - v.saved_share) > 1e-9 && ` · ${r.was(pct(v.saved_share))}`}
+                  {r.counts({ matched: v.matched, total: v.total })}
+                  {Math.abs(v.share - v.saved_share) > 1e-9 && ` · ${r.was({ pct: pct(v.saved_share) })}`}
                 </span>
               </>
             ) : (
@@ -158,7 +158,7 @@ export function ReconcileDialog({
                   setTried(true);
                 }}
               >
-                {r.tryIt(pct(suggestion.share))}
+                {r.tryIt({ pct: pct(suggestion.share) })}
               </Button>
             </p>
           )}
@@ -346,7 +346,7 @@ function StepText({ step, set }: { step: Step; set: (patch: Partial<Step>) => vo
   }
 }
 
-type Labels = ReturnType<typeof r.kinds.sales>;
+type Labels = ReturnType<typeof say.wizard.reconcile.kinds.sales>;
 
 function Samples({
   rows,

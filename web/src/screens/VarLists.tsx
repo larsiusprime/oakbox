@@ -11,8 +11,8 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
+import { say, t } from "../copy";
 import { num } from "../lib/format";
-import { t } from "../strings";
 
 const s = t.values.lists;
 type Kind = "regression" | "ml";
@@ -40,7 +40,7 @@ export function VarListsStep({ projectId }: { projectId: string }) {
     save(v.lists.map((x) => (x.id === id ? { ...plain(x), ...patch } : plain(x))));
   // A new list starts empty: the user chooses its groups and ticks its variables.
   const add = () => {
-    const name = s.newName(v.lists.length + 1);
+    const name = s.newName({ n: v.lists.length + 1 });
     put.mutate([...v.lists.map(plain), { id: "", name, kind: "regression", groups: [], variables: [] }], {
       onSuccess: (data) => setOpen(data.lists[data.lists.length - 1]?.id ?? null),
     });
@@ -48,7 +48,7 @@ export function VarListsStep({ projectId }: { projectId: string }) {
   const gname = Object.fromEntries(v.groups.map((g) => [g.id, g]));
   return (
     <div className="cs-step">
-      {v.missing.length > 0 && <p className="wiz-warn">{s.missing(v.missing)}</p>}
+      {v.missing.length > 0 && <p className="wiz-warn">{say.values.lists.missing(v.missing)}</p>}
       {!v.tested && <p className="wiz-warn">{s.notTested}</p>}
       {v.lists.length === 0 ? (
         <p className="wiz-from">{s.none}</p>
@@ -254,10 +254,17 @@ function ListEditor({
           {list.warnings.map((w) => (
             <p key={`${w.code}-${w.group ?? ""}`} className="wiz-warn">
               {w.code === "few_sales"
-                ? s.warn.few_sales(gname[w.group ?? ""] ?? w.group ?? "", w.n, list.variables.length)
+                ? s.warn.few_sales({
+                    group: gname[w.group ?? ""] ?? w.group ?? "",
+                    sales: w.n,
+                    vars: list.variables.length,
+                  })
                 : w.code === "blanks"
-                  ? s.warn.blanks(w.variables.map((f) => names[f] ?? f).join(", "))
-                  : s.warn.many_values(w.variables.map((f) => names[f] ?? f).join(", "), kind === "ml")}
+                  ? s.warn.blanks({ names: w.variables.map((f) => names[f] ?? f).join(", ") })
+                  : s.warn.many_values({
+                      names: w.variables.map((f) => names[f] ?? f).join(", "),
+                      ml: kind === "ml",
+                    })}
             </p>
           ))}
         </div>
@@ -275,7 +282,9 @@ function ListEditor({
             />
             {mine.length < pool.length && (
               <span className="wiz-from">
-                {s.notTestedIn(pool.filter((g) => !mine.includes(g)).map((g) => gname[g] ?? g))}
+                {say.values.lists.notTestedIn(
+                  pool.filter((g) => !mine.includes(g)).map((g) => gname[g] ?? g),
+                )}
               </span>
             )}
           </>
@@ -290,7 +299,7 @@ function ListEditor({
             )
           }
         >
-          {shown && recs ? s.tickRecommendedFor(gname[shown] ?? shown) : s.tickRecommended}
+          {shown && recs ? s.tickRecommendedFor({ group: gname[shown] ?? shown }) : s.tickRecommended}
         </Button>
         <Button className="button" onPress={() => set(new Set())}>
           {s.untickAll}
@@ -332,7 +341,7 @@ function ListEditor({
                   <td>
                     {x.name} <span className="mono wiz-from">{x.field}</span>
                   </td>
-                  <td className="wiz-from">{x.values != null ? s.category(x.values) : s.number}</td>
+                  <td className="wiz-from">{x.values != null ? s.category({ n: x.values }) : s.number}</td>
                   <td className="cs-n">{pct(f.rep)}</td>
                   <td className="cs-n">
                     {f.corr?.value == null ? (

@@ -28,8 +28,8 @@ import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
+import { say, t } from "../copy";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
-import { t } from "../strings";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
@@ -131,7 +131,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
         <div className="wiz-main">
           <LandingPage
             page={page}
-            kicker={`${t.tabs.fields} · ${w.stepOf(tops.indexOf(current) + 1, tops.length)}`}
+            kicker={`${t.tabs.fields} · ${w.stepOf({ n: tops.indexOf(current) + 1, of: tops.length })}`}
             start={w.steps[part]?.title ?? part}
             onStart={() => go(part)}
             back={prev ? () => go(prev.key) : null}
@@ -142,7 +142,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   }
   const copy = w.steps[current.key] ?? { title: current.key, question: "", lede: "" };
   const kicker = [
-    w.stepOf(tops.findIndex((s) => s.key === top) + 1, tops.length),
+    w.stepOf({ n: tops.findIndex((s) => s.key === top) + 1, of: tops.length }),
     current.parent ? `${w.steps[current.parent]?.title} › ${copy.title}` : null,
   ]
     .filter(Boolean)
@@ -216,7 +216,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
         </div>
         {next && gated && current.left.length > 0 && (
           <p className="wiz-left">
-            {w.left(
+            {say.wizard.left(
               current.left.length,
               current.left.map((l) => l.text),
             )}
@@ -421,7 +421,7 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
       {!adding && base.extra_ids.length < EXTRA_IDS.length && (
         <Tip text={w.extraIdTip}>
           <AddButton onPress={() => setAdding(true)}>
-            {w.addId(w.idOrdinal[EXTRA_IDS[base.extra_ids.length] ?? "key2"] ?? "")}
+            {w.addId({ ordinal: w.idOrdinal[EXTRA_IDS[base.extra_ids.length] ?? "key2"] ?? "" })}
           </AddButton>
         </Tip>
       )}
@@ -706,8 +706,8 @@ function Appended({ file, change }: { file: WizardFile; change: Mutate }) {
     <div className="wiz-appended">
       <p className={a.few ? "wiz-warn" : "wiz-ok"}>
         {a.few ? "" : "✓ "}
-        {m.has(a.have, a.of, sales ? m.salesRecord : m.universe)}
-        {missing.length > 0 && m.missing(missing.join(", "))}
+        {m.has({ have: a.have, of: a.of, what: sales ? m.salesRecord : m.universe })}
+        {missing.length > 0 && m.missing({ names: missing.join(", ") })}
         {a.few && ` ${m.few}`}
       </p>
       <p className={a.key_ok ? "wiz-ok" : "wiz-warn"}>
@@ -736,9 +736,13 @@ function Appended({ file, change }: { file: WizardFile; change: Mutate }) {
         ])}
       </div>
       {a.overlap > 0 && (
-        <p className="wiz-warn">{sales ? m.overlapSales(a.overlap) : m.overlapParcels(a.overlap)}</p>
+        <p className="wiz-warn">
+          {sales ? m.overlapSales({ n: a.overlap }) : m.overlapParcels({ n: a.overlap })}
+        </p>
       )}
-      <p className="wiz-from">{sales ? m.appendedSales(a.rows) : m.appendedParcels(a.rows)}</p>
+      <p className="wiz-from">
+        {sales ? m.appendedSales({ rows: a.rows }) : m.appendedParcels({ rows: a.rows })}
+      </p>
     </div>
   );
 }
@@ -804,7 +808,7 @@ function FieldsStep({
       </div>
       {hidden > 0 && (
         <Button className="wiz-more" onPress={() => setMore(!more)}>
-          {more ? w.fewer : w.more(hidden)}
+          {more ? w.fewer : w.more({ n: hidden })}
         </Button>
       )}
     </>
@@ -840,8 +844,8 @@ function ReviewStep({
   return (
     <>
       <p className="wiz-lede">
-        {w.summary(loaded.length, columns)}{" "}
-        {data.not_loaded.map((n) => w.notLoaded(n.file, n.columns)).join(" ")}
+        {w.summary({ fields: loaded.length, columns })}{" "}
+        {data.not_loaded.map((n) => say.wizard.notLoaded(n.file, n.columns)).join(" ")}
       </p>
       {data.files
         .filter((f) => f.holds === "parcels" && (f.repeats?.extra ?? 0) > 0)
@@ -896,7 +900,8 @@ function ReviewStep({
                   <td className={f.sources.length ? "mono" : "wiz-none"}>
                     {f.assumed
                       ? `${w.assumed}: ${w.assumedValue[f.key]}`
-                      : f.sources.map((x) => w.from(x.column, x.file)).join("; ") || w.nothing}
+                      : f.sources.map((x) => w.from({ column: x.column, file: x.file })).join("; ") ||
+                        w.nothing}
                   </td>
                   <td>
                     <Button className="wiz-link" onPress={() => go(s.key)}>

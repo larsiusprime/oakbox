@@ -8,8 +8,8 @@ import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { InfoTip } from "../components/Tip";
+import { t } from "../copy";
 import { num } from "../lib/format";
-import { t } from "../strings";
 
 const s = t.ratio.standards;
 type Props = { v: RatioSetup; set: (body: RatioPatch) => void };
@@ -131,7 +131,7 @@ export function StandardsTable({ v, set }: Props) {
         ...all,
         {
           id,
-          name: s.newName(n),
+          name: s.newName({ n }),
           level_low: 0.9,
           level_high: 1.1,
           cod_low: 5,
@@ -320,7 +320,9 @@ export function AssignTable({ v, set }: Props) {
           </tbody>
         </table>
       )}
-      {left.length > 0 && <p className="wiz-from">{s.notJudged(left.map((g) => g.name).join(", "))}</p>}
+      {left.length > 0 && (
+        <p className="wiz-from">{s.notJudged({ names: left.map((g) => g.name).join(", ") })}</p>
+      )}
       {groups.some((g) => g.proposed) && all.some((x) => x.groups?.length) && (
         <p className="wiz-from">{s.proposedNote}</p>
       )}

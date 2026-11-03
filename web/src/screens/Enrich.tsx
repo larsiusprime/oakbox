@@ -4,7 +4,7 @@ import { type ReactNode, useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } from "react-aria-components";
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
 import { Choice, Tick } from "../components/Form";
-import { t } from "../strings";
+import { say, t } from "../copy";
 
 const e = t.wizard.enrich;
 const KEY_URL = "https://api.census.gov/data/key_signup.html";
@@ -51,7 +51,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
     <div className="en">
       <p className="en-note">
         <Globe aria-hidden="true" size="1.1em" />
-        <span>{e.online(v.area ? v.area.km2 : null)}</span>
+        <span>{e.online({ km2: v.area ? v.area.km2 : null })}</span>
       </p>
 
       <Card
@@ -117,7 +117,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
             label={e.year}
             hideLabel
             value={String(s.census_year)}
-            options={v.years.map((y) => [String(y), e.yearOf(y)] as const)}
+            options={v.years.map((y) => [String(y), e.yearOf({ y })] as const)}
             onChange={(y) => set({ census_year: Number(y) })}
           />
         </div>
@@ -137,10 +137,10 @@ export function EnrichStep({ projectId }: { projectId: string }) {
             label={e.detail}
             hideLabel
             value={String(s.resolution_m)}
-            options={([10, 30, 60] as const).map((m) => [String(m), e.resolution(m)] as const)}
+            options={([10, 30, 60] as const).map((m) => [String(m), e.resolution({ m })] as const)}
             onChange={(m) => set({ resolution_m: Number(m) as 10 | 30 | 60 })}
           />
-          <span className="en-sub">{e.suggested(v.resolution, v.area ? v.area.km2 : null)}</span>
+          <span className="en-sub">{e.suggested({ m: v.resolution, km2: v.area ? v.area.km2 : null })}</span>
         </div>
         <Picks label={e.adds} title={e.elevation} fields={adds("elevation")} toggle={field} />
       </Card>
@@ -208,13 +208,13 @@ function Picks({
       <span className="en-lab">{label}</span>
       <DialogTrigger isOpen={open} onOpenChange={setOpen}>
         <Button className="vals-button">
-          {e.fieldsOf(on.length, fields.length)}
+          {say.wizard.enrich.fieldsOf(on.length, fields.length)}
           <ChevronDown aria-hidden="true" size="0.85em" />
         </Button>
         <Popover className="popover" placement="bottom start">
-          <Dialog className="popover-body en-fields" aria-label={e.fieldsTitle(title)}>
+          <Dialog className="popover-body en-fields" aria-label={e.fieldsTitle({ name: title })}>
             <Heading slot="title" className="vals-title">
-              {e.fieldsTitle(title)}
+              {e.fieldsTitle({ name: title })}
             </Heading>
             {fields.map((f) => (
               <Tick key={f.key} isSelected={f.on} onChange={(v) => toggle(f.key, v)}>
@@ -253,7 +253,7 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
     return (
       <div className="en-row">
         <span className="en-sub">
-          {e.summary(on.map((f) => f.label))}
+          {say.wizard.enrich.summary(on.map((f) => f.label))}
           {range && ` · ${e.upTo} ${range} ${unit}`}
         </span>
         <Button className="wiz-link" onPress={() => setOpen(true)}>
@@ -277,7 +277,7 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
               <span className="en-sub">{f.what}</span>
               <span className="en-dist">
                 <Num
-                  label={e.maxDistance(f.label)}
+                  label={e.maxDistance({ label: f.label })}
                   value={x.max_distance}
                   onChange={(max_distance) => set(f.key, { max_distance })}
                 />
@@ -285,14 +285,14 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
               </span>
               <span className="en-sub">
                 {taken ? (
-                  e.taken(f.label)
+                  e.taken({ label: f.label })
                 ) : f.named && x.on ? (
                   <Choice
                     label={e.largestLabel}
                     hideLabel
                     value={String(x.top_n)}
                     options={[0, 1, 2, 3, 5].map(
-                      (n) => [String(n), n ? e.largest(n) : e.noneLargest] as const,
+                      (n) => [String(n), n ? e.largest({ n }) : e.noneLargest] as const,
                     )}
                     onChange={(n) => set(f.key, { top_n: Number(n) })}
                   />
@@ -351,7 +351,7 @@ function CensusKey({ view }: { view: EnrichView }) {
       <span className="en-lab">{e.key}</span>
       {view.key_saved && view.key_end ? (
         <>
-          <span className="wiz-ok">✓ {e.keySaved(view.key_end)}</span>
+          <span className="wiz-ok">✓ {e.keySaved({ end: view.key_end })}</span>
           <Button className="wiz-link" onPress={() => put.mutate("")}>
             {e.keyForget}
           </Button>

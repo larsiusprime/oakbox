@@ -1,8 +1,8 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
+import { t } from "../copy";
 import { short } from "../lib/format";
-import { t } from "../strings";
 import { AddButton } from "./AddButton";
 import { Tick } from "./Form";
 import { Val } from "./Val";
@@ -53,7 +53,8 @@ export function MultiPick({
   const named = values.some((x) => x.label);
   const names = chosen.map((c) => labels.get(c) ?? (c ? short(c) : m.blank));
   const shown = names.join(", ");
-  const said = brief && names.length > 1 ? m.plusOthers(names[0] ?? "", names.length - 1) : shown;
+  const said =
+    brief && names.length > 1 ? m.plusOthers({ first: names[0] ?? "", n: names.length - 1 }) : shown;
   return (
     <DialogTrigger onOpenChange={(open) => !open && setSearch("")}>
       <Button className="mp-button" aria-label={`${label}: ${chosen.length ? shown : m.none}`}>
@@ -77,7 +78,7 @@ export function MultiPick({
             </SearchField>
           )}
           <div className="mp-head">
-            <span>{m.chosen(chosen.length, values.length + extra.length)}</span>
+            <span>{m.chosen({ n: chosen.length, of: values.length + extra.length })}</span>
             <span className="mp-grow" />
             <Button
               className="wiz-link"
@@ -115,11 +116,11 @@ export function MultiPick({
                 setSearch("");
               }}
             >
-              {m.add(typed)}
+              {m.add({ v: typed })}
             </AddButton>
           )}
-          {more > 0 && <p className="vals-sub">{m.more(more)}</p>}
-          {countNoun && <p className="vals-sub mp-noun">{m.counts(countNoun)}</p>}
+          {more > 0 && <p className="vals-sub">{m.more({ n: more })}</p>}
+          {countNoun && <p className="vals-sub mp-noun">{m.counts({ noun: countNoun })}</p>}
         </Dialog>
       </Popover>
     </DialogTrigger>

@@ -4,7 +4,7 @@ import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-componen
 import { api, type NamesView, unwrap } from "../api/client";
 import { setupKey, stepChanged } from "../api/steps";
 import { Val } from "../components/Val";
-import { t } from "../strings";
+import { t } from "../copy";
 
 const n = t.wizard.names;
 type FormatId = NamesView["formats"][number]["id"];
@@ -80,7 +80,7 @@ export function DeedNames({ projectId }: { projectId: string }) {
             <span className="radio-dot" aria-hidden="true" />
             <span>
               {f.label}: <span className="mono">{f.example}</span>
-              {v.guess === f.id && <span className="wiz-from"> · {n.looks(v.why)}</span>}
+              {v.guess === f.id && <span className="wiz-from"> · {n.looks({ why: v.why })}</span>}
             </span>
           </Radio>
         ))}
@@ -107,7 +107,16 @@ export function DeedNames({ projectId }: { projectId: string }) {
         </p>
       ) : (
         <>
-          <p className="wiz-from">{n.counts(v.sales, v.read, v.companies, v.unread, v.shared, v.sampled)}</p>
+          <p className="wiz-from">
+            {n.counts({
+              sales: v.sales,
+              read: v.read,
+              companies: v.companies,
+              unread: v.unread,
+              shared: v.shared,
+              sampled: v.sampled,
+            })}
+          </p>
           <table className="tbl dn-tbl">
             <thead>
               <tr>

@@ -4,7 +4,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
-import { t } from "../strings";
+import { t } from "../copy";
 
 export function TabStrip({ selected, children }: { selected: string; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);

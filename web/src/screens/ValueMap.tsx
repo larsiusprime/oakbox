@@ -6,8 +6,8 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
+import { t } from "../copy";
 import { money, num, ratioText, signed } from "../lib/format";
-import { t } from "../strings";
 import { BandChart } from "./ValueCharts";
 
 const r = t.ratio;
@@ -170,16 +170,16 @@ export function Regions({
           {setup?.region ? rr.notRun : setup && setup.regions.length === 0 ? rr.noLocations : rr.choose}
         </p>
       ) : rg.strata.length < 2 ? (
-        <p className="wiz-from">{rr.few(rg.sales, rg.regions)}</p>
+        <p className="wiz-from">{rr.few({ sales: rg.sales, regions: rg.regions })}</p>
       ) : (
         <>
           <p>
-            {rr.reading(
-              rg.regions,
-              rg.sales,
-              rg.vei == null ? "—" : `${signed(rg.vei, 1)}%`,
-              r.table.verdicts[rg.vei_verdict] ?? rg.vei_verdict,
-            )}
+            {rr.reading({
+              regions: rg.regions,
+              sales: rg.sales,
+              vei: rg.vei == null ? "—" : `${signed(rg.vei, 1)}%`,
+              verdict: r.table.verdicts[rg.vei_verdict] ?? rg.vei_verdict,
+            })}
           </p>
           <BandChart
             series={[
@@ -213,7 +213,7 @@ export function Regions({
               ))}
             </tbody>
           </table>
-          <p className="wiz-from">{rr.compare(g.vei == null ? "—" : `${signed(g.vei, 1)}%`)}</p>
+          <p className="wiz-from">{rr.compare({ vei: g.vei == null ? "—" : `${signed(g.vei, 1)}%` })}</p>
         </>
       )}
     </div>

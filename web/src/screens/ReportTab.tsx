@@ -8,8 +8,8 @@ import type { components } from "../api/schema";
 import { CheckList, Field } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { t } from "../copy";
 import { lastStep } from "../lib/place";
-import { t } from "../strings";
 
 type View = components["schemas"]["ReportView"];
 type Format = components["schemas"]["ExportBody"]["format"];
@@ -129,7 +129,7 @@ function ExportStep({ projectId, v }: { projectId: string; v: View }) {
       </div>
       {done && (
         <>
-          <p className="wiz-ok">{r.wrote(done.rows, size(done.bytes), done.path)}</p>
+          <p className="wiz-ok">{r.wrote({ rows: done.rows, size: size(done.bytes), path: done.path })}</p>
           {done.notes.map((n) => (
             <p key={n} className="wiz-from">
               {n}
@@ -195,7 +195,7 @@ function ReportStep({
         />
         {empty.length > 0 && (
           <p className="wiz-from">
-            {r.noSales(empty.map((k) => (r.setNames[k] ?? k).split(":")[0]).join(", "))}
+            {r.noSales({ names: empty.map((k) => (r.setNames[k] ?? k).split(":")[0]).join(", ") })}
           </p>
         )}
       </div>
@@ -209,7 +209,7 @@ function ReportStep({
           </Button>
         )}
       </div>
-      {open.data && <p className="wiz-ok">{r.opened(open.data)}</p>}
+      {open.data && <p className="wiz-ok">{r.opened({ path: open.data })}</p>}
       {(change.error || open.error || show.error) && (
         <p className="error" role="alert">
           {(change.error ?? open.error ?? show.error)?.message}

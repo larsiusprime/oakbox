@@ -9,8 +9,8 @@ import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
+import { t } from "../copy";
 import { short } from "../lib/format";
-import { t } from "../strings";
 
 const g = t.groups;
 
@@ -163,9 +163,9 @@ export function Inspector({
   });
   const v: ParcelInspect | undefined = q.data;
   return (
-    <section className="mg-pop" aria-label={v ? g.parcel(v.key) : g.parcel("")}>
+    <section className="mg-pop" aria-label={v ? g.parcel({ key: v.key }) : g.parcel({ key: "" })}>
       <div className="mg-pop-head">
-        <b className="mg-pop-title">{v ? g.parcel(short(v.key)) : "…"}</b>
+        <b className="mg-pop-title">{v ? g.parcel({ key: short(v.key) }) : "…"}</b>
         {v && (
           <span className="mg-tag" style={{ background: colour(v.group) }}>
             {name(v.group)}
@@ -190,7 +190,7 @@ export function Inspector({
               ))}
             </tbody>
           </table>
-          <b className="mg-pop-sub">{v.group ? g.whyIn(name(v.group)) : g.whyNone}</b>
+          <b className="mg-pop-sub">{v.group ? g.whyIn({ name: name(v.group) }) : g.whyNone}</b>
           <ol className="mg-why">
             {v.why.map((w) => (
               <li key={w.group} className={w.met ? (w.group === v.group ? "yes" : "also") : "no"}>
@@ -217,7 +217,7 @@ export function Inspector({
           )}
           {v.like_text && v.like.length > 1 && (
             <div className="mg-live">
-              <span>{g.like(v.like.length, v.like_sold, v.like_text)}</span>
+              <span>{g.like({ n: v.like.length, sold: v.like_sold, what: v.like_text })}</span>
               <Button className="wiz-link" onPress={() => onShow(v.like)}>
                 {g.showLike}
               </Button>

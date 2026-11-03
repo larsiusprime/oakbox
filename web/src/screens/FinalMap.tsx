@@ -9,8 +9,8 @@ import type { components } from "../api/schema";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
+import { t } from "../copy";
 import { money, num, signed } from "../lib/format";
-import { t } from "../strings";
 import { ratioColor, ratioStroke } from "./ValueMap";
 
 type Receipt = components["schemas"]["FinalReceipt"];
@@ -177,7 +177,7 @@ export function FinalMap({
       `${mp.tip.value} ${fmt(v)}`,
       ...(r != null ? [`${mp.tip.roll} ${fmt(r)}`] : []),
       ...(v != null && r != null && r > 0 ? [`${mp.tip.change} ${signed(100 * (v / r - 1), 1)}%`] : []),
-      ...(pa != null ? [`${mp.tip.perArea(unit)} ${money(pa, currency)}`] : []),
+      ...(pa != null ? [`${mp.tip.perArea({ unit })} ${money(pa, currency)}`] : []),
     ].join("\n");
   };
   const valuedGroups = receipt.groups.filter((g) => g.valued > 0);

@@ -2,8 +2,8 @@ import { navigate } from "../App";
 import type { PrepareView } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { t } from "../copy";
 import { short, when } from "../lib/format";
-import { t } from "../strings";
 import { CollapseCard, FillCard } from "./CleanCards";
 import { LagStep } from "./LagStep";
 import { VarListsStep } from "./VarLists";
@@ -149,7 +149,9 @@ export function VariablesTab({ projectId }: { projectId: string }) {
                   </p>
                 )}
                 {v.stale && <p className="wiz-warn">{m.stale}</p>}
-                {fresh && r && <p className="wiz-ok">{m.ran(when(r.ran_at), r.seconds)}</p>}
+                {fresh && r && (
+                  <p className="wiz-ok">{m.ran({ when: when(r.ran_at), seconds: r.seconds })}</p>
+                )}
                 {!r && !v.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
@@ -220,7 +222,9 @@ export function VariablesTab({ projectId }: { projectId: string }) {
                   </p>
                 )}
                 {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
-                {vFresh && vr && <p className="wiz-ok">{m.vartest.ran(when(vr.ran_at), vr.seconds)}</p>}
+                {vFresh && vr && (
+                  <p className="wiz-ok">{m.vartest.ran({ when: when(vr.ran_at), seconds: vr.seconds })}</p>
+                )}
                 {!vr && !vv.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
@@ -291,14 +295,15 @@ function Prepared({ view }: { view: PrepareView }) {
   return (
     <div className="cs-receipt">
       {view.stale && <p className="wiz-warn">{m.stale}</p>}
-      <p className="wiz-ok">{m.ran(when(r.ran_at), r.seconds)}</p>
+      <p className="wiz-ok">{m.ran({ when: when(r.ran_at), seconds: r.seconds })}</p>
       <section className="cs-step">
         <h3 className="wiz-group">{m.filled}</h3>
         {r.filled.length ? (
           <ul className="cs-list-plain">
             {r.filled.map((f) => (
               <li key={f.field}>
-                {t.sales.filled.line(f.name, f.count, f.how)} <span className="mono wiz-from">{f.field}</span>
+                {t.sales.filled.line({ name: f.name, n: f.count, how: f.how })}{" "}
+                <span className="mono wiz-from">{f.field}</span>
               </li>
             ))}
           </ul>
@@ -312,7 +317,7 @@ function Prepared({ view }: { view: PrepareView }) {
           <ul className="cs-list-plain">
             {r.folded.map((f) => (
               <li key={f.field}>
-                {m.foldLine(f.name, f.folded.length, f.parcels)}{" "}
+                {m.foldLine({ name: f.name, values: f.folded.length, parcels: f.parcels })}{" "}
                 <span className="wiz-from">
                   {f.folded
                     .slice(0, 8)

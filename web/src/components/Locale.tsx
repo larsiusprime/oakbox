@@ -1,6 +1,6 @@
 import { Label, Radio, RadioGroup } from "react-aria-components";
 import type { Regions } from "../api/client";
-import { t } from "../strings";
+import { t } from "../copy";
 import { Choice } from "./Form";
 
 export type LocaleValue = {

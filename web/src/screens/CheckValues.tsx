@@ -17,8 +17,8 @@ import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { t } from "../copy";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
-import { t } from "../strings";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
 import { BandChart, Scatter } from "./ValueCharts";
 import { RatioMap, Regions } from "./ValueMap";
@@ -214,7 +214,9 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                   </p>
                 )}
                 {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
-                {fresh && rc && <p className="wiz-ok">{r.run.ran(when(rc.ran_at), rc.seconds)}</p>}
+                {fresh && rc && (
+                  <p className="wiz-ok">{r.run.ran({ when: when(rc.ran_at), seconds: rc.seconds })}</p>
+                )}
                 {!rc && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
@@ -354,13 +356,15 @@ function SalesCard({ v, set }: CardProps) {
           />
         </div>
         {v.window_proposed ? (
-          <p className="wiz-from">{r.sales.proposed(v.proposed_start)}</p>
+          <p className="wiz-from">{r.sales.proposed({ start: v.proposed_start })}</p>
         ) : (
           <Button className="wiz-link" onPress={() => set({ reset_window: true })}>
             {r.sales.reset}
           </Button>
         )}
-        {v.year_before === 0 && v.last_sale && <div className="bi-warn">{r.sales.none(v.last_sale)}</div>}
+        {v.year_before === 0 && v.last_sale && (
+          <div className="bi-warn">{r.sales.none({ last: v.last_sale })}</div>
+        )}
       </section>
       <section className="cs-step">
         <h3 className="wiz-group">{r.sales.price}</h3>
@@ -437,22 +441,25 @@ function Summary({
   const levelOk = js.filter((g) => g.verdict?.level);
   const lo = "90%";
   const hi = "110%";
-  let text = o.median ? r.summary.head(result.name, pct(o.median), receipt.start, receipt.end) : "";
+  let text = o.median
+    ? r.summary.head({ name: result.name, pct: pct(o.median), start: receipt.start, end: receipt.end })
+    : "";
   if (js.length)
     text +=
       levelOk.length === 0
-        ? r.summary.levelAll(lo, hi)
+        ? r.summary.levelAll({ lo, hi })
         : levelOk.length === js.length
-          ? r.summary.levelNone(lo, hi)
-          : r.summary.levelSome(levelOk.length, js.length, lo, hi);
+          ? r.summary.levelNone({ lo, hi })
+          : r.summary.levelSome({ n: levelOk.length, of: js.length, lo, hi });
   const loose = js.filter((g) => g.verdict?.cod === false).map((g) => `${g.name} (COD ${num(g.cod, 1)})`);
-  if (js.length) text += loose.length ? r.summary.notUniform(loose.join(", ")) : r.summary.uniform;
+  if (js.length) text += loose.length ? r.summary.notUniform({ names: loose.join(", ") }) : r.summary.uniform;
   const tight = js.filter((g) => g.verdict?.cod_low).map((g) => `${g.name} (COD ${num(g.cod, 1)})`);
-  if (tight.length) text += r.summary.suspect(tight.join(", "));
+  if (tight.length) text += r.summary.suspect({ names: tight.join(", ") });
   const tilted = js
     .filter((g) => g.vei_verdict === "regressive" || g.vei_verdict === "progressive")
     .map((g) => `${g.name} (${r.table.verdicts[g.vei_verdict ?? ""]})`);
-  if (js.length) text += tilted.length ? r.summary.vertical(tilted.join(", ")) : r.summary.noVertical;
+  if (js.length)
+    text += tilted.length ? r.summary.vertical({ names: tilted.join(", ") }) : r.summary.noVertical;
   const names = result.trimmed
     .filter((x) => x.nominal)
     .map((x) => x.address ?? x.key_sale)
@@ -464,20 +471,20 @@ function Summary({
       <Scorecard groups={result.groups} />
       {nominal > 0 && (
         <div className="bi-warn">
-          {r.summary.nominal(nominal, names)}{" "}
+          {r.summary.nominal({ n: nominal, names })}{" "}
           <Button className="wiz-link" onPress={see}>
             {r.summary.see}
           </Button>
         </div>
       )}
       <p className="wiz-from">
-        {r.summary.ran(
-          when(receipt.ran_at),
-          o.sales,
-          receipt.start,
-          receipt.end,
-          receipt.price === "sold" ? r.summary.asSold : r.summary.adjusted,
-        )}
+        {r.summary.ran({
+          when: when(receipt.ran_at),
+          n: o.sales,
+          start: receipt.start,
+          end: receipt.end,
+          price: receipt.price === "sold" ? r.summary.asSold : r.summary.adjusted,
+        })}
       </p>
     </div>
   );
@@ -507,7 +514,7 @@ function Prices({
   const p = r.prices;
   return (
     <div className="rv-cards">
-      <h2 className="wiz-q">{p.title(g.name)}</h2>
+      <h2 className="wiz-q">{p.title({ name: g.name })}</h2>
       <div className="cs-row">
         <Choice
           label={r.table.group}
@@ -555,11 +562,11 @@ function Prices({
         {g.strata.length ? (
           <>
             <p>
-              {p.vei(
-                g.vei == null ? "—" : `${signed(g.vei, 1)}%`,
-                g.vei_significance == null ? "—" : `${signed(g.vei_significance, 1)}%`,
-                r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
-              )}
+              {p.vei({
+                vei: g.vei == null ? "—" : `${signed(g.vei, 1)}%`,
+                sig: g.vei_significance == null ? "—" : `${signed(g.vei_significance, 1)}%`,
+                verdict: r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
+              })}
             </p>
             <BandChart series={[{ label: p.bySale, color: "#d4566f", bands: g.strata }]} />
             <table className="tbl">
@@ -695,7 +702,7 @@ function Extreme({
                     onPress={() =>
                       exclude.mutate({
                         key: x.key_sale,
-                        note: x.nominal ? e.note(money(x.price, currency)) : "",
+                        note: x.nominal ? e.note({ price: money(x.price, currency) }) : "",
                       })
                     }
                   >

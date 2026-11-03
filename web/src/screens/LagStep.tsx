@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { ModelSetup } from "../api/client";
 import { Field, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
-import { t } from "../strings";
+import { say, t } from "../copy";
 
 const l = t.values.lag;
 
@@ -56,7 +56,7 @@ export function LagStep({
               onChange={setDraft}
               onBlur={keepK}
             />
-            <span className="wiz-from">{l.nearestWhy(v.k)}</span>
+            <span className="wiz-from">{l.nearestWhy({ k: v.k })}</span>
           </div>
           <div className="lag-fields">
             <span className="mo-label">{l.own}</span>
@@ -99,7 +99,7 @@ export function LagStep({
                   <td className="num">{g.sales.toLocaleString()}</td>
                   <td>
                     <MultiPick
-                      label={l.borrowFor(g.name)}
+                      label={l.borrowFor({ group: g.name })}
                       values={v.groups
                         .filter((x) => x.id !== g.id)
                         .map((x) => ({ value: x.id, label: x.name, count: x.sales }))}
@@ -111,7 +111,7 @@ export function LagStep({
                     {g.borrow.length > 0 && (
                       <span className="wiz-from">
                         {" "}
-                        {l.plusOwn(g.borrow.map((x) => names[x] ?? x).join(", "))}
+                        {l.plusOwn({ others: g.borrow.map((x) => names[x] ?? x).join(", ") })}
                       </span>
                     )}
                   </td>
@@ -119,7 +119,7 @@ export function LagStep({
               ))}
             </tbody>
           </table>
-          <p className="wiz-from">{l.split(v.k)}</p>
+          <p className="wiz-from">{say.values.lag.split(v.k)}</p>
         </>
       )}
     </div>

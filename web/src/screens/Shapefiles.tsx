@@ -21,7 +21,7 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
-import { t } from "../strings";
+import { t } from "../copy";
 import { FilePicker } from "./WizardFiles";
 
 const s = t.wizard.shapefiles;
@@ -110,9 +110,9 @@ function LayerCard({
   const set = (patch: Partial<Overlay>) =>
     change({ kind: "layer", name: layer.name, overlay: { ...o, ...patch } });
   const kinds = [
-    layer.polygons ? s.polygons(layer.polygons) : null,
-    layer.points ? s.points(layer.points) : null,
-    layer.lines ? s.lines(layer.lines) : null,
+    layer.polygons ? s.polygons({ n: layer.polygons }) : null,
+    layer.points ? s.points({ n: layer.points }) : null,
+    layer.lines ? s.lines({ n: layer.lines }) : null,
   ].filter(Boolean);
   const defaultUnit: Unit = project.units === "imperial" ? "mile" : "km";
   const noStamp = !layer.polygons && o.use !== "stamp";
@@ -217,7 +217,7 @@ function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overla
           </MenuTrigger>
           <Button
             className="ly-x"
-            aria-label={s.remove(f.name)}
+            aria-label={s.remove({ name: f.name })}
             onPress={() => set({ fields: o.fields.filter((x) => x.name !== f.name) })}
           >
             <X size="0.85em" />
@@ -306,8 +306,8 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
     if (e.key === "Enter") save();
   };
   const options = [
-    o.name_column ? s.namesFrom(o.name_column) : null,
-    o.store_top ? s.topShort(o.top_n) : null,
+    o.name_column ? s.namesFrom({ column: o.name_column }) : null,
+    o.store_top ? s.topShort({ n: o.top_n }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -346,7 +346,7 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
           <Dialog className="popover-body ly-pop" aria-label={s.options}>
             <div className="ly-form">
               <p className="wiz-from ly-help">
-                {s.columns(o.feature || "…")}. {s.maxHelp}
+                {s.columns({ n: o.feature || "…" })}. {s.maxHelp}
               </p>
               <Choice
                 label={s.nameColumn}
@@ -444,7 +444,7 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
   return (
     <MapView
       className="wiz-map"
-      label={s.mapLabel(name)}
+      label={s.mapLabel({ name })}
       layers={layers}
       bounds={boundsOf(points, [boundsOfGeoJson(shapes)])}
       fitKey={v ? name : ""}

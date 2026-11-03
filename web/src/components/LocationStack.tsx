@@ -5,8 +5,8 @@
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { useStack } from "../api/models";
+import { t } from "../copy";
 import { num } from "../lib/format";
-import { t } from "../strings";
 import { AddButton } from "./AddButton";
 
 const s = t.values.stack;
@@ -42,7 +42,7 @@ export function LocationStack({
   return (
     <div className="ls-stack">
       <p className="ls-title">{s.title}</p>
-      <p className="wiz-from">{s.how(engine)}</p>
+      <p className="wiz-from">{s.how({ engine })}</p>
       {offered.length === 0 ? (
         <p className="wiz-warn">{s.noFields}</p>
       ) : (
@@ -87,9 +87,9 @@ export function LocationStack({
                     {l && (
                       <span className="rv-cell-pill">
                         {l.split ? (
-                          <span className="pill pill-warn">! {s.splits(l.split, above)}</span>
+                          <span className="pill pill-warn">! {s.splits({ n: l.split, above })}</span>
                         ) : (
-                          <span className="pill pill-ok">{s.nests(above)}</span>
+                          <span className="pill pill-ok">{s.nests({ above })}</span>
                         )}
                       </span>
                     )}
@@ -97,7 +97,7 @@ export function LocationStack({
                   <td className="ls-tools">
                     <Button
                       className="ls-move"
-                      aria-label={s.up(name)}
+                      aria-label={s.up({ name })}
                       isDisabled={i === 0}
                       onPress={() => move(i, -1)}
                     >
@@ -105,7 +105,7 @@ export function LocationStack({
                     </Button>
                     <Button
                       className="ls-move"
-                      aria-label={s.down(name)}
+                      aria-label={s.down({ name })}
                       isDisabled={i === broadest.length - 1}
                       onPress={() => move(i, 1)}
                     >
@@ -152,7 +152,7 @@ export function LocationStack({
         </p>
       )}
       {finestFirst.length > 0 && (
-        <p className="wiz-from">{s.written(`"locations": ${JSON.stringify(finestFirst)}`)}</p>
+        <p className="wiz-from">{s.written({ fields: `"locations": ${JSON.stringify(finestFirst)}` })}</p>
       )}
     </div>
   );

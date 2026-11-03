@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, type Histogram, unwrap } from "../api/client";
-import { t } from "../strings";
+import { say, t } from "../copy";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
 const d = t.bringIn.detail;
@@ -23,12 +23,12 @@ export function FieldDetail({
   const [open, setOpen] = useState(false);
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button className="fd-name" aria-label={d.label(field)}>
+      <Button className="fd-name" aria-label={d.label({ field })}>
         {field}
         <Search aria-hidden="true" size="0.85em" className="fd-icon" />
       </Button>
       <Popover className="popover vals-popover" placement="bottom start">
-        <Dialog className="vals-body" aria-label={d.label(field)}>
+        <Dialog className="vals-body" aria-label={d.label({ field })}>
           {open && <Detail projectId={projectId} set={set} field={field} />}
         </Dialog>
       </Popover>
@@ -70,7 +70,7 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
         <p className="vals-sub">{q.error?.message ?? t.wizard.values.loading}</p>
       ) : (
         <>
-          <p className="vals-sub">{d.summary(v.rows, v.blank, v.distinct, v.kind)}</p>
+          <p className="vals-sub">{say.bringIn.detail.summary(v.rows, v.blank, v.distinct, v.kind)}</p>
           {v.stats.length > 0 && (
             <dl className="fd-stats">
               {v.stats.map((s) => (
@@ -101,7 +101,7 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
               onSort={setSort}
             />
           )}
-          {v.more > 0 && <p className="vals-sub">{t.wizard.values.more(v.more)}</p>}
+          {v.more > 0 && <p className="vals-sub">{t.wizard.values.more({ n: v.more })}</p>}
         </>
       )}
     </>
@@ -124,8 +124,8 @@ function Spread({ h, years }: { h: Histogram; years: boolean }) {
     ? Math.sqrt((h.edges[0] ?? 0) * (h.edges[n] ?? 0))
     : ((h.edges[0] ?? 0) + (h.edges[n] ?? 0)) / 2;
   const notes = [
-    h.below + h.above > 0 ? d.outside(h.below, h.above) : null,
-    h.zeros > 0 ? d.zeros(h.zeros) : null,
+    h.below + h.above > 0 ? say.bringIn.detail.outside(h.below, h.above) : null,
+    h.zeros > 0 ? d.zeros({ n: h.zeros }) : null,
     h.log ? d.log : null,
   ].filter(Boolean);
   return (
@@ -134,7 +134,7 @@ function Spread({ h, years }: { h: Histogram; years: boolean }) {
         {h.counts.map((c, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: bins by position
           <rect key={i} x={i + 0.06} width={0.88} y={40 - (38 * c) / top} height={(38 * c) / top}>
-            <title>{d.bin(fmt(h.edges[i] ?? 0), fmt(h.edges[i + 1] ?? 0), c)}</title>
+            <title>{d.bin({ from: fmt(h.edges[i] ?? 0), to: fmt(h.edges[i + 1] ?? 0), n: c })}</title>
           </rect>
         ))}
       </svg>

@@ -28,9 +28,9 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
+import { t } from "../copy";
 import { desktop, useCanPickFile } from "../desktop";
 import { band } from "../lib/format";
-import { t } from "../strings";
 import { AddFile } from "./AddFile";
 import { describeSteps, ReconcileDialog } from "./Reconcile";
 import { CondosLink } from "./Units";
@@ -138,7 +138,9 @@ export function IdCheck({
           </>
         }
       />
-      {steps.length > 0 && <span className="wiz-cleaned">{w.reconcile.cleaned(describeSteps(steps))}</span>}
+      {steps.length > 0 && (
+        <span className="wiz-cleaned">{w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
+      )}
       {missing && (
         <div className="wiz-missing">
           {missing.lines.map((line) => (
@@ -214,11 +216,11 @@ function DupesDialog({
       <Modal className="modal wiz-modal wiz-modal-wide">
         <Dialog className="modal-body">
           <Heading slot="title" className="modal-title">
-            {d.title(file.name, file.id_column ?? "")}
+            {d.title({ file: file.name, column: file.id_column ?? "" })}
           </Heading>
           {hasRepeats && (
             <div className="wiz-section-head-row">
-              <h3 className="wiz-sub">{d.repeatsTitle(r.repeated)}</h3>
+              <h3 className="wiz-sub">{d.repeatsTitle({ n: r.repeated })}</h3>
               <span className="wiz-from">{r.few ? d.fewMeans : d.manyMeans}</span>
             </div>
           )}
@@ -288,13 +290,13 @@ function DupesDialog({
           {hasBlanks && (
             <>
               <div className="wiz-section-head-row">
-                <h3 className="wiz-sub">{d.blanksTitle(r.blank)}</h3>
-                <span className="wiz-from">{d.blankMeans(file.holds === "sales")}</span>
+                <h3 className="wiz-sub">{d.blanksTitle({ n: r.blank })}</h3>
+                <span className="wiz-from">{d.blankMeans({ sales: file.holds === "sales" })}</span>
               </div>
               <div className="wiz-act">
                 <span className="wiz-act-label">{d.confirm}</span>
                 <Tick isSelected={blankOk} onChange={setBlankOk}>
-                  {d.blankOk(r.blank, file.holds === "sales")}
+                  {d.blankOk({ n: r.blank, sales: file.holds === "sales" })}
                 </Tick>
               </div>
             </>
@@ -302,7 +304,7 @@ function DupesDialog({
           <hr className="wiz-rule" />
           {kept !== null && (
             <p>
-              <strong>{d.result(r.rows, kept)}</strong>
+              <strong>{d.result({ rows: r.rows, kept })}</strong>
             </p>
           )}
           <div className="form-actions">
@@ -384,7 +386,9 @@ export function FilePicker({
           label={w.orExisting}
           value={null}
           placeholder={w.choose}
-          options={existing.map((f) => [f.name, w.fileLabel(f.name, f.filename)] as const)}
+          options={existing.map(
+            (f) => [f.name, w.fileLabel({ name: f.name, filename: f.filename })] as const,
+          )}
           onChange={onChosen}
         />
       )}
@@ -449,7 +453,7 @@ export function IdRow({
           />
         )}
         <Choice
-          label={w.idColumnIn(file.name)}
+          label={w.idColumnIn({ file: file.name })}
           hideLabel
           value={file.id_column}
           placeholder={w.choose}

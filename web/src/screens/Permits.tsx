@@ -3,7 +3,7 @@ import { Button, Input, TextField } from "react-aria-components";
 import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
-import { t } from "../strings";
+import { t } from "../copy";
 import { FileHeader, FilePicker, IdRow } from "./WizardFiles";
 import type { Mutate } from "./wizardChange";
 
@@ -81,7 +81,7 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
           onChange={(type) => set({ type, means: {} })}
         />
         <div className="wiz-samples">
-          {v.kinds.length > 0 && <span>{p.kinds(v.kinds.length + v.more)}</span>}
+          {v.kinds.length > 0 && <span>{p.kinds({ n: v.kinds.length + v.more })}</span>}
         </div>
       </div>
       {v.kinds.length > 0 && (
@@ -115,7 +115,7 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
           </tbody>
         </table>
       )}
-      {v.more > 0 && <p className="wiz-from">{p.more(v.more)}</p>}
+      {v.more > 0 && <p className="wiz-from">{p.more({ n: v.more })}</p>}
       <div className="pm-row">
         <span>{p.teardownSale}</span>
         <Days value={s.max_days} onChange={(max_days) => set({ max_days })} />

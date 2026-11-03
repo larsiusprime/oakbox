@@ -5,8 +5,8 @@ import { Button, Label, Radio, RadioGroup } from "react-aria-components";
 import { api, type FileCheck, type Project, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
 import { TipOn } from "../components/Tip";
+import { t } from "../copy";
 import { size } from "../lib/format";
-import { t } from "../strings";
 
 /** Pick-then-add (SPEC F2), also used inside the Data wizard (F3d), which learns the new entry's name. */
 export function AddFile(props: {
@@ -91,7 +91,7 @@ function Pills({ found }: { found: FileCheck }) {
   );
 }
 
-const f_companions = (exts: string[]) => t.inputFiles.companions(exts.join(" "));
+const f_companions = (exts: string[]) => t.inputFiles.companions({ exts: exts.join(" ") });
 
 function Choices({
   project,
@@ -144,7 +144,7 @@ function Choices({
           {found.filename_taken && (
             <Field
               label={f.newFilename}
-              tip={f.newFilenameHelp(found.filename)}
+              tip={f.newFilenameHelp({ taken: found.filename })}
               value={filename}
               onChange={setFilename}
             />
@@ -183,7 +183,7 @@ function Choices({
           isDisabled={!ready || add.isPending}
           onPress={() => add.mutate()}
         >
-          {add.isPending ? f.adding(mode) : f.addButton}
+          {add.isPending ? f.adding({ mode }) : f.addButton}
         </Button>
       </div>
       {add.error && (

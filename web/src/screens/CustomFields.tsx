@@ -4,7 +4,7 @@ import { Button, Input, TextField } from "react-aria-components";
 import type { Wizard } from "../api/client";
 import { Choice } from "../components/Form";
 import { ValuesButton } from "../components/ValuesButton";
-import { t } from "../strings";
+import { t } from "../copy";
 
 const c = t.wizard.custom;
 type Group = "land" | "building" | "other";
@@ -148,7 +148,7 @@ export function CustomFields({
                 <td className="cf-td">
                   <Button
                     className="rc-x"
-                    aria-label={c.remove(x.name)}
+                    aria-label={c.remove({ name: x.name })}
                     onPress={() => set({ file: null, column: null })}
                   >
                     <X size="0.9em" />

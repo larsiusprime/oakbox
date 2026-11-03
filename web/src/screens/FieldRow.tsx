@@ -15,7 +15,7 @@ import { Combo, Marked, matches } from "../components/Combo";
 import { Choice } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
-import { t } from "../strings";
+import { say, t } from "../copy";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
 import { CheckText, FilePicker, matchOptions } from "./WizardFiles";
@@ -138,7 +138,7 @@ export function FieldRow({
           // The unit the column is in: OAK box converts it to the project's (SPEC F3d).
           <div className="wiz-unit">
             <Choice
-              label={w.areaUnitFor(shortName(field))}
+              label={say.wizard.areaUnitFor(shortName(field))}
               hideLabel
               value={field.area_unit}
               options={Object.entries(w.areaUnits) as [AreaUnit, string][]}
@@ -399,7 +399,7 @@ function ColumnChoice({
   const all = files.reduce((n, f) => n + f.columns.length, 0);
   return (
     <Combo
-      label={w.columnFor(field.name)}
+      label={w.columnFor({ field: field.name })}
       hideLabel
       className="field choice wiz-choice"
       popoverClassName="popover choice-popover wiz-popover"
@@ -444,9 +444,9 @@ function ColumnChoice({
                       </span>
                       <span className="wiz-item-note">
                         {taken
-                          ? w.used(nameOf(as))
+                          ? w.used({ field: nameOf(as) })
                           : other
-                            ? w.alsoRead(nameOf(as))
+                            ? w.alsoRead({ field: nameOf(as) })
                             : c.samples.slice(0, 3).join(", ")}
                       </span>
                     </ListBoxItem>
@@ -513,12 +513,12 @@ function OtherFileDialog({
       <Modal className="modal wiz-modal">
         <Dialog className="modal-body">
           <Heading slot="title" className="modal-title">
-            {w.otherTitle(shortName(field))}
+            {w.otherTitle({ field: shortName(field) })}
           </Heading>
           {chosen ? (
             <div className="wiz-grid wiz-grid-dialog">
               <div className="wiz-label">{w.otherFile}</div>
-              <div className="mono">{w.fileLabel(chosen.name, chosen.filename)}</div>
+              <div className="mono">{w.fileLabel({ name: chosen.name, filename: chosen.filename })}</div>
               <div />
               {matchOptions(base).length > 1 && (
                 <>
@@ -545,7 +545,7 @@ function OtherFileDialog({
               <div />
               <div className="wiz-label">{shortName(field)}</div>
               <Choice
-                label={w.otherColumn(shortName(field))}
+                label={w.otherColumn({ field: shortName(field) })}
                 hideLabel
                 value={column}
                 placeholder={w.choose}

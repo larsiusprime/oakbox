@@ -18,9 +18,9 @@ import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { t } from "../copy";
 import { when } from "../lib/format";
 import { useSettled } from "../lib/hooks";
-import { t } from "../strings";
 import { AssembleResults, Formats } from "./Assemble";
 import { GroupEditor, useValues } from "./GroupEditor";
 import { CHANGE_GREY, type ColourBy, Inspector, type MapMode, ParcelMap, SAME } from "./GroupMap";
@@ -168,7 +168,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "start" && (
         <>
           <StepBody kicker={kicker} title={g.startTitle} lede={g.lede}>
-            {v.start && <p className="wiz-note">{g.startedWith(v.start)}</p>}
+            {v.start && <p className="wiz-note">{g.startedWith({ how: v.start })}</p>}
             <div className="mg-start-cards">
               <Button
                 className="mg-start-card"
@@ -189,7 +189,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
             </div>
             {replace && (
               <div className="bi-warn mg-replace" role="alert">
-                {g.replaceWarn(saved.length)}{" "}
+                {g.replaceWarn({ n: saved.length })}{" "}
                 <Button className="button" onPress={() => start.mutate(replace)}>
                   {g.replaceYes}
                 </Button>{" "}
@@ -243,7 +243,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               <>
                 {a.status === "failed" && (
                   <p className="error" role="alert">
-                    {g.run.failed(a.job?.error ?? "")}
+                    {g.run.failed({ e: a.job?.error ?? "" })}
                   </p>
                 )}
                 {a.blocked.map((b) => (
@@ -255,11 +255,11 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
                   <p className={a.stale ? "wiz-warn" : "wiz-ok"}>
                     {a.stale
                       ? g.run.stale
-                      : g.run.written(
-                          when(a.receipt.ran_at),
-                          a.receipt.parcels,
-                          a.receipt.groups.filter((x) => x.id !== "UNKNOWN" && x.parcels > 0).length,
-                        )}
+                      : g.run.written({
+                          when: when(a.receipt.ran_at),
+                          parcels: a.receipt.parcels,
+                          groups: a.receipt.groups.filter((x) => x.id !== "UNKNOWN" && x.parcels > 0).length,
+                        })}
                   </p>
                 )}
                 <Formats projectId={projectId} view={a} />
@@ -489,7 +489,7 @@ function Builder({
     setDraft(next);
   };
   const add = () => {
-    const nm = g.newName(draft.length + 1);
+    const nm = g.newName({ n: draft.length + 1 });
     const used = new Set(draft.map((x) => x.color));
     const color =
       view.colors.find((c) => !used.has(c)) ?? view.colors[draft.length % view.colors.length] ?? "#888";
@@ -620,7 +620,7 @@ function Builder({
               />
               {highlight && (
                 <span className="mg-hl">
-                  {g.highlighted(highlight.length)}{" "}
+                  {g.highlighted({ n: highlight.length })}{" "}
                   <Button className="wiz-link" onPress={() => setHighlight(null)}>
                     {g.clearHighlight}
                   </Button>
@@ -799,19 +799,24 @@ function GroupItem({
         </span>
         {stats && (
           <span className="mg-ct">
-            {g.parcels(stats.parcels)} · {g.sales(stats.sales, stats.vacant_sales)}
+            {g.parcels({ n: stats.parcels })} · {g.sales({ n: stats.sales, v: stats.vacant_sales })}
           </span>
         )}
         {worst && <span className={`mg-check ${worst.level}`}>{worst.text}</span>}
       </Button>
       {(onUp || onDown) && (
         <span className="mg-order">
-          <Button className="mg-arrow" aria-label={g.up(name)} isDisabled={!onUp} onPress={() => onUp?.()}>
+          <Button
+            className="mg-arrow"
+            aria-label={g.up({ name })}
+            isDisabled={!onUp}
+            onPress={() => onUp?.()}
+          >
             <ArrowUp size="0.8em" />
           </Button>
           <Button
             className="mg-arrow"
-            aria-label={g.down(name)}
+            aria-label={g.down({ name })}
             isDisabled={!onDown}
             onPress={() => onDown?.()}
           >
@@ -858,7 +863,7 @@ function FromField({
   const setSent = (next: Record<string, string>) => setEdited({ field, sent: next });
   const vals = useValues(projectId, field);
   const addGroup = (value: string) => {
-    const nm = value || g.newName(list.length + 1);
+    const nm = value || g.newName({ n: list.length + 1 });
     const used = new Set(list.map((x) => x.color));
     const x: ModelGroup = {
       id: newId(nm, list),
@@ -946,7 +951,7 @@ function FromField({
               </tbody>
             </table>
           </div>
-          {(vals.data?.more ?? 0) > 0 && <p className="rc-sub">{g.ffMore(vals.data?.more ?? 0)}</p>}
+          {(vals.data?.more ?? 0) > 0 && <p className="rc-sub">{g.ffMore({ n: vals.data?.more ?? 0 })}</p>}
           <div className="form-actions rc-actions">
             <Button className="button" onPress={close}>
               {g.cancel}

@@ -4,9 +4,9 @@ import type { Job } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
+import { type Landing, say, t } from "../copy";
 import { clock } from "../lib/format";
 import { currentWhere, type FrameStep, markSeen, OVERVIEW, publishFrame, seen } from "../lib/place";
-import { type Landing, t } from "../strings";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
 export type StepStatus = "done" | "attention" | "blocked" | "blank";
@@ -158,7 +158,7 @@ export function LandingPage({
           <b>{l.needs}</b> {page.needs}
         </p>
       </div>
-      <StepFoot back={back ?? null} next={{ label: l.start(start), onPress: onStart }} />
+      <StepFoot back={back ?? null} next={{ label: l.start({ step: start }), onPress: onStart }} />
     </>
   );
 }
@@ -254,7 +254,7 @@ export function RunProgress({
   const left = lastSeconds && elapsed < lastSeconds ? lastSeconds - elapsed : null;
   return (
     <div className="bi-card">
-      <h3>{t.step.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
+      <h3>{say.step.running(clock(elapsed), left !== null ? clock(left) : null)}</h3>
       <div className="bi-prog">
         <i style={{ width: `${Math.round(100 * fraction)}%` }} />
       </div>
@@ -295,7 +295,9 @@ function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: stri
         </span>
       )}
       <span className={silent ? "wiz-warn" : "bi-alive"}>
-        {silent ? t.step.silent(clock(job.quiet)) : t.step.alive(clock(Math.max(0, job.elapsed - since)))}
+        {silent
+          ? t.step.silent({ quiet: clock(job.quiet) })
+          : t.step.alive({ inStep: clock(Math.max(0, job.elapsed - since)) })}
       </span>
       {job.part && (
         <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>

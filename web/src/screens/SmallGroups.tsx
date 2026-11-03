@@ -2,10 +2,15 @@
  * be trusted, and for each flagged one, Leave unvalued or Model it anyway. */
 import { useSetSmall, useSmallGroups } from "../api/models";
 import { Seg } from "../components/Seg";
+import { say, t } from "../copy";
 import { num } from "../lib/format";
-import { t } from "../strings";
 
 const s = t.values.small;
+// A group's flag, said with its count and median ratio where the wording has them.
+const flag = (f: string, n: number, median: string) => {
+  const m = s.flags[f];
+  return typeof m === "function" ? m({ n, median }) : m;
+};
 
 export function SmallGroupsStep({ projectId }: { projectId: string }) {
   const q = useSmallGroups(projectId);
@@ -53,7 +58,7 @@ export function SmallGroupsStep({ projectId }: { projectId: string }) {
                     {g.flags.map((f) => (
                       <span key={f} className={f === "no_holdout" ? "pill pill-warn" : "pill pill-bad"}>
                         {f === "no_holdout" ? "!" : "✗"}{" "}
-                        {s.flags[f]?.(f === "below_zero" ? g.below_zero : g.sales, ratio(g.median))}
+                        {flag(f, f === "below_zero" ? g.below_zero : g.sales, ratio(g.median))}
                       </span>
                     ))}
                   </span>
@@ -81,9 +86,9 @@ export function SmallGroupsStep({ projectId }: { projectId: string }) {
         </tbody>
       </table>
       <p className={v.unvalued.length ? "wiz-warn" : "wiz-ok"}>
-        {v.unvalued.length ? s.unvalued(v.unvalued_parcels, v.unvalued) : s.noneUnvalued}
+        {v.unvalued.length ? say.values.small.unvalued(v.unvalued_parcels, v.unvalued) : s.noneUnvalued}
       </p>
-      {v.blanked > 0 && <p className="wiz-warn">{s.blanked(v.blanked)}</p>}
+      {v.blanked > 0 && <p className="wiz-warn">{s.blanked({ n: v.blanked })}</p>}
       {set.error && (
         <p className="error" role="alert">
           {set.error.message}

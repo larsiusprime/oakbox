@@ -8,8 +8,8 @@ import { FieldDetail, openRow } from "../components/FieldDetail";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { t } from "../copy";
 import { band, pct, when } from "../lib/format";
-import { t } from "../strings";
 
 const b = t.bringIn;
 
@@ -83,7 +83,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
           <StepBody kicker={b.kicker} title={b.title} lede={b.lede}>
             {v.blocked.length > 0 && (
               <div className="bi-warn">
-                <b>{b.blocked(v.blocked.length)}</b> {v.blocked[0]}{" "}
+                <b>{b.blocked({ n: v.blocked.length })}</b> {v.blocked[0]}{" "}
                 <Button
                   className="wiz-link"
                   onPress={() => navigate({ name: "project", id: projectId, tab: "fields" })}
@@ -112,7 +112,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
                   <b>{b.enrich.title}:</b> {v.plan.enrichments.join("; ")}
                 </li>
               )}
-              <li>{b.fields(v.plan.fields)}</li>
+              <li>{b.fields({ n: v.plan.fields })}</li>
             </ul>
           </StepBody>
           <StepFoot next={nextOf("run")} />
@@ -144,8 +144,10 @@ export function BringInTab({ projectId }: { projectId: string }) {
                 )}
                 {fresh && r && (
                   <p className="wiz-ok">
-                    {b.meter(r.universe.rows, r.sales.rows)}{" "}
-                    <span className="wiz-from">{t.step.ran(when(r.ran_at), r.seconds, r.engine)}</span>
+                    {b.meter({ parcels: r.universe.rows, sales: r.sales.rows })}{" "}
+                    <span className="wiz-from">
+                      {t.step.ran({ when: when(r.ran_at), seconds: r.seconds, engine: r.engine })}
+                    </span>
                   </p>
                 )}
                 {!r && <p className="wiz-from">{t.step.notRun}</p>}
@@ -271,7 +273,7 @@ function MoreView({ receipt: r, rerun }: { receipt: Receipt; rerun: (() => void)
         </div>
       )}
       <details className="bi-details">
-        <summary>{b.engineNotes(r.notes.length, r.notices)}</summary>
+        <summary>{b.engineNotes({ n: r.notes.length, hidden: r.notices })}</summary>
         <ul>
           {r.notes.map((n) => (
             <li key={n}>{n}</li>
@@ -313,7 +315,7 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
                 {x.text}
                 <span className="wiz-from">
                   {" · "}
-                  {x.reused ? e.reused : e.seconds(x.seconds)}
+                  {x.reused ? e.reused : e.seconds({ s: x.seconds })}
                 </span>
                 {x.status === "partial" && (
                   <ul className="bi-feats">
@@ -333,7 +335,9 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
                     {f}
                   </span>
                 ))}
-                {x.fields.length > 3 && <span className="wiz-from"> {e.more(x.fields.length - 3)}</span>}
+                {x.fields.length > 3 && (
+                  <span className="wiz-from"> {e.more({ n: x.fields.length - 3 })}</span>
+                )}
               </td>
               <td>
                 {x.status !== "ok" && rerun && (
@@ -385,7 +389,7 @@ function Section({
         <h3 className="visually-hidden">{title}</h3>
         <span className="bi-grow" />
         <Button className="button" onPress={() => open(set, title)}>
-          {b.viewRows(rows)}
+          {b.viewRows({ n: rows })}
         </Button>
       </div>
       <div className="bi-funnels">
@@ -493,13 +497,15 @@ function RowsDialog({
       <Modal className="modal rl bi-rows">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {b.rowsTitle(title)}
+            {b.rowsTitle({ what: title })}
           </Heading>
           {p?.kept_total != null && (
-            <p className="wiz-from">{b.keptNote(total - p.kept_total, p.kept_total)}</p>
+            <p className="wiz-from">{b.keptNote({ out: total - p.kept_total, kept: p.kept_total })}</p>
           )}
           <div className="bi-pager">
-            <span>{p ? b.rowsOf(total ? offset + 1 : 0, Math.min(offset + PAGE, total), total) : ""}</span>
+            <span>
+              {p ? b.rowsOf({ from: total ? offset + 1 : 0, to: Math.min(offset + PAGE, total), total }) : ""}
+            </span>
             <span className="bi-grow" />
             <Button className="button" isDisabled={offset === 0} onPress={() => setOffset(0)}>
               {b.first}

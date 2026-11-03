@@ -6,7 +6,7 @@ import { api, type NewProject, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
 import { countryLocale, LocaleFields } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
-import { t } from "../strings";
+import { t } from "../copy";
 
 export function NewProjectScreen() {
   const regions = useQuery({
@@ -120,7 +120,7 @@ export function NewProjectScreen() {
             }}
             onChange={set}
           />
-          {settings.data && <p className="row-meta">{s.where(settings.data.storage_location)}</p>}
+          {settings.data && <p className="row-meta">{s.where({ folder: settings.data.storage_location })}</p>}
           <div className="form-actions">
             <Button type="submit" className="button button-primary" isDisabled={!ready || create.isPending}>
               {s.create}

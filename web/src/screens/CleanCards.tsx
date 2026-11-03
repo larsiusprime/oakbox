@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Input, TextField } from "react-aria-components";
 import type { CleanPatch, CleanSetup, FillRow } from "../api/client";
 import { Choice, Tick } from "../components/Form";
+import { say, t } from "../copy";
 import { num, short } from "../lib/format";
-import { t } from "../strings";
 
 const s = t.sales;
 type Patch = CleanPatch;
@@ -41,7 +41,9 @@ function putsIn(row: FillRow): string {
   if (m === "leave") return s.fill.leaveNote;
   if (m === "zero") return "0";
   const v = row.stats[m];
-  return v === undefined ? "—" : s.fill.example(s.fill.methods[m], num(v, Math.abs(v) < 10 ? 1 : 0));
+  return v === undefined
+    ? "—"
+    : s.fill.example({ method: s.fill.methods[m], v: num(v, Math.abs(v) < 10 ? 1 : 0) });
 }
 
 export function FillCard({ v, set }: CardProps) {
@@ -99,7 +101,7 @@ export function FillCard({ v, set }: CardProps) {
         <p className="wiz-ok">{s.fill.none}</p>
       )}
       <details className="bi-details">
-        <summary>{s.fill.auto(v.auto.length)}</summary>
+        <summary>{say.sales.fill.auto(v.auto.length)}</summary>
         <ul>
           {v.auto.map((a) => (
             <li key={a}>{a}</li>
@@ -164,7 +166,8 @@ export function CollapseCard({ v, set }: CardProps) {
                         : f.folded
                             .slice(0, 8)
                             .map((x) => short(x))
-                            .join(", ") + (f.folded.length > 8 ? s.collapse.more(f.folded.length - 8) : "")}
+                            .join(", ") +
+                          (f.folded.length > 8 ? s.collapse.more({ n: f.folded.length - 8 }) : "")}
                     </td>
                   </tr>
                 ))}

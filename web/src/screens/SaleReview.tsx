@@ -13,10 +13,10 @@ import {
 import { stepChanged, stepKey } from "../api/steps";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
+import { say, t } from "../copy";
 import { desktop } from "../desktop";
 import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
-import { t } from "../strings";
 
 const s = t.sales;
 type Unit = "sqft" | "sqm";
@@ -107,7 +107,7 @@ export function Review({
   return (
     <div className="cs-review">
       <div className="cs-filters">
-        <b>{s.review.title(page?.all ?? 0)}</b>
+        <b>{s.review.title({ n: page?.all ?? 0 })}</b>
         <Choice
           label={s.group}
           hideLabel
@@ -125,9 +125,9 @@ export function Review({
           value={status}
           options={[
             ["", s.review.anyStatus],
-            ["undecided", s.review.undecided(page?.undecided ?? 0)],
-            ["kept", s.review.kept(page?.kept ?? 0)],
-            ["excluded", s.review.excluded(page?.excluded ?? 0)],
+            ["undecided", s.review.undecided({ n: page?.undecided ?? 0 })],
+            ["kept", s.review.kept({ n: page?.kept ?? 0 })],
+            ["excluded", s.review.excluded({ n: page?.excluded ?? 0 })],
           ]}
           onChange={(v) => setStatus(v as Status)}
         />
@@ -174,7 +174,7 @@ export function Review({
               </li>
             ))}
             {page && page.total > items.length && (
-              <li className="wiz-from cs-more">{s.review.more(page.total - items.length)}</li>
+              <li className="wiz-from cs-more">{s.review.more({ n: page.total - items.length })}</li>
             )}
           </ul>
           {current && (
@@ -244,23 +244,32 @@ function why(i: ReviewItem, d: SaleDetail | undefined, currency: string, unit: U
   const out: string[] = [];
   const u = s.unit[unit];
   if (i.ratio && i.median && i.price_per_area !== null && i.price_per_area !== undefined) {
-    const area = d?.area ? ` ${s.review.with(num(d.area), u, i.vacant)}` : "";
+    const area = d?.area ? ` ${s.review.with({ area: num(d.area), unit: u, vacant: i.vacant })}` : "";
     out.push(
-      s.review.sold(money(i.price, currency), area, money(i.price_per_area, currency), u) +
-        s.review.vs(rel(i.ratio, s.review.theMedian), (i.count ?? 1) - 1, money(i.median, currency)),
+      s.review.sold({
+        price: money(i.price, currency),
+        area,
+        per: money(i.price_per_area, currency),
+        unit: u,
+      }) +
+        s.review.vs({
+          ratio: rel(i.ratio, s.review.theMedian),
+          n: (i.count ?? 1) - 1,
+          median: money(i.median, currency),
+        }),
     );
   } else if (i.price !== null && i.price !== undefined) {
-    out.push(s.review.soldFor(money(i.price, currency)));
+    out.push(s.review.soldFor({ price: money(i.price, currency) }));
   }
   for (const c of i.checks) {
     const raw = i.details[c];
     // A nominal price comes as a number: said as money.
     const found = c === "nominal_price" && raw ? money(Number(raw.replace(/,/g, "")), currency) : raw;
     const said = found && s.review.details[c];
-    const text = said ? said(found) : s.review.checkWhy[c];
+    const text = said ? said({ d: found }) : s.review.checkWhy[c];
     if (text) out.push(text);
   }
-  if (i.seller && i.buyer) out.push(s.review.sellerBuyer(i.seller, i.buyer));
+  if (i.seller && i.buyer) out.push(s.review.sellerBuyer({ seller: i.seller, buyer: i.buyer }));
   if (i.second_look) out.push(s.review.second);
   return out;
 }
@@ -321,7 +330,9 @@ function SaleView({
     <section ref={top} className="bi-card cs-detail" aria-label={i.address ?? i.key}>
       <h3>
         {i.address ?? short(i.key)}{" "}
-        <span className="wiz-from">{s.review.head(i.group_name, day(i.sale_date), short(i.key_sale))}</span>
+        <span className="wiz-from">
+          {s.review.head({ group: i.group_name, date: day(i.sale_date), key: short(i.key_sale) })}
+        </span>
       </h3>
       {why(i, d, currency, unit).map((line) => (
         <p key={line} className="cs-why">
@@ -335,13 +346,15 @@ function SaleView({
       {d && d.members.length > 1 && (
         <>
           <Dots members={d.members} self={i.key_sale} median={i.median} currency={currency} />
-          <p className="wiz-from cs-text">{s.review.dotsNote(u)}</p>
+          <p className="wiz-from cs-text">{s.review.dotsNote({ unit: u })}</p>
           <table className="tbl">
             <thead>
               <tr>
                 <th>{s.review.itsGroup}</th>
-                <th className="cs-n">{s.review.perArea(u)}</th>
-                <th className="cs-n">{i.vacant ? s.review.land(u) : s.review.finished(u)}</th>
+                <th className="cs-n">{s.review.perArea({ unit: u })}</th>
+                <th className="cs-n">
+                  {i.vacant ? s.review.land({ unit: u }) : s.review.finished({ unit: u })}
+                </th>
                 <th>{s.review.soldOn}</th>
                 <th />
               </tr>
@@ -375,7 +388,7 @@ function SaleView({
       )}
       {d && (
         <p className="wiz-from cs-text">
-          {s.review.data(num(d.area), u, i.vacant, d.year_built, money(d.raw_price, currency))}
+          {say.sales.review.data(num(d.area), u, i.vacant, d.year_built, money(d.raw_price, currency))}
         </p>
       )}
       {/* Pinned to the bottom of the window: Keep, Exclude and Next stay put from sale to sale. */}
@@ -448,8 +461,8 @@ function Together({
     <section className="cs-step">
       <h4 className="wiz-group">
         {d.together_by === "deed" && d.deed
-          ? tg.onDeed(short(d.deed), day(d.item.sale_date), rows.length)
-          : tg.samePrice(day(d.item.sale_date), rows.length)}
+          ? tg.onDeed({ deed: short(d.deed), date: day(d.item.sale_date), n: rows.length })
+          : tg.samePrice({ date: day(d.item.sale_date), n: rows.length })}
       </h4>
       <table className="tbl">
         <thead>
@@ -457,8 +470,8 @@ function Together({
             <th>{tg.sale}</th>
             <th>{s.group}</th>
             <th className="cs-n">{tg.price}</th>
-            <th className="cs-n">{s.review.finished(u)}</th>
-            <th className="cs-n">{s.review.land(u)}</th>
+            <th className="cs-n">{s.review.finished({ unit: u })}</th>
+            <th className="cs-n">{s.review.land({ unit: u })}</th>
             <th />
           </tr>
         </thead>
@@ -487,8 +500,8 @@ function Together({
       </table>
       <p className="wiz-from">
         {same
-          ? tg.each(money(prices[0], currency), rows.length)
-          : tg.sum(money(total, currency), rows.length)}
+          ? tg.each({ price: money(prices[0], currency), n: rows.length })
+          : tg.sum({ total: money(total, currency), n: rows.length })}
       </p>
     </section>
   );
@@ -502,13 +515,13 @@ function Readings({ i, unit, currency }: { i: ReviewItem; unit: Unit; currency: 
   const rows: [string, string, string, number | null | undefined, string | null | undefined][] = [
     [r.price, money(i.price, currency), money(i.price_median, currency), i.price_dist, i.price_rating],
     [
-      r.perArea(u),
+      r.perArea({ unit: u }),
       money(i.price_per_area, currency),
       money(i.median, currency),
       i.per_area_dist,
       i.per_area_rating,
     ],
-    [r.size(u, i.vacant), num(i.size), num(i.size_median), i.size_dist, i.size_rating],
+    [r.size({ unit: u, vacant: i.vacant }), num(i.size), num(i.size_median), i.size_dist, i.size_rating],
   ];
   return (
     <>
@@ -645,7 +658,11 @@ function Related({ related, currency, unit }: { related: RelatedSale[]; currency
                 <td>{day(x.sale_date)}</td>
                 <td className="cs-n">{money(x.price, currency)}</td>
                 <td className="cs-n">
-                  {x.distance == null ? "" : unit === "sqft" ? r.feet(x.distance) : r.metres(x.distance)}
+                  {x.distance == null
+                    ? ""
+                    : unit === "sqft"
+                      ? say.sales.review.related.feet(x.distance)
+                      : say.sales.review.related.metres(x.distance)}
                 </td>
                 <td>
                   <Val v={x.buyer} max={60} />
@@ -703,7 +720,7 @@ function Dots({
         <g>
           <line x1={x(median)} x2={x(median)} y1="18" y2="58" stroke="#333" strokeDasharray="3 3" />
           <text x={x(median)} y="13" textAnchor="middle" fontSize="12" fill="#333">
-            {s.review.median(money(median, currency))}
+            {s.review.median({ m: money(median, currency) })}
           </text>
         </g>
       )}

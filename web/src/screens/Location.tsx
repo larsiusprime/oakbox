@@ -8,7 +8,7 @@ import { api, type Project, unwrap, type Wizard } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { ValuesButton } from "../components/ValuesButton";
-import { t } from "../strings";
+import { say, t } from "../copy";
 
 const l = t.wizard.location;
 const MAP_KEY = "oakbox.locationMap";
@@ -100,7 +100,11 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
             <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
           )}
           <p className="wiz-note">
-            {v.center ? l.centerSet(v.center[0], v.center[1]) : shown ? l.centerMiddle : l.centerMiddleHidden}{" "}
+            {v.center
+              ? say.wizard.location.centerSet(v.center[0], v.center[1])
+              : shown
+                ? l.centerMiddle
+                : l.centerMiddleHidden}{" "}
             {v.center && (
               <Button className="wiz-link" onPress={() => move.mutate(null)}>
                 {l.useMiddle}
@@ -245,11 +249,11 @@ function LocationFields({
                 file={x.file}
                 column={x.column}
                 distinct={x.distinct}
-                noun={l.areas(x.distinct ?? 0)}
+                noun={l.areas({ n: x.distinct ?? 0 })}
               />
               <Button
                 className="rc-x"
-                aria-label={l.remove(x.name)}
+                aria-label={l.remove({ name: x.name })}
                 onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
               >
                 <X size="0.9em" />

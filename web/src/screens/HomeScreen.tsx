@@ -7,9 +7,9 @@ import { api, type Project, unwrap } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Field } from "../components/Form";
 import { OakBand } from "../components/OakBand";
+import { t } from "../copy";
 import { desktop } from "../desktop";
 import { size } from "../lib/format";
-import { t } from "../strings";
 
 export function HomeScreen() {
   const projects = useQuery({
@@ -58,7 +58,7 @@ function ProjectRow({ project: p }: { project: Project }) {
         <a className="row-title" href={`#/projects/${p.id}`}>
           {p.name}
         </a>
-        <span className="row-meta">{t.home.taxYear(p.tax_year)}</span>
+        <span className="row-meta">{t.home.taxYear({ year: p.tax_year })}</span>
         {show.error && (
           <p className="error" role="alert">
             {show.error.message}
@@ -135,9 +135,9 @@ function DeleteBody({
   return (
     <>
       <Heading slot="title" className="modal-title">
-        {d.title(project.name)}
+        {d.title({ name: project.name })}
       </Heading>
-      <p>{disk.data ? d.body(size(disk.data.bytes), disk.data.files) : d.measuring}</p>
+      <p>{disk.data ? d.body({ size: size(disk.data.bytes), files: disk.data.files }) : d.measuring}</p>
       {disk.data && <p className="row-meta mono">{disk.data.folder}</p>}
       {remove.error && (
         <p className="error" role="alert">

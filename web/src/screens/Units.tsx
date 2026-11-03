@@ -16,8 +16,8 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
+import { say, t } from "../copy";
 import { short } from "../lib/format";
-import { t } from "../strings";
 
 const u = t.wizard.units;
 
@@ -162,9 +162,16 @@ function FileChoice({ projectId, data, change }: Props) {
             f.unshaped === 0
               ? u.fileNone
               : f.unshaped >= 0.5 * rows
-                ? u.fileMostly(f.unshaped, rows)
-                : u.fileSome(f.unshaped, rows);
-          return <Card key={f.name} value={f.name} title={`${f.filename}${u.rowsOf(f.rows)}`} sub={sub} />;
+                ? say.wizard.units.fileMostly(f.unshaped, rows)
+                : u.fileSome({ n: f.unshaped, rows });
+          return (
+            <Card
+              key={f.name}
+              value={f.name}
+              title={`${f.filename}${u.rowsOf({ rows: f.rows })}`}
+              sub={sub}
+            />
+          );
         })}
       </RadioGroup>
       <p className="cu-row">
@@ -215,7 +222,9 @@ function Rows({ projectId, file, v, change }: Part) {
           onChange={(conditions) => set({ rule: { join: "all", conditions } })}
         />
       )}
-      <p className={v.units ? "wiz-ok" : "wiz-bad"}>{v.units ? `✓ ${u.units(v.units)}` : v.check.text}</p>
+      <p className={v.units ? "wiz-ok" : "wiz-bad"}>
+        {v.units ? `✓ ${u.units({ n: v.units })}` : v.check.text}
+      </p>
     </>
   );
 }
@@ -230,7 +239,7 @@ function Examples({ v, show }: { v: Units_View; show: "link" | "land" | "locatio
           <span className="mono">{short(x.unit)}</span>{" "}
           {x.building ? `${u.onParcel} ${short(x.building)}` : u.noParcel}
           {show === "link" && x.building_value && (
-            <span className="wiz-from"> {u.matched(column, short(x.building_value))}</span>
+            <span className="wiz-from"> {say.wizard.units.matched(column, short(x.building_value))}</span>
           )}
           {show === "land" && x.share && (
             <span className="wiz-from">
@@ -492,23 +501,28 @@ function Summary({ data, file, v }: Part) {
   const s = v.settings;
   const sm = u.summary;
   const sales = data.files.find((f) => f.holds === "sales" && f.match === "key");
-  const how = s.link === "prefix" ? sm.prefix(s.prefix_len, s.column ?? "?") : sm.parent(s.column ?? "?");
+  const how =
+    s.link === "prefix"
+      ? sm.prefix({ n: s.prefix_len, column: s.column ?? "?" })
+      : sm.parent({ column: s.column ?? "?" });
   return (
     <>
       <ol className="cu-sum">
-        <li>{sm.rows(v.units, file.filename, !s.rule)}</li>
-        <li>{sm.link(how, v.linked, v.units, v.buildings)}</li>
-        <li>{sm.shape(v.linked)}</li>
+        <li>{sm.rows({ n: v.units, file: file.filename, every: !s.rule })}</li>
+        <li>{sm.link({ how, linked: v.linked, units: v.units, parcels: v.buildings })}</li>
+        <li>{sm.shape({ linked: v.linked })}</li>
         <li>{sm.land[s.land]}</li>
         <li>
-          {sm.carries(
+          {say.wizard.units.summary.carries(
             v.fields.map((f) => f.name.toLowerCase()),
             file.filename,
           )}
         </li>
-        <li>{sm.location(s.location)}</li>
+        <li>{sm.location({ on: s.location })}</li>
       </ol>
-      {sales?.id_check && <p className="wiz-from">{sm.sales(sales.id_check.text.replace(/^✓ /, ""))}</p>}
+      {sales?.id_check && (
+        <p className="wiz-from">{sm.sales({ text: sales.id_check.text.replace(/^✓ /, "") })}</p>
+      )}
     </>
   );
 }
@@ -520,7 +534,7 @@ export function UnitsPointer({ projectId, file }: { projectId: string; file: Wiz
   if (!file.units && (!mostly || file.not_in_universe?.units)) return null;
   return (
     <p className="un-offer">
-      <span>{file.units ? u.pointerUnits : u.pointer(file.unshaped)}</span>
+      <span>{file.units ? u.pointerUnits : u.pointer({ n: file.unshaped })}</span>
       <CondosLink projectId={projectId} />
     </p>
   );

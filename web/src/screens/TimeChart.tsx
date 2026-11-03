@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, unwrap } from "../api/client";
+import { say, t } from "../copy";
 import { day, money, num } from "../lib/format";
 import { useWidth } from "../lib/hooks";
-import { t } from "../strings";
 
 const s = t.sales.time;
 const units = t.sales.unit;
@@ -103,21 +103,21 @@ export function TimeChart({
   };
   const h0 = hover !== null ? sales[hover] : undefined;
   const area = units[d.unit];
-  const per = group.per === "land" ? s.perLand(area) : s.perImpr(area);
+  const per = group.per === "land" ? s.perLand({ unit: area }) : s.perImpr({ unit: area });
   const by = group.period ? s.by[group.period] : null;
   return (
     <div className="cs-tchart" ref={ref}>
       <p className="wiz-from">
-        {s.chartNote(per, num(sales.length))}
-        {by && ` ${s.periodsNote(by, group.periods_ok, group.periods)}`}
-        {outside > 0 && ` ${s.outside(outside)}`}
+        {s.chartNote({ per, n: num(sales.length) })}
+        {by && ` ${s.periodsNote({ by, ok: group.periods_ok, of: group.periods })}`}
+        {outside > 0 && ` ${s.outside({ n: outside })}`}
       </p>
       <svg
         className="cs-tsvg"
         width={width}
         height={H}
         role="img"
-        aria-label={s.chartLabel(group.name)}
+        aria-label={s.chartLabel({ name: group.name })}
         onMouseMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           setHover(near(e.clientX - r.left, e.clientY - r.top));
@@ -156,11 +156,11 @@ export function TimeChart({
         <div className="cs-ttip" role="status">
           <b>{h0.address ?? h0.key_sale}</b> · {day(h0.date)}
           <br />
-          {s.tip(money(h0.price, currency), money(h0.per_area, currency), per)}
+          {say.sales.time.tip(money(h0.price, currency), money(h0.per_area, currency), per)}
           {h0.adjusted !== null && h0.adjusted !== undefined && (
             <>
               <br />
-              {s.tipAdjusted(money(h0.adjusted, currency))}
+              {s.tipAdjusted({ price: money(h0.adjusted, currency) })}
             </>
           )}
         </div>

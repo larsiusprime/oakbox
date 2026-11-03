@@ -91,6 +91,16 @@ name that says what it is.
   breaks a long word in its box, and a dialog never grows past the screen (it scrolls). Check new screens against
   a file with long values.
 
+## Copy
+
+Every word the UI shows is in `web/src/copy/en.json` (ICU MessageFormat, SPEC §6.6), imported as `t` from
+`web/src/copy`; never a string literal in a screen. A message with arguments is called with them by name,
+`t.x.plusOthers({ first, n })`; plurals and choices are the message's (`{n, plural, =1 {sale} other {sales}}`,
+`{mode, select, move {…} other {…}}`), never a `?:` in the screen. What needs code first (joining a list, changing
+case, arithmetic, picking between messages) is `say` in `copy/logic.ts`; a message never computes. After changing
+`en.json`, `npm run copy:types` (CI checks `copy.gen.ts` is up to date). A lookup keyed by an id from the backend is
+listed in `copy/records.json`.
+
 ## Going online
 
 - Downloads check certificates as the computer does: every process OAK box starts calls

@@ -4,8 +4,8 @@ import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
+import { say, t } from "../copy";
 import { num, short } from "../lib/format";
-import { t } from "../strings";
 
 const vt = t.values.vartest;
 
@@ -49,7 +49,7 @@ export function TestStep({
   const info = vt.tests[test];
   const key = vt.thresholdKey[test];
   const threshold = key ? r.thresholds[key] : undefined;
-  const rule = info ? (typeof info.rule === "function" ? info.rule(threshold ?? 0) : info.rule) : "";
+  const rule = info ? (typeof info.rule === "function" ? info.rule({ t: threshold ?? 0 }) : info.rule) : "";
   const rows = [...(g?.tests[test] ?? [])];
   const val = (x: TestRow) => x.value;
   rows.sort((a, b) => {
@@ -94,7 +94,7 @@ export function TestStep({
           </span>
           <span>
             {x.reason === "no_correlation"
-              ? vt.withPrice(num(x.more.corr_strength, 3))
+              ? vt.withPrice({ r: num(x.more.corr_strength, 3) })
               : figure(test, x.value)}
           </span>
         </span>
@@ -121,7 +121,7 @@ export function TestStep({
           label={vt.group}
           value={g?.id ?? ""}
           options={tested.map(
-            (x) => [x.id, `${x.name} · ${t.values.model.salesCount(x.sales)}`] as [string, string],
+            (x) => [x.id, `${x.name} · ${t.values.model.salesCount({ n: x.sales })}`] as [string, string],
           )}
           onChange={setGid}
         />
@@ -129,7 +129,7 @@ export function TestStep({
       </div>
       {g && g.empty.length > 0 && (
         <p className="wiz-warn">
-          {vt.empty(g.empty.map((f) => names[f] ?? f))}{" "}
+          {say.values.vartest.empty(g.empty.map((f) => names[f] ?? f))}{" "}
           <Button className="wiz-link" onPress={fill}>
             {t.values.model.fillIt}
           </Button>
@@ -139,12 +139,12 @@ export function TestStep({
         <p className="wiz-from">
           {r.groups
             .filter((x) => x.skipped)
-            .map((x) => vt.skipped(x.name, x.skipped ?? ""))
+            .map((x) => vt.skipped({ name: x.name, why: x.skipped ?? "" }))
             .join(" ")}
         </p>
       )}
       <p className={failingVars.length ? "wiz-warn" : "wiz-ok"}>
-        {failingVars.length ? vt.failing(failingVars.length) : vt.noneFail}
+        {failingVars.length ? vt.failing({ n: failingVars.length }) : vt.noneFail}
       </p>
       <table className="tbl vt-tbl">
         <thead>
@@ -192,7 +192,7 @@ export function TestStep({
                         }
                       >
                         <Chevron aria-hidden="true" size="0.9em" />
-                        {vt.values(passing, it.rows.length)}
+                        {vt.values({ passing, of: it.rows.length })}
                       </Button>
                     )}
                   </span>
@@ -315,7 +315,9 @@ function CorrHow({
 }) {
   if (!d) return null;
   const label = (o: { variable: string; level?: string | null }) =>
-    o.level ? vt.level(names[o.variable] ?? o.variable, o.level) : (names[o.variable] ?? o.variable);
+    o.level
+      ? vt.level({ variable: names[o.variable] ?? o.variable, level: o.level })
+      : (names[o.variable] ?? o.variable);
   const strength = d.to_price == null ? null : Math.abs(d.to_price);
   return (
     <tr className="vt-how">
@@ -329,7 +331,7 @@ function CorrHow({
             <span className="vt-bar">
               <span className="vt-fill" style={{ width: `${100 * (strength ?? 0)}%` }} />
             </span>
-            <span className="wiz-from">{vt.howFloor(num(floor, 2))}</span>
+            <span className="wiz-from">{vt.howFloor({ t: num(floor, 2) })}</span>
           </span>
         </div>
         {d.overlaps.length > 0 && (

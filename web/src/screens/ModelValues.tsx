@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { say, t } from "../copy";
 import { when } from "../lib/format";
-import { t } from "../strings";
 import { FinalValues } from "./FinalValues";
 import { GroupModelsCard, HowTheyDid } from "./Models";
 import { SmallGroupsStep } from "./SmallGroups";
@@ -118,12 +118,15 @@ export function ValuesTab({
             back={gi > 0 ? () => setGroupAt(gi - 1) : back}
             note={
               gi === modeled.length - 1 && unlisted.length
-                ? m.model.unlisted(unlisted.map((g) => g.name))
+                ? say.values.model.unlisted(unlisted.map((g) => g.name))
                 : null
             }
             next={
               gi < modeled.length - 1
-                ? { label: m.model.nextGroup(modeled[gi + 1]?.name ?? ""), onPress: () => setGroupAt(gi + 1) }
+                ? {
+                    label: m.model.nextGroup({ name: modeled[gi + 1]?.name ?? "" }),
+                    onPress: () => setGroupAt(gi + 1),
+                  }
                 : { ...onward, disabled: unlisted.length > 0 }
             }
           />
@@ -147,7 +150,9 @@ export function ValuesTab({
                   </p>
                 )}
                 {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
-                {mFresh && mr && <p className="wiz-ok">{m.model.ran(when(mr.ran_at), mr.seconds)}</p>}
+                {mFresh && mr && (
+                  <p className="wiz-ok">{m.model.ran({ when: when(mr.ran_at), seconds: mr.seconds })}</p>
+                )}
                 {!mr && !mv.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}
@@ -209,7 +214,9 @@ export function ValuesTab({
                   </p>
                 )}
                 {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
-                {fFresh && fr && <p className="wiz-ok">{f.ran(when(fr.ran_at), fr.seconds)}</p>}
+                {fFresh && fr && (
+                  <p className="wiz-ok">{say.values.final.ran(when(fr.ran_at), fr.seconds)}</p>
+                )}
                 {!fr && !fv?.blocked.length && <p className="wiz-from">{t.step.notRun}</p>}
               </>
             )}

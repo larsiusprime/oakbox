@@ -5,8 +5,8 @@ import { useState } from "react";
 import type { components } from "../api/schema";
 import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
+import { t } from "../copy";
 import { moneyShort, num, signed } from "../lib/format";
-import { t } from "../strings";
 import { FinalMap } from "./FinalMap";
 import { Scorecard } from "./ValueTables";
 
@@ -41,18 +41,18 @@ export function FinalValues({
           options={receipt.sets.map((x) => [x.key, f.sets[x.key] ?? x.key] as const)}
           onChange={setKey}
           disabled={empty}
-          titles={Object.fromEntries(empty.map((k) => [k, f.noSales(f.sets[k] ?? k)]))}
+          titles={Object.fromEntries(empty.map((k) => [k, f.noSales({ set: f.sets[k] ?? k })]))}
         />
       </div>
       <p className="wiz-from">{f.setWhy[key]}</p>
       {set?.model ? (
         <>
-          <p className="wiz-from">{f.window(set.sales, receipt.start, receipt.end)}</p>
+          <p className="wiz-from">{f.window({ n: set.sales, start: receipt.start, end: receipt.end })}</p>
           <h3 className="fv-h">{f.models}</h3>
           <Scorecard groups={[...set.model.groups, set.model.overall]} technical />
           {receipt.roll && set.roll ? (
             <>
-              <h3 className="fv-h">{f.roll(receipt.roll)}</h3>
+              <h3 className="fv-h">{f.roll({ name: receipt.roll })}</h3>
               <Scorecard groups={[...set.roll.groups, set.roll.overall]} technical />
             </>
           ) : (
@@ -60,12 +60,12 @@ export function FinalValues({
           )}
         </>
       ) : (
-        <p className="wiz-from">{f.noSales(f.sets[key] ?? key)}</p>
+        <p className="wiz-from">{f.noSales({ set: f.sets[key] ?? key })}</p>
       )}
       <h3 className="fv-h">{f.map.head}</h3>
       <FinalMap projectId={projectId} receipt={receipt} which={key} currency={currency} units={units} />
       <h3 className="fv-h">{f.groupsHead}</h3>
-      <p className="wiz-from">{f.totals(valued, parcels)}</p>
+      <p className="wiz-from">{f.totals({ valued, parcels })}</p>
       <table className="tbl fv-groups">
         <thead>
           <tr>
@@ -91,7 +91,7 @@ export function FinalValues({
               <td>
                 <span className="mg-sw ab-sw" style={{ background: g.color }} />
                 {g.name}
-                {g.blanked > 0 && <span className="wiz-from"> · {f.belowZero(g.blanked)}</span>}
+                {g.blanked > 0 && <span className="wiz-from"> · {f.belowZero({ n: g.blanked })}</span>}
               </td>
               <td className="cs-n">{num(g.parcels)}</td>
               {g.unvalued ? (

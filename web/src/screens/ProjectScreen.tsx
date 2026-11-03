@@ -9,9 +9,9 @@ import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
 import { StepBody, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
+import { say, t } from "../copy";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
-import { t } from "../strings";
 import { BringInTab, useAccepted } from "./BringIn";
 import { SalesTab, useSalesAccepted } from "./CheckSales";
 import { CheckValuesTab } from "./CheckValues";
@@ -67,7 +67,10 @@ function ProjectView({
   const { project } = detail;
   const projectId = project.id;
   // A project opens on the Data wizard, where its files are added and described (SPEC F3d).
-  useEffect(() => desktop.setContext(t.project.title(project.name), project.id), [project.name, project.id]);
+  useEffect(
+    () => desktop.setContext(t.project.title({ name: project.name }), project.id),
+    [project.name, project.id],
+  );
   const accepted = useAccepted(projectId);
   const grouped = useStep("assemble", projectId).data?.accepted ?? false;
   const checked = useSalesAccepted(projectId);
@@ -112,13 +115,13 @@ function ProjectView({
   const why =
     tab && tab !== selected
       ? [
-          t.tabs.waits(name(tab), name(selected)),
+          say.tabs.waits(name(tab), name(selected)),
           first
             ? views[first]?.stale
-              ? t.tabs.runAgain(name(first))
-              : t.tabs.pressLooksRight(name(first))
+              ? say.tabs.runAgain(name(first))
+              : say.tabs.pressLooksRight(name(first))
             : "",
-          first === "bring" && changed.length ? t.tabs.bringChanged(changed.join(", ")) : "",
+          first === "bring" && changed.length ? t.tabs.bringChanged({ what: changed.join(", ") }) : "",
         ]
           .filter(Boolean)
           .join(" ")

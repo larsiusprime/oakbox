@@ -8,8 +8,8 @@ import { type Column, DataTable, useWidths, type Widths } from "../components/Da
 import { Choice } from "../components/Form";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
+import { t } from "../copy";
 import { day, num, signed } from "../lib/format";
-import { t } from "../strings";
 import { ConfigSummary, ModelOptions } from "./ModelOptions";
 
 const m = t.values.model;
@@ -52,17 +52,17 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
     // As the backend proposes: the first of its type for this group; none, rather than another group's.
     return v.lists.find((x) => x.kind === kind && x.groups.includes(g.id))?.id;
   };
-  const listOptions = v.lists.map((x) => [x.id, m.list(x.name, x.count)] as const);
+  const listOptions = v.lists.map((x) => [x.id, m.list({ name: x.name, n: x.count })] as const);
   const others = modeled.filter((x) => x.id !== g.id);
   return (
     <div className="cs-step">
       <div className="gm-head">
-        <span className="gm-of">{m.groupOf(at + 1, modeled.length)}</span>
+        <span className="gm-of">{m.groupOf({ n: at + 1, of: modeled.length })}</span>
         <h3 className="gm-title">
           <span className="mg-sw ab-sw big" style={{ background: g.color }} />
           {g.name}
         </h3>
-        <span className="wiz-from">{m.salesTab(g.sales)}</span>
+        <span className="wiz-from">{m.salesTab({ n: g.sales })}</span>
       </div>
       {g.sales < 15 && <p className="wiz-warn">{m.tooFew}</p>}
       {entries.length === 0 && !adding ? (
@@ -108,9 +108,12 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                       .map((w) => (
                         <p key={w.code} className="wiz-warn gm-warn">
                           {w.code === "kind_mismatch"
-                            ? m.warn.kind_mismatch(eng?.name ?? e.engine, lists[e.list_id ?? ""]?.kind ?? "")
+                            ? m.warn.kind_mismatch({
+                                engine: eng?.name ?? e.engine,
+                                kind: lists[e.list_id ?? ""]?.kind ?? "",
+                              })
                             : w.code === "blanks_left_out"
-                              ? m.warn.blanks_left_out(w.n)
+                              ? m.warn.blanks_left_out({ n: w.n })
                               : m.warn[w.code as "list_missing" | "list_empty" | "no_list"]}
                         </p>
                       ))}
@@ -130,7 +133,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                       .filter((w) => w.code === "no_locations")
                       .map((w) => (
                         <p key={w.code} className="wiz-warn gm-warn">
-                          {m.warn.no_locations(e.engine)}
+                          {m.warn.no_locations({ engine: e.engine })}
                         </p>
                       ))}
                   </td>
@@ -271,7 +274,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
           {put.error.message}
         </p>
       )}
-      <p className="wiz-from">{m.written(g.id)}</p>
+      <p className="wiz-from">{m.written({ group: g.id })}</p>
     </div>
   );
 }
@@ -471,7 +474,7 @@ function Table({
 }
 
 function span(s: SalesSet) {
-  const n = m.salesCount2(s.sales);
+  const n = m.salesCount2({ n: s.sales });
   return s.first && s.last ? `${n}, ${day(s.first)} – ${day(s.last)}` : n;
 }
 
@@ -508,10 +511,10 @@ export function HowTheyDid({ view }: { view: ModelView }) {
           value={g.id}
           options={r.groups.map(
             (x) =>
-              [x.id, x.skipped ? `${x.name} · ${h.notModeled}` : `${x.name} · ${m.salesCount2(x.sales)}`] as [
-                string,
-                string,
-              ],
+              [
+                x.id,
+                x.skipped ? `${x.name} · ${h.notModeled}` : `${x.name} · ${m.salesCount2({ n: x.sales })}`,
+              ] as [string, string],
           )}
           onChange={setGid}
         />
@@ -526,7 +529,7 @@ export function HowTheyDid({ view }: { view: ModelView }) {
         />
       </div>
       {g.skipped ? (
-        <p className="wiz-warn">{m.skipped(g.skipped)}</p>
+        <p className="wiz-warn">{m.skipped({ why: g.skipped })}</p>
       ) : how === "iaao" ? (
         g.sets.map((s) => (
           <div key={s.key}>
@@ -539,7 +542,7 @@ export function HowTheyDid({ view }: { view: ModelView }) {
               )}
             </Section>
             {s.sales > 0 && (
-              <Section id={`${s.key}-trim`} title={h.trimmed(h.set[s.key])} sub={h.trimmedWhy}>
+              <Section id={`${s.key}-trim`} title={h.trimmed({ what: h.set[s.key] })} sub={h.trimmedWhy}>
                 <Table columns={IAAO_TRIMMED} rows={s.trimmed} keys={keys} widths={widths} />
               </Section>
             )}
@@ -551,7 +554,7 @@ export function HowTheyDid({ view }: { view: ModelView }) {
             <p className="wiz-from md-sec-note">{h.academicWhy}</p>
             <Table columns={ACADEMIC} rows={g.academic} keys={keys} widths={widths} />
           </Section>
-          <Section id="academic-trim" title={h.trimmed(h.academicTitle)} sub={h.trimmedWhy}>
+          <Section id="academic-trim" title={h.trimmed({ what: h.academicTitle })} sub={h.trimmedWhy}>
             <Table columns={ACADEMIC} rows={g.academic_trimmed} keys={keys} widths={widths} />
           </Section>
         </>

@@ -13,8 +13,8 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { t } from "../copy";
 import { moneyShort } from "../lib/format";
-import { t } from "../strings";
 import type { Move } from "./ModelGroups";
 
 const g = t.groups;
@@ -88,7 +88,7 @@ export function GroupEditor({
         >
           <Input className="input mg-name-input" />
         </TextField>
-        <span className="mg-nth">{g.nth(order)}</span>
+        <span className="mg-nth">{g.nth({ n: order })}</span>
       </div>
       <div className="mg-colours" role="radiogroup" aria-label={g.colour}>
         {colors.map((c) => (
@@ -105,7 +105,7 @@ export function GroupEditor({
         <div className="mg-stats">
           <div>
             <b className="mg-stat-n">{stats.parcels.toLocaleString()}</b>
-            <span className="mg-stat-l">{g.statParcels(stats.vacant)}</span>
+            <span className="mg-stat-l">{g.statParcels({ v: stats.vacant })}</span>
           </div>
           <div>
             <b className="mg-stat-n">{stats.sales.toLocaleString()}</b>
@@ -208,8 +208,8 @@ export function GroupEditor({
           {moves.map((m) => (
             <span key={`${m.from_id}>${m.to_id}`}>
               {m.to_id === group.id
-                ? g.moveIn(m.parcels, name(m.from_id), m.sold)
-                : g.moveOut(m.parcels, name(m.to_id), m.sold)}{" "}
+                ? g.moveIn({ n: m.parcels, from: name(m.from_id), sold: m.sold })
+                : g.moveOut({ n: m.parcels, to: name(m.to_id), sold: m.sold })}{" "}
               <Button className="wiz-link" onPress={() => onShow(moved(m))}>
                 {g.showMoves}
               </Button>

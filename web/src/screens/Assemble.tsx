@@ -4,8 +4,8 @@ import { Button } from "react-aria-components";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
+import { t } from "../copy";
 import { size, when } from "../lib/format";
-import { t } from "../strings";
 
 const r = t.groups.run;
 type Format = AssembleView["exports"][number];
@@ -68,11 +68,11 @@ export function AssembleResults({
   return (
     <div className="ab-results">
       <p className="rc-sub">
-        {r.written(
-          when(rc.ran_at),
-          rc.parcels,
-          rc.groups.filter((x) => x.id !== "UNKNOWN" && x.parcels > 0).length,
-        )}{" "}
+        {r.written({
+          when: when(rc.ran_at),
+          parcels: rc.parcels,
+          groups: rc.groups.filter((x) => x.id !== "UNKNOWN" && x.parcels > 0).length,
+        })}{" "}
         <span className="wiz-from">
           · {rc.seconds}s · OpenAVMKit {rc.engine}
         </span>
@@ -123,7 +123,7 @@ export function AssembleResults({
       </ul>
       {rc.notes.length > 0 && (
         <details className="rc-writes">
-          <summary>{r.notes(rc.notes.length)}</summary>
+          <summary>{r.notes({ n: rc.notes.length })}</summary>
           <ul>
             {rc.notes.map((n) => (
               <li key={n}>{n}</li>

@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, unwrap } from "../api/client";
-import { t } from "../strings";
+import { say, t } from "../copy";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
 const v = t.wizard.values;
@@ -28,12 +28,12 @@ export function ValuesButton({
   if (distinct == null) return null;
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button className="vals-button" aria-label={`${v.button(distinct, noun)}: ${column}`}>
-        {v.button(distinct, noun)}
+      <Button className="vals-button" aria-label={`${say.wizard.values.button(distinct, noun)}: ${column}`}>
+        {say.wizard.values.button(distinct, noun)}
         <ChevronDown aria-hidden="true" size="0.85em" />
       </Button>
       <Popover className="popover vals-popover" placement="bottom start">
-        <Dialog className="vals-body" aria-label={v.title(column, file)}>
+        <Dialog className="vals-body" aria-label={v.title({ column, file })}>
           {open && <ValuesList projectId={projectId} file={file} column={column} />}
         </Dialog>
       </Popover>
@@ -63,7 +63,7 @@ function ValuesList({ projectId, file, column }: { projectId: string; file: stri
       <Heading slot="title" className="vals-title">
         <span className="mono">{column}</span> <span className="vals-file">· {file}</span>
       </Heading>
-      {d && <p className="vals-sub">{v.summary(d.distinct, d.rows, d.blank)}</p>}
+      {d && <p className="vals-sub">{v.summary({ distinct: d.distinct, rows: d.rows, blank: d.blank })}</p>}
       {(d?.distinct ?? 0) > 12 && (
         <SearchField
           aria-label={v.search}
@@ -82,7 +82,7 @@ function ValuesList({ projectId, file, column }: { projectId: string; file: stri
       ) : (
         <ValueTable values={d.values} sort={sort} onSort={setSort} />
       )}
-      {d && d.more > 0 && <p className="vals-sub">{v.more(d.more)}</p>}
+      {d && d.more > 0 && <p className="vals-sub">{v.more({ n: d.more })}</p>}
     </>
   );
 }

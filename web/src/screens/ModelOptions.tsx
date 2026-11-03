@@ -9,7 +9,7 @@ import type { EntryView, ModelEntry, ModelSetup } from "../api/client";
 import { Tick } from "../components/Form";
 import { LocationStack } from "../components/LocationStack";
 import { Seg } from "../components/Seg";
-import { t } from "../strings";
+import { t } from "../copy";
 
 const c = t.values.model.config;
 type Option = "log" | "intercept" | "interactions" | "optimize_vars" | "n_trials" | "use_gpu";
@@ -39,7 +39,7 @@ export function ConfigSummary({
       const names = [...(e.locations ?? [])].reverse().map((f) => places[f] ?? f);
       parts.push([
         o,
-        names.length ? c.summary.locations(names.join(" › ")) : c.summary.noLocations,
+        names.length ? c.summary.locations({ names: names.join(" › ") }) : c.summary.noLocations,
         !names.length,
       ]);
     } else if (o === "log") {
@@ -52,7 +52,7 @@ export function ConfigSummary({
     } else if (o === "optimize_vars") {
       if (value(e, o, defaults)) parts.push([o, c.summary.optimizeVars, true]);
     } else if (o === "n_trials") {
-      parts.push([o, c.summary.trials(Number(value(e, o, defaults))), changed(o)]);
+      parts.push([o, c.summary.trials({ n: Number(value(e, o, defaults)) }), changed(o)]);
     } else if (o === "use_gpu") {
       if (!value(e, o, defaults)) parts.push([o, c.summary.noGpu, true]);
     }
@@ -131,7 +131,7 @@ export function ModelOptions({
     );
   return (
     <div className="mo-panel">
-      <p className="ls-title">{c.title(name)}</p>
+      <p className="ls-title">{c.title({ name })}</p>
       {tick("log", c.log, c.logWhy)}
       {tick("intercept", c.intercept, c.interceptWhy)}
       {has("interactions") && (

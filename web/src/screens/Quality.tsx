@@ -5,8 +5,8 @@ import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "
 import { api, type Scale, type Source, unwrap, type Wizard, type WizardField } from "../api/client";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
+import { say, t } from "../copy";
 import { amount, pct, short } from "../lib/format";
-import { t } from "../strings";
 
 const q = t.wizard.quality;
 type Kind = NonNullable<Scale["kind"]>;
@@ -49,7 +49,7 @@ export function ScaleChoice({
   return (
     <div className="wiz-unit">
       <Choice
-        label={q.meaningOf(field.name)}
+        label={say.wizard.quality.meaningOf(field.name)}
         hideLabel
         value={scale.kind ?? null}
         placeholder={field.key === "bldg_quality_num" ? q.whichWay : q.means}
@@ -139,7 +139,7 @@ export function CompareDialog({
                     <td className="mono">
                       {c.column} <span className="wiz-from">· {c.file}</span>
                     </td>
-                    <td>{c.kind === "numbers" ? q.numbers(fmt(c.low), fmt(c.high)) : q.text}</td>
+                    <td>{c.kind === "numbers" ? q.numbers({ lo: fmt(c.low), hi: fmt(c.high) }) : q.text}</td>
                     <td>{pct(c.filled)}</td>
                     <td>{c.distinct.toLocaleString()}</td>
                     <td className="mono">{c.samples.map((x) => short(x)).join(", ")}</td>
@@ -240,10 +240,12 @@ export function ScaleDialog({
       <Modal className="modal rl qc">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {condition ? q.meaningTitle(source.column) : q.directionTitle(source.column)}
+            {condition
+              ? q.meaningTitle({ column: source.column })
+              : q.directionTitle({ column: source.column })}
           </Heading>
           <p className="rc-sub">{condition ? q.meaningLede : q.directionLede}</p>
-          <ul className="qc-radio" aria-label={q.meaningOf(field.name)}>
+          <ul className="qc-radio" aria-label={say.wizard.quality.meaningOf(field.name)}>
             {(v?.kinds ?? KINDS[field.key] ?? []).map((k) => (
               <li key={k} className={k === kind ? "on" : undefined}>
                 <Button className="qc-pick" onPress={() => setKind(k as Kind)} aria-pressed={k === kind}>
@@ -251,7 +253,9 @@ export function ScaleDialog({
                   <span>
                     <b>{q.kinds[k]}</b> <small>{q.kindHints[k]}</small>
                   </span>
-                  {v?.fits.includes(k) && v.age_basis && <span className="tag">✓ {q.fits(v.age_basis)}</span>}
+                  {v?.fits.includes(k) && v.age_basis && (
+                    <span className="tag">✓ {q.fits({ basis: v.age_basis })}</span>
+                  )}
                 </Button>
               </li>
             ))}
@@ -269,7 +273,9 @@ export function ScaleDialog({
                 ]}
                 onChange={(x) => setFraction(x === "f")}
               />
-              {v && <span className="wiz-from">{q.found(fmt(v.scale.low), fmt(v.scale.high))}</span>}
+              {v && (
+                <span className="wiz-from">{q.found({ lo: fmt(v.scale.low), hi: fmt(v.scale.high) })}</span>
+              )}
             </div>
           )}
           {v && kind && condition && ages.length > 1 && (
@@ -277,9 +283,9 @@ export function ScaleDialog({
               {told ? (
                 <b>{newer ? q.newerBetter : q.olderBetter}</b>
               ) : (
-                <span>{q.ageSilent(fmt(ages[0]?.raw ?? null))}</span>
+                <span>{q.ageSilent({ m: fmt(ages[0]?.raw ?? null) })}</span>
               )}
-              {told && v.median != null && <span className="rc-was">{q.median(fmt(v.median))}</span>}
+              {told && v.median != null && <span className="rc-was">{q.median({ m: fmt(v.median) })}</span>}
             </div>
           )}
           {v && kind && <p className="rc-sub">{q.loadedLede}</p>}
@@ -316,7 +322,7 @@ export function ScaleDialog({
           )}
           {v && v.by_value.length > 0 && (
             <>
-              <p className="rc-sub">{q.byPriceLede(v.by_type, v.type_field)}</p>
+              <p className="rc-sub">{say.wizard.quality.byPriceLede(v.by_type, v.type_field)}</p>
               <table className="tbl">
                 <thead>
                   <tr>
@@ -324,8 +330,8 @@ export function ScaleDialog({
                     {texts && <th>{q.writtenText}</th>}
                     <th className="num">{q.sales}</th>
                     <th>{q.medianPrice}</th>
-                    {v.price_basis && <th className="num">{q.medianOf(v.price_basis)}</th>}
-                    {v.by_type && <th className="num">{q.typeOnly(v.by_type)}</th>}
+                    {v.price_basis && <th className="num">{q.medianOf({ basis: v.price_basis })}</th>}
+                    {v.by_type && <th className="num">{q.typeOnly({ type: v.by_type })}</th>}
                     {v.by_type && <th>{q.medianPrice}</th>}
                   </tr>
                 </thead>
@@ -447,11 +453,11 @@ export function TiersDialog({
   for (const r of rows ?? []) {
     if (r.median == null) continue;
     if (r.sales < few) {
-      flags[r.value] = q.fewSales(r.sales);
+      flags[r.value] = q.fewSales({ n: r.sales });
       continue;
     }
     if (last?.median != null && r.median < last.median) {
-      flags[r.value] = q.sellsForLess(last.value);
+      flags[r.value] = q.sellsForLess({ v: last.value });
       down += 1;
     }
     last = r;
@@ -465,20 +471,22 @@ export function TiersDialog({
       <Modal className="modal rl qc">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {q.tiersTitle(source.column)}
+            {q.tiersTitle({ column: source.column })}
           </Heading>
-          <p className="rc-sub">{q.tiersLede(source.column)}</p>
+          <p className="rc-sub">{q.tiersLede({ column: source.column })}</p>
           {v && (
             <div className="qc-row">
               {v.saved ? (
                 <span className="pill">{q.savedOrder}</span>
               ) : v.recognised ? (
-                <span className="pill pill-ok">{q.recognised(v.recognised)}</span>
+                <span className="pill pill-ok">{q.recognised({ name: v.recognised })}</span>
               ) : (
                 <span className="pill pill-warn">{q.notRecognised}</span>
               )}
               {v.unplaced.length > 0 && v.recognised && !v.saved && (
-                <span className="qc-flag">{q.unplaced(v.unplaced.map((x) => short(x)).join(", "))}</span>
+                <span className="qc-flag">
+                  {q.unplaced({ names: v.unplaced.map((x) => short(x)).join(", ") })}
+                </span>
               )}
               <Button className="button" onPress={() => rows && setRows(steps([...rows].reverse()))}>
                 {q.reverse}
@@ -497,7 +505,7 @@ export function TiersDialog({
                   <th>{q.rows}</th>
                   <th>{q.number}</th>
                   {priced && <th>{q.sales}</th>}
-                  {priced && <th>{q.medianOf(v?.basis ?? "")}</th>}
+                  {priced && <th>{q.medianOf({ basis: v?.basis ?? "" })}</th>}
                   <th />
                 </tr>
               </thead>
@@ -507,7 +515,7 @@ export function TiersDialog({
                     <td className="qc-arrows">
                       <Button
                         className="qc-move"
-                        aria-label={q.up(r.value)}
+                        aria-label={q.up({ v: r.value })}
                         isDisabled={i === 0}
                         onPress={() => move(i, -1)}
                       >
@@ -515,7 +523,7 @@ export function TiersDialog({
                       </Button>
                       <Button
                         className="qc-move"
-                        aria-label={q.down(r.value)}
+                        aria-label={q.down({ v: r.value })}
                         isDisabled={i === rows.length - 1}
                         onPress={() => move(i, 1)}
                       >
@@ -528,7 +536,7 @@ export function TiersDialog({
                     <td>{r.count.toLocaleString()}</td>
                     <td className="num">
                       <TextField
-                        aria-label={q.numberFor(r.value)}
+                        aria-label={q.numberFor({ v: r.value })}
                         value={r.number}
                         onChange={(x) =>
                           setRows(rows.map((y) => (y.value === r.value ? { ...y, number: x } : y)))
@@ -556,11 +564,15 @@ export function TiersDialog({
           )}
           {v && priced && (
             <div className={`rc-meter ${down ? "bad" : "ok"}`}>
-              <b>{down ? q.stepsDown(down, v.basis ?? "") : q.rises(v.basis ?? "")}</b>
+              <b>
+                {down
+                  ? q.stepsDown({ n: down, basis: v.basis ?? "" })
+                  : say.wizard.quality.rises(v.basis ?? "")}
+              </b>
               <span className="rc-was">{q.evidenceOnly}</span>
             </div>
           )}
-          {v && v.notes.length > 0 && <p className="rc-sub">{q.basedOn(v.notes.join(" · "))}</p>}
+          {v && v.notes.length > 0 && <p className="rc-sub">{q.basedOn({ notes: v.notes.join(" · ") })}</p>}
           {preview.error && (
             <p className="error" role="alert">
               {preview.error.message}

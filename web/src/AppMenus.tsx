@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate, type Route } from "./App";
 import { api, unwrap } from "./api/client";
+import { t } from "./copy";
 import { desktop } from "./desktop";
 import { type MenuCommand, useMenu } from "./menu";
-import { t } from "./strings";
 
 /** What the native menus and their shortcuts do on the page (SPEC §3.14), and the display settings (D43). */
 export function AppMenus({ route }: { route: Route }) {
@@ -152,7 +152,7 @@ export function AppMenus({ route }: { route: Route }) {
       <About isOpen={about} onClose={() => setAbout(false)} />
       {flash !== null && (
         <output className="zoom-flash" aria-live="polite">
-          {t.zoomLevel(flash)}
+          {t.zoomLevel({ percent: flash })}
         </output>
       )}
     </>

@@ -15,9 +15,9 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Val } from "../components/Val";
+import { say, t } from "../copy";
 import { amount, pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
-import { t } from "../strings";
 
 const r = t.wizard.rule;
 const d = t.wizard.dates;
@@ -102,13 +102,13 @@ export function RuleDialog({
       <Modal className="modal rl">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {r.title[field.key] ?? r.titleFor(field.name)}
+            {r.title[field.key] ?? say.wizard.rule.titleFor(field.name)}
           </Heading>
           <p className="rc-sub">{r.lede}</p>
           <div className={`rc-meter ${complete && v && v.yes > 0 && v.yes < v.total ? "ok" : "bad"}`}>
             <b>
               {complete && v
-                ? r.meter(v.yes, v.total, word, v.total ? pct(v.yes / v.total) : "0%")
+                ? r.meter({ yes: v.yes, total: v.total, word, pct: v.total ? pct(v.yes / v.total) : "0%" })
                 : r.incomplete}
             </b>
           </div>
@@ -201,7 +201,7 @@ export function RuleDialog({
                   })
                 }
               >
-                {r.addPrice(p ? amount(p.symbol, 1000) : "1,000")}
+                {r.addPrice({ amount: p ? amount(p.symbol, 1000) : "1,000" })}
               </AddButton>
             )}
           </div>
@@ -210,16 +210,16 @@ export function RuleDialog({
               {!priceColumn
                 ? r.noPrice
                 : p && p.zero + p.nominal + p.negative > 0
-                  ? r.priceCounts(
-                      priceColumn,
-                      [
-                        p.zero ? r.zero(p.zero) : null,
-                        p.nominal ? r.nominal(p.nominal, amount(p.symbol, 1000)) : null,
-                        p.negative ? r.negative(p.negative) : null,
+                  ? r.priceCounts({
+                      column: priceColumn,
+                      counts: [
+                        p.zero ? r.zero({ n: p.zero }) : null,
+                        p.nominal ? r.nominal({ n: p.nominal, amount: amount(p.symbol, 1000) }) : null,
+                        p.negative ? r.negative({ n: p.negative }) : null,
                       ]
                         .filter(Boolean)
                         .join(", "),
-                    )
+                    })
                   : null}
             </p>
           )}
@@ -229,7 +229,7 @@ export function RuleDialog({
                 <tr>
                   {v.columns.map((c) => (
                     <th key={c} className="rc-th">
-                      {v.as_read.includes(c) ? r.asRead(c) : c}
+                      {v.as_read.includes(c) ? r.asRead({ column: c }) : c}
                     </th>
                   ))}
                   <th className="rc-th">{r.result}</th>
@@ -330,7 +330,7 @@ export function DateDialog({
       <Modal className="modal rl">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {d.title(column)}
+            {d.title({ column })}
           </Heading>
           <p className="rc-sub">{d.lede}</p>
           <div className="rl-join">
@@ -354,13 +354,13 @@ export function DateDialog({
             <div className={`rc-meter ${good ? "ok" : "bad"}`}>
               <b>
                 {good && "✓ "}
-                {d.read(v.read, v.total - v.blank)}
+                {d.read({ read: v.read, total: v.total - v.blank })}
               </b>
               <span className="rc-was">
                 {[
-                  v.first && v.last ? d.range(v.first, v.last) : null,
-                  v.failed ? d.failed(v.failed) : null,
-                  v.blank ? d.blank(v.blank) : null,
+                  v.first && v.last ? d.range({ a: v.first, b: v.last }) : null,
+                  v.failed ? d.failed({ n: v.failed }) : null,
+                  v.blank ? d.blank({ n: v.blank }) : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -473,7 +473,7 @@ export function NumberDialog({
       <Modal className="modal rl">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {n.title(column)}
+            {n.title({ column })}
           </Heading>
           <p className="rc-sub">{n.lede}</p>
           {shown && (
@@ -491,7 +491,7 @@ export function NumberDialog({
                 label={n.scale}
                 hideLabel
                 value={String(shown.scale)}
-                options={scales.map((s) => [String(s), n.scales(s)] as const)}
+                options={scales.map((s) => [String(s), say.wizard.numbers.scales(s)] as const)}
                 onChange={(s) => set({ scale: Number(s) })}
               />
               <Tick isSelected={shown.suffixes} onChange={(suffixes) => set({ suffixes })}>
@@ -504,15 +504,19 @@ export function NumberDialog({
             <div className={`rc-meter ${good ? "ok" : "bad"}`}>
               <b>
                 {good && "✓ "}
-                {n.read(v.read, v.total - v.blank)}
+                {n.read({ read: v.read, total: v.total - v.blank })}
               </b>
               <span className="rc-was">
                 {[
                   v.median != null && v.low != null && v.high != null
-                    ? n.spread(amount(v.symbol, v.median), amount(v.symbol, v.low), amount(v.symbol, v.high))
+                    ? n.spread({
+                        median: amount(v.symbol, v.median),
+                        low: amount(v.symbol, v.low),
+                        high: amount(v.symbol, v.high),
+                      })
                     : null,
-                  v.failed ? n.failed(v.failed) : null,
-                  v.blank ? n.blank(v.blank) : null,
+                  v.failed ? n.failed({ n: v.failed }) : null,
+                  v.blank ? n.blank({ n: v.blank }) : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -523,14 +527,14 @@ export function NumberDialog({
             <p className="rc-suggest">
               <b>{v.hint.reason}</b>{" "}
               <Button className="wiz-link" onPress={() => set({ scale: v.hint?.scale ?? 1 })}>
-                {n.readAs(n.scales(v.hint.scale))}
+                {n.readAs({ s: say.wizard.numbers.scales(v.hint.scale) })}
               </Button>
             </p>
           )}
           {v && !v.hint && v.assessed != null && v.assessed_field && (
-            <p className="rc-sub">{n.assessed(v.assessed, v.assessed_field)}</p>
+            <p className="rc-sub">{say.wizard.numbers.assessed(v.assessed, v.assessed_field)}</p>
           )}
-          {v && v.excel > 0 && <p className="rc-suggest nm-warn">{n.excel(v.excel)}</p>}
+          {v && v.excel > 0 && <p className="rc-suggest nm-warn">{n.excel({ n: v.excel })}</p>}
           {v && (
             <table className="rc-tbl">
               <thead>

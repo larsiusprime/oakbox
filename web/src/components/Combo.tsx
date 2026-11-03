@@ -14,7 +14,7 @@ import {
   ListBox,
   Popover,
 } from "react-aria-components";
-import { t } from "../strings";
+import { t } from "../copy";
 
 /** Dropdowns with this many choices or more can be typed in. */
 export const TYPE_FROM = 7;
@@ -125,7 +125,9 @@ export function Combo({
         >
           {children(query)}
         </ListBox>
-        {query.trim() && <p className="combo-count">{t.combo.count(shown, total, query.trim())}</p>}
+        {query.trim() && (
+          <p className="combo-count">{t.combo.count({ n: shown, of: total, typed: query.trim() })}</p>
+        )}
       </Popover>
     </ComboBox>
   );
