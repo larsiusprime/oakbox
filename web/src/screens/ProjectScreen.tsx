@@ -5,8 +5,6 @@ import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
 import { useStep } from "../api/steps";
-import clipboard from "../assets/noto/emoji_u1f4cb.svg";
-import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
 import { StepBody, StepFrame } from "../components/Steps";
@@ -177,11 +175,9 @@ function ProjectView({
         <TabStrip selected={selected}>
           <TabList className="folder-tab-list" aria-label={project.name}>
             <Tab id="metadata" className="folder-tab">
-              <img src={gear} alt="" className="tab-icon" />
               {t.tabs.metadata}
             </Tab>
             <Tab id="fields" className="folder-tab">
-              <img src={clipboard} alt="" className="tab-icon" />
               {t.tabs.fields}
             </Tab>
             <Tab id="bring" className="folder-tab">

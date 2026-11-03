@@ -1090,11 +1090,6 @@ a.row-title:hover {
   justify-content: center;
 }
 
-.tab-icon {
-  width: 1.1em;
-  height: 1.1em;
-}
-
 .folder-panel {
   background: var(--manila);
   border: 1px solid var(--manila-edge);
