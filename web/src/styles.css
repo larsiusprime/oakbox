@@ -969,6 +969,10 @@ a.row-title:hover {
 
 .project {
   display: grid;
+  grid-template-columns: minmax(
+      0,
+      1fr
+    ); /* as wide as the window, never its widest content (the tab row scrolls) */
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 
@@ -978,13 +982,73 @@ a.row-title:hover {
 }
 
 /* The project is one Manila folder lying in the box, its tabs along its top edge, on the wood. */
-.folder-tab-list {
+/* One row of tabs, never wrapped (components/TabStrip): wider than the folder, it scrolls, with ‹ › at its ends. */
+.tab-strip {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-end;
   margin-bottom: -1px; /* the open tab runs into its folder: no edge between them */
 }
 
+.tab-strip-box {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* the ‹ › buttons say there's more */
+}
+
+.tab-strip-box::-webkit-scrollbar {
+  display: none;
+}
+
+.folder-tab-list {
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
+/* ‹ and ›: small tabs of their own at the row's ends, greyed when that end is showing. */
+.tab-scroll {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin-bottom: 1px; /* on the wood, not over the folder's edge */
+  padding: 0 calc(0.35 * var(--sp));
+  font: inherit;
+  color: var(--manila-ink);
+  background: var(--manila-back);
+  border: 1px solid var(--manila-edge);
+  border-radius: 7px 7px 0 0;
+  cursor: default;
+}
+
+.tab-scroll:first-child {
+  margin-right: 2px;
+}
+
+.tab-scroll:last-child {
+  margin-left: 2px;
+}
+
+.tab-scroll[data-hovered]:not([data-disabled]) {
+  color: var(--text);
+  background: var(--manila);
+}
+
+.tab-scroll[data-disabled] {
+  opacity: 0.45;
+}
+
+.tab-scroll[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+
 .folder-tab {
+  flex: none;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));

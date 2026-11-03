@@ -10,6 +10,7 @@ import gear from "../assets/noto/emoji_u2699.svg";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
 import { StepBody, StepFrame } from "../components/Steps";
+import { TabStrip } from "../components/TabStrip";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { t } from "../strings";
@@ -173,58 +174,64 @@ function ProjectView({
         onSelectionChange={(key) => navigate({ name: "project", id: projectId, tab: key as TabId })}
         disabledKeys={locked}
       >
-        <TabList className="folder-tab-list" aria-label={project.name}>
-          <Tab id="metadata" className="folder-tab">
-            <img src={gear} alt="" className="tab-icon" />
-            {t.tabs.metadata}
-          </Tab>
-          <Tab id="fields" className="folder-tab">
-            <img src={clipboard} alt="" className="tab-icon" />
-            {t.tabs.fields}
-          </Tab>
-          <Tab id="bring" className="folder-tab">
-            {t.tabs.bring}
-          </Tab>
-          <Tab
-            id="groups"
-            className="folder-tab"
-            aria-description={accepted ? undefined : t.tabs.groupsLocked}
-          >
-            {t.tabs.groups}
-          </Tab>
-          <Tab id="sales" className="folder-tab" aria-description={grouped ? undefined : t.tabs.salesLocked}>
-            {t.tabs.sales}
-          </Tab>
-          <Tab
-            id="check"
-            className="folder-tab"
-            aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
-            {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
-          >
-            {t.tabs.check}
-          </Tab>
-          <Tab
-            id="variables"
-            className="folder-tab"
-            aria-description={checked ? undefined : t.tabs.valuesLocked}
-          >
-            {t.tabs.variables}
-          </Tab>
-          <Tab
-            id="values"
-            className="folder-tab"
-            aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
-          >
-            {t.tabs.values}
-          </Tab>
-          <Tab
-            id="report"
-            className="folder-tab"
-            aria-description={finalized ? undefined : t.tabs.reportLocked}
-          >
-            {t.tabs.report}
-          </Tab>
-        </TabList>
+        <TabStrip selected={selected}>
+          <TabList className="folder-tab-list" aria-label={project.name}>
+            <Tab id="metadata" className="folder-tab">
+              <img src={gear} alt="" className="tab-icon" />
+              {t.tabs.metadata}
+            </Tab>
+            <Tab id="fields" className="folder-tab">
+              <img src={clipboard} alt="" className="tab-icon" />
+              {t.tabs.fields}
+            </Tab>
+            <Tab id="bring" className="folder-tab">
+              {t.tabs.bring}
+            </Tab>
+            <Tab
+              id="groups"
+              className="folder-tab"
+              aria-description={accepted ? undefined : t.tabs.groupsLocked}
+            >
+              {t.tabs.groups}
+            </Tab>
+            <Tab
+              id="sales"
+              className="folder-tab"
+              aria-description={grouped ? undefined : t.tabs.salesLocked}
+            >
+              {t.tabs.sales}
+            </Tab>
+            <Tab
+              id="check"
+              className="folder-tab"
+              aria-description={!hasValues ? t.tabs.noValues : checked ? undefined : t.tabs.valuesLocked}
+              {...(!hasValues ? { "aria-label": `${t.tabs.check}: ${t.tabs.noValues}` } : {})}
+            >
+              {t.tabs.check}
+            </Tab>
+            <Tab
+              id="variables"
+              className="folder-tab"
+              aria-description={checked ? undefined : t.tabs.valuesLocked}
+            >
+              {t.tabs.variables}
+            </Tab>
+            <Tab
+              id="values"
+              className="folder-tab"
+              aria-description={!checked ? t.tabs.valuesLocked : prepared ? undefined : t.tabs.modelsLocked}
+            >
+              {t.tabs.values}
+            </Tab>
+            <Tab
+              id="report"
+              className="folder-tab"
+              aria-description={finalized ? undefined : t.tabs.reportLocked}
+            >
+              {t.tabs.report}
+            </Tab>
+          </TabList>
+        </TabStrip>
         <TabPanel id="metadata" className="folder-panel">
           {notice}
           <MetadataTab detail={detail} />

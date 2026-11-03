@@ -1127,6 +1127,8 @@ export const t = {
   },
 
   tabs: {
+    scrollLeft: "Tabs to the left",
+    scrollRight: "Tabs to the right",
     metadata: "Metadata",
     inputFiles: "Input files",
     fields: "Data",
