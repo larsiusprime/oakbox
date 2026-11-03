@@ -8468,8 +8468,8 @@
        {
         "type": "string",
         "enum": [
-         "compact",
-         "comfortable"
+         "default",
+         "compact"
         ]
        },
        {
@@ -8477,7 +8477,7 @@
        }
       ],
       "title": "Density",
-      "description": "None: compact, or comfortable on touch screens."
+      "description": "None: default. Compact: a Windows 2000 dialog's density."
      },
      "large_text": {
       "type": "boolean",
@@ -8501,8 +8501,8 @@
        {
         "type": "string",
         "enum": [
-         "compact",
-         "comfortable"
+         "default",
+         "compact"
         ]
        },
        {
@@ -8510,7 +8510,7 @@
        }
       ],
       "title": "Density",
-      "description": "None: compact, or comfortable on touch screens."
+      "description": "None: default. Compact: a Windows 2000 dialog's density."
      },
      "large_text": {
       "type": "boolean",

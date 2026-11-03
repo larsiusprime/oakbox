@@ -58,18 +58,22 @@ def test_project_items_are_greyed_out_until_a_project_is_open(client):
     assert r.titles == ["Travis County 2026 – OAK box"]
 
 
+def test_comfortable_is_gone_a_saved_one_reads_as_the_default():
+    assert appsettings.AppSettings.model_validate({"density": "comfortable"}).density is None
+
+
 def test_view_items_save_the_setting_check_it_and_restyle_the_page():
     r = Recorder()
     c = r.controller()
     items = _items()
-    large, compact = items[("View", "Large text")], items[("View", "Density", "Compact")]
-    assert not large.checked(c.context()) and compact.checked(c.context())
+    large, default = items[("View", "Large text")], items[("View", "Density", "Default")]
+    assert not large.checked(c.context()) and default.checked(c.context())
     c.run("large-text")
-    c.run("density-comfortable")
+    c.run("density-compact")
     s = appsettings.load()
-    assert s.large_text and s.density == "comfortable"
-    assert large.checked(c.context()) and not compact.checked(c.context())
-    assert items[("View", "Density", "Comfortable")].checked(c.context())
+    assert s.large_text and s.density == "compact"
+    assert large.checked(c.context()) and not default.checked(c.context())
+    assert items[("View", "Density", "Compact")].checked(c.context())
     assert r.sent == ["display", "display"]  # the page re-reads the settings
 
 
@@ -98,7 +102,7 @@ def test_exit_and_documentation_run_here_the_rest_in_the_page():
 
 
 def test_every_menu_command_is_handled():
-    handled_here = {"exit", "docs", "density-compact", "density-comfortable", "large-text", "high-contrast"}
+    handled_here = {"exit", "docs", "density-default", "density-compact", "large-text", "high-contrast"}
     commands = {item.command for _, item in menus.walk()}
     assert commands == handled_here | set(menus.PAGE_COMMANDS)
 
@@ -144,7 +148,7 @@ def test_display_settings_are_kept(client):
         "large_text": False,
         "high_contrast": False,
     }
-    body = {"density": "comfortable", "large_text": True, "high_contrast": False}
+    body = {"density": "compact", "large_text": True, "high_contrast": False}
     assert client.put("/api/app-settings/display", json=body).json()["display"] == body
     assert client.get("/api/app-settings").json()["display"] == body
     assert client.put("/api/app-settings/display", json=body | {"density": "huge"}).status_code == 422
