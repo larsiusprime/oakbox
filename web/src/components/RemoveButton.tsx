@@ -44,15 +44,16 @@ export function RemoveButton({
   );
 }
 
-/** Taking something away, with words ("Remove group"): an ordinary button that keeps the red −. What it calls
- * offers Undo itself (lib/undo.ts), as it knows how to put it back. */
+/** Taking something away, with words ("− Remove group"): the same red button as RemoveButton, its white − then its
+ * words. What it calls offers Undo itself (lib/undo.ts), as it knows how to put it back. Told apart from deleting
+ * (DeleteButton) by its symbol: − here, a trash can there. */
 export function RemoveTextButton({
   children,
   ...props
 }: Omit<ButtonProps, "className" | "children"> & { children: ReactNode }) {
   return (
-    <Button {...props} className="button">
-      <Minus aria-hidden="true" size="1em" strokeWidth={3} className="remove-icon" />
+    <Button {...props} className="button button-danger">
+      <Minus aria-hidden="true" size="1em" strokeWidth={3} />
       {children}
     </Button>
   );

@@ -775,10 +775,6 @@ a.row-title:hover {
   margin-left: 0.2em;
   vertical-align: -0.05em;
 }
-/* "Remove group": the red − with words. */
-.remove-icon {
-  color: var(--bad);
-}
 /* A small button after a check or a line of text sits a little apart from it. */
 .wiz-check-lines .button-small,
 .wiz-issues .button-small,

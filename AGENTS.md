@@ -99,7 +99,8 @@ name that says what it is.
     white − (the pair of AddButton's +), last on its line at the right edge. `what` names what it removes: its
     label ("Remove parks") shows on hover and is read aloud. Pass `undo` (how to put it back): "Removed parks · Undo"
     shows for a few seconds (`lib/undo.ts`, `components/UndoToast.tsx`); a remove that can't be undone isn't a
-    remove. With words, it keeps its − (`RemoveTextButton`, "− Remove group", offering Undo itself). Never a
+    remove. With words, it's the same red button, its white − then its words (`RemoveTextButton`, "− Remove group",
+    offering Undo itself). Never a
     "Remove" link, "(remove)", "drop", an ✕ or a "(none)" option in a dropdown. On a file it takes the file off that
     step, never off disk.
   - **Deleting for good is `DeleteButton`** (`components/Buttons.tsx`): a danger button with a trash can and its
