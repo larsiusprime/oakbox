@@ -100,8 +100,6 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const index = seq.indexOf(current);
   const prev = seq[index - 1];
   const next = seq[index + 1];
-  const tops = data.steps.filter((s) => !s.parent);
-  const top = current.parent ?? current.key;
   const list = <StepList steps={data.steps} current={landing ? OVERVIEW : current.key} go={go} />;
   const tabPage = L.fields;
   if (landing && tabPage) {
@@ -129,7 +127,6 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
         <div className="wiz-main">
           <LandingPage
             page={page}
-            kicker={`${t.tabs.fields} · ${w.stepOf({ n: tops.indexOf(current) + 1, of: tops.length })}`}
             start={w.steps[part]?.title ?? part}
             onStart={() => go(part)}
             back={prev ? () => go(prev.key) : null}
@@ -139,12 +136,6 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
     );
   }
   const copy = w.steps[current.key] ?? { title: current.key, question: "", lede: "" };
-  const kicker = [
-    w.stepOf({ n: tops.findIndex((s) => s.key === top) + 1, of: tops.length }),
-    current.parent ? `${w.steps[current.parent]?.title} › ${copy.title}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
   // Sales must have their fields; a step of optional fields (deeds, too) can be answered "I don't have these".
   const skippable = current.fields.length > 0 && current.key !== "sales";
   // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
@@ -166,7 +157,6 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
       {list}
       <div className="wiz-main">
         <div className="wiz-body">
-          <p className="wiz-kicker">{kicker}</p>
           <h2 className="wiz-q">{copy.question}</h2>
           {copy.lede && <p className="wiz-lede">{copy.lede}</p>}
           {current.key === "universe" && (

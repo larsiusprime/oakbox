@@ -116,7 +116,6 @@
       "outside": "Names too irregular for any pattern are better split before they come in: give the sales file clear seller and buyer surname columns, and load them as Seller surname and Buyer surname (above). They''re used as given."
     },
     "loading": "Reading the files…",
-    "stepOf": "Step {n} of {of}",
     "back": "‹ Back",
     "toBringIn": "Bring in data ›",
     "left": {
@@ -759,9 +758,6 @@
       "mapLabel": "Map of the parcels, with the centre point",
       "pinTitle": "The centre: drag to move it",
       "centerMiddle": "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
-      "centerMiddleHidden": "The centre is the middle of the parcels. Show the map to move it (downtown, say).",
-      "showMap": "Show map",
-      "hideMap": "Hide map",
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",
       "column": "Column",
@@ -1186,7 +1182,6 @@
     "bringChanged": "What changed: {what}."
   },
   "report": {
-    "kicker": "Step 7 of 7",
     "steps": {
       "export": "Export",
       "report": "Report"
@@ -1229,7 +1224,6 @@
     "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"
   },
   "bringIn": {
-    "kicker": "Step 1 of 7 · after Data",
     "steps": {
       "plan": "What runs",
       "run": "Bring in data",
@@ -1342,7 +1336,6 @@
     "counts": "Counts are {noun}."
   },
   "groups": {
-    "kicker": "Step 2 of 7",
     "title": "Model groups",
     "lede": "Parcels valued together: each group gets its own models. A parcel joins the first group whose rule it meets, so order matters. Vacant parcels stay in their group.",
     "notReady": "Bring in data first: model groups are made from its parcel universe.",
@@ -1495,7 +1488,6 @@
     "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone."
   },
   "sales": {
-    "kicker": "Step 3 of 7",
     "steps": {
       "window": "Sales window",
       "time": "Time adjustment",
@@ -1917,7 +1909,6 @@
     }
   },
   "ratio": {
-    "kicker": "Step 4 of 7",
     "what": {
       "title": "Check your existing values?",
       "lede": "See how the values you have (the roll, a vendor''s AVM) do against the sales, before modelling: OpenAVMKit''s ratio and equity studies, per model group and overall. Or skip to Model values: they''re compared with the models there either way.",
@@ -2196,7 +2187,6 @@
     "toValues": "Model values ›"
   },
   "values": {
-    "kicker": "Step 5 of 7",
     "modelsKicker": "Step 6 of 7",
     "steps": {
       "fill": "Fill blanks",
@@ -2678,7 +2668,6 @@
     }
   },
   "metadata": {
-    "kicker": "The project",
     "details": "Project details",
     "jurisdiction": "Jurisdiction",
     "region": "Region",
@@ -2694,57 +2683,46 @@
     "start": "Start: {step} ›",
     "pages": {
       "fields": {
-        "kicker": "Before step 1",
         "title": "Welcome to OAK box",
         "lede": "OAK box helps you build models. It needs two datasets for that: a **sales record** and a **parcel universe**\n\nThe **sales record** is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe **parcel universe** is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
       },
       "big_five": {
-        "kicker": "",
         "title": "Big five",
         "lede": "The five things a model leans on most: how big the building is, how big its land is, how old it is, how well it''s built and what condition it''s in. Building size is required; land size is worked out from the shapes if you leave it out; the other three are strongly recommended. One short part each."
       },
       "details": {
-        "kicker": "",
         "title": "More details",
         "lede": "Where each parcel is, what kind of property it is, any other columns you want, the values it has now, and map layers. A short part each; one you don''t have can be left."
       },
       "condos": {
-        "kicker": "",
         "title": "Condo units",
         "lede": "Condos, and anything else on the roll that isn''t on the map: units with a parcel ID of their own but no shape, because they share a parcel. Here OAK box learns how to find each unit''s parcel, so the unit is placed, measured and valued like any other parcel."
       },
       "bring": {
-        "kicker": "Step 1 of 7",
         "title": "Bring in data",
         "lede": "OpenAVMKit reads the files as Data describes them and joins them into one table of every parcel (the parcel universe) and one of every sale. It also works out what it can on its own: coordinates, building ages, land areas, and the public data you asked for."
       },
       "groups": {
-        "kicker": "Step 2 of 7",
         "title": "Model groups",
         "lede": "Not every parcel sells the same way: a condo isn''t valued like a farm. Model groups split the parcels into kinds that sell alike, so each kind gets its own models, and its own ratio study."
       },
       "sales": {
-        "kicker": "Step 3 of 7",
         "title": "Check sales",
         "lede": "Only fair, open-market sales are evidence of what parcels are worth. This step decides which sales count, and brings their prices to the valuation date."
       },
       "check": {
-        "kicker": "Step 4 of 7",
         "title": "Check my values",
         "lede": "Before modeling anything, how good are the values you have now? This step checks the existing roll, and any other values you loaded, against what parcels actually sold for: the IAAO ratio study."
       },
       "variables": {
-        "kicker": "Step 5 of 7",
         "title": "Variables",
         "lede": "Models learn from the parcels'' characteristics: size, age, quality, location. This step gets those fields ready, finds which ones carry information about price, and puts them into the lists the models use."
       },
       "values": {
-        "kicker": "Step 6 of 7",
         "title": "Model values",
         "lede": "This is where the values are made. Each model group gets its models; they''re tried, judged as Check my values judges the roll, and the best are combined into one value for every parcel."
       },
       "report": {
-        "kicker": "Step 7 of 7",
         "title": "Report",
         "lede": "The values out of OAK box: as a file for your CAMA system or GIS, and as a report that says plainly how good they are."
       }

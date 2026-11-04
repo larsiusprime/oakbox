@@ -82,7 +82,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
     <StepFrame steps={steps} current={current} go={go} landing="bring">
       {current === "plan" && (
         <>
-          <StepBody kicker={b.kicker} title={b.title} lede={b.lede}>
+          <StepBody title={b.title} lede={b.lede}>
             {v.blocked.length > 0 && (
               <div className="bi-warn">
                 <b>{b.blocked({ n: v.blocked.length })}</b> {v.blocked[0]}{" "}
@@ -127,7 +127,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "run" && (
         <>
-          <StepBody kicker={b.kicker} title={b.runTitle} lede={b.runLede}>
+          <StepBody title={b.runTitle} lede={b.runLede}>
             {running ? (
               <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} skip={(part) => skip.mutate(part)} />
             ) : (
@@ -185,7 +185,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "universe" && r && (
         <>
-          <StepBody kicker={b.kicker} title={b.universe}>
+          <StepBody title={b.universe}>
             {staleNote}
             <Section
               title={b.universe}
@@ -202,7 +202,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "sales" && r && (
         <>
-          <StepBody kicker={b.kicker} title={b.sales}>
+          <StepBody title={b.sales}>
             {staleNote}
             <Section
               title={b.sales}
@@ -219,7 +219,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "more" && r && (
         <>
-          <StepBody kicker={b.kicker} title={b.steps.more}>
+          <StepBody title={b.steps.more}>
             {staleNote}
             <MoreView receipt={r} rerun={running || v.blocked.length > 0 ? null : runIt} />
           </StepBody>

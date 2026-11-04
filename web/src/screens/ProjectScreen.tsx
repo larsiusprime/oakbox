@@ -314,7 +314,7 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
       current="details"
       go={() => {}}
     >
-      <StepBody kicker={m.kicker} title={m.details}>
+      <StepBody title={m.details}>
         <div className="meta-sheet">
           <dl className="facts">
             {rows.map(([k, v]) => (

@@ -160,7 +160,6 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       ((key === "check" || key === "write") && !saved.length) ||
       (key === "results" && !a.receipt),
   }));
-  const kicker = g.kicker;
   const prev = STEPS[STEPS.indexOf(current) - 1];
   const back = prev ? () => go(prev) : null;
   const toSales = () => navigate({ name: "project", id: projectId, tab: "sales" });
@@ -171,7 +170,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
     <StepFrame steps={steps} current={current} go={go} landing="groups" wide={current === "build"}>
       {current === "start" && (
         <>
-          <StepBody kicker={kicker} title={g.startTitle} lede={g.lede}>
+          <StepBody title={g.startTitle} lede={g.lede}>
             {v.start && <p className="wiz-note">{g.startedWith({ how: v.start })}</p>}
             {/* A choice, then Start: cards that acted at once read as neither a choice nor a button. */}
             <RadioGroup
@@ -234,7 +233,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "check" && (
         <>
-          <StepBody kicker={kicker} title={g.checkTitle} lede={g.checkLede}>
+          <StepBody title={g.checkTitle} lede={g.checkLede}>
             <Checks
               groups={saved}
               preview={p}
@@ -255,7 +254,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "write" && (
         <>
-          <StepBody kicker={kicker} title={g.writeTitle} lede={g.run.what}>
+          <StepBody title={g.writeTitle} lede={g.run.what}>
             {running ? (
               <RunProgress job={a.job} lastSeconds={a.receipt?.seconds ?? null} />
             ) : (
@@ -309,7 +308,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "results" && (
         <>
-          <StepBody kicker={kicker} title={g.run.title}>
+          <StepBody title={g.run.title}>
             <AssembleResults projectId={projectId} view={a} groups={saved} />
           </StepBody>
           <StepFoot

@@ -103,7 +103,6 @@ if (__WORDING_EDIT__ && import.meta.hot) {
 
 /** A major step's landing page (SPEC D21): what it's for, in a few lines, before its first part. */
 export type Landing = {
-  kicker: string;
   title: string;
   // Shown, never used as text: may be formatted (**bold**, *italic*).
   lede: ReactNode;

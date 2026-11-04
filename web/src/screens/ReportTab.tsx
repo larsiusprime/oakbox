@@ -47,7 +47,7 @@ export function ReportTab({ projectId }: { projectId: string }) {
   return (
     <StepFrame steps={steps} current={at} go={(k) => setAt(k as RStep)} landing="report">
       {!v.ready ? (
-        <StepBody kicker={r.kicker} title={r.steps[at]}>
+        <StepBody title={r.steps[at]}>
           <p className="wiz-from">{r.notReady}</p>
         </StepBody>
       ) : at === "export" ? (
@@ -94,7 +94,7 @@ function ExportStep({ projectId, v }: { projectId: string; v: View }) {
   const show = useShow(projectId);
   const done = write.data;
   return (
-    <StepBody kicker={r.kicker} title={r.steps.export} lede={r.exportLede}>
+    <StepBody title={r.steps.export} lede={r.exportLede}>
       {!v.accepted && <p className="wiz-warn">{r.notAccepted}</p>}
       <div className="rp-row">
         <span className="mo-label">{r.format}</span>
@@ -183,7 +183,7 @@ function ReportStep({
   };
   const empty = v.sets.filter((k) => !v.available.includes(k));
   return (
-    <StepBody kicker={r.kicker} title={r.steps.report} lede={r.reportLede}>
+    <StepBody title={r.steps.report} lede={r.reportLede}>
       {!v.accepted && <p className="wiz-warn">{r.notAccepted}</p>}
       <div className="rp-opts">
         <Field label={r.title} value={draft ?? v.title} onChange={setDraft} onBlur={keepTitle} width="long" />

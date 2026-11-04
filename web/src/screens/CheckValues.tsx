@@ -125,7 +125,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   if (v.blocked.length)
     return (
       <StepFrame steps={steps} current="sales" go={() => {}} landing="check">
-        <StepBody kicker={r.kicker} title={r.sales.title}>
+        <StepBody title={r.sales.title}>
           <div className="bi-warn">
             <b>{r.blocked}</b> {v.blocked[0]}
           </div>
@@ -147,7 +147,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
     <StepFrame steps={steps} current={current} go={go} landing="check">
       {current === "what" && (
         <>
-          <StepBody kicker={r.kicker} title={r.what.title} lede={r.what.lede}>
+          <StepBody title={r.what.title} lede={r.what.lede}>
             {u ? <WhatCard v={u} set={set} /> : loading}
             {errors}
           </StepBody>
@@ -168,7 +168,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "sales" && (
         <>
-          <StepBody kicker={r.kicker} title={r.sales.title} lede={r.sales.lede}>
+          <StepBody title={r.sales.title} lede={r.sales.lede}>
             {u ? <SalesCard key={`${u.start}|${u.end}`} v={u} set={set} /> : loading}
             {errors}
           </StepBody>
@@ -177,7 +177,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "whose" && (
         <>
-          <StepBody kicker={r.kicker} title={r.standards.whose} lede={r.standards.whoseLede}>
+          <StepBody title={r.standards.whose} lede={r.standards.whoseLede}>
             {u ? <WhoseCard v={u} set={set} /> : loading}
             {errors}
           </StepBody>
@@ -186,7 +186,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "standards" && (
         <>
-          <StepBody kicker={r.kicker} title={r.standards.title} lede={r.standards.lede}>
+          <StepBody title={r.standards.title} lede={r.standards.lede}>
             {u ? <StandardsTable v={u} set={set} /> : loading}
             {errors}
           </StepBody>
@@ -195,7 +195,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "assign" && (
         <>
-          <StepBody kicker={r.kicker} title={r.standards.assignTitle} lede={r.standards.assignLede}>
+          <StepBody title={r.standards.assignTitle} lede={r.standards.assignLede}>
             {u ? <AssignTable v={u} set={set} /> : loading}
             {errors}
           </StepBody>
@@ -204,7 +204,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       )}
       {current === "run" && (
         <>
-          <StepBody kicker={r.kicker} title={r.steps.run} lede={r.run.lede}>
+          <StepBody title={r.steps.run} lede={r.run.lede}>
             {running ? (
               <RunProgress job={v.job} lastSeconds={rc?.seconds ?? null} />
             ) : (
@@ -238,7 +238,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       )}
       {AFTER.includes(current) && rc && result && (
         <>
-          <StepBody kicker={r.kicker} {...(current === "prices" ? {} : { title: r.steps[current] })}>
+          <StepBody {...(current === "prices" ? {} : { title: r.steps[current] })}>
             {which}
             {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
             {current === "summary" && (

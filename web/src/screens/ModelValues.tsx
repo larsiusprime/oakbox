@@ -106,7 +106,7 @@ export function ValuesTab({
     <StepFrame steps={steps} current={current} go={go} landing="values">
       {current === "models" && (
         <>
-          <StepBody kicker={m.modelsKicker} title={m.steps.models} lede={m.model.modelsLede}>
+          <StepBody title={m.steps.models} lede={m.model.modelsLede}>
             {mu && group ? (
               <GroupModelsCard key={group.id} projectId={projectId} v={mu} gid={group.id} />
             ) : (
@@ -134,7 +134,7 @@ export function ValuesTab({
       )}
       {current === "try" && (
         <>
-          <StepBody kicker={m.modelsKicker} title={m.steps.try} lede={m.model.tryLede}>
+          <StepBody title={m.steps.try} lede={m.model.tryLede}>
             {mv.blocked.length > 0 && (
               <div className="bi-warn">
                 <b>{m.blocked}</b> {mv.blocked[0]}
@@ -177,7 +177,7 @@ export function ValuesTab({
       )}
       {current === "how" && mr && (
         <>
-          <StepBody kicker={m.modelsKicker} title={m.steps.how} lede={m.model.howLede}>
+          <StepBody title={m.steps.how} lede={m.model.howLede}>
             <HowTheyDid view={mv} />
           </StepBody>
           <StepFoot back={back} extra={[{ label: m.model.tryAgain, onPress: tryIt }]} next={onward} />
@@ -185,7 +185,7 @@ export function ValuesTab({
       )}
       {current === "small" && mr && (
         <>
-          <StepBody kicker={m.modelsKicker} title={m.steps.small} lede={m.small.lede}>
+          <StepBody title={m.steps.small} lede={m.small.lede}>
             {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
             <SmallGroupsStep projectId={projectId} />
           </StepBody>
@@ -198,7 +198,7 @@ export function ValuesTab({
       )}
       {current === "final" && (
         <>
-          <StepBody kicker={m.modelsKicker} title={m.steps.final} lede={f.lede}>
+          <StepBody title={m.steps.final} lede={f.lede}>
             {(fv?.blocked.length ?? 0) > 0 && (
               <div className="bi-warn">
                 <b>{m.blocked}</b> {fv?.blocked[0]}
@@ -241,7 +241,7 @@ export function ValuesTab({
       )}
       {current === "values" && fr && (
         <>
-          <StepBody kicker={m.modelsKicker} title={m.steps.values} lede={f.valuesLede}>
+          <StepBody title={m.steps.values} lede={f.valuesLede}>
             {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
             <FinalValues projectId={projectId} receipt={fr} currency={currency} units={units} />
             {errors}

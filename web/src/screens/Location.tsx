@@ -1,6 +1,5 @@
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, Map as MapIcon } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
@@ -13,7 +12,6 @@ import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 
 const l = t.wizard.location;
-const MAP_KEY = "oakbox.locationMap";
 type MapView = {
   points: [number, number][];
   middle: [number, number] | null;
@@ -44,24 +42,6 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
     onSuccess: (data) => queryClient.setQueryData(["map", projectId], data),
   });
   const v = view.data as MapView | undefined;
-  // Hidden until asked for (it's big), and remembered on this computer.
-  const [shown, setShown] = useState(() => {
-    try {
-      return localStorage.getItem(MAP_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const toggle = () => {
-    setShown((on) => {
-      try {
-        localStorage.setItem(MAP_KEY, on ? "0" : "1");
-      } catch {
-        // no storage (a private window): the choice lasts until the page closes
-      }
-      return !on;
-    });
-  };
   return (
     <section className="wiz-section">
       <ul className="wiz-auto">
@@ -76,25 +56,16 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
         <p className="wiz-note">{l.noShapes}</p>
       ) : v && v.points.length > 0 ? (
         <>
-          <Button className="button wiz-map-toggle" aria-expanded={shown} onPress={toggle}>
-            {shown ? <ChevronUp aria-hidden="true" size="1em" /> : <MapIcon aria-hidden="true" size="1em" />}
-            {shown ? l.hideMap : l.showMap}
-          </Button>
-          {shown && (
-            <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
-          )}
+          {/* The centre, and the way back to the middle, above the map: always shown, it's the step's point. */}
           <p className="wiz-note">
-            {v.center
-              ? say.wizard.location.centerSet(v.center[0], v.center[1])
-              : shown
-                ? l.centerMiddle
-                : l.centerMiddleHidden}{" "}
+            {v.center ? say.wizard.location.centerSet(v.center[0], v.center[1]) : l.centerMiddle}{" "}
             {v.center && (
               <Button className="button button-small" onPress={() => move.mutate(null)}>
                 {l.useMiddle}
               </Button>
             )}
           </p>
+          <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
         </>
       ) : view.isPending ? (
         <p className="wiz-note">{l.loading}</p>

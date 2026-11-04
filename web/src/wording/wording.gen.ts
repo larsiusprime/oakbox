@@ -113,7 +113,6 @@ export type Wording = {
       outside: string;
     };
     loading: string;
-    stepOf: (a: { n: string | number; of: string | number }) => string;
     back: string;
     toBringIn: string;
     left: {
@@ -504,9 +503,6 @@ export type Wording = {
       mapLabel: string;
       pinTitle: string;
       centerMiddle: string;
-      centerMiddleHidden: string;
-      showMap: string;
-      hideMap: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;
       column: string;
@@ -841,7 +837,6 @@ export type Wording = {
     bringChanged: (a: { what: string | number }) => string;
   };
   report: {
-    kicker: string;
     steps: {
       export: string;
       report: string;
@@ -880,7 +875,6 @@ export type Wording = {
     ran: (a: { when: string | number; seconds: number; engine: string | number }) => string;
   };
   bringIn: {
-    kicker: string;
     steps: {
       plan: string;
       run: string;
@@ -983,7 +977,6 @@ export type Wording = {
     counts: (a: { noun: string | number }) => string;
   };
   groups: {
-    kicker: string;
     title: string;
     lede: string;
     notReady: string;
@@ -1132,7 +1125,6 @@ export type Wording = {
     undoConfirm: string;
   };
   sales: {
-    kicker: string;
     steps: {
       window: string;
       time: string;
@@ -1477,7 +1469,6 @@ export type Wording = {
     };
   };
   ratio: {
-    kicker: string;
     what: {
       title: string;
       lede: string;
@@ -1717,7 +1708,6 @@ export type Wording = {
     toValues: string;
   };
   values: {
-    kicker: string;
     modelsKicker: string;
     steps: {
       fill: string;
@@ -2117,7 +2107,6 @@ export type Wording = {
     };
   };
   metadata: {
-    kicker: string;
     details: string;
     jurisdiction: string;
     region: string;
@@ -2132,11 +2121,9 @@ export type Wording = {
     overview: string;
     start: (a: { step: string | number }) => string;
     pages: Record<string, ({
-      kicker: string;
       title: string;
       lede: ReactNode;
     }) | ({
-      kicker: string;
       title: string;
       lede: string;
     })>;

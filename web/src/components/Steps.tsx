@@ -120,13 +120,11 @@ export const LANDING_MARK = "◆";
 /** A major step's landing page (SPEC D21): what it's for, in a few lines; Start goes on to its first step. */
 export function LandingPage({
   page,
-  kicker,
   start,
   onStart,
   back,
 }: {
   page: Landing;
-  kicker?: string;
   start: string;
   onStart: () => void;
   back?: (() => void) | null;
@@ -135,7 +133,6 @@ export function LandingPage({
   return (
     <>
       <div className="wiz-body land">
-        <p className="wiz-kicker">{kicker ?? page.kicker}</p>
         <h2 className="wiz-q">{page.title}</h2>
         <p className="wiz-lede">{page.lede}</p>
       </div>
@@ -146,13 +143,11 @@ export function LandingPage({
 
 /** One step's page: its question or title, then what it asks. flush: no padding, for a builder that fills it. */
 export function StepBody({
-  kicker,
   title,
   lede,
   flush = false,
   children,
 }: {
-  kicker?: string;
   title?: string;
   // Shown, never used as text: may be formatted (**bold**, *italic*).
   lede?: React.ReactNode;
@@ -161,7 +156,6 @@ export function StepBody({
 }) {
   return (
     <div className={flush ? "wiz-body wiz-flush" : "wiz-body"}>
-      {kicker && <p className="wiz-kicker">{kicker}</p>}
       {title && <h2 className="wiz-q">{title}</h2>}
       {lede && <p className="wiz-lede">{lede}</p>}
       {children}
