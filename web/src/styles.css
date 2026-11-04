@@ -5402,8 +5402,12 @@ under what it's about; a file appended as rows {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
-/* The sheet: everything after the title, one continuous piece of paper set into the frame. */
+/* The sheet: everything after the title, one continuous piece of paper set into the frame. Each part is the sheet's
+   whole width, even one that's as wide as its content elsewhere (a settings grid, radio cards), so no wood shows
+   beside it. */
 .modal-body > :not(.modal-title) {
+  width: auto;
+  max-width: none;
   margin: 0;
   padding: calc(0.3 * var(--sp)) calc(0.9 * var(--sp));
   background: var(--paper);
