@@ -8107,6 +8107,11 @@ export interface components {
              * @description Median price per sq ft (or sale price) of its sales.
              */
             median: number | null;
+            /**
+             * Price
+             * @description Median sale price of its sales.
+             */
+            price: number | null;
         };
         /** TiersPreview */
         TiersPreview: {
@@ -9125,6 +9130,11 @@ export interface components {
              * @description How many different values its column has (not blank).
              */
             distinct: number | null;
+            /**
+             * Numbers
+             * @description Quality/condition: its column is all numbers, so it can be read as numbers.
+             */
+            numbers: boolean | null;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {

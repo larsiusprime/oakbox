@@ -217,6 +217,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 area_unit = None
                 number_format = None
                 scale = None
+                numbers = None
                 if ruled and rule is not None and len(sources) == 1:
                     check = _rule_check(files, ruled, key, rule)
                 elif len(sources) == 1 and d.type == "boolean" and step.sales:
@@ -238,6 +239,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         entry = files.entry(sources[0].file)
                         scale = entry.scales.get(key) or Scale()
                         check = _scale_check(files, entry, key, col.name, scale)
+                        numbers = _plain(values_of(file_stamp(in_dir / entry.filename), entry.layer, col.name))
                     elif col and is_money(key):
                         entry = files.entry(sources[0].file)
                         number_format = entry.numbers.get(key)
@@ -271,6 +273,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         scale=scale,
                         absent=key in project.wizard.absent and not sources,
                         distinct=_distinct(files, sources[0]) if len(sources) == 1 else None,
+                        numbers=numbers,
                     )
                 )
 
@@ -608,7 +611,11 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
         elif found:
             files.entry(found[0]).load[key] = found[1]
             if key in SCALED:
-                files.entry(found[0]).scales[key] = _new_scale(files, files.entry(found[0]), key, found[1][0])
+                entry = files.entry(found[0])
+                entry.scales[key] = _new_scale(files, entry, key, found[1][0])
+                if entry.scales[key].kind == "tiers" and PAIRS[key] not in loaded:
+                    entry.load[PAIRS[key]] = [found[1][0], "string"]  # the category's text: the same column
+                    loaded.add(PAIRS[key])
             if key in AREA_FIELDS:
                 unit = guess_area_unit(found[1][0]) or small_unit(project.units)
                 files.entry(found[0]).area_units[key] = unit
@@ -930,7 +937,9 @@ def set_field(
             # Numbers, or a category to rank into tiers: either way it becomes a number (F3d).
             entry = next(f for f in allowed if f.name == file)
             plain = _plain(values_of(file_stamp(in_dir / entry.filename), entry.layer, column))
-            spec = [column, "float"] if plain else [column, "string"]
+            # Numbers or a category is the user's to say: numbers (1–6) can be codes to rank, too.
+            tiers = not plain or (scale is not None and scale.kind == "tiers")
+            spec = [column, "string"] if tiers else [column, "float"]
             if not plain and scale is not None and scale.kind not in (None, "tiers"):
                 raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
         if is_money(key):
@@ -954,6 +963,13 @@ def set_field(
         raise ValueError(f"{key} can't be assumed.")
     elif absent and key not in ABSENT_OK:
         raise ValueError(f"{key} can't be said not to exist.")
+    # The category's text follows a category number (one column, both ways); a number drops it again.
+    pair = PAIRS.get(key) if key in SCALED and only is None else None
+    was = next((f.load[key][0] for f in allowed if key in f.load), None)
+    if pair is not None:
+        for f in allowed:
+            if was is not None and f.load.get(pair, [None])[0] == was:
+                f.load.pop(pair, None)
     for f in allowed:
         f.load.pop(key, None)
         f.rules.pop(key, None)
@@ -976,6 +992,8 @@ def set_field(
             target.numbers[key] = reading
         if key in SCALED:
             target.scales[key] = _new_scale(Files(project, in_dir), target, key, spec[0], scale)
+            if pair is not None and target.scales[key].kind == "tiers" and not any(pair in f.load for f in allowed):
+                target.load[pair] = [cast(str, column), "string"]
     elif assume and sales is not None:
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if only is not None:

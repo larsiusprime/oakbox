@@ -772,6 +772,27 @@ export type Wording = {
       basedOn: (a: { notes: string | number }) => string;
       cancel: string;
       save: string;
+      writtenAsLabel: string;
+      asKinds: {
+        num: string;
+        cat: string;
+      };
+      asHints: {
+        num: string;
+        cat: string;
+      };
+      notNumbers: (a: { column: string | number }) => string;
+      evidenceHead: string;
+      risesPrice: string;
+      fallsPrice: (a: { n: number }) => string;
+      tiersHead: string;
+      tiersHint: string;
+      useOrder: string;
+      suggested: string;
+      best: string;
+      worst: string;
+      placeIt: string;
+      notRanked: string;
       whichWayLabel: string;
       meansLabel: string;
     };

@@ -19354,6 +19354,18 @@
       ],
       "title": "Median",
       "description": "Median price per sq ft (or sale price) of its sales."
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price",
+      "description": "Median sale price of its sales."
      }
     },
     "type": "object",
@@ -19362,7 +19374,8 @@
      "count",
      "number",
      "sales",
-     "median"
+     "median",
+     "price"
     ],
     "title": "Tier"
    },
@@ -21689,6 +21702,18 @@
       ],
       "title": "Distinct",
       "description": "How many different values its column has (not blank)."
+     },
+     "numbers": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Numbers",
+      "description": "Quality/condition: its column is all numbers, so it can be read as numbers."
      }
     },
     "type": "object",
@@ -21709,7 +21734,8 @@
      "number_format",
      "scale",
      "absent",
-     "distinct"
+     "distinct",
+     "numbers"
     ],
     "title": "WizardField"
    },

@@ -30,12 +30,15 @@ import { EnrichStep } from "./Enrich";
 import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
 import { Coordinates, LocationFields } from "./Location";
 import { PermitsStep } from "./Permits";
+import { QualityStep } from "./QualityStep";
 import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep, UnitsPointer } from "./Units";
 import { ValueSetsStep } from "./ValueSets";
 import { CheckText, FilePicker, IdCheck, IdRow, isMainSales, StepFile } from "./WizardFiles";
 import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
+// Quality and condition: numbers or categories, on a page of their own (QualityStep).
+const QUALITY_STEPS = ["quality", "condition"];
 const w = t.wizard;
 const L = t.landing.pages;
 const MAKE = "__make";
@@ -181,9 +184,13 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
           {current.fields.length > 0 &&
             current.key !== "assessed" &&
+            !QUALITY_STEPS.includes(current.key) &&
             (current.key !== "sales" || data.sale_id.file) && (
               <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
             )}
+          {QUALITY_STEPS.includes(current.key) && (
+            <QualityStep project={project} data={data} step={current} change={change.mutateAsync} />
+          )}
           {current.key === "coordinates" && (
             <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
           )}

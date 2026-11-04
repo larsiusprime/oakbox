@@ -118,7 +118,7 @@ def _new_scale(files: Files, entry: DataFile, key: str, column: str, given: Scal
     """A scale for a column: the user's, with the column's range filled in; or a first one that says nothing yet
     (a category: tiers to rank; numbers: which way they run, and for condition whether they're 0-1 fractions)."""
     values = _qc_values(files, entry, column)
-    if not _plain(values):
+    if not _plain(values) or (given is not None and given.kind == "tiers"):
         return Scale(kind="tiers", tiers=dict(given.tiers) if given and given.kind == "tiers" else {})
     nums = [float(v) for v in values if v]
     s = given.model_copy(update={"tiers": {}}) if given is not None else Scale()
@@ -270,6 +270,7 @@ def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tu
 class PriceGroup(BaseModel):
     sales: int
     median: float | None
+    price: float | None = None
 
 
 def _price_by(
@@ -287,6 +288,7 @@ def _price_by(
     if not size:
         notes.append("no building size: choose it on this step for a fairer comparison")
     by: dict[str, list[float]] = {}
+    whole: dict[str, list[float]] = {}
     for i, price in rows:
         g = group.get(i)
         if g is None:
@@ -295,9 +297,17 @@ def _price_by(
             area = size.get(i, 0)
             if area <= 0:
                 continue
+            whole.setdefault(g, []).append(price)
             price = price / area
         by.setdefault(g, []).append(price)
-    out = {g: PriceGroup(sales=len(v), median=statistics.median(v)) for g, v in by.items()}
+    out = {
+        g: PriceGroup(
+            sales=len(v),
+            median=statistics.median(v),
+            price=statistics.median(whole[g]) if size else statistics.median(v),
+        )
+        for g, v in by.items()
+    }
     if not out:
         notes.append("no sales found these parcels")
     return out, basis, notes
@@ -334,6 +344,7 @@ class Tier(BaseModel):
     number: float | None = Field(description="Its number: the saved one, or the suggested one. None: not ranked.")
     sales: int
     median: float | None = Field(description="Median price per sq ft (or sale price) of its sales.")
+    price: float | None = Field(default=None, description="Median sale price of its sales.")
 
 
 class TiersPreview(BaseModel):
@@ -378,6 +389,7 @@ def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: s
                 number=n,
                 sales=prices[v].sales if v in prices else 0,
                 median=prices[v].median if v in prices else None,
+                price=prices[v].price if v in prices else None,
             )
             for v, n in ranked
         ],

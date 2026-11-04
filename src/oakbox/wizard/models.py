@@ -217,6 +217,9 @@ class WizardField(BaseModel):
     scale: Scale | None = Field(default=None, description="Quality/condition number: how it becomes higher-is-better.")
     absent: bool = Field(default=False, description="Said not to exist (no condition: effective age carries it).")
     distinct: int | None = Field(default=None, description="How many different values its column has (not blank).")
+    numbers: bool | None = Field(
+        default=None, description="Quality/condition: its column is all numbers, so it can be read as numbers."
+    )
 
 
 Status = Literal["blank", "blocked", "attention", "done"]

@@ -6021,3 +6021,32 @@ under what it's about; a file appended as rows {
   align-self: start;
   padding-top: calc(0.5 * var(--sp) + 2px);
 }
+
+/* Quality and condition on their page (QualityStep): what it sold for as read, or its tiers ranked best first. */
+.qc-panel {
+  display: grid;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  justify-items: start;
+}
+.qc-panel > .form-actions {
+  justify-self: stretch;
+}
+.tbl.qc-tiers tbody tr.qc-end > td {
+  padding-block: 1px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+}
+.qc-rank {
+  font-weight: 700;
+}
+.qc-panel > .tbl {
+  width: auto;
+}
+.qc-panel > .tbl td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

@@ -10,7 +10,7 @@ import {
   Modal,
   ModalOverlay,
 } from "react-aria-components";
-import type { Project, Wizard, WizardField, WizardFile } from "../api/client";
+import type { Project, Scale, Wizard, WizardField, WizardFile } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import { Combo, Marked, matches } from "../components/Combo";
 import { FileLine, fileFacts } from "../components/FileEntry";
@@ -45,6 +45,8 @@ export function FieldRow({
   change,
   label,
   inGroup,
+  onPage,
+  pickScale,
 }: {
   project: Project;
   data: Wizard;
@@ -54,6 +56,10 @@ export function FieldRow({
   /** A numbered section's title, shown instead of the field's name (which moves underneath). */
   label?: string;
   inGroup?: boolean;
+  /** Quality or condition on its own page, which ranks a category's tiers itself: no dialog for them. */
+  onPage?: boolean;
+  /** Sent with a column picked (Categories chosen: the column is ranked, numbers or not). */
+  pickScale?: Scale | undefined;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [elsewhere, setElsewhere] = useState(false);
@@ -70,7 +76,7 @@ export function FieldRow({
   // (or only adds what the card says: "Market value" in the Acme AVM card needs no "Acme AVM market value").
   const titled = label?.replace(/^\d+\.\s*/, "").toLowerCase();
   const same = !!titled && (titled === name.toLowerCase() || name.toLowerCase().endsWith(` ${titled}`));
-  const sub = [label && !same ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
+  const sub = [label && !same && !onPage ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
   const files = data.files.filter((f) => f.holds === (sales ? "sales" : "parcels"));
   const source = field.sources[0];
   const value = field.assumed
@@ -89,7 +95,13 @@ export function FieldRow({
     else if (v === NONE) void change({ kind: "field", key: field.key }).catch(() => {});
     else {
       const [file, col] = v.split("\u0000");
-      void change({ kind: "field", key: field.key, file: file ?? null, column: col ?? null })
+      void change({
+        kind: "field",
+        key: field.key,
+        file: file ?? null,
+        column: col ?? null,
+        ...(pickScale ? { scale: pickScale } : {}),
+      })
         .then((next) => {
           // Not yes/no (Q/U, a deed code): straight on to choosing which values mean yes (SPEC F3d).
           const now = next.fields.find((f) => f.key === field.key);
@@ -97,6 +109,7 @@ export function FieldRow({
           // A sale price that needs reading, or whose amounts look wrong: straight to how it's read.
           if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn)) setReading(true);
           // A category for a number: straight to ranking its tiers; a condition number: to what it means.
+          if (onPage) return;
           if (now?.scale?.kind === "tiers" && Object.keys(now.scale.tiers).length === 0) setQc("tiers");
           else if (field.key === "bldg_condition_num" && now?.scale && !now.scale.kind) setQc("scale");
         })
@@ -114,7 +127,7 @@ export function FieldRow({
         ? { label: w.dates.change, press: () => setDating(true) }
         : sourceFile && column && money
           ? { label: w.numbers.change, press: () => setReading(true) }
-          : scaled && source && field.scale
+          : scaled && source && field.scale && !(onPage && field.scale.kind === "tiers")
             ? {
                 label:
                   field.scale.kind === "tiers"
@@ -230,7 +243,7 @@ export function FieldRow({
             data.fields.find((f) => f.key === PAIRS[field.key])?.sources.length
               ? !scaled && <span className="wiz-from">{w.numberUsed}</span>
               : null}
-            {paired && !scaled && (
+            {paired && (onPage ? scaled : !scaled) && (
               // One per section, on the category row: its text is short, so the link always shows.
               <Button className="button button-small" onPress={() => setQc("compare")}>
                 {w.quality.compare}

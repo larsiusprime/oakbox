@@ -991,6 +991,8 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     assert [(t["value"], t["number"]) for t in tiers["tiers"]] == [("C", 1), ("B", 2), ("A", 3), ("AA", 4)]
     medians = [t["median"] for t in tiers["tiers"]]
     assert medians == sorted(medians) and tiers["notes"] == ["all sales: no valid-sale rule yet"]
+    prices = [t["price"] for t in tiers["tiers"]]  # the median sale price too, beside price per sq ft
+    assert all(prices) and prices == sorted(prices) and prices != medians
     w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "GRADE"}).json()
     assert _field(w, "bldg_quality_num")["check"]["text"] == "rank its 4 tiers"
     ranked = {**depr, "kind": "tiers", "fraction": False, "tiers": {"C": 1, "B": 2, "A": 3, "AA": 5}}
@@ -1011,6 +1013,18 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     univ = univ.sort_values("key", key=lambda s: s.astype(int))
     assert univ["bldg_quality_num"].tolist()[:4] == [1, 2, 3, 5] and univ["bldg_quality_txt"].tolist()[:2] == ["C", "B"]
     assert univ["bldg_condition_num"].tolist()[:2] == [34, 35]  # 100 - 66, 100 - 65: % good
+
+    # Numbers or categories is the user's to say: a column of numbers can be ranked as tiers too. The category's
+    # text follows the ranked column; read as numbers again, it's dropped.
+    as_tiers = {**ranked, "tiers": {}}
+    w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "QUALITY_SCORE", "scale": as_tiers})
+    quality = _field(w.json(), "bldg_quality_num")
+    assert quality["scale"]["kind"] == "tiers" and quality["numbers"] and quality["check"]["text"] == "rank its 4 tiers"
+    assert _field(w.json(), "bldg_quality_txt")["sources"] == [{"file": "cama", "column": "QUALITY_SCORE"}]
+    higher = {**depr, "kind": "higher", "fraction": False}
+    w = client.put(f"{field}/bldg_quality_num", json={"file": "cama", "column": "QUALITY_SCORE", "scale": higher})
+    assert _field(w.json(), "bldg_quality_num")["scale"]["kind"] == "higher"
+    assert _field(w.json(), "bldg_quality_txt")["sources"] == []
 
     # No condition at all: said, not left blank; nothing loaded.
     w = client.put(f"{field}/bldg_condition_num", json={"absent": True}).json()

@@ -191,12 +191,12 @@
       "quality": {
         "title": "Quality",
         "question": "How well is each building built?",
-        "lede": "A number the models can use, and which way is better. The category, kept as text for reports, is loaded only when there''s no number."
+        "lede": "One column the models can use. Numbers say which way is better; categories are ranked into tiers, best first, and each tier gets a number."
       },
       "condition": {
         "title": "Condition",
         "question": "What condition is each building in?",
-        "lede": "A number the models can use, and what its numbers mean. The category, kept as text for reports, is loaded only when there''s no number."
+        "lede": "One column the models can use. Numbers say what they mean (% good, years of life left…); categories are ranked into tiers, best first, and each tier gets a number."
       },
       "address": {
         "title": "Address",
@@ -1092,6 +1092,27 @@
       "basedOn": "Based on {notes}.",
       "cancel": "Cancel",
       "save": "Save",
+      "writtenAsLabel": "It''s written as",
+      "asKinds": {
+        "num": "Numbers",
+        "cat": "Categories"
+      },
+      "asHints": {
+        "num": "a score, e.g. 1–6 or 0–100",
+        "cat": "named tiers, e.g. A+ … D or Good, Average, Poor"
+      },
+      "notNumbers": "{column} isn''t numbers: choose a column of numbers, or Categories",
+      "evidenceHead": "What it sold for, as it''s read now",
+      "risesPrice": "✓ Better sells for more: each step up sells for more.",
+      "fallsPrice": "{n} step{n, plural, =1 {} other {s}} up sell{n, plural, =1 {s} other {}} for less: does it run the other way?",
+      "tiersHead": "Rank its tiers, best at the top",
+      "tiersHint": "Move a tier with its arrows: each gets the number beside it, the best the highest, and that''s what the models use. Its text is kept for reports too.",
+      "useOrder": "Use this order",
+      "suggested": "Suggested, not used yet",
+      "best": "Best",
+      "worst": "Worst",
+      "placeIt": "not recognised: place it",
+      "notRanked": "not ranked: read as missing",
       "whichWayLabel": "Which way is better",
       "meansLabel": "What its numbers mean"
     },
