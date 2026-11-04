@@ -88,9 +88,7 @@ name that says what it is.
   or a removable item looks. In short:
   - **A file is always `components/FileEntry.tsx`** wherever it's added, picked or used (`StepFile` in the Data
     wizard): one thin outline (`--frame`, 3px); its first line its name in OAK box (mono, bold), its file name, its
-    facts (`fileFacts`: rows, shapes), a short check, a notice of what's left to fix (`notice`: at the right of the
-    first line when there's room, below it at the right when there isn't, never a line of its own in the body),
-    other actions as icons, then the ✕. What's set on the file goes
+    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the ✕. What's set on the file goes
     in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`), so
     they line up like a two-column table. A step with no file yet is `FilePicker`: a dashed outline round
     [Add a file…] and "or use existing:". Read-only lists and choices of files use `FileLine` (the same first line,

@@ -128,18 +128,6 @@ function LayerCard({
           </span>
         )
       }
-      notice={
-        layer.left.length > 0 && (
-          <ul className="ly-left">
-            {layer.left.map((x) => (
-              <li key={x.text} className={x.blocking ? "wiz-blocking" : "wiz-caution"}>
-                <img src={x.blocking ? blockingIcon : warningIcon} alt="" className="wiz-inline-icon" />
-                {x.text}
-              </li>
-            ))}
-          </ul>
-        )
-      }
       actions={
         layer.projected && (
           <Button
@@ -155,6 +143,16 @@ function LayerCard({
       removeLabel={s.drop}
       onRemove={() => change({ kind: "layer", name: layer.name, overlay: null })}
     >
+      {layer.left.length > 0 && (
+        <ul className="ly-left">
+          {layer.left.map((x) => (
+            <li key={x.text} className={x.blocking ? "wiz-blocking" : "wiz-caution"}>
+              <img src={x.blocking ? blockingIcon : warningIcon} alt="" className="wiz-inline-icon" />
+              {x.text}
+            </li>
+          ))}
+        </ul>
+      )}
       {/* How it's used, then what it gives: labels in one column, controls in the next. */}
       <div className="ly-grid">
         <span className="wiz-label">{s.how}</span>

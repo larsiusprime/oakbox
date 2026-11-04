@@ -626,23 +626,8 @@ a.row-title:hover {
   align-items: center;
   min-width: 0;
 }
-/* The first line's left part: what the file is, then a notice at the right (wrapping below it, still at the right,
-   when there's no room), so the actions and ✕ stay at the top right. */
-.entry-main {
-  display: flex;
+.entry-head > .file-line {
   flex: 1;
-  flex-wrap: wrap;
-  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
-    max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
-  align-items: center;
-  min-width: 0;
-}
-.entry-main > .file-line {
-  flex: 1 1 auto;
-}
-.entry-notice {
-  margin-left: auto;
-  text-align: right;
 }
 .file-label {
   font-family: var(--mono);

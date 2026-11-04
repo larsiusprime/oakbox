@@ -53,7 +53,6 @@ export function FileEntry({
   path,
   facts,
   status,
-  notice,
   actions,
   onRemove,
   removeLabel,
@@ -65,9 +64,6 @@ export function FileEntry({
   facts?: ReactNode;
   /** A short check on the file itself, after its facts. */
   status?: ReactNode;
-  /** A notice about the entry (what's left to fix): at the right of the first line, before its actions, when
-   * there's room; on a line of its own, still at the right, when there isn't. */
-  notice?: ReactNode;
   /** Other actions, as icon buttons, before the ✕. */
   actions?: ReactNode;
   onRemove?: () => void;
@@ -77,17 +73,14 @@ export function FileEntry({
   return (
     <section className="entry">
       <div className="entry-head">
-        <div className="entry-main">
-          <FileLine
-            name={name ?? null}
-            filename={filename}
-            {...(path !== undefined ? { path } : {})}
-            facts={facts}
-          >
-            {status}
-          </FileLine>
-          {notice && <div className="entry-notice">{notice}</div>}
-        </div>
+        <FileLine
+          name={name ?? null}
+          filename={filename}
+          {...(path !== undefined ? { path } : {})}
+          facts={facts}
+        >
+          {status}
+        </FileLine>
         {(actions || onRemove) && (
           <span className="entry-acts">
             {actions}
