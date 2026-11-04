@@ -1,12 +1,10 @@
-/** Check my values › Standards, in three parts: whose (the IAAO's or custom), the standards themselves (every
- * target of each), and which model groups each one judges. */
-import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
 import type { RatioPatch, RatioSetup } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
 import { InfoTip } from "../components/Tip";
 import { num } from "../lib/format";
 import { t } from "../wording";
@@ -237,13 +235,11 @@ export function StandardsTable({ v, set }: Props) {
                   />
                 </td>
                 <td>
-                  <Button
-                    className="wiz-link vs-remove"
+                  <RemoveButton
+                    what={x.name}
                     onPress={() => set({ standards: all.filter((_, j) => j !== i) })}
-                  >
-                    <X aria-hidden="true" size="0.9em" />
-                    {s.remove}
-                  </Button>
+                    undo={() => set({ standards: all })}
+                  />
                 </td>
               </tr>
             ))}
@@ -253,7 +249,7 @@ export function StandardsTable({ v, set }: Props) {
       <p className="cs-row add-row">
         <AddButton onPress={add}>{s.add}</AddButton>
         {!v.iaao && (
-          <Button className="wiz-link" onPress={() => set({ reset_standards: true })}>
+          <Button className="button button-small" onPress={() => set({ reset_standards: true })}>
             {s.reset}
           </Button>
         )}

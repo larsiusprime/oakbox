@@ -1,5 +1,4 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
 import {
@@ -14,6 +13,8 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
+import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { amount, pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
@@ -115,9 +116,8 @@ export function RuleDialog({
           {rule.conditions.length > 1 && (
             <div className="rl-join">
               <span>{r.where}</span>
-              <Choice
+              <Seg
                 label={r.where}
-                hideLabel
                 value={rule.join}
                 options={[
                   ["all", r.all],
@@ -165,15 +165,14 @@ export function RuleDialog({
                     />
                   )}
                   {rule.conditions.length > 1 && (
-                    <Button
-                      className="rc-x"
-                      aria-label={r.removeTest}
+                    <RemoveButton
+                      what={t.buttons.theTest}
+                      label={r.removeTest}
                       onPress={() =>
                         setRule({ ...rule, conditions: rule.conditions.filter((_, j) => j !== i) })
                       }
-                    >
-                      <X size="0.9em" />
-                    </Button>
+                      undo={() => setRule(rule)}
+                    />
                   )}
                 </div>
               </li>
@@ -375,13 +374,13 @@ export function DateDialog({
                   {i > 0 && ", "}
                   {a.words}{" "}
                   <Button
-                    className="wiz-link"
+                    className="button button-small"
                     onPress={() => {
                       setCustom(false);
                       setFormat(a.format);
                     }}
                   >
-                    ({d.useIt})
+                    {d.useIt}
                   </Button>
                 </span>
               ))}
@@ -477,8 +476,8 @@ export function NumberDialog({
           </Heading>
           <p className="rc-sub">{n.lede}</p>
           {shown && (
-            <div className="rl-join nm-opts">
-              <span>{n.decimal}</span>
+            <div className="set-grid nm-opts">
+              <span className="wiz-label">{n.decimal}</span>
               <Choice
                 label={n.decimal}
                 hideLabel
@@ -486,7 +485,7 @@ export function NumberDialog({
                 options={Object.entries(n.decimals) as [NumberFormat["decimal"], string][]}
                 onChange={(decimal) => set({ decimal })}
               />
-              <span>{n.scale}</span>
+              <span className="wiz-label">{n.scale}</span>
               <Choice
                 label={n.scale}
                 hideLabel
@@ -494,6 +493,7 @@ export function NumberDialog({
                 options={scales.map((s) => [String(s), say.wizard.numbers.scales(s)] as const)}
                 onChange={(s) => set({ scale: Number(s) })}
               />
+              <span />
               <Tick isSelected={shown.suffixes} onChange={(suffixes) => set({ suffixes })}>
                 {n.suffixes}
               </Tick>
@@ -526,7 +526,7 @@ export function NumberDialog({
           {v?.hint && (
             <p className="rc-suggest">
               <b>{v.hint.reason}</b>{" "}
-              <Button className="wiz-link" onPress={() => set({ scale: v.hint?.scale ?? 1 })}>
+              <Button className="button button-small" onPress={() => set({ scale: v.hint?.scale ?? 1 })}>
                 {n.readAs({ s: say.wizard.numbers.scales(v.hint.scale) })}
               </Button>
             </p>

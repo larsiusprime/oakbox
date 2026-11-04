@@ -59,9 +59,13 @@ name that says what it is.
 
 ## Screens
 
-- **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,
-  never a maximum). Only running text is capped for readability (`.project p`, `.cs-text`, `.wiz-lede`…), and a
-  small chart that illustrates the paragraph above it (Check sales' sales per year) is as wide as that text.
+- **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a
+  maximum). **Everything else is as wide as what's in it**, not stretched to the page: a file's entry, a frame, a
+  row of tests, a form (`width: fit-content; max-width: 100%`). Boxes in one list share the widest one's width
+  (`.entry-list`), and its Add button sits at that right edge. Charts and maps are decided case by case (a chart
+  that's read across time may want the width; a layer's map, opened in its entry, takes the page's width). Running text is capped for readability (`.project p`, `.cs-text`,
+  `.wiz-lede`…), and a small chart that illustrates the paragraph above it (Check sales' sales per year) is as wide
+  as that text.
 - **Tables:** a table of results is `<table className="tbl">` (its own class only adds what's its own); every
   table has faint cell lines and alternate grey rows (the `:where(table)` rules in `styles.css`), its cells padded by
   the density (`--cell-y`); a numbers column's header has the column's class (`th.cs-n`) so it lines up with its
@@ -77,10 +81,53 @@ name that says what it is.
   `components/AddButton.tsx`: a button with a plus and "Add …" in words (never a "+" typed into the label, a link,
   or a bare "+"). It opens what it adds (a menu, a popover, a new row) or adds it at once. A form's own submit
   button inside that popover is an ordinary button.
-  It comes after the list it adds to, at that list's right edge and outside any frame: `<AddButton end>`, or a row
-  of buttons in `.add-row`.
-- **Loose rows get a frame:** rows of fields or widgets lying straight on the page (Data's IDs, a step's fields) sit
-  in a thin `.frame`; what belongs together shares one. Not inside a card, which is a frame already.
+  It comes after the list it adds to, at that list's right edge: `<AddButton end>`, or a row of buttons in
+  `.add-row`. Adding another item (a file, a layer, a value set) is outside the items' outlines; adding to one item
+  (another ID, another copied field) is inside that item's outline, below its rows.
+- **The style guide for files and items is `docs/style-guide.html`** (SPEC D47); open it before changing how a file
+  or a removable item looks. In short:
+  - **A file is always `components/FileEntry.tsx`** wherever it's added, picked or used (`StepFile` in the Data
+    wizard): one thin outline (`--frame`, 3px); its first line its name in OAK box (mono, bold), its file name, its
+    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the ✕. What's set on the file goes
+    in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`, `.set-grid` outside a file), so
+    they line up like a two-column table. Not a sentence with a blank in it ("A sale demolished within [365] days…"),
+    which stays a sentence, nor a question with its answers below it (a radio group). A step with no file yet is `FilePicker`: a dashed outline round
+    [Add a file…] and "or use existing:". Read-only lists and choices of files use `FileLine` (the same first line,
+    no outline, no ✕).
+  - **A file's own name** (`parcels.csv`) is always `FileName` (`.file-name`): mono on a faint box, like code in a
+    chat, cut short with the whole name on hover. Never plain or grey text.
+  - **Taking something off a list or a step is always `components/RemoveButton.tsx`:** a raised red button with a
+    white − (the pair of AddButton's +), last on its line at the right edge. `what` names what it removes: its
+    label ("Remove parks") shows on hover and is read aloud. Pass `undo` (how to put it back): "Removed parks · Undo"
+    shows for a few seconds (`lib/undo.ts`, `components/UndoToast.tsx`); a remove that can't be undone isn't a
+    remove. With words, it's the same red button, its white − then its words (`RemoveTextButton`, "− Remove group",
+    offering Undo itself). Never a
+    "Remove" link, "(remove)", "drop", an ✕ or a "(none)" option in a dropdown. On a file it takes the file off that
+    step, never off disk.
+  - **Deleting for good is `DeleteButton`** (`components/Buttons.tsx`): a danger button with a trash can and its
+    words ("Delete set", "Delete project"), which asks first. Never a trash can on something that can be undone.
+  - **Closing is `CloseButton`:** a grey ✕, only at the top right of a popup, panel, dialog or unsaved form.
+    Nothing is lost; never for removing. Close and remove never share a look.
+  - **The button family** (style guide, section 1): `.button`, `.button-primary` (one per view), `DeleteButton`,
+    `AddButton`, `SmallButton` (an action beside a line of text: "Reconcile…", "Options ˅", "4 values ˅"),
+    `ToolButton` (an icon; with `pressed`, a toggle that stays pressed in), `CloseButton`, `RemoveButton`. Unfolding in
+    place is `Disclose` (a chevron), a link that leaves the app is `ExternalLink` (↗), and going somewhere in the app
+    is a link (`.wiz-link`). Choosing is a dropdown, `Seg`, radio cards (`.cu-choice`) or a selectable row.
+  - **A file's name in a sentence** is set off too: `NamesFile` (a file name like code, a name in OAK box in mono),
+    the wording's sentence whole. A dropdown of files gives each option its file name (`Choice`'s third element).
+  - **Anything that can be removed on its own has its own outline** (`--frame`, 3px): a file, an ID inside a file
+    (`SubEntry`, on the body's columns), a test, a condition, a copied field, a location field. Its siblings in the
+    same list get one too, even one that can't be removed. A table's rows are boxed already (its lines): a removable row ends in its −, no box of its own. Every item's or group's outline is `--frame`; `--rule` is
+    for lines (a table's, a hairline), not boxes.
+  - **A thing you press is a raised button** unless it's kept flat in the style guide's section 3 (navigation,
+    list rows, sortable headers, disclosures, swatches), each with its reason. Flat is a deliberate choice, never
+    the default: a new flat control is added there with its reason, or made a button. A pressable table row or chart
+    is only a shortcut to a link or button in it (the chart shows its enlarge icon).
+  - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line.
+  - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
+    radio buttons; a reason an option can't be chosen is its title.
+- **Loose rows get a frame:** rows of fields or widgets lying straight on the page (a step's fields) sit in a thin
+  `.frame`; what belongs together shares one. Not inside a card or an entry, which is a frame already.
 - **Picking fields or values from a list** is always `components/MultiPick.tsx`: a button listing what's chosen
   that opens a searchable checklist (a field's name with its column as a note, or a value with its count). Never
   a row of chips with ✕s, nor a row of loose ticks. Each chosen field that needs more (its column) gets a row

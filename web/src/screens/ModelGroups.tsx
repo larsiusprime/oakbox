@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button, Dialog, Heading, Modal, ModalOverlay, ToggleButton } from "react-aria-components";
+import { Button, Dialog, Heading, Modal, ModalOverlay, Radio, RadioGroup } from "react-aria-components";
 import { navigate } from "../App";
 import {
   api,
@@ -13,6 +13,7 @@ import {
 } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { AddButton } from "../components/AddButton";
+import { DeleteButton, ToolButton } from "../components/Buttons";
 import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -20,6 +21,7 @@ import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { when } from "../lib/format";
 import { useSettled } from "../lib/hooks";
+import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
 import { AssembleResults, Formats } from "./Assemble";
 import { GroupEditor, useValues } from "./GroupEditor";
@@ -66,6 +68,8 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const nav = useStepNav<MgStep>();
   // Starting again replaces the groups: asked first.
   const [replace, setReplace] = useState<"scratch" | "suggested" | null>(null);
+  // How to start: chosen, then Start.
+  const [how, setHow] = useState<"suggested" | "scratch" | null>(null);
   const start = useMutation({
     mutationFn: async (how: "scratch" | "suggested") =>
       unwrap(
@@ -169,28 +173,43 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
         <>
           <StepBody kicker={kicker} title={g.startTitle} lede={g.lede}>
             {v.start && <p className="wiz-note">{g.startedWith({ how: v.start })}</p>}
-            <div className="mg-start-cards">
+            {/* A choice, then Start: cards that acted at once read as neither a choice nor a button. */}
+            <RadioGroup
+              aria-label={g.startTitle}
+              className="cu-choices mg-start-cards"
+              value={how}
+              onChange={(x) => setHow(x as "suggested" | "scratch")}
+            >
+              <Radio value="suggested" className="radio cu-choice" isDisabled={!v.can_suggest}>
+                <span className="radio-dot" aria-hidden="true" />
+                <span className="cu-text">
+                  <b>{g.suggested}</b>
+                  <span className="cu-sub">{v.can_suggest ? g.suggestedHelp : g.noSuggest}</span>
+                </span>
+              </Radio>
+              <Radio value="scratch" className="radio cu-choice">
+                <span className="radio-dot" aria-hidden="true" />
+                <span className="cu-text">
+                  <b>{g.scratch}</b>
+                  <span className="cu-sub">{g.scratchHelp}</span>
+                </span>
+              </Radio>
+            </RadioGroup>
+            <div className="form-actions">
               <Button
-                className="mg-start-card"
-                isDisabled={!v.can_suggest || start.isPending}
-                onPress={() => (saved.length ? setReplace("suggested") : start.mutate("suggested"))}
+                className="button button-primary"
+                isDisabled={!how || start.isPending}
+                onPress={() => how && (saved.length ? setReplace(how) : start.mutate(how))}
               >
-                <b>{g.suggested}</b>
-                <span>{v.can_suggest ? g.suggestedHelp : g.noSuggest}</span>
-              </Button>
-              <Button
-                className="mg-start-card"
-                isDisabled={start.isPending}
-                onPress={() => (saved.length ? setReplace("scratch") : start.mutate("scratch"))}
-              >
-                <b>{g.scratch}</b>
-                <span>{g.scratchHelp}</span>
+                {g.startButton}
               </Button>
             </div>
             {replace && (
               <div className="bi-warn mg-replace" role="alert">
                 {g.replaceWarn({ n: saved.length })}{" "}
-                <Button className="button" onPress={() => start.mutate(replace)}>
+                {/* Already the question: the answer that deletes the saved groups carries the trash can. */}
+                <Button className="button button-danger" onPress={() => start.mutate(replace)}>
+                  <Trash2 aria-hidden="true" size="1em" />
                   {g.replaceYes}
                 </Button>{" "}
                 <Button className="button" onPress={() => setReplace(null)}>
@@ -388,7 +407,7 @@ function Checks({
       </table>
       <p className="wiz-from">
         {g.checkFix}{" "}
-        <Button className="wiz-link" onPress={edit}>
+        <Button className="button button-small" onPress={edit}>
           {g.backToBuild}
         </Button>
       </p>
@@ -551,9 +570,9 @@ function Builder({
           </div>
           <p className="mg-help">{g.orderHelp}</p>
           <div className="mg-save">
-            <Button className="button" isDisabled={!dirty} onPress={() => setDraft(view.groups)}>
+            <DeleteButton isDisabled={!dirty} confirm={g.undoConfirm} onDelete={() => setDraft(view.groups)}>
               {g.undo}
-            </Button>
+            </DeleteButton>
             <Button
               className="button button-primary"
               isDisabled={!dirty || save.isPending}
@@ -586,8 +605,13 @@ function Builder({
                 name={name}
                 onChange={(patch) => update(group.id, patch)}
                 onDelete={() => {
+                  const before = draft;
                   setDraft(draft.filter((x) => x.id !== group.id));
                   setSelected(null);
+                  offerUndo(t.buttons.removed({ what: name(group.id) }), () => {
+                    setDraft(before);
+                    setSelected(group.id);
+                  });
                 }}
                 onShow={(n) => {
                   setHighlight(n);
@@ -621,7 +645,7 @@ function Builder({
               {highlight && (
                 <span className="mg-hl">
                   {g.highlighted({ n: highlight.length })}{" "}
-                  <Button className="wiz-link" onPress={() => setHighlight(null)}>
+                  <Button className="button button-small" onPress={() => setHighlight(null)}>
                     {g.clearHighlight}
                   </Button>
                 </span>
@@ -636,9 +660,9 @@ function Builder({
                 ]}
                 onChange={setMapMode}
               />
-              <Button className="mg-x" aria-label={g.hide} onPress={() => setMapMode("hidden")}>
-                <X size="0.9em" />
-              </Button>
+              <ToolButton label={g.hide} pressed onPress={() => setMapMode("hidden")}>
+                <MapIcon aria-hidden="true" size="1em" />
+              </ToolButton>
             </div>
             <ParcelMap
               projectId={projectId}
@@ -743,20 +767,17 @@ function Legend({
       {items.map(([key, c, label]) => {
         const on = !hidden.has(key);
         return (
-          <ToggleButton
-            key={key}
-            className="mg-key"
-            isSelected={on}
-            onChange={(v) => toggle(key, v)}
-            aria-label={`${label}: ${on ? g.shown : g.hiddenOnMap}`}
-          >
-            <i style={on ? { background: c, borderColor: c } : { borderColor: c }} />
-            {label}
-          </ToggleButton>
+          // Shows or hides the group on the map: a checkbox, with its colour.
+          <span key={key} className={on ? "mg-key" : "mg-key off"}>
+            <Tick isSelected={on} onChange={(v) => toggle(key, v)}>
+              <i className="mg-key-sw" style={{ background: c, borderColor: c }} />
+              {label}
+            </Tick>
+          </span>
         );
       })}
       {any && (
-        <Button className="wiz-link" onPress={showAll}>
+        <Button className="button button-small" onPress={showAll}>
           {g.showAll}
         </Button>
       )}
@@ -806,22 +827,12 @@ function GroupItem({
       </Button>
       {(onUp || onDown) && (
         <span className="mg-order">
-          <Button
-            className="mg-arrow"
-            aria-label={g.up({ name })}
-            isDisabled={!onUp}
-            onPress={() => onUp?.()}
-          >
-            <ArrowUp size="0.8em" />
-          </Button>
-          <Button
-            className="mg-arrow"
-            aria-label={g.down({ name })}
-            isDisabled={!onDown}
-            onPress={() => onDown?.()}
-          >
-            <ArrowDown size="0.8em" />
-          </Button>
+          <ToolButton label={g.up({ name })} isDisabled={!onUp} onPress={() => onUp?.()}>
+            <ArrowUp aria-hidden="true" size="1em" />
+          </ToolButton>
+          <ToolButton label={g.down({ name })} isDisabled={!onDown} onPress={() => onDown?.()}>
+            <ArrowDown aria-hidden="true" size="1em" />
+          </ToolButton>
         </span>
       )}
     </li>

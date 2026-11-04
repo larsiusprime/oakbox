@@ -3,6 +3,8 @@ import { ChevronDown, Globe } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } from "react-aria-components";
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
+import { DeleteButton } from "../components/Buttons";
+import { ExternalLink } from "../components/ExternalLink";
 import { Choice, Tick } from "../components/Form";
 import { say, t } from "../wording";
 
@@ -103,7 +105,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
               {v.county_guess && v.county_guess !== s.fips && (
                 <>
                   {" "}
-                  <Button className="wiz-link" onPress={() => set({ fips: v.county_guess })}>
+                  <Button className="button button-small" onPress={() => set({ fips: v.county_guess })}>
                     {e.useCounty}
                   </Button>
                 </>
@@ -207,7 +209,7 @@ function Picks({
     <div className="en-row">
       <span className="en-lab">{label}</span>
       <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-        <Button className="vals-button">
+        <Button className="button button-small vals-button">
           {say.wizard.enrich.fieldsOf(on.length, fields.length)}
           <ChevronDown aria-hidden="true" size="0.85em" />
         </Button>
@@ -256,7 +258,7 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
           {say.wizard.enrich.summary(on.map((f) => f.label))}
           {range && ` · ${e.upTo} ${range} ${unit}`}
         </span>
-        <Button className="wiz-link" onPress={() => setOpen(true)}>
+        <Button className="button button-small" onPress={() => setOpen(true)}>
           {e.change}
         </Button>
       </div>
@@ -303,7 +305,7 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
         })}
       </div>
       <div className="en-row">
-        <Button className="wiz-link" onPress={() => setOpen(false)}>
+        <Button className="button button-small" onPress={() => setOpen(false)}>
           {e.done}
         </Button>
       </div>
@@ -352,9 +354,9 @@ function CensusKey({ view }: { view: EnrichView }) {
       {view.key_saved && view.key_end ? (
         <>
           <span className="wiz-ok">✓ {e.keySaved({ end: view.key_end })}</span>
-          <Button className="wiz-link" onPress={() => put.mutate("")}>
+          <DeleteButton confirm={e.keyForgetConfirm} onDelete={() => put.mutate("")}>
             {e.keyForget}
-          </Button>
+          </DeleteButton>
         </>
       ) : (
         <>
@@ -364,9 +366,9 @@ function CensusKey({ view }: { view: EnrichView }) {
           <Button className="button" isDisabled={!key.trim()} onPress={() => put.mutate(key)}>
             {e.keySave}
           </Button>
-          <a className="en-link" href={KEY_URL} target="_blank" rel="noreferrer">
+          <ExternalLink className="en-link" href={KEY_URL}>
             {e.keyGet}
-          </a>
+          </ExternalLink>
         </>
       )}
     </div>

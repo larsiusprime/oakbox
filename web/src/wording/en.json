@@ -279,10 +279,8 @@
       }
     },
     "addFile": "Add a file…",
-    "addOther": "Use a different file",
     "orExisting": "Or use a file already in the project",
     "noPicker": "Adding a file needs the file picker, which is only in the OAK box window.",
-    "fileLabel": "{name} ({filename})",
     "geometryFound": "✓ Geometry detected",
     "parcelId": "Parcel ID",
     "parcelIdTip": "The column that identifies each parcel. Every value must be different.",
@@ -293,7 +291,6 @@
     "addId": "Add {ordinal}",
     "extraIdTip": "Optional. Only needed when another data file identifies parcels by a different ID, and has to join on that.",
     "optional": "Optional",
-    "removeId": "(remove)",
     "matchBy": "Matches the parcel universe by",
     "idColumnIn": "ID column in {file}",
     "saleIdTip": "The same parcel can sell more than once, so each sale needs its own ID.",
@@ -434,7 +431,7 @@
       "polygons": "{n, number} {n, plural, =1 {shape} other {shapes}}",
       "points": "{n, number} {n, plural, =1 {point} other {points}}",
       "lines": "{n, number} {n, plural, =1 {line} other {lines}}",
-      "how": "Use it to…",
+      "how": "Use it to",
       "stamp": "Stamp its areas onto parcels: the shape each parcel''s centre falls in",
       "onlyPoints": "(not for this layer: it''s points, and a parcel can only fall inside a shape; use distances)",
       "onlyLines": "(not for this layer: it''s lines, and a parcel can only fall inside a shape; use distances)",
@@ -509,8 +506,7 @@
       "days": "Days",
       "effectiveAge": "Major renovations reset the effective year built",
       "needsYearBuilt": "needs the year built (Big five)",
-      "gives": "Gives each sale is_teardown_sale and days_to_demo, and each parcel last_permit_was_teardown, is_renovated, reno_date, renovation_num (3 major, 1 minor) and renovation_txt.",
-      "stop": "Don''t use this file for permits"
+      "gives": "Gives each sale is_teardown_sale and days_to_demo, and each parcel last_permit_was_teardown, is_renovated, reno_date, renovation_num (3 major, 1 minor) and renovation_txt."
     },
     "enrich": {
       "online": "Four of these use the internet: each sends only the rectangle around your parcels{km2, select, null {} other { ({km2, number} km²)}} to a public service, and downloads what''s there. Your parcel data never leaves this computer. Downloads are kept, so running again reuses them.",
@@ -559,7 +555,7 @@
       "keyGet": "Get a key",
       "keyPlaceholder": "Paste your key",
       "keySave": "Save",
-      "keyForget": "Forget",
+      "keyForget": "Forget key",
       "county": "County",
       "countyPick": "Pick the county",
       "countyGuess": "where the parcels are",
@@ -569,7 +565,8 @@
       "detail": "Detail",
       "resolution": "{m} m",
       "suggested": "{km2, select, null {{m} m suggested} other {{m} m suggested for an area this size ({km2, number} km²)}}",
-      "censusOff": "Needs a free API key from the Census Bureau."
+      "censusOff": "Needs a free API key from the Census Bureau.",
+      "keyForgetConfirm": "Forget the saved key? You'd paste it again to use census figures."
     },
     "values": {
       "button": {
@@ -741,23 +738,22 @@
       "pickColumn": "Choose a column…",
       "name": "Name",
       "namePlaceholder": "e.g. market_area",
-      "add": "Add",
+      "add": "Add field",
       "remove": "Remove {name}"
     },
     "extraFiles": {
       "first": "Add a file",
       "another": "Add another file",
-      "drop": "Don''t use this file",
-      "what": "What''s in it?",
-      "parcels": "More about each parcel",
-      "sales": "More about each sale",
-      "how": "How does it join?",
-      "joinedParcels": "Joined to each parcel, on the parcel ID",
-      "joinedSales": "Joined to each sale, on the sale ID",
-      "rowsParcels": "Appended as extra rows: more parcels",
-      "rowsSales": "Appended as extra rows: more sales",
-      "needsShapes": "(needs shapes: the universe''s parcels have theirs)",
-      "needsSales": "(add the sales record first)",
+      "what": "It''s about",
+      "parcels": "Parcels",
+      "sales": "Sales",
+      "how": "It adds",
+      "joinedParcels": "More about each parcel",
+      "joinedSales": "More about each sale",
+      "rowsParcels": "More parcels",
+      "rowsSales": "More sales",
+      "needsShapes": "Needs shapes, as the parcel universe''s parcels have",
+      "needsSales": "Add the sales record first",
       "madeId": "Its sale ID is made as the sales record''s: from its parcel ID and sale date.",
       "saleDate": "Sale date",
       "has": "Has {have} of the {what} {of} fields.",
@@ -780,10 +776,11 @@
       "roll": "The assessor''s roll",
       "rollNote": "checked on Check my values, and beside the models as OpenAVMKit''s assessor",
       "otherNote": "beside the models, and on Check my values",
-      "remove": "Remove",
       "name": "Name of the set",
       "add": "Add a set of values",
-      "none": "No existing values: the models are judged on their own."
+      "none": "No existing values: the models are judged on their own.",
+      "deleteSet": "Delete set",
+      "deleteConfirm": "Delete {name} and the fields it gives? This can't be undone."
     },
     "reconcile": {
       "open": "Reconcile…",
@@ -1376,8 +1373,8 @@
     "moveIn": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} here from {from} ({sold, number} sold)",
     "moveOut": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} to {to} ({sold, number} sold)",
     "showMoves": "Show them on the map",
-    "deleteGroup": "Delete group",
-    "undo": "Undo changes",
+    "deleteGroup": "Remove group",
+    "undo": "Discard changes",
     "save": "Save groups",
     "saved": "✓ Saved",
     "pickGroup": "Pick a group to edit its rule, or click a parcel on the map to see why it''s where it is.",
@@ -1483,7 +1480,9 @@
     "ffMore": "{n, number} more values not shown",
     "ffApply": "Make these groups",
     "cancel": "Cancel",
-    "blank": "(blank)"
+    "blank": "(blank)",
+    "startButton": "Start",
+    "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone."
   },
   "sales": {
     "kicker": "Step 3 of 7",
@@ -2266,7 +2265,7 @@
         "no_correlation": "too weak"
       },
       "withPrice": "|r| {r}",
-      "how": "how ›",
+      "how": "how",
       "howStrength": "With price",
       "howFloor": "(passes at {t} or more, either way)",
       "howOverlaps": "Moves most with (the VIF test judges overlap):",
@@ -2915,8 +2914,34 @@
     "lede": "XGBoost and CatBoost are left out of OAK box to keep the download small. Install one here, or when you first add a model that uses it.",
     "installed": "Installed",
     "sizes": "{mb} MB download, {disk} MB on disk",
-    "remove": "Remove",
+    "remove": "Remove {name}",
     "installShort": "Install",
-    "close": "Close"
+    "close": "Close",
+    "removeConfirm": "Remove {name}? Using it again means downloading it again ({mb} MB).",
+    "installAsk": "Install…"
+  },
+  "files": {
+    "facts": "{rows, plural, one {# row} other {# rows}}{shapes, select, yes { · shapes} other {}}",
+    "shapesOnly": "shapes",
+    "useExisting": "or use existing:",
+    "dontImport": "Don't import {filename}",
+    "otherFile": "Choose another file"
+  },
+  "buttons": {
+    "remove": "Remove {what}",
+    "removed": "Removed {what}",
+    "undo": "Undo",
+    "close": "Close",
+    "up": "Move {what} up",
+    "down": "Move {what} down",
+    "enlarge": "Show it larger",
+    "seeRows": "See rows",
+    "external": "{text} (opens in your browser)",
+    "theTest": "the test",
+    "theCondition": "the condition",
+    "theStep": "the step",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "cleared": "Cleared {what}"
   }
 }

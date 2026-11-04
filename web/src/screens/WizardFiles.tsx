@@ -25,7 +25,9 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
+import { CloseButton } from "../components/Buttons";
 import { Callout, firstSentence } from "../components/Callout";
+import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -116,7 +118,7 @@ export function IdCheck({
   // Rows for parcels missing from the parcel universe: cleaning won't help, so it's a note and a look at them.
   const missing = file.not_in_universe;
   const reconcile = reconcilable && (
-    <Button className="wiz-link wiz-resolve" onPress={() => setReconciling(true)}>
+    <Button className="button button-small" onPress={() => setReconciling(true)}>
       {missing ? w.reconcile.seeThem : w.reconcile.open}
     </Button>
   );
@@ -131,7 +133,7 @@ export function IdCheck({
         action={
           <>
             {resolvable && (
-              <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
+              <Button className="button button-small" onPress={() => setOpen(true)}>
                 {w.dupes.resolve}
               </Button>
             )}
@@ -223,7 +225,7 @@ function DupesDialog({
       <Modal className="modal wiz-modal wiz-modal-wide">
         <Dialog className="modal-body">
           <Heading slot="title" className="modal-title">
-            {d.title({ file: file.name, column: file.id_column ?? "" })}
+            <NamesFile text={d.title({ file: file.name, column: file.id_column ?? "" })} name={file.name} />
           </Heading>
           {hasRepeats && (
             <div className="wiz-section-head-row">
@@ -349,11 +351,14 @@ export function FilePicker({
   data,
   exclude,
   onChosen,
+  onCancel,
 }: {
   project: Project;
   data: Wizard;
   exclude: string[];
   onChosen: (name: string) => void;
+  /** Where the slot can be taken away again (another file, not yet chosen): its ✕. */
+  onCancel?: () => void;
 }) {
   const canPick = useCanPickFile();
   const queryClient = useQueryClient();
@@ -378,7 +383,7 @@ export function FilePicker({
     );
   }
   return (
-    <div className="wiz-pick">
+    <FileSlot>
       {canPick ? (
         <AddButton primary onPress={() => void pick()}>
           {w.addFile}
@@ -389,30 +394,56 @@ export function FilePicker({
         </TipOn>
       )}
       {existing.length > 0 && (
-        <Choice
-          label={w.orExisting}
-          value={null}
-          placeholder={w.choose}
-          options={existing.map(
-            (f) => [f.name, w.fileLabel({ name: f.name, filename: f.filename })] as const,
-          )}
-          onChange={onChosen}
-        />
+        <span className="entry-slot-or">
+          <span className="wiz-from">{t.files.useExisting}</span>
+          <Choice
+            label={w.orExisting}
+            hideLabel
+            value={null}
+            placeholder={w.choose}
+            options={existing.map((f) => [f.name, f.name, f.filename] as const)}
+            onChange={onChosen}
+          />
+        </span>
       )}
-    </div>
+      {onCancel && (
+        <span className="entry-acts">
+          <CloseButton label={w.cancel} onPress={onCancel} />
+        </span>
+      )}
+    </FileSlot>
   );
 }
 
-export function FileHeader({ file, onReplace }: { file: WizardFile; onReplace: () => void }) {
+/** A file a step uses: its entry, the ✕ taking it off the step (it stays in the project), its settings inside. */
+export function StepFile({
+  file,
+  onRemove,
+  undo,
+  status,
+  actions,
+  children,
+}: {
+  file: WizardFile;
+  onRemove: () => void;
+  /** Puts it back on the step: Undo after the −. */
+  undo?: () => void;
+  status?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
-    <div className="wiz-file">
-      <span className="mono">{file.name}</span>
-      <span className="wiz-from">{file.filename}</span>
-      {file.rows !== null && <span className="wiz-from">· {file.rows.toLocaleString()} rows</span>}
-      <Button className="wiz-link" onPress={onReplace}>
-        {w.addOther}
-      </Button>
-    </div>
+    <FileEntry
+      name={file.name}
+      filename={file.filename}
+      facts={fileFacts(file)}
+      status={status}
+      actions={actions}
+      onRemove={onRemove}
+      {...(undo ? { undo } : {})}
+    >
+      {children}
+    </FileEntry>
   );
 }
 

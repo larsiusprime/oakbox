@@ -4,7 +4,9 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-compone
 import { navigate } from "../App";
 import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
+import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
+import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -36,7 +38,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       ),
     onSuccess: (data) => queryClient.setQueryData(stepKey("bring-in", projectId), data),
   });
-  const [rows, setRows] = useState<{ set: string; title: string } | null>(null);
+  const [rows, setRows] = useState<{ set: string; title: string; file?: string } | null>(null);
   const nav = useStepNav<BiStep>();
   const v = state.data;
   if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
@@ -100,7 +102,12 @@ export function BringInTab({ projectId }: { projectId: string }) {
             <h3 className="wiz-group">{b.whatRuns}</h3>
             <ul className="bi-plan">
               {v.plan.files.map((f) => (
-                <li key={f}>{f}</li>
+                <li key={f.name}>
+                  {f.what}:{" "}
+                  <FileLine name={f.name} filename={f.filename} facts={fileFacts(f)}>
+                    {f.how && <span className="file-facts">· {f.how}</span>}
+                  </FileLine>
+                </li>
               ))}
               {v.plan.layers.length > 0 && (
                 <li>
@@ -186,7 +193,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
               fields={r.universe.fields}
               rows={r.universe.rows}
               set="universe"
-              open={(set, title) => setRows({ set, title })}
+              open={(set, title, file) => setRows(file ? { set, title, file } : { set, title })}
               projectId={projectId}
             />
           </StepBody>
@@ -203,7 +210,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
               fields={r.sales.fields}
               rows={r.sales.rows}
               set="sales"
-              open={(set, title) => setRows({ set, title })}
+              open={(set, title, file) => setRows(file ? { set, title, file } : { set, title })}
               projectId={projectId}
             />
           </StepBody>
@@ -232,7 +239,13 @@ export function BringInTab({ projectId }: { projectId: string }) {
         </>
       )}
       {rows && (
-        <RowsDialog projectId={projectId} set={rows.set} title={rows.title} close={() => setRows(null)} />
+        <RowsDialog
+          projectId={projectId}
+          set={rows.set}
+          title={rows.title}
+          {...(rows.file ? { file: rows.file } : {})}
+          close={() => setRows(null)}
+        />
       )}
     </StepFrame>
   );
@@ -341,7 +354,7 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
               </td>
               <td>
                 {x.status !== "ok" && rerun && (
-                  <Button className="wiz-link" onPress={rerun}>
+                  <Button className="button button-small" onPress={rerun}>
                     {e.retry}
                   </Button>
                 )}
@@ -354,9 +367,7 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
       {results.some((x) => x.key === "distances" && x.fields.length > 0) && (
         <p className="bi-note">
           {e.osmCredit}{" "}
-          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-            {e.osmLicence}
-          </a>
+          <ExternalLink href="https://www.openstreetmap.org/copyright">{e.osmLicence}</ExternalLink>
         </p>
       )}
     </section>
@@ -378,7 +389,7 @@ function Section({
   fields: ReceiptField[];
   rows: number;
   set: string;
-  open: (set: string, title: string) => void;
+  open: (set: string, title: string, file?: string) => void;
 }) {
   const groups = ["files", "layers", "public", "engine"].map(
     (g) => [g, fields.filter((f) => f.group === g)] as const,
@@ -406,8 +417,10 @@ function Section({
                 <span>
                   {l.rows && (
                     <Button
-                      className="wiz-link"
-                      onPress={() => open(l.rows ?? "", `${f.filename || f.file}: ${l.text}`)}
+                      className="button button-small"
+                      onPress={() =>
+                        open(l.rows ?? "", `${f.filename || f.file}: ${l.text}`, f.filename || f.file)
+                      }
                     >
                       {b.seeThem}
                     </Button>
@@ -472,11 +485,14 @@ function RowsDialog({
   projectId,
   set,
   title,
+  file,
   close,
 }: {
   projectId: string;
   set: string;
   title: string;
+  /** The file the rows come from, set off like code in the title. */
+  file?: string;
   close: () => void;
 }) {
   const [offset, setOffset] = useState(0);
@@ -497,7 +513,7 @@ function RowsDialog({
       <Modal className="modal rl bi-rows">
         <Dialog className="modal-body rc-body">
           <Heading slot="title" className="modal-title">
-            {b.rowsTitle({ what: title })}
+            <NamesFile text={b.rowsTitle({ what: title })} {...(file ? { filename: file } : {})} />
           </Heading>
           {p?.kept_total != null && (
             <p className="wiz-from">{b.keptNote({ out: total - p.kept_total, kept: p.kept_total })}</p>

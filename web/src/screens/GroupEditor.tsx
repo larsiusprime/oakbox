@@ -1,6 +1,5 @@
 /** Model groups' editor of one group: its name and its conditions, each a field, a test and the values it takes. */
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { Button, Input, TextField } from "react-aria-components";
 import {
   api,
@@ -13,6 +12,8 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton, RemoveTextButton } from "../components/RemoveButton";
+import { Seg } from "../components/Seg";
 import { moneyShort } from "../lib/format";
 import { t } from "../wording";
 import type { Move } from "./ModelGroups";
@@ -124,9 +125,8 @@ export function GroupEditor({
       <div className="mg-card">
         <div className="mg-join">
           <span>{g.joinsIf}</span>
-          <Choice
+          <Seg
             label={g.joinsIf}
-            hideLabel
             value={rule.join}
             options={[
               ["any", g.any],
@@ -177,13 +177,12 @@ export function GroupEditor({
                     <Input className="input rl-input" />
                   </TextField>
                 )}
-                <Button
-                  className="rc-x"
-                  aria-label={g.removeCondition}
+                <RemoveButton
+                  what={t.buttons.theCondition}
+                  label={g.removeCondition}
                   onPress={() => setConditions(rule.conditions.filter((_, j) => j !== i))}
-                >
-                  <X size="0.9em" />
-                </Button>
+                  undo={() => setConditions(rule.conditions)}
+                />
               </div>
             </li>
           ))}
@@ -210,7 +209,7 @@ export function GroupEditor({
               {m.to_id === group.id
                 ? g.moveIn({ n: m.parcels, from: name(m.from_id), sold: m.sold })
                 : g.moveOut({ n: m.parcels, to: name(m.to_id), sold: m.sold })}{" "}
-              <Button className="wiz-link" onPress={() => onShow(moved(m))}>
+              <Button className="button button-small" onPress={() => onShow(moved(m))}>
                 {g.showMoves}
               </Button>
             </span>
@@ -231,9 +230,7 @@ export function GroupEditor({
         </div>
       )}
       <div className="mg-ed-foot">
-        <Button className="wiz-link" onPress={onDelete}>
-          {g.deleteGroup}
-        </Button>
+        <RemoveTextButton onPress={onDelete}>{g.deleteGroup}</RemoveTextButton>
       </div>
     </div>
   );

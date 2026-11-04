@@ -21,7 +21,10 @@
   --text: #1c1e20;
   --muted: #565b61;
   --rule: #d9d9d9;
-  --frame: #c9c2b0;
+  --frame: #c9c2b0; /* every item's outline: a file, an ID, a test, a loose group of rows */
+  --code-bg: #f3f0e8; /* a file name, set off like code */
+  --code-edge: #e0dacb;
+  --entry-head: #f6f2e6; /* a file entry's first line: a faint warm band, so the file reads as the box's title */
   --cell-line: #e2e4e6; /* every table's cell lines */
   --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
 
@@ -507,6 +510,8 @@ a.row-title:hover {
 /* A thin frame round rows of fields or widgets that would otherwise float on the page (Data's IDs, a step's fields):
    what belongs together is marked out. Not inside a card, which is already a frame. */
 .frame {
+  width: fit-content;
+  max-width: 100%;
   padding: calc(0.45 * var(--sp)) calc(0.7 * var(--sp));
   margin: calc(0.35 * var(--sp)) 0;
   border: 1px solid var(--frame);
@@ -518,6 +523,379 @@ a.row-title:hover {
 /* A frame is the page's width (its rows keep their own); its Add button lines up with its right edge. */
 .wiz-grid.frame {
   max-width: none;
+}
+
+/* Settings that aren't in a file's body: labels in one column, what's set in the next (style guide). */
+.set-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* A field, a dropdown or a group of radio buttons put in the grid: its label in the first column, the rest in the
+   second. */
+.set-grid > .field:not(.radios) {
+  display: contents;
+}
+.set-grid > .field.radios {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
+  align-items: center;
+}
+.set-grid > .field.radios > :not(.field-label) {
+  grid-column: 2;
+}
+
+/* Cards and groups are as wide as what's in them, not the page (style guide: only tables take the page's width).
+   One that holds a table, a map or a chart takes the width, for them. */
+.bi-card,
+.vs-set,
+.mg-card,
+.en-card,
+.rc-card {
+  width: fit-content;
+  max-width: 100%;
+}
+:is(.bi-card, .vs-set, .mg-card, .en-card, .rc-card):has(table, .wiz-map, .rv-map, .cs-chart, canvas) {
+  width: auto;
+}
+
+/* ---------- Entries (docs/style-guide.html): a file, or anything else added and taken away ----------
+   One outline (--frame); the first line says what it is, then other actions, then the red ✕ at the right edge;
+   what's set on it goes in its body below a faint rule. components/FileEntry.tsx, components/RemoveButton.tsx. */
+/* As wide as what's in it, not the page (only tables take the page's width): a short file stays a short box. */
+.entry {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 0 calc(0.6 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.entry-head {
+  display: flex;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  min-height: calc(var(--ctl-h) + 2px);
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  background: var(--entry-head);
+  border-radius: 2px 2px 0 0;
+}
+.entry-head:last-child {
+  border-radius: 2px;
+}
+.entry-acts {
+  display: flex;
+  flex: none;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
+  align-items: center;
+  margin-left: auto;
+}
+.entry-body {
+  display: grid;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  padding: calc(0.6 * var(--sp));
+  border-top: 1px solid var(--frame);
+}
+/* Adding to the file (an ID, a field) is inside it, below its rows, at its right edge. */
+.entry-body > .add-button.add-end {
+  margin-top: 0;
+}
+/* A list of entries (More files, Shapefiles): one width, the widest entry's, and its Add button at that right edge. */
+.entry-list {
+  display: grid;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  width: fit-content;
+  max-width: 100%;
+}
+.entry-list > .entry {
+  width: auto;
+}
+/* A map is the exception: shown in an entry (a layer's), it takes the page's width, and so does its list. */
+.entry:has(.wiz-map),
+.entry-list:has(.wiz-map) {
+  width: auto;
+}
+/* Where a file will go, before there is one: [Add a file…] or use existing: [Choose…]. */
+.entry-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+  padding: calc(0.5 * var(--sp)) calc(0.6 * var(--sp));
+  background: transparent;
+  border-style: dashed;
+}
+.entry-slot-or {
+  display: inline-flex;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+}
+/* A control that takes the rest of a row of the settings grid (a segmented choice). */
+.wiz-grid > .wiz-span {
+  grid-column: 2 / -1;
+}
+/* Something in a file's body that can be removed on its own (an ID): its own box, on the body's columns. */
+.entry-sub {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: calc(0.3 * var(--sp)) calc(0.3 * var(--sp)) calc(0.3 * var(--sp)) calc(0.6 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.entry-sub-end {
+  display: flex;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+  min-width: 0;
+}
+.entry-sub-after {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A file's first line: its name in OAK box, its file name, its facts. */
+.file-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  min-width: 0;
+}
+.entry-head > .file-line {
+  flex: 1;
+}
+.file-label {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+/* A file's own name, wherever it appears: set off like code. */
+.file-name {
+  display: inline-block;
+  max-width: 32ch;
+  padding: 0 0.3em;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.84em;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  background: var(--code-bg);
+  border: 1px solid var(--code-edge);
+  border-radius: 3px;
+}
+.file-facts {
+  color: var(--muted);
+}
+
+/* ---------- The button family (style guide, section 1; components/Buttons.tsx) ---------- */
+/* A small button: an action beside a line of text (Reconcile…, Options ˅, See rows). */
+.button-small {
+  min-height: calc(var(--ctl-h) - 0.35rem);
+  padding: 0 calc(0.55 * var(--sp));
+  font-size: 0.84rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
+}
+/* A tool button: a raised square with an icon; a toggle stays pressed in while it's on. Even sizes (22px, 20px
+   inside the border, a 12px icon), so the icon sits exactly in the middle. */
+.tool-button {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.5714rem;
+  height: 1.5714rem;
+  padding: 0;
+  font-size: 0.8571rem;
+  color: var(--text);
+  background: #efefed;
+  border: 1px solid #6b6e72;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9da1;
+  cursor: pointer;
+}
+.tool-button[data-hovered] {
+  background: #f7f7f5;
+}
+.tool-button[data-pressed],
+.tool-button[aria-pressed="true"] {
+  color: var(--active);
+  background: #d9dde3;
+  box-shadow:
+    inset 1px 1px 0 #9a9da1,
+    inset -1px -1px 0 #ffffff;
+}
+.tool-button[data-disabled] {
+  color: #a9acb0;
+  cursor: default;
+  box-shadow: inset 1px 1px 0 #ffffff;
+}
+.tool-button[data-focus-visible],
+.close-x[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+/* The close button: a grey ✕, only at the top right of a popup, panel or dialog. Never for removing. */
+.close-x {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.5714rem;
+  height: 1.5714rem;
+  padding: 0;
+  font-size: 0.8571rem;
+  color: #3b3e42;
+  background: #e4e4e2;
+  border: 1px solid #6b6e72;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9da1;
+  cursor: pointer;
+}
+.close-x[data-hovered] {
+  background: #efefed;
+}
+.close-x[data-pressed] {
+  box-shadow:
+    inset 1px 1px 0 #9a9da1,
+    inset -1px -1px 0 #ffffff;
+}
+/* Unfolding in place (components/Disclose.tsx): a chevron before the words; ▾ when open. */
+.disclose {
+  display: inline-flex;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.disclose[data-hovered] {
+  text-decoration: underline;
+}
+.disclose[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.disclose-icon {
+  flex: none;
+  transition: transform 0.12s;
+}
+.disclose[aria-expanded="true"] .disclose-icon {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .disclose-icon {
+    transition: none;
+  }
+}
+/* A sortable column that isn't sorted by yet: a faint ↕ says it can be. */
+.sort-hint {
+  color: var(--muted);
+  opacity: 0.55;
+}
+/* A link that leaves the app (components/ExternalLink.tsx): its ↗. */
+.link-out-icon {
+  margin-left: 0.2em;
+  vertical-align: -0.05em;
+}
+/* A small button after a check or a line of text sits a little apart from it. */
+.wiz-check-lines .button-small,
+.wiz-issues .button-small,
+.wiz-samples .button-small,
+.bi-warn .button-small {
+  margin-left: calc(0.5 * var(--sp));
+}
+/* Deleting asks first, in a popover beside the button. */
+.confirm-pop {
+  display: grid;
+  gap: calc(0.5 * var(--sp));
+  max-width: 22rem;
+  padding: calc(0.6 * var(--sp)) calc(0.7 * var(--sp));
+}
+/* Undo, after a remove (components/UndoToast.tsx). */
+.undo-toast {
+  position: fixed;
+  z-index: 40;
+  bottom: calc(1.3 * var(--sp) + 0.5rem);
+  left: 50%;
+  display: flex;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+  max-width: calc(100% - 2rem);
+  padding: 0.45rem 0.5rem 0.45rem 0.9rem;
+  color: #ffffff;
+  background: #2a2d31;
+  border-radius: var(--radius);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+}
+@media print {
+  .undo-toast {
+    display: none;
+  }
+}
+
+/* The red − (components/RemoveButton.tsx): the one way to take something off a list or a step. A real button, raised
+   and pressed like the others (bevels are the one place for hexes), red with a white −, the pair of AddButton's +. */
+.remove-x {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.5714rem; /* 22px at 100%: 20px inside the border, the 12px ✕ exactly in the middle */
+  height: 1.5714rem;
+  padding: 0;
+  font-size: 0.8571rem; /* the − is 1em: 12px */
+  color: #ffffff;
+  background: #b8352b;
+  border: 1px solid #5e130e;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ec8d84,
+    inset -1px -1px 0 #7a1a14,
+    inset 2px 2px 0 #cf5246,
+    inset -2px -2px 0 #93241b;
+  cursor: pointer;
+}
+.remove-x[data-hovered] {
+  background: #c8413a;
+}
+.remove-x[data-pressed] {
+  background: #a02c23;
+  box-shadow:
+    inset 1px 1px 0 #7a1a14,
+    inset -1px -1px 0 #ec8d84,
+    inset 2px 2px 0 #93241b;
+}
+.remove-x[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.remove-x[data-disabled] {
+  color: #f4f4f2;
+  background: #c9c9c7;
+  border-color: #8e9195;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9a9a;
+  cursor: default;
 }
 
 .button[data-hovered] {
@@ -1160,35 +1538,10 @@ a.row-title:hover {
   color: var(--muted);
   font-size: 0.9rem;
 }
-
-.add-file {
-  display: grid;
-  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
-  padding: calc(0.6 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--head);
-}
-
-/* The picked file: label and pills above a fixed-width path, so the buttons never move. */
-.pick-line {
+/* The picked file: label and pills above a fixed-width path {
   display: flex;
   align-items: flex-end;
   gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
-}
-
-.pick-file {
-  display: grid;
-  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
-  width: min(100%, 34rem);
-}
-
-.pick-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  min-height: 1.5rem;
 }
 
 .pills {
@@ -1232,26 +1585,6 @@ a.row-title:hover {
   border-color: var(--info-edge);
   color: var(--link);
 }
-
-.path-box {
-  display: block;
-  box-sizing: border-box;
-  height: var(--ctl-h);
-  line-height: calc(var(--ctl-h) - 2px);
-  padding: 0 calc(0.4 * var(--sp));
-  background: var(--head);
-  border: 1px solid var(--well-edge);
-  border-radius: 2px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  direction: rtl; /* the "…" cuts the start of the path, so the file name stays visible */
-  text-align: left;
-  outline: none;
-}
-
-.path-box[data-focus-visible],
-.path-box:focus-visible,
 .tip-target:focus-visible {
   outline: 3px solid var(--focus);
 }
@@ -1473,6 +1806,11 @@ a.row-title:hover {
   max-width: 56rem;
 }
 
+/* Inside an entry the rows use its width (its ID boxes reach its right edge). */
+.entry-body .wiz-grid {
+  max-width: none;
+}
+
 .wiz-label {
   font-weight: 600;
 }
@@ -1665,23 +2003,6 @@ a.row-title:hover {
   margin: 0 0 calc(0.6 * var(--sp));
 }
 
-.wiz-pick {
-  display: flex;
-  gap: max(calc(1.5 * var(--sp)), min(1.5rem, var(--gap-min)));
-  align-items: flex-end;
-}
-
-.wiz-file {
-  display: flex;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  align-items: baseline;
-  margin-bottom: calc(0.4 * var(--sp));
-}
-
-.wiz-file .wiz-link {
-  margin-left: calc(0.8 * var(--sp));
-}
-
 .wiz-pair {
   display: flex;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
@@ -1731,10 +2052,6 @@ a.row-title:hover {
   height: 1em;
   margin-right: 0.3em;
   vertical-align: -0.12em;
-}
-
-.wiz-resolve {
-  margin-left: calc(0.6 * var(--sp));
 }
 
 .wiz-modal-wide {
@@ -1816,9 +2133,8 @@ a.row-title:hover {
   height: 0.95em;
   vertical-align: -0.1em;
 }
-
-/* The add-file panel's Import sits on the right, like the wizard's Next, so it isn't skipped. */
-.add-file .form-actions {
+/* The add-file panel's Import sits on the right,
+like the wizard's Next {
   justify-self: stretch;
   justify-content: flex-end;
 }
@@ -1884,27 +2200,6 @@ a.row-title:hover {
   font-size: 0.9rem;
 }
 
-.rc-seg {
-  display: inline-flex;
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-
-.rc-seg-btn {
-  padding: calc(0.1 * var(--sp)) calc(0.55 * var(--sp));
-  font: inherit;
-  font-size: 0.82rem;
-  background: var(--panel);
-  border: 0;
-  cursor: pointer;
-}
-
-.rc-seg-btn[aria-pressed="true"] {
-  color: #ffffff;
-  background: var(--active);
-}
-
 .rc-cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
@@ -1917,8 +2212,8 @@ a.row-title:hover {
   align-content: start;
   min-width: 0;
   padding: calc(0.55 * var(--sp)) calc(0.65 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 
 .rc-card h3 {
@@ -1946,9 +2241,9 @@ a.row-title:hover {
   align-items: center;
   padding: calc(0.2 * var(--sp)) calc(0.45 * var(--sp));
   font-size: 0.9rem;
-  background: var(--info-tint);
-  border: 1px solid var(--info-edge);
-  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 
 .rc-steps li.rc-none {
@@ -1975,15 +2270,6 @@ a.row-title:hover {
 .rc-input {
   padding: 0 calc(0.25 * var(--sp));
   font-family: var(--mono);
-}
-
-.rc-x {
-  display: inline-flex;
-  padding: calc(0.1 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
 }
 
 .rc-menu {
@@ -2112,20 +2398,6 @@ a.row-title:hover {
   margin: 0 0 calc(0.6 * var(--sp));
 }
 
-/* More files (F3d): a card per file. */
-.wiz-extra {
-  display: grid;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  margin: 0 0 calc(0.7 * var(--sp));
-  padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-
-.wiz-holds {
-  margin: 0;
-}
-
 /* Location step (F3d): coordinates, the map, the user's location fields. */
 .wiz-section {
   margin: calc(1 * var(--sp)) 0 0;
@@ -2156,12 +2428,18 @@ a.row-title:hover {
   transform: rotate(-45deg);
 }
 
+/* A location field: removable on its own, so its own box, its ✕ at the right. */
 .wiz-loc {
   display: flex;
-  grid-column: 1 / -1;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
-  align-items: baseline;
+  align-items: center;
   min-width: 0;
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.wiz-loc > .remove-x {
+  margin-left: auto;
 }
 
 .wiz-loc-add {
@@ -2216,17 +2494,6 @@ a.row-title:hover {
 .qc-arrows {
   white-space: nowrap;
 }
-.qc-move {
-  border: 0;
-  background: none;
-  padding: 0 calc(0.15 * var(--sp));
-  color: var(--muted);
-  cursor: pointer;
-}
-.qc-move[data-disabled] {
-  opacity: 0.3;
-  cursor: default;
-}
 .qc-flag {
   color: var(--warn, var(--warn));
   font-size: 0.8rem;
@@ -2237,41 +2504,6 @@ a.row-title:hover {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-.qc-pick {
-  display: flex;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  align-items: baseline;
-  width: 100%;
-  text-align: left;
-  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.qc-radio li.on .qc-pick {
-  border-color: #7fa3d9;
-  background: var(--info-tint);
-}
-.qc-radio .dot {
-  width: 0.8rem;
-  height: 0.8rem;
-  border: 1px solid var(--panel-edge);
-  border-radius: 50%;
-  display: inline-block;
-  position: relative;
-  top: 0.1rem;
-  flex: none;
-}
-.qc-radio li.on .dot {
-  background: radial-gradient(#1d5bb8 45%, #fff 50%);
-  border-color: var(--link);
-}
-.qc-radio small {
-  color: var(--muted);
 }
 .qc-radio .tag {
   margin-left: auto;
@@ -2304,8 +2536,8 @@ a.row-title:hover {
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
 }
 .bi-card {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   display: grid;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
@@ -2523,34 +2755,8 @@ a.row-title:hover {
   font-size: 1rem;
 }
 .mg-start-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 24rem));
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
-}
-.mg-start-card {
-  display: grid;
-  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
-  align-content: start;
-  text-align: left;
-  padding: calc(0.8 * var(--sp)) calc(0.9 * var(--sp));
-  font: inherit;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--btn-edge);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.mg-start-card[data-hovered] {
-  border-color: var(--focus);
-  background: var(--info-tint);
-}
-.mg-start-card[data-disabled] {
-  cursor: default;
-  opacity: 0.65;
-}
-.mg-start-card span {
-  color: var(--muted);
-  font-size: 0.9rem;
 }
 .mg {
   display: grid;
@@ -2662,18 +2868,6 @@ a.row-title:hover {
   display: grid;
   padding: calc(0.25 * var(--sp)) calc(0.2 * var(--sp)) 0 0;
 }
-.mg-arrow {
-  display: inline-flex;
-  padding: calc(0.1 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.mg-arrow[data-disabled] {
-  opacity: 0.25;
-  cursor: default;
-}
 .mg-sep {
   margin: calc(0.2 * var(--sp)) 0;
   border-top: 1px solid var(--rule);
@@ -2728,16 +2922,25 @@ a.row-title:hover {
   display: flex;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
 }
+/* A colour swatch: lifts on hover; the chosen one has a clear ring round it. */
 .mg-colour {
   width: 1.1rem;
   height: 1.1rem;
   padding: 0;
-  border: 2px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 3px;
   cursor: pointer;
 }
+.mg-colour[data-hovered] {
+  transform: translateY(-1px);
+}
 .mg-colour.on {
-  border-color: #111;
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.mg-colour[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 .mg-stats {
   display: grid;
@@ -2746,8 +2949,8 @@ a.row-title:hover {
 }
 .mg-stats > div {
   padding: calc(0.35 * var(--sp)) calc(0.55 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .mg-stat-n {
   display: block;
@@ -2762,8 +2965,8 @@ a.row-title:hover {
   display: grid;
   gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
   padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .mg-card-h {
   margin: 0;
@@ -2786,9 +2989,9 @@ a.row-title:hover {
   display: grid;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   padding: calc(0.3 * var(--sp)) calc(0.45 * var(--sp));
-  background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 /* A test of a yes/no rule on one line too (column, test, values, ×). */
 .rl-test .rl-head {
@@ -2891,14 +3094,6 @@ ul.mg-checks {
   cursor: default;
   opacity: 0.6;
 }
-.mg-x {
-  display: inline-flex;
-  padding: calc(0.2 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
 .mg-map-body {
   position: relative;
   min-height: 0;
@@ -2937,20 +3132,12 @@ ul.mg-checks {
   border-radius: 2px;
 }
 /* Each colour is a checkbox: filled when its parcels are shown, hollow when hidden. */
-.mg-key {
-  padding: 0;
-  font: inherit;
-  color: var(--text);
-  cursor: pointer;
-  background: none;
-  border: 0;
-}
-.mg-key:not([data-selected]) {
+/* A legend key shows or hides its group on the map: a checkbox with the group's colour. */
+.mg-key.off {
   color: var(--muted);
 }
-.mg-key[data-focus-visible] {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+.mg-key.off .mg-key-sw {
+  opacity: 0.35;
 }
 .mg-pop {
   position: absolute;
@@ -3069,23 +3256,9 @@ ul.mg-checks {
   flex: none;
   opacity: 0.45;
 }
+/* "4 values ˅": a small button (.button.button-small), a little apart from what it follows. */
 .vals-button {
-  display: inline-flex;
   margin-left: calc(0.4 * var(--sp));
-  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
-  align-items: center;
-  padding: 0 calc(0.45 * var(--sp));
-  font: inherit;
-  font-size: 0.82rem;
-  color: var(--link);
-  white-space: nowrap;
-  background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  cursor: pointer;
-}
-.vals-button[data-hovered] {
-  border-color: var(--focus);
 }
 /* The popover is never taller than the room it has (react-aria sets its max-height): the list scrolls inside. */
 .vals-popover {
@@ -3220,17 +3393,6 @@ ul.mg-checks {
 .cf-name-input {
   width: 10rem;
 }
-
-/* ---------- Shapefiles: one compact card per map layer ---------- */
-.ly {
-  display: grid;
-  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
-  padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
-  margin-bottom: calc(0.5 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-.ly-head,
 .ly-body,
 .ly-inline {
   display: flex;
@@ -3239,27 +3401,6 @@ ul.mg-checks {
     max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   font-size: 0.9rem;
-}
-.ly-name {
-  font-weight: 600;
-}
-.ly-grow {
-  flex: 1;
-}
-.ly-icon {
-  display: inline-flex;
-  padding: calc(0.2 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.ly-icon[data-hovered],
-.ly-icon.on {
-  color: var(--text);
-  border-color: var(--rule);
-  background: var(--head);
 }
 .ly-left {
   display: grid;
@@ -3272,36 +3413,44 @@ ul.mg-checks {
 .ly-label {
   color: var(--muted);
 }
+/* A copied field: removable on its own, so its own box (the entry outline), its ✕ at the right. */
 .ly-chip {
   display: inline-flex;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
-  padding: calc(0.05 * var(--sp)) calc(0.2 * var(--sp)) calc(0.05 * var(--sp)) calc(0.5 * var(--sp));
-  background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
+  padding: 0 0 0 calc(0.5 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
+.ly-chip .remove-x {
+  width: 1.2857rem; /* 18px: 16px inside, the 10px ✕ in the middle */
+  height: 1.2857rem;
+  margin: 1px;
+  font-size: 0.7143rem; /* a 10px − */
+}
+/* A layer's body: labels in one column, what's set in the next. */
+.ly-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+}
+/* A copied field's kind ("location ˅"): a small dropdown, sunken like every dropdown. */
 .ly-kind {
   display: inline-flex;
-  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
-  padding: 0 calc(0.3 * var(--sp));
+  min-height: calc(var(--ctl-h) - 0.35rem);
+  padding: 0 calc(0.35 * var(--sp));
   font: inherit;
-  color: var(--link);
-  background: none;
-  border: 0;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.ly-kind[data-hovered] {
-  background: var(--info-tint);
-}
-.ly-x {
-  display: inline-flex;
-  padding: calc(0.1 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid #7a7d82;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #c5c7ca;
   cursor: pointer;
 }
 .ly-prefix {
@@ -3477,12 +3626,15 @@ ul.mg-checks {
 .cu-ev p {
   margin: calc(0.2 * var(--sp)) 0 0;
 }
+/* Radio cards: as wide as their words (not the page), all one width, side by side when there's room. */
 .cu-choices {
   display: grid;
+  width: fit-content;
+  max-width: 100%;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
 }
 .cu-big {
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 22rem));
 }
 .radio.cu-choice {
   display: flex;
@@ -3490,8 +3642,8 @@ ul.mg-checks {
   gap: max(calc(0.55 * var(--sp)), min(0.55rem, var(--gap-min)));
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .radio.cu-choice .radio-dot {
   margin-top: calc(0.2 * var(--sp));
@@ -3539,9 +3691,13 @@ ul.mg-checks {
   margin: calc(0.2 * var(--sp)) 0;
 }
 
+/* A test: removable on its own, so its own box. */
 .un-rule {
   display: flex;
   flex-wrap: wrap;
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
     max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
@@ -3552,13 +3708,20 @@ ul.mg-checks {
 }
 .un-rules {
   display: grid;
+  width: fit-content;
+  max-width: 100%;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
-  justify-items: start;
+}
+.un-rule > .remove-x {
+  margin-left: auto;
 }
 
 /* F3e Enrichments: one compact card per kind of public data. */
+/* The cards in one list share one width, the widest one's (style guide). */
 .en {
   display: grid;
+  width: fit-content;
+  max-width: 100%;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .en-note {
@@ -3576,8 +3739,11 @@ ul.mg-checks {
   display: grid;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.en > .en-card {
+  width: auto;
 }
 .en-card.is-off {
   background: #fafafa;
@@ -3608,9 +3774,10 @@ ul.mg-checks {
     max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
+/* Labels in one column, what's set in the next (style guide): every label the same width, so the rows line up. */
 .en-lab {
-  min-width: 9rem;
-  color: var(--muted);
+  flex: 0 0 9rem;
+  font-weight: 600;
 }
 .en-chip {
   display: inline-block;
@@ -4025,6 +4192,7 @@ tr.bi-kept > td {
 }
 /* A group's small chart is a button: pressed, it's shown larger in its place (one at a time). */
 .cs-chart-button {
+  position: relative;
   font-family: inherit;
   color: inherit;
   text-align: left;
@@ -4034,6 +4202,15 @@ tr.bi-kept > td {
 .cs-chart-button[data-hovered],
 .cs-chart-button[data-focus-visible] {
   border-color: var(--link);
+}
+.cs-enlarge {
+  position: absolute;
+  top: calc(0.3 * var(--sp) + 2px);
+  right: calc(0.3 * var(--sp) + 2px);
+  pointer-events: none;
+}
+.cs-chart-button[data-hovered] .cs-enlarge {
+  background: #f7f7f5;
 }
 .cs-chart-cap {
   display: block;
@@ -4263,8 +4440,8 @@ tr.bi-kept > td {
   margin: 0;
   padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
   background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   font-size: 0.82rem;
   justify-self: start;
 }
@@ -4292,8 +4469,8 @@ tr.bi-kept > td {
   display: grid;
   gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .cs-todo {
   margin: 0 0 0 calc(1.1 * var(--sp));
@@ -4665,8 +4842,8 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vs-set {
   padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .vs-head {
   display: flex;
@@ -4682,11 +4859,6 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .vs-grow {
   flex: 1;
-}
-.vs-remove {
-  display: inline-flex;
-  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
-  align-items: center;
 }
 .rv-what {
   margin-top: calc(0.4 * var(--sp));
@@ -4845,21 +5017,6 @@ table.tbl.dt > * > tr > :is(th, td) {
 .ls-tools {
   white-space: nowrap;
 }
-.ls-move {
-  display: inline-flex;
-  align-items: center;
-  margin-right: calc(0.15 * var(--sp));
-  padding: calc(0.05 * var(--sp)) calc(0.3 * var(--sp));
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--btn-edge);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.ls-move[data-disabled] {
-  opacity: 0.4;
-  cursor: default;
-}
 .vl-warns > .wiz-warn {
   margin: calc(0.15 * var(--sp)) 0;
 }
@@ -4910,9 +5067,8 @@ table.tbl.dt > * > tr > :is(th, td) {
 .mo-trials .input {
   width: 5rem;
 }
-
-/* More files: how a file joins, under what it's about; a file appended as rows, against the file it adds to. */
-.wiz-how {
+/* More files: how a file joins,
+under what it's about; a file appended as rows {
   margin-left: calc(1.6 * var(--sp));
   padding-left: calc(0.8 * var(--sp));
   border-left: 2px solid var(--info-edge);
@@ -4959,6 +5115,17 @@ table.tbl.dt > * > tr > :is(th, td) {
 /* How many nearest: its note sits level with the box, under the box's label. */
 .lag-k {
   align-items: end;
+}
+.lag-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(12rem, 30rem) minmax(0, 1fr);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+}
+.lag-grid > .lag-fields,
+.lag-grid .field {
+  display: contents;
 }
 .lag-k > .wiz-from {
   padding-bottom: calc(0.4 * var(--sp));

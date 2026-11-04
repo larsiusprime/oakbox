@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, Menu, MenuItem, MenuTrigger, Popover, TextField } from "react-aria-components";
 import type { EngineState, ModelEntry, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
@@ -7,10 +6,12 @@ import { downloadEnded, mb, useEngineAction, useEngines } from "../api/engines";
 import { useSetGroupModels } from "../api/models";
 import { setupKey } from "../api/steps";
 import { AddButton } from "../components/AddButton";
+import { SmallButton } from "../components/Buttons";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { EngineProgress, InstallEngineDialog } from "../components/Engines";
 import { Choice } from "../components/Form";
 import { Pill } from "../components/Pill";
+import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { day, num, signed } from "../lib/format";
 import { t } from "../wording";
@@ -145,12 +146,16 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                         {optional[e.engine]?.install?.status === "running" ? (
                           <EngineProgress engine={optional[e.engine] as EngineState} />
                         ) : (
-                          <Button
-                            className="choice-aside"
-                            onPress={() => setAsk({ engine: optional[e.engine] as EngineState, back: null })}
-                          >
-                            {w.notInstalledShort}
-                          </Button>
+                          <>
+                            <span className="choice-aside">{w.notInstalledShort}</span>{" "}
+                            <SmallButton
+                              onPress={() =>
+                                setAsk({ engine: optional[e.engine] as EngineState, back: null })
+                              }
+                            >
+                              {w.installAsk}
+                            </SmallButton>
+                          </>
                         )}
                       </>
                     )}
@@ -187,7 +192,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     {options.length ? (
                       <>
                         <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />{" "}
-                        <Button className="wiz-link" onPress={() => setStack(open ? null : e.key)}>
+                        <Button className="button button-small" onPress={() => setStack(open ? null : e.key)}>
                           {open ? m.done : m.change}
                         </Button>
                       </>
@@ -203,13 +208,11 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                       ))}
                   </td>
                   <td>
-                    <Button
-                      className="wiz-link vs-remove"
+                    <RemoveButton
+                      what={e.engine}
                       onPress={() => save(entries.filter((_, j) => j !== i))}
-                    >
-                      <X aria-hidden="true" size="0.9em" />
-                      {m.remove}
-                    </Button>
+                      undo={() => save(entries)}
+                    />
                   </td>
                 </tr>,
                 open && (
@@ -292,7 +295,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     >
                       {m.addIt}
                     </Button>
-                    <Button className="wiz-link" onPress={() => setAdding(null)}>
+                    <Button className="button button-small" onPress={() => setAdding(null)}>
                       {m.cancel}
                     </Button>
                   </div>
@@ -330,7 +333,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
         )}
         {others.length > 0 && (
           <MenuTrigger>
-            <Button className="wiz-link">{m.copy}</Button>
+            <Button className="button button-small">{m.copy}</Button>
             <Popover className="popover rc-menu" placement="bottom start">
               <Menu
                 className="choice-list"
@@ -349,7 +352,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
           </MenuTrigger>
         )}
         {g.custom && (
-          <Button className="wiz-link" onPress={() => save(null)}>
+          <Button className="button button-small" onPress={() => save(null)}>
             {m.backToDefault}
           </Button>
         )}

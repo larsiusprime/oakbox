@@ -1,15 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Dialog,
-  Heading,
-  Label,
-  Modal,
-  ModalOverlay,
-  Radio,
-  RadioGroup,
-} from "react-aria-components";
+import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
 import {
   api,
@@ -25,7 +16,10 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
+import { Disclose } from "../components/Disclose";
+import { NamesFiles, SubEntry } from "../components/FileEntry";
 import { Choice } from "../components/Form";
+import { Seg } from "../components/Seg";
 import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
@@ -33,13 +27,13 @@ import { say, t } from "../wording";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
-import { ASSUMABLE, FieldRow, NONE, shortName } from "./FieldRow";
+import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
 import { LocationExtras } from "./Location";
 import { PermitsStep } from "./Permits";
 import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep, UnitsPointer } from "./Units";
 import { ValueSetsStep } from "./ValueSets";
-import { CheckText, FileHeader, FilePicker, IdCheck, IdRow, isMainSales } from "./WizardFiles";
+import { CheckText, FilePicker, IdCheck, IdRow, isMainSales, StepFile } from "./WizardFiles";
 import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 const w = t.wizard;
@@ -375,40 +369,44 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
 
 function UniverseStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
   const base = data.files.find((f) => f.base);
-  const [replacing, setReplacing] = useState(false);
   const [adding, setAdding] = useState(false);
-  if (!base || replacing) {
+  if (!base) {
     return (
       <FilePicker
         project={project}
         data={data}
-        exclude={base ? [base.name] : []}
-        onChosen={(name) =>
-          change({ kind: "file", name, universe: true }, { onSuccess: () => setReplacing(false) })
-        }
+        exclude={[]}
+        onChosen={(name) => change({ kind: "file", name, universe: true })}
       />
     );
   }
   const columns = base.columns.map((c) => [c.name, c.name] as const);
   return (
-    <>
-      <FileHeader file={base} onReplace={() => setReplacing(true)} />
-      <p className="wiz-ok">{w.geometryFound}</p>
-      <div className="wiz-grid frame">
-        <div className="wiz-label">
-          <TipOn text={w.parcelIdTip}>
-            <span>{w.parcelId}</span>
-          </TipOn>
-        </div>
-        <Choice
-          label={w.parcelId}
-          hideLabel
-          value={base.id_column}
-          placeholder={w.choose}
-          options={columns}
-          onChange={(id_column) => change({ kind: "file", name: base.name, id_column })}
+    <StepFile
+      file={base}
+      onRemove={() => change({ kind: "file", name: base.name, holds: "unused" })}
+      undo={() => change({ kind: "file", name: base.name, universe: true })}
+    >
+      {/* Each ID its own box: each but the parcel ID can be taken away on its own. */}
+      <div className="wiz-grid">
+        <SubEntry
+          label={
+            <TipOn text={w.parcelIdTip}>
+              <span>{w.parcelId}</span>
+            </TipOn>
+          }
+          control={
+            <Choice
+              label={w.parcelId}
+              hideLabel
+              value={base.id_column}
+              placeholder={w.choose}
+              options={columns}
+              onChange={(id_column) => change({ kind: "file", name: base.name, id_column })}
+            />
+          }
+          after={<IdCheck projectId={project.id} data={data} file={base} change={change} />}
         />
-        <IdCheck projectId={project.id} data={data} file={base} change={change} />
         {base.extra_ids.map((e) => (
           <ExtraIdRow key={e.field} file={base} extra={e} change={change} />
         ))}
@@ -421,7 +419,7 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
           </AddButton>
         </Tip>
       )}
-    </>
+    </StepFile>
   );
 }
 
@@ -438,29 +436,42 @@ function ExtraIdRow({
 }) {
   const ordinal = w.idOrdinal[extra.field] ?? extra.field;
   return (
-    <>
-      <div className="wiz-label">
-        <TipOn text={w.extraIdTip}>
-          <span>{ordinal}</span>
-        </TipOn>
-        <small>{w.optional}</small>
-      </div>
-      <Choice
-        label={ordinal}
-        hideLabel
-        value={extra.column}
-        options={[[NONE, w.removeId] as const, ...file.columns.map((c) => [c.name, c.name] as const)]}
-        onChange={(v) =>
-          change({
-            kind: "file",
-            name: file.name,
-            extra_field: extra.field,
-            extra_column: v === NONE ? null : v,
-          })
-        }
-      />
-      <div />
-    </>
+    <SubEntry
+      label={
+        <>
+          <TipOn text={w.extraIdTip}>
+            <span>{ordinal}</span>
+          </TipOn>
+          <small>{w.optional}</small>
+        </>
+      }
+      control={
+        <Choice
+          label={ordinal}
+          hideLabel
+          value={extra.column}
+          options={file.columns.map((c) => [c.name, c.name] as const)}
+          onChange={(v) =>
+            change({ kind: "file", name: file.name, extra_field: extra.field, extra_column: v })
+          }
+        />
+      }
+      what={ordinal}
+      onRemove={() => change({ kind: "file", name: file.name, extra_field: extra.field, extra_column: null })}
+      // Removing the 2nd moves the 3rd up into its place: Undo puts both back where they were.
+      undo={() => {
+        const later = file.extra_ids.filter((e) => e.field > extra.field);
+        const put = (i: number) => {
+          const e = i === 0 ? extra : later[i - 1];
+          if (!e) return;
+          change(
+            { kind: "file", name: file.name, extra_field: e.field, extra_column: e.column },
+            { onSuccess: () => put(i + 1) },
+          );
+        };
+        put(0);
+      }}
+    />
   );
 }
 
@@ -468,74 +479,76 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
   const field = EXTRA_IDS[file.extra_ids.length] ?? "key2";
   const ordinal = w.idOrdinal[field] ?? field;
   return (
-    <>
-      <div className="wiz-label">
-        <TipOn text={w.extraIdTip}>
-          <span>{ordinal}</span>
-        </TipOn>
-        <small>{w.optional}</small>
-      </div>
-      <Choice
-        label={ordinal}
-        hideLabel
-        value={null}
-        placeholder={w.choose}
-        options={file.columns.map((c) => [c.name, c.name] as const)}
-        onChange={(v) =>
-          change({ kind: "file", name: file.name, extra_field: field, extra_column: v }, { onSuccess: done })
-        }
-      />
-      <div className="wiz-samples">
-        <Button className="wiz-link" onPress={done}>
-          {w.cancel}
-        </Button>
-      </div>
-    </>
+    <SubEntry
+      label={
+        <>
+          <TipOn text={w.extraIdTip}>
+            <span>{ordinal}</span>
+          </TipOn>
+          <small>{w.optional}</small>
+        </>
+      }
+      control={
+        <Choice
+          label={ordinal}
+          hideLabel
+          value={null}
+          placeholder={w.choose}
+          options={file.columns.map((c) => [c.name, c.name] as const)}
+          onChange={(v) =>
+            change(
+              { kind: "file", name: file.name, extra_field: field, extra_column: v },
+              { onSuccess: done },
+            )
+          }
+        />
+      }
+      onClose={done}
+    />
   );
 }
 
 function SalesStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
   const sales = data.files.find(isMainSales);
   const base = data.files.find((f) => f.base);
-  const [replacing, setReplacing] = useState(false);
-  if (!sales || replacing) {
+  if (!sales) {
     return (
       <FilePicker
         project={project}
         data={data}
-        exclude={[...(base ? [base.name] : []), ...(sales ? [sales.name] : [])]}
-        onChosen={(name) =>
-          change({ kind: "file", name, holds: "sales" }, { onSuccess: () => setReplacing(false) })
-        }
+        exclude={base ? [base.name] : []}
+        onChosen={(name) => change({ kind: "file", name, holds: "sales" })}
       />
     );
   }
   return (
-    <>
-      <FileHeader file={sales} onReplace={() => setReplacing(true)} />
-      {/* Its two IDs, in one frame: the parcel each sale finds, and the sale's own. */}
-      <div className="frame">
-        <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
-        <div className="wiz-grid">
-          <div className="wiz-label">
-            <TipOn text={w.saleIdTip}>
-              <span>{w.saleIdColumn}</span>
-            </TipOn>
-          </div>
-          <Choice
-            label={w.saleIdColumn}
-            hideLabel
-            value={data.sale_id.made ? MAKE : data.sale_id.column}
-            placeholder={w.choose}
-            options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
-            onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
-          />
-          <div className="wiz-samples">
-            <CheckText check={data.sale_id.check} />
-          </div>
+    <StepFile
+      file={sales}
+      onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
+      undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
+    >
+      {/* Its two IDs: the parcel each sale finds, and the sale's own. */}
+
+      <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
+      <div className="wiz-grid">
+        <div className="wiz-label">
+          <TipOn text={w.saleIdTip}>
+            <span>{w.saleIdColumn}</span>
+          </TipOn>
+        </div>
+        <Choice
+          label={w.saleIdColumn}
+          hideLabel
+          value={data.sale_id.made ? MAKE : data.sale_id.column}
+          placeholder={w.choose}
+          options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
+          onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
+        />
+        <div className="wiz-samples">
+          <CheckText check={data.sale_id.check} />
         </div>
       </div>
-    </>
+    </StepFile>
   );
 }
 
@@ -558,7 +571,7 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
   );
   const [adding, setAdding] = useState(extras.length === 0);
   return (
-    <>
+    <div className="entry-list">
       {extras.map((f) => (
         <ExtraFile
           key={f.name}
@@ -572,35 +585,34 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
             setChosen((c) => c.filter((n) => n !== f.name));
             change({ kind: "file", name: f.name, holds: "unused" });
           }}
+          restore={() => {
+            setChosen((c) => [...c, f.name]);
+            if (f.holds && f.holds !== "unused" && f.holds !== "overlay")
+              change(
+                f.holds === "sales"
+                  ? { kind: "file", name: f.name, holds: f.holds, match: "key_sale" }
+                  : { kind: "file", name: f.name, holds: f.holds },
+              );
+          }}
         />
       ))}
       {adding ? (
-        <div className="wiz-extra">
-          <FilePicker
-            project={project}
-            data={data}
-            exclude={[
-              ...(base ? [base.name] : []),
-              ...(main ? [main.name] : []),
-              ...extras.map((f) => f.name),
-            ]}
-            onChosen={(name) => {
-              setChosen((c) => [...c, name]);
-              setAdding(false);
-            }}
-          />
-          {extras.length > 0 && (
-            <Button className="wiz-link" onPress={() => setAdding(false)}>
-              {w.cancel}
-            </Button>
-          )}
-        </div>
+        <FilePicker
+          project={project}
+          data={data}
+          exclude={[...(base ? [base.name] : []), ...(main ? [main.name] : []), ...extras.map((f) => f.name)]}
+          onChosen={(name) => {
+            setChosen((c) => [...c, name]);
+            setAdding(false);
+          }}
+          {...(extras.length > 0 ? { onCancel: () => setAdding(false) } : {})}
+        />
       ) : (
         <AddButton end onPress={() => setAdding(true)}>
           {extras.length ? w.extraFiles.another : w.extraFiles.first}
         </AddButton>
       )}
-    </>
+    </div>
   );
 }
 
@@ -612,6 +624,7 @@ function ExtraFile({
   main,
   change,
   drop,
+  restore,
 }: {
   project: Project;
   data: Wizard;
@@ -620,6 +633,7 @@ function ExtraFile({
   main: WizardFile | undefined;
   change: Mutate;
   drop: () => void;
+  restore: () => void;
 }) {
   const m = w.extraFiles;
   // What it's about (parcels or sales), then how it joins: on the ID, or appended as extra rows.
@@ -639,55 +653,48 @@ function ExtraFile({
   const joined = about === "parcels" ? "parcels" : "sales";
   const rows = about === "parcels" ? "parcel_rows" : "sale_rows";
   return (
-    <section className="wiz-extra">
-      <div className="wiz-file">
-        <span className="mono">{file.name}</span>
-        <span className="wiz-from">{file.filename}</span>
-        {file.rows !== null && <span className="wiz-from">· {file.rows.toLocaleString()} rows</span>}
-        <Button className="wiz-link" onPress={drop}>
-          {m.drop}
-        </Button>
+    <StepFile file={file} onRemove={drop} undo={restore}>
+      {/* What it's about and how it joins, on the same two columns as its ID below. */}
+      <div className="wiz-grid">
+        <div className="wiz-label">{m.what}</div>
+        <div className="wiz-span">
+          <Seg
+            label={m.what}
+            value={about}
+            options={[
+              ["parcels", m.parcels],
+              ["sales", m.sales],
+            ]}
+            disabled={main ? [] : ["sales"]}
+            titles={main ? {} : { sales: m.needsSales }}
+            onChange={(v) =>
+              set(v === "sales" ? (appended ? "sale_rows" : "sales") : appended ? "parcel_rows" : "parcels")
+            }
+          />
+        </div>
+        {about && (
+          <>
+            <div className="wiz-label">{m.how}</div>
+            <div className="wiz-span">
+              <Seg
+                label={m.how}
+                value={appended ? "rows" : "joined"}
+                options={[
+                  ["joined", about === "parcels" ? m.joinedParcels : m.joinedSales],
+                  ["rows", about === "parcels" ? m.rowsParcels : m.rowsSales],
+                ]}
+                disabled={about === "parcels" && !file.geometry ? ["rows"] : []}
+                titles={about === "parcels" && !file.geometry ? { rows: m.needsShapes } : {}}
+                onChange={(v) => set(v === "rows" ? rows : joined)}
+              />
+            </div>
+          </>
+        )}
       </div>
-      <RadioGroup
-        className="field radios wiz-holds"
-        value={about}
-        onChange={(v) =>
-          set(v === "sales" ? (appended ? "sale_rows" : "sales") : appended ? "parcel_rows" : "parcels")
-        }
-      >
-        <Label className="field-label">{m.what}</Label>
-        <Radio value="parcels" className="radio">
-          <span className="radio-dot" aria-hidden="true" />
-          {m.parcels}
-        </Radio>
-        <Radio value="sales" className="radio" isDisabled={!main}>
-          <span className="radio-dot" aria-hidden="true" />
-          {m.sales}
-          {!main && <small className="wiz-from"> {m.needsSales}</small>}
-        </Radio>
-      </RadioGroup>
-      {about && (
-        <RadioGroup
-          className="field radios wiz-holds wiz-how"
-          value={appended ? "rows" : "joined"}
-          onChange={(v) => set(v === "rows" ? rows : joined)}
-        >
-          <Label className="field-label">{m.how}</Label>
-          <Radio value="joined" className="radio">
-            <span className="radio-dot" aria-hidden="true" />
-            {about === "parcels" ? m.joinedParcels : m.joinedSales}
-          </Radio>
-          <Radio value="rows" className="radio" isDisabled={about === "parcels" && !file.geometry}>
-            <span className="radio-dot" aria-hidden="true" />
-            {about === "parcels" ? m.rowsParcels : m.rowsSales}
-            {about === "parcels" && !file.geometry && <small className="wiz-from"> {m.needsShapes}</small>}
-          </Radio>
-        </RadioGroup>
-      )}
       {about && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
       {file.appended && <Appended file={file} change={change} />}
       {file.holds === "parcels" && <UnitsPointer projectId={project.id} file={file} />}
-    </section>
+    </StepFile>
   );
 }
 
@@ -805,9 +812,9 @@ function FieldsStep({
         )}
       </div>
       {hidden > 0 && (
-        <Button className="wiz-more" onPress={() => setMore(!more)}>
+        <Disclose className="wiz-more" open={more} onPress={() => setMore(!more)}>
           {more ? w.fewer : w.more({ n: hidden })}
-        </Button>
+        </Disclose>
       )}
     </>
   );
@@ -843,7 +850,13 @@ function ReviewStep({
     <>
       <p className="wiz-lede">
         {w.summary({ fields: loaded.length, columns })}{" "}
-        {data.not_loaded.map((n) => say.wizard.notLoaded(n.file, n.columns)).join(" ")}
+        <NamesFiles
+          items={data.not_loaded.map((n) => ({
+            key: n.file,
+            text: say.wizard.notLoaded(n.file, n.columns),
+            name: n.file,
+          }))}
+        />
       </p>
       {data.files
         .filter((f) => f.holds === "parcels" && (f.repeats?.extra ?? 0) > 0)

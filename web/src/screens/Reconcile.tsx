@@ -1,5 +1,4 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useState } from "react";
 import {
   Button,
@@ -16,7 +15,10 @@ import {
 } from "react-aria-components";
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
 import { AddButton } from "../components/AddButton";
+import { NamesFile } from "../components/FileEntry";
 import { Tick } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
+import { Seg } from "../components/Seg";
 import { pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
@@ -129,7 +131,9 @@ export function ReconcileDialog({
           <Heading slot="title" className="modal-title">
             {k.title}
           </Heading>
-          <p className="rc-sub">{k.lede}</p>
+          <p className="rc-sub">
+            <NamesFile text={k.lede} name={file.name} />
+          </p>
           <div className={`rc-meter ${good ? "ok" : "bad"}`} aria-live="polite">
             {v ? (
               <>
@@ -150,7 +154,7 @@ export function ReconcileDialog({
             <p className="rc-suggest">
               <b>{r.suggest}</b> {suggestion.text}.{" "}
               <Button
-                className="wiz-link"
+                className="button button-small"
                 onPress={() => {
                   setBaseSteps(suggestion.base_steps);
                   setFileSteps(suggestion.file_steps);
@@ -164,13 +168,15 @@ export function ReconcileDialog({
           )}
           <div className="rc-samplebar">
             <span>{r.samples}</span>
-            <span className="rc-seg">
-              {(["random", "unmatched"] as const).map((x) => (
-                <Button key={x} className="rc-seg-btn" aria-pressed={view === x} onPress={() => setView(x)}>
-                  {x === "unmatched" ? r.unmatched : r.random}
-                </Button>
-              ))}
-            </span>
+            <Seg
+              label={r.samples}
+              value={view}
+              options={[
+                ["random", r.random],
+                ["unmatched", r.unmatched],
+              ]}
+              onChange={setView}
+            />
             <Button className="button" onPress={() => setSeed((s) => s + 1)}>
               {r.newSamples}
             </Button>
@@ -193,7 +199,9 @@ export function ReconcileDialog({
               <Samples rows={v?.base_samples ?? []} labels={k} target />
             </section>
             <section className="rc-card">
-              <h3>{k.mine}</h3>
+              <h3>
+                <NamesFile text={k.mine} name={file.name} />
+              </h3>
               {same ? (
                 <p className="rc-same">{r.sameAsParcels}</p>
               ) : (
@@ -252,13 +260,12 @@ function CleanSteps({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) 
             <span className="rc-grow">
               <StepText step={s} set={(patch) => set(i, patch)} />
             </span>
-            <Button
-              className="rc-x"
-              aria-label={r.remove}
+            <RemoveButton
+              what={t.buttons.theStep}
+              label={r.remove}
               onPress={() => onChange(steps.filter((_, j) => j !== i))}
-            >
-              <X size="0.9em" />
-            </Button>
+              undo={() => onChange(steps)}
+            />
           </li>
         ))}
       </ol>

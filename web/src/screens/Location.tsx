@@ -1,12 +1,14 @@
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, Map as MapIcon, X } from "lucide-react";
+import { ChevronUp, Map as MapIcon } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
+import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 
@@ -106,7 +108,7 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
                 ? l.centerMiddle
                 : l.centerMiddleHidden}{" "}
             {v.center && (
-              <Button className="wiz-link" onPress={() => move.mutate(null)}>
+              <Button className="button button-small" onPress={() => move.mutate(null)}>
                 {l.useMiddle}
               </Button>
             )}
@@ -234,12 +236,12 @@ function LocationFields({
       <h3 className="wiz-group">{l.fields}</h3>
       <p className="wiz-lede">{l.fieldsLede}</p>
       {data.locations.length > 0 && (
-        <div className="wiz-grid">
+        <div className="entry-list">
           {data.locations.map((x) => (
             <div key={x.name} className="wiz-loc">
               <span className="mono">{x.name}</span>
               <span className="wiz-from">
-                {x.column} · {x.file}
+                {x.column} · <span className="file-label">{x.file}</span>
               </span>
               <span className={x.check.warn ? "wiz-warn" : x.check.ok ? "wiz-ok" : "wiz-warn"}>
                 {x.check.text}
@@ -251,13 +253,11 @@ function LocationFields({
                 distinct={x.distinct}
                 noun={l.areas({ n: x.distinct ?? 0 })}
               />
-              <Button
-                className="rc-x"
-                aria-label={l.remove({ name: x.name })}
+              <RemoveButton
+                what={x.name}
                 onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
-              >
-                <X size="0.9em" />
-              </Button>
+                undo={() => change({ kind: "location", name: x.name, file: x.file, column: x.column })}
+              />
             </div>
           ))}
         </div>
@@ -287,9 +287,9 @@ function LocationFields({
         <TextField aria-label={l.name} value={name} onChange={setName} className="rl-mini">
           <Input className="input rl-input" placeholder={l.namePlaceholder} />
         </TextField>
-        <Button type="submit" className="button" isDisabled={!file || !name}>
+        <AddButton type="submit" isDisabled={!file || !name}>
           {l.add}
-        </Button>
+        </AddButton>
       </form>
     </section>
   );

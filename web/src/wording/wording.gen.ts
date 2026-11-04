@@ -148,10 +148,8 @@ export type Wording = {
       lede: string;
     }>;
     addFile: string;
-    addOther: string;
     orExisting: string;
     noPicker: string;
-    fileLabel: (a: { name: string | number; filename: string | number }) => string;
     geometryFound: string;
     parcelId: string;
     parcelIdTip: string;
@@ -159,7 +157,6 @@ export type Wording = {
     addId: (a: { ordinal: string | number }) => string;
     extraIdTip: string;
     optional: string;
-    removeId: string;
     matchBy: string;
     idColumnIn: (a: { file: string | number }) => string;
     saleIdTip: string;
@@ -333,7 +330,6 @@ export type Wording = {
       effectiveAge: string;
       needsYearBuilt: string;
       gives: string;
-      stop: string;
     };
     enrich: {
       online: (a: { km2: string | number | null }) => string;
@@ -388,6 +384,7 @@ export type Wording = {
       resolution: (a: { m: string | number }) => string;
       suggested: (a: { km2: string | number | null; m: string | number }) => string;
       censusOff: string;
+      keyForgetConfirm: string;
     };
     values: {
       button: {
@@ -530,7 +527,6 @@ export type Wording = {
     extraFiles: {
       first: string;
       another: string;
-      drop: string;
       what: string;
       parcels: string;
       sales: string;
@@ -563,10 +559,11 @@ export type Wording = {
       roll: string;
       rollNote: string;
       otherNote: string;
-      remove: string;
       name: string;
       add: string;
       none: string;
+      deleteSet: string;
+      deleteConfirm: (a: { name: string | number }) => string;
     };
     reconcile: {
       open: string;
@@ -1123,6 +1120,8 @@ export type Wording = {
     ffApply: string;
     cancel: string;
     blank: string;
+    startButton: string;
+    undoConfirm: string;
   };
   sales: {
     kicker: string;
@@ -2224,8 +2223,34 @@ export type Wording = {
     lede: string;
     installed: string;
     sizes: (a: { mb: string | number; disk: string | number }) => string;
-    remove: string;
+    remove: (a: { name: string | number }) => string;
     installShort: string;
     close: string;
+    removeConfirm: (a: { name: string | number; mb: string | number }) => string;
+    installAsk: string;
+  };
+  files: {
+    facts: (a: { rows: number; shapes: string | number }) => string;
+    shapesOnly: string;
+    useExisting: string;
+    dontImport: (a: { filename: string | number }) => string;
+    otherFile: string;
+  };
+  buttons: {
+    remove: (a: { what: string | number }) => string;
+    removed: (a: { what: string | number }) => string;
+    undo: string;
+    close: string;
+    up: (a: { what: string | number }) => string;
+    down: (a: { what: string | number }) => string;
+    enlarge: string;
+    seeRows: string;
+    external: (a: { text: string | number }) => string;
+    theTest: string;
+    theCondition: string;
+    theStep: string;
+    delete: string;
+    cancel: string;
+    cleared: (a: { what: string | number }) => string;
   };
 };

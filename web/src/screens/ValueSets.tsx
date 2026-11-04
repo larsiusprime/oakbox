@@ -1,10 +1,8 @@
-/** F3d, Existing values: sets of values to compare the models with (the roll, a vendor's AVM, last year's values),
- * each named, each a market value with optional land and improvement values, read like the roll's. */
-import { X } from "lucide-react";
 import { useState } from "react";
-import { Button, Input, TextField } from "react-aria-components";
+import { Input, TextField } from "react-aria-components";
 import type { Project, Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
+import { DeleteButton } from "../components/Buttons";
 import { Tick } from "../components/Form";
 import { t } from "../wording";
 import { FieldRow } from "./FieldRow";
@@ -42,10 +40,12 @@ export function ValueSetsStep({
             </Tick>
             <span className="wiz-from">{s.roll ? v.rollNote : v.otherNote}</span>
             <span className="vs-grow" />
-            <Button className="wiz-link vs-remove" onPress={() => change({ kind: "removeSet", id: s.id })}>
-              <X aria-hidden="true" size="0.9em" />
-              {v.remove}
-            </Button>
+            <DeleteButton
+              confirm={v.deleteConfirm({ name: s.name })}
+              onDelete={() => change({ kind: "removeSet", id: s.id })}
+            >
+              {v.deleteSet}
+            </DeleteButton>
           </div>
           <div className="wiz-grid">
             {PARTS.map(([part, label]) => {

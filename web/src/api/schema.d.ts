@@ -6155,9 +6155,9 @@ export interface components {
         Plan: {
             /**
              * Files
-             * @description What's loaded, in words: the parcel universe, the sales record, the rest.
+             * @description What's loaded: the parcel universe, the sales record, the rest.
              */
-            files: string[];
+            files: components["schemas"]["PlanFile"][];
             /** Layers */
             layers: string[];
             /**
@@ -6167,6 +6167,25 @@ export interface components {
             enrichments: string[];
             /** Fields */
             fields: number;
+        };
+        /** PlanFile */
+        PlanFile: {
+            /**
+             * What
+             * @description Its part, in words: the parcel universe, the sales record, joined to the universe.
+             */
+            what: string;
+            /** Name */
+            name: string;
+            /** Filename */
+            filename: string;
+            /** Rows */
+            rows: number | null;
+            /**
+             * How
+             * @description More on how it's joined, in words.
+             */
+            how: string | null;
         };
         /** PrepareReceipt */
         PrepareReceipt: {

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { t } from "../wording";
+import { Tip } from "./Tip";
 
 export function TabStrip({ selected, children }: { selected: string; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
@@ -68,27 +69,31 @@ export function TabStrip({ selected, children }: { selected: string; children: R
   return (
     <div className={ends.over ? "tab-strip over" : "tab-strip"}>
       {ends.over && (
-        <Button
-          className="tab-scroll"
-          aria-label={t.tabs.scrollLeft}
-          isDisabled={ends.start}
-          onPress={() => scroll(-1)}
-        >
-          <ChevronLeft aria-hidden="true" size="1em" />
-        </Button>
+        <Tip text={t.tabs.scrollLeft}>
+          <Button
+            className="tab-scroll"
+            aria-label={t.tabs.scrollLeft}
+            isDisabled={ends.start}
+            onPress={() => scroll(-1)}
+          >
+            <ChevronLeft aria-hidden="true" size="1em" />
+          </Button>
+        </Tip>
       )}
       <div className="tab-strip-box" ref={box} onScroll={measure}>
         {children}
       </div>
       {ends.over && (
-        <Button
-          className="tab-scroll"
-          aria-label={t.tabs.scrollRight}
-          isDisabled={ends.end}
-          onPress={() => scroll(1)}
-        >
-          <ChevronRight aria-hidden="true" size="1em" />
-        </Button>
+        <Tip text={t.tabs.scrollRight}>
+          <Button
+            className="tab-scroll"
+            aria-label={t.tabs.scrollRight}
+            isDisabled={ends.end}
+            onPress={() => scroll(1)}
+          >
+            <ChevronRight aria-hidden="true" size="1em" />
+          </Button>
+        </Tip>
       )}
     </div>
   );

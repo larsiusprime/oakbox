@@ -1,7 +1,7 @@
 /** Variables › Variable lists (SPEC F9): the lists in a table, one open at a time; an open list's name, type and
  * model groups, and every variable with its test scores in one of its groups and whether it's recommended for the
  * list's type, ticked in or out. */
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { ListView, TestRow, VarList, VarListsView, VarTestView } from "../api/client";
@@ -10,6 +10,7 @@ import { useStep } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { num } from "../lib/format";
 import { say, t } from "../wording";
@@ -98,13 +99,11 @@ export function VarListsStep({ projectId }: { projectId: string }) {
                   <td className="cs-n">{num(x.variables.length)}</td>
                   <td className="wiz-from">{x.used_by.length ? x.used_by.join(", ") : s.notUsed}</td>
                   <td>
-                    <Button
-                      className="wiz-link vs-remove"
+                    <RemoveButton
+                      what={x.name}
                       onPress={() => save(v.lists.filter((y) => y.id !== x.id).map(plain))}
-                    >
-                      <X aria-hidden="true" size="0.9em" />
-                      {s.remove}
-                    </Button>
+                      undo={() => save(v.lists.map(plain))}
+                    />
                   </td>
                 </tr>,
                 on && (
@@ -221,12 +220,14 @@ function ListEditor({
   const pct = (r: TestRow | null) => (r?.value == null ? "—" : `${Math.round(100 * r.value)}%`);
   return (
     <div className="vl-edit">
-      <div className="vl-editrow">
-        <span className="vl-label">
-          {s.name} <Name value={list.name} onCommit={(name) => change({ name })} />
+      {/* Labels in one column, what's set in the next. */}
+      <div className="set-grid">
+        <span className="wiz-label">{s.name}</span>
+        <span>
+          <Name value={list.name} onCommit={(name) => change({ name })} />
         </span>
-        <span className="vl-label">
-          {s.type}
+        <span className="wiz-label">{s.type}</span>
+        <span>
           <Seg
             label={s.type}
             value={kind}
@@ -237,8 +238,8 @@ function ListEditor({
             onChange={(k) => change({ kind: k })}
           />
         </span>
-        <span className="vl-label vl-grow">
-          {s.groups}
+        <span className="wiz-label">{s.groups}</span>
+        <span>
           <MultiPick
             label={`${s.groups}: ${list.name}`}
             values={view.groups.filter((g) => g.modeled).map((g) => ({ value: g.id, label: g.name }))}

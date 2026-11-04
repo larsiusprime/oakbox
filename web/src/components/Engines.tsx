@@ -2,6 +2,7 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-compone
 import type { EngineState } from "../api/client";
 import { mb, useEngineAction, useEngines } from "../api/engines";
 import { t } from "../wording";
+import { DeleteButton, SmallButton } from "./Buttons";
 
 const w = t.engines;
 
@@ -101,9 +102,7 @@ export function EngineProgress({ engine }: { engine: EngineState }) {
           : w.installing({ name: engine.name, done: mb(job.done), total: mb(job.total) })}
       </span>
       {!job.unpacking && (
-        <Button className="wiz-link" onPress={() => act.mutate({ key: engine.key, action: "stop" })}>
-          {w.stop}
-        </Button>
+        <SmallButton onPress={() => act.mutate({ key: engine.key, action: "stop" })}>{w.stop}</SmallButton>
       )}
     </span>
   );
@@ -153,12 +152,12 @@ export function ModelEnginesDialog({ isOpen, onClose }: { isOpen: boolean; onClo
                     {e.install?.status !== "running" &&
                       e.can_install &&
                       (e.installed ? (
-                        <Button
-                          className="wiz-link"
-                          onPress={() => act.mutate({ key: e.key, action: "remove" })}
+                        <DeleteButton
+                          confirm={w.removeConfirm({ name: e.name, mb: mb(e.download) })}
+                          onDelete={() => act.mutate({ key: e.key, action: "remove" })}
                         >
-                          {w.remove}
-                        </Button>
+                          {w.remove({ name: e.name })}
+                        </DeleteButton>
                       ) : (
                         <Button
                           className="button"

@@ -2,9 +2,11 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
 import { short } from "../lib/format";
+import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
 import { AddButton } from "./AddButton";
 import { Tick } from "./Form";
+import { RemoveTextButton } from "./RemoveButton";
 import { Val } from "./Val";
 
 const m = t.multiPick;
@@ -81,15 +83,23 @@ export function MultiPick({
             <span>{m.chosen({ n: chosen.length, of: values.length + extra.length })}</span>
             <span className="mp-grow" />
             <Button
-              className="wiz-link"
+              className="button button-small"
               isDisabled={rows.length === 0}
               onPress={() => onChange([...new Set([...chosen, ...rows.map((x) => x.value)])])}
             >
               {q ? m.allShown : m.all}
             </Button>
-            <Button className="wiz-link" isDisabled={chosen.length === 0} onPress={() => onChange([])}>
+            <RemoveTextButton
+              small
+              isDisabled={chosen.length === 0}
+              onPress={() => {
+                const before = chosen;
+                onChange([]);
+                offerUndo(t.buttons.cleared({ what: label }), () => onChange(before));
+              }}
+            >
               {m.clear}
-            </Button>
+            </RemoveTextButton>
           </div>
           <div className="mp-list">
             {rows.map((x) => (

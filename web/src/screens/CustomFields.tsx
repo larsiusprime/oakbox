@@ -1,8 +1,10 @@
-import { X } from "lucide-react";
 import { useState } from "react";
-import { Button, Input, TextField } from "react-aria-components";
+import { Input, TextField } from "react-aria-components";
 import type { Wizard } from "../api/client";
+import { AddButton } from "../components/AddButton";
+import { SmallButton } from "../components/Buttons";
 import { Choice } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
 import { t } from "../wording";
 
@@ -113,7 +115,8 @@ export function CustomFields({
             return (
               <tr key={x.name}>
                 <td className="cf-td">
-                  <span className="mono">{x.column}</span> <span className="wiz-from">· {x.file}</span>
+                  <span className="mono">{x.column}</span> <span className="wiz-from">·</span>{" "}
+                  <span className="file-label">{x.file}</span>
                 </td>
                 <td className="cf-td mono">{x.name}</td>
                 <td className="cf-td">
@@ -146,13 +149,11 @@ export function CustomFields({
                   </span>
                 </td>
                 <td className="cf-td">
-                  <Button
-                    className="rc-x"
-                    aria-label={c.remove({ name: x.name })}
+                  <RemoveButton
+                    what={x.name}
                     onPress={() => set({ file: null, column: null })}
-                  >
-                    <X size="0.9em" />
-                  </Button>
+                    undo={() => set({ file: x.file, column: x.column })}
+                  />
                 </td>
               </tr>
             );
@@ -194,16 +195,12 @@ export function CustomFields({
               <Choice label={c.type} hideLabel value={kind} options={kinds} onChange={setKind} />
             </td>
             <td className="cf-td cf-add-td">
-              <Button className="button" isDisabled={!file || !name} onPress={add}>
+              <AddButton isDisabled={!file || !name} onPress={add}>
                 {c.add}
-              </Button>
+              </AddButton>
             </td>
             <td className="cf-td cf-add-td">
-              {dirty && (
-                <Button className="rc-x" aria-label={c.clear} onPress={clear}>
-                  <X size="0.9em" />
-                </Button>
-              )}
+              {dirty && <SmallButton onPress={clear}>{t.multiPick.clear}</SmallButton>}
             </td>
           </tr>
         </tfoot>
