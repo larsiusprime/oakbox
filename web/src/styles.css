@@ -509,6 +509,8 @@ a.row-title:hover {
 /* A thin frame round rows of fields or widgets that would otherwise float on the page (Data's IDs, a step's fields):
    what belongs together is marked out. Not inside a card, which is already a frame. */
 .frame {
+  width: fit-content;
+  max-width: 100%;
   padding: calc(0.45 * var(--sp)) calc(0.7 * var(--sp));
   margin: calc(0.35 * var(--sp)) 0;
   border: 1px solid var(--frame);
@@ -525,7 +527,10 @@ a.row-title:hover {
 /* ---------- Entries (docs/style-guide.html): a file, or anything else added and taken away ----------
    One outline (--frame); the first line says what it is, then other actions, then the red ✕ at the right edge;
    what's set on it goes in its body below a faint rule. components/FileEntry.tsx, components/RemoveButton.tsx. */
+/* As wide as what's in it, not the page (only tables take the page's width): a short file stays a short box. */
 .entry {
+  width: fit-content;
+  max-width: 100%;
   min-width: 0;
   margin: 0 0 calc(0.6 * var(--sp));
   background: var(--paper);
@@ -555,6 +560,16 @@ a.row-title:hover {
 /* Adding to the file (an ID, a field) is inside it, below its rows, at its right edge. */
 .entry-body > .add-button.add-end {
   margin-top: 0;
+}
+/* A list of entries (More files, Shapefiles): one width, the widest entry's, and its Add button at that right edge. */
+.entry-list {
+  display: grid;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  width: fit-content;
+  max-width: 100%;
+}
+.entry-list > .entry {
+  width: auto;
 }
 /* Where a file will go, before there is one: [Add a file…] or use existing: [Choose…]. */
 .entry-slot {
@@ -2233,7 +2248,6 @@ like the wizard's Next {
 /* A location field: removable on its own, so its own box, its ✕ at the right. */
 .wiz-loc {
   display: flex;
-  grid-column: 1 / -1;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
   min-width: 0;
@@ -3625,8 +3639,9 @@ ul.mg-checks {
 }
 .un-rules {
   display: grid;
+  width: fit-content;
+  max-width: 100%;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
-  justify-items: stretch;
 }
 .un-rule > .remove-x {
   margin-left: auto;

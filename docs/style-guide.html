@@ -42,7 +42,7 @@ p { margin: 0; max-width: 72ch; }
 @media (max-width: 760px) { .place { grid-template-columns: 1fr; } }
 
 /* ---------- The proposal: .entry ---------- */
-.entry { border: 1px solid var(--frame); border-radius: 3px; background: var(--paper); min-width: 0; }
+.entry { width: fit-content; max-width: 100%; border: 1px solid var(--frame); border-radius: 3px; background: var(--paper); min-width: 0; }
 .entry-head { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; min-width: 0; }
 .entry-id { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; flex: 1; }
 .entry-name { font-family: var(--mono); font-weight: 600; font-size: .92rem; }
@@ -411,6 +411,7 @@ tbody tr:nth-child(even) { background: #f0f5fc; }
     <li><b>Everything that's taken away uses <span class="mono">components/RemoveButton.tsx</span>:</b> a red ✕, last on its line at the right edge, labelled with what it removes. No "Remove" links, no grey X.</li>
     <li><b>✕ on a file takes it off that step, never off disk.</b> It stays in the project and can be picked again.</li>
     <li><b>A step with no file yet</b> shows a dashed outline holding [Add a file…], then "or use existing:" and a dropdown of the project's files.</li>
+    <li><b>An entry is as wide as what's in it</b>, never stretched to the page; entries in one list share the widest one's width, with their Add button at that right edge. Only tables take the page's width.</li>
     <li><b>Read-only lists and choices</b> (What runs, Condo units' cards, dropdowns) use the same first line without the outline or ✕.</li>
   </ol>
 </section>

@@ -68,11 +68,11 @@ export function ShapefilesStep({
     .map((f) => f.name);
   return (
     <>
-      {data.layers.map((layer) => (
-        <LayerCard key={layer.name} project={project} layer={layer} change={change} />
-      ))}
-      {adding ? (
-        <>
+      <div className="entry-list">
+        {data.layers.map((layer) => (
+          <LayerCard key={layer.name} project={project} layer={layer} change={change} />
+        ))}
+        {adding ? (
           <FilePicker
             project={project}
             data={data}
@@ -83,13 +83,13 @@ export function ShapefilesStep({
             }}
             {...(data.layers.length > 0 ? { onCancel: () => setAdding(false) } : {})}
           />
-          <p className="wiz-from">{s.formats}</p>
-        </>
-      ) : (
-        <AddButton end onPress={() => setAdding(true)}>
-          {data.layers.length ? s.another : s.first}
-        </AddButton>
-      )}
+        ) : (
+          <AddButton end onPress={() => setAdding(true)}>
+            {data.layers.length ? s.another : s.first}
+          </AddButton>
+        )}
+      </div>
+      {adding && <p className="wiz-from">{s.formats}</p>}
     </>
   );
 }

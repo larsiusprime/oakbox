@@ -550,7 +550,7 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
   );
   const [adding, setAdding] = useState(extras.length === 0);
   return (
-    <>
+    <div className="entry-list">
       {extras.map((f) => (
         <ExtraFile
           key={f.name}
@@ -582,7 +582,7 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
           {extras.length ? w.extraFiles.another : w.extraFiles.first}
         </AddButton>
       )}
-    </>
+    </div>
   );
 }
 

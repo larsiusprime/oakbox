@@ -59,9 +59,13 @@ name that says what it is.
 
 ## Screens
 
-- **Width:** tables, charts and other non-text elements use all the width available (a minimum width is fine,
-  never a maximum). Only running text is capped for readability (`.project p`, `.cs-text`, `.wiz-lede`…), and a
-  small chart that illustrates the paragraph above it (Check sales' sales per year) is as wide as that text.
+- **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a
+  maximum). **Everything else is as wide as what's in it**, not stretched to the page: a file's entry, a frame, a
+  row of tests, a form (`width: fit-content; max-width: 100%`). Boxes in one list share the widest one's width
+  (`.entry-list`), and its Add button sits at that right edge. Charts and maps are decided case by case (a chart
+  that's read across time may want the width). Running text is capped for readability (`.project p`, `.cs-text`,
+  `.wiz-lede`…), and a small chart that illustrates the paragraph above it (Check sales' sales per year) is as wide
+  as that text.
 - **Tables:** a table of results is `<table className="tbl">` (its own class only adds what's its own); every
   table has faint cell lines and alternate grey rows (the `:where(table)` rules in `styles.css`), its cells padded by
   the density (`--cell-y`); a numbers column's header has the column's class (`th.cs-n`) so it lines up with its

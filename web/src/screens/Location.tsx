@@ -235,7 +235,7 @@ function LocationFields({
       <h3 className="wiz-group">{l.fields}</h3>
       <p className="wiz-lede">{l.fieldsLede}</p>
       {data.locations.length > 0 && (
-        <div className="wiz-grid">
+        <div className="entry-list">
           {data.locations.map((x) => (
             <div key={x.name} className="wiz-loc">
               <span className="mono">{x.name}</span>
