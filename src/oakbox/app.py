@@ -74,7 +74,9 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     pin_ui_content_types()
-    app = FastAPI(title="OAK box", version=__version__, lifespan=_lifespan)
+    # The API's own version, not the app's (that's /api/version): web/openapi.json is checked in, and shouldn't
+    # change with every release.
+    app = FastAPI(title="OAK box", version="1", lifespan=_lifespan)
 
     @app.get("/api/version")
     def version() -> Versions:
