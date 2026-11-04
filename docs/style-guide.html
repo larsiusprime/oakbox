@@ -120,12 +120,13 @@ button { font: inherit; }
 .entry-name { font-family: var(--mono); font-weight: 600; font-size: .92rem; }
 .file { font-family: var(--mono); font-size: .84rem; padding: 0 4px; background: var(--code-bg); border: 1px solid var(--code-edge); border-radius: 3px; }
 .entry-acts { display: flex; gap: 3px; align-items: center; margin-left: auto; }
-.entry-body { display: grid; gap: 10px; padding: 10px; border-top: 1px solid var(--frame); }
+/* The body: a third of the way from white to the title bar (#fcfaf6); its rows stay white. */
+.entry-body { display: grid; gap: 10px; padding: 10px; background: #fcfaf6; border-top: 1px solid var(--frame); border-radius: 0 0 2px 2px; }
 .grid { display: grid; grid-template-columns: max-content max-content 1fr; gap: 8px 14px; align-items: center; }
 .grid > .span { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .label { font-weight: 600; }
 .label small { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); }
-.sub { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 4px 4px 4px 8px; border: 1px solid var(--frame); border-radius: 3px; }
+.sub { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 4px 4px 4px 8px; background: #fff; border: 1px solid var(--frame); border-radius: 3px; }
 /* Boxes inside the same file stack flush: one border line where they meet. */
 .grid:has(> .sub) { row-gap: 0; }
 .sub + .sub { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
@@ -614,7 +615,7 @@ table.tbl td.n { text-align: right; font-variant-numeric: tabular-nums; }
     <li><b>Close and remove never share a look:</b> close is a grey ✕, only at the top right of a popup, panel or dialog; remove is a red −, at the end of the item it removes. Each shows what it does on hover, and its label is read aloud.</li>
     <li><b>A remove can be undone:</b> "Removed parks · Undo" shows for a few seconds after it.</li>
     <li><b>Every button that takes something away says so with its symbol:</b> a − when it removes from a list or a step (it can be undone), a trash can when it deletes for good (a danger button, with its words, and it asks first). Never words alone, and never a trash can for something that can be undone.</li>
-    <li><b>A file is one entry</b> (<code>FileEntry</code>): a thin outline as wide as what's in it, its first line a faint band (name, <span class="file">file.csv</span>, facts, actions, −), its settings inside on two columns. Entries in one list share one width, with their Add button at its right edge.</li>
+    <li><b>A file is one entry</b> (<code>FileEntry</code>): a thin outline as wide as what's in it, its first line a faint band (name, <span class="file">file.csv</span>, facts, actions, −), its settings inside on two columns, on a body tinted a third of the way from white to that band (its rows stay white). Entries in one list share one width, with their Add button at its right edge.</li>
     <li><b>Boxes inside the same file stack flush:</b> no space between them, one border line where they meet.</li>
     <li><b>Anything removable on its own has its own box</b> and its − at the right; its siblings get one too. A table's rows are boxed already by its lines: a removable row ends in its −. Adding to an item is inside it; adding another item is after the list.</li>
     <li><b>Settings line up on two columns</b>, labels then what's set, in a file's body and outside one. Not a sentence with a blank in it ("A sale demolished within [365] days…"), which stays a sentence, nor a question with its answers below it.</li>

@@ -127,7 +127,8 @@ name that says what it is.
     list rows, sortable headers, disclosures, swatches), each with its reason. Flat is a deliberate choice, never
     the default: a new flat control is added there with its reason, or made a button. A pressable table row or chart
     is only a shortcut to a link or button in it (the chart shows its enlarge icon).
-  - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line.
+  - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line, tinted a
+    third of the way from white to that band (`--entry-body`); the rows inside it (`SubEntry`) stay white.
   - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
     radio buttons; a reason an option can't be chosen is its title.
 - **Loose rows get a frame:** rows of fields or widgets lying straight on the page (a step's fields) sit in a thin
