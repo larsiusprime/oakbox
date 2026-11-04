@@ -1,10 +1,14 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, Menu, MenuItem, MenuTrigger, Popover, TextField } from "react-aria-components";
-import type { ModelEntry, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
+import type { EngineState, ModelEntry, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
+import { downloadEnded, mb, useEngineAction, useEngines } from "../api/engines";
 import { useSetGroupModels } from "../api/models";
+import { setupKey } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
+import { EngineProgress, InstallEngineDialog } from "../components/Engines";
 import { Choice } from "../components/Form";
 import { Pill } from "../components/Pill";
 import { Seg } from "../components/Seg";
@@ -13,6 +17,22 @@ import { t } from "../wording";
 import { ConfigSummary, ModelOptions } from "./ModelOptions";
 
 const m = t.values.model;
+const w = t.engines;
+
+/** A model as it's saved. */
+const entryOf = (e: ModelEntry): ModelEntry => ({
+  key: e.key,
+  name: e.name,
+  engine: e.engine,
+  list_id: e.list_id ?? null,
+  locations: e.locations ?? null,
+  log: e.log ?? null,
+  intercept: e.intercept ?? null,
+  interactions: e.interactions ?? null,
+  optimize_vars: e.optimize_vars ?? null,
+  n_trials: e.n_trials ?? null,
+  use_gpu: e.use_gpu ?? null,
+});
 
 /** Model values › Models: a tab per modeled group (the others greyed, not modeled), its models in a table: each a
  * name, an engine, its variable list and (Multi-MRA, Local area) its location stack, opened in place one at a time;
@@ -21,28 +41,37 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
   const put = useSetGroupModels(projectId);
   const [stack, setStack] = useState<string | null>(null);
   const [adding, setAdding] = useState<ModelEntry | null>(null);
+  // XGBoost and CatBoost may not be installed (oakbox/engines.py): choosing one asks; a model added with it waits
+  // for the download.
+  const optional = Object.fromEntries((useEngines().data ?? []).map((e) => [e.key, e]));
+  const engineAction = useEngineAction();
+  const [ask, setAsk] = useState<{ engine: EngineState; back: string | null } | null>(null);
+  const [waiting, setWaiting] = useState<ModelEntry | null>(null);
+  const missing = (key: string) => optional[key] !== undefined && !optional[key].installed;
   const modeled = v.groups.filter((g) => g.modeled);
   const at = Math.max(
     0,
     modeled.findIndex((x) => x.id === gid),
   );
   const g = modeled[at];
+  const queryClient = useQueryClient();
+  /** Add the model once its engine is downloaded (to the group's models as they are then); if it isn't, back to
+   * the adding row, which says why. */
+  const addWhenInstalled = async (entry: ModelEntry, group: string) => {
+    setWaiting(entry);
+    setAdding(null);
+    const end = await downloadEnded(queryClient, entry.engine);
+    setWaiting(null);
+    if (!end?.installed) return setAdding(entry);
+    const now = queryClient.getQueryData<ModelSetup>(setupKey("model", projectId));
+    const models = now?.groups.find((x) => x.id === group)?.models ?? [];
+    put.mutate({ group, models: [...models.map(entryOf), { ...entry, key: "" }] });
+    engineAction.mutate({ key: entry.engine, action: "seen" });
+  };
   if (!g) return <p className="wiz-from">{t.groups.notModeled}</p>;
   const engines = Object.fromEntries(v.engines.map((e) => [e.key, e]));
   const lists = Object.fromEntries(v.lists.map((x) => [x.id, x]));
-  const entries: ModelEntry[] = g.models.map((e) => ({
-    key: e.key,
-    name: e.name,
-    engine: e.engine,
-    list_id: e.list_id ?? null,
-    locations: e.locations ?? null,
-    log: e.log ?? null,
-    intercept: e.intercept ?? null,
-    interactions: e.interactions ?? null,
-    optimize_vars: e.optimize_vars ?? null,
-    n_trials: e.n_trials ?? null,
-    use_gpu: e.use_gpu ?? null,
-  }));
+  const entries: ModelEntry[] = g.models.map(entryOf);
   const places = Object.fromEntries(v.locations.map((x) => [x.field, x.name]));
   const save = (models: ModelEntry[] | null, group = g.id) => put.mutate({ group, models });
   const change = (i: number, patch: Partial<ModelEntry>) =>
@@ -54,6 +83,12 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
   };
   const listOptions = v.lists.map((x) => [x.id, m.list({ name: x.name, n: x.count })] as const);
   const others = modeled.filter((x) => x.id !== g.id);
+  const engineOptions = v.engines.map((x) => [x.key, x.name] as const);
+  const aside = Object.fromEntries(
+    Object.values(optional)
+      .filter((e) => !e.installed)
+      .map((e) => [e.key, e.can_install ? w.notInstalled({ mb: mb(e.download) }) : w.notInstalledShort]),
+  );
   return (
     <div className="cs-step">
       <div className="gm-head">
@@ -65,7 +100,20 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
         <span className="wiz-from">{m.salesTab({ n: g.sales })}</span>
       </div>
       {g.sales < 15 && <p className="wiz-warn">{m.tooFew}</p>}
-      {entries.length === 0 && !adding ? (
+      <InstallEngineDialog
+        engine={ask?.engine ?? null}
+        onClose={() => {
+          // Not now: the row goes back to the engine it had.
+          if (ask?.back && adding)
+            setAdding({ ...adding, engine: ask.back, list_id: firstList(ask.back) ?? null });
+          setAsk(null);
+        }}
+        onInstall={() => {
+          if (ask?.back !== null && adding) void addWhenInstalled(adding, g.id);
+          setAsk(null);
+        }}
+      />
+      {entries.length === 0 && !adding && !waiting ? (
         <p className="wiz-warn">{m.noModels}</p>
       ) : (
         <table className="tbl gm-models">
@@ -89,7 +137,24 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                   <td>
                     <NameCell value={e.name} label={m.nameLabel} onCommit={(name) => change(i, { name })} />
                   </td>
-                  <td>{eng?.name ?? e.engine}</td>
+                  <td>
+                    {eng?.name ?? e.engine}
+                    {missing(e.engine) && (
+                      <>
+                        {" "}
+                        {optional[e.engine]?.install?.status === "running" ? (
+                          <EngineProgress engine={optional[e.engine] as EngineState} />
+                        ) : (
+                          <Button
+                            className="choice-aside"
+                            onPress={() => setAsk({ engine: optional[e.engine] as EngineState, back: null })}
+                          >
+                            {w.notInstalledShort}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </td>
                   <td>
                     {eng?.takes_list ? (
                       <Choice
@@ -184,10 +249,13 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     label={m.engine}
                     hideLabel
                     value={adding.engine}
-                    options={v.engines.map((x) => [x.key, x.name] as const)}
-                    onChange={(engine) =>
-                      setAdding({ ...adding, engine, list_id: firstList(engine) ?? null })
-                    }
+                    options={engineOptions}
+                    aside={aside}
+                    onChange={(engine) => {
+                      setAdding({ ...adding, engine, list_id: firstList(engine) ?? null });
+                      if (missing(engine))
+                        setAsk({ engine: optional[engine] as EngineState, back: adding.engine });
+                    }}
                   />
                 </td>
                 <td>
@@ -204,6 +272,9 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     <span className="wiz-from">{m.takesNoList}</span>
                   )}
                   <p className="wiz-from gm-warn">{engines[adding.engine]?.note}</p>
+                  {optional[adding.engine] && (
+                    <EngineProgress engine={optional[adding.engine] as EngineState} />
+                  )}
                 </td>
                 <td className="wiz-from">{m.configLater}</td>
                 <td>
@@ -211,6 +282,10 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     <Button
                       className="button button-primary"
                       onPress={() => {
+                        if (missing(adding.engine)) {
+                          setAsk({ engine: optional[adding.engine] as EngineState, back: adding.engine });
+                          return;
+                        }
                         save([...entries, { ...adding, key: "" }]);
                         setAdding(null);
                       }}
@@ -224,11 +299,21 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                 </td>
               </tr>
             )}
+            {waiting && optional[waiting.engine] && (
+              <tr className="gm-adding">
+                <td>{waiting.name || optional[waiting.engine]?.name}</td>
+                <td>{optional[waiting.engine]?.name}</td>
+                <td colSpan={3}>
+                  <EngineProgress engine={optional[waiting.engine] as EngineState} />
+                  <p className="wiz-from gm-warn">{w.addedWhenIn}</p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}
       <p className="cs-row add-row">
-        {!adding && (
+        {!adding && !waiting && (
           <AddButton
             onPress={() =>
               setAdding({

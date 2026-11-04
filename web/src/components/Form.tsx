@@ -69,7 +69,10 @@ export function Choice<V extends string>(props: {
   placeholder?: string;
   hideLabel?: boolean;
   isDisabled?: boolean;
+  /** A note beside an option in the list (e.g. "not installed · 97 MB"). */
+  aside?: Partial<Record<V, string>>;
 }) {
+  const aside = (v: V) => props.aside?.[v] && <span className="choice-aside">{props.aside[v]}</span>;
   if (props.options.length >= TYPE_FROM) {
     const pick = (q: string) => props.options.filter(([, label]) => matches(label, q));
     return (
@@ -88,6 +91,7 @@ export function Choice<V extends string>(props: {
           pick(q).map(([value, label]) => (
             <ListBoxItem key={value} id={value} className="choice-item" textValue={label}>
               <Marked text={label} query={q} />
+              {aside(value)}
             </ListBoxItem>
           ))
         }
@@ -115,6 +119,7 @@ export function Choice<V extends string>(props: {
           {props.options.map(([value, label]) => (
             <ListBoxItem key={value} id={value} className="choice-item" textValue={label}>
               {label}
+              {aside(value)}
             </ListBoxItem>
           ))}
         </ListBox>

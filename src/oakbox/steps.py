@@ -308,6 +308,9 @@ def main(run: Callable[[str], None]) -> None:
     from oakbox.net import use_system_certificates
 
     use_system_certificates()
+    from oakbox import engines
+
+    engines.activate()  # the app passes PYTHONPATH on; this covers a run started by hand
     try:
         run(sys.argv[1])
     except Exception as e:  # noqa: BLE001 - the app shows the last line of the log

@@ -112,6 +112,18 @@ app window, its page from the dev server), or `npm run dev:wording` with
 wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
 
+## Optional engines (XGBoost, CatBoost)
+
+Not in the bundle; OAK box downloads them when asked (`oakbox/engines.py`, SPEC §6). So:
+
+- Never import `xgboost` or `catboost` at module level, in OAK box or the engine: inside the function that uses
+  them (OpenAVMKit's `utilities/optional.py` helpers raise a clear error when one is missing).
+- A new process entry point calls `oakbox.engines.activate()` after `use_system_certificates()`, or the
+  downloaded engines aren't importable there.
+- A new dependency that's only needed by one of them goes in that OpenAVMKit extra, never the base: the bundle
+  build fails if xgboost or catboost become base dependencies again.
+- A checkout has both (`uv sync` installs the dev group, which has `oakbox[xgboost,catboost]`).
+
 ## Going online
 
 - Downloads check certificates as the computer does: every process OAK box starts calls

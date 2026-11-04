@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate, type Route } from "./App";
 import { api, unwrap } from "./api/client";
+import { ModelEnginesDialog } from "./components/Engines";
 import { desktop } from "./desktop";
 import { type MenuCommand, useMenu } from "./menu";
 import { t } from "./wording";
@@ -11,6 +12,7 @@ import { t } from "./wording";
 export function AppMenus({ route }: { route: Route }) {
   const queryClient = useQueryClient();
   const [about, setAbout] = useState(false);
+  const [engines, setEngines] = useState(false);
   const [flash, setFlash] = useState<number | null>(null); // the zoom level, shown for a moment after it changes
   const settings = useQuery({
     queryKey: ["app-settings"],
@@ -82,6 +84,8 @@ export function AppMenus({ route }: { route: Route }) {
         return projectId && navigate({ name: "project", id: projectId, tab: "metadata" });
       case "tab-data":
         return projectId && navigate({ name: "project", id: projectId, tab: "fields" });
+      case "engines":
+        return setEngines(true);
       case "about":
         return setAbout(true);
     }
@@ -156,6 +160,7 @@ export function AppMenus({ route }: { route: Route }) {
   return (
     <>
       <About isOpen={about} onClose={() => setAbout(false)} />
+      <ModelEnginesDialog isOpen={engines} onClose={() => setEngines(false)} />
       {flash !== null && (
         <output className="zoom-flash" aria-live="polite">
           {t.zoomLevel({ percent: flash })}

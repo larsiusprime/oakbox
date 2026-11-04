@@ -12,6 +12,7 @@ export type RatioStudy = components["schemas"]["Study"];
 export type FieldResult = components["schemas"]["FieldResult"];
 export type ModelView = components["schemas"]["ModelView"];
 export type ModelSetup = components["schemas"]["ModelSetup"];
+export type EngineState = components["schemas"]["EngineState"];
 export type ModelPatch = components["schemas"]["ModelPatch"];
 export type ModelEntry = components["schemas"]["ModelEntry-Input"];
 export type EntryView = components["schemas"]["EntryView"];

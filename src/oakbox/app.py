@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from oakbox import __version__
 from oakbox.datafiles import BaseModel
-from oakbox.routes import app_settings, bring_in, clean, groups, model, projects, steps, values, wizard
+from oakbox.routes import app_settings, bring_in, clean, engines, groups, model, projects, steps, values, wizard
 
 WEB_DIST = Path(__file__).parent / "web"
 
@@ -92,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(clean.router)
     app.include_router(model.router)
     app.include_router(values.router)
+    app.include_router(engines.router)
 
     if WEB_DIST.exists():
         app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")

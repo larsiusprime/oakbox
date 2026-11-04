@@ -895,9 +895,18 @@ dependencies = [
     { name = "uvicorn" },
 ]
 
+[package.optional-dependencies]
+catboost = [
+    { name = "openavmkit", extra = ["catboost"] },
+]
+xgboost = [
+    { name = "openavmkit", extra = ["xgboost"] },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
+    { name = "oakbox", extra = ["catboost", "xgboost"] },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -906,7 +915,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "openavmkit", git = "https://github.com/larsiusprime/openavmkit?rev=322705e831d8749be1930c2afc3b778a592a134a" },
+    { name = "openavmkit", git = "https://github.com/larsiusprime/openavmkit?rev=1c3ae4dde18b03a4e1fb727d5df5f7b284f4250c" },
+    { name = "openavmkit", extras = ["catboost"], marker = "extra == 'catboost'", git = "https://github.com/larsiusprime/openavmkit?rev=1c3ae4dde18b03a4e1fb727d5df5f7b284f4250c" },
+    { name = "openavmkit", extras = ["xgboost"], marker = "extra == 'xgboost'", git = "https://github.com/larsiusprime/openavmkit?rev=1c3ae4dde18b03a4e1fb727d5df5f7b284f4250c" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "psutil", specifier = ">=6" },
     { name = "pyside6", marker = "sys_platform == 'linux'", specifier = ">=6.12" },
@@ -917,10 +928,12 @@ requires-dist = [
     { name = "truststore", specifier = ">=0.10" },
     { name = "uvicorn", specifier = ">=0.32" },
 ]
+provides-extras = ["xgboost", "catboost"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx", specifier = ">=0.27" },
+    { name = "oakbox", extras = ["xgboost", "catboost"] },
     { name = "pyright", specifier = ">=1.1.390" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.8" },
@@ -928,10 +941,9 @@ dev = [
 
 [[package]]
 name = "openavmkit"
-version = "0.7.0.post1.dev67+g322705e83"
-source = { git = "https://github.com/larsiusprime/openavmkit?rev=322705e831d8749be1930c2afc3b778a592a134a#322705e831d8749be1930c2afc3b778a592a134a" }
+version = "0.7.0.post1.dev68+g1c3ae4dde"
+source = { git = "https://github.com/larsiusprime/openavmkit?rev=1c3ae4dde18b03a4e1fb727d5df5f7b284f4250c#1c3ae4dde18b03a4e1fb727d5df5f7b284f4250c" }
 dependencies = [
-    { name = "catboost" },
     { name = "census" },
     { name = "geopandas" },
     { name = "hilbertcurve" },
@@ -965,8 +977,15 @@ dependencies = [
     { name = "statsmodels" },
     { name = "tabulate" },
     { name = "tqdm" },
-    { name = "xgboost" },
     { name = "xlsxwriter" },
+]
+
+[package.optional-dependencies]
+catboost = [
+    { name = "catboost" },
+]
+xgboost = [
+    { name = "xgboost" },
 ]
 
 [[package]]

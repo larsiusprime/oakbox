@@ -1541,6 +1541,7 @@ def problems(project, project_dir: Path) -> list[str]:
     lists = {x.id: x for x in all_lists}
     out = []
     modeled = assemble.modeled(project, project_dir)
+    used: set[str] = set()
     for g in project.groups:
         if g.id not in modeled:
             continue
@@ -1555,7 +1556,24 @@ def problems(project, project_dir: Path) -> list[str]:
                 out.append(f"{g.name} › {e.name}: its variable list has no variables.")
             if e.engine == "local_area" and not e.locations:
                 out.append(f"{g.name} › {e.name}: Local area needs at least one location.")
-    return out
+            used.add(e.engine)
+    return out + not_installed(used)
+
+
+def not_installed(used: set[str]) -> list[str]:
+    """Engines these models need that this OAK box hasn't downloaded (oakbox/engines.py)."""
+    from oakbox import engines
+
+    return [
+        f"{n} isn't installed: install it (Help › Model engines), or remove its models." for n in engines.missing(used)
+    ]
+
+
+def engines_used(project, project_dir: Path) -> set[str]:
+    from oakbox import assemble
+
+    modeled = assemble.modeled(project, project_dir)
+    return {e.engine for g in project.groups if g.id in modeled for e in group_models(project, project_dir, g.id)}
 
 
 def view(project, project_dir: Path) -> ModelView:

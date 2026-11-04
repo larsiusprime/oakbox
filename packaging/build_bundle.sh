@@ -53,15 +53,19 @@ rm -rf build/wheels && uv build -q --wheel --out-dir build/wheels build/engine
 (cd web && npm ci --silent && npm run -s build)
 uv build -q --wheel --out-dir build/wheels .
 
-# Left out: NVIDIA's NCCL (~470 MB on Linux), which xgboost loads only to train one
-# model across several GPUs; CPU and single-GPU training don't need it.
-uv export --frozen --no-dev --no-emit-project --format requirements.txt --prune nvidia-nccl-cu12 \
+# No extras: XGBoost and CatBoost aren't in the bundle (about 560 MB); engines.json lists what OAK box downloads
+# for them when asked (oakbox/engines.py, packaging/engines_manifest.py).
+uv export --frozen --no-dev --no-emit-project --format requirements.txt \
   | grep -v '^openavmkit @' > build/requirements.txt
+if grep -qiE '^(xgboost|catboost)==' build/requirements.txt; then
+  echo "xgboost or catboost is a dependency of the bundle: they should only be OpenAVMKit extras" >&2; exit 1
+fi
 uv pip install -q \
   --python-platform "$UV_PLATFORM" --python-version 3.11 \
   --no-deps \
   --target "$OUT/$SITE" \
   -r build/requirements.txt build/wheels/openavmkit-*.whl build/wheels/oakbox-*.whl
+uv run -q --no-project --with packaging python packaging/engines_manifest.py "$PLATFORM" "$OUT/$SITE/oakbox/engines.json"
 
 # Sample counties to try it on (sample/README.md).
 cp -r sample "$OUT/sample"

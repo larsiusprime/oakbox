@@ -176,9 +176,15 @@ jobs:
         run: mkdir -p /tmp/oak && tar -xzf oakbox-linux-x86_64.tar.gz -C /tmp/oak
       - name: Smoke test (bundled Python only, empty environment)
         run: env -i HOME=/tmp/oak PATH=/usr/bin:/bin /tmp/oak/oakbox-linux-x86_64/smoke.sh
-      - name: Models train from the bundle (it leaves out xgboost's multi-GPU library, NCCL)
+      # XGBoost and CatBoost aren't in the bundle: OAK box downloads them when asked (oakbox/engines.py).
+      - name: Optional engines download, then models train from the bundle
         run: |
-          /tmp/oak/oakbox-linux-x86_64/python/bin/python3 -c "
+          PY=/tmp/oak/oakbox-linux-x86_64/python/bin/python3
+          $PY -c "import importlib.util as u; assert not u.find_spec('xgboost') and not u.find_spec('catboost')"
+          $PY -m oakbox.engines install xgboost catboost
+          $PY -m oakbox.engines list
+          $PY -c "
+          from oakbox import engines; engines.activate()
           import numpy as np, xgboost, lightgbm, catboost
           X, y = np.random.rand(500, 4), np.random.rand(500)
           xgboost.XGBRegressor(n_estimators=10).fit(X, y)
@@ -217,7 +223,13 @@ jobs:
           if ("${{ github.ref_type }}" -ne "tag") { $version = "$version-dev.${{ github.run_number }}" }
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
-          & $iscc /Q "/DAppVersion=$version" packaging\oakbox.iss
+          # The optional engines' sizes, for the installer's components page.
+          $e = (Get-Content dist\oakbox-win64\python\Lib\site-packages\oakbox\engines.json | ConvertFrom-Json).engines
+          $sizes = foreach ($k in 'xgboost', 'catboost') {
+            $dl = ($e.$k.wheels | Measure-Object size -Sum).Sum
+            "/D$($k)Download=$([math]::Round($dl / 1e6))", "/D$($k)Disk=$($e.$k.disk)"
+          }
+          & $iscc /Q "/DAppVersion=$version" @sizes packaging\oakbox.iss
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Get-ChildItem dist\*-setup.exe | Format-Table Name, Length
       - name: Install for this user, start it, uninstall it
@@ -225,9 +237,14 @@ jobs:
         timeout-minutes: 20
         run: |
           $setup = (Get-ChildItem dist\*-setup.exe)[0].FullName
-          Start-Process $setup -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', '/LOG=install.log'
+          # With the XGBoost component ticked: the installer downloads it (CatBoost stays out).
+          Start-Process $setup -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', '/COMPONENTS=xgboost', '/LOG=install.log'
           $dir = "$env:LOCALAPPDATA\Programs\OAK box"
           if (-not (Test-Path "$dir\python\pythonw.exe")) { Get-Content install.log -Tail 30; throw "not installed in $dir" }
+          $engines = "$env:LOCALAPPDATA\OAK box\engines"
+          & "$dir\python\python.exe" -X utf8 -m oakbox.engines list
+          if (-not (Test-Path "$engines\xgboost\engine.json")) { Get-Content install.log -Tail 30; throw "XGBoost wasn't downloaded" }
+          if (Test-Path "$engines\catboost") { throw "CatBoost was downloaded without being ticked" }
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\OAK box\OAK box.lnk")) { throw "no Start menu entry" }
           # The app service from the installed copy answers, with the installer's version.
           $env:OAKBOX_HOME = "$env:RUNNER_TEMP\oakhome"
@@ -240,6 +257,7 @@ jobs:
           Start-Process "$dir\unins000.exe" -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
           Start-Sleep 3
           if (Test-Path "$dir\python") { throw "uninstall left $dir\python" }
+          if (Test-Path $engines) { throw "uninstall left $engines" }
           "installed, started, uninstalled"
       - uses: actions/upload-artifact@v4
         with:

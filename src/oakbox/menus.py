@@ -31,6 +31,7 @@ PAGE_COMMANDS = (
     "close-project",
     "tab-metadata",
     "tab-data",
+    "engines",
     "about",
 )
 
@@ -111,6 +112,7 @@ MENUS: tuple[Submenu, ...] = (
         "&Help",
         (
             Item("docs", "OpenAVMKit &documentation"),
+            Item("engines", "Model &engines…"),
             Item("about", "&About OAK box"),
         ),
     ),

@@ -10,6 +10,7 @@ export const MENU_COMMANDS = [
   "close-project",
   "tab-metadata",
   "tab-data",
+  "engines",
   "about",
   "display",
 ] as const;

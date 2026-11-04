@@ -5505,3 +5505,54 @@ table.tbl.dt > * > tr > :is(th, td) {
   border-radius: var(--radius);
   pointer-events: none;
 }
+
+/* Optional model engines (components/Engines.tsx): "not installed · 97 MB" in the engine list, a download's bar. */
+.choice-item:has(.choice-aside) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp);
+}
+.choice-aside {
+  padding: 0 calc(0.4 * var(--sp));
+  border: 1px solid var(--warn-edge);
+  border-radius: 999px;
+  background: var(--warn-tint);
+  color: var(--warn);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.engine-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.6 * var(--sp));
+  flex-wrap: wrap;
+}
+.engine-bar {
+  display: inline-block;
+  width: 14rem;
+  max-width: 40vw;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--well);
+  border: 1px solid var(--well-edge);
+  overflow: hidden;
+}
+.engine-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+  transition: width 0.3s;
+}
+.engines-table {
+  width: 100%;
+  margin: var(--sp) 0;
+}
+.engines-table th[scope="row"] {
+  text-align: left;
+  white-space: nowrap;
+}
+.engines-act {
+  text-align: right;
+  white-space: nowrap;
+}

@@ -2299,6 +2299,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/engines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Engines
+         * @description Each optional engine: installed or not, its sizes, and a download in progress (or just finished).
+         */
+        get: operations["list_engines_api_engines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/engines/{key}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Install Engine
+         * @description Start downloading it, in the background; GET /api/engines follows it.
+         */
+        post: operations["install_engine_api_engines__key__install_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/engines/{key}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop Engine Install */
+        post: operations["stop_engine_install_api_engines__key__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/engines/{key}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forget Engine Install
+         * @description A finished download's outcome has been shown.
+         */
+        post: operations["forget_engine_install_api_engines__key__seen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/engines/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Engine */
+        delete: operations["remove_engine_api_engines__key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3357,6 +3451,31 @@ export interface components {
              * @description Its own settings, as Configuration offers them (locations among them).
              */
             options: string[];
+        };
+        /** EngineState */
+        EngineState: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Installed */
+            installed: boolean;
+            /**
+             * Can Install
+             * @description Bundles can; a checkout installs with uv sync --extra <key>.
+             */
+            can_install: boolean;
+            /**
+             * Download
+             * @description Bytes to download.
+             */
+            download?: number | null;
+            /**
+             * Disk
+             * @description Bytes on disk once installed.
+             */
+            disk?: number | null;
+            install?: components["schemas"]["Install"] | null;
         };
         /** EnrichResult */
         EnrichResult: {
@@ -4473,6 +4592,34 @@ export interface components {
             groups: components["schemas"]["ModelGroup-Input"][];
             /** Index */
             index: number;
+        };
+        /**
+         * Install
+         * @description One engine's download, while it runs and after.
+         */
+        Install: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "done" | "failed" | "stopped";
+            /**
+             * Done
+             * @default 0
+             */
+            done: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Unpacking
+             * @default false
+             */
+            unpacking: boolean;
+            /** Error */
+            error?: string | null;
         };
         /** Issue */
         Issue: {
@@ -13651,6 +13798,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_engines_api_engines_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngineState"][];
+                };
+            };
+        };
+    };
+    install_engine_api_engines__key__install_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "xgboost" | "catboost";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngineState"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_engine_install_api_engines__key__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "xgboost" | "catboost";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngineState"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_engine_install_api_engines__key__seen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "xgboost" | "catboost";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngineState"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_engine_api_engines__key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "xgboost" | "catboost";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngineState"][];
                 };
             };
             /** @description Validation Error */

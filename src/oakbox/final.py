@@ -469,7 +469,9 @@ STEP = steps.Step(
 
 def blocked(project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
-    return [waiting] if waiting else []
+    if waiting:
+        return [waiting]
+    return model.not_installed(model.engines_used(project, project_dir))
 
 
 def view(project, project_dir: Path) -> FinalView:

@@ -6220,6 +6220,219 @@
      }
     }
    }
+  },
+  "/api/engines": {
+   "get": {
+    "summary": "List Engines",
+    "description": "Each optional engine: installed or not, its sizes, and a download in progress (or just finished).",
+    "operationId": "list_engines_api_engines_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/EngineState"
+         },
+         "type": "array",
+         "title": "Response List Engines Api Engines Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/engines/{key}/install": {
+   "post": {
+    "summary": "Install Engine",
+    "description": "Start downloading it, in the background; GET /api/engines follows it.",
+    "operationId": "install_engine_api_engines__key__install_post",
+    "parameters": [
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "xgboost",
+        "catboost"
+       ],
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EngineState"
+         },
+         "title": "Response Install Engine Api Engines  Key  Install Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/engines/{key}/stop": {
+   "post": {
+    "summary": "Stop Engine Install",
+    "operationId": "stop_engine_install_api_engines__key__stop_post",
+    "parameters": [
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "xgboost",
+        "catboost"
+       ],
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EngineState"
+         },
+         "title": "Response Stop Engine Install Api Engines  Key  Stop Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/engines/{key}/seen": {
+   "post": {
+    "summary": "Forget Engine Install",
+    "description": "A finished download's outcome has been shown.",
+    "operationId": "forget_engine_install_api_engines__key__seen_post",
+    "parameters": [
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "xgboost",
+        "catboost"
+       ],
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EngineState"
+         },
+         "title": "Response Forget Engine Install Api Engines  Key  Seen Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/engines/{key}": {
+   "delete": {
+    "summary": "Remove Engine",
+    "operationId": "remove_engine_api_engines__key__delete",
+    "parameters": [
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "enum": [
+        "xgboost",
+        "catboost"
+       ],
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/EngineState"
+         },
+         "title": "Response Remove Engine Api Engines  Key  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -8614,6 +8827,69 @@
      "options"
     ],
     "title": "Engine"
+   },
+   "EngineState": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "installed": {
+      "type": "boolean",
+      "title": "Installed"
+     },
+     "can_install": {
+      "type": "boolean",
+      "title": "Can Install",
+      "description": "Bundles can; a checkout installs with uv sync --extra <key>."
+     },
+     "download": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Download",
+      "description": "Bytes to download."
+     },
+     "disk": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disk",
+      "description": "Bytes on disk once installed."
+     },
+     "install": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Install"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "installed",
+     "can_install"
+    ],
+    "title": "EngineState"
    },
    "EnrichResult": {
     "properties": {
@@ -11083,6 +11359,52 @@
      "index"
     ],
     "title": "InspectBody"
+   },
+   "Install": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "running",
+       "done",
+       "failed",
+       "stopped"
+      ],
+      "title": "Status"
+     },
+     "done": {
+      "type": "integer",
+      "title": "Done",
+      "default": 0
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "default": 0
+     },
+     "unpacking": {
+      "type": "boolean",
+      "title": "Unpacking",
+      "default": false
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "title": "Install",
+    "description": "One engine's download, while it runs and after."
    },
    "Issue": {
     "properties": {

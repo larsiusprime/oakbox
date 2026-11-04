@@ -2893,5 +2893,30 @@
   "callout": {
     "show": "more",
     "hide": "less"
+  },
+  "engines": {
+    "notInstalled": "not installed · {mb} MB",
+    "notInstalledShort": "not installed",
+    "askTitle": "Install {name}?",
+    "askWhy": "{name} isn't installed yet: it's left out of OAK box to keep the download small.",
+    "askSize": "{mb} MB to download",
+    "askSizeRest": ", {disk} MB on this computer, from the Python Package Index. It's installed for you alone, with no admin rights.",
+    "askAfter": "You can keep working while it downloads. Remove it any time under Help › Model engines.",
+    "askCheckout": "This copy of OAK box runs from its source code: install {name} with uv sync --extra {key}, then start OAK box again.",
+    "notNow": "Not now",
+    "install": "Install {name} ({mb} MB)",
+    "installing": "Installing {name} · {done} of {total} MB",
+    "unpacking": "Installing {name} · unpacking",
+    "stop": "Stop",
+    "failed": "{name} wasn't installed: {error}",
+    "stopped": "{name} wasn't installed: you stopped it.",
+    "addedWhenIn": "When it's in, the model is added.",
+    "title": "Model engines",
+    "lede": "XGBoost and CatBoost are left out of OAK box to keep the download small. Install one here, or when you first add a model that uses it.",
+    "installed": "Installed",
+    "sizes": "{mb} MB download, {disk} MB on disk",
+    "remove": "Remove",
+    "installShort": "Install",
+    "close": "Close"
   }
 }
