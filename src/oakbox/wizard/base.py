@@ -44,13 +44,13 @@ STEPS: list[Step] = [
     Step(key="quality", parent="big_five", fields=["bldg_quality_num", "bldg_quality_txt"]),
     Step(key="condition", parent="big_five", fields=["bldg_condition_num", "bldg_condition_txt"]),
     Step(key="details"),
-    Step(
-        key="location",
-        parent="details",
-        # The situs address; the areas parcels belong to are the user's own location fields (set_location).
-        # Land, Building and Rooms & features steps are left out for now: their fields are in the advanced view.
-        fields=["address"],
-    ),
+    # Where each parcel is, in three parts (revised 2026-11-04): the situs address; the coordinates OpenAVMKit works
+    # out (and the centre they're measured from); the areas parcels belong to, the user's own location fields
+    # (set_location). Land, Building and Rooms & features steps are left out for now: their fields are in the
+    # advanced view.
+    Step(key="address", parent="details", fields=["address"]),
+    Step(key="coordinates", parent="details"),
+    Step(key="location", parent="details"),
     # What kind of property each parcel is: model groups are made from these (F5).
     Step(
         key="property_type",
@@ -58,6 +58,9 @@ STEPS: list[Step] = [
         fields=["land_class", "bldg_type"],
         more=["bldg_desc", "bldg_class", "bldg_units", "bldg_stories"],
     ),
+    # The user's own fields: any other column, under a name they choose, with its class and kind (revised
+    # 2026-11-04: a part of its own, not under Land use & building type).
+    Step(key="custom", parent="details"),
     Step(
         key="assessed",
         parent="details",

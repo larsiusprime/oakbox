@@ -654,8 +654,8 @@ def test_location_fields_the_user_names_and_the_polar_centre(client, tmp_path, m
         client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"assume": True})
 
     # Only the situs address is asked, and its guess is the physical address, not the mailing one.
-    w = client.post(f"/api/projects/{pid}/wizard/steps/location/visit").json()
-    assert [f["key"] for f in w["fields"] if f["step"] == "location"] == ["address"]
+    w = client.post(f"/api/projects/{pid}/wizard/steps/address/visit").json()
+    assert [f["key"] for f in w["fields"] if f["step"] == "address"] == ["address"]
     address = _field(w, "address")
     assert address["name"] == "Situs address" and "not where the owner gets mail" in address["description"]
     assert address["sources"] == [{"file": "geo_parcels", "column": "PHYADDR"}]
@@ -1700,3 +1700,9 @@ def test_a_project_from_when_big_five_was_one_step_has_its_parts_seen():
     w = projects.WizardState(visited=["universe", "big_five"], confirmed=["big_five"])
     assert set(projects.BIG_FIVE_PARTS) <= set(w.visited) and set(projects.BIG_FIVE_PARTS) <= set(w.confirmed)
     assert w.skipped == []
+
+
+def test_a_project_from_when_location_was_one_step_has_its_parts_seen():
+    """Location was the address, the coordinates and the location fields at once: now three parts."""
+    w = projects.WizardState(visited=["location"], skipped=["location"])
+    assert {"address", "coordinates", "location"} <= set(w.visited) and {"address", "coordinates"} <= set(w.skipped)

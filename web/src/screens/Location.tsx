@@ -4,7 +4,7 @@ import { ChevronUp, Map as MapIcon } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
-import { api, type Project, unwrap, type Wizard } from "../api/client";
+import { api, unwrap, type Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
@@ -20,25 +20,8 @@ type MapView = {
   center: [number, number] | null;
 };
 
-/** F3d, on the Location step: coordinates OpenAVMKit works out, and the user's own location fields. */
-export function LocationExtras({
-  project,
-  data,
-  change,
-}: {
-  project: Project;
-  data: Wizard;
-  change: (c: { kind: "location"; name: string; file: string | null; column: string | null }) => void;
-}) {
-  return (
-    <>
-      <Coordinates projectId={project.id} hasShapes={data.files.some((f) => f.base && f.geometry)} />
-      <LocationFields projectId={project.id} data={data} change={change} />
-    </>
-  );
-}
-
-function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
+/** F3d, More details › Coordinates: where each parcel is, worked out by OpenAVMKit, and the centre it measures from. */
+export function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
   const queryClient = useQueryClient();
   const view = useQuery({
     queryKey: ["map", projectId],
@@ -81,7 +64,6 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
   };
   return (
     <section className="wiz-section">
-      <h3 className="wiz-group">{l.coordinates}</h3>
       <ul className="wiz-auto">
         <li>
           <span className="wiz-ok">✓ {l.latlon}</span> <span className="wiz-from">{l.latlonHow}</span>
@@ -209,7 +191,7 @@ function nameFor(column: string): string {
   return /^[a-z]/.test(n) ? n : `loc_${n}`;
 }
 
-function LocationFields({
+export function LocationFields({
   projectId,
   data,
   change,
@@ -233,8 +215,6 @@ function LocationFields({
   const [file, column] = picked ? picked.split("\u0000") : [null, null];
   return (
     <section className="wiz-section">
-      <h3 className="wiz-group">{l.fields}</h3>
-      <p className="wiz-lede">{l.fieldsLede}</p>
       {data.locations.length > 0 && (
         <div className="entry-list">
           {data.locations.map((x) => (

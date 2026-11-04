@@ -478,8 +478,6 @@ export type Wording = {
       toFile: string;
     };
     custom: {
-      title: string;
-      lede: string;
       column: string;
       pickColumn: string;
       name: string;
@@ -496,7 +494,6 @@ export type Wording = {
     };
     location: {
       areas: (a: { n: number }) => string;
-      coordinates: string;
       latlon: string;
       latlonHow: string;
       polar: string;
@@ -512,8 +509,6 @@ export type Wording = {
       hideMap: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;
-      fields: string;
-      fieldsLede: string;
       column: string;
       pickColumn: string;
       name: string;

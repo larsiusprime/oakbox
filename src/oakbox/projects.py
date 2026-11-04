@@ -132,6 +132,12 @@ class WizardState(BaseModel):
         for steps in (self.visited, self.skipped, self.confirmed):
             if "big_five" in steps:
                 steps.extend(p for p in BIG_FIVE_PARTS if p not in steps)
+            # Location was one step (the address, the coordinates, the location fields); now three parts.
+            if "location" in steps:
+                steps.extend(p for p in ("address", "coordinates") if p not in steps)
+            # Your own fields were on Land use & building type.
+            if "property_type" in steps and "custom" not in steps:
+                steps.append("custom")
         return self
 
 

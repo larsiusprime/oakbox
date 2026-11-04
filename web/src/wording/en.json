@@ -198,10 +198,20 @@
         "question": "What condition is each building in?",
         "lede": "A number the models can use, and what its numbers mean. The category, kept as text for reports, is loaded only when there''s no number."
       },
-      "location": {
-        "title": "Location",
+      "address": {
+        "title": "Address",
+        "question": "What is each parcel''s address?",
+        "lede": "The site address of each parcel (its situs), for reports and for finding a parcel. Optional."
+      },
+      "coordinates": {
+        "title": "Coordinates",
         "question": "Where is each parcel?",
-        "lede": "The site address, where each parcel is, and the areas it belongs to."
+        "lede": "OpenAVMKit works out where each parcel is from its shape: nothing to load. Check the centre the distances and directions are measured from."
+      },
+      "location": {
+        "title": "Location fields",
+        "question": "What areas does each parcel belong to?",
+        "lede": "Areas each parcel belongs to: neighborhood, market area, school district, zoning district… Pick the column and give it a name; models use them as categories. Add as many as you like, one at a time."
       },
       "land": {
         "title": "Land",
@@ -221,7 +231,12 @@
       "property_type": {
         "title": "Land use & building type",
         "question": "What kind of property is each parcel?",
-        "lede": "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have, and add any other field you want to use, saying whether it''s a land/location, improvement or other field."
+        "lede": "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have."
+      },
+      "custom": {
+        "title": "Your own fields",
+        "question": "Any other columns to use?",
+        "lede": "Any other column of a parcel file, under a name you choose. Say whether it''s a land/location, improvement or other field, and whether it''s a category or a number: OpenAVMKit treats them that way when it models."
       },
       "assessed": {
         "title": "Existing values",
@@ -711,8 +726,6 @@
       "toFile": "Units file…"
     },
     "custom": {
-      "title": "Your own fields",
-      "lede": "Any other column of a parcel file, under a name you choose. Say whether it''s a land/location, improvement or other field, and whether it''s a category or a number: OpenAVMKit treats them that way when it models.",
       "column": "Column",
       "pickColumn": "Pick a column…",
       "name": "Name",
@@ -736,7 +749,6 @@
     },
     "location": {
       "areas": "{n, plural, =1 {area} other {areas}}",
-      "coordinates": "Coordinates",
       "latlon": "Latitude and longitude",
       "latlonHow": "worked out by OpenAVMKit from each parcel''s shape (its centre point). Nothing to load.",
       "polar": "Polar coordinates",
@@ -752,8 +764,6 @@
       "hideMap": "Hide map",
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",
-      "fields": "Location fields",
-      "fieldsLede": "Areas each parcel belongs to: neighborhood, market area, school district, zoning district… Pick the column and give it a name; models use them as categories. Add as many as you like, one at a time.",
       "column": "Column",
       "pickColumn": "Choose a column…",
       "name": "Name",
@@ -2679,7 +2689,7 @@
       "details": {
         "kicker": "",
         "title": "More details",
-        "lede": "Where each parcel is, what kind of property it is, the values it has now, and any map layers. Four short parts; one you don''t have can be left."
+        "lede": "Where each parcel is, what kind of property it is, any other columns you want, the values it has now, and map layers. A short part each; one you don''t have can be left."
       },
       "condos": {
         "kicker": "",

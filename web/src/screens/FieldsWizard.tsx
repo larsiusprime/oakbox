@@ -28,7 +28,7 @@ import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
 import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
-import { LocationExtras } from "./Location";
+import { Coordinates, LocationFields } from "./Location";
 import { PermitsStep } from "./Permits";
 import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep, UnitsPointer } from "./Units";
@@ -184,10 +184,13 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             (current.key !== "sales" || data.sale_id.file) && (
               <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
             )}
-          {current.key === "location" && (
-            <LocationExtras project={project} data={data} change={change.mutate} />
+          {current.key === "coordinates" && (
+            <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
           )}
-          {current.key === "property_type" && (
+          {current.key === "location" && (
+            <LocationFields projectId={projectId} data={data} change={change.mutate} />
+          )}
+          {current.key === "custom" && (
             <CustomFields projectId={projectId} data={data} change={change.mutate} />
           )}
           {current.key === "shapefiles" && (
