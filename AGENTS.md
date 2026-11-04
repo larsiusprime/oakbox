@@ -158,6 +158,10 @@ app window, its page from the dev server), or `npm run dev:wording` with
 `python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. A message may have line breaks (`\n`) and paragraph breaks (`\n\n`): show
 wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
+**Formatting:** `**bold**` and `*italic*` (`\*` for an asterisk). A message with any unescaped `*` is rich: its type
+in `wording.gen.ts` is `ReactNode` (or a function returning one), so it can only be shown, never used as text (a
+`title`, a placeholder, an `aria-label`, a template string); tsc says where. A prop that only ever shows wording
+(a step's lede, a landing page's lists) takes `ReactNode`, so its message can be formatted.
 
 ## Optional engines (XGBoost, CatBoost)
 

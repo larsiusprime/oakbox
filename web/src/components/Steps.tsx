@@ -133,13 +133,14 @@ export function LandingPage({
   back?: (() => void) | null;
 }) {
   const l = t.landing;
-  const list = (title: string, items: string[] | undefined) =>
+  const list = (title: string, items: React.ReactNode[] | undefined) =>
     items?.length ? (
       <section className="land-sec">
         <h3>{title}</h3>
         <ul>
-          {items.map((x) => (
-            <li key={x}>{x}</li>
+          {items.map((x, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list from the wording, never reordered
+            <li key={i}>{x}</li>
           ))}
         </ul>
       </section>
@@ -178,7 +179,8 @@ export function StepBody({
 }: {
   kicker?: string;
   title?: string;
-  lede?: string;
+  // Shown, never used as text: may be formatted (**bold**, *italic*).
+  lede?: React.ReactNode;
   flush?: boolean;
   children: React.ReactNode;
 }) {

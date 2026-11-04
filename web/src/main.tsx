@@ -8,6 +8,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./styles.css";
+import { WordingRoot } from "./wording";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -19,7 +20,9 @@ if (!root) throw new Error("Missing #root element");
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <WordingRoot>
+        <App />
+      </WordingRoot>
     </QueryClientProvider>
   </StrictMode>,
 );

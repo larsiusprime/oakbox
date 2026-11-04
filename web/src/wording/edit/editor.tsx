@@ -2,12 +2,14 @@
  * the ✎ Wording button lists the messages on the screen (and finds any other). Saving writes en.json through the dev
  * server (scripts/wording-edit-plugin.mjs); the catalog then refills `t` (catalog.ts) and the words change on the screen
  * here, with nothing reloaded. */
+
 import { parse, TYPE } from "@formatjs/icu-messageformat-parser";
 import { IntlMessageFormat } from "intl-messageformat";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { sources, t } from "../catalog";
 import { allSpans, around, hasMarks, SENTINEL, type Span, shown, spans, strip } from "../marks";
+import { isRich, plainText, rich } from "../rich";
 
 const HOST = "wording-edit";
 const ATTRS = ["title", "aria-label", "placeholder", "alt", "aria-description"];
@@ -87,7 +89,8 @@ function refresh(keys: string[]) {
   const redo = new Set<number>();
   const changed = new Set(keys);
   shown.forEach((s, n) => {
-    if (changed.has(s.key)) redo.add(n);
+    // A formatted message's pieces are redrawn by the app (WordingRoot), not rewritten here.
+    if (changed.has(s.key) && !s.rich) redo.add(n);
   });
   if (!redo.size) return;
   for (const node of textNodes()) {
@@ -323,7 +326,9 @@ function EditBox({ open, close, pick }: { open: Open; close: () => void; pick: (
           Keep its arguments, each once or more: {names?.map((n) => `{${n}}`).join(" ")}
         </div>
       ) : (
-        preview.text !== undefined && <div className="ce-preview">{preview.text}</div>
+        preview.text !== undefined && (
+          <div className="ce-preview">{isRich(src) ? rich(preview.text) : plainText(preview.text)}</div>
+        )
       )}
       {state.error && <div className="ce-bad">{state.error}</div>}
       <div className="ce-foot">

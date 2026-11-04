@@ -99,7 +99,7 @@
       "looks": "looks like this: {why}",
       "custom": "My own pattern (a regular expression)",
       "patternLabel": "Pattern",
-      "patternPlaceholder": "^\\s*(?P<surname>[^,]+),",
+      "patternPlaceholder": "^\\s\\*(?P<surname>[^,]+),",
       "patternHelp": "A regular expression with a group named surname around the surname: (?P<surname>…). Case doesn''t matter. Each person in a name joined by & ; / or AND is read on their own.",
       "counts": "Of {sales, number} sales with both names{sampled, select, true { (the first 5,000)} other {}}: {read, number} names read as people, {companies, number} skipped as companies, trusts, banks or governments, {unread, number} with no surname found. {shared, number} {shared, plural, =1 {sale shares} other {sales share}} a surname.",
       "seller": "Seller (grantor)",
@@ -2684,7 +2684,7 @@
       "fields": {
         "kicker": "Before step 1",
         "title": "Welcome to OAK box",
-        "lede": "OAK box helps you build models. It needs two datasets for that: a SALES RECORD and a PARCEL UNIVERSE\n\nThe SALES RECORD is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe PARCEL UNIVERSE is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
+        "lede": "OAK box helps you build models. It needs two datasets for that: a **sales record** and a **parcel universe**\n\nThe **sales record** is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe **parcel universe** is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
       },
       "details": {
         "kicker": "",

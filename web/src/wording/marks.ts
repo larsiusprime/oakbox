@@ -14,7 +14,7 @@ const DIGITS = [ch(0x200c), ch(0x200d), ch(0x2060), ch(0xfeff)];
 export const SENTINEL = "oakbox-wording-edit";
 
 /** What each marker number stands for: a message and the arguments it was shown with. */
-export const shown: { key: string; args: Record<string, unknown> | null }[] = [];
+export const shown: { key: string; args: Record<string, unknown> | null; rich?: boolean }[] = [];
 const numbers = new Map<string, number>();
 
 function encode(n: number) {
@@ -26,12 +26,13 @@ function encode(n: number) {
   return s;
 }
 
-export function mark(key: string, args: Record<string, unknown> | null, text: string) {
+/** `rich`: a piece of a formatted message (rich.ts), which the app redraws rather than the editor rewriting it. */
+export function mark(key: string, args: Record<string, unknown> | null, text: string, rich = false) {
   const sig = args ? `${key}\u0000${JSON.stringify(args)}` : key;
   let n = numbers.get(sig);
   if (n === undefined) {
     n = shown.length;
-    shown.push({ key, args });
+    shown.push({ key, args, ...(rich ? { rich } : {}) });
     numbers.set(sig, n);
   }
   return START + encode(n) + SEP + text + END;
