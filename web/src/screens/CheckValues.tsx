@@ -358,7 +358,7 @@ function SalesCard({ v, set }: CardProps) {
         {v.window_proposed ? (
           <p className="wiz-from">{r.sales.proposed({ start: v.proposed_start })}</p>
         ) : (
-          <Button className="wiz-link" onPress={() => set({ reset_window: true })}>
+          <Button className="button button-small" onPress={() => set({ reset_window: true })}>
             {r.sales.reset}
           </Button>
         )}
@@ -697,7 +697,7 @@ function Extreme({
                   <span className="wiz-ok">{e.excluded}</span>
                 ) : (
                   <Button
-                    className="wiz-link"
+                    className="button button-small"
                     isDisabled={exclude.isPending}
                     onPress={() =>
                       exclude.mutate({

@@ -25,10 +25,10 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
+import { CloseButton } from "../components/Buttons";
 import { Callout, firstSentence } from "../components/Callout";
 import { FileEntry, FileSlot, fileFacts } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
-import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
 import { desktop, useCanPickFile } from "../desktop";
@@ -118,7 +118,7 @@ export function IdCheck({
   // Rows for parcels missing from the parcel universe: cleaning won't help, so it's a note and a look at them.
   const missing = file.not_in_universe;
   const reconcile = reconcilable && (
-    <Button className="wiz-link wiz-resolve" onPress={() => setReconciling(true)}>
+    <Button className="button button-small" onPress={() => setReconciling(true)}>
       {missing ? w.reconcile.seeThem : w.reconcile.open}
     </Button>
   );
@@ -133,7 +133,7 @@ export function IdCheck({
         action={
           <>
             {resolvable && (
-              <Button className="wiz-link wiz-resolve" onPress={() => setOpen(true)}>
+              <Button className="button button-small" onPress={() => setOpen(true)}>
                 {w.dupes.resolve}
               </Button>
             )}
@@ -410,7 +410,7 @@ export function FilePicker({
       )}
       {onCancel && (
         <span className="entry-acts">
-          <RemoveButton label={w.cancel} onPress={onCancel} />
+          <CloseButton label={w.cancel} onPress={onCancel} />
         </span>
       )}
     </FileSlot>
@@ -421,12 +421,15 @@ export function FilePicker({
 export function StepFile({
   file,
   onRemove,
+  undo,
   status,
   actions,
   children,
 }: {
   file: WizardFile;
   onRemove: () => void;
+  /** Puts it back on the step: Undo after the −. */
+  undo?: () => void;
   status?: ReactNode;
   actions?: ReactNode;
   children?: ReactNode;
@@ -439,6 +442,7 @@ export function StepFile({
       status={status}
       actions={actions}
       onRemove={onRemove}
+      {...(undo ? { undo } : {})}
     >
       {children}
     </FileEntry>

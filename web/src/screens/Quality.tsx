@@ -1,8 +1,19 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useState } from "react";
-import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
+import {
+  Button,
+  Dialog,
+  Heading,
+  Input,
+  Modal,
+  ModalOverlay,
+  Radio,
+  RadioGroup,
+  TextField,
+} from "react-aria-components";
 import { api, type Scale, type Source, unwrap, type Wizard, type WizardField } from "../api/client";
+import { ToolButton } from "../components/Buttons";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
 import { amount, pct, short } from "../lib/format";
@@ -245,21 +256,25 @@ export function ScaleDialog({
               : q.directionTitle({ column: source.column })}
           </Heading>
           <p className="rc-sub">{condition ? q.meaningLede : q.directionLede}</p>
-          <ul className="qc-radio" aria-label={say.wizard.quality.meaningOf(field.name)}>
+          <RadioGroup
+            className="cu-choices qc-radio"
+            aria-label={say.wizard.quality.meaningOf(field.name)}
+            value={kind}
+            onChange={(k) => setKind(k as Kind)}
+          >
             {(v?.kinds ?? KINDS[field.key] ?? []).map((k) => (
-              <li key={k} className={k === kind ? "on" : undefined}>
-                <Button className="qc-pick" onPress={() => setKind(k as Kind)} aria-pressed={k === kind}>
-                  <span className="dot" />
-                  <span>
-                    <b>{q.kinds[k]}</b> <small>{q.kindHints[k]}</small>
-                  </span>
+              <Radio key={k} value={k} className="radio cu-choice">
+                <span className="radio-dot" aria-hidden="true" />
+                <span className="cu-text">
+                  <b>{q.kinds[k]}</b>
+                  <span className="cu-sub">{q.kindHints[k]}</span>
                   {v?.fits.includes(k) && v.age_basis && (
                     <span className="tag">✓ {q.fits({ basis: v.age_basis })}</span>
                   )}
-                </Button>
-              </li>
+                </span>
+              </Radio>
             ))}
-          </ul>
+          </RadioGroup>
           {pctKind && (
             <div className="qc-row">
               <span>{q.writtenAs}</span>
@@ -513,22 +528,20 @@ export function TiersDialog({
                 {rows.map((r, i) => (
                   <tr key={r.value} className={flags[r.value] && r.sales >= few ? "qc-bad" : undefined}>
                     <td className="qc-arrows">
-                      <Button
-                        className="qc-move"
-                        aria-label={q.up({ v: r.value })}
+                      <ToolButton
+                        label={q.up({ v: r.value })}
                         isDisabled={i === 0}
                         onPress={() => move(i, -1)}
                       >
-                        <ArrowUp size="0.85em" />
-                      </Button>
-                      <Button
-                        className="qc-move"
-                        aria-label={q.down({ v: r.value })}
+                        <ArrowUp aria-hidden="true" size="1em" />
+                      </ToolButton>
+                      <ToolButton
+                        label={q.down({ v: r.value })}
                         isDisabled={i === rows.length - 1}
                         onPress={() => move(i, 1)}
                       >
-                        <ArrowDown size="0.85em" />
-                      </Button>
+                        <ArrowDown aria-hidden="true" size="1em" />
+                      </ToolButton>
                     </td>
                     <td className="mono">
                       <Val v={r.value} />

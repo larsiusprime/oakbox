@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { t } from "../wording";
 import { Val } from "./Val";
 
@@ -36,7 +36,12 @@ export function ValueTable({
       <th className={className} aria-sort={on ? (shown.desc ? "descending" : "ascending") : "none"}>
         <button type="button" className="vals-sort" onClick={() => onSort(nextSort(sort, by, natural))}>
           {label}
-          {on && <Arrow aria-hidden="true" size="0.9em" />}
+          {/* Every sortable column shows it can be sorted: a faint ↕, the arrow once it's sorted by. */}
+          {on ? (
+            <Arrow aria-hidden="true" size="0.9em" />
+          ) : (
+            <ArrowUpDown aria-hidden="true" size="0.9em" className="sort-hint" />
+          )}
         </button>
       </th>
     );

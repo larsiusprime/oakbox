@@ -95,19 +95,30 @@ name that says what it is.
     no outline, no ✕).
   - **A file's own name** (`parcels.csv`) is always `FileName` (`.file-name`): mono on a faint box, like code in a
     chat, cut short with the whole name on hover. Never plain or grey text.
-  - **Taking something away is always `components/RemoveButton.tsx`:** a real button, red with a white ✕, raised
-    and pressed like every button, last on its line at the right edge,
-    labelled with what it removes. Never a "Remove" link, "(remove)", "drop", a grey X or a "(none)" option in a
-    dropdown. On a file it takes the file off that step, never off disk. Deleting a project (from disk) keeps its own
-    button and confirmation; closing a popup or a map isn't removing (its own close button).
+  - **Taking something off a list or a step is always `components/RemoveButton.tsx`:** a raised red button with a
+    white − (the pair of AddButton's +), last on its line at the right edge. `what` names what it removes: its
+    label ("Remove parks") shows on hover and is read aloud. Pass `undo` (how to put it back): "Removed parks · Undo"
+    shows for a few seconds (`lib/undo.ts`, `components/UndoToast.tsx`); a remove that can't be undone isn't a
+    remove. With words, it keeps its − (`RemoveTextButton`, "− Remove group", offering Undo itself). Never a
+    "Remove" link, "(remove)", "drop", an ✕ or a "(none)" option in a dropdown. On a file it takes the file off that
+    step, never off disk.
+  - **Deleting for good is `DeleteButton`** (`components/Buttons.tsx`): a danger button with a trash can and its
+    words ("Delete set", "Delete project"), which asks first. Never a trash can on something that can be undone.
+  - **Closing is `CloseButton`:** a grey ✕, only at the top right of a popup, panel, dialog or unsaved form.
+    Nothing is lost; never for removing. Close and remove never share a look.
+  - **The button family** (style guide, section 1): `.button`, `.button-primary` (one per view), `DeleteButton`,
+    `AddButton`, `SmallButton` (an action beside a line of text: "Reconcile…", "Options ˅", "4 values ˅"),
+    `ToolButton` (an icon; with `pressed`, a toggle that stays pressed in), `CloseButton`, `RemoveButton`. Unfolding in
+    place is `Disclose` (a chevron), a link that leaves the app is `ExternalLink` (↗), and going somewhere in the app
+    is a link (`.wiz-link`). Choosing is a dropdown, `Seg`, radio cards (`.cu-choice`) or a selectable row.
   - **Anything that can be removed on its own has its own outline** (`--frame`, 3px): a file, an ID inside a file
     (`SubEntry`, on the body's columns), a test, a condition, a copied field, a location field. Its siblings in the
     same list get one too, even one that can't be removed. Every item's or group's outline is `--frame`; `--rule` is
     for lines (a table's, a hairline), not boxes.
-  - **A thing you press is a raised button** (`.button`, `AddButton`, `RemoveButton`) unless it's in the style
-    guide's list of flat ones (section 5: text links, icon buttons, pills, rows, cards, navigation). Flat is a
-    deliberate choice, never the default: a new flat control is added to that list with what it does, or made a
-    button.
+  - **A thing you press is a raised button** unless it's kept flat in the style guide's section 3 (navigation,
+    list rows, sortable headers, disclosures, swatches), each with its reason. Flat is a deliberate choice, never
+    the default: a new flat control is added there with its reason, or made a button. A pressable table row or chart
+    is only a shortcut to a link or button in it (the chart shows its enlarge icon).
   - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line.
   - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
     radio buttons; a reason an option can't be chosen is its title.

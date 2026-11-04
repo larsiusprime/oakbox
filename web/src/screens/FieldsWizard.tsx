@@ -16,6 +16,7 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
+import { Disclose } from "../components/Disclose";
 import { SubEntry } from "../components/FileEntry";
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
@@ -381,7 +382,11 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
   }
   const columns = base.columns.map((c) => [c.name, c.name] as const);
   return (
-    <StepFile file={base} onRemove={() => change({ kind: "file", name: base.name, holds: "unused" })}>
+    <StepFile
+      file={base}
+      onRemove={() => change({ kind: "file", name: base.name, holds: "unused" })}
+      undo={() => change({ kind: "file", name: base.name, universe: true })}
+    >
       {/* Each ID its own box: each but the parcel ID can be taken away on its own. */}
       <div className="wiz-grid">
         <SubEntry
@@ -451,8 +456,15 @@ function ExtraIdRow({
           }
         />
       }
-      removeLabel={t.files.remove({ name: ordinal })}
+      what={ordinal}
       onRemove={() => change({ kind: "file", name: file.name, extra_field: extra.field, extra_column: null })}
+      // Only the last extra ID comes back as it was: removing the 2nd moves the 3rd up into its place.
+      undo={
+        file.extra_ids[file.extra_ids.length - 1]?.field === extra.field
+          ? () =>
+              change({ kind: "file", name: file.name, extra_field: extra.field, extra_column: extra.column })
+          : undefined
+      }
     />
   );
 }
@@ -485,8 +497,7 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
           }
         />
       }
-      removeLabel={t.files.remove({ name: ordinal })}
-      onRemove={done}
+      onClose={done}
     />
   );
 }
@@ -505,7 +516,11 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
     );
   }
   return (
-    <StepFile file={sales} onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}>
+    <StepFile
+      file={sales}
+      onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
+      undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
+    >
       {/* Its two IDs: the parcel each sale finds, and the sale's own. */}
 
       <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
@@ -564,6 +579,15 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
             setChosen((c) => c.filter((n) => n !== f.name));
             change({ kind: "file", name: f.name, holds: "unused" });
           }}
+          restore={() => {
+            setChosen((c) => [...c, f.name]);
+            if (f.holds && f.holds !== "unused" && f.holds !== "overlay")
+              change(
+                f.holds === "sales"
+                  ? { kind: "file", name: f.name, holds: f.holds, match: "key_sale" }
+                  : { kind: "file", name: f.name, holds: f.holds },
+              );
+          }}
         />
       ))}
       {adding ? (
@@ -594,6 +618,7 @@ function ExtraFile({
   main,
   change,
   drop,
+  restore,
 }: {
   project: Project;
   data: Wizard;
@@ -602,6 +627,7 @@ function ExtraFile({
   main: WizardFile | undefined;
   change: Mutate;
   drop: () => void;
+  restore: () => void;
 }) {
   const m = w.extraFiles;
   // What it's about (parcels or sales), then how it joins: on the ID, or appended as extra rows.
@@ -621,7 +647,7 @@ function ExtraFile({
   const joined = about === "parcels" ? "parcels" : "sales";
   const rows = about === "parcels" ? "parcel_rows" : "sale_rows";
   return (
-    <StepFile file={file} onRemove={drop}>
+    <StepFile file={file} onRemove={drop} undo={restore}>
       {/* What it's about and how it joins, on the same two columns as its ID below. */}
       <div className="wiz-grid">
         <div className="wiz-label">{m.what}</div>
@@ -780,9 +806,9 @@ function FieldsStep({
         )}
       </div>
       {hidden > 0 && (
-        <Button className="wiz-more" onPress={() => setMore(!more)}>
+        <Disclose className="wiz-more" open={more} onPress={() => setMore(!more)}>
           {more ? w.fewer : w.more({ n: hidden })}
-        </Button>
+        </Disclose>
       )}
     </>
   );

@@ -173,7 +173,7 @@ export function FieldRow({
               : null}
             {scaled && source && field.scale && (
               <Button
-                className="wiz-link wiz-resolve"
+                className="button button-small"
                 onPress={() => setQc(field.scale?.kind === "tiers" ? "tiers" : "scale")}
               >
                 {field.scale.kind === "tiers"
@@ -187,22 +187,22 @@ export function FieldRow({
             )}
             {paired && !scaled && (
               // One per section, on the category row: its text is short, so the link always shows.
-              <Button className="wiz-link wiz-resolve" onPress={() => setQc("compare")}>
+              <Button className="button button-small" onPress={() => setQc("compare")}>
                 {w.quality.compare}
               </Button>
             )}
             {sourceFile && column && field.type === "boolean" && sales && (
-              <Button className="wiz-link wiz-resolve" onPress={() => setRuling(true)}>
+              <Button className="button button-small" onPress={() => setRuling(true)}>
                 {!field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose}
               </Button>
             )}
             {sourceFile && column && field.type === "date" && column.type !== "date" && (
-              <Button className="wiz-link wiz-resolve" onPress={() => setDating(true)}>
+              <Button className="button button-small" onPress={() => setDating(true)}>
                 {field.check?.warn || !field.check?.ok ? w.dates.check : w.dates.change}
               </Button>
             )}
             {sourceFile && column && money && (
-              <Button className="wiz-link wiz-resolve" onPress={() => setReading(true)}>
+              <Button className="button button-small" onPress={() => setReading(true)}>
                 {field.check?.warn || !field.check?.ok ? w.numbers.check : w.numbers.change}
               </Button>
             )}

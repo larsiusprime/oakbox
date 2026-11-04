@@ -428,7 +428,7 @@ function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
                               first: g.file.first,
                               last: g.file.last,
                             })}{" "}
-                            <Button className="wiz-link" onPress={() => setImporting(g.id)}>
+                            <Button className="button button-small" onPress={() => setImporting(g.id)}>
                               {s.time.replace}
                             </Button>
                           </>

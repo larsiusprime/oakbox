@@ -12,7 +12,7 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
-import { RemoveButton } from "../components/RemoveButton";
+import { RemoveButton, RemoveTextButton } from "../components/RemoveButton";
 import { moneyShort } from "../lib/format";
 import { t } from "../wording";
 import type { Move } from "./ModelGroups";
@@ -178,8 +178,10 @@ export function GroupEditor({
                   </TextField>
                 )}
                 <RemoveButton
+                  what={t.buttons.theCondition}
                   label={g.removeCondition}
                   onPress={() => setConditions(rule.conditions.filter((_, j) => j !== i))}
+                  undo={() => setConditions(rule.conditions)}
                 />
               </div>
             </li>
@@ -207,7 +209,7 @@ export function GroupEditor({
               {m.to_id === group.id
                 ? g.moveIn({ n: m.parcels, from: name(m.from_id), sold: m.sold })
                 : g.moveOut({ n: m.parcels, to: name(m.to_id), sold: m.sold })}{" "}
-              <Button className="wiz-link" onPress={() => onShow(moved(m))}>
+              <Button className="button button-small" onPress={() => onShow(moved(m))}>
                 {g.showMoves}
               </Button>
             </span>
@@ -228,9 +230,7 @@ export function GroupEditor({
         </div>
       )}
       <div className="mg-ed-foot">
-        <Button className="wiz-link" onPress={onDelete}>
-          {g.deleteGroup}
-        </Button>
+        <RemoveTextButton onPress={onDelete}>{g.deleteGroup}</RemoveTextButton>
       </div>
     </div>
   );

@@ -236,8 +236,9 @@ export function StandardsTable({ v, set }: Props) {
                 </td>
                 <td>
                   <RemoveButton
-                    label={s.remove}
+                    what={x.name}
                     onPress={() => set({ standards: all.filter((_, j) => j !== i) })}
+                    undo={() => set({ standards: all })}
                   />
                 </td>
               </tr>
@@ -248,7 +249,7 @@ export function StandardsTable({ v, set }: Props) {
       <p className="cs-row add-row">
         <AddButton onPress={add}>{s.add}</AddButton>
         {!v.iaao && (
-          <Button className="wiz-link" onPress={() => set({ reset_standards: true })}>
+          <Button className="button button-small" onPress={() => set({ reset_standards: true })}>
             {s.reset}
           </Button>
         )}

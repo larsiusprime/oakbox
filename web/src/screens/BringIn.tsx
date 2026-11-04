@@ -4,6 +4,7 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-compone
 import { navigate } from "../App";
 import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
+import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts } from "../components/FileEntry";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -347,7 +348,7 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
               </td>
               <td>
                 {x.status !== "ok" && rerun && (
-                  <Button className="wiz-link" onPress={rerun}>
+                  <Button className="button button-small" onPress={rerun}>
                     {e.retry}
                   </Button>
                 )}
@@ -360,9 +361,7 @@ function EnrichCard({ results, rerun }: { results: EnrichResult[]; rerun: (() =>
       {results.some((x) => x.key === "distances" && x.fields.length > 0) && (
         <p className="bi-note">
           {e.osmCredit}{" "}
-          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-            {e.osmLicence}
-          </a>
+          <ExternalLink href="https://www.openstreetmap.org/copyright">{e.osmLicence}</ExternalLink>
         </p>
       )}
     </section>
@@ -412,7 +411,7 @@ function Section({
                 <span>
                   {l.rows && (
                     <Button
-                      className="wiz-link"
+                      className="button button-small"
                       onPress={() => open(l.rows ?? "", `${f.filename || f.file}: ${l.text}`)}
                     >
                       {b.seeThem}

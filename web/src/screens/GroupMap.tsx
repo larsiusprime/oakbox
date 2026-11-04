@@ -3,10 +3,10 @@
 import type { Layer } from "@deck.gl/core";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
+import { CloseButton } from "../components/Buttons";
 import { boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
 import { short } from "../lib/format";
@@ -171,9 +171,7 @@ export function Inspector({
             {name(v.group)}
           </span>
         )}
-        <Button className="rc-x" aria-label={g.close} onPress={onClose}>
-          <X size="0.9em" />
-        </Button>
+        <CloseButton label={g.close} onPress={onClose} />
       </div>
       {q.error && <p className="error">{q.error.message}</p>}
       {v && (
@@ -218,7 +216,7 @@ export function Inspector({
           {v.like_text && v.like.length > 1 && (
             <div className="mg-live">
               <span>{g.like({ n: v.like.length, sold: v.like_sold, what: v.like_text })}</span>
-              <Button className="wiz-link" onPress={() => onShow(v.like)}>
+              <Button className="button button-small" onPress={() => onShow(v.like)}>
                 {g.showLike}
               </Button>
             </div>

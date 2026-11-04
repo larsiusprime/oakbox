@@ -43,7 +43,16 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
   // What each kind means, guesses included: saying one says them all, as shown.
   const means = Object.fromEntries(v.kinds.map((k) => [k.value, k.means]));
   return (
-    <StepFile file={file} onRemove={() => change({ kind: "permits", name: v.file, permits: null })}>
+    <StepFile
+      file={file}
+      onRemove={() => change({ kind: "permits", name: v.file, permits: null })}
+      undo={() =>
+        change(
+          { kind: "file", name: v.file, holds: "permits" },
+          { onSuccess: () => change({ kind: "permits", name: v.file, permits: s }) },
+        )
+      }
+    >
       <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />
       <div className="wiz-grid">
         <div className="wiz-label">{p.date}</div>

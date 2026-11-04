@@ -45,8 +45,8 @@ export function AddFile(props: {
           {f.browse}
         </Button>
       }
-      removeLabel={t.files.dontImport({ filename })}
-      onRemove={props.onDone}
+      closeLabel={t.files.dontImport({ filename })}
+      onClose={props.onDone}
     >
       {problem && (
         <p className="error" role="alert">

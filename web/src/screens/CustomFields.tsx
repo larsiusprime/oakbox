@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { Wizard } from "../api/client";
+import { SmallButton } from "../components/Buttons";
 import { Choice } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
@@ -147,8 +148,9 @@ export function CustomFields({
                 </td>
                 <td className="cf-td">
                   <RemoveButton
-                    label={c.remove({ name: x.name })}
+                    what={x.name}
                     onPress={() => set({ file: null, column: null })}
+                    undo={() => set({ file: x.file, column: x.column })}
                   />
                 </td>
               </tr>
@@ -195,7 +197,9 @@ export function CustomFields({
                 {c.add}
               </Button>
             </td>
-            <td className="cf-td cf-add-td">{dirty && <RemoveButton label={c.clear} onPress={clear} />}</td>
+            <td className="cf-td cf-add-td">
+              {dirty && <SmallButton onPress={clear}>{t.multiPick.clear}</SmallButton>}
+            </td>
           </tr>
         </tfoot>
       </table>

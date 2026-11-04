@@ -81,13 +81,17 @@ export function MultiPick({
             <span>{m.chosen({ n: chosen.length, of: values.length + extra.length })}</span>
             <span className="mp-grow" />
             <Button
-              className="wiz-link"
+              className="button button-small"
               isDisabled={rows.length === 0}
               onPress={() => onChange([...new Set([...chosen, ...rows.map((x) => x.value)])])}
             >
               {q ? m.allShown : m.all}
             </Button>
-            <Button className="wiz-link" isDisabled={chosen.length === 0} onPress={() => onChange([])}>
+            <Button
+              className="button button-small"
+              isDisabled={chosen.length === 0}
+              onPress={() => onChange([])}
+            >
               {m.clear}
             </Button>
           </div>

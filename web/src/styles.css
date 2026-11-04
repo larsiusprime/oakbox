@@ -660,8 +660,164 @@ a.row-title:hover {
   color: var(--muted);
 }
 
-/* The red ✕ (components/RemoveButton.tsx): the one way to take something away. A real button, raised and pressed
-   like the others (the bevel, as on .button-primary, is the one place for hexes), red with a white ✕. */
+/* ---------- The button family (style guide, section 1; components/Buttons.tsx) ---------- */
+/* A small button: an action beside a line of text (Reconcile…, Options ˅, See rows). */
+.button-small {
+  min-height: calc(var(--ctl-h) - 0.35rem);
+  padding: 0 calc(0.55 * var(--sp));
+  font-size: 0.84rem;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
+}
+/* A tool button: a raised square with an icon; a toggle stays pressed in while it's on. Even sizes (22px, 20px
+   inside the border, a 12px icon), so the icon sits exactly in the middle. */
+.tool-button {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.5714rem;
+  height: 1.5714rem;
+  padding: 0;
+  font-size: 0.8571rem;
+  color: var(--text);
+  background: #efefed;
+  border: 1px solid #6b6e72;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9da1;
+  cursor: pointer;
+}
+.tool-button[data-hovered] {
+  background: #f7f7f5;
+}
+.tool-button[data-pressed],
+.tool-button[aria-pressed="true"] {
+  color: var(--active);
+  background: #d9dde3;
+  box-shadow:
+    inset 1px 1px 0 #9a9da1,
+    inset -1px -1px 0 #ffffff;
+}
+.tool-button[data-disabled] {
+  color: #a9acb0;
+  cursor: default;
+  box-shadow: inset 1px 1px 0 #ffffff;
+}
+.tool-button[data-focus-visible],
+.close-x[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+/* The close button: a grey ✕, only at the top right of a popup, panel or dialog. Never for removing. */
+.close-x {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.5714rem;
+  height: 1.5714rem;
+  padding: 0;
+  font-size: 0.8571rem;
+  color: #3b3e42;
+  background: #e4e4e2;
+  border: 1px solid #6b6e72;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9da1;
+  cursor: pointer;
+}
+.close-x[data-hovered] {
+  background: #efefed;
+}
+.close-x[data-pressed] {
+  box-shadow:
+    inset 1px 1px 0 #9a9da1,
+    inset -1px -1px 0 #ffffff;
+}
+/* Unfolding in place (components/Disclose.tsx): a chevron before the words; ▾ when open. */
+.disclose {
+  display: inline-flex;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
+  align-items: center;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.disclose[data-hovered] {
+  text-decoration: underline;
+}
+.disclose[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.disclose-icon {
+  flex: none;
+  transition: transform 0.12s;
+}
+.disclose[aria-expanded="true"] .disclose-icon {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .disclose-icon {
+    transition: none;
+  }
+}
+/* A sortable column that isn't sorted by yet: a faint ↕ says it can be. */
+.sort-hint {
+  color: var(--muted);
+  opacity: 0.55;
+}
+/* A link that leaves the app (components/ExternalLink.tsx): its ↗. */
+.link-out-icon {
+  margin-left: 0.2em;
+  vertical-align: -0.05em;
+}
+/* "Remove group": the red − with words. */
+.remove-icon {
+  color: var(--bad);
+}
+/* A small button after a check or a line of text sits a little apart from it. */
+.wiz-check-lines .button-small,
+.wiz-issues .button-small,
+.wiz-samples .button-small,
+.bi-warn .button-small {
+  margin-left: calc(0.5 * var(--sp));
+}
+/* Deleting asks first, in a popover beside the button. */
+.confirm-pop {
+  display: grid;
+  gap: calc(0.5 * var(--sp));
+  max-width: 22rem;
+  padding: calc(0.6 * var(--sp)) calc(0.7 * var(--sp));
+}
+/* Undo, after a remove (components/UndoToast.tsx). */
+.undo-toast {
+  position: fixed;
+  z-index: 40;
+  bottom: calc(1.3 * var(--sp) + 0.5rem);
+  left: 50%;
+  display: flex;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+  max-width: calc(100% - 2rem);
+  padding: 0.45rem 0.5rem 0.45rem 0.9rem;
+  color: #ffffff;
+  background: #2a2d31;
+  border-radius: var(--radius);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+}
+@media print {
+  .undo-toast {
+    display: none;
+  }
+}
+
+/* The red − (components/RemoveButton.tsx): the one way to take something off a list or a step. A real button, raised
+   and pressed like the others (bevels are the one place for hexes), red with a white −, the pair of AddButton's +. */
 .remove-x {
   display: inline-grid;
   flex: none;
@@ -669,7 +825,7 @@ a.row-title:hover {
   width: 1.5714rem; /* 22px at 100%: 20px inside the border, the 12px ✕ exactly in the middle */
   height: 1.5714rem;
   padding: 0;
-  font-size: 0.8571rem; /* the ✕ is 1em: 12px */
+  font-size: 0.8571rem; /* the − is 1em: 12px */
   color: #ffffff;
   background: #b8352b;
   border: 1px solid #5e130e;
@@ -1861,10 +2017,6 @@ a.row-title:hover {
   vertical-align: -0.12em;
 }
 
-.wiz-resolve {
-  margin-left: calc(0.6 * var(--sp));
-}
-
 .wiz-modal-wide {
   width: min(100%, 52rem);
 }
@@ -2011,27 +2163,6 @@ like the wizard's Next {
   font-size: 0.9rem;
 }
 
-.rc-seg {
-  display: inline-flex;
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-
-.rc-seg-btn {
-  padding: calc(0.1 * var(--sp)) calc(0.55 * var(--sp));
-  font: inherit;
-  font-size: 0.82rem;
-  background: var(--panel);
-  border: 0;
-  cursor: pointer;
-}
-
-.rc-seg-btn[aria-pressed="true"] {
-  color: #ffffff;
-  background: var(--active);
-}
-
 .rc-cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
@@ -2102,15 +2233,6 @@ like the wizard's Next {
 .rc-input {
   padding: 0 calc(0.25 * var(--sp));
   font-family: var(--mono);
-}
-
-.rc-x {
-  display: inline-flex;
-  padding: calc(0.1 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
 }
 
 .rc-menu {
@@ -2335,17 +2457,6 @@ like the wizard's Next {
 .qc-arrows {
   white-space: nowrap;
 }
-.qc-move {
-  border: 0;
-  background: none;
-  padding: 0 calc(0.15 * var(--sp));
-  color: var(--muted);
-  cursor: pointer;
-}
-.qc-move[data-disabled] {
-  opacity: 0.3;
-  cursor: default;
-}
 .qc-flag {
   color: var(--warn, var(--warn));
   font-size: 0.8rem;
@@ -2356,41 +2467,6 @@ like the wizard's Next {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-.qc-pick {
-  display: flex;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  align-items: baseline;
-  width: 100%;
-  text-align: left;
-  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
-  border: 1px solid var(--frame);
-  border-radius: 3px;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.qc-radio li.on .qc-pick {
-  border-color: #7fa3d9;
-  background: var(--info-tint);
-}
-.qc-radio .dot {
-  width: 0.8rem;
-  height: 0.8rem;
-  border: 1px solid var(--panel-edge);
-  border-radius: 50%;
-  display: inline-block;
-  position: relative;
-  top: 0.1rem;
-  flex: none;
-}
-.qc-radio li.on .dot {
-  background: radial-gradient(#1d5bb8 45%, #fff 50%);
-  border-color: var(--link);
-}
-.qc-radio small {
-  color: var(--muted);
 }
 .qc-radio .tag {
   margin-left: auto;
@@ -2646,31 +2722,6 @@ like the wizard's Next {
   grid-template-columns: 1fr 1fr;
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
-.mg-start-card {
-  display: grid;
-  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
-  align-content: start;
-  text-align: left;
-  padding: calc(0.8 * var(--sp)) calc(0.9 * var(--sp));
-  font: inherit;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--btn-edge);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.mg-start-card[data-hovered] {
-  border-color: var(--focus);
-  background: var(--info-tint);
-}
-.mg-start-card[data-disabled] {
-  cursor: default;
-  opacity: 0.65;
-}
-.mg-start-card span {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
 .mg {
   display: grid;
   grid-template-columns: 17rem minmax(24rem, 1fr) minmax(26rem, 42%);
@@ -2781,18 +2832,6 @@ like the wizard's Next {
   display: grid;
   padding: calc(0.25 * var(--sp)) calc(0.2 * var(--sp)) 0 0;
 }
-.mg-arrow {
-  display: inline-flex;
-  padding: calc(0.1 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.mg-arrow[data-disabled] {
-  opacity: 0.25;
-  cursor: default;
-}
 .mg-sep {
   margin: calc(0.2 * var(--sp)) 0;
   border-top: 1px solid var(--rule);
@@ -2847,16 +2886,25 @@ like the wizard's Next {
   display: flex;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
 }
+/* A colour swatch: lifts on hover; the chosen one has a clear ring round it. */
 .mg-colour {
   width: 1.1rem;
   height: 1.1rem;
   padding: 0;
-  border: 2px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 3px;
   cursor: pointer;
 }
+.mg-colour[data-hovered] {
+  transform: translateY(-1px);
+}
 .mg-colour.on {
-  border-color: #111;
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.mg-colour[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 .mg-stats {
   display: grid;
@@ -3010,14 +3058,6 @@ ul.mg-checks {
   cursor: default;
   opacity: 0.6;
 }
-.mg-x {
-  display: inline-flex;
-  padding: calc(0.2 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
 .mg-map-body {
   position: relative;
   min-height: 0;
@@ -3056,20 +3096,12 @@ ul.mg-checks {
   border-radius: 2px;
 }
 /* Each colour is a checkbox: filled when its parcels are shown, hollow when hidden. */
-.mg-key {
-  padding: 0;
-  font: inherit;
-  color: var(--text);
-  cursor: pointer;
-  background: none;
-  border: 0;
-}
-.mg-key:not([data-selected]) {
+/* A legend key shows or hides its group on the map: a checkbox with the group's colour. */
+.mg-key.off {
   color: var(--muted);
 }
-.mg-key[data-focus-visible] {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+.mg-key.off .mg-key-sw {
+  opacity: 0.35;
 }
 .mg-pop {
   position: absolute;
@@ -3188,23 +3220,9 @@ ul.mg-checks {
   flex: none;
   opacity: 0.45;
 }
+/* "4 values ˅": a small button (.button.button-small), a little apart from what it follows. */
 .vals-button {
-  display: inline-flex;
   margin-left: calc(0.4 * var(--sp));
-  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
-  align-items: center;
-  padding: 0 calc(0.45 * var(--sp));
-  font: inherit;
-  font-size: 0.82rem;
-  color: var(--link);
-  white-space: nowrap;
-  background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  cursor: pointer;
-}
-.vals-button[data-hovered] {
-  border-color: var(--focus);
 }
 /* The popover is never taller than the room it has (react-aria sets its max-height): the list scrolls inside. */
 .vals-popover {
@@ -3348,21 +3366,6 @@ ul.mg-checks {
   align-items: center;
   font-size: 0.9rem;
 }
-.ly-icon {
-  display: inline-flex;
-  padding: calc(0.2 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.ly-icon[data-hovered],
-.ly-icon.on {
-  color: var(--text);
-  border-color: var(--rule);
-  background: var(--head);
-}
 .ly-left {
   display: grid;
   gap: max(calc(0.1 * var(--sp)), min(0.1rem, var(--gap-min)));
@@ -3388,7 +3391,7 @@ ul.mg-checks {
   width: 1.2857rem; /* 18px: 16px inside, the 10px ✕ in the middle */
   height: 1.2857rem;
   margin: 1px;
-  font-size: 0.7143rem; /* a 10px ✕ */
+  font-size: 0.7143rem; /* a 10px − */
 }
 /* A layer's body: labels in one column, what's set in the next. */
 .ly-grid {
@@ -3398,20 +3401,21 @@ ul.mg-checks {
     max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
 }
+/* A copied field's kind ("location ˅"): a small dropdown, sunken like every dropdown. */
 .ly-kind {
   display: inline-flex;
-  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
-  padding: 0 calc(0.3 * var(--sp));
+  min-height: calc(var(--ctl-h) - 0.35rem);
+  padding: 0 calc(0.35 * var(--sp));
   font: inherit;
-  color: var(--link);
-  background: none;
-  border: 0;
-  border-radius: var(--radius);
+  font-size: 0.84rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid #7a7d82;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #c5c7ca;
   cursor: pointer;
-}
-.ly-kind[data-hovered] {
-  background: var(--info-tint);
 }
 .ly-prefix {
   margin-right: calc(-0.4 * var(--sp));
@@ -4142,6 +4146,7 @@ tr.bi-kept > td {
 }
 /* A group's small chart is a button: pressed, it's shown larger in its place (one at a time). */
 .cs-chart-button {
+  position: relative;
   font-family: inherit;
   color: inherit;
   text-align: left;
@@ -4151,6 +4156,15 @@ tr.bi-kept > td {
 .cs-chart-button[data-hovered],
 .cs-chart-button[data-focus-visible] {
   border-color: var(--link);
+}
+.cs-enlarge {
+  position: absolute;
+  top: calc(0.3 * var(--sp) + 2px);
+  right: calc(0.3 * var(--sp) + 2px);
+  pointer-events: none;
+}
+.cs-chart-button[data-hovered] .cs-enlarge {
+  background: #f7f7f5;
 }
 .cs-chart-cap {
   display: block;
@@ -4956,21 +4970,6 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .ls-tools {
   white-space: nowrap;
-}
-.ls-move {
-  display: inline-flex;
-  align-items: center;
-  margin-right: calc(0.15 * var(--sp));
-  padding: calc(0.05 * var(--sp)) calc(0.3 * var(--sp));
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--btn-edge);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.ls-move[data-disabled] {
-  opacity: 0.4;
-  cursor: default;
 }
 .vl-warns > .wiz-warn {
   margin: calc(0.15 * var(--sp)) 0;

@@ -166,10 +166,12 @@ export function RuleDialog({
                   )}
                   {rule.conditions.length > 1 && (
                     <RemoveButton
+                      what={t.buttons.theTest}
                       label={r.removeTest}
                       onPress={() =>
                         setRule({ ...rule, conditions: rule.conditions.filter((_, j) => j !== i) })
                       }
+                      undo={() => setRule(rule)}
                     />
                   )}
                 </div>
@@ -372,13 +374,13 @@ export function DateDialog({
                   {i > 0 && ", "}
                   {a.words}{" "}
                   <Button
-                    className="wiz-link"
+                    className="button button-small"
                     onPress={() => {
                       setCustom(false);
                       setFormat(a.format);
                     }}
                   >
-                    ({d.useIt})
+                    {d.useIt}
                   </Button>
                 </span>
               ))}
@@ -523,7 +525,7 @@ export function NumberDialog({
           {v?.hint && (
             <p className="rc-suggest">
               <b>{v.hint.reason}</b>{" "}
-              <Button className="wiz-link" onPress={() => set({ scale: v.hint?.scale ?? 1 })}>
+              <Button className="button button-small" onPress={() => set({ scale: v.hint?.scale ?? 1 })}>
                 {n.readAs({ s: say.wizard.numbers.scales(v.hint.scale) })}
               </Button>
             </p>

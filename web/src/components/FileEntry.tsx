@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { t } from "../wording";
+import { CloseButton } from "./Buttons";
 import { RemoveButton } from "./RemoveButton";
 
 /** A file's own name (`parcels.csv`), set off like code wherever it appears: in an entry, a list, a dropdown's
@@ -45,7 +46,7 @@ export function FileLine({
 }
 
 /** A file wherever one is added, picked or used (the style guide, docs/style-guide.html): a thin outline; its first
- * line its name, file name, facts and status, then other actions, then the red ✕ at the right edge (centred on a
+ * line its name, file name, facts and status, then other actions, then the red − at the right edge (centred on a
  * one-line entry, top right on a tall one). What's set on the file goes in its body, inside the same outline. */
 export function FileEntry({
   name,
@@ -55,7 +56,9 @@ export function FileEntry({
   status,
   actions,
   onRemove,
-  removeLabel,
+  undo,
+  onClose,
+  closeLabel,
   children,
 }: {
   name?: string | null;
@@ -66,8 +69,12 @@ export function FileEntry({
   status?: ReactNode;
   /** Other actions, as icon buttons, before the ✕. */
   actions?: ReactNode;
+  /** Takes the file off its step (the red −), and `undo` puts it back. */
   onRemove?: () => void;
-  removeLabel?: string;
+  undo?: () => void;
+  /** Instead of removing: closes an entry that isn't saved yet (the import form): a grey ✕. */
+  onClose?: () => void;
+  closeLabel?: string;
   children?: ReactNode;
 }) {
   return (
@@ -81,15 +88,13 @@ export function FileEntry({
         >
           {status}
         </FileLine>
-        {(actions || onRemove) && (
+        {(actions || onRemove || onClose) && (
           <span className="entry-acts">
             {actions}
             {onRemove && (
-              <RemoveButton
-                label={removeLabel ?? t.files.remove({ name: name ?? filename })}
-                onPress={onRemove}
-              />
+              <RemoveButton what={name ?? filename} onPress={onRemove} {...(undo ? { undo } : {})} />
             )}
+            {onClose && <CloseButton {...(closeLabel ? { label: closeLabel } : {})} onPress={onClose} />}
           </span>
         )}
       </div>
@@ -109,14 +114,20 @@ export function SubEntry({
   label,
   control,
   after,
+  what,
   onRemove,
-  removeLabel,
+  undo,
+  onClose,
 }: {
   label: ReactNode;
   control: ReactNode;
   after?: ReactNode;
+  /** What the red − removes ("2nd ID"), and how to put it back. */
+  what?: string;
   onRemove?: () => void;
-  removeLabel?: string;
+  undo?: (() => void) | undefined;
+  /** A row not saved yet: a grey ✕ closes it. */
+  onClose?: () => void;
 }) {
   return (
     <div className="entry-sub">
@@ -124,7 +135,8 @@ export function SubEntry({
       {control}
       <div className="entry-sub-end">
         <div className="entry-sub-after">{after}</div>
-        {onRemove && removeLabel && <RemoveButton label={removeLabel} onPress={onRemove} />}
+        {onRemove && what && <RemoveButton what={what} onPress={onRemove} {...(undo ? { undo } : {})} />}
+        {onClose && <CloseButton onPress={onClose} />}
       </div>
     </div>
   );

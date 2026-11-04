@@ -107,7 +107,7 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
                 ? l.centerMiddle
                 : l.centerMiddleHidden}{" "}
             {v.center && (
-              <Button className="wiz-link" onPress={() => move.mutate(null)}>
+              <Button className="button button-small" onPress={() => move.mutate(null)}>
                 {l.useMiddle}
               </Button>
             )}
@@ -253,8 +253,9 @@ function LocationFields({
                 noun={l.areas({ n: x.distinct ?? 0 })}
               />
               <RemoveButton
-                label={l.remove({ name: x.name })}
+                what={x.name}
                 onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
+                undo={() => change({ kind: "location", name: x.name, file: x.file, column: x.column })}
               />
             </div>
           ))}

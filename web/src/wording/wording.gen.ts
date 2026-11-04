@@ -559,10 +559,11 @@ export type Wording = {
       roll: string;
       rollNote: string;
       otherNote: string;
-      remove: string;
       name: string;
       add: string;
       none: string;
+      deleteSet: string;
+      deleteConfirm: (a: { name: string | number }) => string;
     };
     reconcile: {
       open: string;
@@ -1119,6 +1120,7 @@ export type Wording = {
     ffApply: string;
     cancel: string;
     blank: string;
+    startButton: string;
   };
   sales: {
     kicker: string;
@@ -2202,9 +2204,24 @@ export type Wording = {
   files: {
     facts: (a: { rows: number; shapes: string | number }) => string;
     shapesOnly: string;
-    remove: (a: { name: string | number }) => string;
     useExisting: string;
     dontImport: (a: { filename: string | number }) => string;
     otherFile: string;
+  };
+  buttons: {
+    remove: (a: { what: string | number }) => string;
+    removed: (a: { what: string | number }) => string;
+    undo: string;
+    close: string;
+    up: (a: { what: string | number }) => string;
+    down: (a: { what: string | number }) => string;
+    enlarge: string;
+    seeRows: string;
+    external: (a: { text: string | number }) => string;
+    theTest: string;
+    theCondition: string;
+    theStep: string;
+    delete: string;
+    cancel: string;
   };
 };

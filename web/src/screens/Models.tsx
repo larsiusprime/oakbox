@@ -122,7 +122,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     {options.length ? (
                       <>
                         <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />{" "}
-                        <Button className="wiz-link" onPress={() => setStack(open ? null : e.key)}>
+                        <Button className="button button-small" onPress={() => setStack(open ? null : e.key)}>
                           {open ? m.done : m.change}
                         </Button>
                       </>
@@ -138,7 +138,11 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                       ))}
                   </td>
                   <td>
-                    <RemoveButton label={m.remove} onPress={() => save(entries.filter((_, j) => j !== i))} />
+                    <RemoveButton
+                      what={e.engine}
+                      onPress={() => save(entries.filter((_, j) => j !== i))}
+                      undo={() => save(entries)}
+                    />
                   </td>
                 </tr>,
                 open && (
@@ -211,7 +215,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                     >
                       {m.addIt}
                     </Button>
-                    <Button className="wiz-link" onPress={() => setAdding(null)}>
+                    <Button className="button button-small" onPress={() => setAdding(null)}>
                       {m.cancel}
                     </Button>
                   </div>
@@ -239,7 +243,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
         )}
         {others.length > 0 && (
           <MenuTrigger>
-            <Button className="wiz-link">{m.copy}</Button>
+            <Button className="button button-small">{m.copy}</Button>
             <Popover className="popover rc-menu" placement="bottom start">
               <Menu
                 className="choice-list"
@@ -258,7 +262,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
           </MenuTrigger>
         )}
         {g.custom && (
-          <Button className="wiz-link" onPress={() => save(null)}>
+          <Button className="button button-small" onPress={() => save(null)}>
             {m.backToDefault}
           </Button>
         )}

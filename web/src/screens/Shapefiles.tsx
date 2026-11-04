@@ -18,6 +18,7 @@ import { api, type LayerView, type Overlay, type Project, unwrap, type Wizard } 
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import { AddButton } from "../components/AddButton";
+import { ToolButton } from "../components/Buttons";
 import { FileEntry } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
@@ -130,18 +131,17 @@ function LayerCard({
       }
       actions={
         layer.projected && (
-          <Button
-            className={mapShown ? "ly-icon on" : "ly-icon"}
-            aria-label={mapShown ? s.hideMap : s.showMap}
-            aria-pressed={mapShown}
+          <ToolButton
+            label={mapShown ? s.hideMap : s.showMap}
+            pressed={mapShown}
             onPress={() => setMapShown(!mapShown)}
           >
             <MapIcon aria-hidden="true" size="1em" />
-          </Button>
+          </ToolButton>
         )
       }
-      removeLabel={s.drop}
       onRemove={() => change({ kind: "layer", name: layer.name, overlay: null })}
+      undo={() => change({ kind: "layer", name: layer.name, overlay: o })}
     >
       {layer.left.length > 0 && (
         <ul className="ly-left">
@@ -225,8 +225,9 @@ function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overla
               </Popover>
             </MenuTrigger>
             <RemoveButton
-              label={s.remove({ name: f.name })}
+              what={f.name}
               onPress={() => set({ fields: o.fields.filter((x) => x.name !== f.name) })}
+              undo={() => set({ fields: o.fields })}
             />
           </span>
         ))}
@@ -357,7 +358,7 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
           />
         </span>
         <DialogTrigger>
-          <Button className="ly-add">
+          <Button className="button button-small">
             {s.options}
             {options && <span className="wiz-from"> · {options}</span>}
             <ChevronDown aria-hidden="true" size="0.8em" />

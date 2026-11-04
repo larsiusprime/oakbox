@@ -2,499 +2,735 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OAK box style guide: files and items</title>
+<title>OAK box Style Guide</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
 <style>
-/* Layout: the app's own Manila folder and white paper, one mock per place, notes beside it. Single light look: OAK box has no dark theme. */
+/* Layout: the app's own Manila folder and white paper; sections as sheets; every specimen is live.
+   Single light look: OAK box has no dark theme, so every colour is set here explicitly. */
 :root {
   color-scheme: light;
   --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", Consolas, monospace;
-  --text: #1c1e20; --muted: #565b61; --rule: #d9d9d9; --frame: #c9c2b0;
-  --manila: #f8f0d4; --manila-edge: #c8b277; --manila-ink: #4a3b1c;
+  --text: #1c1e20; --muted: #565b61; --rule: #d9d9d9; --frame: #c9c2b0; --cell-line: #e2e4e6;
+  --manila: #f8f0d4; --manila-edge: #c8b277; --manila-ink: #4a3b1c; --manila-back: #efe3bd;
   --paper: #ffffff; --paper-edge: #d8d2c0; --paper-rule: #e6e1d3;
-  --link: #1d5bb8; --ok: #1b6a32; --warn: #8a4b00; --bad: #a3231b;
-  --bad-tint: #fde8e8; --bad-edge: #f3b4b4; --head: #eaf1fa; --select: #dce9fd;
+  --link: #1d5bb8; --ok: #1b6a32; --warn: #8a4b00; --bad: #a3231b; --focus: #1f6fe0;
+  --ok-tint: #e7f5ec; --ok-edge: #a6d8b8; --warn-tint: #fff4e0; --warn-edge: #f0c78a; --bad-tint: #fde8e8;
+  --info-tint: #eef3fb; --info-edge: #b9cdee; --head: #eaf1fa; --zebra: #f0f5fc; --select: #dce9fd;
+  --code-bg: #f3f0e8; --code-edge: #e0dacb; --entry-head: #f6f2e6;
   --wood: #5a3a22;
-  --code-bg: #f1eee6; --code-edge: #e0dacb;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--wood); color: var(--text); font: 14px/1.35 var(--font); overflow-wrap: anywhere; }
-.page { max-width: 1060px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.page { max-width: 1120px; margin: 0 auto; padding-block: 24px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .folder { background: var(--manila); border: 1px solid var(--manila-edge); border-radius: 4px; padding: 20px; display: grid; gap: 20px; }
-header h1 { margin: 0 0 4px; font-size: 1.45rem; color: var(--manila-ink); text-wrap: balance; }
-header p { margin: 0; max-width: 68ch; color: var(--manila-ink); }
-section.sheet { background: var(--paper); border: 1px solid var(--paper-edge); border-radius: 3px; padding: 16px 18px; box-shadow: 0 1px 1px rgba(70,55,20,.16), 0 3px 8px rgba(70,55,20,.12); display: grid; gap: 14px; min-width: 0; }
-h2 { margin: 0; font-size: 1.08rem; text-wrap: balance; }
+header { display: grid; gap: 8px; }
+header h1 { margin: 0; font-size: 1.5rem; color: var(--manila-ink); text-wrap: balance; }
+header p { margin: 0; max-width: 72ch; color: var(--manila-ink); }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+nav.toc a { padding: 3px 10px 4px; color: var(--manila-ink); background: var(--manila-back); border: 1px solid var(--manila-edge); border-radius: 6px 6px 0 0; text-decoration: none; font-weight: 600; }
+nav.toc a:hover { background: var(--paper); }
+section.sheet { background: var(--paper); border: 1px solid var(--paper-edge); border-radius: 3px; padding: 18px 20px; box-shadow: 0 1px 1px rgba(70,55,20,.16), 0 3px 8px rgba(70,55,20,.12); display: grid; gap: 16px; min-width: 0; scroll-margin-top: 12px; }
+h2 { margin: 0; font-size: 1.15rem; text-wrap: balance; }
 h3 { margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-p { margin: 0; max-width: 72ch; }
+p { margin: 0; max-width: 74ch; }
+.lede { color: var(--muted); }
 .muted { color: var(--muted); }
-.mono { font-family: var(--mono); font-size: .9em; }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+.demo-note { font-size: .82rem; color: var(--muted); font-style: italic; }
 
-/* A place in the app: the mock on the left, what changes on the right. */
-.place { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; padding-top: 14px; border-top: 1px solid var(--paper-rule); }
-.place:first-of-type { border-top: 0; padding-top: 0; }
-.place .mock { display: grid; gap: 8px; min-width: 0; }
-.place .notes { display: grid; gap: 6px; align-content: start; font-size: .92rem; }
-.place .notes ul { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; }
-.was { color: var(--muted); font-size: .88rem; }
-.was b { color: var(--text); font-weight: 600; }
-@media (max-width: 760px) { .place { grid-template-columns: 1fr; } }
-
-/* ---------- The proposal: .entry ---------- */
-.entry { width: fit-content; max-width: 100%; border: 1px solid var(--frame); border-radius: 3px; background: var(--paper); min-width: 0; }
-.entry-head { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; min-width: 0; background: #f6f2e6; border-radius: 2px 2px 0 0; }
-.entry-head:last-child { border-radius: 2px; }
-.entry-id { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; flex: 1; }
-.entry-name { font-family: var(--mono); font-weight: 600; font-size: .92rem; }
-/* A file name, wherever it appears: set off like `code` in a chat. */
-.code, .entry-file { font-family: var(--mono); font-size: .84rem; color: var(--text); background: var(--code-bg); border: 1px solid var(--code-edge); border-radius: 3px; padding: 0 4px; }
-.entry-file { display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
-.entry-facts { color: var(--muted); }
-.entry-acts { display: flex; align-items: center; gap: 2px; flex: none; }
-.entry-body { border-top: 1px solid var(--frame); padding: 10px; display: grid; gap: 10px; }
-.entry.dashed { border-style: dashed; background: transparent; }
-
-/* The red ✕: one button, everywhere something is taken away. */
-/* A real button: red, raised like every OAK box button, a white ✕ on it. */
-.x { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; color: #fff; background: #b8352b; border: 1px solid #5e130e; border-radius: 2px; box-shadow: inset 1px 1px 0 #ec8d84, inset -1px -1px 0 #7a1a14, inset 2px 2px 0 #cf5246, inset -2px -2px 0 #93241b; cursor: pointer; flex: none; }
-.x svg { width: 11px; height: 11px; }
-.x:hover, .x.hot { background: #c8413a; }
+/* ============ The button family (as in styles.css) ============ */
+button { font: inherit; }
+.button { font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 26px; padding: 0 12px; color: var(--text); background: #efefed; border: 1px solid #505357; border-radius: 2px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #8e9195, inset 2px 2px 0 #f6f6f4, inset -2px -2px 0 #b9bbbe; white-space: nowrap; cursor: pointer; }
+.button:hover { background: #f7f7f5; }
+.button:active { background: #e0e0de; box-shadow: inset 1px 1px 0 #8e9195, inset -1px -1px 0 #fff, inset 2px 2px 0 #b9bbbe; }
+.button svg { width: 13px; height: 13px; flex: none; }
+.button-primary { color: #fff; background: #2f6bc0; border-color: #0f2f5c; box-shadow: inset 1px 1px 0 #82b0ee, inset -1px -1px 0 #173f78, inset 2px 2px 0 #4d84d2, inset -2px -2px 0 #22559f; }
+.button-primary:hover { background: #3a77cd; }
+.button-primary:active { background: #285ea9; box-shadow: inset 1px 1px 0 #173f78, inset -1px -1px 0 #82b0ee, inset 2px 2px 0 #22559f; }
+.button-danger { color: #fff; background: #b53a30; border-color: #541510; box-shadow: inset 1px 1px 0 #ea8a80, inset -1px -1px 0 #6c1d17, inset 2px 2px 0 #c95348, inset -2px -2px 0 #922b23; }
+.button-danger:hover { background: #c1453b; }
+.button-danger:active { background: #a1332a; box-shadow: inset 1px 1px 0 #6c1d17, inset -1px -1px 0 #ea8a80, inset 2px 2px 0 #922b23; }
+/* NEW: small button: an action beside a line (Reconcile…, Options ˅). */
+.button-small { min-height: 20px; padding: 0 8px; font-size: .82rem; gap: 4px; }
+.button-small svg { width: 11px; height: 11px; }
+/* NEW: tool button: a raised square with an icon; a toggle sits pressed in while on. */
+.tool { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; color: var(--text); background: #efefed; border: 1px solid #6b6e72; border-radius: 2px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #9a9da1; cursor: pointer; flex: none; }
+.tool svg { width: 13px; height: 13px; }
+.tool:hover { background: #f7f7f5; }
+.tool:active, .tool[aria-pressed="true"] { background: #d9dde3; box-shadow: inset 1px 1px 0 #9a9da1, inset -1px -1px 0 #fff; }
+.tool[aria-pressed="true"] { color: #1f4b8e; }
+.tool:disabled { color: #a9acb0; cursor: default; box-shadow: inset 1px 1px 0 #fff; }
+/* NEW: close button: grey, for closing or hiding; never for removing. */
+.close { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; color: #3b3e42; background: #e4e4e2; border: 1px solid #6b6e72; border-radius: 2px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #9a9da1; cursor: pointer; flex: none; }
+/* Even sizes all the way in (22px box, 1px border, 20px inside, 12px symbol), so the ✕ or − sits exactly in the middle. */
+.close svg { display: block; width: 12px; height: 12px; }
+.close:hover { background: #efefed; }
+.close:active { box-shadow: inset 1px 1px 0 #9a9da1, inset -1px -1px 0 #fff; }
+/* The red −: removes, and only removes. It pairs with Add's +. */
+.x { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; color: #fff; background: #b8352b; border: 1px solid #5e130e; border-radius: 2px; box-shadow: inset 1px 1px 0 #ec8d84, inset -1px -1px 0 #7a1a14, inset 2px 2px 0 #cf5246, inset -2px -2px 0 #93241b; cursor: pointer; flex: none; }
+.x svg { display: block; width: 12px; height: 12px; }
+.x:hover { background: #c8413a; }
 .x:active { background: #a02c23; box-shadow: inset 1px 1px 0 #7a1a14, inset -1px -1px 0 #ec8d84, inset 2px 2px 0 #93241b; }
-.x:focus-visible { outline: 2px solid #1f6fe0; outline-offset: 1px; }
-.icon { display: inline-grid; place-items: center; width: 24px; height: 24px; color: var(--muted); border: 1px solid transparent; border-radius: 3px; }
-.icon svg { width: 15px; height: 15px; }
+:is(.button, .tool, .close, .x, .link, .disclose, .seg button, .rcard, .row-btn, th button, .swatch):focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
-/* App controls, drawn as they are in OAK box. */
-.button { font: inherit; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 12px; color: var(--text); background: #efefed; border: 1px solid #505357; border-radius: 2px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #8e9195, inset 2px 2px 0 #f6f6f4, inset -2px -2px 0 #b9bbbe; white-space: nowrap; }
-.button svg { width: 13px; height: 13px; }
-.button.primary { color: #fff; background: linear-gradient(#4a86d8, #2c62b4); border-color: #1f4b8e; box-shadow: inset 1px 1px 0 rgba(255,255,255,.35); }
-.add-end { display: flex; justify-content: flex-end; }
-.select { display: inline-flex; justify-content: space-between; align-items: center; width: 13rem; min-height: 24px; padding: 0 6px; background: #fff; border: 1px solid #7a7d82; box-shadow: inset 1px 1px 0 #c5c7ca; font-weight: 600; }
-.select::after { content: "⌄"; color: var(--muted); }
-/* A file's settings: labels in one column, controls in the next, checks after, ✕ last. */
-.grid { display: grid; grid-template-columns: max-content max-content 1fr auto; gap: 8px 14px; align-items: center; }
-/* Something inside a file that can be taken away on its own (an ID): its own small box, still on the file's columns. */
-.grid > .sub { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 3px 3px 3px 8px; border: 1px solid var(--frame); border-radius: 3px; }
+/* Links: going somewhere. Disclosure: unfolding in place. */
+.link { padding: 0; color: var(--link); text-decoration: underline; background: none; border: 0; cursor: pointer; }
+.link-out svg { width: 11px; height: 11px; vertical-align: -1px; margin-left: 2px; }
+.disclose { display: inline-flex; align-items: center; gap: 4px; padding: 0; color: var(--link); background: none; border: 0; cursor: pointer; }
+.disclose svg { width: 12px; height: 12px; transition: transform .12s; }
+.disclose[aria-expanded="true"] svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .disclose svg { transition: none; } }
+
+/* Other controls drawn as in the app */
+.select { display: inline-flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 11rem; min-height: 24px; padding: 0 6px; background: #fff; border: 1px solid #7a7d82; box-shadow: inset 1px 1px 0 #c5c7ca; font-weight: 600; cursor: pointer; }
+.select.sm { min-width: 0; min-height: 20px; font-size: .84rem; font-weight: 400; }
+.select::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: translateY(-2px) rotate(45deg); }
+.seg { display: inline-flex; border: 1px solid #9a9a9a; border-radius: 4px; overflow: hidden; }
+.seg button { padding: 1px 10px; color: var(--text); background: #fff; border: 0; border-right: 1px solid var(--rule); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--select); font-weight: 600; }
+.input { min-height: 22px; padding: 1px 6px; border: 1px solid #7a7d82; box-shadow: inset 1px 1px 0 #c5c7ca; font-family: var(--mono); font-size: .88rem; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; font-size: .82rem; color: var(--link); background: var(--head); border: 1px solid var(--rule); border-radius: 999px; }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+.tick { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.tick input { width: 14px; height: 14px; margin: 0; accent-color: #2c62b4; }
+
+/* ============ Specimens ============ */
+.family { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.spec { display: grid; gap: 8px; align-content: start; padding: 12px; border: 1px solid var(--frame); border-radius: 3px; }
+.spec .shows { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 28px; }
+.spec h4 { margin: 0; font-size: .95rem; }
+.spec p { font-size: .86rem; color: var(--muted); }
+.tag { display: inline-block; padding: 0 6px; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 3px; vertical-align: 1px; }
+.tag-new { color: #fff; background: #2f6bc0; }
+.tag-keep { color: var(--ok); background: var(--ok-tint); border: 1px solid var(--ok-edge); }
+.tag-change { color: #1f4b8e; background: var(--info-tint); border: 1px solid var(--info-edge); }
+.tag-fix { color: var(--bad); background: var(--bad-tint); border: 1px solid #f3b4b4; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pair > div { display: grid; gap: 8px; align-content: start; padding: 12px; border: 1px solid var(--frame); border-radius: 3px; }
+@media (max-width: 700px) { .pair { grid-template-columns: 1fr; } }
+
+/* ============ Entries ============ */
+.entry { width: fit-content; max-width: 100%; background: var(--paper); border: 1px solid var(--frame); border-radius: 3px; min-width: 0; }
+.entry-head { display: flex; align-items: center; gap: 8px; padding: 5px 5px 5px 10px; background: var(--entry-head); border-radius: 2px 2px 0 0; }
+.entry-head:last-child { border-radius: 2px; }
+.entry-id { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; flex: 1; min-width: 0; }
+.entry-name { font-family: var(--mono); font-weight: 600; font-size: .92rem; }
+.file { font-family: var(--mono); font-size: .84rem; padding: 0 4px; background: var(--code-bg); border: 1px solid var(--code-edge); border-radius: 3px; }
+.entry-acts { display: flex; gap: 3px; align-items: center; margin-left: auto; }
+.entry-body { display: grid; gap: 10px; padding: 10px; border-top: 1px solid var(--frame); }
+.grid { display: grid; grid-template-columns: max-content max-content 1fr; gap: 8px 14px; align-items: center; }
 .grid > .span { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .label { font-weight: 600; }
-.ok { color: var(--ok); font-size: .9rem; }
-.warn { color: var(--warn); font-size: .9rem; }
-.radios { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
-.radio { display: inline-flex; gap: 6px; align-items: center; }
-.dot { width: 13px; height: 13px; border-radius: 50%; border: 1px solid #6b6e72; background: #fff; }
-.dot.on { background: radial-gradient(circle, #2c62b4 0 3px, #fff 4px); }
-.seg { display: inline-flex; border: 1px solid #7a7d82; border-radius: 2px; overflow: hidden; font-size: .88rem; }
-.seg span { padding: 2px 10px; }
-.seg .on { background: var(--select); font-weight: 600; }
-.chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 2px 1px 8px; border: 1px solid var(--frame); border-radius: 3px; font-size: .9rem; }
-.chip .x { width: 20px; height: 20px; }
-.pill { display: inline-block; padding: 0 6px; border: 1px solid var(--rule); border-radius: 8px; font-size: .78rem; color: var(--muted); }
-.field { display: grid; gap: 3px; }
-.input { min-height: 24px; padding: 2px 6px; border: 1px solid #7a7d82; box-shadow: inset 1px 1px 0 #c5c7ca; font-family: var(--mono); font-size: .9rem; width: 14rem; max-width: 100%; }
-.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
-.card-choice { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--frame); border-radius: 3px; }
-.card-choice.on { border-color: #2c62b4; background: var(--head); }
-.pick-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 10px; }
+.label small { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); }
+.sub { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 4px 4px 4px 8px; border: 1px solid var(--frame); border-radius: 3px; }
+.sub-end { display: flex; align-items: center; gap: 8px; }
+.sub-end > :first-child { flex: 1; }
+.add-end { display: flex; justify-content: flex-end; }
+.entry-list { display: grid; gap: 10px; width: fit-content; max-width: 100%; }
+.entry-list > .entry { width: auto; }
+.entry-list.wide { width: auto; }
+.slot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 10px; border: 1px dashed var(--frame); border-radius: 3px; width: fit-content; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 0 0 8px; border: 1px solid var(--frame); border-radius: 3px; font-size: .9rem; }
+.chip .x { width: 18px; height: 18px; margin: 1px; }
+.chip .x svg { width: 10px; height: 10px; }
+.notice { font-size: .88rem; color: var(--bad); }
+.map { height: 220px; border: 1px solid var(--rule); border-radius: 4px; background: #eef1ec; overflow: hidden; }
+.map svg { width: 100%; height: 100%; display: block; }
+.pop-wrap { position: relative; display: inline-block; }
+.pop { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; display: grid; gap: 8px; min-width: 15rem; padding: 10px; background: var(--manila); border: 1px solid var(--manila-edge); border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.pop.right { left: auto; right: 0; }
+.menu { display: grid; padding: 4px 0; min-width: 9rem; background: #fff; border: 1px solid #7a7d82; box-shadow: 0 2px 6px rgba(0,0,0,.18); position: absolute; top: calc(100% + 2px); left: 0; z-index: 5; }
+.menu button { text-align: left; padding: 3px 10px; background: none; border: 0; cursor: pointer; }
+.menu button:hover { background: var(--select); }
 
-/* Anatomy callouts */
-.anat { display: grid; gap: 10px; }
-.tag { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--manila-ink); color: #fff; font-size: .7rem; font-weight: 700; flex: none; }
-.legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; font-size: .92rem; margin: 0; }
-.legend dt { display: flex; } .legend dd { margin: 0; }
-.rules { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 80ch; }
-.q { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; max-width: 80ch; }
-.where { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: .9rem; }
-th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e4e6; vertical-align: top; }
-th { background: var(--head); font-weight: 600; }
-tbody tr:nth-child(even) { background: #f0f5fc; }
+/* ============ Review rows ============ */
+.group { display: grid; gap: 10px; }
+.review { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 0; border: 1px solid var(--cell-line); border-radius: 3px; overflow: hidden; }
+.review > div { padding: 9px 12px; border-top: 1px solid var(--cell-line); min-width: 0; }
+.review > .hd { border-top: 0; background: var(--head); font-weight: 600; font-size: .86rem; }
+.review > .what { display: grid; gap: 4px; align-content: start; }
+.review > .what b { font-weight: 600; }
+.review > .what .why { font-size: .84rem; color: var(--muted); }
+.review > .before, .review > .after { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; align-content: flex-start; }
+.review > .before { background: #fafafa; }
+.review .z { background: var(--zebra); }
+@media (max-width: 820px) {
+  .review { grid-template-columns: 1fr; }
+  .review > .hd:not(:first-child) { display: none; }
+  .review > .before::before { content: "Now"; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 100%; }
+  .review > .after::before { content: "Proposed"; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 100%; }
+}
+/* "Before" looks, as they are today */
+.old-link { color: var(--link); text-decoration: underline; }
+.old-flat { color: var(--muted); display: inline-grid; place-items: center; width: 20px; height: 20px; }
+.old-flat svg { width: 14px; height: 14px; }
+.old-browser { font: 13px system-ui; padding: 1px 6px; border: 1px solid #767676; border-radius: 3px; background: #efefef; }
+.old-card { padding: 6px 10px; border: 1px solid var(--btn-edge, #9a9a9a); border-radius: 4px; font-weight: 600; }
+.list-row { display: block; width: 100%; text-align: left; padding: 4px 8px; background: none; border: 0; border-radius: 2px; cursor: pointer; }
+.list-row:hover { background: var(--zebra); }
+.list-row[aria-selected="true"] { background: #2c62b4; color: #fff; font-weight: 600; }
+.mini-list { display: grid; width: 100%; max-width: 15rem; padding: 3px; border: 1px solid var(--frame); border-radius: 3px; }
+table.tbl { border-collapse: collapse; font-size: .86rem; }
+table.tbl th, table.tbl td { padding: 3px 10px; border: 1px solid var(--cell-line); text-align: left; }
+table.tbl th { background: var(--head); font-weight: 600; }
+table.tbl th button { display: inline-flex; align-items: center; gap: 4px; padding: 0; font-weight: 600; color: inherit; background: none; border: 0; cursor: pointer; }
+table.tbl th button svg { width: 11px; height: 11px; color: #a9acb0; }
+table.tbl th button[data-dir] svg { color: var(--text); }
+table.tbl tbody tr:nth-child(even) { background: var(--zebra); }
+table.tbl td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.rcards { display: grid; gap: 6px; width: 100%; }
+.rcard { display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; text-align: left; background: #fff; border: 1px solid var(--frame); border-radius: 3px; cursor: pointer; }
+.rcard .dot { margin-top: 3px; width: 13px; height: 13px; border-radius: 50%; border: 1px solid #6b6e72; background: #fff; flex: none; }
+.rcard[aria-checked="true"] { border-color: #2c62b4; background: var(--head); }
+.rcard[aria-checked="true"] .dot { background: radial-gradient(circle, #2c62b4 0 3px, #fff 4px); }
+.rcard b { display: block; }
+.rcard span.sub-l { font-size: .82rem; color: var(--muted); }
+.swatches { display: flex; gap: 6px; }
+.swatch { width: 22px; height: 22px; padding: 0; border: 1px solid rgba(0,0,0,.35); border-radius: 3px; cursor: pointer; }
+.swatch:hover { transform: translateY(-1px); }
+.swatch[aria-checked="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
+.chart { position: relative; width: 100%; max-width: 15rem; height: 78px; border: 1px solid var(--rule); border-radius: 3px; background: #fff; }
+.chart svg { width: 100%; height: 100%; display: block; }
+.chart .tool { position: absolute; top: 4px; right: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.legend .sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend label.off { color: var(--muted); }
+.legend label.off .sw { opacity: .3; }
+.callout { display: grid; gap: 6px; width: 100%; }
+.callout-toggle { display: inline-flex; gap: 6px; align-items: center; width: fit-content; max-width: 100%; padding: 2px 8px; text-align: left; color: var(--text); background: var(--warn-tint); border: 1px solid var(--warn-edge); border-radius: 4px; cursor: pointer; }
+.callout-toggle svg { width: 12px; height: 12px; flex: none; transition: transform .12s; }
+.callout-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+.callout-body { padding: 6px 10px; font-size: .88rem; background: var(--warn-tint); border: 1px solid var(--warn-edge); border-radius: 4px; }
+.crumbs { display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; background: linear-gradient(#e9d79b, #c9a95a); border: 1px solid #8a6d2c; border-radius: 3px; color: #3b2c0c; font-size: .9rem; }
+.crumbs a { color: inherit; }
+.steps { display: grid; width: 100%; max-width: 12rem; padding: 4px; background: var(--manila); border: 1px solid var(--manila-edge); border-radius: 3px; }
+.steps button { text-align: left; padding: 2px 8px; background: none; border: 0; border-radius: 2px; cursor: pointer; }
+.steps button[aria-current="step"] { background: #2c62b4; color: #fff; font-weight: 600; }
+.steps button:hover:not([aria-current]) { background: rgba(255,255,255,.6); }
+.tabs { display: flex; gap: 2px; align-items: flex-end; }
+.tabs button { padding: 3px 10px; color: var(--manila-ink); background: var(--manila-back); border: 1px solid var(--manila-edge); border-bottom: 0; border-radius: 6px 6px 0 0; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--manila); font-weight: 600; padding-bottom: 5px; }
+@media (max-width: 560px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid > .span { grid-column: auto; }
+  .sub { grid-template-columns: minmax(0, 1fr); }
+  .select { min-width: 0; max-width: 100%; }
+  .review table.tbl { font-size: .8rem; }
+}
+/* What a button does, on hover or focus: from its label, as the app's tooltips. */
+[data-tip] { position: relative; }
+[data-tip]:hover::after, [data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; z-index: 20; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); padding: 3px 8px; font-size: .78rem; font-weight: 400; line-height: 1.3; color: #fff; white-space: nowrap; background: #2a2d31; border-radius: 3px; pointer-events: none; }
+/* Remove and close sit at right edges: their label opens leftward, so it's never cut off. */
+.x[data-tip]:hover::after, .x[data-tip]:focus-visible::after, .close[data-tip]:hover::after, .close[data-tip]:focus-visible::after, .entry-acts [data-tip]:hover::after, .entry-acts [data-tip]:focus-visible::after { left: auto; right: 0; transform: none; }
+/* Undo, after a remove. */
+.toast { position: fixed; z-index: 30; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; gap: 12px; align-items: center; max-width: calc(100% - 32px); padding: 7px 8px 7px 14px; color: #fff; background: #2a2d31; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
+.rules { margin: 0; padding-left: 1.2em; display: grid; gap: 7px; max-width: 84ch; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .9rem; }
+.summary b { font-variant-numeric: tabular-nums; }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-x-thin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M5 12h14"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
   <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-up-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+  <symbol id="i-down-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+  <symbol id="i-enlarge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
 </svg>
 
-<div class="page">
-<div class="folder">
+<div class="page"><div class="folder">
 
 <header>
-  <h1>Style guide: files and items</h1>
-  <p>How OAK box shows a file wherever one is added, picked or used, and anything else that's added and taken away. Every file sits in the same thin outline with the same first line, and the same red ✕ takes it away. Settled 2026-11-04 (SPEC D47, AGENTS.md › Screens). The "Now" notes say what each place looked like before. Built as <code>components/FileEntry.tsx</code> and <code>components/RemoveButton.tsx</code>.</p>
+  <h1>OAK box style guide</h1>
+  <p>Everything here can be pressed and works, and all of it is built (settled 2026-11-04). <span class="tag tag-new">new</span> marks the pieces added then; in section 3, <span class="tag tag-change">changed</span> and <span class="tag tag-fix">fixed</span> mark what was made a button, and <span class="tag tag-keep">keep</span> what stays flat, with its reason. Built as <code>components/Buttons.tsx</code>, <code>RemoveButton.tsx</code>, <code>Disclose.tsx</code>, <code>ExternalLink.tsx</code>, <code>FileEntry.tsx</code> and <code>UndoToast.tsx</code>.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#buttons">1. Buttons</a>
+    <a href="#files">2. Files and items</a>
+    <a href="#flat">3. Flat controls, reviewed</a>
+    <a href="#rules">4. The rules</a>
+  </nav>
 </header>
 
-<!-- ============ 1. The entry ============ -->
-<section class="sheet">
-  <h2>1. The entry</h2>
-  <div class="anat">
-    <h3>Small: one line, ✕ centred</h3>
-    <div class="entry">
-      <div class="entry-head">
-        <div class="entry-id">
-          <span class="entry-name">permits</span>
-          <span class="entry-file" title="C:\Users\lars\Documents\OAK box\Manassas Park 2026\in\permits.csv">permits.csv</span>
-          <span class="entry-facts">· 1,208 rows</span>
-        </div>
-        <div class="entry-acts"><button class="x" aria-label="Remove permits"><svg><use href="#i-x"/></svg></button></div>
+<!-- ======================= 1. BUTTONS ======================= -->
+<section class="sheet" id="buttons">
+  <h2>1. Buttons</h2>
+  <p class="lede">An action is a raised button: it rises, and sinks when pressed. Going somewhere is a link. Unfolding something in place is a chevron. Choosing from a list is a dropdown, a segmented control or a row.</p>
+  <div class="family">
+    <div class="spec">
+      <h4>Button</h4>
+      <div class="shows"><button class="button">Cancel</button><button class="button"><svg><use href="#i-folder"/></svg>Browse…</button></div>
+      <p>Any ordinary action. "…" means it opens a dialog first.</p>
+    </div>
+    <div class="spec">
+      <h4>Primary</h4>
+      <div class="shows"><button class="button button-primary">Next ›</button><button class="button button-primary">Import</button></div>
+      <p>The one action a step or dialog is for. One per view.</p>
+    </div>
+    <div class="spec">
+      <h4>Danger</h4>
+      <div class="shows"><button class="button button-danger"><svg><use href="#i-trash"/></svg>Delete set</button><button class="button button-danger"><svg><use href="#i-trash"/></svg>Delete project</button></div>
+      <p>Deletes for good: a trash can with its words, and it always asks first.</p>
+    </div>
+    <div class="spec">
+      <h4>Add</h4>
+      <div class="shows"><button class="button"><svg><use href="#i-plus"/></svg>Add another file</button></div>
+      <p>The one way to add. After the list it adds to, or inside an item when it adds to that item.</p>
+    </div>
+    <div class="spec">
+      <h4>Small button <span class="tag tag-new">new</span></h4>
+      <div class="shows"><span class="ok" style="font-size:.88rem">✓ 83% match parcels</span><button class="button button-small">Reconcile…</button><button class="button button-small">Options<svg><use href="#i-down"/></svg></button></div>
+      <p>An action beside a line of text: after a check, inside a row. Same bevel, 80% size.</p>
+    </div>
+    <div class="spec">
+      <h4>Tool button <span class="tag tag-new">new</span></h4>
+      <div class="shows">
+        <button class="tool" aria-pressed="false" data-toggle-pressed aria-label="Show the map"><svg><use href="#i-map"/></svg></button>
+        <button class="tool" aria-label="Move up"><svg><use href="#i-up-arrow"/></svg></button>
+        <button class="tool" aria-label="Move down" disabled><svg><use href="#i-down-arrow"/></svg></button>
+        <button class="tool" aria-label="Enlarge"><svg><use href="#i-enlarge"/></svg></button>
+      </div>
+      <p>An icon action. A toggle stays pressed in while it's on (try the map). Its label is read aloud and shown on hover.</p>
+    </div>
+    <div class="spec">
+      <h4>Close button <span class="tag tag-new">new</span></h4>
+      <div class="shows"><button class="close" aria-label="Close"><svg><use href="#i-x-thin"/></svg></button><span class="muted" style="font-size:.86rem">closes a popup, hides a panel</span></div>
+      <p>A grey ✕, only at the top right of a popup, panel or dialog. Nothing is lost.</p>
+    </div>
+    <div class="spec">
+      <h4>Remove <span class="tag tag-new">new look</span></h4>
+      <div class="shows"><button class="x" aria-label="Remove"><svg><use href="#i-minus"/></svg></button><button class="button button-small"><svg style="color:var(--bad)"><use href="#i-minus"/></svg>Remove from the list</button></div>
+      <p>Takes something off a list or a step; it can be undone. A red −, the pair of Add's +, last on its line at the right edge. With words (in a dialog, a menu), it keeps its −.</p>
+    </div>
+  </div>
+  <div class="pair">
+    <div>
+      <h3>Close and remove, side by side</h3>
+      <div class="entry" style="width:auto">
+        <div class="entry-head"><div class="entry-id"><b>Parcel 0012-004</b><span class="muted">popup on the map</span></div><div class="entry-acts"><button class="close" aria-label="Close the popup"><svg><use href="#i-x-thin"/></svg></button></div></div>
+      </div>
+      <div class="entry" style="width:auto">
+        <div class="entry-head"><div class="entry-id"><span class="entry-name">permits</span><span class="file">permits.csv</span><span class="muted">· 1,208 rows</span></div><div class="entry-acts"><button class="x" aria-label="Remove permits"><svg><use href="#i-minus"/></svg></button></div></div>
+      </div>
+      <p class="muted" style="font-size:.86rem">Different symbols, colours and places: a grey ✕ in a popup's corner closes it; a red − at the end of an item removes the item. Hover either to see what it does.</p>
+    </div>
+    <div>
+      <h3>Link, disclosure, button</h3>
+      <div style="display:grid;gap:8px">
+        <span><a class="link" href="#files">Go to Data</a> <span class="muted">· goes somewhere</span></span>
+        <span><button class="disclose" aria-expanded="false" data-disclose="d-demo"><svg><use href="#i-right"/></svg>12 more fields</button> <span class="muted">· unfolds here</span></span>
+        <div id="d-demo" hidden class="muted" style="padding-left:16px;font-size:.88rem">Year built, Finished area, Bedrooms, Bathrooms… (folded fields show here)</div>
+        <span><button class="button button-small">Reconcile…</button> <span class="muted">· does something</span></span>
+        <span><a class="link link-out" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors<svg><use href="#i-out"/></svg></a> <span class="muted">· leaves the app</span></span>
       </div>
     </div>
+  </div>
+</section>
 
-    <h3>Large: its settings below a faint rule, ✕ top right</h3>
+<!-- ======================= 2. FILES ======================= -->
+<section class="sheet" id="files">
+  <h2>2. Files and items</h2>
+  <p class="lede">A file sits in one thin outline as wide as what's in it. Its first line is a faint band: its name in OAK box, its file name set off like <span class="file">code.csv</span>, its facts, actions, then the red −. What's set on the file is inside. Anything removable on its own has its own box.</p>
+
+  <h3>Data › Parcel universe</h3>
+  <div id="universe" class="entry">
+    <div class="entry-head">
+      <div class="entry-id"><span class="entry-name">geo_parcels</span><span class="file" title="C:\Users\lars\Documents\OAK box\Manassas Park 2026\in\geo_parcels_2.parquet">geo_parcels_2.parquet</span><span class="muted">· 4,712 rows · shapes</span></div>
+      <div class="entry-acts"><button class="x" aria-label="Remove geo_parcels" data-remove="universe"><svg><use href="#i-minus"/></svg></button></div>
+    </div>
+    <div class="entry-body">
+      <div class="grid" id="ids">
+        <div class="sub"><span class="label">Parcel ID</span><span class="select">key</span><div class="sub-end"><span class="ok" style="font-size:.88rem">✓ 4,712 parcels, all different</span><span style="width:20px"></span></div></div>
+        <div class="sub" id="id2"><span class="label">2nd ID<small>Optional</small></span><span class="select">pin_alt</span><div class="sub-end"><span class="ok" style="font-size:.88rem">✓ 4,710 different</span><button class="x" aria-label="Remove 2nd ID" data-remove-id="id2"><svg><use href="#i-minus"/></svg></button></div></div>
+      </div>
+      <div class="add-end"><button class="button" id="add-id"><svg><use href="#i-plus"/></svg><span>Add 3rd ID</span></button></div>
+    </div>
+  </div>
+  <div id="universe-slot" class="slot" hidden>
+    <button class="button button-primary"><svg><use href="#i-plus"/></svg>Add a file…</button>
+    <span class="muted">or use existing:</span>
+    <span class="select" style="font-weight:400" data-restore="universe" role="button" tabindex="0">geo_parcels (geo_parcels_2.parquet)</span>
+  </div>
+  <p class="demo-note">Try it: the − takes the file off the step and leaves the empty slot (or press Undo); pick it again from "use existing" and it comes back with its IDs. Remove the 2nd ID, or add one.</p>
+
+  <h3>Data › More files and Shapefiles: one list, one width</h3>
+  <div class="entry-list" id="layers">
     <div class="entry">
       <div class="entry-head">
-        <span class="tag">1</span>
-        <div class="entry-id">
-          <span class="entry-name">geo_parcels</span><span class="tag">2</span>
-          <span class="entry-file">geo_parcels_2.parquet</span><span class="tag">3</span>
-          <span class="entry-facts">· 4,712 rows · shapes</span>
-        </div>
-        <div class="entry-acts"><span class="tag">4</span><span class="icon"><svg><use href="#i-map"/></svg></span><span class="tag">5</span><button class="x hot" aria-label="Remove geo_parcels"><svg><use href="#i-x"/></svg></button></div>
+        <div class="entry-id"><span class="entry-name">building</span><span class="file">building.csv</span><span class="muted">· 4,388 rows</span></div>
+        <div class="entry-acts"><button class="x" aria-label="Remove building" data-hide-self><svg><use href="#i-minus"/></svg></button></div>
       </div>
       <div class="entry-body">
-        <span class="tag">6</span>
         <div class="grid">
-          <span class="label">Parcel ID</span><span class="select">key</span><span class="ok">✓ 4,712 parcels, all different</span><span></span>
+          <span class="label">It's about</span><span class="span"><span class="seg" role="group" aria-label="It's about"><button aria-pressed="true">Parcels</button><button aria-pressed="false">Sales</button></span></span>
+          <span class="label">It adds</span><span class="span"><span class="seg" role="group" aria-label="It adds"><button aria-pressed="true">More about each parcel</button><button aria-pressed="false">More parcels</button></span></span>
+          <span class="label">Parcel ID</span><span class="select">PARID</span><span class="span" style="grid-column:auto"><span class="warn" style="font-size:.88rem">✓ 83% match parcels</span><button class="button button-small">Reconcile…</button></span>
         </div>
       </div>
     </div>
-
-    <dl class="legend">
-      <dt><span class="tag">1</span></dt><dd>The first line is a faint warm band (<code>--entry-head</code>), so the file reads as the box's title. <b>Its name in OAK box</b>, in mono, bold: the name the settings use.</dd>
-      <dt><span class="tag">2</span></dt><dd><b>The file's own name</b>, set off like code in a chat (<span class="code">like_this.csv</span>), cut short with "…" if long; the full path on hover. Every file name in the app looks like this, in lists, dropdowns and sentences too.</dd>
-      <dt><span class="tag">3</span></dt><dd><b>Facts about the file</b>, grey, joined by "·": its rows, then "shapes" if it has any (a map layer says how many: "23 polygons"). "✓ Geometry detected" becomes "shapes" here.</dd>
-      <dt><span class="tag">4</span></dt><dd><b>Other actions, as icons</b> (show the map). Only where a place needs one.</dd>
-      <dt><span class="tag">5</span></dt><dd><b>The red ✕</b>, a real button (red, raised like every button, a white ✕ on it), always last, at the right edge. It sits in the first line, so it's centred when the entry is one line and at the top right when the entry is tall. Its label says what it removes ("Remove geo_parcels").</dd>
-      <dt><span class="tag">6</span></dt><dd><b>What's set on this file</b> (its ID column, what it holds, how it's used) goes inside the same outline, labels in one column and controls in the next. The separate frame round the Parcel ID goes away: it belongs to the file. Adding to the file (another ID, another field) is inside too, at the bottom right.</dd>
-    </dl>
-  </div>
-</section>
-
-<!-- ============ 2. Each place ============ -->
-<section class="sheet">
-  <h2>2. Each place a file appears</h2>
-
-  <!-- Parcel universe -->
-  <div class="place">
-    <div class="mock">
-      <h3>Data › Parcel universe</h3>
-      <div class="entry">
-        <div class="entry-head">
-          <div class="entry-id"><span class="entry-name">geo_parcels</span><span class="entry-file">geo_parcels_2.parquet</span><span class="entry-facts">· 4,712 rows · shapes</span></div>
-          <div class="entry-acts"><button class="x" aria-label="Remove geo_parcels"><svg><use href="#i-x"/></svg></button></div>
-        </div>
-        <div class="entry-body">
-          <div class="grid">
-            <div class="sub"><span class="label">Parcel ID</span><span class="select">key</span><span class="ok">✓ 4,712 parcels, all different</span><span style="width:24px"></span></div>
-            <div class="sub"><span class="label">2nd ID</span><span class="select">pin_alt</span><span class="ok">✓ 4,710 different</span><button class="x" aria-label="Remove 2nd ID"><svg><use href="#i-x"/></svg></button></div>
-          </div>
-          <div class="add-end"><span class="button"><svg><use href="#i-plus"/></svg>Add 3rd ID</span></div>
+    <div class="entry">
+      <div class="entry-head">
+        <div class="entry-id"><span class="entry-name">parks</span><span class="file">parks.shp</span><span class="muted">· 38 shapes</span></div>
+        <div class="entry-acts">
+          <button class="tool" aria-pressed="false" aria-label="Show the map" title="Show the map" data-map="parks-map"><svg><use href="#i-map"/></svg></button>
+          <button class="x" aria-label="Remove parks" data-hide-self><svg><use href="#i-minus"/></svg></button>
         </div>
       </div>
-    </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> no outline; "Use a different file" link; IDs in their own frame; "(remove)" beside the 2nd ID.</p>
-      <ul>
-        <li>The file and its IDs share one outline.</li>
-        <li>✕ takes the file off this step and shows the empty slot (below). The file stays in the project, so it can be picked again.</li>
-        <li>Each ID is its own small box inside the file's, because each can be taken away on its own: the 2nd ID's "(remove)" becomes the ✕ at the right of its box. The Parcel ID can't be removed, so its box has no ✕. The labels and dropdowns still line up across the boxes.</li>
-        <li>"Add 3rd ID" adds to the file, so it sits inside the outline, below the IDs, at its right edge.</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Empty slot + picking -->
-  <div class="place">
-    <div class="mock">
-      <h3>Any step with no file yet</h3>
-      <div class="entry dashed">
-        <div class="pick-row">
-          <span class="button primary"><svg><use href="#i-plus"/></svg>Add a file…</span>
-          <span class="muted">or use existing:</span>
-          <span class="select" style="font-weight:400">Choose…</span>
-        </div>
-      </div>
-      <h3>After choosing a file on disk</h3>
-      <div class="entry">
-        <div class="entry-head">
-          <div class="entry-id"><span class="entry-name">sales</span><span class="entry-file">…\Exports 2026\sales_2019-2025.csv</span><span class="pill">CSV</span><span class="pill">3.4 MB</span></div>
-          <div class="entry-acts"><span class="button"><svg><use href="#i-folder"/></svg>Browse…</span><button class="x" aria-label="Don't import sales_2019-2025.csv"><svg><use href="#i-x"/></svg></button></div>
-        </div>
-        <div class="entry-body">
-          <div class="row">
-            <label class="field"><span class="label">Name</span><span class="input">sales</span></label>
-            <div class="field"><span class="label">How to import</span>
-              <span class="radio"><span class="dot on"></span>Copy it (a new copy is made for the project)</span>
-              <span class="radio"><span class="dot"></span>Move it (the original moves into the project)</span>
-            </div>
-          </div>
-          <div><span class="button primary">Import</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> a bare Add button and dropdown; the import form is a separate layout with its own path box, Browse and Cancel.</p>
-      <ul>
-        <li>A dashed outline marks where the file will go.</li>
-        <li>The import form is an entry too: the path in the first line, its pills as facts, the choices below. ✕ replaces Cancel.</li>
-        <li>"Or use existing:" lists the project's files the same way: <span class="entry-name">sales</span> <span class="code">sales.csv</span> · 9,104 rows.</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Sales / Permits: same as universe -->
-  <div class="place">
-    <div class="mock">
-      <h3>Data › Sales, Data › Permits</h3>
-      <div class="entry">
-        <div class="entry-head">
-          <div class="entry-id"><span class="entry-name">sales</span><span class="entry-file">sales.csv</span><span class="entry-facts">· 9,104 rows</span></div>
-          <div class="entry-acts"><button class="x" aria-label="Remove sales"><svg><use href="#i-x"/></svg></button></div>
-        </div>
-        <div class="entry-body">
-          <div class="grid">
-            <span class="label">Parcel ID</span><span class="select">parcel_key</span><span class="ok">✓ 9,071 of 9,104 find their parcel</span><span></span>
-            <span class="label">Sale ID</span><span class="select">doc_no</span><span class="ok">✓ all different</span><span></span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> the same bare header and "Use a different file" link as the parcel universe.</p>
-      <ul><li>Same as the parcel universe: one outline, ✕, the step's fields inside.</li></ul>
-    </div>
-  </div>
-
-  <!-- More files -->
-  <div class="place">
-    <div class="mock">
-      <h3>Data › More files (one entry each)</h3>
-      <div class="entry">
-        <div class="entry-head">
-          <div class="entry-id"><span class="entry-name">building</span><span class="entry-file">building.csv</span><span class="entry-facts">· 4,388 rows</span></div>
-          <div class="entry-acts"><button class="x" aria-label="Remove building"><svg><use href="#i-x"/></svg></button></div>
-        </div>
-        <div class="entry-body">
-          <div class="grid">
-            <span class="label">It's about</span><span class="span"><span class="seg"><span class="on">Parcels</span><span>Sales</span></span></span>
-            <span class="label">It adds</span><span class="span"><span class="seg"><span class="on">More about each parcel</span><span>More parcels</span></span></span>
-            <span class="label">Parcel ID</span><span class="select">PARID</span><span class="ok">✓ 4,388 of 4,388 find their parcel</span><span></span>
-          </div>
-        </div>
-      </div>
-      <div class="add-end"><span class="button"><svg><use href="#i-plus"/></svg>Add another file</span></div>
-    </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> a grey-ruled box (a different border from the IDs' frame) with a "drop" link in its header.</p>
-      <ul>
-        <li>The link becomes the ✕; the box becomes the entry outline.</li>
-        <li>The radio buttons become segmented controls (<span class="mono">Seg</span>, as on Shapefiles).</li>
-        <li>Labels share one column and controls the next, like a two-column table, so they all line up.</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Shapefiles -->
-  <div class="place">
-    <div class="mock">
-      <h3>Data › More details › Shapefiles</h3>
-      <div class="entry">
-        <div class="entry-head">
-          <div class="entry-id"><span class="entry-name">parks</span><span class="entry-file">parks.shp</span><span class="entry-facts">· 23 polygons</span><span class="ok">✓ 21 parcels touch one</span></div>
-          <div class="entry-acts"><span class="icon"><svg><use href="#i-map"/></svg></span><button class="x" aria-label="Remove parks"><svg><use href="#i-x"/></svg></button></div>
-        </div>
-        <div class="entry-body">
-          <div class="grid">
-            <span class="label">Use it to</span><span class="span"><span class="seg"><span class="on">Stamp</span><span>Distance</span></span></span>
-            <span class="label">Copies</span><span class="span">
-              <span class="chip"><span class="mono">park_name</span><span class="muted">← NAME</span><button class="x" aria-label="Remove park_name"><svg><use href="#i-x"/></svg></button></span>
-              <span class="button"><svg><use href="#i-plus"/></svg>Add field</span>
+      <div class="entry-body">
+        <span class="notice">⚠ 3 parks are outside the parcels' area</span>
+        <div class="grid">
+          <span class="label">Use it to</span><span class="span"><span class="seg" role="group" aria-label="Use it to"><button aria-pressed="false">Stamp onto parcels</button><button aria-pressed="true">Distance to</button></span></span>
+          <span class="label">Gives</span>
+          <span class="span">
+            <span class="mono">dist_to_</span><span class="input">parks</span><span class="muted">up to</span><span class="input" style="color:var(--muted)">no limit</span>
+            <span class="pop-wrap">
+              <button class="button button-small" aria-expanded="false" data-pop="opts">Options<svg><use href="#i-down"/></svg></button>
+              <div class="pop" id="opts" hidden>
+                <label class="tick"><input type="checkbox" checked> Keep the nearest park's name</label>
+                <label class="tick"><input type="checkbox"> Keep the largest 3</label>
+                <div><button class="close" aria-label="Close" data-close-pop="opts"><svg><use href="#i-x-thin"/></svg></button></div>
+              </div>
             </span>
-          </div>
+          </span>
+          <span class="label">Copies</span>
+          <span class="span">
+            <span class="chip"><span class="mono">park_name</span><span class="muted">← NAME</span>
+              <span class="pop-wrap"><button class="select sm" data-menu="kind-menu" aria-expanded="false" id="kind-btn">location</button>
+                <div class="menu" id="kind-menu" hidden><button data-pick="location">location</button><button data-pick="land use">land use</button><button data-pick="zoning">zoning</button><button data-pick="other">other</button></div>
+              </span>
+              <button class="x" aria-label="Remove park_name" data-hide-chip><svg><use href="#i-minus"/></svg></button></span>
+            <button class="button button-small"><svg><use href="#i-plus"/></svg>Add field</button>
+          </span>
+        </div>
+        <div class="map" id="parks-map" hidden>
+          <svg viewBox="0 0 600 220" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of the parks over the parcels">
+            <rect width="600" height="220" fill="#eef1ec"/>
+            <g fill="#2f68ba" opacity=".55"><circle cx="60" cy="40" r="2"/><circle cx="90" cy="70" r="2"/><circle cx="130" cy="50" r="2"/><circle cx="170" cy="120" r="2"/><circle cx="210" cy="90" r="2"/><circle cx="250" cy="150" r="2"/><circle cx="300" cy="60" r="2"/><circle cx="340" cy="130" r="2"/><circle cx="390" cy="80" r="2"/><circle cx="430" cy="170" r="2"/><circle cx="470" cy="100" r="2"/><circle cx="520" cy="60" r="2"/><circle cx="550" cy="150" r="2"/><circle cx="120" cy="170" r="2"/><circle cx="360" cy="190" r="2"/></g>
+            <g fill="rgba(163,35,27,.12)" stroke="#a3231b" stroke-width="2"><path d="M80 90 L140 80 L150 130 L95 140 Z"/><path d="M280 100 L350 95 L360 160 L300 170 Z"/><path d="M450 40 L520 30 L530 80 L470 90 Z"/></g>
+          </svg>
         </div>
       </div>
     </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> closest to this already. A grey X, and Stamp / Distance in the header line.</p>
-      <ul>
-        <li>The ✕ turns red; the map toggle stays as an icon beside it.</li>
-        <li>Stamp / Distance moves into the body, so the first line is the same as every other file's; the body's labels and controls line up in two columns, as on More files.</li>
-        <li>The chips' grey ✕ turns red too.</li>
-      </ul>
+    <div class="add-end"><button class="button"><svg><use href="#i-plus"/></svg>Add another file</button></div>
+  </div>
+  <p class="demo-note">Try it: the map tool stays pressed in while the map shows, and the list takes the page's width only then. "Options" is a small button that opens a popup with a grey close; "location" is a small dropdown.</p>
+</section>
+
+<!-- ======================= 3. FLAT REVIEW ======================= -->
+<section class="sheet" id="flat">
+  <h2>3. Flat controls, reviewed</h2>
+  <p class="lede">Every control you press that isn't a raised button today, what it looks like now, and what's proposed. Flat is kept only where it's the convention (navigation, list rows, tables, disclosure) and has a reason written beside it.</p>
+  <div class="summary" id="tally"></div>
+
+  <div class="group">
+    <h3>Text links that do something</h3>
+    <div class="review">
+      <div class="hd">What</div><div class="hd">Now</div><div class="hd">Proposed</div>
+
+      <div class="what"><b>Cancel, Clear, Remove group…</b><span class="tag tag-change" data-v>change</span><span class="why">Generic text links, 42 places: 36 actions became small buttons; the 12 that go somewhere stay links. A model group is only removed from the draft, so it's "− Remove group" with Undo, not a trash can.</span></div>
+      <div class="before"><span class="old-link">Cancel</span><span class="old-link">Clear</span><span class="old-link">Delete group</span></div>
+      <div class="after"><button class="button">Cancel</button><button class="button button-small">Clear</button><button class="button"><svg style="color:var(--bad)"><use href="#i-minus"/></svg>Remove group</button><a class="link" href="#files">Go to Data</a></div>
+
+      <div class="what"><b>Resolve… / Reconcile… / Change format…</b><span class="tag tag-change" data-v>change</span><span class="why">They open a dialog that fixes what the check found: an action, not a page.</span></div>
+      <div class="before"><span class="warn" style="font-size:.88rem">⚠ 12 IDs repeat</span><span class="old-link">Resolve…</span></div>
+      <div class="after"><span class="warn" style="font-size:.88rem">⚠ 12 IDs repeat</span><button class="button button-small">Resolve…</button></div>
+
+      <div class="what"><b>A category's values (variable tests)</b><span class="tag tag-change" data-v>change</span><span class="why">Unfolds in place, so a chevron, not a link.</span></div>
+      <div class="before"><span class="old-link">2 of 7 values pass</span></div>
+      <div class="after" style="display:grid"><button class="disclose" aria-expanded="false" data-disclose="d-cat"><svg><use href="#i-right"/></svg>2 of 7 values pass</button><div id="d-cat" hidden class="muted" style="padding-left:16px;font-size:.86rem">R1 ✓ · R2 ✓ · C1 · C2 · I1 · A1 · other</div></div>
+
+      <div class="what"><b>A field's name (opens its details)</b><span class="tag tag-keep" data-v>keep</span><span class="why">Opening a detail is close to going somewhere; a link is right. Underline on hover.</span></div>
+      <div class="before"><span style="color:var(--link)">year_built</span></div>
+      <div class="after"><a class="link" href="#flat" style="text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">year_built</a></div>
+
+      <div class="what"><b>"location ˅" on a copied field</b><span class="tag tag-change" data-v>change</span><span class="why">It opens a list of choices: a small dropdown, as every other choice from a list.</span></div>
+      <div class="before"><span style="color:var(--link)">location ˅</span></div>
+      <div class="after"><span class="select sm">location</span></div>
     </div>
   </div>
 
-  <!-- Condo units -->
-  <div class="place">
-    <div class="mock">
-      <h3>Data › Condo units (choosing which file)</h3>
-      <div class="card-choice on">
-        <div class="entry-id"><span class="radio"><span class="dot on"></span></span><span class="entry-name">condo_units</span><span class="entry-file">condo_units.csv</span><span class="entry-facts">· 612 rows</span></div>
-        <span class="muted" style="padding-left:21px">412 rows have no shape of their own</span>
+  <div class="group">
+    <h3>Flat icon buttons</h3>
+    <div class="review">
+      <div class="hd">What</div><div class="hd">Now</div><div class="hd">Proposed</div>
+
+      <div class="what"><b>A layer's map toggle</b><span class="tag tag-change" data-v>change</span><span class="why">Tool button, pressed in while the map shows.</span></div>
+      <div class="before"><span class="old-flat"><svg><use href="#i-map"/></svg></span></div>
+      <div class="after"><button class="tool" aria-pressed="false" data-toggle-pressed aria-label="Show the map"><svg><use href="#i-map"/></svg></button></div>
+
+      <div class="what"><b>Hide the map (Model groups)</b><span class="tag tag-change" data-v>change</span><span class="why">The same map tool as the toggle that shows it. A ✕ for hiding would look like closing a popup.</span></div>
+      <div class="before"><span class="old-flat"><svg><use href="#i-x-thin"/></svg></span></div>
+      <div class="after"><button class="tool" aria-pressed="true" data-toggle-pressed aria-label="Hide the map"><svg><use href="#i-map"/></svg></button></div>
+
+      <div class="what"><b>Close the parcel popup</b><span class="tag tag-change" data-v>change</span><span class="why">The grey close button: nothing is lost.</span></div>
+      <div class="before"><span class="old-flat"><svg><use href="#i-x-thin"/></svg></span></div>
+      <div class="after"><button class="close" aria-label="Close"><svg><use href="#i-x-thin"/></svg></button></div>
+
+      <div class="what"><b>Move up / down (three kinds today)</b><span class="tag tag-change" data-v>change</span><span class="why">One pair of tool buttons everywhere: Model groups, Quality, the location stack.</span></div>
+      <div class="before"><span class="old-flat"><svg><use href="#i-up-arrow"/></svg></span><span class="old-flat"><svg><use href="#i-down-arrow"/></svg></span><span class="muted" style="font-size:.8rem">and bordered, unraised boxes</span></div>
+      <div class="after" style="display:grid;gap:4px">
+        <div class="mini-list" id="order">
+          <div class="row" style="display:flex;align-items:center;gap:6px;padding:2px 4px"><span style="flex:1">Neighborhood</span><button class="tool" aria-label="Up" data-move="-1"><svg><use href="#i-up-arrow"/></svg></button><button class="tool" aria-label="Down" data-move="1"><svg><use href="#i-down-arrow"/></svg></button></div>
+          <div class="row" style="display:flex;align-items:center;gap:6px;padding:2px 4px"><span style="flex:1">School district</span><button class="tool" aria-label="Up" data-move="-1"><svg><use href="#i-up-arrow"/></svg></button><button class="tool" aria-label="Down" data-move="1"><svg><use href="#i-down-arrow"/></svg></button></div>
+          <div class="row" style="display:flex;align-items:center;gap:6px;padding:2px 4px"><span style="flex:1">County</span><button class="tool" aria-label="Up" data-move="-1"><svg><use href="#i-up-arrow"/></svg></button><button class="tool" aria-label="Down" data-move="1"><svg><use href="#i-down-arrow"/></svg></button></div>
+        </div>
+      </div>
+
+      <div class="what"><b>Sort by a column</b><span class="tag tag-keep" data-v>keep</span><span class="why">Pressable headers are the table convention. Proposed: a faint ↕ on every sortable column, not only the sorted one.</span></div>
+      <div class="before"><table class="tbl"><thead><tr><th>Value</th><th>Count ↓</th></tr></thead></table></div>
+      <div class="after">
+        <table class="tbl" id="sorttbl"><thead><tr><th><button data-col="0">Value<svg><use href="#i-sort"/></svg></button></th><th><button data-col="1" data-dir="desc">Count<svg><use href="#i-down-arrow"/></svg></button></th></tr></thead>
+          <tbody><tr><td>R1</td><td class="n">1,812</td></tr><tr><td>C1</td><td class="n">403</td></tr><tr><td>R2</td><td class="n">977</td></tr></tbody></table>
       </div>
     </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> <span class="code">condo_units.csv</span> (612 rows), the file name first and no OAK box name.</p>
-      <ul><li>A choice between files is not removable, so no ✕, but the first line reads the same: name, file, facts.</li></ul>
+  </div>
+
+  <div class="group">
+    <h3>Pills, rows and text you press</h3>
+    <div class="review">
+      <div class="hd">What</div><div class="hd">Now</div><div class="hd">Proposed</div>
+
+      <div class="what"><b>"Options ˅" (Shapefiles)</b><span class="tag tag-fix" data-v>fix</span><span class="why">Has no OAK box style at all: it's the browser's own button.</span></div>
+      <div class="before"><span class="old-browser">Options ˅</span></div>
+      <div class="after"><button class="button button-small">Options<svg><use href="#i-down"/></svg></button></div>
+
+      <div class="what"><b>"4 values ˅"</b><span class="tag tag-change" data-v>change</span><span class="why">A pill reads as a status, not something to press. Small button, as Options.</span></div>
+      <div class="before"><span class="pill">4 values ˅</span></div>
+      <div class="after"><button class="button button-small">4 values<svg><use href="#i-down"/></svg></button></div>
+
+      <div class="what"><b>"Show 12 more"</b><span class="tag tag-change" data-v>change</span><span class="why">Unfolds in place: a chevron.</span></div>
+      <div class="before"><span>Show 12 more</span></div>
+      <div class="after" style="display:grid"><button class="disclose" aria-expanded="false" data-disclose="d-more" data-swap="12 more fields|Fewer fields"><svg><use href="#i-right"/></svg><span>12 more fields</span></button><div id="d-more" hidden class="muted" style="padding-left:16px;font-size:.86rem">Bedrooms · Bathrooms · Stories · Garage · Pool…</div></div>
+
+      <div class="what"><b>A callout's "more"</b><span class="tag tag-keep" data-v>keep</span><span class="why">The whole line is the disclosure and carries a chevron: a known pattern.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">as proposed →</span></div>
+      <div class="after"><div class="callout"><button class="callout-toggle" aria-expanded="false" data-disclose="d-callout"><svg><use href="#i-right"/></svg>⚠ 33 sales don't find their parcel. <span class="muted">more</span></button><div id="d-callout" hidden class="callout-body">Their parcel IDs have a leading zero the parcel file doesn't. Reconcile can strip it.</div></div></div>
+
+      <div class="what"><b>A variable list's name and ▸</b><span class="tag tag-keep" data-v>keep</span><span class="why">Rows that unfold in a table are the tree-table convention.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">as proposed →</span></div>
+      <div class="after" style="display:grid"><button class="disclose" style="color:var(--text);font-weight:600" aria-expanded="false" data-disclose="d-vl"><svg><use href="#i-right"/></svg>Houses · 12 variables</button><div id="d-vl" hidden class="muted" style="padding-left:16px;font-size:.86rem">bldg_area · land_area · year_built · quality…</div></div>
+
+      <div class="what"><b>List rows: model groups, sales, the step list</b><span class="tag tag-keep" data-v>keep</span><span class="why">Selectable rows (list and detail). Each needs a clear hover and a clear selected state.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">as proposed →</span></div>
+      <div class="after"><div class="mini-list" role="listbox" aria-label="Model groups" data-select>
+        <button class="list-row" role="option" aria-selected="true">Single family</button>
+        <button class="list-row" role="option" aria-selected="false">Townhouses</button>
+        <button class="list-row" role="option" aria-selected="false">Commercial</button></div></div>
+
+      <div class="what"><b>Legend keys on the groups' map</b><span class="tag tag-change" data-v>change</span><span class="why">They show and hide a group: checkboxes with the swatch.</span></div>
+      <div class="before"><span class="legend"><span><span class="sw" style="background:#2f68ba"></span> Single family</span><span><span class="sw" style="background:#c0711c"></span> Commercial</span></span></div>
+      <div class="after"><span class="legend" data-legend>
+        <label class="tick"><input type="checkbox" checked><span class="sw" style="background:#2f68ba"></span>Single family</label>
+        <label class="tick"><input type="checkbox" checked><span class="sw" style="background:#c0711c"></span>Commercial</label></span></div>
+
+      <div class="what"><b>A field's row in Bring in data's results</b><span class="tag tag-keep" data-v>keep</span><span class="why">Pressing anywhere on the row is a shortcut to the field's name, which is a link the keyboard reaches, so nothing is mouse-only.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">unchanged →</span></div>
+      <div class="after"><table class="tbl"><tbody><tr style="cursor:pointer"><td><a class="link" href="#flat">year_built</a></td><td class="n">4,388</td></tr></tbody></table></div>
+
+      <div class="what"><b>A chart that opens larger</b><span class="tag tag-change" data-v>change</span><span class="why">Nobody guesses a chart is a button. An enlarge tool in its corner.</span></div>
+      <div class="before"><div class="chart"><svg viewBox="0 0 200 70" preserveAspectRatio="none"><polyline fill="none" stroke="#2f68ba" stroke-width="2" points="0,55 30,48 60,50 90,36 120,30 150,24 200,12"/></svg></div></div>
+      <div class="after"><div class="chart"><svg viewBox="0 0 200 70" preserveAspectRatio="none"><polyline fill="none" stroke="#2f68ba" stroke-width="2" points="0,55 30,48 60,50 90,36 120,30 150,24 200,12"/></svg><button class="tool" aria-label="Enlarge the chart"><svg><use href="#i-enlarge"/></svg></button></div></div>
     </div>
   </div>
 
-  <!-- Field from another file -->
-  <div class="place">
-    <div class="mock">
-      <h3>"In another file…" (a field's column from another file)</h3>
-      <div class="grid" style="grid-template-columns:max-content 1fr">
-        <span class="label">File</span>
-        <div class="entry"><div class="entry-head">
-          <div class="entry-id"><span class="entry-name">deeds</span><span class="entry-file">deeds.csv</span><span class="entry-facts">· 15,330 rows</span></div>
-          <div class="entry-acts"><button class="x" aria-label="Choose another file"><svg><use href="#i-x"/></svg></button></div>
-        </div></div>
+  <div class="group">
+    <h3>Cards you press</h3>
+    <div class="review">
+      <div class="hd">What</div><div class="hd">Now</div><div class="hd">Proposed</div>
+
+      <div class="what"><b>Model groups' start cards</b><span class="tag tag-change" data-v>change</span><span class="why">Radio cards, as Condo units and Standards, then the step's Start. Cards that act at once read as neither a choice nor a button.</span></div>
+      <div class="before"><span class="old-card">From OpenAVMKit's defaults</span><span class="old-card">From scratch</span></div>
+      <div class="after"><div class="rcards" role="radiogroup" aria-label="How to start" data-radio>
+        <button class="rcard" role="radio" aria-checked="true"><span class="dot"></span><span><b>From OpenAVMKit's defaults</b><span class="sub-l">Groups by land use, ready to adjust</span></span></button>
+        <button class="rcard" role="radio" aria-checked="false"><span class="dot"></span><span><b>From scratch</b><span class="sub-l">One group; you split it</span></span></button></div></div>
+
+      <div class="what"><b>Quality's meaning cards</b><span class="tag tag-change" data-v>change</span><span class="why">In a dialog with Save: radio cards too.</span></div>
+      <div class="before"><span class="old-card" style="font-weight:400;border-color:var(--frame)">Higher is better</span><span class="old-card" style="font-weight:400;border-color:var(--frame)">Lower is better</span></div>
+      <div class="after"><div class="rcards" role="radiogroup" aria-label="What a higher value means" data-radio>
+        <button class="rcard" role="radio" aria-checked="false"><span class="dot"></span><span><b>Higher is better</b></span></button>
+        <button class="rcard" role="radio" aria-checked="false"><span class="dot"></span><span><b>Lower is better</b></span></button></div></div>
+
+      <div class="what"><b>Colour swatches</b><span class="tag tag-keep" data-v>keep</span><span class="why">A swatch picker is a convention. Proposed: a hover lift and a clear ring on the chosen one.</span></div>
+      <div class="before"><span class="swatches"><span class="swatch" style="background:#2f68ba"></span><span class="swatch" style="background:#c0711c"></span><span class="swatch" style="background:#1b6a32"></span></span></div>
+      <div class="after"><span class="swatches" role="radiogroup" aria-label="Group colour" data-radio>
+        <button class="swatch" role="radio" aria-checked="true" aria-label="Blue" style="background:#2f68ba"></button>
+        <button class="swatch" role="radio" aria-checked="false" aria-label="Orange" style="background:#c0711c"></button>
+        <button class="swatch" role="radio" aria-checked="false" aria-label="Green" style="background:#1b6a32"></button></span></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <h3>Navigation and controls with a look of their own</h3>
+    <div class="review">
+      <div class="hd">What</div><div class="hd">Now</div><div class="hd">Proposed</div>
+
+      <div class="what"><b>The trail on the brass plate</b><span class="tag tag-keep" data-v>keep</span><span class="why">Breadcrumbs are links by convention.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">unchanged →</span></div>
+      <div class="after"><span class="crumbs"><a href="#buttons">Projects</a> › <a href="#files">Manassas Park 2026</a> › <b>Data</b></span></div>
+
+      <div class="what"><b>The step list, folder tabs</b><span class="tag tag-keep" data-v>keep</span><span class="why">Navigation lists and tabs. A clear current one, a hover state.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">unchanged →</span></div>
+      <div class="after">
+        <div class="steps" data-steps><button aria-current="step">1 Parcel universe</button><button>2 Sales</button><button>3 More files</button></div>
+        <div class="tabs" role="tablist" data-tabs><button role="tab" aria-selected="false">Metadata</button><button role="tab" aria-selected="true">Data</button><button role="tab" aria-selected="false">1. Inputs</button></div>
       </div>
-    </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> "deeds (<span class="code">deeds.csv</span>)" as plain mono text.</p>
-      <ul><li>The small entry. ✕ goes back to picking a file.</li></ul>
-    </div>
-  </div>
 
-  <!-- Bring in data -->
-  <div class="place">
-    <div class="mock">
-      <h3>1. Inputs › What runs (read only)</h3>
-      <ul style="margin:0;padding-left:1.1em;display:grid;gap:3px">
-        <li><span class="entry-name">geo_parcels</span> <span class="code">geo_parcels_2.parquet</span> <span class="muted">· 4,712 rows</span></li>
-        <li><span class="entry-name">sales</span> <span class="code">sales.csv</span> <span class="muted">· 9,104 rows</span></li>
-      </ul>
-    </div>
-    <div class="notes">
-      <p class="was"><b>Now:</b> a list of bare file names.</p>
-      <ul><li>A summary, not a place to change anything: no outline and no ✕, but the same name, file and facts in the same order.</li></ul>
+      <div class="what"><b>Links to outside websites</b><span class="tag tag-change" data-v>change</span><span class="why">Keep as links, with a small ↗ so it's clear they leave the app.</span></div>
+      <div class="before"><span class="old-link">© OpenStreetMap contributors</span></div>
+      <div class="after"><a class="link link-out" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors<svg><use href="#i-out"/></svg></a></div>
+
+      <div class="what"><b>Dropdowns</b><span class="tag tag-keep" data-v>keep</span><span class="why">A sunken field with a chevron is the convention for choosing from a list.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">unchanged →</span></div>
+      <div class="after"><span class="select">PARCEL_ID</span></div>
+
+      <div class="what"><b>Segmented controls</b><span class="tag tag-change" data-v>change</span><span class="why">Keep the shared one; Reconcile's hand-made one becomes it.</span></div>
+      <div class="before"><span class="muted" style="font-size:.86rem">two kinds today</span></div>
+      <div class="after"><span class="seg" role="group" aria-label="Samples"><button aria-pressed="true">Unmatched</button><button aria-pressed="false">Matched</button><button aria-pressed="false">All</button></span></div>
     </div>
   </div>
 </section>
 
-<!-- ============ 3. The ✕ everywhere ============ -->
-<section class="sheet">
-  <h2>3. The red ✕ for everything else that's removed</h2>
-  <p>The same button replaces every way of taking something away now: grey X icons, "✕ Remove" links, "(remove)" and "drop".</p>
-  <div class="row">
-    <span class="chip"><span class="mono">park_name</span><span class="muted">← NAME</span><button class="x" aria-label="Remove"><svg><use href="#i-x"/></svg></button></span>
-    <div class="entry" style="flex:1;min-width:260px"><div class="entry-head">
-      <div class="entry-id"><span class="select" style="width:9rem">land_use</span><span>is one of</span><span class="select" style="width:9rem;font-weight:400">R1, R2</span></div>
-      <div class="entry-acts"><button class="x" aria-label="Remove this test"><svg><use href="#i-x"/></svg></button></div>
-    </div></div>
-  </div>
-  <div class="where">
-    <table>
-      <thead><tr><th>Where</th><th>Now</th></tr></thead>
-      <tbody>
-        <tr><td>Data › Parcel universe, 2nd and 3rd ID</td><td>"(remove)" link</td></tr>
-        <tr><td>Data › More files</td><td>"drop" link</td></tr>
-        <tr><td>Shapefiles: a layer, a copied field</td><td>grey X</td></tr>
-        <tr><td>Condo units: a test; Custom fields; Location</td><td>grey X</td></tr>
-        <tr><td>Model groups, the group editor, Reconcile's clean-up steps</td><td>grey X</td></tr>
-        <tr><td>Value sets, Models, Standards, the location stack</td><td>X with the word "Remove"</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="muted">Deleting a whole project on the home screen keeps its trash-can button and its confirmation: that one deletes files from disk.</p>
-</section>
-
-
-<!-- ============ 4. Rules ============ -->
-<section class="sheet">
+<!-- ======================= 4. RULES ======================= -->
+<section class="sheet" id="rules">
   <h2>4. The rules</h2>
   <ol class="rules">
-    <li><b>A file is always <span class="mono">components/FileEntry.tsx</span>.</b> One line: its OAK box name (mono, bold), its file name (set off like <span class="code">code</span>, cut short, full path on hover), its facts (rows, shapes, in wording, joined by "·"), then actions, then ✕. Its settings go in its body, inside the same outline: labels in one column, controls in the next.</li>
-    <li><b>Anything inside a file that can be removed on its own</b> (an ID, a test, a copied field) is its own small box with its ✕ at the right. Its siblings in the same list get a box too, even one that can't be removed. Fixed settings (what the file is about, its one ID column) stay as plain rows.</li>
-    <li><b>Adding something to a file</b> (an ID, a field) is an Add button inside its body, below the rows, at the right edge. Adding another file stays outside, after the list.</li>
-    <li><b>A short choice between two or three options</b> in a file's body is a segmented control (<span class="mono">components/Seg.tsx</span>), not radio buttons.</li>
-    <li><b>Every file name</b> is shown like <span class="code">code</span>: mono, on a faint box.</li>
-    <li><b>Everything that's taken away uses <span class="mono">components/RemoveButton.tsx</span>:</b> a red ✕, last on its line at the right edge, labelled with what it removes. No "Remove" links, no grey X.</li>
-    <li><b>✕ on a file takes it off that step, never off disk.</b> It stays in the project and can be picked again.</li>
-    <li><b>A step with no file yet</b> shows a dashed outline holding [Add a file…], then "or use existing:" and a dropdown of the project's files.</li>
-    <li><b>An entry is as wide as what's in it</b>, never stretched to the page; entries in one list share the widest one's width, with their Add button at that right edge. Only tables take the page's width.</li>
-    <li><b>A thing you press is a raised button</b> unless it's in section 5, the list of flat ones; a new flat one is added there, or made a button.</li>
-    <li><b>Read-only lists and choices</b> (What runs, Condo units' cards, dropdowns) use the same first line without the outline or ✕.</li>
+    <li><b>An action is a raised button.</b> Ordinary, primary (one per view), danger (can't be undone), add, small (beside a line of text), tool (an icon; a toggle stays pressed in), close (grey), remove (red).</li>
+    <li><b>Going somewhere is a link;</b> one that leaves the app carries ↗. <b>Unfolding in place is a chevron.</b> <b>Choosing from a list</b> is a dropdown, a segmented control (two or three options), radio cards (options that need a line each) or a selectable row.</li>
+    <li><b>Flat is a choice.</b> Every flat control is in section 3 with its reason; a new one is added there, or made a button.</li>
+    <li><b>Close and remove never share a look:</b> close is a grey ✕, only at the top right of a popup, panel or dialog; remove is a red −, at the end of the item it removes. Each shows what it does on hover, and its label is read aloud.</li>
+    <li><b>A remove can be undone:</b> "Removed parks · Undo" shows for a few seconds after it.</li>
+    <li><b>Every button that takes something away says so with its symbol:</b> a − when it removes from a list or a step (it can be undone), a trash can when it deletes for good (a danger button, with its words, and it asks first). Never words alone, and never a trash can for something that can be undone.</li>
+    <li><b>A file is one entry</b> (<code>FileEntry</code>): a thin outline as wide as what's in it, its first line a faint band (name, <span class="file">file.csv</span>, facts, actions, −), its settings inside on two columns. Entries in one list share one width, with their Add button at its right edge.</li>
+    <li><b>Anything removable on its own has its own box</b> and its − at the right; its siblings get one too. Adding to an item is inside it; adding another item is after the list.</li>
+    <li><b>Only tables take the page's width;</b> a map opened in an entry does too. Everything else is as wide as what's in it.</li>
+    <li><b>Nothing pressable is only a table row or a chart:</b> a pressable row is a shortcut to a link or button in it, and a chart that opens shows its enlarge icon.</li>
   </ol>
 </section>
 
-<!-- ============ 5. Flat buttons ============ -->
-<section class="sheet">
-  <h2>5. Things you press that don't look like buttons</h2>
-  <p>A thing you press is a raised button (<code>.button</code>, <code>AddButton</code>, <code>RemoveButton</code>) unless it's listed here. Flat is a choice, not the default: every flat control is here, with what it does, so each can be asked "should this be a button?". A new one is added here, or made a button. Catalogued 2026-11-04; the wording editor (a developer tool) is left out.</p>
-  <h3>Text links that do something</h3>
-  <div class="where"><table>
-    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td>Text link (<code>.wiz-link</code>)</td><td>42 places: Cancel in pickers, Clear in MultiPick, Delete group, Show values, the Tests' links</td><td>Blue underlined text</td><td>Acts like a button (opens a dialog, changes state), looks like a link to another page</td></tr>
-      <tr><td>Resolve… / Reconcile… / Change how it's read… / Change format… (<code>.wiz-link.wiz-resolve</code>)</td><td>Data wizard ID and field checks</td><td>Blue underlined text after a check</td><td>Opens a dialog that fixes what the check found</td></tr>
-      <tr><td>Values links in the variable tests (<code>.wiz-link.vt-values</code>)</td><td>5. Variables › tests</td><td>Blue underlined text</td><td>Unfolds a category's values</td></tr>
-      <tr><td>A field's name (<code>.fd-name</code>)</td><td>Field details</td><td>Blue text, no underline</td><td>Opens the field's detail</td></tr>
-      <tr><td>A copied field's kind, "location ˅" (<code>.ly-kind</code>)</td><td>Shapefiles › Copies</td><td>Blue text with a chevron</td><td>Opens a menu</td></tr>
-    </tbody>
-  </table></div>
-  <h3>Flat icon buttons</h3>
-  <div class="where"><table>
-    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td>Map toggle (<code>.ly-icon</code>)</td><td>Shapefiles, a layer's first line</td><td>Grey map icon; a box only on hover or when on</td><td>Shows the layer's map</td></tr>
-      <tr><td>Hide the map (<code>.mg-x</code>)</td><td>Model groups</td><td>Grey ✕, no box</td><td>Hides the map (not a removal)</td></tr>
-      <tr><td>Close the parcel popup (<code>.rc-x</code>)</td><td>Model groups › map</td><td>Grey ✕, no box</td><td>Closes the popup (not a removal)</td></tr>
-      <tr><td>Move up / down (<code>.mg-arrow</code>, <code>.qc-move</code>)</td><td>Model groups' list, Quality</td><td>Grey arrows, no box</td><td>Reorders</td></tr>
-      <tr><td>Sort a column (<code>.vals-sort</code>)</td><td>Value tables, data tables</td><td>The column header's text</td><td>Sorts by that column</td></tr>
-    </tbody>
-  </table></div>
-  <h3>Pills, rows and text you press</h3>
-  <div class="where"><table>
-    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td>"4 values ˅" (<code>.vals-button</code>)</td><td>Field rows, Enrichments</td><td>A pill (grey-blue, round ends), blue text</td><td>Opens the values list</td></tr>
-      <tr><td>"Options ˅" (<code>.ly-add</code>)</td><td>Shapefiles › Distance to</td><td>The browser's own default button: no OAK box style at all</td><td>Opens the distance options</td></tr>
-      <tr><td>"Show N more" (<code>.wiz-more</code>)</td><td>Data wizard field lists</td><td>Plain text</td><td>Shows the fields folded away</td></tr>
-      <tr><td>A callout's "more" (<code>.callout-toggle</code>)</td><td>Callouts everywhere</td><td>The whole warn-tinted line</td><td>Unfolds the callout</td></tr>
-      <tr><td>A variable list's name and its ▸ (<code>.vl-name</code>, <code>.vl-toggle</code>)</td><td>5. Variables › lists</td><td>Plain text in a table row</td><td>Unfolds the list</td></tr>
-      <tr><td>A model group in the list (<code>.mg-item-main</code>)</td><td>Model groups</td><td>A list row</td><td>Selects the group</td></tr>
-      <tr><td>A legend key (<code>.mg-key</code>)</td><td>Model groups › map legend</td><td>Plain text with a swatch</td><td>Shows or hides that group on the map</td></tr>
-      <tr><td>A sale in the list (<code>.cs-item</code>)</td><td>Sales set aside</td><td>A list row</td><td>Opens the sale</td></tr>
-      <tr><td>A row of the Bring in data log (a <code>tr</code> with onClick)</td><td>1. Inputs › results</td><td>A table row</td><td>Opens the rows it names</td></tr>
-      <tr><td>A chart (<code>.cs-chart-button</code>)</td><td>Sales results</td><td>The chart itself</td><td>Opens it larger</td></tr>
-    </tbody>
-  </table></div>
-  <h3>Cards you press</h3>
-  <div class="where"><table>
-    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td>Start cards (<code>.mg-start-card</code>)</td><td>Model groups › How to start</td><td>Bordered cards</td><td>Chooses how to start</td></tr>
-      <tr><td>Meaning cards (<code>.qc-pick</code>)</td><td>Quality's meaning dialog</td><td>Bordered cards</td><td>Chooses a meaning</td></tr>
-      <tr><td>Colour swatches (<code>.mg-colour</code>)</td><td>Group editor</td><td>Coloured squares</td><td>Chooses a group's colour</td></tr>
-    </tbody>
-  </table></div>
-  <h3>Navigation (flat by convention)</h3>
-  <div class="where"><table>
-    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td>The trail on the plate (<code>.crumb</code>)</td><td>The brass plate</td><td>Underlined engraved text, a chevron</td><td>Goes to that place or opens its list</td></tr>
-      <tr><td>Step list (<code>.wiz-step button</code>)</td><td>Every tab's step list</td><td>A list row</td><td>Goes to that step</td></tr>
-      <tr><td>Folder tabs and ‹ › (<code>.tab-scroll</code>)</td><td>Above the project folder</td><td>Manila tabs</td><td>Opens a tab; scrolls the tabs</td></tr>
-      <tr><td>A project's name (<code>.row-title</code>)</td><td>Home</td><td>A link</td><td>Opens the project</td></tr>
-      <tr><td>Links out (<code>.en-link</code>, map credits)</td><td>Enrichments, maps</td><td>Links</td><td>Opens a web page</td></tr>
-    </tbody>
-  </table></div>
-  <h3>Controls with a look of their own</h3>
-  <div class="where"><table>
-    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
-    <tbody>
-      <tr><td>Dropdowns (<code>.choice-button</code>, <code>.combo-arrow</code>, <code>.mp-button</code>)</td><td>Everywhere</td><td>A sunken field with a chevron</td><td>Opens a list</td></tr>
-      <tr><td>Segmented controls (<code>.seg-b</code>, <code>.rc-seg-btn</code>)</td><td>Shapefiles, More files, Reconcile, Model groups</td><td>Joined boxes, the chosen one tinted</td><td>Chooses one of two or three; Reconcile's is a second, hand-made one</td></tr>
-      <tr><td>Up / down in the location stack (<code>.ls-move</code>)</td><td>5. Variables › location stack</td><td>Small bordered boxes, not raised</td><td>Reorders</td></tr>
-    </tbody>
-  </table></div>
-</section>
+</div></div>
 
+<div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button class="button button-small" id="undo">Undo</button></div>
 
-</div>
-</div>
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  // Tooltips: every icon button says what it does on hover.
+  const tips = () => $$('.x, .close, .tool').forEach(b => { const l = b.getAttribute('aria-label'); if (l) b.dataset.tip = l; });
+  tips();
+  // Undo: the last remove, for six seconds.
+  let undo = null, timer = 0;
+  function removed(what, restore) {
+    undo = restore; $('#toast-text').textContent = 'Removed ' + what; $('#toast').hidden = false;
+    clearTimeout(timer); timer = setTimeout(() => { $('#toast').hidden = true; undo = null; }, 6000);
+  }
+  const nameOf = b => (b.getAttribute('aria-label') || 'it').replace(/^Remove /, '');
+
+  // Tally the verdicts in section 3.
+  const counts = { change: 0, fix: 0, keep: 0 };
+  $$('[data-v]').forEach(t => { counts[t.textContent.trim()]++; });
+  $('#tally').innerHTML = `<span><b>${counts.change}</b> to change</span><span><b>${counts.fix}</b> to fix</span><span><b>${counts.keep}</b> kept flat, with a reason</span>`;
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button, [data-restore]');
+    if (!t) return;
+    if (t.hasAttribute('data-toggle-pressed')) {
+      const on = t.getAttribute('aria-pressed') !== 'true';
+      t.setAttribute('aria-pressed', on);
+      const l = t.getAttribute('aria-label') || '';
+      if (/map/i.test(l)) t.setAttribute('aria-label', on ? 'Hide the map' : 'Show the map');
+    }
+    if (t.dataset.disclose) {
+      const box = document.getElementById(t.dataset.disclose);
+      const open = t.getAttribute('aria-expanded') !== 'true';
+      t.setAttribute('aria-expanded', open); box.hidden = !open;
+      if (t.dataset.swap) { const [a, b] = t.dataset.swap.split('|'); $('span', t).textContent = open ? b : a; }
+    }
+    if (t.id === 'undo' && undo) { undo(); undo = null; $('#toast').hidden = true; return; }
+    if (t.dataset.remove) { const id = t.dataset.remove; document.getElementById(id).hidden = true; document.getElementById(id + '-slot').hidden = false; removed(nameOf(t), () => { document.getElementById(id).hidden = false; document.getElementById(id + '-slot').hidden = true; }); }
+    if (t.dataset.restore) { document.getElementById(t.dataset.restore).hidden = false; document.getElementById(t.dataset.restore + '-slot').hidden = true; }
+    if (t.dataset.removeId) { const row = document.getElementById(t.dataset.removeId), next = row.nextSibling, parent = row.parentElement; const what = $('.label', row).firstChild.textContent; row.remove(); renumber(); removed(what, () => { parent.insertBefore(row, next); renumber(); }); }
+    if (t.id === 'add-id') addId();
+    if (t.hasAttribute('data-hide-self')) { const entry = t.closest('.entry'); entry.hidden = true; removed(nameOf(t), () => { entry.hidden = false; }); }
+    if (t.hasAttribute('data-hide-chip')) { const c = t.closest('.chip'); c.hidden = true; removed(nameOf(t), () => { c.hidden = false; }); }
+    if (t.closest('.seg') && t.parentElement.classList.contains('seg')) {
+      $$('button', t.parentElement).forEach(b => b.setAttribute('aria-pressed', b === t));
+    }
+    if (t.dataset.map) {
+      const map = document.getElementById(t.dataset.map);
+      const on = t.getAttribute('aria-pressed') !== 'true';
+      t.setAttribute('aria-pressed', on); t.setAttribute('aria-label', on ? 'Hide the map' : 'Show the map'); t.title = t.getAttribute('aria-label');
+      map.hidden = !on; $('#layers').classList.toggle('wide', on);
+    }
+    if (t.dataset.pop) { const p = document.getElementById(t.dataset.pop); p.hidden = !p.hidden; t.setAttribute('aria-expanded', !p.hidden); }
+    if (t.dataset.closePop) { document.getElementById(t.dataset.closePop).hidden = true; $(`[data-pop="${t.dataset.closePop}"]`).setAttribute('aria-expanded', false); }
+    if (t.dataset.menu) { const m = document.getElementById(t.dataset.menu); m.hidden = !m.hidden; t.setAttribute('aria-expanded', !m.hidden); }
+    if (t.dataset.pick) { $('#kind-btn').textContent = t.dataset.pick; $('#kind-menu').hidden = true; $('#kind-btn').setAttribute('aria-expanded', false); }
+    if (t.dataset.move) {
+      const row = t.closest('.row'), list = row.parentElement;
+      if (t.dataset.move === '-1' && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
+      if (t.dataset.move === '1' && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+      setMoveStates();
+    }
+    if (t.closest('[data-radio]') && t.getAttribute('role') === 'radio') {
+      $$('[role="radio"]', t.closest('[data-radio]')).forEach(b => b.setAttribute('aria-checked', b === t));
+    }
+    if (t.closest('[data-select]')) $$('.list-row', t.closest('[data-select]')).forEach(b => b.setAttribute('aria-selected', b === t));
+    if (t.closest('[data-steps]')) $$('button', t.closest('[data-steps]')).forEach(b => b === t ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
+    if (t.closest('[data-tabs]')) $$('button', t.closest('[data-tabs]')).forEach(b => b.setAttribute('aria-selected', b === t));
+    if (t.dataset.col !== undefined) sortBy(t);
+  });
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.restore) { e.preventDefault(); e.target.click(); }
+    if (e.key === 'Escape') $$('.pop, .menu').forEach(p => { p.hidden = true; });
+  });
+  document.addEventListener('change', e => {
+    const box = e.target.closest('[data-legend] label');
+    if (box) box.classList.toggle('off', !e.target.checked);
+  });
+
+  // IDs: 2nd, then 3rd; a removed 2nd makes the 3rd the 2nd.
+  const ORD = ['2nd ID', '3rd ID'];
+  function idRows() { return $$('#ids .sub').slice(1); }
+  function renumber() {
+    idRows().forEach((r, i) => { $('.label', r).firstChild.textContent = ORD[i]; });
+    const n = idRows().length, btn = $('#add-id');
+    btn.hidden = n >= 2; if (n < 2) $('span', btn).textContent = 'Add ' + ORD[n];
+  }
+  function addId() {
+    const n = idRows().length; if (n >= 2) return;
+    const id = 'id' + Date.now();
+    const row = document.createElement('div'); row.className = 'sub'; row.id = id;
+    row.innerHTML = `<span class="label">${ORD[n]}<small>Optional</small></span><span class="select" style="font-weight:400">Choose…</span><div class="sub-end"><span></span><button class="x" aria-label="Remove ${ORD[n]}" data-remove-id="${id}"><svg><use href="#i-minus"/></svg></button></div>`;
+    $('#ids').appendChild(row); renumber(); tips();
+  }
+
+  function setMoveStates() {
+    const rows = $$('#order .row');
+    rows.forEach((r, i) => { const [up, down] = $$('.tool', r); up.disabled = i === 0; down.disabled = i === rows.length - 1; });
+  }
+  setMoveStates();
+
+  function sortBy(btn) {
+    const tbl = $('#sorttbl'), col = +btn.dataset.col;
+    const dir = btn.dataset.dir === 'asc' ? 'desc' : 'asc';
+    $$('th button', tbl).forEach(b => { delete b.dataset.dir; $('use', b).setAttribute('href', '#i-sort'); });
+    btn.dataset.dir = dir; $('use', btn).setAttribute('href', dir === 'asc' ? '#i-up-arrow' : '#i-down-arrow');
+    const rows = $$('tbody tr', tbl);
+    const val = r => { const s = r.children[col].textContent.replace(/,/g, ''); return isNaN(+s) ? s : +s; };
+    rows.sort((a, b) => (val(a) > val(b) ? 1 : -1) * (dir === 'asc' ? 1 : -1)).forEach(r => $('tbody', tbl).appendChild(r));
+  }
+})();
+</script>
 </html>

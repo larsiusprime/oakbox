@@ -136,7 +136,7 @@ export function DataTable<R>({
                     <button type="button" className="vals-sort dt-sort" onClick={() => setSort(next(c.key))}>
                       {c.tip ? <InfoTip label={c.label} text={c.tip} /> : c.label}
                       <span className="dt-arrow" aria-hidden="true">
-                        {on ? (sort.desc ? "▼" : "▲") : ""}
+                        {on ? sort.desc ? "▼" : "▲" : <span className="sort-hint">↕</span>}
                       </span>
                     </button>
                   )}

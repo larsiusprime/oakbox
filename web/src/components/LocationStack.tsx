@@ -3,11 +3,12 @@
  * enough sales for a regression of their own, and whether it nests in the level above. Levels move up and down, go,
  * and are added from the location fields there are. */
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
+import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { useStack } from "../api/models";
 import { num } from "../lib/format";
 import { t } from "../wording";
 import { AddButton } from "./AddButton";
+import { ToolButton } from "./Buttons";
 import { RemoveButton } from "./RemoveButton";
 
 const s = t.values.stack;
@@ -96,23 +97,21 @@ export function LocationStack({
                     )}
                   </td>
                   <td className="ls-tools">
-                    <Button
-                      className="ls-move"
-                      aria-label={s.up({ name })}
-                      isDisabled={i === 0}
-                      onPress={() => move(i, -1)}
-                    >
-                      <ArrowUp aria-hidden="true" size="0.9em" />
-                    </Button>
-                    <Button
-                      className="ls-move"
-                      aria-label={s.down({ name })}
+                    <ToolButton label={s.up({ name })} isDisabled={i === 0} onPress={() => move(i, -1)}>
+                      <ArrowUp aria-hidden="true" size="1em" />
+                    </ToolButton>
+                    <ToolButton
+                      label={s.down({ name })}
                       isDisabled={i === broadest.length - 1}
                       onPress={() => move(i, 1)}
                     >
-                      <ArrowDown aria-hidden="true" size="0.9em" />
-                    </Button>
-                    <RemoveButton label={s.remove} onPress={() => save(broadest.filter((x) => x !== f))} />
+                      <ArrowDown aria-hidden="true" size="1em" />
+                    </ToolButton>
+                    <RemoveButton
+                      what={name}
+                      onPress={() => save(broadest.filter((x) => x !== f))}
+                      undo={() => save(broadest)}
+                    />
                   </td>
                 </tr>
               );

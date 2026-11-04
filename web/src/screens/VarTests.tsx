@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
+import { Disclose } from "../components/Disclose";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
 import { num, short } from "../lib/format";
@@ -130,7 +131,7 @@ export function TestStep({
       {g && g.empty.length > 0 && (
         <p className="wiz-warn">
           {say.values.vartest.empty(g.empty.map((f) => names[f] ?? f))}{" "}
-          <Button className="wiz-link" onPress={fill}>
+          <Button className="button button-small" onPress={fill}>
             {t.values.model.fillIt}
           </Button>
         </p>
@@ -170,18 +171,18 @@ export function TestStep({
                       {!it.category && <span className="mono wiz-from">{best.column}</span>}
                     </span>
                     {test === "corr" && !it.category && g?.corr[best.column] && (
-                      <Button
-                        className="wiz-link vt-values"
-                        aria-expanded={how.has(best.column)}
+                      <Disclose
+                        className="vt-values"
+                        open={how.has(best.column)}
                         onPress={() => flip(best.column)}
                       >
                         {vt.how}
-                      </Button>
+                      </Disclose>
                     )}
                     {it.category && (
-                      <Button
-                        className="wiz-link vt-values"
-                        aria-expanded={shown}
+                      <Disclose
+                        className="vt-values"
+                        open={shown}
                         onPress={() =>
                           setOpen((was) => {
                             const now = new Set(was);
@@ -193,7 +194,7 @@ export function TestStep({
                       >
                         <Chevron aria-hidden="true" size="0.9em" />
                         {vt.values({ passing, of: it.rows.length })}
-                      </Button>
+                      </Disclose>
                     )}
                   </span>
                 </td>
@@ -224,13 +225,13 @@ export function TestStep({
                       <td>
                         <Val v={x.level} /> <span className="mono wiz-from">{short(x.column)}</span>{" "}
                         {test === "corr" && g?.corr[x.column] && (
-                          <Button
-                            className="wiz-link vt-values"
-                            aria-expanded={how.has(x.column)}
+                          <Disclose
+                            className="vt-values"
+                            open={how.has(x.column)}
                             onPress={() => flip(x.column)}
                           >
                             {vt.how}
-                          </Button>
+                          </Disclose>
                         )}
                       </td>
                       {cells(x.passed, x)}

@@ -776,10 +776,11 @@
       "roll": "The assessor''s roll",
       "rollNote": "checked on Check my values, and beside the models as OpenAVMKit''s assessor",
       "otherNote": "beside the models, and on Check my values",
-      "remove": "Remove",
       "name": "Name of the set",
       "add": "Add a set of values",
-      "none": "No existing values: the models are judged on their own."
+      "none": "No existing values: the models are judged on their own.",
+      "deleteSet": "Delete set",
+      "deleteConfirm": "Delete {name} and the fields it gives? This can't be undone."
     },
     "reconcile": {
       "open": "Reconcile…",
@@ -1372,7 +1373,7 @@
     "moveIn": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} here from {from} ({sold, number} sold)",
     "moveOut": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} to {to} ({sold, number} sold)",
     "showMoves": "Show them on the map",
-    "deleteGroup": "Delete group",
+    "deleteGroup": "Remove group",
     "undo": "Undo changes",
     "save": "Save groups",
     "saved": "✓ Saved",
@@ -1479,7 +1480,8 @@
     "ffMore": "{n, number} more values not shown",
     "ffApply": "Make these groups",
     "cancel": "Cancel",
-    "blank": "(blank)"
+    "blank": "(blank)",
+    "startButton": "Start"
   },
   "sales": {
     "kicker": "Step 3 of 7",
@@ -2262,7 +2264,7 @@
         "no_correlation": "too weak"
       },
       "withPrice": "|r| {r}",
-      "how": "how ›",
+      "how": "how",
       "howStrength": "With price",
       "howFloor": "(passes at {t} or more, either way)",
       "howOverlaps": "Moves most with (the VIF test judges overlap):",
@@ -2893,9 +2895,24 @@
   "files": {
     "facts": "{rows, plural, one {# row} other {# rows}}{shapes, select, yes { · shapes} other {}}",
     "shapesOnly": "shapes",
-    "remove": "Remove {name}",
     "useExisting": "or use existing:",
     "dontImport": "Don't import {filename}",
     "otherFile": "Choose another file"
+  },
+  "buttons": {
+    "remove": "Remove {what}",
+    "removed": "Removed {what}",
+    "undo": "Undo",
+    "close": "Close",
+    "up": "Move {what} up",
+    "down": "Move {what} down",
+    "enlarge": "Show it larger",
+    "seeRows": "See rows",
+    "external": "{text} (opens in your browser)",
+    "theTest": "the test",
+    "theCondition": "the condition",
+    "theStep": "the step",
+    "delete": "Delete",
+    "cancel": "Cancel"
   }
 }

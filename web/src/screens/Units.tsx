@@ -275,7 +275,7 @@ function Link({ data, file, v, change }: Part) {
           onChange={(link) => set({ link, column: null })}
         />
         <Button
-          className="wiz-link"
+          className="button button-small"
           onPress={() => change({ kind: "units", name: file.name, units: s, guess: true })}
         >
           {u.guess}
@@ -428,8 +428,12 @@ function Fields({ data, file, v, change }: Part) {
                 }}
               />
               <RemoveButton
-                label={`${u.remove} ${r.name}`}
+                what={r.name}
                 onPress={() => pick(rows.map((x) => x.field).filter((k) => k !== r.field))}
+                undo={() => {
+                  pick(rows.map((x) => x.field));
+                  if (r.column) unit(r.field, r.column);
+                }}
               />
             </Fragment>
           ))}
@@ -608,7 +612,11 @@ function RuleLines({
             onChange={(values) => set(i, { values })}
           />
           {conditions.length > 1 && (
-            <RemoveButton label={u.remove} onPress={() => onChange(conditions.filter((_, j) => j !== i))} />
+            <RemoveButton
+              what={t.buttons.theCondition}
+              onPress={() => onChange(conditions.filter((_, j) => j !== i))}
+              undo={() => onChange(conditions)}
+            />
           )}
         </div>
       ))}

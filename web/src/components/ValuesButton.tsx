@@ -28,7 +28,10 @@ export function ValuesButton({
   if (distinct == null) return null;
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button className="vals-button" aria-label={`${say.wizard.values.button(distinct, noun)}: ${column}`}>
+      <Button
+        className="button button-small vals-button"
+        aria-label={`${say.wizard.values.button(distinct, noun)}: ${column}`}
+      >
         {say.wizard.values.button(distinct, noun)}
         <ChevronDown aria-hidden="true" size="0.85em" />
       </Button>

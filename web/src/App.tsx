@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
 import { OakFrame } from "./components/OakFrame";
+import { UndoToast } from "./components/UndoToast";
 import { back, record } from "./lib/place";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
@@ -73,6 +74,7 @@ export function App() {
           <ProjectScreen projectId={route.id} tab={route.tab ?? null} step={route.step ?? null} />
         )}
       </main>
+      <UndoToast />
       <OakFrame />
       <AppMenus route={route} />
     </div>

@@ -1,17 +1,59 @@
-import { X } from "lucide-react";
+import { Minus } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button, type ButtonProps } from "react-aria-components";
+import { offerUndo } from "../lib/undo";
+import { t } from "../wording";
+import { Tip } from "./Tip";
 
-/** The one way to take something away (a file from a step, an ID, a test, a field, a model…): a red button with a
- * white ✕ (raised and pressed like every button, so it reads as one), last on its
- * line at the right edge, its label saying what it removes. Never a "Remove" link, "(remove)" or a grey X.
- * Deleting from disk (a whole project) is not this: it keeps its own button and confirmation. */
+/** The one way to take something off a list or a step (a file from a step, an ID, a test, a field, a model…): a red
+ * button with a white − (the pair of AddButton's +), raised and pressed like every button, last on its line at the
+ * right edge. Its label ("Remove parks") shows on hover and is read aloud. With `undo`, the remove can be taken back:
+ * "Removed parks · Undo" shows for a few seconds (components/UndoToast.tsx).
+ * Deleting for good is not this: a danger button with a trash can and its words, which asks first (DeleteButton).
+ * Closing a popup is not this either (CloseButton, a grey ✕). */
 export function RemoveButton({
+  what,
   label,
+  undo,
+  onPress,
   ...props
-}: Omit<ButtonProps, "className" | "children" | "aria-label"> & { label: string }) {
+}: Omit<ButtonProps, "className" | "children" | "aria-label" | "onPress"> & {
+  /** What it removes, in a few words: "parks", "2nd ID". */
+  what: string;
+  /** Instead of "Remove {what}", where that reads badly. */
+  label?: string;
+  onPress: () => void;
+  /** Puts it back. */
+  undo?: () => void;
+}) {
+  const name = label ?? t.buttons.remove({ what });
   return (
-    <Button {...props} className="remove-x" aria-label={label}>
-      <X aria-hidden="true" size="1em" strokeWidth={3.5} />
+    <Tip text={name}>
+      <Button
+        {...props}
+        className="remove-x"
+        aria-label={name}
+        onPress={() => {
+          onPress();
+          if (undo) offerUndo(t.buttons.removed({ what }), undo);
+        }}
+      >
+        <Minus aria-hidden="true" size="1em" strokeWidth={3.5} />
+      </Button>
+    </Tip>
+  );
+}
+
+/** Taking something away, with words ("Remove group"): an ordinary button that keeps the red −. What it calls
+ * offers Undo itself (lib/undo.ts), as it knows how to put it back. */
+export function RemoveTextButton({
+  children,
+  ...props
+}: Omit<ButtonProps, "className" | "children"> & { children: ReactNode }) {
+  return (
+    <Button {...props} className="button">
+      <Minus aria-hidden="true" size="1em" strokeWidth={3} className="remove-icon" />
+      {children}
     </Button>
   );
 }

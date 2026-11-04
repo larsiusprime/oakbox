@@ -1,6 +1,6 @@
 /** Check sales' results: the sales per model group, the patterns of those set aside, and how prices moved. */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Maximize2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type CleanReceipt, type CleanView, type PatternTable, unwrap } from "../api/client";
@@ -280,7 +280,7 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
                   <figcaption>
                     <span className="mg-sw ab-sw" style={{ background: g.color }} />
                     <b>{g.name}</b> {g.per_year !== null && say.sales.time.perYear(g.per_year)}{" "}
-                    <Button className="wiz-link" onPress={() => setOpen(null)}>
+                    <Button className="button button-small" onPress={() => setOpen(null)}>
                       {s.time.collapse}
                     </Button>
                   </figcaption>
@@ -292,6 +292,10 @@ export function TimePreviewPanel({ projectId, currency }: { projectId: string; c
                   <span className="cs-chart-cap">
                     <span className="mg-sw ab-sw" style={{ background: g.color }} />
                     <b>{g.name}</b> {g.per_year !== null && say.sales.time.perYear(g.per_year)}
+                  </span>
+                  {/* The chart is the button; this shows it is, and that it opens larger. */}
+                  <span className="tool-button cs-enlarge" aria-hidden="true">
+                    <Maximize2 size="1em" />
                   </span>
                   <Curve points={g.curve} color={g.color} />
                   <span className="cs-chart-foot">

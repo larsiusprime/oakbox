@@ -100,8 +100,9 @@ export function VarListsStep({ projectId }: { projectId: string }) {
                   <td className="wiz-from">{x.used_by.length ? x.used_by.join(", ") : s.notUsed}</td>
                   <td>
                     <RemoveButton
-                      label={s.remove}
+                      what={x.name}
                       onPress={() => save(v.lists.filter((y) => y.id !== x.id).map(plain))}
+                      undo={() => save(v.lists.map(plain))}
                     />
                   </td>
                 </tr>,

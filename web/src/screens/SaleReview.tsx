@@ -424,7 +424,7 @@ function SaleView({
             </Button>
           )}
           <span className="bi-grow" />
-          <Button className="wiz-link" onPress={next}>
+          <Button className="button button-small" onPress={next}>
             {s.review.next}
           </Button>
         </div>
