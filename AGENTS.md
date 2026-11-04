@@ -63,7 +63,7 @@ name that says what it is.
   maximum). **Everything else is as wide as what's in it**, not stretched to the page: a file's entry, a frame, a
   row of tests, a form (`width: fit-content; max-width: 100%`). Boxes in one list share the widest one's width
   (`.entry-list`), and its Add button sits at that right edge. Charts and maps are decided case by case (a chart
-  that's read across time may want the width). Running text is capped for readability (`.project p`, `.cs-text`,
+  that's read across time may want the width; a layer's map, opened in its entry, takes the page's width). Running text is capped for readability (`.project p`, `.cs-text`,
   `.wiz-lede`…), and a small chart that illustrates the paragraph above it (Check sales' sales per year) is as wide
   as that text.
 - **Tables:** a table of results is `<table className="tbl">` (its own class only adds what's its own); every
@@ -95,7 +95,8 @@ name that says what it is.
     no outline, no ✕).
   - **A file's own name** (`parcels.csv`) is always `FileName` (`.file-name`): mono on a faint box, like code in a
     chat, cut short with the whole name on hover. Never plain or grey text.
-  - **Taking something away is always `components/RemoveButton.tsx`:** a red ✕, last on its line at the right edge,
+  - **Taking something away is always `components/RemoveButton.tsx`:** a real button, red with a white ✕, raised
+    and pressed like every button, last on its line at the right edge,
     labelled with what it removes. Never a "Remove" link, "(remove)", "drop", a grey X or a "(none)" option in a
     dropdown. On a file it takes the file off that step, never off disk. Deleting a project (from disk) keeps its own
     button and confirmation; closing a popup or a map isn't removing (its own close button).

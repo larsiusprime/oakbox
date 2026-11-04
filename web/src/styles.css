@@ -571,6 +571,11 @@ a.row-title:hover {
 .entry-list > .entry {
   width: auto;
 }
+/* A map is the exception: shown in an entry (a layer's), it takes the page's width, and so does its list. */
+.entry:has(.wiz-map),
+.entry-list:has(.wiz-map) {
+  width: auto;
+}
 /* Where a file will go, before there is one: [Add a file…] or use existing: [Choose…]. */
 .entry-slot {
   display: flex;
@@ -649,36 +654,49 @@ a.row-title:hover {
   color: var(--muted);
 }
 
-/* The red ✕ (components/RemoveButton.tsx): the one way to take something away. */
+/* The red ✕ (components/RemoveButton.tsx): the one way to take something away. A real button, raised and pressed
+   like the others (the bevel, as on .button-primary, is the one place for hexes), red with a white ✕. */
 .remove-x {
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.4rem;
+  height: 1.4rem;
   padding: 0;
-  font-size: 1.05rem;
-  color: var(--bad);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 3px;
+  font-size: 0.85rem;
+  color: #ffffff;
+  background: #b8352b;
+  border: 1px solid #5e130e;
+  border-radius: 2px;
+  box-shadow:
+    inset 1px 1px 0 #ec8d84,
+    inset -1px -1px 0 #7a1a14,
+    inset 2px 2px 0 #cf5246,
+    inset -2px -2px 0 #93241b;
   cursor: pointer;
 }
 .remove-x[data-hovered] {
-  background: var(--bad-tint);
-  border-color: var(--bad-edge);
+  background: #c8413a;
 }
 .remove-x[data-pressed] {
-  background: var(--bad-edge);
+  background: #a02c23;
+  box-shadow:
+    inset 1px 1px 0 #7a1a14,
+    inset -1px -1px 0 #ec8d84,
+    inset 2px 2px 0 #93241b;
 }
 .remove-x[data-focus-visible] {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 .remove-x[data-disabled] {
-  color: var(--muted);
+  color: #f4f4f2;
+  background: #c9c9c7;
+  border-color: #8e9195;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9a9a;
   cursor: default;
-  opacity: 0.5;
 }
 
 .button[data-hovered] {
@@ -3361,8 +3379,10 @@ ul.mg-checks {
   border-radius: 3px;
 }
 .ly-chip .remove-x {
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 1px;
+  font-size: 0.75rem;
 }
 /* A layer's body: labels in one column, what's set in the next. */
 .ly-grid {

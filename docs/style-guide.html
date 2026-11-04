@@ -55,9 +55,11 @@ p { margin: 0; max-width: 72ch; }
 .entry.dashed { border-style: dashed; background: transparent; }
 
 /* The red ✕: one button, everywhere something is taken away. */
-.x { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--bad); background: none; border: 1px solid transparent; border-radius: 3px; cursor: pointer; flex: none; }
-.x svg { width: 15px; height: 15px; }
-.x:hover, .x.hot { background: var(--bad-tint); border-color: var(--bad-edge); }
+/* A real button: red, raised like every OAK box button, a white ✕ on it. */
+.x { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; color: #fff; background: #b8352b; border: 1px solid #5e130e; border-radius: 2px; box-shadow: inset 1px 1px 0 #ec8d84, inset -1px -1px 0 #7a1a14, inset 2px 2px 0 #cf5246, inset -2px -2px 0 #93241b; cursor: pointer; flex: none; }
+.x svg { width: 11px; height: 11px; }
+.x:hover, .x.hot { background: #c8413a; }
+.x:active { background: #a02c23; box-shadow: inset 1px 1px 0 #7a1a14, inset -1px -1px 0 #ec8d84, inset 2px 2px 0 #93241b; }
 .x:focus-visible { outline: 2px solid #1f6fe0; outline-offset: 1px; }
 .icon { display: inline-grid; place-items: center; width: 24px; height: 24px; color: var(--muted); border: 1px solid transparent; border-radius: 3px; }
 .icon svg { width: 15px; height: 15px; }
@@ -109,7 +111,7 @@ tbody tr:nth-child(even) { background: #f0f5fc; }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
   <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
@@ -163,7 +165,7 @@ tbody tr:nth-child(even) { background: #f0f5fc; }
       <dt><span class="tag">2</span></dt><dd><b>The file's own name</b>, set off like code in a chat (<span class="code">like_this.csv</span>), cut short with "…" if long; the full path on hover. Every file name in the app looks like this, in lists, dropdowns and sentences too.</dd>
       <dt><span class="tag">3</span></dt><dd><b>Facts about the file</b>, grey, joined by "·": its rows, then "shapes" if it has any (a map layer says how many: "23 polygons"). "✓ Geometry detected" becomes "shapes" here.</dd>
       <dt><span class="tag">4</span></dt><dd><b>Other actions, as icons</b> (show the map). Only where a place needs one.</dd>
-      <dt><span class="tag">5</span></dt><dd><b>The red ✕</b>, always last, at the right edge. It sits in the first line, so it's centred when the entry is one line and at the top right when the entry is tall. Its label says what it removes ("Remove geo_parcels").</dd>
+      <dt><span class="tag">5</span></dt><dd><b>The red ✕</b>, a real button (red, raised like every button, a white ✕ on it), always last, at the right edge. It sits in the first line, so it's centred when the entry is one line and at the top right when the entry is tall. Its label says what it removes ("Remove geo_parcels").</dd>
       <dt><span class="tag">6</span></dt><dd><b>What's set on this file</b> (its ID column, what it holds, how it's used) goes inside the same outline, labels in one column and controls in the next. The separate frame round the Parcel ID goes away: it belongs to the file. Adding to the file (another ID, another field) is inside too, at the bottom right.</dd>
     </dl>
   </div>
