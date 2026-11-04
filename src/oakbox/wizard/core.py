@@ -219,6 +219,9 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 scale = None
                 if ruled and rule is not None and len(sources) == 1:
                     check = _rule_check(files, ruled, key, rule)
+                elif len(sources) == 1 and d.type == "boolean" and step.sales:
+                    # Read as a yes/no column by an earlier OAK box: its values are still the user's to choose.
+                    check = Check(ok=False, text="choose which values mean yes")
                 elif len(sources) == 1:
                     col = files.column(sources[0].file, sources[0].column)
                     spec = files.entry(sources[0].file).load.get(key, [])
@@ -595,7 +598,12 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
         if key in SCALED and key in project.wizard.absent:
             continue
         found = _guess_field(files, by_key[key], candidates, _used(project))
-        if found:
+        if found and by_key[key].type == "boolean" and spec.sales:
+            # A guessed valid or vacant sale column: its values are the user's to choose (a rule with none yet).
+            files.entry(found[0]).rules[key] = Rule(conditions=[Condition(column=found[1][0])])
+            loaded.add(key)
+            project.wizard.decided.append(key)
+        elif found:
             files.entry(found[0]).load[key] = found[1]
             if key in SCALED:
                 files.entry(found[0]).scales[key] = _new_scale(files, files.entry(found[0]), key, found[1][0])
@@ -912,6 +920,10 @@ def set_field(
             raise ValueError(f"{file} has no column {column}.")
         d = by_key[key]
         check, spec = field_check(d, col)
+        if d.type == "boolean" and step.sales:
+            # Which values mean a valid (or vacant) sale is the user's to say, even in a yes/no column: never read
+            # as "true = yes" on its own. It becomes a rule with no values yet, which the row asks for.
+            spec = None
         if key in SCALED:
             # Numbers, or a category to rank into tiers: either way it becomes a number (F3d).
             entry = next(f for f in allowed if f.name == file)

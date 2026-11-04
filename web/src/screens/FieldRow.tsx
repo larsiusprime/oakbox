@@ -202,7 +202,10 @@ export function FieldRow({
                 >
                   {attention && <img src={warningIcon} alt="" className="wiz-inline-icon" />}
                   <span className="reading-text">
-                    {shortReading(field.check?.text ?? "") || action.label}
+                    {/* A yes/no sales field with no values chosen yet: what to do, in two words. */}
+                    {field.type === "boolean" && sales && !(field.rule && ruleComplete(field.rule))
+                      ? w.rule.choose
+                      : shortReading(field.check?.text ?? "") || action.label}
                   </span>
                   <ChevronDown aria-hidden="true" size="0.85em" />
                 </Button>

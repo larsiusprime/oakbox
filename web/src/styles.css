@@ -6027,3 +6027,16 @@ under what it's about; a file appended as rows {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
+
+/* In a file's body every settings grid shares one label column, as wide as its longest label (not a fixed 12rem):
+   the body is the grid, and each settings grid in it sits on the body's columns, so they still line up. */
+.entry-body {
+  grid-template-columns: max-content 16rem minmax(0, 1fr);
+  column-gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+}
+.entry > .entry-body > * {
+  grid-column: 1 / -1;
+}
+.entry-body > .wiz-grid {
+  grid-template-columns: subgrid;
+}

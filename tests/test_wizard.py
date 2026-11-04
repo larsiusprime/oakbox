@@ -1654,3 +1654,41 @@ def test_effective_year_zero_means_no_renovation(client, tmp_path):
     calc = read_settings(pid)["data"]["process"]["enrich"]["calc"]["universe"]
     year = "bldg_effective_year_built"
     assert calc[year] == ["where", [">", year, 0], year, "bldg_year_built"]
+
+
+def test_a_yes_no_sales_column_still_asks_which_values_mean_yes(client, tmp_path):
+    """valid_sale and vacant_sale are never read as "true = yes" on their own, even from a true/false column: picking
+    or guessing the column starts a rule with nothing chosen, which the row asks for; one cleared is saved as it is."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": [str(n) for n in range(4)]}, geometry=[box(n, 0, n + 1, 1) for n in range(4)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "parcels.parquet")
+    pd.DataFrame(
+        {
+            "PID": ["0", "1", "2", "3"],
+            "valid_sale": ["true", "false", "true", "true"],
+            "vacant_sale": ["false", "false", "true", ""],
+        }
+    ).to_csv(tmp_path / "sale.csv", index=False)
+    for name, ext in (("parcels", "parquet"), ("sale", "csv")):
+        body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "parcels", universe=True, id_column="ID")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    put_file(client, pid, "sale", holds="sales", id_column="PID")
+    w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    # Guessed from its name: a rule on the column, no values yet.
+    valid = _field(w, "valid_sale")
+    assert valid["rule"]["conditions"] == [{"column": "valid_sale", "op": "isin", "values": []}]
+    assert valid["check"]["text"] == "choose which values mean yes"
+    # Picked by hand: the same.
+    field = f"/api/projects/{pid}/wizard/fields"
+    w = client.put(f"{field}/vacant_sale", json={"file": "sale", "column": "vacant_sale"}).json()
+    assert _field(w, "vacant_sale")["rule"]["conditions"][0]["values"] == []
+    assert "vacant_sale" not in read_settings(pid)["data"]["load"]["sale"]["load"]
+    # Chosen, then cleared and saved: kept as it is, asking again.
+    rule = {"join": "all", "conditions": [{"column": "valid_sale", "op": "isin", "values": ["true"]}]}
+    assert client.put(f"{field}/valid_sale/rule", json=rule).status_code == 200
+    rule["conditions"][0]["values"] = []
+    w = client.put(f"{field}/valid_sale/rule", json=rule).json()
+    assert _field(w, "valid_sale")["check"]["text"] == "choose which values mean yes"

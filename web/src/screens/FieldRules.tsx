@@ -77,6 +77,8 @@ export function RuleDialog({
   });
   const v = preview.data;
   const complete = ruleComplete(rule);
+  // Saved as it is when it was changed, even left without values (cleared): the row then asks for them.
+  const changed = JSON.stringify(rule) !== JSON.stringify(field.rule ?? null);
   const word = r.word[field.key] ?? r.yes;
   const set = (i: number, patch: Partial<Condition>) =>
     setRule({ ...rule, conditions: rule.conditions.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
@@ -278,7 +280,11 @@ export function RuleDialog({
             <Button className="button" onPress={close}>
               {r.cancel}
             </Button>
-            <Button className="button button-primary" isDisabled={!complete} onPress={() => save(rule)}>
+            <Button
+              className="button button-primary"
+              isDisabled={!complete && !changed}
+              onPress={() => save(rule)}
+            >
               {r.save}
             </Button>
           </div>
