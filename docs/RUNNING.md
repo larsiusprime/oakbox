@@ -1,5 +1,10 @@
 # Running OAK box
 
+## The Windows installer (simplest)
+Download `OAKbox-<version>-setup.exe` from the latest release (**Releases** on the GitHub page) and run it. It installs for the current user only, with no admin rights, into `%LOCALAPPDATA%\Programs\OAK box`, and adds OAK box to the Start menu (and, if ticked, the desktop). It isn't signed yet: if Windows says "Windows protected your PC", click **More info**, then **Run anyway**. A newer installer replaces the old version; **Apps & features** uninstalls it. Projects in `Documents\OAK box` are never touched by either.
+
+**Making a release** (maintainers): set the version in `pyproject.toml`, commit, then tag and push it (`git tag v0.1.0 && git push origin v0.1.0`). CI builds the bundle and the installer, installs, starts and uninstalls it on a clean Windows machine, and publishes a pre-release with the installer and the portable zip (`packaging/RELEASE_NOTES.md` heads its notes). Every other push builds an installer too (the `installer-windows` artifact, kept a day).
+
 ## The portable bundle (no installs needed)
 1. On GitHub, open the latest green run: **Actions → bundles**. Download `bundle-windows` or `bundle-linux` from **Artifacts**. Artifacts expire after 7 days; re-run the workflow for fresh ones.
 2. Unpack it.

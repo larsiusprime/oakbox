@@ -1,6 +1,6 @@
 [project]
 name = "oakbox"
-version = "0.0.1"
+version = "0.1.0"
 description = "OpenAVMKit in a box: a desktop app for assessors"
 readme = "README.md"
 license = "MIT"
