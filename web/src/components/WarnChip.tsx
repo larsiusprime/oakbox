@@ -14,14 +14,15 @@ export function WarnChip({ title, children }: { title: string; children: ReactNo
         {title}
         <ChevronDown aria-hidden="true" size="0.85em" />
       </Button>
-      <Popover className="popover warn-pop" placement="bottom start">
+      <Popover className="popover warn-pop" placement="bottom start" offset={0}>
         <Dialog className="popover-body warn-body" aria-label={title}>
           {({ close }) => (
             <>
+              {/* The text in its own column, the close button in the next: it can never cover the words. */}
+              <div className="warn-text">{children}</div>
               <span className="warn-close">
                 <CloseButton onPress={close} />
               </span>
-              {children}
             </>
           )}
         </Dialog>

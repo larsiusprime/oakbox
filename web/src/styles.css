@@ -896,19 +896,18 @@ a.row-title:hover {
   max-width: min(28rem, 92vw);
 }
 .warn-body {
-  position: relative;
   display: grid;
-  gap: calc(0.4 * var(--sp));
-  padding-right: calc(2.2rem + var(--sp));
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  align-items: start;
   font-size: 0.9rem;
 }
-.warn-body p {
-  margin: 0;
+.warn-text {
+  display: grid;
+  gap: calc(0.4 * var(--sp));
 }
-.warn-close {
-  position: absolute;
-  top: calc(0.4 * var(--sp));
-  right: calc(0.4 * var(--sp));
+.warn-text p {
+  margin: 0;
 }
 /* Undo, after a remove (components/UndoToast.tsx). */
 .undo-toast {
@@ -6013,4 +6012,14 @@ under what it's about; a file appended as rows {
 .button.reading.attention {
   background: var(--warn-tint);
   border-color: var(--warn);
+}
+
+/* A warning's popup (WarnChip), after the Manila popups' rules it overrides. It hangs from its button as a dropdown's list does: no gap, square corners where they meet. */
+.warn-pop[data-placement="bottom"] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.warn-pop[data-placement="top"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
