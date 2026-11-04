@@ -77,6 +77,10 @@ name that says what it is.
   `components/AddButton.tsx`: a button with a plus and "Add …" in words (never a "+" typed into the label, a link,
   or a bare "+"). It opens what it adds (a menu, a popover, a new row) or adds it at once. A form's own submit
   button inside that popover is an ordinary button.
+  It comes after the list it adds to, at that list's right edge and outside any frame: `<AddButton end>`, or a row
+  of buttons in `.add-row`.
+- **Loose rows get a frame:** rows of fields or widgets lying straight on the page (Data's IDs, a step's fields) sit
+  in a thin `.frame`; what belongs together shares one. Not inside a card, which is a frame already.
 - **Picking fields or values from a list** is always `components/MultiPick.tsx`: a button listing what's chosen
   that opens a searchable checklist (a field's name with its column as a note, or a value with its count). Never
   a row of chips with ✕s, nor a row of loose ticks. Each chosen field that needs more (its column) gets a row

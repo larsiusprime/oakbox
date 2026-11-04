@@ -68,7 +68,9 @@ export function ValueSetsStep({
         </section>
       ))}
       {data.value_sets.length === 0 && <p className="wiz-from">{v.none}</p>}
-      <AddButton onPress={() => change({ kind: "addSet", name: "" })}>{v.add}</AddButton>
+      <AddButton end onPress={() => change({ kind: "addSet", name: "" })}>
+        {v.add}
+      </AddButton>
     </div>
   );
 }

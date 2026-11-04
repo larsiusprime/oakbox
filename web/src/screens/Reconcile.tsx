@@ -263,8 +263,8 @@ function CleanSteps({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) 
         ))}
       </ol>
       <MenuTrigger>
-        <AddButton>{r.add}</AddButton>
-        <Popover className="popover rc-menu" placement="bottom start">
+        <AddButton end>{r.add}</AddButton>
+        <Popover className="popover rc-menu" placement="bottom end">
           <Menu
             className="choice-list"
             onAction={(key) => onChange([...steps, { ...PRESETS[String(key)] } as Step])}

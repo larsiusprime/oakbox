@@ -621,6 +621,7 @@ function RuleLines({
         </div>
       ))}
       <AddButton
+        end
         onPress={() => onChange([...conditions, { column: columns[0]?.[0] ?? "", op: "isin", values: [] }])}
       >
         {u.addCondition}

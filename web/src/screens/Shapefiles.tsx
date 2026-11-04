@@ -88,7 +88,9 @@ export function ShapefilesStep({
           )}
         </div>
       ) : (
-        <AddButton onPress={() => setAdding(true)}>{data.layers.length ? s.another : s.first}</AddButton>
+        <AddButton end onPress={() => setAdding(true)}>
+          {data.layers.length ? s.another : s.first}
+        </AddButton>
       )}
     </>
   );
@@ -241,8 +243,8 @@ function AddStamp({ layer, add }: { layer: LayerView; add: (f: Overlay["fields"]
   if (free.length === 0) return null;
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <AddButton>{s.addField}</AddButton>
-      <Popover className="popover" placement="bottom start">
+      <AddButton end>{s.addField}</AddButton>
+      <Popover className="popover" placement="bottom end">
         <Dialog className="popover-body ly-pop" aria-label={s.addField}>
           <form
             className="ly-form"

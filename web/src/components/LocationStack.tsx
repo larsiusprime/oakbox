@@ -126,11 +126,11 @@ export function LocationStack({
         </table>
       )}
       {offered.length > 0 && (
-        <p className="cs-row">
+        <p className="cs-row add-row">
           {left.length ? (
             <MenuTrigger>
               <AddButton>{s.add}</AddButton>
-              <Popover className="popover rc-menu" placement="bottom start">
+              <Popover className="popover rc-menu" placement="bottom end">
                 <Menu className="choice-list" onAction={(key) => save([...broadest, String(key)])}>
                   {left.map((x) => (
                     <MenuItem

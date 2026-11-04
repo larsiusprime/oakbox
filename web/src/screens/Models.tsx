@@ -227,7 +227,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
           </tbody>
         </table>
       )}
-      <p className="cs-row">
+      <p className="cs-row add-row">
         {!adding && (
           <AddButton
             onPress={() =>

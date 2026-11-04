@@ -250,7 +250,7 @@ export function StandardsTable({ v, set }: Props) {
           </tbody>
         </table>
       )}
-      <p className="cs-row">
+      <p className="cs-row add-row">
         <AddButton onPress={add}>{s.add}</AddButton>
         {!v.iaao && (
           <Button className="wiz-link" onPress={() => set({ reset_standards: true })}>

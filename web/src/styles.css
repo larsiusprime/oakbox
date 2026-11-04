@@ -21,6 +21,7 @@
   --text: #1c1e20;
   --muted: #565b61;
   --rule: #d9d9d9;
+  --frame: #c9c2b0;
   --cell-line: #e2e4e6; /* every table's cell lines */
   --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
 
@@ -484,6 +485,39 @@ a.row-title:hover {
 .add-button {
   justify-self: start;
   align-self: start;
+}
+
+/* After the list it adds to: at the list's right edge, outside any frame (AddButton end). A row of buttons after a
+   list (Add, and another way to add) is .add-row, at the right edge too. */
+.add-button.add-end {
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
+  justify-self: end;
+  align-self: end;
+}
+.add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(0.5 * var(--sp)) calc(0.6 * var(--sp));
+  align-items: baseline;
+  justify-content: flex-end;
+}
+
+/* A thin frame round rows of fields or widgets that would otherwise float on the page (Data's IDs, a step's fields):
+   what belongs together is marked out. Not inside a card, which is already a frame. */
+.frame {
+  padding: calc(0.45 * var(--sp)) calc(0.7 * var(--sp));
+  margin: calc(0.35 * var(--sp)) 0;
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.frame > .wiz-grid:first-child {
+  margin-top: 0;
+}
+/* A frame is the page's width (its rows keep their own); its Add button lines up with its right edge. */
+.wiz-grid.frame {
+  max-width: none;
 }
 
 .button[data-hovered] {

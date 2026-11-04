@@ -179,7 +179,7 @@ export function RuleDialog({
               </li>
             ))}
           </ol>
-          <div className="rl-adds">
+          <div className="rl-adds add-row">
             <AddButton
               onPress={() =>
                 setRule({

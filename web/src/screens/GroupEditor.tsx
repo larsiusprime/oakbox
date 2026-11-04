@@ -188,7 +188,7 @@ export function GroupEditor({
             </li>
           ))}
         </ol>
-        <div className="mg-card-foot">
+        <div className="mg-card-foot add-row">
           <AddButton
             onPress={() =>
               setConditions([

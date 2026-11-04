@@ -543,7 +543,7 @@ function Builder({
               if (!mapShown) setMapMode("docked");
             }}
           />
-          <div className="mg-adds">
+          <div className="mg-adds add-row">
             <AddButton onPress={add}>{g.addGroup}</AddButton>
             <Button className="button" onPress={() => setFromField(true)}>
               {g.fromField}

@@ -394,7 +394,7 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
     <>
       <FileHeader file={base} onReplace={() => setReplacing(true)} />
       <p className="wiz-ok">{w.geometryFound}</p>
-      <div className="wiz-grid">
+      <div className="wiz-grid frame">
         <div className="wiz-label">
           <TipOn text={w.parcelIdTip}>
             <span>{w.parcelId}</span>
@@ -416,7 +416,7 @@ function UniverseStep({ project, data, change }: { project: Project; data: Wizar
       </div>
       {!adding && base.extra_ids.length < EXTRA_IDS.length && (
         <Tip text={w.extraIdTip}>
-          <AddButton onPress={() => setAdding(true)}>
+          <AddButton end onPress={() => setAdding(true)}>
             {w.addId({ ordinal: w.idOrdinal[EXTRA_IDS[base.extra_ids.length] ?? "key2"] ?? "" })}
           </AddButton>
         </Tip>
@@ -513,26 +513,28 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
   return (
     <>
       <FileHeader file={sales} onReplace={() => setReplacing(true)} />
-      <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
-      <div className="wiz-grid">
-        <div className="wiz-label">
-          <TipOn text={w.saleIdTip}>
-            <span>{w.saleIdColumn}</span>
-          </TipOn>
-        </div>
-        <Choice
-          label={w.saleIdColumn}
-          hideLabel
-          value={data.sale_id.made ? MAKE : data.sale_id.column}
-          placeholder={w.choose}
-          options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
-          onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
-        />
-        <div className="wiz-samples">
-          <CheckText check={data.sale_id.check} />
+      {/* Its two IDs, in one frame: the parcel each sale finds, and the sale's own. */}
+      <div className="frame">
+        <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
+        <div className="wiz-grid">
+          <div className="wiz-label">
+            <TipOn text={w.saleIdTip}>
+              <span>{w.saleIdColumn}</span>
+            </TipOn>
+          </div>
+          <Choice
+            label={w.saleIdColumn}
+            hideLabel
+            value={data.sale_id.made ? MAKE : data.sale_id.column}
+            placeholder={w.choose}
+            options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
+            onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
+          />
+          <div className="wiz-samples">
+            <CheckText check={data.sale_id.check} />
+          </div>
         </div>
       </div>
-      <hr className="wiz-rule" />
     </>
   );
 }
@@ -594,7 +596,7 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
           )}
         </div>
       ) : (
-        <AddButton onPress={() => setAdding(true)}>
+        <AddButton end onPress={() => setAdding(true)}>
           {extras.length ? w.extraFiles.another : w.extraFiles.first}
         </AddButton>
       )}
@@ -767,7 +769,7 @@ function FieldsStep({
   return (
     <>
       {onlyBase && <p className="wiz-note wiz-another">{w.anotherFileHint}</p>}
-      <div className="wiz-grid">
+      <div className="wiz-grid frame">
         {groupsFor(step.key, shown).map(([title, fields]) =>
           // A section of one field is that row, numbered; a section of several gets a heading.
           title && fields.length === 1 && fields[0]

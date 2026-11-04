@@ -120,7 +120,7 @@ export function VarListsStep({ projectId }: { projectId: string }) {
           </tbody>
         </table>
       )}
-      <p className="cs-row">
+      <p className="cs-row add-row">
         <AddButton onPress={add}>{s.add}</AddButton>
       </p>
       {put.error && (
