@@ -2,6 +2,8 @@
 
 **Install:** download `OAKbox-…-setup.exe` below and run it. It installs for you alone, with no admin rights, and adds OAK box to the Start menu. This preview isn't signed yet, so Windows may say "Windows protected your PC": click **More info**, then **Run anyway**.
 
+**Optional model engines:** XGBoost and CatBoost aren't included, to keep the download small. Tick them in the installer, or choose one when adding a model and OAK box offers to download it (about 100–110 MB each, from the Python Package Index). **Help › Model engines** installs or removes them.
+
 **No installer?** `OAKbox-…-win64-portable.zip` is the same app: unzip it to a short path such as `C:\oak` and double-click `Oakbox.cmd`.
 
 **Updating:** run the newer installer; it replaces the old version. Your projects (in `Documents\OAK box`) are never touched by installing, updating or uninstalling.
