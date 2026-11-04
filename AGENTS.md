@@ -89,7 +89,7 @@ name that says what it is.
   adding or changing a button, a file's entry, a list of items or a settings row. In short:
   - **A file is always `components/FileEntry.tsx`** wherever it's added, picked or used (`StepFile` in the Data
     wizard): one thin outline (`--frame`, 3px); its first line its name in OAK box (mono, bold), its file name, its
-    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the ✕. What's set on the file goes
+    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the red −. What's set on the file goes
     in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`, `.set-grid` outside a file), so
     they line up like a two-column table. Not a sentence with a blank in it ("A sale demolished within [365] days…"),
     which stays a sentence, nor a question with its answers below it (a radio group). A step with no file yet is `FilePicker`: a dashed outline round
