@@ -84,11 +84,12 @@ name that says what it is.
   It comes after the list it adds to, at that list's right edge: `<AddButton end>`, or a row of buttons in
   `.add-row`. Adding another item (a file, a layer, a value set) is outside the items' outlines; adding to one item
   (another ID, another copied field) is inside that item's outline, below its rows.
-- **The style guide for files and items is `docs/style-guide.html`** (SPEC D47); open it before changing how a file
-  or a removable item looks. In short:
+- **The style guide is `docs/style-guide.html`** (SPEC D47): buttons, files, removable items, and every control
+  kept flat, each with its reason. Open it (it's one HTML page; open it in a browser to try each piece) before
+  adding or changing a button, a file's entry, a list of items or a settings row. In short:
   - **A file is always `components/FileEntry.tsx`** wherever it's added, picked or used (`StepFile` in the Data
     wizard): one thin outline (`--frame`, 3px); its first line its name in OAK box (mono, bold), its file name, its
-    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the ✕. What's set on the file goes
+    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the red −. What's set on the file goes
     in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`, `.set-grid` outside a file), so
     they line up like a two-column table. Not a sentence with a blank in it ("A sale demolished within [365] days…"),
     which stays a sentence, nor a question with its answers below it (a radio group). A step with no file yet is `FilePicker`: a dashed outline round
