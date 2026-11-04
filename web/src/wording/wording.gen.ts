@@ -740,6 +740,7 @@ export type Wording = {
       asWritten: string;
       asRead: string;
       asReadBand: string;
+      originalValue: string;
       sales: string;
       medianOf: (a: { basis: string | number }) => string;
       writtenText: string;
@@ -773,10 +774,6 @@ export type Wording = {
       save: string;
       writtenAsLabel: string;
       asKinds: {
-        num: string;
-        cat: string;
-      };
-      asHints: {
         num: string;
         cat: string;
       };

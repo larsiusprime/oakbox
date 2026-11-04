@@ -983,6 +983,9 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
         json={"file": "cama", "column": "QUALITY_SCORE", "scale": {**depr, "kind": "lower", "fraction": False}},
     ).json()
     assert _field(w, "bldg_quality_num")["check"]["text"] == "✓ 1–4 · flipped, so higher is better"
+    lower = {"file": "cama", "column": "QUALITY_SCORE", "scale": {**depr, "kind": "lower", "fraction": False}}
+    bands = client.post(f"{field}/bldg_quality_num/scale", json=lower).json()["by_value"]
+    assert [(b["original"], b["label"]) for b in bands] == [("4", "1"), ("3", "2"), ("2", "3"), ("1", "4")]
     assert read_settings(pid)["data"]["load"]["cama"]["calc"]["bldg_quality_num"] == ["-", 5.0, "bldg_quality_num_src"]
 
     # A category instead: its tiers in a known order, with what each sells for; then ranked, and kept as text too.

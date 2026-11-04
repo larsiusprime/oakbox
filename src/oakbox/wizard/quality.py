@@ -413,6 +413,7 @@ class ValueBand(BaseModel):
     """Sales of parcels whose value, as read, falls in a band: one row per value when there are few."""
 
     label: str = Field(description='The value as read ("7"), or a range ("under 40", "40–55", "85 and up").')
+    original: str = Field(default="", description='The value as the file writes it ("2"), or its range ("0.1–0.4").')
     text: str = Field(description='The text the parcels carry beside it ("C-"), most common first; "" none.')
     sales: int
     price: float | None = Field(description="Median sale price.")
@@ -507,7 +508,9 @@ def scale_preview(
     by_type = type_field = ""
     if read and values:
         as_read = dict(zip(values, convert(list(values.values())), strict=True))
-        by_value, price_basis, by_type, type_field, price_notes = _value_bands(project, files, entry, key, as_read, s)
+        by_value, price_basis, by_type, type_field, price_notes = _value_bands(
+            project, files, entry, key, as_read, s, values
+        )
         notes += price_notes
     seen: list[str] = []
     for v in raw:
@@ -590,7 +593,13 @@ def _value_cuts(as_read: dict[str, float], kind: str | None) -> list[tuple[float
 
 
 def _value_bands(
-    project: Project, files: Files, entry: DataFile, key: str, as_read: dict[str, float], s: Scale
+    project: Project,
+    files: Files,
+    entry: DataFile,
+    key: str,
+    as_read: dict[str, float],
+    s: Scale,
+    raw: dict[str, float] | None = None,
 ) -> tuple[list[ValueBand], str | None, str, str, list[str]]:
     """Each band's sales: median price, price per area, and the price among the most common type alone. A grade's
     price per area mostly says how big its buildings are and what kind they are, so on its own it can run the
@@ -606,6 +615,10 @@ def _value_bands(
         return None
 
     label_of = {i: b for i, v in as_read.items() if (b := band_of(v)) is not None}
+    by_band: dict[str, set[float]] = {}
+    for i, b in label_of.items():
+        if raw and i in raw:
+            by_band.setdefault(b, set()).add(raw[i])
     rows, notes = _sales_evidence(project, files, entry.match)
     notes = [n for n in notes if n != "valid sales"]
     if not rows:
@@ -636,9 +649,19 @@ def _value_bands(
         areas = [p / size[i] for i, p in mine if size.get(i, 0) > 0]
         same = [p for i, p in mine if main and types.get(i) == main]
         said = Counter(texts[i] for i, _ in mine if texts.get(i)).most_common(3)
+        # As the file writes it: one value, or the range of the band's parcels (a flipped band runs the other way).
+        written = sorted(by_band.get(label, ()))
+        original = (
+            ""
+            if not written
+            else short_number(written[0])
+            if len(written) == 1
+            else f"{short_number(written[0])}–{short_number(written[-1])}"
+        )
         out.append(
             ValueBand(
                 label=label,
+                original=original,
                 text=" / ".join(t for t, _ in said),
                 sales=len(mine),
                 price=statistics.median(p for _, p in mine),

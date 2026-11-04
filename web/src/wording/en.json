@@ -1046,8 +1046,8 @@
       "directionLede": "OpenAVMKit wants quality with higher meaning better. Say which way this column runs; lower-is-better numbers are flipped within their range as they load.",
       "fits": "fits: loaded this way, newer is better by {basis}",
       "writtenAs": "Written as",
-      "fractions": "fractions, 0–1 (× 100)",
-      "percents": "percent, 0–100",
+      "fractions": "0–1",
+      "percents": "0–100",
       "found": "found: every value is between {lo} and {hi}",
       "newerBetter": "✓ Loaded this way, newer buildings come out in better condition",
       "olderBetter": "Loaded this way, older buildings come out in better condition: is it the other way round?",
@@ -1060,6 +1060,7 @@
       "asWritten": "In the file (median)",
       "asRead": "Loaded as (median)",
       "asReadBand": "Loaded as",
+      "originalValue": "Original value",
       "sales": "Sales",
       "medianOf": "Median {basis}",
       "writtenText": "Text beside it",
@@ -1095,10 +1096,6 @@
       "asKinds": {
         "num": "Numbers",
         "cat": "Categories"
-      },
-      "asHints": {
-        "num": "a score, e.g. 1–6 or 0–100",
-        "cat": "named tiers, e.g. A+ … D or Good, Average, Poor"
       },
       "notNumbers": "{column} isn''t numbers: choose a column of numbers, or Categories",
       "evidenceHead": "What it sold for, as it''s read now",

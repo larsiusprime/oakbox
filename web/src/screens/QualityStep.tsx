@@ -86,10 +86,8 @@ export function QualityStep({
             options={(["num", "cat"] as const).map((k) => [k, q.asKinds[k]] as const)}
             onChange={choose}
           />
-          {mismatch && source ? (
+          {mismatch && source && (
             <span className="wiz-warn">⚠ {q.notNumbers({ column: source.column })}</span>
-          ) : (
-            <span className="wiz-from">{q.asHints[as]}</span>
           )}
         </div>
         <FieldRow
@@ -179,6 +177,7 @@ function Evidence({ projectId, field, source }: { projectId: string; field: Wiza
           <table className="tbl">
             <thead>
               <tr>
+                <th>{q.originalValue}</th>
                 <th>{q.asReadBand}</th>
                 {texts && <th>{q.writtenText}</th>}
                 <th className="num">{q.sales}</th>
@@ -190,6 +189,7 @@ function Evidence({ projectId, field, source }: { projectId: string; field: Wiza
               {/* Best at the top, as the tiers are. */}
               {[...bands].reverse().map((b) => (
                 <tr key={b.label}>
+                  <td className="mono">{b.original}</td>
                   <td className="mono">{b.label}</td>
                   {texts && <td className="mono">{b.text}</td>}
                   <td className="num">{b.sales.toLocaleString()}</td>

@@ -8608,6 +8608,12 @@ export interface components {
              */
             label: string;
             /**
+             * Original
+             * @description The value as the file writes it ("2"), or its range ("0.1–0.4").
+             * @default
+             */
+            original: string;
+            /**
              * Text
              * @description The text the parcels carry beside it ("C-"), most common first; "" none.
              */

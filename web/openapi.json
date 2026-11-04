@@ -20478,6 +20478,12 @@
       "title": "Label",
       "description": "The value as read (\"7\"), or a range (\"under 40\", \"40\u201355\", \"85 and up\")."
      },
+     "original": {
+      "type": "string",
+      "title": "Original",
+      "description": "The value as the file writes it (\"2\"), or its range (\"0.1\u20130.4\").",
+      "default": ""
+     },
      "text": {
       "type": "string",
       "title": "Text",
@@ -20533,6 +20539,7 @@
     "type": "object",
     "required": [
      "label",
+     "original",
      "text",
      "sales",
      "price",

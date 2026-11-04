@@ -6000,8 +6000,15 @@ under what it's about; a file appended as rows {
   align-items: center;
   font-size: 0.9rem;
 }
-.scale-cards {
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 18rem));
+/* Two cards a row, even when nothing else on the page widens it (fit-content alone would give one). */
+.cu-choices.scale-cards {
+  grid-template-columns: repeat(2, minmax(13rem, 18rem));
+  width: auto;
+}
+@media (max-width: 760px) {
+  .cu-choices.scale-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Every popup that drops from a button (a list, a menu, a picker, a warning, Options, a confirmation, the plate's
@@ -6049,4 +6056,14 @@ under what it's about; a file appended as rows {
 .qc-panel > .tbl td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* A segmented control in a settings row is as wide as the dropdowns under it, its options sharing it. */
+.wiz-grid > .seg-row > .seg {
+  display: flex;
+  width: 16rem;
+  max-width: 100%;
+}
+.wiz-grid > .seg-row > .seg > .seg-b {
+  flex: 1;
 }

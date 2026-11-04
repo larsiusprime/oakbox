@@ -19,7 +19,7 @@ import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
-import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
+import { ABSENT, PAIRS, SCALED, ScaleChoice } from "./Quality";
 import { FilePicker, matchOptions } from "./WizardFiles";
 import type { AreaUnit, MutateAsync } from "./wizardChange";
 
@@ -66,8 +66,6 @@ export function FieldRow({
   const [ruling, setRuling] = useState(false);
   const [dating, setDating] = useState(false);
   const [reading, setReading] = useState(false);
-  // Quality and condition: compare the columns, say what a number means, or rank a category's tiers.
-  const [qc, setQc] = useState<"compare" | "scale" | "tiers" | null>(null);
   const scaled = SCALED.includes(field.key);
   const paired = field.key in PAIRS;
   const money = isMoney(field.key);
@@ -108,10 +106,6 @@ export function FieldRow({
           if (now?.rule && !ruleComplete(now.rule)) setRuling(true);
           // A sale price that needs reading, or whose amounts look wrong: straight to how it's read.
           if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn)) setReading(true);
-          // A category for a number: straight to ranking its tiers; a condition number: to what it means.
-          if (onPage) return;
-          if (now?.scale?.kind === "tiers" && Object.keys(now.scale.tiers).length === 0) setQc("tiers");
-          else if (field.key === "bldg_condition_num" && now?.scale && !now.scale.kind) setQc("scale");
         })
         .catch(() => {});
     }
@@ -127,19 +121,7 @@ export function FieldRow({
         ? { label: w.dates.change, press: () => setDating(true) }
         : sourceFile && column && money
           ? { label: w.numbers.change, press: () => setReading(true) }
-          : scaled && source && field.scale && !(onPage && field.scale.kind === "tiers")
-            ? {
-                label:
-                  field.scale.kind === "tiers"
-                    ? Object.keys(field.scale.tiers).length
-                      ? w.quality.reRank
-                      : w.quality.rank
-                    : field.key === "bldg_quality_num"
-                      ? w.quality.checkDirection
-                      : w.quality.checkMeaning,
-                press: () => setQc(field.scale?.kind === "tiers" ? "tiers" : "scale"),
-              }
-            : null;
+          : null;
   const attention = Boolean(field.check && (field.check.warn || !field.check.ok));
   return (
     <>
@@ -197,45 +179,56 @@ export function FieldRow({
           <>
             {/* The reading is the button (style guide, 2B): "$270K median ▾" opens how the column is read. One
                 button per row in a column of its own, then the values. */}
-            <span className="field-tools">
-              {action ? (
-                <Button
-                  className={
-                    attention ? "button button-small reading attention" : "button button-small reading"
-                  }
-                  aria-label={`${action.label}: ${shortReading(field.check?.text ?? "")}`}
-                  onPress={action.press}
-                >
-                  {attention && <img src={warningIcon} alt="" className="wiz-inline-icon" />}
-                  <span className="reading-text">
-                    {/* A yes/no sales field with no values chosen yet: what to do, in two words. */}
-                    {field.type === "boolean" && sales && !(field.rule && ruleComplete(field.rule))
-                      ? w.rule.choose
-                      : shortReading(field.check?.text ?? "") || action.label}
-                  </span>
-                  <ChevronDown aria-hidden="true" size="0.85em" />
-                </Button>
-              ) : field.check ? (
-                <span
-                  className={attention ? "reading-plain attention" : "reading-plain"}
-                  title={field.check.text}
-                >
+            {onPage ? (
+              // Quality and condition on their page: how it's read is chosen, and shown, below the row. Only
+              // what's still to do is said here ("rank its 8 tiers", "say which way is better").
+              attention &&
+              field.check && (
+                <span className="reading-plain attention" title={field.check.text}>
                   {shortReading(field.check.text)}
                 </span>
-              ) : (
-                <span />
-              )}
-              {sourceFile && column && !field.rule ? (
-                <ValuesButton
-                  projectId={project.id}
-                  file={sourceFile.name}
-                  column={column.name}
-                  distinct={field.distinct}
-                />
-              ) : (
-                <span />
-              )}
-            </span>
+              )
+            ) : (
+              <span className="field-tools">
+                {action ? (
+                  <Button
+                    className={
+                      attention ? "button button-small reading attention" : "button button-small reading"
+                    }
+                    aria-label={`${action.label}: ${shortReading(field.check?.text ?? "")}`}
+                    onPress={action.press}
+                  >
+                    {attention && <img src={warningIcon} alt="" className="wiz-inline-icon" />}
+                    <span className="reading-text">
+                      {/* A yes/no sales field with no values chosen yet: what to do, in two words. */}
+                      {field.type === "boolean" && sales && !(field.rule && ruleComplete(field.rule))
+                        ? w.rule.choose
+                        : shortReading(field.check?.text ?? "") || action.label}
+                    </span>
+                    <ChevronDown aria-hidden="true" size="0.85em" />
+                  </Button>
+                ) : field.check ? (
+                  <span
+                    className={attention ? "reading-plain attention" : "reading-plain"}
+                    title={field.check.text}
+                  >
+                    {shortReading(field.check.text)}
+                  </span>
+                ) : (
+                  <span />
+                )}
+                {sourceFile && column && !field.rule ? (
+                  <ValuesButton
+                    projectId={project.id}
+                    file={sourceFile.name}
+                    column={column.name}
+                    distinct={field.distinct}
+                  />
+                ) : (
+                  <span />
+                )}
+              </span>
+            )}
             {field.absent && <span className="wiz-from">{w.quality.absentNote}</span>}
             {paired &&
             !source &&
@@ -243,12 +236,6 @@ export function FieldRow({
             data.fields.find((f) => f.key === PAIRS[field.key])?.sources.length
               ? !scaled && <span className="wiz-from">{w.numberUsed}</span>
               : null}
-            {paired && (onPage ? scaled : !scaled) && (
-              // One per section, on the category row: its text is short, so the link always shows.
-              <Button className="button button-small" onPress={() => setQc("compare")}>
-                {w.quality.compare}
-              </Button>
-            )}
           </>
         )}
       </div>
@@ -309,61 +296,6 @@ export function FieldRow({
               number_format,
             })
               .then(() => setReading(false))
-              .catch(() => {})
-          }
-        />
-      )}
-      {qc === "compare" && (
-        <CompareDialog
-          projectId={project.id}
-          data={data}
-          numKey={scaled ? field.key : (PAIRS[field.key] ?? field.key)}
-          close={() => setQc(null)}
-          save={(num, txt) =>
-            void change({ kind: "field", ...num })
-              .then(() => change({ kind: "field", ...txt }))
-              .then((next) => {
-                const now = next.fields.find((f) => f.key === num.key);
-                setQc(null);
-                if (
-                  num.key === field.key &&
-                  now?.scale?.kind === "tiers" &&
-                  !Object.keys(now.scale.tiers).length
-                )
-                  setQc("tiers");
-              })
-              .catch(() => {})
-          }
-        />
-      )}
-      {qc === "scale" && source && (
-        <ScaleDialog
-          projectId={project.id}
-          field={field}
-          source={source}
-          close={() => setQc(null)}
-          save={(scale) =>
-            void change({ kind: "field", key: field.key, file: source.file, column: source.column, scale })
-              .then(() => setQc(null))
-              .catch(() => {})
-          }
-        />
-      )}
-      {qc === "tiers" && source && (
-        <TiersDialog
-          projectId={project.id}
-          field={field}
-          source={source}
-          close={() => setQc(null)}
-          save={(tiers) =>
-            void change({
-              kind: "field",
-              key: field.key,
-              file: source.file,
-              column: source.column,
-              scale: { kind: "tiers", fraction: false, low: null, high: null, tiers },
-            })
-              .then(() => setQc(null))
               .catch(() => {})
           }
         />
