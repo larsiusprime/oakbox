@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import {
   Button,
@@ -19,7 +20,7 @@ import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { ABSENT, CompareDialog, PAIRS, SCALED, ScaleChoice, ScaleDialog, TiersDialog } from "./Quality";
-import { CheckText, FilePicker, matchOptions } from "./WizardFiles";
+import { FilePicker, matchOptions } from "./WizardFiles";
 import type { AreaUnit, MutateAsync } from "./wizardChange";
 
 const w = t.wizard;
@@ -102,6 +103,31 @@ export function FieldRow({
         .catch(() => {});
     }
   };
+  // What changes how the column is read, if anything: the reading is its button.
+  const action: { label: string; press: () => void } | null =
+    sourceFile && column && field.type === "boolean" && sales
+      ? {
+          label: !field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose,
+          press: () => setRuling(true),
+        }
+      : sourceFile && column && field.type === "date" && column.type !== "date"
+        ? { label: w.dates.change, press: () => setDating(true) }
+        : sourceFile && column && money
+          ? { label: w.numbers.change, press: () => setReading(true) }
+          : scaled && source && field.scale
+            ? {
+                label:
+                  field.scale.kind === "tiers"
+                    ? Object.keys(field.scale.tiers).length
+                      ? w.quality.reRank
+                      : w.quality.rank
+                    : field.key === "bldg_quality_num"
+                      ? w.quality.checkDirection
+                      : w.quality.checkMeaning,
+                press: () => setQc(field.scale?.kind === "tiers" ? "tiers" : "scale"),
+              }
+            : null;
+  const attention = Boolean(field.check && (field.check.warn || !field.check.ok));
   return (
     <>
       <div className={inGroup ? "wiz-label wiz-in-group" : "wiz-label"}>
@@ -163,7 +189,44 @@ export function FieldRow({
           </span>
         ) : (
           <>
-            <CheckText check={field.check} />
+            {/* The reading is the button (style guide, 2B): "$270K median ▾" opens how the column is read. One
+                button per row in a column of its own, then the values. */}
+            <span className="field-tools">
+              {action ? (
+                <Button
+                  className={
+                    attention ? "button button-small reading attention" : "button button-small reading"
+                  }
+                  aria-label={`${action.label}: ${shortReading(field.check?.text ?? "")}`}
+                  onPress={action.press}
+                >
+                  {attention && <img src={warningIcon} alt="" className="wiz-inline-icon" />}
+                  <span className="reading-text">
+                    {shortReading(field.check?.text ?? "") || action.label}
+                  </span>
+                  <ChevronDown aria-hidden="true" size="0.85em" />
+                </Button>
+              ) : field.check ? (
+                <span
+                  className={attention ? "reading-plain attention" : "reading-plain"}
+                  title={field.check.text}
+                >
+                  {shortReading(field.check.text)}
+                </span>
+              ) : (
+                <span />
+              )}
+              {sourceFile && column && !field.rule ? (
+                <ValuesButton
+                  projectId={project.id}
+                  file={sourceFile.name}
+                  column={column.name}
+                  distinct={field.distinct}
+                />
+              ) : (
+                <span />
+              )}
+            </span>
             {field.absent && <span className="wiz-from">{w.quality.absentNote}</span>}
             {paired &&
             !source &&
@@ -171,48 +234,11 @@ export function FieldRow({
             data.fields.find((f) => f.key === PAIRS[field.key])?.sources.length
               ? !scaled && <span className="wiz-from">{w.numberUsed}</span>
               : null}
-            {scaled && source && field.scale && (
-              <Button
-                className="button button-small"
-                onPress={() => setQc(field.scale?.kind === "tiers" ? "tiers" : "scale")}
-              >
-                {field.scale.kind === "tiers"
-                  ? Object.keys(field.scale.tiers).length
-                    ? w.quality.reRank
-                    : w.quality.rank
-                  : field.key === "bldg_quality_num"
-                    ? w.quality.checkDirection
-                    : w.quality.checkMeaning}
-              </Button>
-            )}
             {paired && !scaled && (
               // One per section, on the category row: its text is short, so the link always shows.
               <Button className="button button-small" onPress={() => setQc("compare")}>
                 {w.quality.compare}
               </Button>
-            )}
-            {sourceFile && column && field.type === "boolean" && sales && (
-              <Button className="button button-small" onPress={() => setRuling(true)}>
-                {!field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose}
-              </Button>
-            )}
-            {sourceFile && column && field.type === "date" && column.type !== "date" && (
-              <Button className="button button-small" onPress={() => setDating(true)}>
-                {field.check?.warn || !field.check?.ok ? w.dates.check : w.dates.change}
-              </Button>
-            )}
-            {sourceFile && column && money && (
-              <Button className="button button-small" onPress={() => setReading(true)}>
-                {field.check?.warn || !field.check?.ok ? w.numbers.check : w.numbers.change}
-              </Button>
-            )}
-            {sourceFile && column && !field.rule && (
-              <ValuesButton
-                projectId={project.id}
-                file={sourceFile.name}
-                column={column.name}
-                distinct={field.distinct}
-              />
             )}
           </>
         )}
@@ -603,4 +629,12 @@ function AssumeDialog({ field, close, confirm }: { field: string; close: () => v
       </Modal>
     </ModalOverlay>
   );
+}
+
+/** A check's words, short, for the button that changes them: no ✓, no "reads as", no ", blank = no". */
+function shortReading(text: string): string {
+  return text
+    .replace(/^✓\s*/, "")
+    .replace(/^reads as /, "")
+    .replace(/, blank = no$/, "");
 }

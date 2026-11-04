@@ -175,7 +175,7 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
             base_ids = base_ids | unit_ids(files)  # units that find their building are parcels too
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
-        text = f"{_pct(found, r.rows)} of sales match a parcel"
+        text = f"{_pct(found, r.rows)} match"
         # Under half matching is a blocker; under 95% worth reconciling (SPEC F3d).
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
@@ -184,7 +184,7 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         base_ids = _base_ids(files, base, match) | unit_ids(files)
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
-        text = f"{r.rows:,} permits · {_pct(found, r.rows)} find a parcel"
+        text = f"{r.rows:,} permits · {_pct(found, r.rows)} match"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds != "parcels":
@@ -210,10 +210,10 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         v = units_view(files.project, files, f)
         share = min(1.0, share + v.linked / len(set(present)))
         pct = _pct(round(share * 1000), 1000)
-        text = f"{tick}one row per parcel · {pct} match a parcel (units, the parcel they're on)"
+        text = f"{tick}one row per parcel · {pct} match (units by their parcel)"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN and not blocked, text=text, warn=warn, issues=issues, share=share), flagged
-    text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match parcels"
+    text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match"
     warn = open_issues or share < MATCH_OK
     ok = share >= MATCH_MIN and not blocked
     return Check(ok=ok, text=text, warn=warn, issues=issues, share=share), flagged

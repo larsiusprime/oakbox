@@ -43,7 +43,7 @@ def test_universe_then_sales(client, pid):
     }
     sales = _file(w, "sales")
     assert (sales["holds"], sales["match"], sales["id_column"]) == ("sales", "key", "PROP_ID")
-    assert sales["id_check"]["text"] == "100% of sales match a parcel"
+    assert sales["id_check"]["text"] == "100% match"
     assert w["sale_id"]["made"] and w["sale_id"]["check"] == {
         "ok": True,
         "text": "from parcel ID + sale date",
@@ -69,7 +69,7 @@ def test_a_field_from_another_file_with_its_key(client, pid):
     start_wizard(client, pid)
     # "It's in another file": the file, its ID column, then the field.
     w = put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID").json()
-    assert _file(w, "cama")["id_check"]["text"] == "✓ one row per parcel · 83% match parcels"
+    assert _file(w, "cama")["id_check"]["text"] == "✓ one row per parcel · 83% match"
     r = client.put(
         f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"}
     )
@@ -169,7 +169,7 @@ def test_sales_matched_by_the_second_id(client, pid, monkeypatch):
     w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
     sales = _file(w, "sales_by_map")
     assert (sales["match"], sales["id_column"]) == ("key2", "MAP_NO")
-    assert sales["id_check"]["text"] == "100% of sales match a parcel"
+    assert sales["id_check"]["text"] == "100% match"
     process = read_settings(pid)["data"]["process"]
     assert process["enrich"]["ref_tables"]["sales"] == [
         {"id": "geo_parcels", "key_ref_table": "key2", "key_target": "key2", "add_fields": ["key"]}
@@ -294,7 +294,7 @@ def test_extra_ids_are_added_removed_and_joined_on(client, tmp_path, monkeypatch
     assert [e["field"] for e in _file(w, "geo_parcels")["extra_ids"]] == ["key2", "key3"]
     # Another file joins on the 3rd ID.
     w = put_file(client, pid, "x", holds="parcels", match="key3", id_column="OLD_ID").json()
-    assert _file(w, "x")["id_check"]["text"] == "✓ one row per parcel · 100% match parcels"
+    assert _file(w, "x")["id_check"]["text"] == "✓ one row per parcel · 100% match"
     assert read_settings(pid)["data"]["process"]["merge"]["universe"] == ["geo_parcels", {"id": "x", "on": "key3"}]
     # Removing the 2nd ID moves the 3rd up.
     w = put_file(client, pid, "geo_parcels", extra_field="key2").json()
@@ -359,7 +359,7 @@ def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monk
     check = _file(w, "sale")["id_check"]
     assert (check["share"], check["ok"]) == (0, False)  # nothing matches as is: a blocker
     assert wizard_step(w, "sales")["left"][0] == {
-        "text": "Reconcile the IDs: 0% of sales match a parcel",
+        "text": "Reconcile the IDs: 0% match",
         "blocking": True,
     }
 
@@ -386,7 +386,7 @@ def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monk
 
     w = client.put(url, json={"base_steps": zeros, "file_steps": trim}).json()
     check = _file(w, "sale")["id_check"]
-    assert check["text"] == "86% of sales match a parcel" and check["ok"] and check["warn"]
+    assert check["text"] == "86% match" and check["ok"] and check["warn"]
     assert _file(w, "geo_parcels")["clean"] == {"key": [{"kind": "zeros", "text": "", "to": "", "n": 0}]}
     load = read_settings(pid)["data"]["load"]
     assert load["geo_parcels"]["calc"]["key"] == ["where", ["isempty", "key"], None, ["striplzero", "key"]]
@@ -1373,7 +1373,8 @@ def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(c
         assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
     w = start_wizard(client, pid)
     sales = _file(w, "sales")
-    assert sales["id_check"]["text"] == "62% of sales match a parcel"
+    assert sales["id_check"]["text"] == "62% match"
+    assert sales["not_in_universe"]["title"].endswith(" off the map")  # a few words for its row
     lines = sales["not_in_universe"]["lines"]
     assert lines[0].startswith("12 sales are for parcels that aren't in the parcel universe.")
     assert "Add it on More files" in lines[1]
@@ -1423,6 +1424,7 @@ def test_another_numbering_lower_case_and_keying_slips(client, tmp_path):
     other = [f"R{r.randint(0, 9_999_999):07d}" for _ in range(600)]
     _, sales = _sales_against(client, tmp_path, "other", ids, [v for v in other if v not in ids])
     assert sales["not_in_universe"]["kind"] == "other_id"
+    assert sales["not_in_universe"]["title"] == "Under half match"
     assert sales["not_in_universe"]["lines"][0].startswith("Fewer than half find a parcel: is PID the parcel ID")
     # Written in small letters: a clean-up, for Reconcile.
     pid, sales = _sales_against(client, tmp_path, "lower", ids, [v.lower() for v in ids[:600]])

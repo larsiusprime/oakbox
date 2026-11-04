@@ -12432,6 +12432,12 @@
       "title": "Lines",
       "description": "What it means and what to do, a sentence each."
      },
+     "title": {
+      "type": "string",
+      "title": "Title",
+      "description": "A few words for the row it's on: '777 sales off the map'.",
+      "default": ""
+     },
      "units": {
       "type": "boolean",
       "title": "Units",
@@ -12445,6 +12451,7 @@
      "rows",
      "ids",
      "lines",
+     "title",
      "units"
     ],
     "title": "MissingParcels"

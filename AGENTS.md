@@ -146,6 +146,14 @@ name that says what it is.
 - **Long explanations fold away:** a callout of more than a sentence or two (why rows don't match, what to do about
   it) is `components/Callout.tsx`: folded, one line (⚠ or ⓘ, its first sentence, "more"); open, the whole of it.
   The reader shows and hides it. A short status line stays plain text.
+- **A warning inside a row of settings keeps the row one line high:** `components/WarnChip.tsx`, ⚠ and a title of a
+  few words ("777 sales off the map", from the backend's `title`), a button; the whole explanation and what to do
+  open in a popup beside it. A check's own words are short too ("93% match"). Callout is for explanations on a
+  line of their own.
+- **A field's reading is its button** (style guide, 2B): "$270K median ▾", "year-month-day ▾", "true = yes ▾" opens
+  how the column is read, in a column of one width on every row (`.field-tools`), the values button after it. No
+  ✓ on a reading; one that needs a look is amber with ⚠. A reading with nothing to change is plain words in the
+  same column.
 - **Short labels, the rest on demand:** a table cell says a short phrase; the fuller explanation goes in a tooltip
   (`components/Tip.tsx`: `InfoTip` shows an ⓘ beside the phrase), not in the cell. A column's header isn't repeated
   in its cells ("Pattern" over "Low price", not "Pattern 2: low price").

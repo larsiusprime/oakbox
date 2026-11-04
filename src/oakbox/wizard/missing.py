@@ -104,13 +104,16 @@ def _diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> 
                 f"uses? Or does {base.filename} cover a smaller area than {f.filename}?"
             )
             if _suggest(files, f, base, f.match, now + MISSING_GAIN - 0.01, "parcels") is None:
-                wf.not_in_universe = MissingParcels(kind="other_id", rows=rows, ids=len(missing), lines=[line])
+                wf.not_in_universe = MissingParcels(
+                    kind="other_id", rows=rows, ids=len(missing), lines=[line], title="Under half match"
+                )
             continue
         # A clean-up that matches clearly more: a matter of cleaning, for Reconcile.
         found = _suggest(files, f, base, f.match, now + MISSING_GAIN - 0.01, "parcels")
         if found is not None or shaped < MISSING_SHAPED:
             continue
         what = {"sales": "sales", "permits": "permits"}.get(wf.holds or "", "rows")
+        title = f"{_n(rows, {'sales': 'sale', 'permits': 'permit'}.get(wf.holds or '', 'row'))} off the map"
         what = f"{what[:-1]} is" if rows == 1 else f"{what} are"
         ids = f" ({_n(len(missing), 'parcel ID')})" if len(missing) != rows else ""
         # A clean-up too small to be the story (under 2 points) can still match a few: say which, and how many.
@@ -145,7 +148,7 @@ def _diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> 
                 f"fixing them is for the file they came from."
             )
         if slips >= 0.8 * len(missing):
-            wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines)
+            wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines, title=title)
             continue
         units = shapeless
         holder = None if shapeless else _holder(project, files, f, missing, base)
@@ -177,7 +180,7 @@ def _diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> 
                     f"{other} lacks {same:,} of the same parcel{'' if same == 1 else 's'} too: "
                     f"they're missing from the parcel universe, not written differently."
                 )
-        wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines, units=units)
+        wf.not_in_universe = MissingParcels(rows=rows, ids=len(missing), lines=lines, units=units, title=title)
 
 
 def _beyond(sug: Suggestion, f: DataFile, base: DataFile) -> str:

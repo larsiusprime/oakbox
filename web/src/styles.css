@@ -861,6 +861,55 @@ a.row-title:hover {
   max-width: 22rem;
   padding: calc(0.6 * var(--sp)) calc(0.7 * var(--sp));
 }
+/* A row's check on one line: the check, its buttons, its issues, a warning (style guide: rows stay one line high). */
+.id-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+}
+/* A warning in a row (components/WarnChip.tsx): ⚠ and a few words, amber, a button; the whole of it opens beside. */
+.warn-chip {
+  display: inline-flex;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  align-items: center;
+  padding: 0 calc(0.45 * var(--sp));
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
+  border-radius: 3px;
+}
+.warn-chip[data-hovered],
+.warn-chip[data-pressed] {
+  border-color: var(--warn);
+}
+.warn-chip[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.warn-pop {
+  max-width: min(28rem, 92vw);
+}
+.warn-body {
+  position: relative;
+  display: grid;
+  gap: calc(0.4 * var(--sp));
+  padding-right: calc(2.2rem + var(--sp));
+  font-size: 0.9rem;
+}
+.warn-body p {
+  margin: 0;
+}
+.warn-close {
+  position: absolute;
+  top: calc(0.4 * var(--sp));
+  right: calc(0.4 * var(--sp));
+}
 /* Undo, after a remove (components/UndoToast.tsx). */
 .undo-toast {
   position: fixed;
@@ -5924,4 +5973,44 @@ under what it's about; a file appended as rows {
 }
 .entry-form .set-grid input[type="text"] {
   width: 100%;
+}
+
+/* A field's row (style guide, 2B): the reading is the button, in a column of one width on every row, then the
+   values. A reading that needs a look is amber, with its ⚠. */
+.field-tools {
+  display: inline-grid;
+  grid-template-columns: 11rem max-content;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  vertical-align: middle;
+}
+.field-tools > .button.button-small {
+  margin-left: 0;
+}
+/* A reading with nothing to change, in the same column: plain words, no ✓; amber when it needs a look. */
+.reading-plain {
+  overflow: hidden;
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reading-plain.attention {
+  color: var(--warn);
+}
+.button.reading {
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  font-weight: 400;
+}
+.reading-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+.button.reading.attention {
+  background: var(--warn-tint);
+  border-color: var(--warn);
 }

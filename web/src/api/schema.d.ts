@@ -5086,6 +5086,12 @@ export interface components {
              */
             lines: string[];
             /**
+             * Title
+             * @description A few words for the row it's on: '777 sales off the map'.
+             * @default
+             */
+            title: string;
+            /**
              * Units
              * @description They look like units without a shape of their own: the Condo units step's.
              * @default false

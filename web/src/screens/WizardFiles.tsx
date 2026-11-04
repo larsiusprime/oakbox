@@ -25,12 +25,13 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
-import { Callout, firstSentence } from "../components/Callout";
+import { firstSentence } from "../components/Callout";
 import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
+import { WarnChip } from "../components/WarnChip";
 import { desktop, useCanPickFile } from "../desktop";
 import { band } from "../lib/format";
 import { t } from "../wording";
@@ -123,40 +124,30 @@ export function IdCheck({
     </Button>
   );
   return (
-    <div className="wiz-samples wiz-check-lines">
-      <span>
-        <CheckText check={file.id_check} />
-        {(file.id_check?.issues ?? []).length === 0 && reconcile}
-      </span>
+    // One line, as every row of settings: the check, its button, each issue, a warning as ⚠ and a few words.
+    <div className="wiz-samples id-line">
+      <CheckText check={file.id_check} />
+      {reconcile}
       <Issues
         issues={file.id_check?.issues ?? []}
         action={
-          <>
-            {resolvable && (
-              <Button className="button button-small" onPress={() => setOpen(true)}>
-                {w.dupes.resolve}
-              </Button>
-            )}
-            {(file.id_check?.issues ?? []).length > 0 && reconcile}
-          </>
+          resolvable && (
+            <Button className="button button-small" onPress={() => setOpen(true)}>
+              {w.dupes.resolve}
+            </Button>
+          )
         }
       />
       {steps.length > 0 && (
         <span className="wiz-cleaned">{w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
       )}
       {missing && (
-        <Callout summary={firstSentence(missing.lines[0] ?? "")}>
-          {/* The first sentence is the summary line; the rest follows it. */}
-          {[
-            (missing.lines[0] ?? "").slice(firstSentence(missing.lines[0] ?? "").length).trim(),
-            ...missing.lines.slice(1),
-          ]
-            .filter(Boolean)
-            .map((line) => (
-              <p key={line}>{line}</p>
-            ))}
+        <WarnChip title={missing.title || firstSentence(missing.lines[0] ?? "")}>
+          {missing.lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
           {missing.units && <CondosLink projectId={projectId} />}
-        </Callout>
+        </WarnChip>
       )}
       {reconciling && base && (
         <ReconcileDialog

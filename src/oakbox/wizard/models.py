@@ -118,6 +118,7 @@ class MissingParcels(BaseModel):
     rows: int = Field(description="Its rows that find no parcel.")
     ids: int = Field(description="The different parcel IDs they're for.")
     lines: list[str] = Field(description="What it means and what to do, a sentence each.")
+    title: str = Field(default="", description="A few words for the row it's on: '777 sales off the map'.")
     units: bool = Field(
         default=False, description="They look like units without a shape of their own: the Condo units step's."
     )

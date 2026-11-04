@@ -347,7 +347,7 @@ def test_permits_are_guessed_and_written_for_openavmkit(client, tmp_path, monkey
         "INTERIOR REMODEL": "major",
     }
     permits = next(f for f in w["files"] if f["name"] == "permits")
-    assert permits["id_check"]["text"] == "4 permits · 75% find a parcel"
+    assert permits["id_check"]["text"] == "4 permits · 75% match"
     s = read_settings(pid)["data"]
     assert s["process"]["enrich"]["permits"] == {
         "sources": ["permits"],
