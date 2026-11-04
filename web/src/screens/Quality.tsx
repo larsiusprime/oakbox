@@ -49,7 +49,11 @@ export function ScaleChoice({
   return (
     <>
       {/* Level with the first choice when they're a list, not halfway down it. */}
-      <div className={kinds.length <= 3 ? "wiz-label" : "wiz-label wiz-label-top"}>{label}</div>
+      <div className={kinds.length <= 3 ? "wiz-label" : "wiz-label wiz-label-top"}>
+        {label}
+        {/* What the chosen meaning is, under the label (beside the list, where there's room). */}
+        {kinds.length > 3 && scale.kind && <small className="scale-hint">{q.kindHints[scale.kind]}</small>}
+      </div>
       {kinds.length <= 3 ? (
         <div className="wiz-span seg-row">
           <Seg
@@ -67,13 +71,10 @@ export function ScaleChoice({
           onChange={(k) => set(k as Kind)}
         >
           {kinds.map((k) => (
-            // One line each; what it means only under the one chosen.
+            // One line each; what the chosen one means is under the label.
             <Radio key={k} value={k} className="radio scale-item">
               <span className="radio-dot" aria-hidden="true" />
-              <span>
-                {cap(q.kinds[k] ?? k)}
-                {scale.kind === k && <span className="scale-hint">{q.kindHints[k]}</span>}
-              </span>
+              <span>{cap(q.kinds[k] ?? k)}</span>
             </Radio>
           ))}
         </RadioGroup>

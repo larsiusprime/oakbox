@@ -5987,8 +5987,8 @@ under what it's about; a file appended as rows {
   align-items: center;
   font-size: 0.9rem;
 }
-/* What a condition number means: a compact list of radios, one line each; the chosen one says what it means
-   on a line under it. */
+/* What a condition number means: a compact list of radios, one line each; what the chosen one means is under
+   the row's label. */
 .scale-list {
   display: grid;
   gap: 2px;
@@ -6000,10 +6000,12 @@ under what it's about; a file appended as rows {
 .radio.scale-item[data-selected] {
   font-weight: 600;
 }
-.scale-hint {
+.wiz-label > .scale-hint {
   display: block;
+  max-width: 13rem;
+  margin-top: 2px;
   font-weight: 400;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
