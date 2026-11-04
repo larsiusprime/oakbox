@@ -6000,15 +6000,24 @@ under what it's about; a file appended as rows {
   align-items: center;
   font-size: 0.9rem;
 }
-/* Two cards a row, even when nothing else on the page widens it (fit-content alone would give one). */
-.cu-choices.scale-cards {
-  grid-template-columns: repeat(2, minmax(13rem, 18rem));
-  width: auto;
+/* What a condition number means: a compact list of radios, one line each; the chosen one says what it means
+   on a line under it. */
+.scale-list {
+  display: grid;
+  gap: 2px;
+  margin-block: 2px;
 }
-@media (max-width: 760px) {
-  .cu-choices.scale-cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.radio.scale-item {
+  align-items: start;
+}
+.radio.scale-item[data-selected] {
+  font-weight: 600;
+}
+.scale-hint {
+  display: block;
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 /* Every popup that drops from a button (a list, a menu, a picker, a warning, Options, a confirmation, the plate's
@@ -6066,4 +6075,7 @@ under what it's about; a file appended as rows {
 }
 .wiz-grid > .seg-row > .seg > .seg-b {
   flex: 1;
+}
+.radio.scale-item > .radio-dot {
+  margin-top: 0.2rem;
 }

@@ -48,7 +48,7 @@ export function ScaleChoice({
     change({ key: field.key, file: source.file, column: source.column, scale: { ...scale, kind } });
   return (
     <>
-      {/* Level with the first card when the choices are cards, not halfway down them. */}
+      {/* Level with the first choice when they're a list, not halfway down it. */}
       <div className={kinds.length <= 3 ? "wiz-label" : "wiz-label wiz-label-top"}>{label}</div>
       {kinds.length <= 3 ? (
         <div className="wiz-span seg-row">
@@ -62,16 +62,17 @@ export function ScaleChoice({
       ) : (
         <RadioGroup
           aria-label={say.wizard.quality.meaningOf(field.name)}
-          className="wiz-span cu-choices scale-cards"
+          className="wiz-span scale-list"
           value={scale.kind ?? null}
           onChange={(k) => set(k as Kind)}
         >
           {kinds.map((k) => (
-            <Radio key={k} value={k} className="radio cu-choice">
+            // One line each; what it means only under the one chosen.
+            <Radio key={k} value={k} className="radio scale-item">
               <span className="radio-dot" aria-hidden="true" />
-              <span className="cu-text">
-                <b>{cap(q.kinds[k] ?? k)}</b>
-                <span className="cu-sub">{q.kindHints[k]}</span>
+              <span>
+                {cap(q.kinds[k] ?? k)}
+                {scale.kind === k && <span className="scale-hint">{q.kindHints[k]}</span>}
               </span>
             </Radio>
           ))}
