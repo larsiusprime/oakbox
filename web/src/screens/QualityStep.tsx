@@ -15,7 +15,7 @@ import {
 import { ToolButton } from "../components/Buttons";
 import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
-import { amount, short } from "../lib/format";
+import { amount } from "../lib/format";
 import { say, t } from "../wording";
 import { FieldRow } from "./FieldRow";
 import { PAIRS, SCALED } from "./Quality";
@@ -207,12 +207,6 @@ function Evidence({ projectId, field, source }: { projectId: string; field: Wiza
           </table>
           <p className="rc-sub">{say.wizard.quality.byPriceLede(v.by_type, v.type_field)}</p>
         </>
-      )}
-      {v.samples.length > 0 && (
-        <p className="rc-sub mono">
-          {q.samplesLine}{" "}
-          {v.samples.map((s) => `${short(s.raw)} → ${s.value.toLocaleString()}`).join("  ·  ")}
-        </p>
       )}
       {v.notes.length > 0 && <p className="rc-sub">{v.notes.join(" · ")}</p>}
     </div>

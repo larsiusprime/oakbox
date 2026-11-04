@@ -1063,7 +1063,6 @@
       "sales": "Sales",
       "medianOf": "Median {basis}",
       "writtenText": "Text beside it",
-      "samplesLine": "In the file → loaded as:",
       "medianPrice": "Median price",
       "typeOnly": "{type} sales",
       "byPriceLede": {

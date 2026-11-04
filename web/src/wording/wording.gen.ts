@@ -743,7 +743,6 @@ export type Wording = {
       sales: string;
       medianOf: (a: { basis: string | number }) => string;
       writtenText: string;
-      samplesLine: string;
       medianPrice: string;
       typeOnly: (a: { type: string | number }) => string;
       byPriceLede: {

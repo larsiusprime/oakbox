@@ -431,11 +431,6 @@ export function ScaleDialog({
             </>
           )}
           {v && v.notes.length > 0 && <p className="rc-sub">{v.notes.join(" · ")}</p>}
-          {v && kind && v.samples.length > 0 && (
-            <p className="rc-sub mono">
-              {q.samplesLine} {v.samples.map((s) => `${short(s.raw)} → ${fmt(s.value)}`).join("  ·  ")}
-            </p>
-          )}
           {preview.error && (
             <p className="error" role="alert">
               {preview.error.message}
