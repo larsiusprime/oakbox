@@ -101,7 +101,7 @@ def test_guesses_once_and_type_checks(client, pid):
     assert _field(w, "bldg_year_built")["sources"] == [{"file": "cama", "column": "YR_BLT"}]
     assert _field(w, "bldg_year_built")["check"] == {
         "ok": True,
-        "text": "✓ years 1954–2011",
+        "text": "✓ 1954–2011",
         "warn": False,
         "issues": [],
         "share": None,
@@ -1665,7 +1665,7 @@ def test_effective_year_zero_means_no_renovation(client, tmp_path):
     w = r.json()
     assert (
         _field(w, "bldg_effective_year_built")["check"]["text"]
-        == "✓ years 2006–2006 · 0 = no renovation: the year built"
+        == "✓ 2006–2006 · 0 = no renovation: the year built"
     )
     assert "calc" not in read_settings(pid)["data"]["process"].get("enrich", {})  # no year built yet
     client.put(f"{field}/bldg_year_built", json={"file": "geo_parcels", "column": "BUILT"})

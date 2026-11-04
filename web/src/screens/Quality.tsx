@@ -49,7 +49,7 @@ export function ScaleChoice({
   return (
     <>
       {/* Level with the first choice when they're a list, not halfway down it. */}
-      <div className={kinds.length <= 3 ? "wiz-label" : "wiz-label wiz-label-top"}>
+      <div className={kinds.length <= 3 ? "wiz-label" : "wiz-label wiz-label-top scale-label"}>
         {label}
         {/* What the chosen meaning is, under the label (beside the list, where there's room). */}
         {kinds.length > 3 && scale.kind && <small className="scale-hint">{q.kindHints[scale.kind]}</small>}

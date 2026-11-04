@@ -2599,7 +2599,7 @@ export interface components {
             ok: boolean;
             /**
              * Text
-             * @description Short: '✓ years 1890–2025', 'several rows per parcel'.
+             * @description Short: '✓ 1890–2025', 'several rows per parcel'.
              */
             text: string;
             /**

@@ -6002,7 +6002,9 @@ under what it's about; a file appended as rows {
 }
 .wiz-label > .scale-hint {
   display: block;
-  max-width: 13rem;
+  /* As wide as the label, never wider: choosing another meaning never resizes the box. */
+  width: 0;
+  min-width: 100%;
   margin-top: 2px;
   font-weight: 400;
   font-size: 0.8rem;
@@ -6067,4 +6069,28 @@ under what it's about; a file appended as rows {
 }
 .radio.scale-item > .radio-dot {
   margin-top: 0.2rem;
+}
+
+/* Big five's parts: a capsule per field, as wide as its row needs, the columns lined up across capsules. */
+.wiz-grid.wiz-capsules {
+  width: fit-content;
+  max-width: 100%;
+  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+}
+/* A column and its unit: room for the column's name beside the unit. */
+.wiz-capsules .wiz-pair {
+  width: 23rem;
+  max-width: 100%;
+}
+.wiz-capsules > .wiz-capsule {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  row-gap: inherit;
+  margin: 0;
+}
+/* Level with the first meaning's words (the list's items sit at their tops). */
+.wiz-label.wiz-label-top.scale-label {
+  padding-top: 2px;
 }

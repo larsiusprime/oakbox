@@ -6968,7 +6968,7 @@
      "text": {
       "type": "string",
       "title": "Text",
-      "description": "Short: '\u2713 years 1890\u20132025', 'several rows per parcel'."
+      "description": "Short: '\u2713 1890\u20132025', 'several rows per parcel'."
      },
      "warn": {
       "type": "boolean",

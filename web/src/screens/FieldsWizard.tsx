@@ -777,41 +777,52 @@ function FieldsStep({
   return (
     <>
       {onlyBase && <p className="wiz-note wiz-another">{w.anotherFileHint}</p>}
-      <div className="wiz-grid frame">
-        {groupsFor(step.key, shown).map(([title, fields]) =>
-          // A section of one field is that row, numbered; a section of several gets a heading.
-          title && fields.length === 1 && fields[0]
-            ? [
-                <FieldRow
-                  key={fields[0].key}
-                  project={project}
-                  data={data}
-                  field={fields[0]}
-                  sales={step.sales}
-                  change={change}
-                  label={title}
-                />,
-              ]
-            : [
-                title && (
-                  <h3 key={`group-${title}`} className="wiz-group">
-                    {title}
-                  </h3>
-                ),
-                ...fields.map((f) => (
+      {step.parent === "big_five" ? (
+        // Big five's parts: each field a capsule of its own, their columns lined up (one grid, each a subgrid).
+        <div className="wiz-grid wiz-capsules">
+          {shown.map((f) => (
+            <div key={f.key} className="frame wiz-capsule">
+              <FieldRow project={project} data={data} field={f} sales={step.sales} change={change} bare />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="wiz-grid frame">
+          {groupsFor(step.key, shown).map(([title, fields]) =>
+            // A section of one field is that row, numbered; a section of several gets a heading.
+            title && fields.length === 1 && fields[0]
+              ? [
                   <FieldRow
-                    key={f.key}
+                    key={fields[0].key}
                     project={project}
                     data={data}
-                    field={f}
+                    field={fields[0]}
                     sales={step.sales}
                     change={change}
-                    inGroup={Boolean(title)}
-                  />
-                )),
-              ],
-        )}
-      </div>
+                    label={title}
+                  />,
+                ]
+              : [
+                  title && (
+                    <h3 key={`group-${title}`} className="wiz-group">
+                      {title}
+                    </h3>
+                  ),
+                  ...fields.map((f) => (
+                    <FieldRow
+                      key={f.key}
+                      project={project}
+                      data={data}
+                      field={f}
+                      sales={step.sales}
+                      change={change}
+                      inGroup={Boolean(title)}
+                    />
+                  )),
+                ],
+          )}
+        </div>
+      )}
       {hidden > 0 && (
         <Disclose className="wiz-more" open={more} onPress={() => setMore(!more)}>
           {more ? w.fewer : w.more({ n: hidden })}

@@ -38,7 +38,7 @@ class Issue(BaseModel):
 
 class Check(BaseModel):
     ok: bool
-    text: str = Field(description="Short: '✓ years 1890–2025', 'several rows per parcel'.")
+    text: str = Field(description="Short: '✓ 1890–2025', 'several rows per parcel'.")
     warn: bool = Field(default=False, description="Usable, but worth a look (repeats handled, blank IDs dropped).")
     issues: list[Issue] = Field(default_factory=list, description="What's worth a look, each short.")
     share: float | None = Field(default=None, description="Sales: the share that find a parcel (0-1), for Reconcile.")

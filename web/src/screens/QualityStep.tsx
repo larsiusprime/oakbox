@@ -97,11 +97,12 @@ export function QualityStep({
           sales={false}
           change={change}
           label={q.column}
+          bare
           onPage
           pickScale={as === "cat" ? TIERS : undefined}
         />
         {ownText && txt && (
-          <FieldRow project={project} data={data} field={txt} sales={false} change={change} onPage />
+          <FieldRow project={project} data={data} field={txt} sales={false} change={change} onPage bare />
         )}
       </div>
       {source && !mismatch && as === "num" && num.scale?.kind && num.scale.kind !== "tiers" && (

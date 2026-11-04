@@ -41,7 +41,7 @@ def field_check(d: DictionaryField, col: Column) -> tuple[Check, list[str] | Non
             if not years or not all(1700 <= n <= 2100 for n in years):
                 bad = next((n for n in years if not 1700 <= n <= 2100), None)
                 return Check(ok=False, text="not years" + (f": {bad:g}" if bad is not None else "")), None
-            text = f"✓ years {int(min(years))}–{int(max(years))}"
+            text = f"✓ {int(min(years))}–{int(max(years))}"
             if len(years) < len(nums):
                 text += (
                     " · 0 = no renovation: the year built" if d.key == "bldg_effective_year_built" else " · 0 = none"

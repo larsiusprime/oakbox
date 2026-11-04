@@ -47,6 +47,7 @@ export function FieldRow({
   inGroup,
   onPage,
   pickScale,
+  bare,
 }: {
   project: Project;
   data: Wizard;
@@ -60,6 +61,8 @@ export function FieldRow({
   onPage?: boolean;
   /** Sent with a column picked (Categories chosen: the column is ranked, numbers or not). */
   pickScale?: Scale | undefined;
+  /** Big five's parts: no grey line under the label ("Required", "Used for modelling"). */
+  bare?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [elsewhere, setElsewhere] = useState(false);
@@ -74,7 +77,9 @@ export function FieldRow({
   // (or only adds what the card says: "Market value" in the Acme AVM card needs no "Acme AVM market value").
   const titled = label?.replace(/^\d+\.\s*/, "").toLowerCase();
   const same = !!titled && (titled === name.toLowerCase() || name.toLowerCase().endsWith(` ${titled}`));
-  const sub = [label && !same && !onPage ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
+  const sub = bare
+    ? ""
+    : [label && !same && !onPage ? name : null, w.hints[field.key]].filter(Boolean).join(" · ");
   const files = data.files.filter((f) => f.holds === (sales ? "sales" : "parcels"));
   const source = field.sources[0];
   const value = field.assumed
@@ -123,6 +128,9 @@ export function FieldRow({
           ? { label: w.numbers.change, press: () => setReading(true) }
           : null;
   const attention = Boolean(field.check && (field.check.warn || !field.check.ok));
+  // An area's reading only repeats the unit chosen beside it ("in sq ft"): said only when it needs a look, and the
+  // values follow the dropdowns straight away.
+  const quiet = Boolean(field.area_unit) && !attention && !action;
   return (
     <>
       <div className={inGroup ? "wiz-label wiz-in-group" : "wiz-label"}>
@@ -187,6 +195,16 @@ export function FieldRow({
                 <span className="reading-plain attention" title={field.check.text}>
                   {shortReading(field.check.text)}
                 </span>
+              )
+            ) : quiet ? (
+              sourceFile &&
+              column && (
+                <ValuesButton
+                  projectId={project.id}
+                  file={sourceFile.name}
+                  column={column.name}
+                  distinct={field.distinct}
+                />
               )
             ) : (
               <span className="field-tools">
