@@ -91,7 +91,8 @@ export type Wording = ${typeOf(catalog, "", 0, records)};
 export function write(dir = DIR) {
   const target = path.join(dir, "wording.gen.ts");
   const text = generate(dir);
-  const was = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : "";
+  // Line endings aside: git checks the file out with CRLF on Windows.
+    const was = fs.existsSync(target) ? fs.readFileSync(target, "utf8").replace(/\r\n/g, "\n") : "";
   if (was !== text) fs.writeFileSync(target, text);
   return was !== text;
 }
@@ -99,7 +100,8 @@ export function write(dir = DIR) {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   if (process.argv.includes("--check")) {
     const target = path.join(DIR, "wording.gen.ts");
-    const was = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : "";
+    // Line endings aside: git checks the file out with CRLF on Windows.
+    const was = fs.existsSync(target) ? fs.readFileSync(target, "utf8").replace(/\r\n/g, "\n") : "";
     if (was !== generate()) {
       console.error("src/wording/wording.gen.ts is out of date: run npm run wording:types");
       process.exit(1);
