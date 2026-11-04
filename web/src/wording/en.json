@@ -148,8 +148,8 @@
     "steps": {
       "universe": {
         "title": "Parcel universe",
-        "question": "Let''s start with your parcel universe",
-        "lede": "Two things first: the parcel shapes, and the main parcel ID. Add the file that has both. Have more files to join to it? Those come later: just pick the main file for now."
+        "question": "Parcel Universe",
+        "lede": "Please provide the file that contains your parcel GEOMETRY as well as your primary parcel ID."
       },
       "sales": {
         "title": "Sales",
