@@ -308,10 +308,7 @@ def test_step_marks_come_from_what_is_on_each_step(client, pid):
         return {s["key"]: s["status"] for s in w["steps"]}
 
     assert set(marks().values()) == {"blank"}  # nothing visited: nothing shown, not even what's missing
-    client.post(f"/api/projects/{pid}/wizard/steps/welcome/visit")
-    assert marks()["welcome"] == "blank"
-    client.post(f"/api/projects/{pid}/wizard/steps/welcome/confirm")  # Start
-    assert marks()["welcome"] == "done"
+    assert "welcome" not in marks()  # the welcome is the tab's Overview, not a step
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     assert marks()["universe"] == "blocked"  # visited, no file yet
     put_file(client, pid, "shapes", universe=True)

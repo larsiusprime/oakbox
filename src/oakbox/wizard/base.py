@@ -26,7 +26,6 @@ class Step(BaseModel):
 
 
 STEPS: list[Step] = [
-    Step(key="welcome"),
     Step(key="universe"),
     Step(key="sales", fields=["sale_price", "sale_date", "valid_sale", "vacant_sale"], sales=True),
     # More files, one by one, each joined to the universe (a parcel ID) or to the sales (the sale ID).

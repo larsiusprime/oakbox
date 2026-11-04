@@ -147,8 +147,6 @@ export type Wording = {
       question: string;
       lede: string;
     }>;
-    welcome: [string, string, string, string, string, string];
-    start: string;
     addFile: string;
     addOther: string;
     orExisting: string;

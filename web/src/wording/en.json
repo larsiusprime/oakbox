@@ -152,11 +152,6 @@
     },
     "columnFor": "Column for {field}",
     "steps": {
-      "welcome": {
-        "title": "Welcome",
-        "question": "Welcome to OAK box",
-        "lede": ""
-      },
       "universe": {
         "title": "Parcel universe",
         "question": "Let''s start with your parcel universe",
@@ -283,15 +278,6 @@
         "lede": ""
       }
     },
-    "welcome": [
-      "OAK box helps you build models. It needs two datasets for that: a SALES RECORD and a PARCEL UNIVERSE",
-      "",
-      "The SALES RECORD is what every parcel sold for and when (and ideally, what each parcel was like when it sold)",
-      "",
-      "The PARCEL UNIVERSE is every parcel, sold and unsold, as it is now.",
-      "Both are needed to build a model. We''ll start with the parcel universe."
-    ],
-    "start": "Start ›",
     "addFile": "Add a file…",
     "addOther": "Use a different file",
     "orExisting": "Or use a file already in the project",
@@ -2702,15 +2688,10 @@
     "needs": "Needs:",
     "start": "Start: {step} ›",
     "pages": {
-      "metadata": {
-        "kicker": "The project",
-        "title": "Metadata",
-        "lede": "What the project is: where, for which tax year, and valued as of which date, set when it was made; and the money and measures every size, price and value is shown in."
-      },
       "fields": {
         "kicker": "Before step 1",
-        "title": "Data: describe your files",
-        "lede": "Everything OAK box values comes from your county''s own files. Here you add them, one kind at a time, and say what each column means. Nothing runs yet: each answer is checked as you give it, so problems show up now rather than halfway through a run."
+        "title": "Welcome to OAK box",
+        "lede": "OAK box helps you build models. It needs two datasets for that: a SALES RECORD and a PARCEL UNIVERSE\n\nThe SALES RECORD is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe PARCEL UNIVERSE is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
       },
       "details": {
         "kicker": "",

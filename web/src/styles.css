@@ -1360,8 +1360,15 @@ a.row-title:hover {
   font-variant-numeric: tabular-nums;
 }
 
-.wiz-step.done .n {
-  color: var(--ok);
+/* A step's mark (✅ ⚠ ❌, or nothing) in a column of its own after its number, so names line up. */
+.wiz-step .mark {
+  flex: none;
+  width: 0.95em;
+}
+
+/* A part's mark sits under its step's name. */
+.wiz-step.sub .mark {
+  margin-left: 1.45em;
 }
 
 .wiz-step.sub button {

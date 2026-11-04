@@ -172,7 +172,6 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           <p className="wiz-kicker">{kicker}</p>
           <h2 className="wiz-q">{copy.question}</h2>
           {copy.lede && <p className="wiz-lede">{copy.lede}</p>}
-          {current.key === "welcome" && <WelcomeStep />}
           {current.key === "universe" && (
             <UniverseStep project={project} data={data} change={change.mutate} />
           )}
@@ -245,7 +244,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             aria-disabled={gated}
             onPress={() => (gated ? setUnfinished(true) : onward())}
           >
-            {current.key === "welcome" ? w.start : next ? t.step.next : w.toBringIn}
+            {next ? t.step.next : w.toBringIn}
           </Button>
         </div>
       </div>
@@ -306,7 +305,7 @@ function UnfinishedDialog({
   );
 }
 
-// A step's mark (SPEC F3d): ✅ complete, ⚠ to decide, ❌ blocks a run; blank shows its number.
+// A step's mark (SPEC F3d): ✅ complete, ⚠ to decide, ❌ blocks a run; beside its number, which always shows.
 const STATUS_ICONS: Record<string, string | null> = {
   done: resolvedIcon,
   attention: warningIcon,
@@ -340,6 +339,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
           <span className="n" aria-hidden="true">
             {LANDING_MARK}
           </span>
+          <span className="mark" />
           {t.landing.overview}
         </button>
       </li>
@@ -356,8 +356,13 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               onClick={() => go(s.key)}
               aria-current={s.key === current ? "step" : undefined}
             >
-              <span className="n" aria-hidden="true">
-                {icon ? <img src={icon} alt="" className="wiz-step-icon" /> : s.parent ? "" : String(n)}
+              {!s.parent && (
+                <span className="n" aria-hidden="true">
+                  {n}
+                </span>
+              )}
+              <span className="mark" aria-hidden="true">
+                {icon && <img src={icon} alt="" className="wiz-step-icon" />}
               </span>
               {w.steps[s.key]?.title ?? s.key}
             </button>
@@ -365,16 +370,6 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
         );
       })}
     </ol>
-  );
-}
-
-function WelcomeStep() {
-  return (
-    <div className="wiz-welcome">
-      {w.welcome.map((line) => (
-        <p key={line}>{line}</p>
-      ))}
-    </div>
   );
 }
 

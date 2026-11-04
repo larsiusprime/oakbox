@@ -346,8 +346,6 @@ def _status(
         return _condo_ask_status(project, files)
     if step.key not in w.visited:
         return "blank", []
-    if step.key == "welcome":
-        return ("done" if "welcome" in w.confirmed else "blank"), []
     if step.key == "review":
         return ("blocked" if problems else "attention" if warnings else "done"), []
     mine = [f for f in flds if f.step == step.key and not f.hidden]

@@ -6,6 +6,7 @@ import { api, type NewProject, unwrap } from "../api/client";
 import { Choice, Field } from "../components/Form";
 import { countryLocale, LocaleFields } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
+import { OVERVIEW } from "../lib/place";
 import { t } from "../wording";
 
 export function NewProjectScreen() {
@@ -35,7 +36,7 @@ export function NewProjectScreen() {
   const create = useMutation({
     mutationFn: async () => unwrap(await api.POST("/api/projects", { body: form })),
     // Straight into the Data wizard, which starts by asking for the files (SPEC F3d).
-    onSuccess: (p) => navigate({ name: "project", id: p.id, tab: "fields", step: "welcome" }),
+    onSuccess: (p) => navigate({ name: "project", id: p.id, tab: "fields", step: OVERVIEW }),
   });
   const s = t.newProject;
   const states = regions.data?.subdivisions[form.country];

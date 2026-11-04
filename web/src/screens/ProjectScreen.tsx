@@ -313,7 +313,6 @@ function MetadataTab({ detail }: { detail: ProjectDetail }) {
       steps={[{ key: "details", title: m.details, status: "blank" }]}
       current="details"
       go={() => {}}
-      landing="metadata"
     >
       <StepBody kicker={m.kicker} title={m.details}>
         <div className="meta-sheet">

@@ -84,16 +84,14 @@ export function StepFrame({
                 onClick={() => goTo(s.key)}
                 aria-current={s.key === now ? "step" : undefined}
               >
-                <span className="n" aria-hidden="true">
-                  {s.key === OVERVIEW ? (
-                    LANDING_MARK
-                  ) : icon ? (
-                    <img src={icon} alt="" className="wiz-step-icon" />
-                  ) : s.parent ? (
-                    ""
-                  ) : (
-                    String(tops.indexOf(s) + 1)
-                  )}
+                {!s.parent && (
+                  <span className="n" aria-hidden="true">
+                    {s.key === OVERVIEW ? LANDING_MARK : tops.indexOf(s) + 1}
+                  </span>
+                )}
+                {/* Its mark beside its number (✅, ⚠…): the number always shows. */}
+                <span className="mark" aria-hidden="true">
+                  {icon && s.key !== OVERVIEW && <img src={icon} alt="" className="wiz-step-icon" />}
                 </span>
                 {s.title}
               </button>
