@@ -234,7 +234,7 @@ function Jump({
         {label}
         <ChevronDown aria-hidden="true" size="0.75em" />
       </Button>
-      <Popover className="popover crumb-pop" placement="bottom start">
+      <Popover className="popover crumb-pop" placement="bottom start" offset={0}>
         {children}
       </Popover>
     </MenuTrigger>

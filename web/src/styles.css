@@ -6004,14 +6004,14 @@ under what it's about; a file appended as rows {
   grid-template-columns: repeat(auto-fit, minmax(13rem, 18rem));
 }
 
-/* Every popup that drops from a button (a list, a menu, a picker, a warning, Options, a confirmation) hangs flush
-   from it, as a dropdown's list does: no gap (offset 0 on each Popover) and square corners where they meet; the
-   other way up when it opens above. Not the plate's lists, which hang from engraved text. */
-.popover:not(.crumb-pop)[data-placement="bottom"] {
+/* Every popup that drops from a button (a list, a menu, a picker, a warning, Options, a confirmation, the plate's
+   trail) hangs flush from it, as a dropdown's list does: no gap (offset 0 on each Popover) and square corners where
+   they meet; the other way up when it opens above. */
+.popover[data-placement="bottom"] {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
-.popover:not(.crumb-pop)[data-placement="top"] {
+.popover[data-placement="top"] {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
