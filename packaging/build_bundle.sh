@@ -70,6 +70,10 @@ rm -rf "$OUT"/sample/*/.cache  # the downloads make.py keeps; what it made is in
 # Linux: keep only the parts of Qt the window loads (about 270 MB less).
 [ "$PLATFORM" = linux ] && python3 packaging/prune_qt.py "$OUT/$SITE"
 
+# What the bundle never runs: libraries' test suites, headers, static libraries, stubs, pip and setuptools,
+# Python's Tk, IDLE and ensurepip (about 140 MB; packaging/strip_bundle.py says what it keeps and why).
+python3 packaging/strip_bundle.py "$OUT" "$PLATFORM"
+
 if [ "$PLATFORM" = windows ]; then
   cat > "$OUT/Oakbox.cmd" <<'CMD'
 @echo off
