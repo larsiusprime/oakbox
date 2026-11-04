@@ -666,10 +666,10 @@ a.row-title:hover {
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.5714rem; /* 22px at 100%: 20px inside the border, the 12px ✕ exactly in the middle */
+  height: 1.5714rem;
   padding: 0;
-  font-size: 0.85rem;
+  font-size: 0.8571rem; /* the ✕ is 1em: 12px */
   color: #ffffff;
   background: #b8352b;
   border: 1px solid #5e130e;
@@ -3385,10 +3385,10 @@ ul.mg-checks {
   border-radius: 3px;
 }
 .ly-chip .remove-x {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.2857rem; /* 18px: 16px inside, the 10px ✕ in the middle */
+  height: 1.2857rem;
   margin: 1px;
-  font-size: 0.75rem;
+  font-size: 0.7143rem; /* a 10px ✕ */
 }
 /* A layer's body: labels in one column, what's set in the next. */
 .ly-grid {
