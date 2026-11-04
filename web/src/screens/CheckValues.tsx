@@ -11,7 +11,8 @@ import {
   unwrap,
 } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
-import { Choice, Field } from "../components/Form";
+import { DateField } from "../components/DateField";
+import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -338,21 +339,23 @@ function SalesCard({ v, set }: CardProps) {
       <section className="cs-step">
         <h3 className="wiz-group">{r.sales.window}</h3>
         <div className="cs-row">
-          <Field
+          <DateField
             label={r.sales.from}
-            type="date"
             width="short"
             value={start}
-            onChange={setStart}
-            onBlur={() => commit("start", start)}
+            onChange={(v) => {
+              setStart(v);
+              commit("start", v);
+            }}
           />
-          <Field
+          <DateField
             label={r.sales.to}
-            type="date"
             width="short"
             value={end}
-            onChange={setEnd}
-            onBlur={() => commit("end", end)}
+            onChange={(v) => {
+              setEnd(v);
+              commit("end", v);
+            }}
           />
         </div>
         {v.window_proposed ? (

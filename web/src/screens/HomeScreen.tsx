@@ -1,14 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type Project, unwrap } from "../api/client";
 import { AddButton } from "../components/AddButton";
-import { Field } from "../components/Form";
 import { OakBand } from "../components/OakBand";
-import { desktop } from "../desktop";
-import { size } from "../lib/format";
 import { t } from "../wording";
 
 export function HomeScreen() {
@@ -36,7 +32,6 @@ export function HomeScreen() {
               ))}
             </ul>
           </section>
-          <StorageLocation />
         </div>
       </div>
     </>
@@ -137,8 +132,7 @@ function DeleteBody({
       <Heading slot="title" className="modal-title">
         {d.title({ name: project.name })}
       </Heading>
-      <p>{disk.data ? d.body({ size: size(disk.data.bytes), files: disk.data.files }) : d.measuring}</p>
-      {disk.data && <p className="row-meta mono">{disk.data.folder}</p>}
+      <p className={disk.data ? "mono" : ""}>{disk.data ? disk.data.folder : d.measuring}</p>
       {remove.error && (
         <p className="error" role="alert">
           {remove.error.message}
@@ -158,77 +152,5 @@ function DeleteBody({
         </Button>
       </div>
     </>
-  );
-}
-
-/** Settings: where new projects are kept (SPEC §3.0 F1). */
-function StorageLocation() {
-  const queryClient = useQueryClient();
-  const settings = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => unwrap(await api.GET("/api/app-settings")),
-  });
-  const [editing, setEditing] = useState<string | null>(null);
-  const save = useMutation({
-    mutationFn: async (storage_location: string | null) =>
-      unwrap(await api.PUT("/api/app-settings/storage-location", { body: { storage_location } })),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["app-settings"], data);
-      setEditing(null);
-    },
-  });
-  const pick = async () => {
-    const folder = await desktop.pickFolder();
-    if (folder) setEditing(folder);
-  };
-  if (!settings.data) return null;
-  const isDefault = settings.data.storage_location === settings.data.default_storage_location;
-  return (
-    <section className="panel settings-panel" aria-labelledby="storage-title">
-      <header className="panel-head">
-        <h2 id="storage-title">{t.home.storageTitle}</h2>
-      </header>
-      <div className="settings-body sheet">
-        {editing === null ? (
-          <div className="setting-line">
-            <span className="mono">{settings.data.storage_location}</span>
-            <Button className="button" onPress={() => setEditing(settings.data.storage_location)}>
-              {t.home.change}
-            </Button>
-            {!isDefault && (
-              <Button className="button" onPress={() => save.mutate(null)}>
-                {t.home.useDefault}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="setting-line">
-            <Field label={t.home.folderLabel} value={editing} onChange={setEditing} width="long" autoFocus />
-            {desktop.canPickFolder() && (
-              <Button className="button" onPress={() => void pick()}>
-                <FolderOpen aria-hidden="true" size="1em" />
-                {t.home.change}
-              </Button>
-            )}
-            <Button
-              className="button button-primary"
-              isDisabled={!editing.trim() || save.isPending}
-              onPress={() => save.mutate(editing.trim())}
-            >
-              {t.home.save}
-            </Button>
-            <Button className="button" onPress={() => setEditing(null)}>
-              {t.home.cancel}
-            </Button>
-          </div>
-        )}
-        <p className="row-meta">{t.home.storageNote}</p>
-        {save.error && (
-          <p className="error" role="alert">
-            {save.error.message}
-          </p>
-        )}
-      </div>
-    </section>
   );
 }

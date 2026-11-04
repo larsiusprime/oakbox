@@ -20,17 +20,13 @@
   },
   "newProject": {
     "title": "New project",
-    "intro": "Tell OAK box which jurisdiction and tax year this is. You''ll add data files next.",
     "name": "Project name",
-    "nameHelp": "Your name for it, e.g. Travis County 2026. It also names the project''s folder.",
     "country": "Country",
     "state": "State",
     "region": "State, province or region",
     "jurisdiction": "Jurisdiction",
-    "jurisdictionHelp": "What your office calls itself, e.g. Travis County. It appears on reports.",
     "taxYear": "Tax year",
     "valuationDate": "Valuation date",
-    "valuationHelp": "Everything is valued as of this date. To check an existing roll, use that roll''s valuation date.",
     "units": "Units",
     "imperial": "Imperial (square feet, acres)",
     "metric": "Metric (square metres, hectares)",
@@ -44,8 +40,7 @@
       "1 234.56": "1 234.56"
     },
     "create": "Create project",
-    "cancel": "Cancel",
-    "where": "It will be kept in {folder}"
+    "cancel": "Cancel"
   },
   "inputFiles": {
     "none": "No input files yet.",
@@ -90,7 +85,6 @@
   },
   "deleteProject": {
     "title": "Delete {name}?",
-    "body": "Its folder ({size}, {files, number} files) goes to the Recycle Bin. You can restore it from there.",
     "measuring": "Measuring the folder…",
     "confirm": "Move to Recycle Bin",
     "cancel": "Cancel"
@@ -2882,7 +2876,9 @@
     "waits": "waits for an earlier step",
     "waitsShort": "waits",
     "projectsFoot": "Each opens where you last were in it. Nothing in this one stops or is lost.",
-    "tabsFoot": "Each tab opens on the step you last had open in it."
+    "tabsFoot": "Each tab opens on the step you last had open in it.",
+    "projectsSettings": "settings",
+    "whereKept": "Where projects are kept…"
   },
   "project": {
     "title": "{name} – OAK box",

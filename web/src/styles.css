@@ -5291,9 +5291,11 @@ under what it's about; a file appended as rows {
 
 /* The dialog's title: a brass plate on its frame. */
 .modal-body > .modal-title {
-  justify-self: start;
+  justify-self: stretch;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   margin: 8px 0;
   padding: calc(0.3 * var(--sp)) calc(1.6 * var(--sp));
   font-size: 1.1rem;
@@ -5722,4 +5724,142 @@ under what it's about; a file appended as rows {
 .engines-act {
   text-align: right;
   white-space: nowrap;
+}
+
+/* A date: its parts typed in a field like the others, the calendar opening as a dropdown does (DateField). */
+.date-group {
+  display: inline-flex;
+  align-items: stretch;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  min-height: var(--ctl-h);
+  padding: 2px 2px 2px calc(0.4 * var(--sp));
+  background: var(--panel);
+  border: 1px solid var(--well-edge);
+  border-radius: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15) inset;
+}
+.date-group[data-focus-within] {
+  outline: 2px solid var(--focus);
+  border-color: var(--focus);
+}
+.date-input {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+.date-seg {
+  padding: 0 1px;
+  border-radius: 2px;
+  outline: none;
+}
+.date-seg[data-placeholder] {
+  color: var(--muted);
+}
+.date-seg[data-focused] {
+  color: #ffffff;
+  background: var(--focus);
+}
+.date-popover {
+  max-width: none;
+}
+.date-dialog {
+  outline: none;
+  padding: calc(0.5 * var(--sp));
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(0.5 * var(--sp));
+  margin-bottom: calc(0.4 * var(--sp));
+}
+.cal-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+.cal-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  color: var(--text);
+  background: linear-gradient(to bottom, var(--btn-top), var(--btn-bottom));
+  border: 1px solid var(--btn-edge);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.cal-grid {
+  border-collapse: collapse;
+}
+.cal-day {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding-bottom: 2px;
+}
+.cal-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 1.8rem;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.cal-cell[data-outside-month] {
+  display: none;
+}
+.cal-cell[data-hovered],
+.cal-cell[data-focus-visible] {
+  background: var(--head);
+}
+.cal-cell[data-selected] {
+  color: #ffffff;
+  font-weight: 650;
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+}
+.cal-cell[data-disabled] {
+  color: var(--muted);
+}
+
+/* New project (SPEC F1): two columns with matching edges. Name and jurisdiction take the full width; country and
+   state, tax year and valuation date, currency and number style pair up; units is a full-width choice. */
+.np-form {
+  grid-template-columns: 1fr 1fr;
+  column-gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
+  row-gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
+  max-width: 36rem;
+}
+.np-form :is(.form-row) {
+  display: contents;
+}
+.np-form > .field,
+.np-form > .units-field,
+.np-form > .form-actions,
+.np-form > .error {
+  grid-column: 1 / -1;
+}
+.np-form :is(.field, .choice) {
+  width: auto;
+  max-width: none;
+  min-width: 0;
+}
+.np-form :is(.input, .choice-button, .date-group) {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+.units-field :is(.seg) {
+  display: flex;
+}
+.units-field :is(.seg-b) {
+  flex: 1 1 0;
+  white-space: nowrap;
+  padding: calc(0.25 * var(--sp)) calc(0.8 * var(--sp));
 }

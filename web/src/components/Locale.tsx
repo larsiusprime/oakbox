@@ -1,7 +1,7 @@
-import { Label, Radio, RadioGroup } from "react-aria-components";
 import type { Regions } from "../api/client";
 import { t } from "../wording";
 import { Choice } from "./Form";
+import { Seg } from "./Seg";
 
 export type LocaleValue = {
   units: "imperial" | "metric";
@@ -49,21 +49,18 @@ export function LocaleFields({
           onChange={(numbers) => onChange({ numbers })}
         />
       </div>
-      <RadioGroup
-        className="field radios"
-        value={value.units}
-        onChange={(v) => onChange({ units: v as LocaleValue["units"] })}
-      >
-        <Label className="field-label">{s.units}</Label>
-        <Radio value="imperial" className="radio">
-          <span className="radio-dot" aria-hidden="true" />
-          {s.imperial}
-        </Radio>
-        <Radio value="metric" className="radio">
-          <span className="radio-dot" aria-hidden="true" />
-          {s.metric}
-        </Radio>
-      </RadioGroup>
+      <div className="field units-field">
+        <span className="field-label">{s.units}</span>
+        <Seg
+          label={s.units}
+          value={value.units}
+          options={[
+            ["imperial", s.imperial],
+            ["metric", s.metric],
+          ]}
+          onChange={(units) => onChange({ units })}
+        />
+      </div>
     </>
   );
 }

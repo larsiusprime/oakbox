@@ -4,11 +4,13 @@
  * steps), each saying where it will open. No text sits on the bare wood: what's said is on the plate. */
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { navigate } from "../App";
 import { api, unwrap } from "../api/client";
 import { lastStep, lastTab, usePlace } from "../lib/place";
 import { t } from "../wording";
+import { StorageLocationDialog } from "./StorageLocation";
 
 const n = t.nav;
 
@@ -28,7 +30,7 @@ export function OakBand({ page }: { page: Page }) {
         <span className="plate-rule" aria-hidden="true" />
         <ol className="crumbs">
           {page.kind === "projects" ? (
-            <Here>{n.projects}</Here>
+            <ProjectsHere />
           ) : (
             <Crumb>
               <a className="crumb" href="#/">
@@ -41,6 +43,30 @@ export function OakBand({ page }: { page: Page }) {
         </ol>
       </nav>
     </header>
+  );
+}
+
+/** On the projects page, Projects holds the setting for where they're kept. */
+function ProjectsHere() {
+  const [open, setOpen] = useState(false);
+  const settings = useQuery({
+    queryKey: ["app-settings"],
+    queryFn: async () => unwrap(await api.GET("/api/app-settings")),
+  });
+  return (
+    <Crumb>
+      <Jump label={n.projects} current title={n.projectsSettings}>
+        <Menu className="crumb-list" onAction={() => setOpen(true)}>
+          <MenuItem id="where" className="crumb-item" textValue={n.whereKept}>
+            <span className="crumb-item-t">
+              {n.whereKept}
+              {settings.data && <small className="mono">{settings.data.storage_location}</small>}
+            </span>
+          </MenuItem>
+        </Menu>
+      </Jump>
+      <StorageLocationDialog isOpen={open} onClose={() => setOpen(false)} />
+    </Crumb>
   );
 }
 

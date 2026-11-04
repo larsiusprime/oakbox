@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "react-aria-components";
 import { navigate } from "../App";
 import { api, type NewProject, unwrap } from "../api/client";
+import { DateField } from "../components/DateField";
 import { Choice, Field } from "../components/Form";
 import { countryLocale, LocaleFields } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
@@ -13,10 +14,6 @@ export function NewProjectScreen() {
   const regions = useQuery({
     queryKey: ["regions"],
     queryFn: async () => unwrap(await api.GET("/api/regions")),
-  });
-  const settings = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => unwrap(await api.GET("/api/app-settings")),
   });
   const year = new Date().getFullYear();
   const [form, setForm] = useState<NewProject>({
@@ -48,20 +45,18 @@ export function NewProjectScreen() {
       <div className="narrow">
         <h1 className="visually-hidden">{s.title}</h1>
         <form
-          className="panel form-panel"
+          className="panel form-panel np-form"
           onSubmit={(e) => {
             e.preventDefault();
             if (ready) create.mutate();
           }}
         >
-          <p className="row-meta">{s.intro}</p>
+          <Field label={s.name} value={form.name} onChange={(v) => set({ name: v })} width="long" autoFocus />
           <Field
-            label={s.name}
-            help={s.nameHelp}
-            value={form.name}
-            onChange={(v) => set({ name: v })}
+            label={s.jurisdiction}
+            value={form.jurisdiction}
+            onChange={(v) => set({ jurisdiction: v })}
             width="long"
-            autoFocus
           />
           <div className="form-row">
             <Choice
@@ -83,13 +78,6 @@ export function NewProjectScreen() {
               <Field label={s.region} value={form.region} onChange={(v) => set({ region: v })} />
             )}
           </div>
-          <Field
-            label={s.jurisdiction}
-            help={s.jurisdictionHelp}
-            value={form.jurisdiction}
-            onChange={(v) => set({ jurisdiction: v })}
-            width="long"
-          />
           <div className="form-row">
             <Field
               label={s.taxYear}
@@ -101,10 +89,8 @@ export function NewProjectScreen() {
                 set(dateTouched || !y ? { tax_year: y } : { tax_year: y, valuation_date: `${y}-01-01` });
               }}
             />
-            <Field
+            <DateField
               label={s.valuationDate}
-              help={s.valuationHelp}
-              type="date"
               value={form.valuation_date}
               onChange={(v) => {
                 setDateTouched(true);
@@ -121,7 +107,6 @@ export function NewProjectScreen() {
             }}
             onChange={set}
           />
-          {settings.data && <p className="row-meta">{s.where({ folder: settings.data.storage_location })}</p>}
           <div className="form-actions">
             <Button type="submit" className="button button-primary" isDisabled={!ready || create.isPending}>
               {s.create}

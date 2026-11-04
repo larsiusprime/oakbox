@@ -21,17 +21,13 @@ export type Wording = {
   };
   newProject: {
     title: string;
-    intro: string;
     name: string;
-    nameHelp: string;
     country: string;
     state: string;
     region: string;
     jurisdiction: string;
-    jurisdictionHelp: string;
     taxYear: string;
     valuationDate: string;
-    valuationHelp: string;
     units: string;
     imperial: string;
     metric: string;
@@ -40,7 +36,6 @@ export type Wording = {
     numberStyles: Record<string, string>;
     create: string;
     cancel: string;
-    where: (a: { folder: string | number }) => string;
   };
   inputFiles: {
     none: string;
@@ -85,7 +80,6 @@ export type Wording = {
   };
   deleteProject: {
     title: (a: { name: string | number }) => string;
-    body: (a: { size: string | number; files: number }) => string;
     measuring: string;
     confirm: string;
     cancel: string;
@@ -2192,6 +2186,8 @@ export type Wording = {
     waitsShort: string;
     projectsFoot: string;
     tabsFoot: string;
+    projectsSettings: string;
+    whereKept: string;
   };
   project: {
     title: (a: { name: string | number }) => string;
