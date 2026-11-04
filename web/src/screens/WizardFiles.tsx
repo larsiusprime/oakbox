@@ -25,10 +25,10 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
-import { CloseButton } from "../components/Buttons";
 import { Callout, firstSentence } from "../components/Callout";
 import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
 import { desktop, useCanPickFile } from "../desktop";
@@ -408,7 +408,7 @@ export function FilePicker({
       )}
       {onCancel && (
         <span className="entry-acts">
-          <CloseButton label={w.cancel} onPress={onCancel} />
+          <RemoveButton what={w.cancel} label={w.cancel} onPress={onCancel} />
         </span>
       )}
     </FileSlot>

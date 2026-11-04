@@ -126,7 +126,7 @@ export function Choice<V extends string>(props: {
           <ChevronDown size="0.9em" />
         </span>
       </Button>
-      <Popover className="popover choice-popover">
+      <Popover className="popover choice-popover" offset={0}>
         <ListBox className="choice-list">
           {props.options.map(([value, label, file]) => (
             <ListBoxItem key={value} id={value} className="choice-item" textValue={label}>

@@ -1,6 +1,5 @@
 import { Fragment, type ReactNode } from "react";
 import { t } from "../wording";
-import { CloseButton } from "./Buttons";
 import { RemoveButton } from "./RemoveButton";
 
 /** A file's own name (`parcels.csv`), set off like code wherever it appears: in an entry, a list, a dropdown's
@@ -57,8 +56,7 @@ export function FileEntry({
   actions,
   onRemove,
   undo,
-  onClose,
-  closeLabel,
+  removeLabel,
   children,
 }: {
   name?: string | null;
@@ -67,14 +65,13 @@ export function FileEntry({
   facts?: ReactNode;
   /** A short check on the file itself, after its facts. */
   status?: ReactNode;
-  /** Other actions, as icon buttons, before the ✕. */
+  /** Other actions, as icon buttons, before the −. */
   actions?: ReactNode;
   /** Takes the file off its step (the red −), and `undo` puts it back. */
   onRemove?: () => void;
   undo?: () => void;
-  /** Instead of removing: closes an entry that isn't saved yet (the import form): a grey ✕. */
-  onClose?: () => void;
-  closeLabel?: string;
+  /** Instead of "Remove {name}" (the import form's "Don't import …"). */
+  removeLabel?: string;
   children?: ReactNode;
 }) {
   return (
@@ -88,13 +85,17 @@ export function FileEntry({
         >
           {status}
         </FileLine>
-        {(actions || onRemove || onClose) && (
+        {(actions || onRemove) && (
           <span className="entry-acts">
             {actions}
             {onRemove && (
-              <RemoveButton what={name ?? filename} onPress={onRemove} {...(undo ? { undo } : {})} />
+              <RemoveButton
+                what={name ?? filename}
+                onPress={onRemove}
+                {...(undo ? { undo } : {})}
+                {...(removeLabel ? { label: removeLabel } : {})}
+              />
             )}
-            {onClose && <CloseButton {...(closeLabel ? { label: closeLabel } : {})} onPress={onClose} />}
           </span>
         )}
       </div>
@@ -109,7 +110,7 @@ export function FileSlot({ children }: { children: ReactNode }) {
 }
 
 /** Something inside a file's body that can be taken away on its own (an ID): its own small box on the body's
- * columns, the ✕ at its right. Its siblings in the same list get one too, without the ✕. */
+ * columns, the red − at its right. Its siblings in the same list get one too, without the −. */
 export function SubEntry({
   label,
   control,
@@ -117,7 +118,6 @@ export function SubEntry({
   what,
   onRemove,
   undo,
-  onClose,
 }: {
   label: ReactNode;
   control: ReactNode;
@@ -126,8 +126,6 @@ export function SubEntry({
   what?: string;
   onRemove?: () => void;
   undo?: (() => void) | undefined;
-  /** A row not saved yet: a grey ✕ closes it. */
-  onClose?: () => void;
 }) {
   return (
     <div className="entry-sub">
@@ -136,7 +134,6 @@ export function SubEntry({
       <div className="entry-sub-end">
         <div className="entry-sub-after">{after}</div>
         {onRemove && what && <RemoveButton what={what} onPress={onRemove} {...(undo ? { undo } : {})} />}
-        {onClose && <CloseButton onPress={onClose} />}
       </div>
     </div>
   );

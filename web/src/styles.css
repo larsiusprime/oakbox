@@ -653,6 +653,22 @@ a.row-title:hover {
   border: 1px solid var(--frame);
   border-radius: 3px;
 }
+/* Boxes inside the same file stack flush: no space between them, one border line where they meet, rounded only at
+   the stack's top and bottom. */
+.wiz-grid:has(> .entry-sub) {
+  row-gap: 0;
+}
+.entry-sub + .entry-sub {
+  margin-top: -1px;
+}
+.entry-sub:has(+ .entry-sub) {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.entry-sub + .entry-sub {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
 .entry-sub-end {
   display: flex;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
@@ -1139,6 +1155,20 @@ a.row-title:hover {
   min-width: var(--trigger-width);
   max-height: 20rem;
   overflow: auto;
+}
+/* A dropdown's list hangs from its box: no gap, the box's own bottom edge is the line between them (the list has no
+   top edge), the same edge colour, square corners where they meet. Above the box when there's no room below, the
+   same the other way up. */
+.choice-popover {
+  border-color: var(--well-edge);
+}
+.choice-popover[data-placement="bottom"] {
+  border-top-width: 0;
+  border-radius: 0 0 2px 2px;
+}
+.choice-popover[data-placement="top"] {
+  border-bottom-width: 0;
+  border-radius: 2px 2px 0 0;
 }
 
 .choice-list {
@@ -5346,6 +5376,13 @@ under what it's about; a file appended as rows {
   border: 1px solid var(--manila-edge);
   border-radius: 6px;
   box-shadow: 0 4px 14px rgba(40, 25, 5, 0.3);
+}
+/* The field picker's Manila panel hangs from its box too: square corners where they meet. */
+.mp-popover[data-placement="bottom"] {
+  border-radius: 0 0 6px 6px;
+}
+.mp-popover[data-placement="top"] {
+  border-radius: 6px 6px 0 0;
 }
 
 .vals-popover .vals-scroll,

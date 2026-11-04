@@ -503,7 +503,8 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
           }
         />
       }
-      onClose={done}
+      what={ordinal}
+      onRemove={done}
     />
   );
 }

@@ -107,7 +107,10 @@ name that says what it is.
     step, never off disk.
   - **Deleting for good is `DeleteButton`** (`components/Buttons.tsx`): a danger button with a trash can and its
     words ("Delete set", "Delete project"), which asks first. Never a trash can on something that can be undone.
-  - **Closing is `CloseButton`:** a grey ✕, only at the top right of a popup, panel, dialog or unsaved form.
+  - **Closing is `CloseButton`:** a grey ✕, only at the top right of a popup, panel or dialog. Taking away a row or
+    an entry that isn't saved yet (a new ID row, the import form, an "add a file" slot) is the red −, like any item.
+  - **Boxes inside the same file stack flush** (`SubEntry`): no space between them, one border line where they
+    meet.
     Nothing is lost; never for removing. Close and remove never share a look.
   - **The button family** (style guide, section 1): `.button`, `.button-primary` (one per view), `DeleteButton`,
     `AddButton`, `SmallButton` (an action beside a line of text: "Reconcile…", "Options ˅", "4 values ˅"),

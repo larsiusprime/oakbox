@@ -118,7 +118,7 @@ export function Combo({
         </Button>
       </Group>
       <FirstMatch keyOf={query.trim() ? first(query) : null} />
-      <Popover className={popoverClassName}>
+      <Popover className={popoverClassName} offset={0}>
         <ListBox
           className="choice-list"
           renderEmptyState={() => <p className="combo-none">{t.combo.none}</p>}

@@ -66,7 +66,7 @@ export function MultiPick({
         {chosen.length > 1 && !brief && <span className="pill pill-info">{chosen.length}</span>}
         <ChevronDown aria-hidden="true" size="0.9em" />
       </Button>
-      <Popover className="popover mp-popover" placement="bottom start">
+      <Popover className="popover mp-popover" placement="bottom start" offset={0}>
         <Dialog className="mp-body" aria-label={label}>
           {(values.length > 10 || more > 0) && (
             <SearchField

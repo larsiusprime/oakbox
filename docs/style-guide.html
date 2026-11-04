@@ -126,6 +126,10 @@ button { font: inherit; }
 .label { font-weight: 600; }
 .label small { display: block; font-weight: 400; font-size: .8rem; color: var(--muted); }
 .sub { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 4px 4px 4px 8px; border: 1px solid var(--frame); border-radius: 3px; }
+/* Boxes inside the same file stack flush: one border line where they meet. */
+.grid:has(> .sub) { row-gap: 0; }
+.sub + .sub { margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0; }
+.sub:has(+ .sub) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .sub-end { display: flex; align-items: center; gap: 8px; }
 .sub-end > :first-child { flex: 1; }
 .add-end { display: flex; justify-content: flex-end; }
@@ -305,7 +309,7 @@ table.tbl td.n { text-align: right; font-variant-numeric: tabular-nums; }
     <div class="spec">
       <h4>Close button <span class="tag tag-new">new</span></h4>
       <div class="shows"><button class="close" aria-label="Close"><svg><use href="#i-x-thin"/></svg></button><span class="muted" style="font-size:.86rem">closes a popup, hides a panel</span></div>
-      <p>A grey ✕, only at the top right of a popup, panel or dialog. Nothing is lost.</p>
+      <p>A grey ✕, only at the top right of a popup, panel or dialog. Nothing is lost. A row not saved yet is taken away with the red −, like any item.</p>
     </div>
     <div class="spec">
       <h4>Remove <span class="tag tag-new">new look</span></h4>
@@ -611,6 +615,7 @@ table.tbl td.n { text-align: right; font-variant-numeric: tabular-nums; }
     <li><b>A remove can be undone:</b> "Removed parks · Undo" shows for a few seconds after it.</li>
     <li><b>Every button that takes something away says so with its symbol:</b> a − when it removes from a list or a step (it can be undone), a trash can when it deletes for good (a danger button, with its words, and it asks first). Never words alone, and never a trash can for something that can be undone.</li>
     <li><b>A file is one entry</b> (<code>FileEntry</code>): a thin outline as wide as what's in it, its first line a faint band (name, <span class="file">file.csv</span>, facts, actions, −), its settings inside on two columns. Entries in one list share one width, with their Add button at its right edge.</li>
+    <li><b>Boxes inside the same file stack flush:</b> no space between them, one border line where they meet.</li>
     <li><b>Anything removable on its own has its own box</b> and its − at the right; its siblings get one too. A table's rows are boxed already by its lines: a removable row ends in its −. Adding to an item is inside it; adding another item is after the list.</li>
     <li><b>Settings line up on two columns</b>, labels then what's set, in a file's body and outside one. Not a sentence with a blank in it ("A sale demolished within [365] days…"), which stays a sentence, nor a question with its answers below it.</li>
     <li><b>A file's name is set off wherever it appears:</b> like <span class="file">code.csv</span> in a sentence, a dialog's title or a dropdown, and a name in OAK box in mono.</li>
