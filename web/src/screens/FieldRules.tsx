@@ -258,19 +258,6 @@ export function RuleDialog({
               </tbody>
             </table>
           )}
-          <details className="rc-writes">
-            <summary>{r.writes}</summary>
-            <pre>
-              {v && v.calc.length > 0
-                ? [
-                    ...Object.entries(v.load).map(
-                      ([f, spec]) => `"load": { "${f}": ${JSON.stringify(spec)} }`,
-                    ),
-                    `"calc": { "${field.key}": ${JSON.stringify(v.calc)} }`,
-                  ].join("\n")
-                : r.incomplete}
-            </pre>
-          </details>
           {preview.error && (
             <p className="error" role="alert">
               {preview.error.message}

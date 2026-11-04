@@ -15,6 +15,7 @@ import {
 import { api, type Scale, type Source, unwrap, type Wizard, type WizardField } from "../api/client";
 import { ToolButton } from "../components/Buttons";
 import { Choice } from "../components/Form";
+import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { amount, pct, short } from "../lib/format";
 import { say, t } from "../wording";
@@ -45,6 +46,9 @@ export type QualityChange = {
 };
 
 /** The meaning of a quality/condition number, beside its column: which way it runs, or what it measures. */
+/** Which way a quality or condition number runs, right on its page (a row of the grid of its own): two ways
+ * (quality) are a segmented control with a line under it on what the chosen one means; more (condition: % good, %
+ * depreciation, life left…) are radio cards, a line each. */
 export function ScaleChoice({
   field,
   source,
@@ -57,20 +61,48 @@ export function ScaleChoice({
   const kinds = KINDS[field.key] ?? [];
   const scale = field.scale;
   if (!scale || scale.kind === "tiers") return null;
+  const label = field.key === "bldg_quality_num" ? q.whichWayLabel : q.meansLabel;
+  const set = (kind: Kind) =>
+    change({ key: field.key, file: source.file, column: source.column, scale: { ...scale, kind } });
   return (
-    <div className="wiz-unit">
-      <Choice
-        label={say.wizard.quality.meaningOf(field.name)}
-        hideLabel
-        value={scale.kind ?? null}
-        placeholder={field.key === "bldg_quality_num" ? q.whichWay : q.means}
-        options={kinds.map((k) => [k, q.kinds[k] ?? k] as const)}
-        onChange={(kind) =>
-          change({ key: field.key, file: source.file, column: source.column, scale: { ...scale, kind } })
-        }
-      />
-    </div>
+    <>
+      {/* Level with the first card when the choices are cards, not halfway down them. */}
+      <div className={kinds.length <= 3 ? "wiz-label" : "wiz-label wiz-label-top"}>{label}</div>
+      {kinds.length <= 3 ? (
+        <div className="wiz-span seg-row">
+          <Seg
+            label={say.wizard.quality.meaningOf(field.name)}
+            value={scale.kind ?? null}
+            options={kinds.map((k) => [k, cap(q.kinds[k] ?? k)] as const)}
+            onChange={set}
+          />
+          {scale.kind && <span className="wiz-from">{q.kindHints[scale.kind]}</span>}
+        </div>
+      ) : (
+        <RadioGroup
+          aria-label={say.wizard.quality.meaningOf(field.name)}
+          className="wiz-span cu-choices scale-cards"
+          value={scale.kind ?? null}
+          onChange={(k) => set(k as Kind)}
+        >
+          {kinds.map((k) => (
+            <Radio key={k} value={k} className="radio cu-choice">
+              <span className="radio-dot" aria-hidden="true" />
+              <span className="cu-text">
+                <b>{cap(q.kinds[k] ?? k)}</b>
+                <span className="cu-sub">{q.kindHints[k]}</span>
+              </span>
+            </Radio>
+          ))}
+        </RadioGroup>
+      )}
+    </>
   );
+}
+
+/** "higher is better" as an option's words: its first letter capital. */
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function fmt(v: number | null | undefined): string {
@@ -245,6 +277,7 @@ export function ScaleDialog({
   const newer = told && !!kind && (v?.fits.includes(kind) ?? false);
   const top = Math.max(1, ...(v?.by_age.map((b) => Math.abs(b.value ?? 0)) ?? []));
   const topPrice = Math.max(1, ...(v?.by_value.map((b) => b.price ?? 0) ?? []));
+  const topPerArea = Math.max(1, ...(v?.by_value.map((b) => b.per_area ?? 0) ?? []));
   const topType = Math.max(1, ...(v?.by_value.map((b) => b.type_price ?? 0) ?? []));
   const texts = v?.by_value.some((b) => b.text) ?? false;
   return (
@@ -346,7 +379,7 @@ export function ScaleDialog({
                     {texts && <th>{q.writtenText}</th>}
                     <th className="num">{q.sales}</th>
                     <th>{q.medianPrice}</th>
-                    {v.price_basis && <th className="num">{q.medianOf({ basis: v.price_basis })}</th>}
+                    {v.price_basis && <th>{q.medianOf({ basis: v.price_basis })}</th>}
                     {v.by_type && <th className="num">{q.typeOnly({ type: v.by_type })}</th>}
                     {v.by_type && <th>{q.medianPrice}</th>}
                   </tr>
@@ -362,7 +395,18 @@ export function ScaleDialog({
                         {b.price != null ? amount(v.symbol, b.price) : ""}
                       </td>
                       {v.price_basis && (
-                        <td className="num">{b.per_area != null ? amount(v.symbol, b.per_area) : ""}</td>
+                        // A bar too: price per area is what most often runs the other way.
+                        <td>
+                          {b.per_area != null && (
+                            <>
+                              <span
+                                className="qc-bar"
+                                style={{ width: `${(6 * b.per_area) / topPerArea}rem` }}
+                              />
+                              {amount(v.symbol, b.per_area)}
+                            </>
+                          )}
+                        </td>
                       )}
                       {v.by_type && (
                         <td className="num">{b.type_sales ? b.type_sales.toLocaleString() : ""}</td>
@@ -392,16 +436,6 @@ export function ScaleDialog({
               {q.samplesLine} {v.samples.map((s) => `${short(s.raw)} → ${fmt(s.value)}`).join("  ·  ")}
             </p>
           )}
-          <details className="rc-writes">
-            <summary>{q.writes}</summary>
-            <pre>
-              {!kind
-                ? q.nothingYet
-                : v?.calc
-                  ? `"load": { "${field.key}_src": ["${source.column}", "float"] }\n"calc": { "${field.key}": ${JSON.stringify(v.calc)} }`
-                  : `"load": { "${field.key}": ["${source.column}", "float"] }`}
-            </pre>
-          </details>
           {preview.error && (
             <p className="error" role="alert">
               {preview.error.message}

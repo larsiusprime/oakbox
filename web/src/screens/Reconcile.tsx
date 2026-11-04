@@ -217,16 +217,6 @@ export function ReconcileDialog({
               <Samples rows={v?.file_samples ?? []} labels={k} target={false} empty={view === "unmatched"} />
             </section>
           </div>
-          <details className="rc-writes">
-            <summary>{r.writes}</summary>
-            <pre>
-              {v && Object.keys(v.writes).length > 0
-                ? Object.entries(v.writes)
-                    .map(([name, calc]) => `"${name}": { "calc": { "${field}": ${JSON.stringify(calc)} } }`)
-                    .join("\n")
-                : r.nothing}
-            </pre>
-          </details>
           {live.error && (
             <p className="error" role="alert">
               {live.error.message}
@@ -271,7 +261,7 @@ function CleanSteps({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) 
       </ol>
       <MenuTrigger>
         <AddButton end>{r.add}</AddButton>
-        <Popover className="popover rc-menu" placement="bottom end">
+        <Popover className="popover rc-menu" placement="bottom end" offset={0}>
           <Menu
             className="choice-list"
             onAction={(key) => onChange([...steps, { ...PRESETS[String(key)] } as Step])}

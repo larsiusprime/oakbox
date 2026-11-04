@@ -5444,13 +5444,6 @@ under what it's about; a file appended as rows {
   border-radius: 6px;
   box-shadow: 0 4px 14px rgba(40, 25, 5, 0.3);
 }
-/* The field picker's Manila panel hangs from its box too: square corners where they meet. */
-.mp-popover[data-placement="bottom"] {
-  border-radius: 0 0 6px 6px;
-}
-.mp-popover[data-placement="top"] {
-  border-radius: 6px 6px 0 0;
-}
 
 .vals-popover .vals-scroll,
 .mp-popover .mp-list,
@@ -5984,16 +5977,6 @@ under what it's about; a file appended as rows {
   border-color: var(--warn);
 }
 
-/* A warning's popup (WarnChip), after the Manila popups' rules it overrides. It hangs from its button as a dropdown's list does: no gap, square corners where they meet. */
-.warn-pop[data-placement="bottom"] {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-.warn-pop[data-placement="top"] {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
 /* In a file's body every settings grid shares one label column, as wide as its longest label (up to 16rem):
    the body is the grid, and each settings grid in it sits on the body's columns, so they still line up. */
 .entry-body {
@@ -6005,4 +5988,36 @@ under what it's about; a file appended as rows {
 }
 .entry-body > .wiz-grid {
   grid-template-columns: subgrid;
+}
+
+/* Which way a quality or condition number runs, on its own row (ScaleChoice): the segmented control, then a line
+   on what the chosen way means; or radio cards, a line each. */
+.seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)))
+    max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  align-items: center;
+  font-size: 0.9rem;
+}
+.scale-cards {
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 18rem));
+}
+
+/* Every popup that drops from a button (a list, a menu, a picker, a warning, Options, a confirmation) hangs flush
+   from it, as a dropdown's list does: no gap (offset 0 on each Popover) and square corners where they meet; the
+   other way up when it opens above. Not the plate's lists, which hang from engraved text. */
+.popover:not(.crumb-pop)[data-placement="bottom"] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.popover:not(.crumb-pop)[data-placement="top"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* A label beside a tall control (radio cards): level with its top, not its middle. */
+.wiz-label.wiz-label-top {
+  align-self: start;
+  padding-top: calc(0.5 * var(--sp) + 2px);
 }

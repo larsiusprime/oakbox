@@ -27,7 +27,7 @@ from oakbox.datafiles import (
     small_unit,
 )
 from oakbox.fields import VALUE_PARTS
-from oakbox.projects import Project
+from oakbox.projects import BIG_FIVE_PARTS, Project
 from oakbox.valuesets import ROLL, value_field, value_sets
 from oakbox.wizard.base import (
     ABSENT_OK,
@@ -446,12 +446,14 @@ def _status(
             for f in mine:
                 if f.key in ("sale_price", "sale_date", *ASSUMABLE) and not f.sources and not f.assumed:
                     left.append(Left(text=f"Pick the {f.name.lower()}"))
-    elif step.key == "big_five":
+    elif step.key == "building_size":
         by_key = {f.key: f for f in flds}
         left.extend(
             Left(text=f"Pick the {by_key[k].name.lower()}") for k in REQUIRED if k in by_key and not by_key[k].sources
         )
+    elif step.key == "age":
         # Age is the one to flag; quality and condition are nice to have, and many places lack them.
+        by_key = {f.key: f for f in flds}
         if not any(by_key[k].sources for k in AGE if k in by_key):
             left.append(Left(text="Pick the year built (or an age)", blocking=False))
     left.sort(key=lambda i: not i.blocking)
@@ -459,7 +461,7 @@ def _status(
         return "blocked", left
     if left:
         return "attention", left
-    if step.key in ("universe", "sales", "big_five"):
+    if step.key in ("universe", "sales", *BIG_FIVE_PARTS):
         return "done", left
     return ("done" if step.key in w.confirmed or step.key in w.skipped else "blank"), left
 

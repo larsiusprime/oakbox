@@ -197,7 +197,6 @@ export type Wording = {
       result: string;
       yes: string;
       no: string;
-      writes: string;
       cancel: string;
       save: string;
     };
@@ -640,7 +639,6 @@ export type Wording = {
       matches: string;
       noMatch: string;
       noUnmatched: string;
-      writes: string;
       nothing: string;
       cancel: string;
       save: string;
@@ -693,7 +691,6 @@ export type Wording = {
       all: string;
       result: (a: { rows: number; kept: number }) => string;
     };
-    bigFive: [[string, [string]], [string, [string]], [string, [string, string, string, string]], [string, [string, string]], [string, [string, string]]];
     rowNames: Record<string, string>;
     numberUsed: string;
     quality: {
@@ -758,7 +755,6 @@ export type Wording = {
         within: (a: { type: string | number; field: string | number }) => string;
         all: string;
       };
-      writes: string;
       nothingYet: string;
       tiersTitle: (a: { column: string | number }) => string;
       tiersLede: (a: { column: string | number }) => string;
@@ -781,6 +777,8 @@ export type Wording = {
       basedOn: (a: { notes: string | number }) => string;
       cancel: string;
       save: string;
+      whichWayLabel: string;
+      meansLabel: string;
     };
     hints: Record<string, string>;
     file: string;

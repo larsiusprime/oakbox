@@ -30,23 +30,20 @@ STEPS: list[Step] = [
     Step(key="sales", fields=["sale_price", "sale_date", "valid_sale", "vacant_sale"], sales=True),
     # More files, one by one, each joined to the universe (a parcel ID) or to the sales (the sale ID).
     Step(key="more_files"),
-    Step(key="details"),
+    # What a model leans on most, a part each (revised 2026-11-04: its own step, not part of More details).
+    Step(key="big_five"),
+    Step(key="building_size", parent="big_five", fields=["bldg_area_finished_sqft"]),
+    Step(key="land_size", parent="big_five", fields=["land_area_sqft"]),
     Step(
-        key="big_five",
-        parent="details",
-        fields=[
-            "bldg_area_finished_sqft",
-            "land_area_sqft",
-            "bldg_year_built",
-            "bldg_effective_year_built",
-            # A number for modelling, and the category as text: both asked, the number preferred (F3d).
-            "bldg_quality_num",
-            "bldg_quality_txt",
-            "bldg_condition_num",
-            "bldg_condition_txt",
-        ],
+        key="age",
+        parent="big_five",
+        fields=["bldg_year_built", "bldg_effective_year_built"],
         more=["bldg_age_years", "bldg_effective_age_years"],
     ),
+    # A number for modelling, and the category as text: both asked, the number preferred (F3d).
+    Step(key="quality", parent="big_five", fields=["bldg_quality_num", "bldg_quality_txt"]),
+    Step(key="condition", parent="big_five", fields=["bldg_condition_num", "bldg_condition_txt"]),
+    Step(key="details"),
     Step(
         key="location",
         parent="details",

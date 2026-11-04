@@ -154,13 +154,6 @@ export function FieldRow({
           elsewhere={!sales}
           onChange={pick}
         />
-        {scaled && source && (
-          <ScaleChoice
-            field={field}
-            source={source}
-            change={(c) => void change({ kind: "field", ...c }).catch(() => {})}
-          />
-        )}
         {field.area_unit && source && (
           // The unit the column is in: OAK box converts it to the project's (SPEC F3d).
           <div className="wiz-unit">
@@ -246,6 +239,13 @@ export function FieldRow({
           </>
         )}
       </div>
+      {scaled && source && (
+        <ScaleChoice
+          field={field}
+          source={source}
+          change={(c) => void change({ kind: "field", ...c }).catch(() => {})}
+        />
+      )}
       {ruling && sourceFile && (
         <RuleDialog
           projectId={project.id}

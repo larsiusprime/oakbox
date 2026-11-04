@@ -170,8 +170,33 @@
       },
       "big_five": {
         "title": "Big five",
-        "question": "What a model needs most",
-        "lede": "Building size is required. Land size is worked out from the shapes if you leave it out. Age, quality and condition are strongly recommended."
+        "question": "",
+        "lede": ""
+      },
+      "building_size": {
+        "title": "Building size",
+        "question": "How big is each building?",
+        "lede": "The finished area of the building, in the unit its column is in. Required: every model starts from it."
+      },
+      "land_size": {
+        "title": "Land size",
+        "question": "How big is each parcel''s land?",
+        "lede": "The parcel''s land area. Left out, it''s worked out from each parcel''s shape."
+      },
+      "age": {
+        "title": "Age",
+        "question": "How old is each building?",
+        "lede": "When it was built and, if it has one, the year a major renovation makes it act its age from. Strongly recommended."
+      },
+      "quality": {
+        "title": "Quality",
+        "question": "How well is each building built?",
+        "lede": "A number the models can use, and which way is better. The category, kept as text for reports, is loaded only when there''s no number."
+      },
+      "condition": {
+        "title": "Condition",
+        "question": "What condition is each building in?",
+        "lede": "A number the models can use, and what its numbers mean. The category, kept as text for reports, is loaded only when there''s no number."
       },
       "location": {
         "title": "Location",
@@ -347,7 +372,6 @@
       "result": "Result",
       "yes": "yes",
       "no": "no",
-      "writes": "What this writes to the settings",
       "cancel": "Cancel",
       "save": "Save"
     },
@@ -855,7 +879,6 @@
       "matches": "matches",
       "noMatch": "no match",
       "noUnmatched": "Nothing left unmatched.",
-      "writes": "What this writes to the settings",
       "nothing": "Nothing yet: no clean-up steps.",
       "cancel": "Cancel",
       "save": "Save",
@@ -953,43 +976,6 @@
       "all": "Drop every row with a repeated ID",
       "result": "{rows, number} rows → {kept, number} parcels"
     },
-    "bigFive": [
-      [
-        "Building size",
-        [
-          "bldg_area_finished_sqft"
-        ]
-      ],
-      [
-        "Land size",
-        [
-          "land_area_sqft"
-        ]
-      ],
-      [
-        "Age",
-        [
-          "bldg_year_built",
-          "bldg_effective_year_built",
-          "bldg_age_years",
-          "bldg_effective_age_years"
-        ]
-      ],
-      [
-        "Quality",
-        [
-          "bldg_quality_num",
-          "bldg_quality_txt"
-        ]
-      ],
-      [
-        "Condition",
-        [
-          "bldg_condition_num",
-          "bldg_condition_txt"
-        ]
-      ]
-    ],
     "rowNames": {
       "bldg_quality_num": "Number",
       "bldg_quality_txt": "Category",
@@ -1074,7 +1060,6 @@
         "within": "Better should sell for more. Compare within {type} alone (its {field}): a grade is often tied to a kind and size of building, and price per area falls as buildings get bigger, so across every sale it can run the wrong way.",
         "all": "Better should sell for more. Price per area falls as buildings get bigger, so if better buildings are bigger it can run the wrong way: go by the median price too."
       },
-      "writes": "What this writes to the settings",
       "nothingYet": "Nothing until you say what the numbers mean.",
       "tiersTitle": "Rank {column}''s tiers",
       "tiersLede": "Each tier of {column} gets a number for modelling. Put them in order from worst to best: moving one renumbers them in equal steps (1, 2, 3…), and you can type any number instead.",
@@ -1096,7 +1081,9 @@
       "evidenceOnly": "shown to check the order, not used to set the numbers",
       "basedOn": "Based on {notes}.",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "whichWayLabel": "Which way is better",
+      "meansLabel": "What its numbers mean"
     },
     "hints": {
       "bldg_year_built": "e.g. 1987",
@@ -2684,10 +2671,15 @@
         "title": "Welcome to OAK box",
         "lede": "OAK box helps you build models. It needs two datasets for that: a **sales record** and a **parcel universe**\n\nThe **sales record** is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe **parcel universe** is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
       },
+      "big_five": {
+        "kicker": "",
+        "title": "Big five",
+        "lede": "The five things a model leans on most: how big the building is, how big its land is, how old it is, how well it''s built and what condition it''s in. Building size is required; land size is worked out from the shapes if you leave it out; the other three are strongly recommended. One short part each."
+      },
       "details": {
         "kicker": "",
         "title": "More details",
-        "lede": "A parcel file can have hundreds of columns; a handful matter most. In five short parts you point OAK box at them: what the models lean on, where each parcel is, what kind of property it is, the values it has now, and any map layers."
+        "lede": "Where each parcel is, what kind of property it is, the values it has now, and any map layers. Four short parts; one you don''t have can be left."
       },
       "condos": {
         "kicker": "",

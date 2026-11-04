@@ -97,6 +97,11 @@ class CustomField(BaseModel):
     type: Literal["category", "number"]
 
 
+# Big five's parts (revised 2026-11-04): a project saved when Big five was one step has it seen, skipped or moved on
+# from as a whole; each part counts as the same.
+BIG_FIVE_PARTS = ("building_size", "land_size", "age", "quality", "condition")
+
+
 class WizardState(BaseModel):
     """The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."""
 
@@ -121,6 +126,13 @@ class WizardState(BaseModel):
     value_sets: list[ValueSet] | None = Field(
         default=None, description="Existing values (Data › Existing values); None: the roll, as first proposed."
     )
+
+    @model_validator(mode="after")
+    def _big_five_parts(self) -> WizardState:
+        for steps in (self.visited, self.skipped, self.confirmed):
+            if "big_five" in steps:
+                steps.extend(p for p in BIG_FIVE_PARTS if p not in steps)
+        return self
 
 
 class ModelGroup(BaseModel):

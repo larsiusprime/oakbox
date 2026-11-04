@@ -3,7 +3,7 @@
 import geopandas as gpd
 import pandas as pd
 import pytest
-from helpers import NEW, put_file, read_settings, start_wizard, wizard_files, wizard_step
+from helpers import NEW, put_file, read_settings, start_wizard, visit_big_five, wizard_files, wizard_step
 from shapely.geometry import box
 
 from oakbox import projects
@@ -97,7 +97,7 @@ def test_a_field_from_another_file_with_its_key(client, pid):
 def test_guesses_once_and_type_checks(client, pid):
     start_wizard(client, pid)
     put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID")
-    w = client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit").json()
+    w = visit_big_five(client, pid)
     assert _field(w, "bldg_year_built")["sources"] == [{"file": "cama", "column": "YR_BLT"}]
     assert _field(w, "bldg_year_built")["check"] == {
         "ok": True,
@@ -109,7 +109,7 @@ def test_guesses_once_and_type_checks(client, pid):
     assert _field(w, "bldg_age_years")["hidden"]
     assert _field(w, "bldg_quality_txt")["sources"] == [{"file": "cama", "column": "QUALITY"}]
     client.put(f"/api/projects/{pid}/wizard/fields/bldg_year_built", json={})
-    w = client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit").json()
+    w = visit_big_five(client, pid)
     assert _field(w, "bldg_year_built")["sources"] == []  # (none) is never replaced by a guess
     r = client.put(f"/api/projects/{pid}/wizard/fields/bldg_year_built", json={"file": "cama", "column": "NBHD"})
     assert r.status_code == 422 and "not numbers" in r.json()["detail"]
@@ -147,7 +147,7 @@ def _engine(pid, monkeypatch):
 def test_openavmkit_loads_and_joins_what_the_wizard_wrote(client, pid, monkeypatch):
     start_wizard(client, pid)
     put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID")
-    for step in ("big_five", "assessed"):
+    for step in (*projects.BIG_FIVE_PARTS, "assessed"):
         client.post(f"/api/projects/{pid}/wizard/steps/{step}/visit")
     client.put(
         f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"}
@@ -201,7 +201,7 @@ def test_guesses_come_when_the_file_is_added_after_the_step_is_shown(client, pid
     assert _file(w, "sales")["id_column"] == "PROP_ID"
     assert _field(w, "sale_price")["sources"] == [{"file": "sales", "column": "SALE_PRICE"}]
     # Big five seen with only the universe; adding the CAMA file for one field picks up the rest.
-    client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit")
+    visit_big_five(client, pid)
     w = put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID").json()
     assert _field(w, "bldg_year_built")["sources"] == [{"file": "cama", "column": "YR_BLT"}]
 
@@ -319,7 +319,7 @@ def test_step_marks_come_from_what_is_on_each_step(client, pid):
     for key in ("valid_sale", "vacant_sale"):
         client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"assume": True})
     assert marks()["sales"] == "done"
-    client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit")
+    visit_big_five(client, pid)
     assert marks()["big_five"] == "blocked"  # no building size
     put_file(client, pid, "cama", holds="parcels", id_column="PROP_ID")  # guesses year built, area too
     client.put(
@@ -334,7 +334,8 @@ def test_step_marks_come_from_what_is_on_each_step(client, pid):
     client.post(f"/api/projects/{pid}/wizard/steps/location/confirm")
     client.post(f"/api/projects/{pid}/wizard/steps/assessed/skip")
     m = marks()
-    assert (m["location"], m["assessed"], m["details"]) == ("done", "done", "attention")  # worst of its parts
+    # A step with parts is the worst of them: More details' are done or not started; Big five's age is missing.
+    assert (m["location"], m["assessed"], m["details"], m["big_five"]) == ("done", "done", "blank", "attention")
     assert "land" not in m and "building" not in m and "rooms_features" not in m
 
 
@@ -941,7 +942,7 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
         client.put(f"{field}/{key}", json={"file": "sale", "column": col})
     for key in ("valid_sale", "vacant_sale"):
         client.put(f"{field}/{key}", json={"assume": True})
-    w = client.post(f"/api/projects/{pid}/wizard/steps/big_five/visit").json()
+    w = visit_big_five(client, pid)
 
     # The numbers are guessed, but which way they run isn't: a to-do, and nothing written yet.
     quality, condition = _field(w, "bldg_quality_num"), _field(w, "bldg_condition_num")
@@ -950,7 +951,7 @@ def test_quality_and_condition_become_numbers_where_higher_is_better(client, tmp
     assert condition["scale"]["fraction"] and condition["check"]["text"] == "say what the numbers mean"
     assert _field(w, "bldg_quality_txt")["sources"] == []  # the number's there: the category isn't loaded
     assert {"text": "Building condition (numeric): say what the numbers mean", "blocking": False} in wizard_step(
-        w, "big_five"
+        w, "condition"
     )["left"]
     load = read_settings(pid)["data"]["load"]["cama"]["load"]
     assert "bldg_quality_num" not in load and "bldg_condition_num_src" not in load
@@ -1692,3 +1693,10 @@ def test_a_yes_no_sales_column_still_asks_which_values_mean_yes(client, tmp_path
     rule["conditions"][0]["values"] = []
     w = client.put(f"{field}/valid_sale/rule", json=rule).json()
     assert _field(w, "valid_sale")["check"]["text"] == "choose which values mean yes"
+
+
+def test_a_project_from_when_big_five_was_one_step_has_its_parts_seen():
+    """Saved with Big five as one step: each of its parts counts as seen, skipped or moved on from as it was."""
+    w = projects.WizardState(visited=["universe", "big_five"], confirmed=["big_five"])
+    assert set(projects.BIG_FIVE_PARTS) <= set(w.visited) and set(projects.BIG_FIVE_PARTS) <= set(w.confirmed)
+    assert w.skipped == []

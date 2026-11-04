@@ -92,3 +92,11 @@ def start_wizard(client, pid):
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     assert put_file(client, pid, "sales", holds="sales").status_code == 200
     return client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+
+
+def visit_big_five(client, pid):
+    """Show each of Big five's parts, as Start and Next do; the wizard after the last."""
+    w: dict = {}
+    for part in projects.BIG_FIVE_PARTS:
+        w = client.post(f"/api/projects/{pid}/wizard/steps/{part}/visit").json()
+    return w

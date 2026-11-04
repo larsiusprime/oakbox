@@ -769,7 +769,7 @@ function FieldsStep({
   const [more, setMore] = useState(false);
   const mine = data.fields.filter((f) => f.step === step.key && !f.hidden);
   // Only the universe so far: building details are often in a separate file (a CAMA export).
-  const onlyBase = step.key === "big_five" && data.files.filter((f) => f.holds === "parcels").length <= 1;
+  const onlyBase = step.parent === "big_five" && data.files.filter((f) => f.holds === "parcels").length <= 1;
   // A field under More that's loaded (guessed or chosen) always shows: nothing loaded is ever out of sight.
   const inUse = (f: WizardField) => f.sources.length > 0 || f.assumed || f.absent;
   const shown = mine.filter((f) => !f.more || more || inUse(f));
@@ -821,16 +821,12 @@ function FieldsStep({
   );
 }
 
-/** The Big five step's numbered sections (year built and effective year built are one: age). */
-function groupsFor(step: string, fields: WizardField[]): [string | null, WizardField[]][] {
-  if (step !== "big_five") return [[null, fields]];
-  return w.bigFive
-    .map(([title, keys], i) => [`${i + 1}. ${title}`, fields.filter((f) => keys.includes(f.key))] as const)
-    .filter(([, group]) => group.length > 0)
-    .map(([title, group]) => [title, [...group]]);
+/** A step's fields in one section (Big five's parts are steps of their own now, not numbered sections). */
+function groupsFor(_step: string, fields: WizardField[]): [string | null, WizardField[]][] {
+  return [[null, fields]];
 }
 
-// ---------- Step 9: Review ----------
+// ---------- Review ----------
 
 function ReviewStep({
   projectId,

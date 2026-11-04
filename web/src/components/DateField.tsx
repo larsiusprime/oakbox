@@ -49,7 +49,7 @@ export function DateField(props: {
           <CalendarDays aria-hidden="true" size="0.95em" />
         </Button>
       </Group>
-      <Popover className="popover date-popover" placement="bottom start">
+      <Popover className="popover date-popover" placement="bottom start" offset={0}>
         <Dialog className="date-dialog">
           <Calendar className="cal">
             <header className="cal-head">

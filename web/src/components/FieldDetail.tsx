@@ -27,7 +27,7 @@ export function FieldDetail({
         {field}
         <Search aria-hidden="true" size="0.85em" className="fd-icon" />
       </Button>
-      <Popover className="popover vals-popover" placement="bottom start">
+      <Popover className="popover vals-popover" placement="bottom start" offset={0}>
         <Dialog className="vals-body" aria-label={d.label({ field })}>
           {open && <Detail projectId={projectId} set={set} field={field} />}
         </Dialog>

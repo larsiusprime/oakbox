@@ -213,7 +213,7 @@ function Picks({
           {say.wizard.enrich.fieldsOf(on.length, fields.length)}
           <ChevronDown aria-hidden="true" size="0.85em" />
         </Button>
-        <Popover className="popover" placement="bottom start">
+        <Popover className="popover" placement="bottom start" offset={0}>
           <Dialog className="popover-body en-fields" aria-label={e.fieldsTitle({ name: title })}>
             <Heading slot="title" className="vals-title">
               {e.fieldsTitle({ name: title })}
