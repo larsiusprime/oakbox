@@ -2,12 +2,13 @@
  * top), written finest first as OpenAVMKit takes them. Each level: its areas, their median sales, the areas with
  * enough sales for a regression of their own, and whether it nests in the level above. Levels move up and down, go,
  * and are added from the location fields there are. */
-import { ArrowDown, ArrowUp, X } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { useStack } from "../api/models";
 import { num } from "../lib/format";
 import { t } from "../wording";
 import { AddButton } from "./AddButton";
+import { RemoveButton } from "./RemoveButton";
 
 const s = t.values.stack;
 
@@ -111,13 +112,7 @@ export function LocationStack({
                     >
                       <ArrowDown aria-hidden="true" size="0.9em" />
                     </Button>
-                    <Button
-                      className="wiz-link vs-remove"
-                      onPress={() => save(broadest.filter((x) => x !== f))}
-                    >
-                      <X aria-hidden="true" size="0.9em" />
-                      {s.remove}
-                    </Button>
+                    <RemoveButton label={s.remove} onPress={() => save(broadest.filter((x) => x !== f))} />
                   </td>
                 </tr>
               );

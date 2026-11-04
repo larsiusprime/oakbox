@@ -1,5 +1,4 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, Heading, Input, Modal, ModalOverlay, TextField } from "react-aria-components";
 import {
@@ -14,6 +13,7 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
 import { Val } from "../components/Val";
 import { amount, pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
@@ -165,15 +165,12 @@ export function RuleDialog({
                     />
                   )}
                   {rule.conditions.length > 1 && (
-                    <Button
-                      className="rc-x"
-                      aria-label={r.removeTest}
+                    <RemoveButton
+                      label={r.removeTest}
                       onPress={() =>
                         setRule({ ...rule, conditions: rule.conditions.filter((_, j) => j !== i) })
                       }
-                    >
-                      <X size="0.9em" />
-                    </Button>
+                    />
                   )}
                 </div>
               </li>

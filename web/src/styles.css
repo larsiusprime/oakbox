@@ -21,7 +21,9 @@
   --text: #1c1e20;
   --muted: #565b61;
   --rule: #d9d9d9;
-  --frame: #c9c2b0;
+  --frame: #c9c2b0; /* every item's outline: a file, an ID, a test, a loose group of rows */
+  --code-bg: #f3f0e8; /* a file name, set off like code */
+  --code-edge: #e0dacb;
   --cell-line: #e2e4e6; /* every table's cell lines */
   --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
 
@@ -518,6 +520,150 @@ a.row-title:hover {
 /* A frame is the page's width (its rows keep their own); its Add button lines up with its right edge. */
 .wiz-grid.frame {
   max-width: none;
+}
+
+/* ---------- Entries (docs/style-guide.html): a file, or anything else added and taken away ----------
+   One outline (--frame); the first line says what it is, then other actions, then the red ✕ at the right edge;
+   what's set on it goes in its body below a faint rule. components/FileEntry.tsx, components/RemoveButton.tsx. */
+.entry {
+  min-width: 0;
+  margin: 0 0 calc(0.6 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.entry-head {
+  display: flex;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  min-height: calc(var(--ctl-h) + 2px);
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+}
+.entry-acts {
+  display: flex;
+  flex: none;
+  gap: max(calc(0.15 * var(--sp)), min(0.15rem, var(--gap-min)));
+  align-items: center;
+  margin-left: auto;
+}
+.entry-body {
+  display: grid;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  padding: calc(0.6 * var(--sp));
+  border-top: 1px solid var(--paper-rule);
+}
+/* Adding to the file (an ID, a field) is inside it, below its rows, at its right edge. */
+.entry-body > .add-button.add-end {
+  margin-top: 0;
+}
+/* Where a file will go, before there is one: [Add a file…] or use existing: [Choose…]. */
+.entry-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+  padding: calc(0.5 * var(--sp)) calc(0.6 * var(--sp));
+  background: transparent;
+  border-style: dashed;
+}
+.entry-slot-or {
+  display: inline-flex;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+}
+/* A control that takes the rest of a row of the settings grid (a segmented choice). */
+.wiz-grid > .wiz-span {
+  grid-column: 2 / -1;
+}
+/* Something in a file's body that can be removed on its own (an ID): its own box, on the body's columns. */
+.entry-sub {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: calc(0.3 * var(--sp)) calc(0.3 * var(--sp)) calc(0.3 * var(--sp)) calc(0.6 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.entry-sub-end {
+  display: flex;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+  min-width: 0;
+}
+.entry-sub-after {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A file's first line: its name in OAK box, its file name, its facts. */
+.file-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  min-width: 0;
+}
+.entry-head > .file-line {
+  flex: 1;
+}
+.file-label {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+/* A file's own name, wherever it appears: set off like code. */
+.file-name {
+  display: inline-block;
+  max-width: 32ch;
+  padding: 0 0.3em;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.84em;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  background: var(--code-bg);
+  border: 1px solid var(--code-edge);
+  border-radius: 3px;
+}
+.file-facts {
+  color: var(--muted);
+}
+
+/* The red ✕ (components/RemoveButton.tsx): the one way to take something away. */
+.remove-x {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  font-size: 1.05rem;
+  color: var(--bad);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.remove-x[data-hovered] {
+  background: var(--bad-tint);
+  border-color: var(--bad-edge);
+}
+.remove-x[data-pressed] {
+  background: var(--bad-edge);
+}
+.remove-x[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.remove-x[data-disabled] {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.5;
 }
 
 .button[data-hovered] {
@@ -1160,35 +1306,10 @@ a.row-title:hover {
   color: var(--muted);
   font-size: 0.9rem;
 }
-
-.add-file {
-  display: grid;
-  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
-  padding: calc(0.6 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--head);
-}
-
-/* The picked file: label and pills above a fixed-width path, so the buttons never move. */
-.pick-line {
+/* The picked file: label and pills above a fixed-width path {
   display: flex;
   align-items: flex-end;
   gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
-}
-
-.pick-file {
-  display: grid;
-  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
-  width: min(100%, 34rem);
-}
-
-.pick-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  min-height: 1.5rem;
 }
 
 .pills {
@@ -1232,26 +1353,6 @@ a.row-title:hover {
   border-color: var(--info-edge);
   color: var(--link);
 }
-
-.path-box {
-  display: block;
-  box-sizing: border-box;
-  height: var(--ctl-h);
-  line-height: calc(var(--ctl-h) - 2px);
-  padding: 0 calc(0.4 * var(--sp));
-  background: var(--head);
-  border: 1px solid var(--well-edge);
-  border-radius: 2px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  direction: rtl; /* the "…" cuts the start of the path, so the file name stays visible */
-  text-align: left;
-  outline: none;
-}
-
-.path-box[data-focus-visible],
-.path-box:focus-visible,
 .tip-target:focus-visible {
   outline: 3px solid var(--focus);
 }
@@ -1473,6 +1574,11 @@ a.row-title:hover {
   max-width: 56rem;
 }
 
+/* Inside an entry the rows use its width (its ID boxes reach its right edge). */
+.entry-body .wiz-grid {
+  max-width: none;
+}
+
 .wiz-label {
   font-weight: 600;
 }
@@ -1665,23 +1771,6 @@ a.row-title:hover {
   margin: 0 0 calc(0.6 * var(--sp));
 }
 
-.wiz-pick {
-  display: flex;
-  gap: max(calc(1.5 * var(--sp)), min(1.5rem, var(--gap-min)));
-  align-items: flex-end;
-}
-
-.wiz-file {
-  display: flex;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  align-items: baseline;
-  margin-bottom: calc(0.4 * var(--sp));
-}
-
-.wiz-file .wiz-link {
-  margin-left: calc(0.8 * var(--sp));
-}
-
 .wiz-pair {
   display: flex;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
@@ -1816,9 +1905,8 @@ a.row-title:hover {
   height: 0.95em;
   vertical-align: -0.1em;
 }
-
-/* The add-file panel's Import sits on the right, like the wizard's Next, so it isn't skipped. */
-.add-file .form-actions {
+/* The add-file panel's Import sits on the right,
+like the wizard's Next {
   justify-self: stretch;
   justify-content: flex-end;
 }
@@ -1917,8 +2005,8 @@ a.row-title:hover {
   align-content: start;
   min-width: 0;
   padding: calc(0.55 * var(--sp)) calc(0.65 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 
 .rc-card h3 {
@@ -1946,9 +2034,9 @@ a.row-title:hover {
   align-items: center;
   padding: calc(0.2 * var(--sp)) calc(0.45 * var(--sp));
   font-size: 0.9rem;
-  background: var(--info-tint);
-  border: 1px solid var(--info-edge);
-  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 
 .rc-steps li.rc-none {
@@ -2112,20 +2200,6 @@ a.row-title:hover {
   margin: 0 0 calc(0.6 * var(--sp));
 }
 
-/* More files (F3d): a card per file. */
-.wiz-extra {
-  display: grid;
-  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
-  margin: 0 0 calc(0.7 * var(--sp));
-  padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-
-.wiz-holds {
-  margin: 0;
-}
-
 /* Location step (F3d): coordinates, the map, the user's location fields. */
 .wiz-section {
   margin: calc(1 * var(--sp)) 0 0;
@@ -2156,12 +2230,19 @@ a.row-title:hover {
   transform: rotate(-45deg);
 }
 
+/* A location field: removable on its own, so its own box, its ✕ at the right. */
 .wiz-loc {
   display: flex;
   grid-column: 1 / -1;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
-  align-items: baseline;
+  align-items: center;
   min-width: 0;
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.wiz-loc > .remove-x {
+  margin-left: auto;
 }
 
 .wiz-loc-add {
@@ -2245,8 +2326,8 @@ a.row-title:hover {
   width: 100%;
   text-align: left;
   padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   background: none;
   font: inherit;
   color: inherit;
@@ -2304,8 +2385,8 @@ a.row-title:hover {
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
 }
 .bi-card {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   display: grid;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
@@ -2746,8 +2827,8 @@ a.row-title:hover {
 }
 .mg-stats > div {
   padding: calc(0.35 * var(--sp)) calc(0.55 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .mg-stat-n {
   display: block;
@@ -2762,8 +2843,8 @@ a.row-title:hover {
   display: grid;
   gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
   padding: calc(0.55 * var(--sp)) calc(0.7 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .mg-card-h {
   margin: 0;
@@ -2786,9 +2867,9 @@ a.row-title:hover {
   display: grid;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   padding: calc(0.3 * var(--sp)) calc(0.45 * var(--sp));
-  background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 /* A test of a yes/no rule on one line too (column, test, values, ×). */
 .rl-test .rl-head {
@@ -3220,17 +3301,6 @@ ul.mg-checks {
 .cf-name-input {
   width: 10rem;
 }
-
-/* ---------- Shapefiles: one compact card per map layer ---------- */
-.ly {
-  display: grid;
-  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
-  padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
-  margin-bottom: calc(0.5 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-.ly-head,
 .ly-body,
 .ly-inline {
   display: flex;
@@ -3239,12 +3309,6 @@ ul.mg-checks {
     max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   font-size: 0.9rem;
-}
-.ly-name {
-  font-weight: 600;
-}
-.ly-grow {
-  flex: 1;
 }
 .ly-icon {
   display: inline-flex;
@@ -3272,14 +3336,27 @@ ul.mg-checks {
 .ly-label {
   color: var(--muted);
 }
+/* A copied field: removable on its own, so its own box (the entry outline), its ✕ at the right. */
 .ly-chip {
   display: inline-flex;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
   align-items: center;
-  padding: calc(0.05 * var(--sp)) calc(0.2 * var(--sp)) calc(0.05 * var(--sp)) calc(0.5 * var(--sp));
-  background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: 999px;
+  padding: 0 0 0 calc(0.5 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+}
+.ly-chip .remove-x {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+/* A layer's body: labels in one column, what's set in the next. */
+.ly-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
 }
 .ly-kind {
   display: inline-flex;
@@ -3295,14 +3372,6 @@ ul.mg-checks {
 }
 .ly-kind[data-hovered] {
   background: var(--info-tint);
-}
-.ly-x {
-  display: inline-flex;
-  padding: calc(0.1 * var(--sp));
-  color: var(--muted);
-  background: none;
-  border: 0;
-  cursor: pointer;
 }
 .ly-prefix {
   margin-right: calc(-0.4 * var(--sp));
@@ -3490,8 +3559,8 @@ ul.mg-checks {
   gap: max(calc(0.55 * var(--sp)), min(0.55rem, var(--gap-min)));
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
   background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .radio.cu-choice .radio-dot {
   margin-top: calc(0.2 * var(--sp));
@@ -3539,9 +3608,13 @@ ul.mg-checks {
   margin: calc(0.2 * var(--sp)) 0;
 }
 
+/* A test: removable on its own, so its own box. */
 .un-rule {
   display: flex;
   flex-wrap: wrap;
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)))
     max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
@@ -3553,7 +3626,10 @@ ul.mg-checks {
 .un-rules {
   display: grid;
   gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
-  justify-items: start;
+  justify-items: stretch;
+}
+.un-rule > .remove-x {
+  margin-left: auto;
 }
 
 /* F3e Enrichments: one compact card per kind of public data. */
@@ -3576,8 +3652,8 @@ ul.mg-checks {
   display: grid;
   gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
   padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .en-card.is-off {
   background: #fafafa;
@@ -4263,8 +4339,8 @@ tr.bi-kept > td {
   margin: 0;
   padding: calc(0.4 * var(--sp)) calc(0.55 * var(--sp));
   background: var(--head);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
   font-size: 0.82rem;
   justify-self: start;
 }
@@ -4292,8 +4368,8 @@ tr.bi-kept > td {
   display: grid;
   gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .cs-todo {
   margin: 0 0 0 calc(1.1 * var(--sp));
@@ -4665,8 +4741,8 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vs-set {
   padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
   background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
 }
 .vs-head {
   display: flex;
@@ -4682,11 +4758,6 @@ table.tbl.dt > * > tr > :is(th, td) {
 }
 .vs-grow {
   flex: 1;
-}
-.vs-remove {
-  display: inline-flex;
-  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
-  align-items: center;
 }
 .rv-what {
   margin-top: calc(0.4 * var(--sp));
@@ -4910,9 +4981,8 @@ table.tbl.dt > * > tr > :is(th, td) {
 .mo-trials .input {
   width: 5rem;
 }
-
-/* More files: how a file joins, under what it's about; a file appended as rows, against the file it adds to. */
-.wiz-how {
+/* More files: how a file joins,
+under what it's about; a file appended as rows {
   margin-left: calc(1.6 * var(--sp));
   padding-left: calc(0.8 * var(--sp));
   border-left: 2px solid var(--info-edge);

@@ -1,6 +1,6 @@
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Map as MapIcon, X } from "lucide-react";
+import { ChevronDown, Map as MapIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Button,
@@ -18,8 +18,10 @@ import { api, type LayerView, type Overlay, type Project, unwrap, type Wizard } 
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import { AddButton } from "../components/AddButton";
+import { FileEntry } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
+import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { t } from "../wording";
 import { FilePicker } from "./WizardFiles";
@@ -70,7 +72,7 @@ export function ShapefilesStep({
         <LayerCard key={layer.name} project={project} layer={layer} change={change} />
       ))}
       {adding ? (
-        <div className="wiz-extra">
+        <>
           <FilePicker
             project={project}
             data={data}
@@ -79,14 +81,10 @@ export function ShapefilesStep({
               change({ kind: "layer", name, overlay: EMPTY });
               setAdding(false);
             }}
+            {...(data.layers.length > 0 ? { onCancel: () => setAdding(false) } : {})}
           />
           <p className="wiz-from">{s.formats}</p>
-          {data.layers.length > 0 && (
-            <Button className="wiz-link" onPress={() => setAdding(false)}>
-              {t.wizard.cancel}
-            </Button>
-          )}
-        </div>
+        </>
       ) : (
         <AddButton end onPress={() => setAdding(true)}>
           {data.layers.length ? s.another : s.first}
@@ -119,39 +117,19 @@ function LayerCard({
   const defaultUnit: Unit = project.units === "imperial" ? "mile" : "km";
   const noStamp = !layer.polygons && o.use !== "stamp";
   return (
-    <section className="ly">
-      <div className="ly-head">
-        <span className="mono ly-name">{layer.name}</span>
-        <span className="wiz-from">
-          {layer.filename} · {kinds.join(", ") || s.empty}
-        </span>
-        <Seg
-          label={s.how}
-          value={o.use}
-          options={[
-            ["stamp", s.stampShort],
-            ["distance", s.distanceShort],
-          ]}
-          disabled={noStamp ? ["stamp"] : []}
-          titles={{
-            stamp: noStamp ? (layer.points ? s.onlyPoints : layer.lines ? s.onlyLines : s.noShapes) : s.stamp,
-            distance: s.distance,
-          }}
-          onChange={(use) =>
-            set(
-              use === "distance"
-                ? { use, feature: o.feature || nameFor(layer.name), unit: o.feature ? o.unit : defaultUnit }
-                : { use: "stamp" },
-            )
-          }
-        />
-        {layer.check && (
+    <FileEntry
+      name={layer.name}
+      filename={layer.filename}
+      facts={kinds.join(", ") || s.empty}
+      status={
+        layer.check && (
           <span className={layer.check.ok && !layer.check.warn ? "wiz-ok" : "wiz-warn"}>
             {layer.check.text}
           </span>
-        )}
-        <span className="ly-grow" />
-        {layer.projected && (
+        )
+      }
+      actions={
+        layer.projected && (
           <Button
             className={mapShown ? "ly-icon on" : "ly-icon"}
             aria-label={mapShown ? s.hideMap : s.showMap}
@@ -160,15 +138,11 @@ function LayerCard({
           >
             <MapIcon aria-hidden="true" size="1em" />
           </Button>
-        )}
-        <Button
-          className="ly-icon"
-          aria-label={s.drop}
-          onPress={() => change({ kind: "layer", name: layer.name, overlay: null })}
-        >
-          <X aria-hidden="true" size="1em" />
-        </Button>
-      </div>
+        )
+      }
+      removeLabel={s.drop}
+      onRemove={() => change({ kind: "layer", name: layer.name, overlay: null })}
+    >
       {layer.left.length > 0 && (
         <ul className="ly-left">
           {layer.left.map((x) => (
@@ -179,10 +153,42 @@ function LayerCard({
           ))}
         </ul>
       )}
-      {o.use === "stamp" && <StampFields layer={layer} set={set} />}
-      {o.use === "distance" && <DistanceOptions layer={layer} set={set} />}
+      {/* How it's used, then what it gives: labels in one column, controls in the next. */}
+      <div className="ly-grid">
+        <span className="wiz-label">{s.how}</span>
+        <div className="ly-body">
+          <Seg
+            label={s.how}
+            value={o.use}
+            options={[
+              ["stamp", s.stampShort],
+              ["distance", s.distanceShort],
+            ]}
+            disabled={noStamp ? ["stamp"] : []}
+            titles={{
+              stamp: noStamp
+                ? layer.points
+                  ? s.onlyPoints
+                  : layer.lines
+                    ? s.onlyLines
+                    : s.noShapes
+                : s.stamp,
+              distance: s.distance,
+            }}
+            onChange={(use) =>
+              set(
+                use === "distance"
+                  ? { use, feature: o.feature || nameFor(layer.name), unit: o.feature ? o.unit : defaultUnit }
+                  : { use: "stamp" },
+              )
+            }
+          />
+        </div>
+        {o.use === "stamp" && <StampFields layer={layer} set={set} />}
+        {o.use === "distance" && <DistanceOptions layer={layer} set={set} />}
+      </div>
       {mapShown && <LayerMap projectId={project.id} name={layer.name} />}
-    </section>
+    </FileEntry>
   );
 }
 
@@ -191,43 +197,42 @@ function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overla
   const o = layer.overlay;
   const kinds = Object.entries(s.kindsShort) as [Kind, string][];
   return (
-    <div className="ly-body">
-      <span className="ly-label">{s.copies}</span>
-      {o.fields.map((f) => (
-        <span key={f.name} className="ly-chip">
-          <span className="mono">{f.name}</span>
-          <span className="wiz-from">← {f.column}</span>
-          <MenuTrigger>
-            <Button className="ly-kind" aria-label={`${s.kind}: ${f.name}`}>
-              {s.kindsShort[f.kind]}
-              <ChevronDown aria-hidden="true" size="0.8em" />
-            </Button>
-            <Popover className="popover" placement="bottom start">
-              <Menu
-                className="choice-list"
-                onAction={(k) =>
-                  set({ fields: o.fields.map((x) => (x.name === f.name ? { ...x, kind: k as Kind } : x)) })
-                }
-              >
-                {kinds.map(([k, label]) => (
-                  <MenuItem key={k} id={k} className="choice-item" textValue={label}>
-                    {s.kinds[k]}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </Popover>
-          </MenuTrigger>
-          <Button
-            className="ly-x"
-            aria-label={s.remove({ name: f.name })}
-            onPress={() => set({ fields: o.fields.filter((x) => x.name !== f.name) })}
-          >
-            <X size="0.85em" />
-          </Button>
-        </span>
-      ))}
-      <AddStamp layer={layer} add={(f) => set({ fields: [...o.fields, f] })} />
-    </div>
+    <>
+      <span className="wiz-label">{s.copies}</span>
+      <div className="ly-body">
+        {o.fields.map((f) => (
+          <span key={f.name} className="ly-chip">
+            <span className="mono">{f.name}</span>
+            <span className="wiz-from">← {f.column}</span>
+            <MenuTrigger>
+              <Button className="ly-kind" aria-label={`${s.kind}: ${f.name}`}>
+                {s.kindsShort[f.kind]}
+                <ChevronDown aria-hidden="true" size="0.8em" />
+              </Button>
+              <Popover className="popover" placement="bottom start">
+                <Menu
+                  className="choice-list"
+                  onAction={(k) =>
+                    set({ fields: o.fields.map((x) => (x.name === f.name ? { ...x, kind: k as Kind } : x)) })
+                  }
+                >
+                  {kinds.map(([k, label]) => (
+                    <MenuItem key={k} id={k} className="choice-item" textValue={label}>
+                      {s.kinds[k]}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </Popover>
+            </MenuTrigger>
+            <RemoveButton
+              label={s.remove({ name: f.name })}
+              onPress={() => set({ fields: o.fields.filter((x) => x.name !== f.name) })}
+            />
+          </span>
+        ))}
+        <AddStamp layer={layer} add={(f) => set({ fields: [...o.fields, f] })} />
+      </div>
+    </>
   );
 }
 
@@ -314,86 +319,100 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
     .filter(Boolean)
     .join(" · ");
   return (
-    <div className="ly-body">
-      <span className="ly-label">{s.gives}</span>
-      <span className="mono ly-prefix">dist_to_</span>
-      <TextField
-        aria-label={s.featureName}
-        value={feature}
-        onChange={setFeature}
-        onBlur={saveFeature}
-        className="ly-feature"
-      >
-        <Input className="input ly-input" onKeyDown={enter(saveFeature)} />
-      </TextField>
-      <span className="ly-label">{s.upTo}</span>
-      <TextField aria-label={s.maxDistance} value={max} onChange={setMax} onBlur={saveMax} className="ly-max">
-        <Input
-          className="input ly-input wiz-num"
-          inputMode="decimal"
-          placeholder={s.none}
-          onKeyDown={enter(saveMax)}
-        />
-      </TextField>
-      <span className="ly-unit">
-        <Choice label={s.unit} hideLabel value={o.unit} options={units} onChange={(unit) => set({ unit })} />
-      </span>
-      <DialogTrigger>
-        <Button className="ly-add">
-          {s.options}
-          {options && <span className="wiz-from"> · {options}</span>}
-          <ChevronDown aria-hidden="true" size="0.8em" />
-        </Button>
-        <Popover className="popover" placement="bottom start">
-          <Dialog className="popover-body ly-pop" aria-label={s.options}>
-            <div className="ly-form">
-              <p className="wiz-from ly-help">
-                {s.columns({ n: o.feature || "…" })}. {s.maxHelp}
-              </p>
-              <Choice
-                label={s.nameColumn}
-                value={o.name_column ?? "__none"}
-                options={[
-                  ["__none", s.noNames] as const,
-                  ...layer.columns.map((c) => [c.name, c.name] as const),
-                ]}
-                onChange={(c) => set({ name_column: c === "__none" ? null : c })}
-              />
-              <Tick
-                isSelected={o.store_top}
-                onChange={(on) => set({ store_top: on, top_n: on ? Number(topN) || 3 : 0 })}
-              >
-                {s.top}
-              </Tick>
-              {o.store_top && (
-                <div className="ly-inline">
-                  <TextField
-                    aria-label={s.topN}
-                    value={topN}
-                    onChange={setTopN}
-                    onBlur={() => set({ top_n: Math.max(1, Number.parseInt(topN, 10) || 1) })}
-                    className="ly-max"
-                  >
-                    <Input className="input ly-input wiz-num" inputMode="numeric" />
-                  </TextField>
-                  <span>{s.sortBy}</span>
-                  <Choice
-                    label={s.sortBy}
-                    hideLabel
-                    value={o.sort_field ?? (layer.lines && !layer.polygons ? "length" : "area")}
-                    options={[
-                      ["area", s.byArea],
-                      ["length", s.byLength],
-                    ]}
-                    onChange={(sort_field) => set({ sort_field })}
-                  />
-                </div>
-              )}
-            </div>
-          </Dialog>
-        </Popover>
-      </DialogTrigger>
-    </div>
+    <>
+      <span className="wiz-label">{s.gives}</span>
+      <div className="ly-body">
+        <span className="mono ly-prefix">dist_to_</span>
+        <TextField
+          aria-label={s.featureName}
+          value={feature}
+          onChange={setFeature}
+          onBlur={saveFeature}
+          className="ly-feature"
+        >
+          <Input className="input ly-input" onKeyDown={enter(saveFeature)} />
+        </TextField>
+        <span className="ly-label">{s.upTo}</span>
+        <TextField
+          aria-label={s.maxDistance}
+          value={max}
+          onChange={setMax}
+          onBlur={saveMax}
+          className="ly-max"
+        >
+          <Input
+            className="input ly-input wiz-num"
+            inputMode="decimal"
+            placeholder={s.none}
+            onKeyDown={enter(saveMax)}
+          />
+        </TextField>
+        <span className="ly-unit">
+          <Choice
+            label={s.unit}
+            hideLabel
+            value={o.unit}
+            options={units}
+            onChange={(unit) => set({ unit })}
+          />
+        </span>
+        <DialogTrigger>
+          <Button className="ly-add">
+            {s.options}
+            {options && <span className="wiz-from"> · {options}</span>}
+            <ChevronDown aria-hidden="true" size="0.8em" />
+          </Button>
+          <Popover className="popover" placement="bottom start">
+            <Dialog className="popover-body ly-pop" aria-label={s.options}>
+              <div className="ly-form">
+                <p className="wiz-from ly-help">
+                  {s.columns({ n: o.feature || "…" })}. {s.maxHelp}
+                </p>
+                <Choice
+                  label={s.nameColumn}
+                  value={o.name_column ?? "__none"}
+                  options={[
+                    ["__none", s.noNames] as const,
+                    ...layer.columns.map((c) => [c.name, c.name] as const),
+                  ]}
+                  onChange={(c) => set({ name_column: c === "__none" ? null : c })}
+                />
+                <Tick
+                  isSelected={o.store_top}
+                  onChange={(on) => set({ store_top: on, top_n: on ? Number(topN) || 3 : 0 })}
+                >
+                  {s.top}
+                </Tick>
+                {o.store_top && (
+                  <div className="ly-inline">
+                    <TextField
+                      aria-label={s.topN}
+                      value={topN}
+                      onChange={setTopN}
+                      onBlur={() => set({ top_n: Math.max(1, Number.parseInt(topN, 10) || 1) })}
+                      className="ly-max"
+                    >
+                      <Input className="input ly-input wiz-num" inputMode="numeric" />
+                    </TextField>
+                    <span>{s.sortBy}</span>
+                    <Choice
+                      label={s.sortBy}
+                      hideLabel
+                      value={o.sort_field ?? (layer.lines && !layer.polygons ? "length" : "area")}
+                      options={[
+                        ["area", s.byArea],
+                        ["length", s.byLength],
+                      ]}
+                      onChange={(sort_field) => set({ sort_field })}
+                    />
+                  </div>
+                )}
+              </div>
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
+      </div>
+    </>
   );
 }
 

@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
 import { navigate } from "../App";
@@ -13,8 +12,10 @@ import {
   type WizardFile,
 } from "../api/client";
 import { AddButton } from "../components/AddButton";
+import { FileLine, fileFacts } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { short } from "../lib/format";
 import { say, t } from "../wording";
@@ -88,7 +89,7 @@ function Card({
   children,
 }: {
   value: string;
-  title: string;
+  title: ReactNode;
   sub: string;
   children?: ReactNode;
 }) {
@@ -96,7 +97,7 @@ function Card({
     <Radio value={value} className="radio cu-choice">
       <span className="radio-dot" aria-hidden="true" />
       <span className="cu-text">
-        <b>{title}</b>
+        {typeof title === "string" ? <b>{title}</b> : title}
         <span className="cu-sub">{sub}</span>
         {children}
       </span>
@@ -168,7 +169,7 @@ function FileChoice({ projectId, data, change }: Props) {
             <Card
               key={f.name}
               value={f.name}
-              title={`${f.filename}${u.rowsOf({ rows: f.rows })}`}
+              title={<FileLine name={f.name} filename={f.filename} facts={fileFacts(f)} />}
               sub={sub}
             />
           );
@@ -426,13 +427,10 @@ function Fields({ data, file, v, change }: Part) {
                   setWaiting((w) => w.filter((k) => k !== r.field));
                 }}
               />
-              <Button
-                className="ly-x"
-                aria-label={`${u.remove} ${r.name}`}
+              <RemoveButton
+                label={`${u.remove} ${r.name}`}
                 onPress={() => pick(rows.map((x) => x.field).filter((k) => k !== r.field))}
-              >
-                <X size="0.9em" />
-              </Button>
+              />
             </Fragment>
           ))}
         </div>
@@ -610,13 +608,7 @@ function RuleLines({
             onChange={(values) => set(i, { values })}
           />
           {conditions.length > 1 && (
-            <Button
-              className="rc-x"
-              aria-label={u.remove}
-              onPress={() => onChange(conditions.filter((_, j) => j !== i))}
-            >
-              <X size="0.9em" />
-            </Button>
+            <RemoveButton label={u.remove} onPress={() => onChange(conditions.filter((_, j) => j !== i))} />
           )}
         </div>
       ))}

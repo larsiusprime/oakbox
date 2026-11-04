@@ -14449,11 +14449,11 @@
     "properties": {
      "files": {
       "items": {
-       "type": "string"
+       "$ref": "#/components/schemas/PlanFile"
       },
       "type": "array",
       "title": "Files",
-      "description": "What's loaded, in words: the parcel universe, the sales record, the rest."
+      "description": "What's loaded: the parcel universe, the sales record, the rest."
      },
      "layers": {
       "items": {
@@ -14483,6 +14483,55 @@
      "fields"
     ],
     "title": "Plan"
+   },
+   "PlanFile": {
+    "properties": {
+     "what": {
+      "type": "string",
+      "title": "What",
+      "description": "Its part, in words: the parcel universe, the sales record, joined to the universe."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename"
+     },
+     "rows": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rows"
+     },
+     "how": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "How",
+      "description": "More on how it's joined, in words."
+     }
+    },
+    "type": "object",
+    "required": [
+     "what",
+     "name",
+     "filename",
+     "rows",
+     "how"
+    ],
+    "title": "PlanFile"
    },
    "PrepareReceipt": {
     "properties": {

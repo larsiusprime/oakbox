@@ -26,7 +26,9 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { Callout, firstSentence } from "../components/Callout";
+import { FileEntry, FileSlot, fileFacts } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
 import { desktop, useCanPickFile } from "../desktop";
@@ -349,11 +351,14 @@ export function FilePicker({
   data,
   exclude,
   onChosen,
+  onCancel,
 }: {
   project: Project;
   data: Wizard;
   exclude: string[];
   onChosen: (name: string) => void;
+  /** Where the slot can be taken away again (another file, not yet chosen): its ✕. */
+  onCancel?: () => void;
 }) {
   const canPick = useCanPickFile();
   const queryClient = useQueryClient();
@@ -378,7 +383,7 @@ export function FilePicker({
     );
   }
   return (
-    <div className="wiz-pick">
+    <FileSlot>
       {canPick ? (
         <AddButton primary onPress={() => void pick()}>
           {w.addFile}
@@ -389,30 +394,54 @@ export function FilePicker({
         </TipOn>
       )}
       {existing.length > 0 && (
-        <Choice
-          label={w.orExisting}
-          value={null}
-          placeholder={w.choose}
-          options={existing.map(
-            (f) => [f.name, w.fileLabel({ name: f.name, filename: f.filename })] as const,
-          )}
-          onChange={onChosen}
-        />
+        <span className="entry-slot-or">
+          <span className="wiz-from">{t.files.useExisting}</span>
+          <Choice
+            label={w.orExisting}
+            hideLabel
+            value={null}
+            placeholder={w.choose}
+            options={existing.map(
+              (f) => [f.name, w.fileLabel({ name: f.name, filename: f.filename })] as const,
+            )}
+            onChange={onChosen}
+          />
+        </span>
       )}
-    </div>
+      {onCancel && (
+        <span className="entry-acts">
+          <RemoveButton label={w.cancel} onPress={onCancel} />
+        </span>
+      )}
+    </FileSlot>
   );
 }
 
-export function FileHeader({ file, onReplace }: { file: WizardFile; onReplace: () => void }) {
+/** A file a step uses: its entry, the ✕ taking it off the step (it stays in the project), its settings inside. */
+export function StepFile({
+  file,
+  onRemove,
+  status,
+  actions,
+  children,
+}: {
+  file: WizardFile;
+  onRemove: () => void;
+  status?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
-    <div className="wiz-file">
-      <span className="mono">{file.name}</span>
-      <span className="wiz-from">{file.filename}</span>
-      {file.rows !== null && <span className="wiz-from">· {file.rows.toLocaleString()} rows</span>}
-      <Button className="wiz-link" onPress={onReplace}>
-        {w.addOther}
-      </Button>
-    </div>
+    <FileEntry
+      name={file.name}
+      filename={file.filename}
+      facts={fileFacts(file)}
+      status={status}
+      actions={actions}
+      onRemove={onRemove}
+    >
+      {children}
+    </FileEntry>
   );
 }
 

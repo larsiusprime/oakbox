@@ -77,10 +77,32 @@ name that says what it is.
   `components/AddButton.tsx`: a button with a plus and "Add …" in words (never a "+" typed into the label, a link,
   or a bare "+"). It opens what it adds (a menu, a popover, a new row) or adds it at once. A form's own submit
   button inside that popover is an ordinary button.
-  It comes after the list it adds to, at that list's right edge and outside any frame: `<AddButton end>`, or a row
-  of buttons in `.add-row`.
-- **Loose rows get a frame:** rows of fields or widgets lying straight on the page (Data's IDs, a step's fields) sit
-  in a thin `.frame`; what belongs together shares one. Not inside a card, which is a frame already.
+  It comes after the list it adds to, at that list's right edge: `<AddButton end>`, or a row of buttons in
+  `.add-row`. Adding another item (a file, a layer, a value set) is outside the items' outlines; adding to one item
+  (another ID, another copied field) is inside that item's outline, below its rows.
+- **The style guide for files and items is `docs/style-guide.html`** (SPEC D47); open it before changing how a file
+  or a removable item looks. In short:
+  - **A file is always `components/FileEntry.tsx`** wherever it's added, picked or used (`StepFile` in the Data
+    wizard): one thin outline (`--frame`, 3px); its first line its name in OAK box (mono, bold), its file name, its
+    facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the ✕. What's set on the file goes
+    in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`), so
+    they line up like a two-column table. A step with no file yet is `FilePicker`: a dashed outline round
+    [Add a file…] and "or use existing:". Read-only lists and choices of files use `FileLine` (the same first line,
+    no outline, no ✕).
+  - **A file's own name** (`parcels.csv`) is always `FileName` (`.file-name`): mono on a faint box, like code in a
+    chat, cut short with the whole name on hover. Never plain or grey text.
+  - **Taking something away is always `components/RemoveButton.tsx`:** a red ✕, last on its line at the right edge,
+    labelled with what it removes. Never a "Remove" link, "(remove)", "drop", a grey X or a "(none)" option in a
+    dropdown. On a file it takes the file off that step, never off disk. Deleting a project (from disk) keeps its own
+    button and confirmation; closing a popup or a map isn't removing (its own close button).
+  - **Anything that can be removed on its own has its own outline** (`--frame`, 3px): a file, an ID inside a file
+    (`SubEntry`, on the body's columns), a test, a condition, a copied field, a location field. Its siblings in the
+    same list get one too, even one that can't be removed. Every item's or group's outline is `--frame`; `--rule` is
+    for lines (a table's, a hairline), not boxes.
+  - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
+    radio buttons; a reason an option can't be chosen is its title.
+- **Loose rows get a frame:** rows of fields or widgets lying straight on the page (a step's fields) sit in a thin
+  `.frame`; what belongs together shares one. Not inside a card or an entry, which is a frame already.
 - **Picking fields or values from a list** is always `components/MultiPick.tsx`: a button listing what's chosen
   that opens a searchable checklist (a field's name with its column as a note, or a value with its count). Never
   a row of chips with ✕s, nor a row of loose ticks. Each chosen field that needs more (its column) gets a row

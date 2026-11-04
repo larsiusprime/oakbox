@@ -1,6 +1,5 @@
 /** Model groups' editor of one group: its name and its conditions, each a field, a test and the values it takes. */
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { Button, Input, TextField } from "react-aria-components";
 import {
   api,
@@ -13,6 +12,7 @@ import {
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
 import { moneyShort } from "../lib/format";
 import { t } from "../wording";
 import type { Move } from "./ModelGroups";
@@ -177,13 +177,10 @@ export function GroupEditor({
                     <Input className="input rl-input" />
                   </TextField>
                 )}
-                <Button
-                  className="rc-x"
-                  aria-label={g.removeCondition}
+                <RemoveButton
+                  label={g.removeCondition}
                   onPress={() => setConditions(rule.conditions.filter((_, j) => j !== i))}
-                >
-                  <X size="0.9em" />
-                </Button>
+                />
               </div>
             </li>
           ))}

@@ -1,4 +1,3 @@
-import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, Menu, MenuItem, MenuTrigger, Popover, TextField } from "react-aria-components";
 import type { ModelEntry, ModelRow, ModelSetup, ModelView, SalesSet } from "../api/client";
@@ -7,6 +6,7 @@ import { AddButton } from "../components/AddButton";
 import { type Column, DataTable, useWidths, type Widths } from "../components/DataTable";
 import { Choice } from "../components/Form";
 import { Pill } from "../components/Pill";
+import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { day, num, signed } from "../lib/format";
 import { t } from "../wording";
@@ -138,13 +138,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
                       ))}
                   </td>
                   <td>
-                    <Button
-                      className="wiz-link vs-remove"
-                      onPress={() => save(entries.filter((_, j) => j !== i))}
-                    >
-                      <X aria-hidden="true" size="0.9em" />
-                      {m.remove}
-                    </Button>
+                    <RemoveButton label={m.remove} onPress={() => save(entries.filter((_, j) => j !== i))} />
                   </td>
                 </tr>,
                 open && (

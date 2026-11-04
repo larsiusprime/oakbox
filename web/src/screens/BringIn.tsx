@@ -5,6 +5,7 @@ import { navigate } from "../App";
 import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
 import { FieldDetail, openRow } from "../components/FieldDetail";
+import { FileLine, fileFacts } from "../components/FileEntry";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -100,7 +101,12 @@ export function BringInTab({ projectId }: { projectId: string }) {
             <h3 className="wiz-group">{b.whatRuns}</h3>
             <ul className="bi-plan">
               {v.plan.files.map((f) => (
-                <li key={f}>{f}</li>
+                <li key={f.name}>
+                  {f.what}:{" "}
+                  <FileLine name={f.name} filename={f.filename} facts={fileFacts(f)}>
+                    {f.how && <span className="file-facts">· {f.how}</span>}
+                  </FileLine>
+                </li>
               ))}
               {v.plan.layers.length > 0 && (
                 <li>

@@ -1,12 +1,13 @@
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, Map as MapIcon, X } from "lucide-react";
+import { ChevronUp, Map as MapIcon } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
+import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 
@@ -251,13 +252,10 @@ function LocationFields({
                 distinct={x.distinct}
                 noun={l.areas({ n: x.distinct ?? 0 })}
               />
-              <Button
-                className="rc-x"
-                aria-label={l.remove({ name: x.name })}
+              <RemoveButton
+                label={l.remove({ name: x.name })}
                 onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
-              >
-                <X size="0.9em" />
-              </Button>
+              />
             </div>
           ))}
         </div>

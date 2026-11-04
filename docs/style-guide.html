@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAK box style guide: files and items</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: the app's own Manila folder and white paper, one mock per place, notes beside it. Single light look: OAK box has no dark theme. */
+:root {
+  color-scheme: light;
+  --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+  --text: #1c1e20; --muted: #565b61; --rule: #d9d9d9; --frame: #c9c2b0;
+  --manila: #f8f0d4; --manila-edge: #c8b277; --manila-ink: #4a3b1c;
+  --paper: #ffffff; --paper-edge: #d8d2c0; --paper-rule: #e6e1d3;
+  --link: #1d5bb8; --ok: #1b6a32; --warn: #8a4b00; --bad: #a3231b;
+  --bad-tint: #fde8e8; --bad-edge: #f3b4b4; --head: #eaf1fa; --select: #dce9fd;
+  --wood: #5a3a22;
+  --code-bg: #f1eee6; --code-edge: #e0dacb;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--wood); color: var(--text); font: 14px/1.35 var(--font); overflow-wrap: anywhere; }
+.page { max-width: 1060px; margin: 0 auto; padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.folder { background: var(--manila); border: 1px solid var(--manila-edge); border-radius: 4px; padding: 20px; display: grid; gap: 20px; }
+header h1 { margin: 0 0 4px; font-size: 1.45rem; color: var(--manila-ink); text-wrap: balance; }
+header p { margin: 0; max-width: 68ch; color: var(--manila-ink); }
+section.sheet { background: var(--paper); border: 1px solid var(--paper-edge); border-radius: 3px; padding: 16px 18px; box-shadow: 0 1px 1px rgba(70,55,20,.16), 0 3px 8px rgba(70,55,20,.12); display: grid; gap: 14px; min-width: 0; }
+h2 { margin: 0; font-size: 1.08rem; text-wrap: balance; }
+h3 { margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; max-width: 72ch; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-size: .9em; }
+
+/* A place in the app: the mock on the left, what changes on the right. */
+.place { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; padding-top: 14px; border-top: 1px solid var(--paper-rule); }
+.place:first-of-type { border-top: 0; padding-top: 0; }
+.place .mock { display: grid; gap: 8px; min-width: 0; }
+.place .notes { display: grid; gap: 6px; align-content: start; font-size: .92rem; }
+.place .notes ul { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; }
+.was { color: var(--muted); font-size: .88rem; }
+.was b { color: var(--text); font-weight: 600; }
+@media (max-width: 760px) { .place { grid-template-columns: 1fr; } }
+
+/* ---------- The proposal: .entry ---------- */
+.entry { border: 1px solid var(--frame); border-radius: 3px; background: var(--paper); min-width: 0; }
+.entry-head { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; min-width: 0; }
+.entry-id { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; flex: 1; }
+.entry-name { font-family: var(--mono); font-weight: 600; font-size: .92rem; }
+/* A file name, wherever it appears: set off like `code` in a chat. */
+.code, .entry-file { font-family: var(--mono); font-size: .84rem; color: var(--text); background: var(--code-bg); border: 1px solid var(--code-edge); border-radius: 3px; padding: 0 4px; }
+.entry-file { display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
+.entry-facts { color: var(--muted); }
+.entry-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+.entry-body { border-top: 1px solid var(--paper-rule); padding: 10px; display: grid; gap: 10px; }
+.entry.dashed { border-style: dashed; background: transparent; }
+
+/* The red ✕: one button, everywhere something is taken away. */
+.x { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--bad); background: none; border: 1px solid transparent; border-radius: 3px; cursor: pointer; flex: none; }
+.x svg { width: 15px; height: 15px; }
+.x:hover, .x.hot { background: var(--bad-tint); border-color: var(--bad-edge); }
+.x:focus-visible { outline: 2px solid #1f6fe0; outline-offset: 1px; }
+.icon { display: inline-grid; place-items: center; width: 24px; height: 24px; color: var(--muted); border: 1px solid transparent; border-radius: 3px; }
+.icon svg { width: 15px; height: 15px; }
+
+/* App controls, drawn as they are in OAK box. */
+.button { font: inherit; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 12px; color: var(--text); background: #efefed; border: 1px solid #505357; border-radius: 2px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #8e9195, inset 2px 2px 0 #f6f6f4, inset -2px -2px 0 #b9bbbe; white-space: nowrap; }
+.button svg { width: 13px; height: 13px; }
+.button.primary { color: #fff; background: linear-gradient(#4a86d8, #2c62b4); border-color: #1f4b8e; box-shadow: inset 1px 1px 0 rgba(255,255,255,.35); }
+.add-end { display: flex; justify-content: flex-end; }
+.select { display: inline-flex; justify-content: space-between; align-items: center; width: 13rem; min-height: 24px; padding: 0 6px; background: #fff; border: 1px solid #7a7d82; box-shadow: inset 1px 1px 0 #c5c7ca; font-weight: 600; }
+.select::after { content: "⌄"; color: var(--muted); }
+/* A file's settings: labels in one column, controls in the next, checks after, ✕ last. */
+.grid { display: grid; grid-template-columns: max-content max-content 1fr auto; gap: 8px 14px; align-items: center; }
+/* Something inside a file that can be taken away on its own (an ID): its own small box, still on the file's columns. */
+.grid > .sub { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 3px 3px 3px 8px; border: 1px solid var(--frame); border-radius: 3px; }
+.grid > .span { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.label { font-weight: 600; }
+.ok { color: var(--ok); font-size: .9rem; }
+.warn { color: var(--warn); font-size: .9rem; }
+.radios { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
+.radio { display: inline-flex; gap: 6px; align-items: center; }
+.dot { width: 13px; height: 13px; border-radius: 50%; border: 1px solid #6b6e72; background: #fff; }
+.dot.on { background: radial-gradient(circle, #2c62b4 0 3px, #fff 4px); }
+.seg { display: inline-flex; border: 1px solid #7a7d82; border-radius: 2px; overflow: hidden; font-size: .88rem; }
+.seg span { padding: 2px 10px; }
+.seg .on { background: var(--select); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 1px 2px 1px 8px; border: 1px solid var(--frame); border-radius: 3px; font-size: .9rem; }
+.chip .x { width: 20px; height: 20px; }
+.pill { display: inline-block; padding: 0 6px; border: 1px solid var(--rule); border-radius: 8px; font-size: .78rem; color: var(--muted); }
+.field { display: grid; gap: 3px; }
+.input { min-height: 24px; padding: 2px 6px; border: 1px solid #7a7d82; box-shadow: inset 1px 1px 0 #c5c7ca; font-family: var(--mono); font-size: .9rem; width: 14rem; max-width: 100%; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.card-choice { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--frame); border-radius: 3px; }
+.card-choice.on { border-color: #2c62b4; background: var(--head); }
+.pick-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 10px; }
+
+/* Anatomy callouts */
+.anat { display: grid; gap: 10px; }
+.tag { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--manila-ink); color: #fff; font-size: .7rem; font-weight: 700; flex: none; }
+.legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; font-size: .92rem; margin: 0; }
+.legend dt { display: flex; } .legend dd { margin: 0; }
+.rules { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 80ch; }
+.q { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; max-width: 80ch; }
+.where { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e4e6; vertical-align: top; }
+th { background: var(--head); font-weight: 600; }
+tbody tr:nth-child(even) { background: #f0f5fc; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+</svg>
+
+<div class="page">
+<div class="folder">
+
+<header>
+  <h1>Style guide: files and items</h1>
+  <p>How OAK box shows a file wherever one is added, picked or used, and anything else that's added and taken away. Every file sits in the same thin outline with the same first line, and the same red ✕ takes it away. Settled 2026-11-04 (SPEC D47, AGENTS.md › Screens). The "Now" notes say what each place looked like before. Built as <code>components/FileEntry.tsx</code> and <code>components/RemoveButton.tsx</code>.</p>
+</header>
+
+<!-- ============ 1. The entry ============ -->
+<section class="sheet">
+  <h2>1. The entry</h2>
+  <div class="anat">
+    <h3>Small: one line, ✕ centred</h3>
+    <div class="entry">
+      <div class="entry-head">
+        <div class="entry-id">
+          <span class="entry-name">permits</span>
+          <span class="entry-file" title="C:\Users\lars\Documents\OAK box\Manassas Park 2026\in\permits.csv">permits.csv</span>
+          <span class="entry-facts">· 1,208 rows</span>
+        </div>
+        <div class="entry-acts"><button class="x" aria-label="Remove permits"><svg><use href="#i-x"/></svg></button></div>
+      </div>
+    </div>
+
+    <h3>Large: its settings below a faint rule, ✕ top right</h3>
+    <div class="entry">
+      <div class="entry-head">
+        <span class="tag">1</span>
+        <div class="entry-id">
+          <span class="entry-name">geo_parcels</span><span class="tag">2</span>
+          <span class="entry-file">geo_parcels_2.parquet</span><span class="tag">3</span>
+          <span class="entry-facts">· 4,712 rows · shapes</span>
+        </div>
+        <div class="entry-acts"><span class="tag">4</span><span class="icon"><svg><use href="#i-map"/></svg></span><span class="tag">5</span><button class="x hot" aria-label="Remove geo_parcels"><svg><use href="#i-x"/></svg></button></div>
+      </div>
+      <div class="entry-body">
+        <span class="tag">6</span>
+        <div class="grid">
+          <span class="label">Parcel ID</span><span class="select">key</span><span class="ok">✓ 4,712 parcels, all different</span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <dl class="legend">
+      <dt><span class="tag">1</span></dt><dd><b>Its name in OAK box</b>, in mono, bold: the name the settings use.</dd>
+      <dt><span class="tag">2</span></dt><dd><b>The file's own name</b>, set off like code in a chat (<span class="code">like_this.csv</span>), cut short with "…" if long; the full path on hover. Every file name in the app looks like this, in lists, dropdowns and sentences too.</dd>
+      <dt><span class="tag">3</span></dt><dd><b>Facts about the file</b>, grey, joined by "·": its rows, then "shapes" if it has any (a map layer says how many: "23 polygons"). "✓ Geometry detected" becomes "shapes" here.</dd>
+      <dt><span class="tag">4</span></dt><dd><b>Other actions, as icons</b> (show the map). Only where a place needs one.</dd>
+      <dt><span class="tag">5</span></dt><dd><b>The red ✕</b>, always last, at the right edge. It sits in the first line, so it's centred when the entry is one line and at the top right when the entry is tall. Its label says what it removes ("Remove geo_parcels").</dd>
+      <dt><span class="tag">6</span></dt><dd><b>What's set on this file</b> (its ID column, what it holds, how it's used) goes inside the same outline, labels in one column and controls in the next. The separate frame round the Parcel ID goes away: it belongs to the file. Adding to the file (another ID, another field) is inside too, at the bottom right.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ 2. Each place ============ -->
+<section class="sheet">
+  <h2>2. Each place a file appears</h2>
+
+  <!-- Parcel universe -->
+  <div class="place">
+    <div class="mock">
+      <h3>Data › Parcel universe</h3>
+      <div class="entry">
+        <div class="entry-head">
+          <div class="entry-id"><span class="entry-name">geo_parcels</span><span class="entry-file">geo_parcels_2.parquet</span><span class="entry-facts">· 4,712 rows · shapes</span></div>
+          <div class="entry-acts"><button class="x" aria-label="Remove geo_parcels"><svg><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="entry-body">
+          <div class="grid">
+            <div class="sub"><span class="label">Parcel ID</span><span class="select">key</span><span class="ok">✓ 4,712 parcels, all different</span><span style="width:24px"></span></div>
+            <div class="sub"><span class="label">2nd ID</span><span class="select">pin_alt</span><span class="ok">✓ 4,710 different</span><button class="x" aria-label="Remove 2nd ID"><svg><use href="#i-x"/></svg></button></div>
+          </div>
+          <div class="add-end"><span class="button"><svg><use href="#i-plus"/></svg>Add 3rd ID</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> no outline; "Use a different file" link; IDs in their own frame; "(remove)" beside the 2nd ID.</p>
+      <ul>
+        <li>The file and its IDs share one outline.</li>
+        <li>✕ takes the file off this step and shows the empty slot (below). The file stays in the project, so it can be picked again.</li>
+        <li>Each ID is its own small box inside the file's, because each can be taken away on its own: the 2nd ID's "(remove)" becomes the ✕ at the right of its box. The Parcel ID can't be removed, so its box has no ✕. The labels and dropdowns still line up across the boxes.</li>
+        <li>"Add 3rd ID" adds to the file, so it sits inside the outline, below the IDs, at its right edge.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Empty slot + picking -->
+  <div class="place">
+    <div class="mock">
+      <h3>Any step with no file yet</h3>
+      <div class="entry dashed">
+        <div class="pick-row">
+          <span class="button primary"><svg><use href="#i-plus"/></svg>Add a file…</span>
+          <span class="muted">or use existing:</span>
+          <span class="select" style="font-weight:400">Choose…</span>
+        </div>
+      </div>
+      <h3>After choosing a file on disk</h3>
+      <div class="entry">
+        <div class="entry-head">
+          <div class="entry-id"><span class="entry-name">sales</span><span class="entry-file">…\Exports 2026\sales_2019-2025.csv</span><span class="pill">CSV</span><span class="pill">3.4 MB</span></div>
+          <div class="entry-acts"><span class="button"><svg><use href="#i-folder"/></svg>Browse…</span><button class="x" aria-label="Don't import sales_2019-2025.csv"><svg><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="entry-body">
+          <div class="row">
+            <label class="field"><span class="label">Name</span><span class="input">sales</span></label>
+            <div class="field"><span class="label">How to import</span>
+              <span class="radio"><span class="dot on"></span>Copy it (a new copy is made for the project)</span>
+              <span class="radio"><span class="dot"></span>Move it (the original moves into the project)</span>
+            </div>
+          </div>
+          <div><span class="button primary">Import</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> a bare Add button and dropdown; the import form is a separate layout with its own path box, Browse and Cancel.</p>
+      <ul>
+        <li>A dashed outline marks where the file will go.</li>
+        <li>The import form is an entry too: the path in the first line, its pills as facts, the choices below. ✕ replaces Cancel.</li>
+        <li>"Or use existing:" lists the project's files the same way: <span class="entry-name">sales</span> <span class="code">sales.csv</span> · 9,104 rows.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Sales / Permits: same as universe -->
+  <div class="place">
+    <div class="mock">
+      <h3>Data › Sales, Data › Permits</h3>
+      <div class="entry">
+        <div class="entry-head">
+          <div class="entry-id"><span class="entry-name">sales</span><span class="entry-file">sales.csv</span><span class="entry-facts">· 9,104 rows</span></div>
+          <div class="entry-acts"><button class="x" aria-label="Remove sales"><svg><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="entry-body">
+          <div class="grid">
+            <span class="label">Parcel ID</span><span class="select">parcel_key</span><span class="ok">✓ 9,071 of 9,104 find their parcel</span><span></span>
+            <span class="label">Sale ID</span><span class="select">doc_no</span><span class="ok">✓ all different</span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> the same bare header and "Use a different file" link as the parcel universe.</p>
+      <ul><li>Same as the parcel universe: one outline, ✕, the step's fields inside.</li></ul>
+    </div>
+  </div>
+
+  <!-- More files -->
+  <div class="place">
+    <div class="mock">
+      <h3>Data › More files (one entry each)</h3>
+      <div class="entry">
+        <div class="entry-head">
+          <div class="entry-id"><span class="entry-name">building</span><span class="entry-file">building.csv</span><span class="entry-facts">· 4,388 rows</span></div>
+          <div class="entry-acts"><button class="x" aria-label="Remove building"><svg><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="entry-body">
+          <div class="grid">
+            <span class="label">It's about</span><span class="span"><span class="seg"><span class="on">Parcels</span><span>Sales</span></span></span>
+            <span class="label">It adds</span><span class="span"><span class="seg"><span class="on">More about each parcel</span><span>More parcels</span></span></span>
+            <span class="label">Parcel ID</span><span class="select">PARID</span><span class="ok">✓ 4,388 of 4,388 find their parcel</span><span></span>
+          </div>
+        </div>
+      </div>
+      <div class="add-end"><span class="button"><svg><use href="#i-plus"/></svg>Add another file</span></div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> a grey-ruled box (a different border from the IDs' frame) with a "drop" link in its header.</p>
+      <ul>
+        <li>The link becomes the ✕; the box becomes the entry outline.</li>
+        <li>The radio buttons become segmented controls (<span class="mono">Seg</span>, as on Shapefiles).</li>
+        <li>Labels share one column and controls the next, like a two-column table, so they all line up.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Shapefiles -->
+  <div class="place">
+    <div class="mock">
+      <h3>Data › More details › Shapefiles</h3>
+      <div class="entry">
+        <div class="entry-head">
+          <div class="entry-id"><span class="entry-name">parks</span><span class="entry-file">parks.shp</span><span class="entry-facts">· 23 polygons</span><span class="ok">✓ 21 parcels touch one</span></div>
+          <div class="entry-acts"><span class="icon"><svg><use href="#i-map"/></svg></span><button class="x" aria-label="Remove parks"><svg><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="entry-body">
+          <div class="grid">
+            <span class="label">Use it to</span><span class="span"><span class="seg"><span class="on">Stamp</span><span>Distance</span></span></span>
+            <span class="label">Copies</span><span class="span">
+              <span class="chip"><span class="mono">park_name</span><span class="muted">← NAME</span><button class="x" aria-label="Remove park_name"><svg><use href="#i-x"/></svg></button></span>
+              <span class="button"><svg><use href="#i-plus"/></svg>Add field</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> closest to this already. A grey X, and Stamp / Distance in the header line.</p>
+      <ul>
+        <li>The ✕ turns red; the map toggle stays as an icon beside it.</li>
+        <li>Stamp / Distance moves into the body, so the first line is the same as every other file's; the body's labels and controls line up in two columns, as on More files.</li>
+        <li>The chips' grey ✕ turns red too.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Condo units -->
+  <div class="place">
+    <div class="mock">
+      <h3>Data › Condo units (choosing which file)</h3>
+      <div class="card-choice on">
+        <div class="entry-id"><span class="radio"><span class="dot on"></span></span><span class="entry-name">condo_units</span><span class="entry-file">condo_units.csv</span><span class="entry-facts">· 612 rows</span></div>
+        <span class="muted" style="padding-left:21px">412 rows have no shape of their own</span>
+      </div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> <span class="code">condo_units.csv</span> (612 rows), the file name first and no OAK box name.</p>
+      <ul><li>A choice between files is not removable, so no ✕, but the first line reads the same: name, file, facts.</li></ul>
+    </div>
+  </div>
+
+  <!-- Field from another file -->
+  <div class="place">
+    <div class="mock">
+      <h3>"In another file…" (a field's column from another file)</h3>
+      <div class="grid" style="grid-template-columns:max-content 1fr">
+        <span class="label">File</span>
+        <div class="entry"><div class="entry-head">
+          <div class="entry-id"><span class="entry-name">deeds</span><span class="entry-file">deeds.csv</span><span class="entry-facts">· 15,330 rows</span></div>
+          <div class="entry-acts"><button class="x" aria-label="Choose another file"><svg><use href="#i-x"/></svg></button></div>
+        </div></div>
+      </div>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> "deeds (<span class="code">deeds.csv</span>)" as plain mono text.</p>
+      <ul><li>The small entry. ✕ goes back to picking a file.</li></ul>
+    </div>
+  </div>
+
+  <!-- Bring in data -->
+  <div class="place">
+    <div class="mock">
+      <h3>1. Inputs › What runs (read only)</h3>
+      <ul style="margin:0;padding-left:1.1em;display:grid;gap:3px">
+        <li><span class="entry-name">geo_parcels</span> <span class="code">geo_parcels_2.parquet</span> <span class="muted">· 4,712 rows</span></li>
+        <li><span class="entry-name">sales</span> <span class="code">sales.csv</span> <span class="muted">· 9,104 rows</span></li>
+      </ul>
+    </div>
+    <div class="notes">
+      <p class="was"><b>Now:</b> a list of bare file names.</p>
+      <ul><li>A summary, not a place to change anything: no outline and no ✕, but the same name, file and facts in the same order.</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. The ✕ everywhere ============ -->
+<section class="sheet">
+  <h2>3. The red ✕ for everything else that's removed</h2>
+  <p>The same button replaces every way of taking something away now: grey X icons, "✕ Remove" links, "(remove)" and "drop".</p>
+  <div class="row">
+    <span class="chip"><span class="mono">park_name</span><span class="muted">← NAME</span><button class="x" aria-label="Remove"><svg><use href="#i-x"/></svg></button></span>
+    <div class="entry" style="flex:1;min-width:260px"><div class="entry-head">
+      <div class="entry-id"><span class="select" style="width:9rem">land_use</span><span>is one of</span><span class="select" style="width:9rem;font-weight:400">R1, R2</span></div>
+      <div class="entry-acts"><button class="x" aria-label="Remove this test"><svg><use href="#i-x"/></svg></button></div>
+    </div></div>
+  </div>
+  <div class="where">
+    <table>
+      <thead><tr><th>Where</th><th>Now</th></tr></thead>
+      <tbody>
+        <tr><td>Data › Parcel universe, 2nd and 3rd ID</td><td>"(remove)" link</td></tr>
+        <tr><td>Data › More files</td><td>"drop" link</td></tr>
+        <tr><td>Shapefiles: a layer, a copied field</td><td>grey X</td></tr>
+        <tr><td>Condo units: a test; Custom fields; Location</td><td>grey X</td></tr>
+        <tr><td>Model groups, the group editor, Reconcile's clean-up steps</td><td>grey X</td></tr>
+        <tr><td>Value sets, Models, Standards, the location stack</td><td>X with the word "Remove"</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Deleting a whole project on the home screen keeps its trash-can button and its confirmation: that one deletes files from disk.</p>
+</section>
+
+<!-- ============ 4. Rules ============ -->
+<section class="sheet">
+  <h2>4. The rules</h2>
+  <ol class="rules">
+    <li><b>A file is always <span class="mono">components/FileEntry.tsx</span>.</b> One line: its OAK box name (mono, bold), its file name (set off like <span class="code">code</span>, cut short, full path on hover), its facts (rows, shapes, in wording, joined by "·"), then actions, then ✕. Its settings go in its body, inside the same outline: labels in one column, controls in the next.</li>
+    <li><b>Anything inside a file that can be removed on its own</b> (an ID, a test, a copied field) is its own small box with its ✕ at the right. Its siblings in the same list get a box too, even one that can't be removed. Fixed settings (what the file is about, its one ID column) stay as plain rows.</li>
+    <li><b>Adding something to a file</b> (an ID, a field) is an Add button inside its body, below the rows, at the right edge. Adding another file stays outside, after the list.</li>
+    <li><b>A short choice between two or three options</b> in a file's body is a segmented control (<span class="mono">components/Seg.tsx</span>), not radio buttons.</li>
+    <li><b>Every file name</b> is shown like <span class="code">code</span>: mono, on a faint box.</li>
+    <li><b>Everything that's taken away uses <span class="mono">components/RemoveButton.tsx</span>:</b> a red ✕, last on its line at the right edge, labelled with what it removes. No "Remove" links, no grey X.</li>
+    <li><b>✕ on a file takes it off that step, never off disk.</b> It stays in the project and can be picked again.</li>
+    <li><b>A step with no file yet</b> shows a dashed outline holding [Add a file…], then "or use existing:" and a dropdown of the project's files.</li>
+    <li><b>Read-only lists and choices</b> (What runs, Condo units' cards, dropdowns) use the same first line without the outline or ✕.</li>
+  </ol>
+</section>
+
+</div>
+</div>
+</html>

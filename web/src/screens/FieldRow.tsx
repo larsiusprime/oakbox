@@ -12,6 +12,7 @@ import {
 import type { Project, Wizard, WizardField, WizardFile } from "../api/client";
 import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import { Combo, Marked, matches } from "../components/Combo";
+import { FileLine, fileFacts } from "../components/FileEntry";
 import { Choice } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
@@ -518,7 +519,7 @@ function OtherFileDialog({
           {chosen ? (
             <div className="wiz-grid wiz-grid-dialog">
               <div className="wiz-label">{w.otherFile}</div>
-              <div className="mono">{w.fileLabel({ name: chosen.name, filename: chosen.filename })}</div>
+              <FileLine name={chosen.name} filename={chosen.filename} facts={fileFacts(chosen)} />
               <div />
               {matchOptions(base).length > 1 && (
                 <>

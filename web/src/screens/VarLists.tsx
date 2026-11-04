@@ -1,7 +1,7 @@
 /** Variables › Variable lists (SPEC F9): the lists in a table, one open at a time; an open list's name, type and
  * model groups, and every variable with its test scores in one of its groups and whether it's recommended for the
  * list's type, ticked in or out. */
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { ListView, TestRow, VarList, VarListsView, VarTestView } from "../api/client";
@@ -10,6 +10,7 @@ import { useStep } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { num } from "../lib/format";
 import { say, t } from "../wording";
@@ -98,13 +99,10 @@ export function VarListsStep({ projectId }: { projectId: string }) {
                   <td className="cs-n">{num(x.variables.length)}</td>
                   <td className="wiz-from">{x.used_by.length ? x.used_by.join(", ") : s.notUsed}</td>
                   <td>
-                    <Button
-                      className="wiz-link vs-remove"
+                    <RemoveButton
+                      label={s.remove}
                       onPress={() => save(v.lists.filter((y) => y.id !== x.id).map(plain))}
-                    >
-                      <X aria-hidden="true" size="0.9em" />
-                      {s.remove}
-                    </Button>
+                    />
                   </td>
                 </tr>,
                 on && (

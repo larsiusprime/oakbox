@@ -148,7 +148,6 @@ export type Wording = {
       lede: string;
     }>;
     addFile: string;
-    addOther: string;
     orExisting: string;
     noPicker: string;
     fileLabel: (a: { name: string | number; filename: string | number }) => string;
@@ -159,7 +158,6 @@ export type Wording = {
     addId: (a: { ordinal: string | number }) => string;
     extraIdTip: string;
     optional: string;
-    removeId: string;
     matchBy: string;
     idColumnIn: (a: { file: string | number }) => string;
     saleIdTip: string;
@@ -333,7 +331,6 @@ export type Wording = {
       effectiveAge: string;
       needsYearBuilt: string;
       gives: string;
-      stop: string;
     };
     enrich: {
       online: (a: { km2: string | number | null }) => string;
@@ -530,7 +527,6 @@ export type Wording = {
     extraFiles: {
       first: string;
       another: string;
-      drop: string;
       what: string;
       parcels: string;
       sales: string;
@@ -2202,5 +2198,13 @@ export type Wording = {
   callout: {
     show: string;
     hide: string;
+  };
+  files: {
+    facts: (a: { rows: number; shapes: string | number }) => string;
+    shapesOnly: string;
+    remove: (a: { name: string | number }) => string;
+    useExisting: string;
+    dontImport: (a: { filename: string | number }) => string;
+    otherFile: string;
   };
 };

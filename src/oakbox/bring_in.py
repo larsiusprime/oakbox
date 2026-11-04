@@ -918,8 +918,16 @@ def run(project_id: str) -> None:
     steps.emit(step="done", fraction=1.0, message=f"{len(universe):,} parcels, {len(sales):,} valid sales")
 
 
+class PlanFile(BaseModel):
+    what: str = Field(description="Its part, in words: the parcel universe, the sales record, joined to the universe.")
+    name: str
+    filename: str
+    rows: int | None
+    how: str | None = Field(default=None, description="More on how it's joined, in words.")
+
+
 class Plan(BaseModel):
-    files: list[str] = Field(description="What's loaded, in words: the parcel universe, the sales record, the rest.")
+    files: list[PlanFile] = Field(description="What's loaded: the parcel universe, the sales record, the rest.")
     layers: list[str]
     enrichments: list[str] = Field(description="Public data downloaded as it runs (F3e).")
     fields: int
@@ -937,19 +945,20 @@ def plan(project, in_dir: Path) -> Plan:
 
     files = wizard.Files(project, in_dir)
     base = wizard.base_file(project)
-    out, layers = [], []
+    out: list[PlanFile] = []
+    layers: list[str] = []
     for f in project.files:
         rows = files.preview[f.name].rows if f.name in files.preview else None
-        n = f" ({rows:,} rows)" if rows is not None else ""
         if f is base:
-            out.insert(0, f"the parcel universe: {f.filename}{n}")
+            out.insert(0, PlanFile(what="the parcel universe", name=f.name, filename=f.filename, rows=rows))
         elif f.holds == "sales":
-            out.append(
-                f"the sales record: {f.filename}{n}" if f.match != "key_sale" else f"sale details: {f.filename}{n}"
-            )
+            what = "the sales record" if f.match != "key_sale" else "sale details"
+            out.append(PlanFile(what=what, name=f.name, filename=f.filename, rows=rows))
         elif f.holds == "parcels":
             how = "the first row per parcel" if f.dupes != "all" else "parcels with one row"
-            out.append(f"joined to the parcel universe: {f.filename}{n}, {how}")
+            out.append(
+                PlanFile(what="joined to the parcel universe", name=f.name, filename=f.filename, rows=rows, how=how)
+            )
         elif f.holds == "overlay" and f.overlay is not None and f.overlay.use:
             use = "stamped onto parcels" if f.overlay.use == "stamp" else "distances measured to it"
             layers.append(f"{f.name}: {use}")

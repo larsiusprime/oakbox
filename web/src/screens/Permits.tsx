@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Button, Input, TextField } from "react-aria-components";
+import { Input, TextField } from "react-aria-components";
 import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
 import { t } from "../wording";
-import { FileHeader, FilePicker, IdRow } from "./WizardFiles";
+import { FilePicker, IdRow, StepFile } from "./WizardFiles";
 import type { Mutate } from "./wizardChange";
 
 const w = t.wizard;
@@ -25,17 +25,14 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
   const v = data.permits;
   const file = v ? data.files.find((f) => f.name === v.file) : undefined;
   const base = data.files.find((f) => f.base);
-  const [replacing, setReplacing] = useState(false);
-  if (!v || !file || replacing) {
+  if (!v || !file) {
     const taken = data.files.filter((f) => f.base || f.holds === "sales").map((f) => f.name);
     return (
       <FilePicker
         project={project}
         data={data}
-        exclude={[...taken, ...(file ? [file.name] : [])]}
-        onChosen={(name) =>
-          change({ kind: "file", name, holds: "permits" }, { onSuccess: () => setReplacing(false) })
-        }
+        exclude={taken}
+        onChosen={(name) => change({ kind: "file", name, holds: "permits" })}
       />
     );
   }
@@ -46,8 +43,7 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
   // What each kind means, guesses included: saying one says them all, as shown.
   const means = Object.fromEntries(v.kinds.map((k) => [k.value, k.means]));
   return (
-    <>
-      <FileHeader file={file} onReplace={() => setReplacing(true)} />
+    <StepFile file={file} onRemove={() => change({ kind: "permits", name: v.file, permits: null })}>
       <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />
       <div className="wiz-grid">
         <div className="wiz-label">{p.date}</div>
@@ -131,10 +127,7 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
         {!v.year_built && <span className="wiz-warn">{p.needsYearBuilt}</span>}
       </div>
       <p className="wiz-note">{p.gives}</p>
-      <Button className="wiz-link" onPress={() => change({ kind: "permits", name: v.file, permits: null })}>
-        {p.stop}
-      </Button>
-    </>
+    </StepFile>
   );
 }
 

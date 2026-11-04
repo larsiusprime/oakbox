@@ -3,8 +3,8 @@ import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { Button, Label, Radio, RadioGroup } from "react-aria-components";
 import { api, type FileCheck, type Project, unwrap } from "../api/client";
+import { FileEntry } from "../components/FileEntry";
 import { Choice, Field } from "../components/Form";
-import { TipOn } from "../components/Tip";
 import { size } from "../lib/format";
 import { t } from "../wording";
 
@@ -32,27 +32,22 @@ export function AddFile(props: {
   });
   const found = check.data && !check.data.problem ? check.data : null;
   const problem = check.error?.message ?? check.data?.problem ?? null;
+  // The file's own name, from the path as Windows or the rest write it.
+  const filename = found?.filename ?? path.split(/[\\/]/).pop() ?? path;
   return (
-    <div className="add-file">
-      <div className="pick-line">
-        <div className="pick-file">
-          <div className="pick-head">
-            <span className="field-label">{f.path}</span>
-            {found && <Pills found={found} />}
-          </div>
-          <TipOn text={path} className="path-box">
-            {/* Isolated, so the right-to-left box only moves the "…", not the path's characters. */}
-            <bdi>{path}</bdi>
-          </TipOn>
-        </div>
+    <FileEntry
+      filename={filename}
+      path={path}
+      facts={found && <Pills found={found} />}
+      actions={
         <Button className="button" onPress={props.onBrowse}>
           <FolderOpen aria-hidden="true" size="1em" />
           {f.browse}
         </Button>
-        <Button className="button" onPress={props.onDone}>
-          {f.cancel}
-        </Button>
-      </div>
+      }
+      removeLabel={t.files.dontImport({ filename })}
+      onRemove={props.onDone}
+    >
       {problem && (
         <p className="error" role="alert">
           {problem}
@@ -74,7 +69,7 @@ export function AddFile(props: {
           </Button>
         </div>
       )}
-    </div>
+    </FileEntry>
   );
 }
 

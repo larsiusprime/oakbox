@@ -1,5 +1,4 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useState } from "react";
 import {
   Button,
@@ -17,6 +16,7 @@ import {
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Tick } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
 import { pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
@@ -252,13 +252,7 @@ function CleanSteps({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) 
             <span className="rc-grow">
               <StepText step={s} set={(patch) => set(i, patch)} />
             </span>
-            <Button
-              className="rc-x"
-              aria-label={r.remove}
-              onPress={() => onChange(steps.filter((_, j) => j !== i))}
-            >
-              <X size="0.9em" />
-            </Button>
+            <RemoveButton label={r.remove} onPress={() => onChange(steps.filter((_, j) => j !== i))} />
           </li>
         ))}
       </ol>

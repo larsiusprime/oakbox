@@ -1,8 +1,8 @@
-import { X } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { Wizard } from "../api/client";
 import { Choice } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
 import { t } from "../wording";
 
@@ -146,13 +146,10 @@ export function CustomFields({
                   </span>
                 </td>
                 <td className="cf-td">
-                  <Button
-                    className="rc-x"
-                    aria-label={c.remove({ name: x.name })}
+                  <RemoveButton
+                    label={c.remove({ name: x.name })}
                     onPress={() => set({ file: null, column: null })}
-                  >
-                    <X size="0.9em" />
-                  </Button>
+                  />
                 </td>
               </tr>
             );
@@ -198,13 +195,7 @@ export function CustomFields({
                 {c.add}
               </Button>
             </td>
-            <td className="cf-td cf-add-td">
-              {dirty && (
-                <Button className="rc-x" aria-label={c.clear} onPress={clear}>
-                  <X size="0.9em" />
-                </Button>
-              )}
-            </td>
+            <td className="cf-td cf-add-td">{dirty && <RemoveButton label={c.clear} onPress={clear} />}</td>
           </tr>
         </tfoot>
       </table>
