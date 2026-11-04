@@ -101,15 +101,10 @@ if (__WORDING_EDIT__ && import.meta.hot) {
   });
 }
 
-/** A major step's landing page (SPEC D21): what it's for, before its first part. The lists and the needs line are
- * left out where they'd say nothing (Metadata's). */
+/** A major step's landing page (SPEC D21): what it's for, in a few lines, before its first part. */
 export type Landing = {
   kicker: string;
   title: string;
   // Shown, never used as text: may be formatted (**bold**, *italic*).
   lede: ReactNode;
-  happens?: ReactNode[];
-  decide?: ReactNode[];
-  end?: ReactNode[];
-  needs?: ReactNode;
 };

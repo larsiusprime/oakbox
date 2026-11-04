@@ -1896,9 +1896,11 @@ a.row-title:hover {
   font-size: 1rem;
 }
 
+/* A settings grid: labels in a column only as wide as they need (up to 14rem, then they wrap), the controls, then
+   their checks. */
 .wiz-grid {
   display: grid;
-  grid-template-columns: 12rem 16rem minmax(0, 1fr);
+  grid-template-columns: fit-content(14rem) 16rem minmax(0, 1fr);
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
     max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
@@ -2124,7 +2126,7 @@ a.row-title:hover {
 }
 
 .wiz-grid-dialog {
-  grid-template-columns: 9rem 16rem minmax(0, 1fr);
+  grid-template-columns: fit-content(9rem) 16rem minmax(0, 1fr);
 }
 
 .wiz-group {
@@ -5642,42 +5644,6 @@ under what it's about; a file appended as rows {
   max-width: 44rem;
 }
 
-.land-cols {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: max(calc(1.6 * var(--sp)), min(1.6rem, var(--gap-min)));
-  margin: calc(1.4 * var(--sp)) 0 calc(1 * var(--sp));
-}
-
-.land-sec h3 {
-  font-size: 0.95rem;
-  margin: 0 0 calc(0.45 * var(--sp));
-  padding-bottom: calc(0.3 * var(--sp));
-  border-bottom: 1px solid var(--paper-rule);
-}
-
-.land-sec ul {
-  margin: 0;
-  padding-left: max(calc(1.1 * var(--sp)), min(1.1rem, var(--indent-min)));
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
-.land-sec li {
-  margin: calc(0.3 * var(--sp)) 0;
-}
-
-.land-needs {
-  margin: calc(0.6 * var(--sp)) 0 0;
-  font-size: 0.88rem;
-}
-
-@media (max-width: 900px) {
-  .land-cols {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ---------- D43: a dropdown you can type in (Combo) ---------- */
 
 /* The box is the dropdown's: the text field inside it borderless, the arrow its button. */
@@ -6028,10 +5994,10 @@ under what it's about; a file appended as rows {
   border-bottom-right-radius: 0;
 }
 
-/* In a file's body every settings grid shares one label column, as wide as its longest label (not a fixed 12rem):
+/* In a file's body every settings grid shares one label column, as wide as its longest label (up to 16rem):
    the body is the grid, and each settings grid in it sits on the body's columns, so they still line up. */
 .entry-body {
-  grid-template-columns: max-content 16rem minmax(0, 1fr);
+  grid-template-columns: fit-content(16rem) 16rem minmax(0, 1fr);
   column-gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
 .entry > .entry-body > * {
