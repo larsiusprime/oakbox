@@ -17,7 +17,7 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { Disclose } from "../components/Disclose";
-import { SubEntry } from "../components/FileEntry";
+import { NamesFiles, SubEntry } from "../components/FileEntry";
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
@@ -458,13 +458,19 @@ function ExtraIdRow({
       }
       what={ordinal}
       onRemove={() => change({ kind: "file", name: file.name, extra_field: extra.field, extra_column: null })}
-      // Only the last extra ID comes back as it was: removing the 2nd moves the 3rd up into its place.
-      undo={
-        file.extra_ids[file.extra_ids.length - 1]?.field === extra.field
-          ? () =>
-              change({ kind: "file", name: file.name, extra_field: extra.field, extra_column: extra.column })
-          : undefined
-      }
+      // Removing the 2nd moves the 3rd up into its place: Undo puts both back where they were.
+      undo={() => {
+        const later = file.extra_ids.filter((e) => e.field > extra.field);
+        const put = (i: number) => {
+          const e = i === 0 ? extra : later[i - 1];
+          if (!e) return;
+          change(
+            { kind: "file", name: file.name, extra_field: e.field, extra_column: e.column },
+            { onSuccess: () => put(i + 1) },
+          );
+        };
+        put(0);
+      }}
     />
   );
 }
@@ -844,7 +850,13 @@ function ReviewStep({
     <>
       <p className="wiz-lede">
         {w.summary({ fields: loaded.length, columns })}{" "}
-        {data.not_loaded.map((n) => say.wizard.notLoaded(n.file, n.columns)).join(" ")}
+        <NamesFiles
+          items={data.not_loaded.map((n) => ({
+            key: n.file,
+            text: say.wizard.notLoaded(n.file, n.columns),
+            name: n.file,
+          }))}
+        />
       </p>
       {data.files
         .filter((f) => f.holds === "parcels" && (f.repeats?.extra ?? 0) > 0)

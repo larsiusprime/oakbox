@@ -89,8 +89,9 @@ name that says what it is.
   - **A file is always `components/FileEntry.tsx`** wherever it's added, picked or used (`StepFile` in the Data
     wizard): one thin outline (`--frame`, 3px); its first line its name in OAK box (mono, bold), its file name, its
     facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the ✕. What's set on the file goes
-    in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`), so
-    they line up like a two-column table. A step with no file yet is `FilePicker`: a dashed outline round
+    in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`, `.set-grid` outside a file), so
+    they line up like a two-column table. Not a sentence with a blank in it ("A sale demolished within [365] days…"),
+    which stays a sentence, nor a question with its answers below it (a radio group). A step with no file yet is `FilePicker`: a dashed outline round
     [Add a file…] and "or use existing:". Read-only lists and choices of files use `FileLine` (the same first line,
     no outline, no ✕).
   - **A file's own name** (`parcels.csv`) is always `FileName` (`.file-name`): mono on a faint box, like code in a
@@ -112,9 +113,11 @@ name that says what it is.
     `ToolButton` (an icon; with `pressed`, a toggle that stays pressed in), `CloseButton`, `RemoveButton`. Unfolding in
     place is `Disclose` (a chevron), a link that leaves the app is `ExternalLink` (↗), and going somewhere in the app
     is a link (`.wiz-link`). Choosing is a dropdown, `Seg`, radio cards (`.cu-choice`) or a selectable row.
+  - **A file's name in a sentence** is set off too: `NamesFile` (a file name like code, a name in OAK box in mono),
+    the wording's sentence whole. A dropdown of files gives each option its file name (`Choice`'s third element).
   - **Anything that can be removed on its own has its own outline** (`--frame`, 3px): a file, an ID inside a file
     (`SubEntry`, on the body's columns), a test, a condition, a copied field, a location field. Its siblings in the
-    same list get one too, even one that can't be removed. Every item's or group's outline is `--frame`; `--rule` is
+    same list get one too, even one that can't be removed. A table's rows are boxed already (its lines): a removable row ends in its −, no box of its own. Every item's or group's outline is `--frame`; `--rule` is
     for lines (a table's, a hairline), not boxes.
   - **A thing you press is a raised button** unless it's kept flat in the style guide's section 3 (navigation,
     list rows, sortable headers, disclosures, swatches), each with its reason. Flat is a deliberate choice, never

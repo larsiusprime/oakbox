@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Button, Input, TextField } from "react-aria-components";
+import { Input, TextField } from "react-aria-components";
 import type { Wizard } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { SmallButton } from "../components/Buttons";
 import { Choice } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
@@ -114,7 +115,8 @@ export function CustomFields({
             return (
               <tr key={x.name}>
                 <td className="cf-td">
-                  <span className="mono">{x.column}</span> <span className="wiz-from">· {x.file}</span>
+                  <span className="mono">{x.column}</span> <span className="wiz-from">·</span>{" "}
+                  <span className="file-label">{x.file}</span>
                 </td>
                 <td className="cf-td mono">{x.name}</td>
                 <td className="cf-td">
@@ -193,9 +195,9 @@ export function CustomFields({
               <Choice label={c.type} hideLabel value={kind} options={kinds} onChange={setKind} />
             </td>
             <td className="cf-td cf-add-td">
-              <Button className="button" isDisabled={!file || !name} onPress={add}>
+              <AddButton isDisabled={!file || !name} onPress={add}>
                 {c.add}
-              </Button>
+              </AddButton>
             </td>
             <td className="cf-td cf-add-td">
               {dirty && <SmallButton onPress={clear}>{t.multiPick.clear}</SmallButton>}

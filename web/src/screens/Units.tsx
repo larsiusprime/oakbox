@@ -12,7 +12,7 @@ import {
   type WizardFile,
 } from "../api/client";
 import { AddButton } from "../components/AddButton";
-import { FileLine, fileFacts } from "../components/FileEntry";
+import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
@@ -510,15 +510,23 @@ function Summary({ data, file, v }: Part) {
   return (
     <>
       <ol className="cu-sum">
-        <li>{sm.rows({ n: v.units, file: file.filename, every: !s.rule })}</li>
+        <li>
+          <NamesFile
+            text={sm.rows({ n: v.units, file: file.filename, every: !s.rule })}
+            filename={file.filename}
+          />
+        </li>
         <li>{sm.link({ how, linked: v.linked, units: v.units, parcels: v.buildings })}</li>
         <li>{sm.shape({ linked: v.linked })}</li>
         <li>{sm.land[s.land]}</li>
         <li>
-          {say.wizard.units.summary.carries(
-            v.fields.map((f) => f.name.toLowerCase()),
-            file.filename,
-          )}
+          <NamesFile
+            text={say.wizard.units.summary.carries(
+              v.fields.map((f) => f.name.toLowerCase()),
+              file.filename,
+            )}
+            filename={file.filename}
+          />
         </li>
         <li>{sm.location({ on: s.location })}</li>
       </ol>

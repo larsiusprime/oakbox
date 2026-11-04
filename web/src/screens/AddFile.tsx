@@ -133,18 +133,17 @@ function Choices({
     name.trim() && (found.layers.length === 0 || layer) && (!found.filename_taken || filename.trim());
   return (
     <div className="file-choices">
-      <div className="choice-columns">
-        <div className="choice-column">
-          <Field label={f.name} tip={f.nameHelp} value={name} onChange={setName} />
-          {found.filename_taken && (
-            <Field
-              label={f.newFilename}
-              tip={f.newFilenameHelp({ taken: found.filename })}
-              value={filename}
-              onChange={setFilename}
-            />
-          )}
-        </div>
+      {/* Labels in one column, what's set in the next (style guide). */}
+      <div className="set-grid">
+        <Field label={f.name} tip={f.nameHelp} value={name} onChange={setName} />
+        {found.filename_taken && (
+          <Field
+            label={f.newFilename}
+            tip={f.newFilenameHelp({ taken: found.filename })}
+            value={filename}
+            onChange={setFilename}
+          />
+        )}
         {found.layers.length > 1 && (
           <Choice
             label={f.layer}

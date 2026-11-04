@@ -150,7 +150,6 @@ export type Wording = {
     addFile: string;
     orExisting: string;
     noPicker: string;
-    fileLabel: (a: { name: string | number; filename: string | number }) => string;
     geometryFound: string;
     parcelId: string;
     parcelIdTip: string;

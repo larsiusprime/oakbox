@@ -15,6 +15,7 @@ import {
 } from "react-aria-components";
 import { api, type CleanStep, type ReconcileSample, unwrap, type WizardFile } from "../api/client";
 import { AddButton } from "../components/AddButton";
+import { NamesFile } from "../components/FileEntry";
 import { Tick } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
@@ -130,7 +131,9 @@ export function ReconcileDialog({
           <Heading slot="title" className="modal-title">
             {k.title}
           </Heading>
-          <p className="rc-sub">{k.lede}</p>
+          <p className="rc-sub">
+            <NamesFile text={k.lede} name={file.name} />
+          </p>
           <div className={`rc-meter ${good ? "ok" : "bad"}`} aria-live="polite">
             {v ? (
               <>
@@ -196,7 +199,9 @@ export function ReconcileDialog({
               <Samples rows={v?.base_samples ?? []} labels={k} target />
             </section>
             <section className="rc-card">
-              <h3>{k.mine}</h3>
+              <h3>
+                <NamesFile text={k.mine} name={file.name} />
+              </h3>
               {same ? (
                 <p className="rc-same">{r.sameAsParcels}</p>
               ) : (

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { t } from "../wording";
 import { CloseButton } from "./Buttons";
 import { RemoveButton } from "./RemoveButton";
@@ -139,5 +139,34 @@ export function SubEntry({
         {onClose && <CloseButton onPress={onClose} />}
       </div>
     </div>
+  );
+}
+
+/** A sentence that names a file: the name set off as everywhere else, a file's own name like code (`filename`), its
+ * name in OAK box in mono (`name`). The sentence is the wording's, whole; only where the name falls in it changes. */
+export function NamesFile({ text, filename, name }: { text: string; filename?: string; name?: string }) {
+  const word = filename ?? name;
+  const at = word ? text.indexOf(word) : -1;
+  if (!word || at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      {filename ? <FileName filename={filename} /> : <span className="file-label">{name}</span>}
+      {text.slice(at + word.length)}
+    </>
+  );
+}
+
+/** Several sentences, each naming its file. */
+export function NamesFiles({ items }: { items: { key: string; text: string; name: string }[] }) {
+  return (
+    <>
+      {items.map((x, i) => (
+        <Fragment key={x.key}>
+          {i > 0 && " "}
+          <NamesFile text={x.text} name={x.name} />
+        </Fragment>
+      ))}
+    </>
   );
 }

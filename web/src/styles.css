@@ -525,6 +525,47 @@ a.row-title:hover {
   max-width: none;
 }
 
+/* Settings that aren't in a file's body: labels in one column, what's set in the next (style guide). */
+.set-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* A field, a dropdown or a group of radio buttons put in the grid: its label in the first column, the rest in the
+   second. */
+.set-grid > .field:not(.radios) {
+  display: contents;
+}
+.set-grid > .field.radios {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)));
+  align-items: center;
+}
+.set-grid > .field.radios > :not(.field-label) {
+  grid-column: 2;
+}
+
+/* Cards and groups are as wide as what's in them, not the page (style guide: only tables take the page's width).
+   One that holds a table, a map or a chart takes the width, for them. */
+.bi-card,
+.vs-set,
+.mg-card,
+.en-card,
+.rc-card {
+  width: fit-content;
+  max-width: 100%;
+}
+:is(.bi-card, .vs-set, .mg-card, .en-card, .rc-card):has(table, .wiz-map, .rv-map, .cs-chart, canvas) {
+  width: auto;
+}
+
 /* ---------- Entries (docs/style-guide.html): a file, or anything else added and taken away ----------
    One outline (--frame); the first line says what it is, then other actions, then the red ✕ at the right edge;
    what's set on it goes in its body below a faint rule. components/FileEntry.tsx, components/RemoveButton.tsx. */
@@ -2714,8 +2755,7 @@ like the wizard's Next {
   font-size: 1rem;
 }
 .mg-start-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 24rem));
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
 .mg {
@@ -3586,12 +3626,15 @@ ul.mg-checks {
 .cu-ev p {
   margin: calc(0.2 * var(--sp)) 0 0;
 }
+/* Radio cards: as wide as their words (not the page), all one width, side by side when there's room. */
 .cu-choices {
   display: grid;
+  width: fit-content;
+  max-width: 100%;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
 }
 .cu-big {
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 22rem));
 }
 .radio.cu-choice {
   display: flex;
@@ -3674,8 +3717,11 @@ ul.mg-checks {
 }
 
 /* F3e Enrichments: one compact card per kind of public data. */
+/* The cards in one list share one width, the widest one's (style guide). */
 .en {
   display: grid;
+  width: fit-content;
+  max-width: 100%;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
 }
 .en-note {
@@ -3695,6 +3741,9 @@ ul.mg-checks {
   padding: calc(0.45 * var(--sp)) calc(0.6 * var(--sp));
   border: 1px solid var(--frame);
   border-radius: 3px;
+}
+.en > .en-card {
+  width: auto;
 }
 .en-card.is-off {
   background: #fafafa;
@@ -3725,9 +3774,10 @@ ul.mg-checks {
     max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
 }
+/* Labels in one column, what's set in the next (style guide): every label the same width, so the rows line up. */
 .en-lab {
-  min-width: 9rem;
-  color: var(--muted);
+  flex: 0 0 9rem;
+  font-weight: 600;
 }
 .en-chip {
   display: inline-block;
@@ -5065,6 +5115,17 @@ under what it's about; a file appended as rows {
 /* How many nearest: its note sits level with the box, under the box's label. */
 .lag-k {
   align-items: end;
+}
+.lag-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(12rem, 30rem) minmax(0, 1fr);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+}
+.lag-grid > .lag-fields,
+.lag-grid .field {
+  display: contents;
 }
 .lag-k > .wiz-from {
   padding-bottom: calc(0.4 * var(--sp));

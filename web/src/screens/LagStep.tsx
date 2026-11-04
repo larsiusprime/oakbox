@@ -47,40 +47,43 @@ export function LagStep({
       <p className="wiz-from">{l.how}</p>
       {v.on && (
         <>
-          <div className="lag-fields lag-k">
-            <Field
-              label={l.nearest}
-              type="number"
-              width="short"
-              value={draft ?? String(v.k)}
-              onChange={setDraft}
-              onBlur={keepK}
-            />
-            <span className="wiz-from">{l.nearestWhy({ k: v.k })}</span>
-          </div>
-          <div className="lag-fields">
-            <span className="mo-label">{l.own}</span>
-            <MultiPick
-              label={l.own}
-              values={v.own.map((x) => ({ value: x.field, label: plain(x.name) }))}
-              chosen={v.chosen}
-              onChange={(lag_own) => set({ lag_own })}
-              placeholder={l.noOwn}
-              brief
-            />
-            <span className="wiz-from">{l.ownWhy}</span>
-          </div>
-          <div className="lag-fields">
-            <span className="mo-label">{l.fields}</span>
-            <MultiPick
-              label={l.fields}
-              values={v.offered.map((x) => ({ value: x.field, label: x.name }))}
-              chosen={v.fields}
-              onChange={(lag_fields) => set({ lag_fields })}
-              placeholder={l.noFields}
-              brief
-            />
-            <span className="wiz-from">{l.fieldsWhy}</span>
+          {/* Labels in one column, what's set in the next, why in the third. */}
+          <div className="lag-grid">
+            <div className="lag-fields lag-k">
+              <Field
+                label={l.nearest}
+                type="number"
+                width="short"
+                value={draft ?? String(v.k)}
+                onChange={setDraft}
+                onBlur={keepK}
+              />
+              <span className="wiz-from">{l.nearestWhy({ k: v.k })}</span>
+            </div>
+            <div className="lag-fields">
+              <span className="mo-label">{l.own}</span>
+              <MultiPick
+                label={l.own}
+                values={v.own.map((x) => ({ value: x.field, label: plain(x.name) }))}
+                chosen={v.chosen}
+                onChange={(lag_own) => set({ lag_own })}
+                placeholder={l.noOwn}
+                brief
+              />
+              <span className="wiz-from">{l.ownWhy}</span>
+            </div>
+            <div className="lag-fields">
+              <span className="mo-label">{l.fields}</span>
+              <MultiPick
+                label={l.fields}
+                values={v.offered.map((x) => ({ value: x.field, label: x.name }))}
+                chosen={v.fields}
+                onChange={(lag_fields) => set({ lag_fields })}
+                placeholder={l.noFields}
+                brief
+              />
+              <span className="wiz-from">{l.fieldsWhy}</span>
+            </div>
           </div>
           <table className="tbl lag-groups">
             <thead>

@@ -16,6 +16,7 @@ import {
   TextField,
 } from "react-aria-components";
 import { Combo, Marked, matches, TYPE_FROM } from "./Combo";
+import { FileName } from "./FileEntry";
 import { Tip } from "./Tip";
 
 /** A labelled text input. Inputs look sunken; they are filled, not pressed. */
@@ -64,30 +65,41 @@ export function Field(props: {
 export function Choice<V extends string>(props: {
   label: string;
   value: V | null;
-  options: readonly (readonly [V, string])[];
+  /** [value, label], or [value, label, file name]: a file's own name, shown after the label like code. */
+  options: readonly (readonly [V, string] | readonly [V, string, string])[];
   onChange: (v: V) => void;
   placeholder?: string;
   hideLabel?: boolean;
   isDisabled?: boolean;
 }) {
   if (props.options.length >= TYPE_FROM) {
-    const pick = (q: string) => props.options.filter(([, label]) => matches(label, q));
+    const pick = (q: string) =>
+      props.options.filter(([, label, file]) => matches(`${label} ${file ?? ""}`, q));
     return (
       <Combo
         label={props.label}
         selectedKey={props.value}
         onChange={(k) => props.onChange(k as V)}
         placeholder={props.placeholder ?? ""}
-        size={Math.min(40, Math.max(...props.options.map(([, l]) => l.length)) + 1)}
+        size={Math.min(
+          40,
+          Math.max(...props.options.map(([, l, f]) => l.length + (f ? f.length + 1 : 0))) + 1,
+        )}
         {...(props.hideLabel ? { hideLabel: true } : {})}
         {...(props.isDisabled ? { isDisabled: true } : {})}
         count={(q) => [pick(q).length, props.options.length]}
         first={(q) => pick(q)[0]?.[0] ?? null}
       >
         {(q) =>
-          pick(q).map(([value, label]) => (
+          pick(q).map(([value, label, file]) => (
             <ListBoxItem key={value} id={value} className="choice-item" textValue={label}>
               <Marked text={label} query={q} />
+              {file && (
+                <>
+                  {" "}
+                  <FileName filename={file} />
+                </>
+              )}
             </ListBoxItem>
           ))
         }
@@ -112,9 +124,15 @@ export function Choice<V extends string>(props: {
       </Button>
       <Popover className="popover choice-popover">
         <ListBox className="choice-list">
-          {props.options.map(([value, label]) => (
+          {props.options.map(([value, label, file]) => (
             <ListBoxItem key={value} id={value} className="choice-item" textValue={label}>
               {label}
+              {file && (
+                <>
+                  {" "}
+                  <FileName filename={file} />
+                </>
+              )}
             </ListBoxItem>
           ))}
         </ListBox>

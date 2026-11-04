@@ -5,6 +5,7 @@ import * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import { api, type Project, unwrap, type Wizard } from "../api/client";
+import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
@@ -240,7 +241,7 @@ function LocationFields({
             <div key={x.name} className="wiz-loc">
               <span className="mono">{x.name}</span>
               <span className="wiz-from">
-                {x.column} · {x.file}
+                {x.column} · <span className="file-label">{x.file}</span>
               </span>
               <span className={x.check.warn ? "wiz-warn" : x.check.ok ? "wiz-ok" : "wiz-warn"}>
                 {x.check.text}
@@ -286,9 +287,9 @@ function LocationFields({
         <TextField aria-label={l.name} value={name} onChange={setName} className="rl-mini">
           <Input className="input rl-input" placeholder={l.namePlaceholder} />
         </TextField>
-        <Button type="submit" className="button" isDisabled={!file || !name}>
+        <AddButton type="submit" isDisabled={!file || !name}>
           {l.add}
-        </Button>
+        </AddButton>
       </form>
     </section>
   );

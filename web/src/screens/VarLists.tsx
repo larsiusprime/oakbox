@@ -220,12 +220,14 @@ function ListEditor({
   const pct = (r: TestRow | null) => (r?.value == null ? "—" : `${Math.round(100 * r.value)}%`);
   return (
     <div className="vl-edit">
-      <div className="vl-editrow">
-        <span className="vl-label">
-          {s.name} <Name value={list.name} onCommit={(name) => change({ name })} />
+      {/* Labels in one column, what's set in the next. */}
+      <div className="set-grid">
+        <span className="wiz-label">{s.name}</span>
+        <span>
+          <Name value={list.name} onCommit={(name) => change({ name })} />
         </span>
-        <span className="vl-label">
-          {s.type}
+        <span className="wiz-label">{s.type}</span>
+        <span>
           <Seg
             label={s.type}
             value={kind}
@@ -236,8 +238,8 @@ function ListEditor({
             onChange={(k) => change({ kind: k })}
           />
         </span>
-        <span className="vl-label vl-grow">
-          {s.groups}
+        <span className="wiz-label">{s.groups}</span>
+        <span>
           <MultiPick
             label={`${s.groups}: ${list.name}`}
             values={view.groups.filter((g) => g.modeled).map((g) => ({ value: g.id, label: g.name }))}

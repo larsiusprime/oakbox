@@ -148,7 +148,8 @@ export function CompareDialog({
                 {rows.map((c) => (
                   <tr key={`${c.file}/${c.column}`} className={c.loaded_as ? "on" : undefined}>
                     <td className="mono">
-                      {c.column} <span className="wiz-from">· {c.file}</span>
+                      {c.column} <span className="wiz-from">·</span>{" "}
+                      <span className="file-label">{c.file}</span>
                     </td>
                     <td>{c.kind === "numbers" ? q.numbers({ lo: fmt(c.low), hi: fmt(c.high) }) : q.text}</td>
                     <td>{pct(c.filled)}</td>

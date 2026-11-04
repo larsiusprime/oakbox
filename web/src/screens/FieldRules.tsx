@@ -14,6 +14,7 @@ import { AddButton } from "../components/AddButton";
 import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
+import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { amount, pct } from "../lib/format";
 import { useSettled } from "../lib/hooks";
@@ -115,9 +116,8 @@ export function RuleDialog({
           {rule.conditions.length > 1 && (
             <div className="rl-join">
               <span>{r.where}</span>
-              <Choice
+              <Seg
                 label={r.where}
-                hideLabel
                 value={rule.join}
                 options={[
                   ["all", r.all],
@@ -476,8 +476,8 @@ export function NumberDialog({
           </Heading>
           <p className="rc-sub">{n.lede}</p>
           {shown && (
-            <div className="rl-join nm-opts">
-              <span>{n.decimal}</span>
+            <div className="set-grid nm-opts">
+              <span className="wiz-label">{n.decimal}</span>
               <Choice
                 label={n.decimal}
                 hideLabel
@@ -485,7 +485,7 @@ export function NumberDialog({
                 options={Object.entries(n.decimals) as [NumberFormat["decimal"], string][]}
                 onChange={(decimal) => set({ decimal })}
               />
-              <span>{n.scale}</span>
+              <span className="wiz-label">{n.scale}</span>
               <Choice
                 label={n.scale}
                 hideLabel
@@ -493,6 +493,7 @@ export function NumberDialog({
                 options={scales.map((s) => [String(s), say.wizard.numbers.scales(s)] as const)}
                 onChange={(s) => set({ scale: Number(s) })}
               />
+              <span />
               <Tick isSelected={shown.suffixes} onChange={(suffixes) => set({ suffixes })}>
                 {n.suffixes}
               </Tick>

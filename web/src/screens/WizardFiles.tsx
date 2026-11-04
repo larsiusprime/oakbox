@@ -27,7 +27,7 @@ import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { CloseButton } from "../components/Buttons";
 import { Callout, firstSentence } from "../components/Callout";
-import { FileEntry, FileSlot, fileFacts } from "../components/FileEntry";
+import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -225,7 +225,7 @@ function DupesDialog({
       <Modal className="modal wiz-modal wiz-modal-wide">
         <Dialog className="modal-body">
           <Heading slot="title" className="modal-title">
-            {d.title({ file: file.name, column: file.id_column ?? "" })}
+            <NamesFile text={d.title({ file: file.name, column: file.id_column ?? "" })} name={file.name} />
           </Heading>
           {hasRepeats && (
             <div className="wiz-section-head-row">
@@ -401,9 +401,7 @@ export function FilePicker({
             hideLabel
             value={null}
             placeholder={w.choose}
-            options={existing.map(
-              (f) => [f.name, w.fileLabel({ name: f.name, filename: f.filename })] as const,
-            )}
+            options={existing.map((f) => [f.name, f.name, f.filename] as const)}
             onChange={onChosen}
           />
         </span>

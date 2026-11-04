@@ -13,6 +13,7 @@ import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton, RemoveTextButton } from "../components/RemoveButton";
+import { Seg } from "../components/Seg";
 import { moneyShort } from "../lib/format";
 import { t } from "../wording";
 import type { Move } from "./ModelGroups";
@@ -124,9 +125,8 @@ export function GroupEditor({
       <div className="mg-card">
         <div className="mg-join">
           <span>{g.joinsIf}</span>
-          <Choice
+          <Seg
             label={g.joinsIf}
-            hideLabel
             value={rule.join}
             options={[
               ["any", g.any],

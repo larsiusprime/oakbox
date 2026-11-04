@@ -281,7 +281,6 @@
     "addFile": "Add a file…",
     "orExisting": "Or use a file already in the project",
     "noPicker": "Adding a file needs the file picker, which is only in the OAK box window.",
-    "fileLabel": "{name} ({filename})",
     "geometryFound": "✓ Geometry detected",
     "parcelId": "Parcel ID",
     "parcelIdTip": "The column that identifies each parcel. Every value must be different.",
@@ -739,7 +738,7 @@
       "pickColumn": "Choose a column…",
       "name": "Name",
       "namePlaceholder": "e.g. market_area",
-      "add": "Add",
+      "add": "Add field",
       "remove": "Remove {name}"
     },
     "extraFiles": {
