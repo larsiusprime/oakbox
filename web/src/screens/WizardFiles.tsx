@@ -25,6 +25,7 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
+import { Callout, firstSentence } from "../components/Callout";
 import { Choice, Tick } from "../components/Form";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -142,12 +143,18 @@ export function IdCheck({
         <span className="wiz-cleaned">{w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
       )}
       {missing && (
-        <div className="wiz-missing">
-          {missing.lines.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
+        <Callout summary={firstSentence(missing.lines[0] ?? "")}>
+          {/* The first sentence is the summary line; the rest follows it. */}
+          {[
+            (missing.lines[0] ?? "").slice(firstSentence(missing.lines[0] ?? "").length).trim(),
+            ...missing.lines.slice(1),
+          ]
+            .filter(Boolean)
+            .map((line) => (
+              <p key={line}>{line}</p>
+            ))}
           {missing.units && <CondosLink projectId={projectId} />}
-        </div>
+        </Callout>
       )}
       {reconciling && base && (
         <ReconcileDialog

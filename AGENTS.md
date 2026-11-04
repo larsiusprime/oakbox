@@ -81,6 +81,9 @@ name that says what it is.
   that opens a searchable checklist (a field's name with its column as a note, or a value with its count). Never
   a row of chips with ✕s, nor a row of loose ticks. Each chosen field that needs more (its column) gets a row
   below it in the wizard's grid (`.wiz-grid`: the name, its dropdown, ✕), as everywhere in the Data wizard.
+- **Long explanations fold away:** a callout of more than a sentence or two (why rows don't match, what to do about
+  it) is `components/Callout.tsx`: folded, one line (⚠ or ⓘ, its first sentence, "more"); open, the whole of it.
+  The reader shows and hides it. A short status line stays plain text.
 - **Short labels, the rest on demand:** a table cell says a short phrase; the fuller explanation goes in a tooltip
   (`components/Tip.tsx`: `InfoTip` shows an ⓘ beside the phrase), not in the cell. A column's header isn't repeated
   in its cells ("Pattern" over "Low price", not "Pattern 2: low price").

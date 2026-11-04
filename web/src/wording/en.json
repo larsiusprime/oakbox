@@ -2889,5 +2889,9 @@
     "title": "{name} – OAK box",
     "taxYear": "Tax year {year}",
     "loading": "Loading…"
+  },
+  "callout": {
+    "show": "more",
+    "hide": "less"
   }
 }

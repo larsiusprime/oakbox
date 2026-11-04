@@ -2199,4 +2199,8 @@ export type Wording = {
     taxYear: (a: { year: string | number }) => string;
     loading: string;
   };
+  callout: {
+    show: string;
+    hide: string;
+  };
 };

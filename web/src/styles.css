@@ -3658,20 +3658,74 @@ ul.mg-checks {
 }
 
 /* Rows for parcels missing from the parcel universe: a note, not a to-do (F3d). */
-.wiz-missing {
+/* A long explanation folded behind ⚠ and its first sentence (components/Callout.tsx). Folded it's one line; open, a
+   box with the whole of it. */
+.callout {
   max-width: 34rem;
   margin-top: calc(0.2 * var(--sp));
-  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
   font-size: 0.85rem;
+}
+.callout-toggle {
+  display: inline-flex;
+  gap: 0.35em;
+  align-items: baseline;
+  max-width: 100%;
+  padding: calc(0.12 * var(--sp)) calc(0.45 * var(--sp));
+  font: inherit;
   color: var(--text);
+  text-align: left;
+  cursor: pointer;
   background: var(--warn-tint);
   border: 1px solid var(--warn-edge);
   border-radius: var(--radius);
 }
-.wiz-missing p {
+.callout-info .callout-toggle {
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+}
+.callout-toggle[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.callout-icon {
+  flex: none;
+  width: 0.95em;
+  height: 0.95em;
+  align-self: center;
+}
+.callout-summary {
+  min-width: 0;
+}
+.callout-more {
+  flex: none;
+  color: var(--link, var(--muted));
+  text-decoration: underline;
+}
+.callout-chev {
+  flex: none;
+  align-self: center;
+}
+.callout.open .callout-toggle {
+  display: flex;
+  width: 100%;
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.callout-body {
+  padding: calc(0.3 * var(--sp)) calc(0.5 * var(--sp));
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
+  border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.callout-info .callout-body {
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+}
+.callout-body p {
   margin: 0 0 calc(0.25 * var(--sp));
 }
-.wiz-missing p:last-child {
+.callout-body p:last-child {
   margin-bottom: 0;
 }
 
