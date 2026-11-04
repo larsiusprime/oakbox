@@ -73,6 +73,8 @@ export type Wording = {
     newName: (a: { name: string | number }) => string;
     save: string;
     remove: string;
+    copyNote: string;
+    moveNote: string;
   };
   about: {
     version: string;

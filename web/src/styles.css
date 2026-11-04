@@ -553,6 +553,14 @@ a.row-title:hover {
   grid-column: 2;
 }
 
+/* A segmented control with one line under it on what the chosen option does. */
+.seg-with-note {
+  display: grid;
+  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
+  justify-items: start;
+  font-size: 0.9rem;
+}
+
 /* Cards and groups are as wide as what's in them, not the page (style guide: only tables take the page's width).
    One that holds a table, a map or a chart takes the width, for them. */
 .bi-card,
@@ -1313,10 +1321,16 @@ a.row-title:hover {
     max(calc(1.5 * var(--sp)), min(1.5rem, var(--gap-min)));
 }
 
+/* The buttons that do what a form, a dialog or a step is for (Import, Save, Start, Delete…) sit at its right edge,
+   the main one first, as in a Windows dialog (style guide). */
 .form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
+  justify-content: flex-end;
+  /* The whole width of what it's in, even where that lines its children up at the start. */
+  align-self: stretch;
+  justify-self: stretch;
 }
 
 .button-danger {
@@ -1927,10 +1941,6 @@ a.row-title:hover {
   padding-left: calc(1.2 * var(--sp));
 }
 
-.wiz-unfinished-actions {
-  justify-content: flex-end;
-}
-
 .wiz-foot {
   display: flex;
   gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)));
@@ -2373,10 +2383,6 @@ like the wizard's Next {
   background: var(--head);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-}
-
-.rc-actions {
-  justify-content: flex-end;
 }
 
 /* ---------- Yes/no rules and date formats (F3d) ---------- */

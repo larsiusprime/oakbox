@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen } from "lucide-react";
 import { useState } from "react";
-import { Button, Label, Radio, RadioGroup } from "react-aria-components";
+import { Button } from "react-aria-components";
 import { api, type FileCheck, type Project, unwrap } from "../api/client";
 import { FileEntry } from "../components/FileEntry";
 import { Choice, Field } from "../components/Form";
+import { Seg } from "../components/Seg";
 import { size } from "../lib/format";
 import { t } from "../wording";
 
@@ -158,17 +159,22 @@ function Choices({
             <span className="already">{f.already}</span>
           </div>
         ) : (
-          <RadioGroup className="field radios" value={mode} onChange={(v) => setMode(v as "move" | "copy")}>
-            <Label className="field-label">{f.how}</Label>
-            <Radio value="copy" className="radio">
-              <span className="radio-dot" aria-hidden="true" />
-              {f.copy}
-            </Radio>
-            <Radio value="move" className="radio">
-              <span className="radio-dot" aria-hidden="true" />
-              {f.move}
-            </Radio>
-          </RadioGroup>
+          <>
+            {/* A segmented control, and under it one line on what the chosen one does. */}
+            <span className="field-label">{f.how}</span>
+            <div className="seg-with-note">
+              <Seg
+                label={f.how}
+                value={mode}
+                options={[
+                  ["copy", f.copy],
+                  ["move", f.move],
+                ]}
+                onChange={setMode}
+              />
+              <span className="wiz-from">{mode === "move" ? f.moveNote : f.copyNote}</span>
+            </div>
+          </>
         )}
       </div>
       <div className="form-actions">

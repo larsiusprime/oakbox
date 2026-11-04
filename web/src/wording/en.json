@@ -56,8 +56,8 @@
     "newFilenameHelp": "The project already has a file called {taken}. Give this one another name.",
     "already": "Already in the project folder",
     "how": "How to import",
-    "copy": "Copy it (a new copy is made for the project)",
-    "move": "Move it (the original moves into the project)",
+    "copy": "Copy it",
+    "move": "Move it",
     "addButton": "Import",
     "adding": "{mode, select, move {Moving…} other {Copying…}}",
     "file": "{layer, select, null {{filename}} other {{filename}, layer {layer}}}",
@@ -75,7 +75,9 @@
     "no": "No",
     "newName": "New name for {name}",
     "save": "Save",
-    "remove": "Remove"
+    "remove": "Remove",
+    "copyNote": "A new copy is made for the project; the original stays where it is.",
+    "moveNote": "The original moves into the project folder."
   },
   "about": {
     "version": "OAK box",
