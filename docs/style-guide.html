@@ -43,7 +43,8 @@ p { margin: 0; max-width: 72ch; }
 
 /* ---------- The proposal: .entry ---------- */
 .entry { width: fit-content; max-width: 100%; border: 1px solid var(--frame); border-radius: 3px; background: var(--paper); min-width: 0; }
-.entry-head { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; min-width: 0; }
+.entry-head { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; min-width: 0; background: #f6f2e6; border-radius: 2px 2px 0 0; }
+.entry-head:last-child { border-radius: 2px; }
 .entry-id { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; flex: 1; }
 .entry-name { font-family: var(--mono); font-weight: 600; font-size: .92rem; }
 /* A file name, wherever it appears: set off like `code` in a chat. */
@@ -51,7 +52,7 @@ p { margin: 0; max-width: 72ch; }
 .entry-file { display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch; }
 .entry-facts { color: var(--muted); }
 .entry-acts { display: flex; align-items: center; gap: 2px; flex: none; }
-.entry-body { border-top: 1px solid var(--paper-rule); padding: 10px; display: grid; gap: 10px; }
+.entry-body { border-top: 1px solid var(--frame); padding: 10px; display: grid; gap: 10px; }
 .entry.dashed { border-style: dashed; background: transparent; }
 
 /* The red ✕: one button, everywhere something is taken away. */
@@ -161,7 +162,7 @@ tbody tr:nth-child(even) { background: #f0f5fc; }
     </div>
 
     <dl class="legend">
-      <dt><span class="tag">1</span></dt><dd><b>Its name in OAK box</b>, in mono, bold: the name the settings use.</dd>
+      <dt><span class="tag">1</span></dt><dd>The first line is a faint warm band (<code>--entry-head</code>), so the file reads as the box's title. <b>Its name in OAK box</b>, in mono, bold: the name the settings use.</dd>
       <dt><span class="tag">2</span></dt><dd><b>The file's own name</b>, set off like code in a chat (<span class="code">like_this.csv</span>), cut short with "…" if long; the full path on hover. Every file name in the app looks like this, in lists, dropdowns and sentences too.</dd>
       <dt><span class="tag">3</span></dt><dd><b>Facts about the file</b>, grey, joined by "·": its rows, then "shapes" if it has any (a map layer says how many: "23 polygons"). "✓ Geometry detected" becomes "shapes" here.</dd>
       <dt><span class="tag">4</span></dt><dd><b>Other actions, as icons</b> (show the map). Only where a place needs one.</dd>
@@ -401,6 +402,7 @@ tbody tr:nth-child(even) { background: #f0f5fc; }
   <p class="muted">Deleting a whole project on the home screen keeps its trash-can button and its confirmation: that one deletes files from disk.</p>
 </section>
 
+
 <!-- ============ 4. Rules ============ -->
 <section class="sheet">
   <h2>4. The rules</h2>
@@ -414,9 +416,84 @@ tbody tr:nth-child(even) { background: #f0f5fc; }
     <li><b>✕ on a file takes it off that step, never off disk.</b> It stays in the project and can be picked again.</li>
     <li><b>A step with no file yet</b> shows a dashed outline holding [Add a file…], then "or use existing:" and a dropdown of the project's files.</li>
     <li><b>An entry is as wide as what's in it</b>, never stretched to the page; entries in one list share the widest one's width, with their Add button at that right edge. Only tables take the page's width.</li>
+    <li><b>A thing you press is a raised button</b> unless it's in section 5, the list of flat ones; a new flat one is added there, or made a button.</li>
     <li><b>Read-only lists and choices</b> (What runs, Condo units' cards, dropdowns) use the same first line without the outline or ✕.</li>
   </ol>
 </section>
+
+<!-- ============ 5. Flat buttons ============ -->
+<section class="sheet">
+  <h2>5. Things you press that don't look like buttons</h2>
+  <p>A thing you press is a raised button (<code>.button</code>, <code>AddButton</code>, <code>RemoveButton</code>) unless it's listed here. Flat is a choice, not the default: every flat control is here, with what it does, so each can be asked "should this be a button?". A new one is added here, or made a button. Catalogued 2026-11-04; the wording editor (a developer tool) is left out.</p>
+  <h3>Text links that do something</h3>
+  <div class="where"><table>
+    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>Text link (<code>.wiz-link</code>)</td><td>42 places: Cancel in pickers, Clear in MultiPick, Delete group, Show values, the Tests' links</td><td>Blue underlined text</td><td>Acts like a button (opens a dialog, changes state), looks like a link to another page</td></tr>
+      <tr><td>Resolve… / Reconcile… / Change how it's read… / Change format… (<code>.wiz-link.wiz-resolve</code>)</td><td>Data wizard ID and field checks</td><td>Blue underlined text after a check</td><td>Opens a dialog that fixes what the check found</td></tr>
+      <tr><td>Values links in the variable tests (<code>.wiz-link.vt-values</code>)</td><td>5. Variables › tests</td><td>Blue underlined text</td><td>Unfolds a category's values</td></tr>
+      <tr><td>A field's name (<code>.fd-name</code>)</td><td>Field details</td><td>Blue text, no underline</td><td>Opens the field's detail</td></tr>
+      <tr><td>A copied field's kind, "location ˅" (<code>.ly-kind</code>)</td><td>Shapefiles › Copies</td><td>Blue text with a chevron</td><td>Opens a menu</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Flat icon buttons</h3>
+  <div class="where"><table>
+    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>Map toggle (<code>.ly-icon</code>)</td><td>Shapefiles, a layer's first line</td><td>Grey map icon; a box only on hover or when on</td><td>Shows the layer's map</td></tr>
+      <tr><td>Hide the map (<code>.mg-x</code>)</td><td>Model groups</td><td>Grey ✕, no box</td><td>Hides the map (not a removal)</td></tr>
+      <tr><td>Close the parcel popup (<code>.rc-x</code>)</td><td>Model groups › map</td><td>Grey ✕, no box</td><td>Closes the popup (not a removal)</td></tr>
+      <tr><td>Move up / down (<code>.mg-arrow</code>, <code>.qc-move</code>)</td><td>Model groups' list, Quality</td><td>Grey arrows, no box</td><td>Reorders</td></tr>
+      <tr><td>Sort a column (<code>.vals-sort</code>)</td><td>Value tables, data tables</td><td>The column header's text</td><td>Sorts by that column</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Pills, rows and text you press</h3>
+  <div class="where"><table>
+    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>"4 values ˅" (<code>.vals-button</code>)</td><td>Field rows, Enrichments</td><td>A pill (grey-blue, round ends), blue text</td><td>Opens the values list</td></tr>
+      <tr><td>"Options ˅" (<code>.ly-add</code>)</td><td>Shapefiles › Distance to</td><td>The browser's own default button: no OAK box style at all</td><td>Opens the distance options</td></tr>
+      <tr><td>"Show N more" (<code>.wiz-more</code>)</td><td>Data wizard field lists</td><td>Plain text</td><td>Shows the fields folded away</td></tr>
+      <tr><td>A callout's "more" (<code>.callout-toggle</code>)</td><td>Callouts everywhere</td><td>The whole warn-tinted line</td><td>Unfolds the callout</td></tr>
+      <tr><td>A variable list's name and its ▸ (<code>.vl-name</code>, <code>.vl-toggle</code>)</td><td>5. Variables › lists</td><td>Plain text in a table row</td><td>Unfolds the list</td></tr>
+      <tr><td>A model group in the list (<code>.mg-item-main</code>)</td><td>Model groups</td><td>A list row</td><td>Selects the group</td></tr>
+      <tr><td>A legend key (<code>.mg-key</code>)</td><td>Model groups › map legend</td><td>Plain text with a swatch</td><td>Shows or hides that group on the map</td></tr>
+      <tr><td>A sale in the list (<code>.cs-item</code>)</td><td>Sales set aside</td><td>A list row</td><td>Opens the sale</td></tr>
+      <tr><td>A row of the Bring in data log (a <code>tr</code> with onClick)</td><td>1. Inputs › results</td><td>A table row</td><td>Opens the rows it names</td></tr>
+      <tr><td>A chart (<code>.cs-chart-button</code>)</td><td>Sales results</td><td>The chart itself</td><td>Opens it larger</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Cards you press</h3>
+  <div class="where"><table>
+    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>Start cards (<code>.mg-start-card</code>)</td><td>Model groups › How to start</td><td>Bordered cards</td><td>Chooses how to start</td></tr>
+      <tr><td>Meaning cards (<code>.qc-pick</code>)</td><td>Quality's meaning dialog</td><td>Bordered cards</td><td>Chooses a meaning</td></tr>
+      <tr><td>Colour swatches (<code>.mg-colour</code>)</td><td>Group editor</td><td>Coloured squares</td><td>Chooses a group's colour</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Navigation (flat by convention)</h3>
+  <div class="where"><table>
+    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>The trail on the plate (<code>.crumb</code>)</td><td>The brass plate</td><td>Underlined engraved text, a chevron</td><td>Goes to that place or opens its list</td></tr>
+      <tr><td>Step list (<code>.wiz-step button</code>)</td><td>Every tab's step list</td><td>A list row</td><td>Goes to that step</td></tr>
+      <tr><td>Folder tabs and ‹ › (<code>.tab-scroll</code>)</td><td>Above the project folder</td><td>Manila tabs</td><td>Opens a tab; scrolls the tabs</td></tr>
+      <tr><td>A project's name (<code>.row-title</code>)</td><td>Home</td><td>A link</td><td>Opens the project</td></tr>
+      <tr><td>Links out (<code>.en-link</code>, map credits)</td><td>Enrichments, maps</td><td>Links</td><td>Opens a web page</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Controls with a look of their own</h3>
+  <div class="where"><table>
+    <thead><tr><th>What</th><th>Where</th><th>Looks like</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>Dropdowns (<code>.choice-button</code>, <code>.combo-arrow</code>, <code>.mp-button</code>)</td><td>Everywhere</td><td>A sunken field with a chevron</td><td>Opens a list</td></tr>
+      <tr><td>Segmented controls (<code>.seg-b</code>, <code>.rc-seg-btn</code>)</td><td>Shapefiles, More files, Reconcile, Model groups</td><td>Joined boxes, the chosen one tinted</td><td>Chooses one of two or three; Reconcile's is a second, hand-made one</td></tr>
+      <tr><td>Up / down in the location stack (<code>.ls-move</code>)</td><td>5. Variables › location stack</td><td>Small bordered boxes, not raised</td><td>Reorders</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
 
 </div>
 </div>

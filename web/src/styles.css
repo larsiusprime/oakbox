@@ -24,6 +24,7 @@
   --frame: #c9c2b0; /* every item's outline: a file, an ID, a test, a loose group of rows */
   --code-bg: #f3f0e8; /* a file name, set off like code */
   --code-edge: #e0dacb;
+  --entry-head: #f6f2e6; /* a file entry's first line: a faint warm band, so the file reads as the box's title */
   --cell-line: #e2e4e6; /* every table's cell lines */
   --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
 
@@ -543,6 +544,11 @@ a.row-title:hover {
   align-items: center;
   min-height: calc(var(--ctl-h) + 2px);
   padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  background: var(--entry-head);
+  border-radius: 2px 2px 0 0;
+}
+.entry-head:last-child {
+  border-radius: 2px;
 }
 .entry-acts {
   display: flex;
@@ -555,7 +561,7 @@ a.row-title:hover {
   display: grid;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   padding: calc(0.6 * var(--sp));
-  border-top: 1px solid var(--paper-rule);
+  border-top: 1px solid var(--frame);
 }
 /* Adding to the file (an ID, a field) is inside it, below its rows, at its right edge. */
 .entry-body > .add-button.add-end {

@@ -104,6 +104,11 @@ name that says what it is.
     (`SubEntry`, on the body's columns), a test, a condition, a copied field, a location field. Its siblings in the
     same list get one too, even one that can't be removed. Every item's or group's outline is `--frame`; `--rule` is
     for lines (a table's, a hairline), not boxes.
+  - **A thing you press is a raised button** (`.button`, `AddButton`, `RemoveButton`) unless it's in the style
+    guide's list of flat ones (section 5: text links, icon buttons, pills, rows, cards, navigation). Flat is a
+    deliberate choice, never the default: a new flat control is added to that list with what it does, or made a
+    button.
+  - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line.
   - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
     radio buttons; a reason an option can't be chosen is its title.
 - **Loose rows get a frame:** rows of fields or widgets lying straight on the page (a step's fields) sit in a thin
