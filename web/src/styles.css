@@ -553,11 +553,14 @@ a.row-title:hover {
   grid-column: 2;
 }
 
-/* A segmented control with one line under it on what the chosen option does. */
-.seg-with-note {
-  display: grid;
-  gap: max(calc(0.2 * var(--sp)), min(0.2rem, var(--gap-min)));
-  justify-items: start;
+/* In a settings grid: a control in its cell as wide as itself; under it, in the second column, one line on what the
+   chosen option does, close under the control (the row gap taken back). */
+.set-grid > .set-cell {
+  display: flex;
+}
+.set-grid > .set-note {
+  grid-column: 2;
+  margin-top: calc(-0.25 * var(--sp));
   font-size: 0.9rem;
 }
 
@@ -5909,4 +5912,16 @@ under what it's about; a file appended as rows {
   flex: 1 1 0;
   white-space: nowrap;
   padding: calc(0.25 * var(--sp)) calc(0.8 * var(--sp));
+}
+
+/* A form in an entry (the import form) has a fixed width: it grows downward as its text wraps, never sideways as
+   what's typed changes. Its fields fill their column. */
+.entry.entry-form {
+  width: min(100%, 34rem);
+}
+.entry-form .set-grid {
+  width: 100%;
+}
+.entry-form .set-grid input[type="text"] {
+  width: 100%;
 }

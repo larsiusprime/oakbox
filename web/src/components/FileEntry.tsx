@@ -57,6 +57,7 @@ export function FileEntry({
   onRemove,
   undo,
   removeLabel,
+  form = false,
   children,
 }: {
   name?: string | null;
@@ -72,10 +73,13 @@ export function FileEntry({
   undo?: () => void;
   /** Instead of "Remove {name}" (the import form's "Don't import …"). */
   removeLabel?: string;
+  /** A form to fill in (the import form): a fixed width, so it grows downward as its text wraps, never sideways as
+   * what's typed changes. */
+  form?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <section className="entry">
+    <section className={form ? "entry entry-form" : "entry"}>
       <div className="entry-head">
         <FileLine
           name={name ?? null}

@@ -131,7 +131,10 @@ name that says what it is.
     third of the way from white to that band (`--entry-body`); the rows inside it (`SubEntry`) stay white.
   - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
     radio buttons; a reason an option can't be chosen is its title. What the chosen option does, when it needs saying, is one
-    line under it (`.seg-with-note`), not words in brackets on each option.
+    line under it in the same column (`.set-note`, the control level with its label), not words in brackets on each
+    option.
+  - **A form in an entry has a fixed width** (`FileEntry form`, the import form): it grows downward as text wraps,
+    never sideways as what's typed or chosen changes.
   - **The buttons that do what a form, dialog or step is for** (Import, Save, Start, Delete…) sit at its right
     edge, the main one first (`.form-actions`).
 - **Loose rows get a frame:** rows of fields or widgets lying straight on the page (a step's fields) sit in a thin

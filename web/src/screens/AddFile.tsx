@@ -48,6 +48,7 @@ export function AddFile(props: {
       }
       removeLabel={t.files.dontImport({ filename })}
       onRemove={props.onDone}
+      form
     >
       {problem && (
         <p className="error" role="alert">
@@ -160,9 +161,10 @@ function Choices({
           </div>
         ) : (
           <>
-            {/* A segmented control, and under it one line on what the chosen one does. */}
+            {/* The segmented control level with its label; under it, in the same column, one line on what the
+                chosen one does. */}
             <span className="field-label">{f.how}</span>
-            <div className="seg-with-note">
+            <span className="set-cell">
               <Seg
                 label={f.how}
                 value={mode}
@@ -172,8 +174,8 @@ function Choices({
                 ]}
                 onChange={setMode}
               />
-              <span className="wiz-from">{mode === "move" ? f.moveNote : f.copyNote}</span>
-            </div>
+            </span>
+            <span className="set-note wiz-from">{mode === "move" ? f.moveNote : f.copyNote}</span>
           </>
         )}
       </div>
