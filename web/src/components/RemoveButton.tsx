@@ -49,10 +49,11 @@ export function RemoveButton({
  * (DeleteButton) by its symbol: − here, a trash can there. */
 export function RemoveTextButton({
   children,
+  small = false,
   ...props
-}: Omit<ButtonProps, "className" | "children"> & { children: ReactNode }) {
+}: Omit<ButtonProps, "className" | "children"> & { children: ReactNode; small?: boolean }) {
   return (
-    <Button {...props} className="button button-danger">
+    <Button {...props} className={small ? "button button-small button-danger" : "button button-danger"}>
       <Minus aria-hidden="true" size="1em" strokeWidth={3} />
       {children}
     </Button>

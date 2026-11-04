@@ -385,6 +385,7 @@ export type Wording = {
       resolution: (a: { m: string | number }) => string;
       suggested: (a: { km2: string | number | null; m: string | number }) => string;
       censusOff: string;
+      keyForgetConfirm: string;
     };
     values: {
       button: {
@@ -1121,6 +1122,7 @@ export type Wording = {
     cancel: string;
     blank: string;
     startButton: string;
+    undoConfirm: string;
   };
   sales: {
     kicker: string;
@@ -2223,5 +2225,6 @@ export type Wording = {
     theStep: string;
     delete: string;
     cancel: string;
+    cleared: (a: { what: string | number }) => string;
   };
 };

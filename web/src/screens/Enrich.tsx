@@ -3,6 +3,7 @@ import { ChevronDown, Globe } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } from "react-aria-components";
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
+import { DeleteButton } from "../components/Buttons";
 import { ExternalLink } from "../components/ExternalLink";
 import { Choice, Tick } from "../components/Form";
 import { say, t } from "../wording";
@@ -353,9 +354,9 @@ function CensusKey({ view }: { view: EnrichView }) {
       {view.key_saved && view.key_end ? (
         <>
           <span className="wiz-ok">✓ {e.keySaved({ end: view.key_end })}</span>
-          <Button className="button button-small" onPress={() => put.mutate("")}>
+          <DeleteButton confirm={e.keyForgetConfirm} onDelete={() => put.mutate("")}>
             {e.keyForget}
-          </Button>
+          </DeleteButton>
         </>
       ) : (
         <>

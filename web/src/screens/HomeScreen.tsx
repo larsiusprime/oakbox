@@ -84,7 +84,7 @@ function DeleteProject({ project }: { project: Project }) {
   const queryClient = useQueryClient();
   return (
     <DialogTrigger>
-      <Button className="button">
+      <Button className="button button-danger">
         <Trash2 aria-hidden="true" size="1em" />
         {t.home.delete}
       </Button>

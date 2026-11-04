@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Map as MapIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay, Radio, RadioGroup } from "react-aria-components";
 import { navigate } from "../App";
@@ -13,7 +13,7 @@ import {
 } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { AddButton } from "../components/AddButton";
-import { ToolButton } from "../components/Buttons";
+import { DeleteButton, ToolButton } from "../components/Buttons";
 import { Choice, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -207,7 +207,9 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
             {replace && (
               <div className="bi-warn mg-replace" role="alert">
                 {g.replaceWarn({ n: saved.length })}{" "}
-                <Button className="button" onPress={() => start.mutate(replace)}>
+                {/* Already the question: the answer that deletes the saved groups carries the trash can. */}
+                <Button className="button button-danger" onPress={() => start.mutate(replace)}>
+                  <Trash2 aria-hidden="true" size="1em" />
                   {g.replaceYes}
                 </Button>{" "}
                 <Button className="button" onPress={() => setReplace(null)}>
@@ -568,9 +570,9 @@ function Builder({
           </div>
           <p className="mg-help">{g.orderHelp}</p>
           <div className="mg-save">
-            <Button className="button" isDisabled={!dirty} onPress={() => setDraft(view.groups)}>
+            <DeleteButton isDisabled={!dirty} confirm={g.undoConfirm} onDelete={() => setDraft(view.groups)}>
               {g.undo}
-            </Button>
+            </DeleteButton>
             <Button
               className="button button-primary"
               isDisabled={!dirty || save.isPending}

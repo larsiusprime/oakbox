@@ -556,7 +556,7 @@
       "keyGet": "Get a key",
       "keyPlaceholder": "Paste your key",
       "keySave": "Save",
-      "keyForget": "Forget",
+      "keyForget": "Forget key",
       "county": "County",
       "countyPick": "Pick the county",
       "countyGuess": "where the parcels are",
@@ -566,7 +566,8 @@
       "detail": "Detail",
       "resolution": "{m} m",
       "suggested": "{km2, select, null {{m} m suggested} other {{m} m suggested for an area this size ({km2, number} km²)}}",
-      "censusOff": "Needs a free API key from the Census Bureau."
+      "censusOff": "Needs a free API key from the Census Bureau.",
+      "keyForgetConfirm": "Forget the saved key? You'd paste it again to use census figures."
     },
     "values": {
       "button": {
@@ -1374,7 +1375,7 @@
     "moveOut": "{n, number} {n, plural, =1 {parcel moves} other {parcels move}} to {to} ({sold, number} sold)",
     "showMoves": "Show them on the map",
     "deleteGroup": "Remove group",
-    "undo": "Undo changes",
+    "undo": "Discard changes",
     "save": "Save groups",
     "saved": "✓ Saved",
     "pickGroup": "Pick a group to edit its rule, or click a parcel on the map to see why it''s where it is.",
@@ -1481,7 +1482,8 @@
     "ffApply": "Make these groups",
     "cancel": "Cancel",
     "blank": "(blank)",
-    "startButton": "Start"
+    "startButton": "Start",
+    "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone."
   },
   "sales": {
     "kicker": "Step 3 of 7",
@@ -2913,6 +2915,7 @@
     "theCondition": "the condition",
     "theStep": "the step",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "cleared": "Cleared {what}"
   }
 }
