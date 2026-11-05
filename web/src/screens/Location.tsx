@@ -43,7 +43,7 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
   });
   const v = view.data as MapView | undefined;
   return (
-    <section className="wiz-section">
+    <section className="wiz-section wiz-fill">
       <ul className="wiz-auto">
         <li>
           <span className="wiz-ok">✓ {l.latlon}</span> <span className="wiz-from">{l.latlonHow}</span>
@@ -142,12 +142,12 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
 
   return (
     <MapBox
-      className="wiz-map"
+      className="wiz-map wiz-map-fill"
       label={l.mapLabel}
       layers={layers}
       bounds={boundsOf(points)}
       fitKey={String(points.length)}
-      scrollZoom={false}
+      scrollZoom="focus"
       onMap={setM}
     />
   );

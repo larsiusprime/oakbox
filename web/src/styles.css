@@ -6238,3 +6238,18 @@ under what it's about; a file appended as rows {
 .wiz-capsules > .wiz-capsule.qc-ask > .seg-row > .seg > .seg-b {
   flex: 1;
 }
+
+/* A map that is the step (Coordinates): it takes the rest of the page, down to the buttons, never under 18rem. */
+.wiz-body:has(> .wiz-fill) {
+  display: flex;
+  flex-direction: column;
+}
+.wiz-body > .wiz-fill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.wiz-fill > .map-view.wiz-map-fill {
+  flex: 1;
+  min-height: 18rem;
+}

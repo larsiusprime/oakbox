@@ -470,7 +470,7 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
       layers={layers}
       bounds={boundsOf(points, [boundsOfGeoJson(shapes)])}
       fitKey={v ? name : ""}
-      scrollZoom={false}
+      scrollZoom="focus"
     />
   );
 }

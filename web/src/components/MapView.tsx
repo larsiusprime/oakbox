@@ -149,8 +149,9 @@ export function MapView({
   resizeKey?: string;
   className: string;
   label: string;
-  /** False: the wheel scrolls the page, not the map (a map inside a long step). */
-  scrollZoom?: boolean;
+  /** True: the wheel always zooms (a map that is the page). "focus": a map inside a page: the wheel zooms once it's
+   * clicked (or tabbed) into, and scrolls the page again once something else is. False: never. */
+  scrollZoom?: boolean | "focus";
   /** What hovering an object says. */
   tooltip?: (info: PickingInfo) => string | null;
   /** The map, once made (and null when gone): for markers of its own, like a pin to drag. */
@@ -178,7 +179,19 @@ export function MapView({
       maxPitch: 0,
     });
     m.touchZoomRotate.disableRotation();
-    if (!wheel) m.scrollZoom.disable();
+    if (wheel !== true) m.scrollZoom.disable();
+    // Zooms with the wheel only while it's the thing in use: clicked or tabbed into, until something else is.
+    const box = el.current.parentElement ?? el.current;
+    const wake = () => m.scrollZoom.enable();
+    const off = (e: Event) => {
+      if (!box.contains(e.target as Node)) m.scrollZoom.disable();
+    };
+    if (wheel === "focus") {
+      box.addEventListener("pointerdown", wake);
+      box.addEventListener("focusin", wake);
+      document.addEventListener("pointerdown", off);
+      document.addEventListener("focusin", off);
+    }
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     const o = new MapboxOverlay({ interleaved: false, layers: [] });
     m.addControl(o);
@@ -190,6 +203,12 @@ export function MapView({
     overlay.current = o;
     give?.(m);
     return () => {
+      if (wheel === "focus") {
+        box.removeEventListener("pointerdown", wake);
+        box.removeEventListener("focusin", wake);
+        document.removeEventListener("pointerdown", off);
+        document.removeEventListener("focusin", off);
+      }
       give?.(null);
       m.remove();
       map.current = null;
