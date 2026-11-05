@@ -1542,6 +1542,7 @@ STEP = steps.Step(
     key=lambda project, pdir: settings_key(steps.read_settings(pdir), project, pdir),
     after=assemble.STEP,
     again="Check sales again first: something changed since it ran.",
+    place="Sales",
 )
 
 

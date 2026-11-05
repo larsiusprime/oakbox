@@ -985,6 +985,7 @@ STEP = steps.Step(
     key=lambda project, pdir: settings_key(steps.read_settings(pdir)),
     ran_hash=settings_hash,
     again="Bring in data again first: the Data wizard changed since it ran.",
+    place="Inputs",
 )
 
 

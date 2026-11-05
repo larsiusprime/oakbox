@@ -460,8 +460,9 @@ def _hash_field(ran: dict) -> str | None:
 
 @dataclass(frozen=True)
 class Step(Generic[R]):
-    """One step: its module, its receipt, what it depends on now (`key`), and the fingerprint its last run left
-    (`ran_hash`, from what the run wrote to settings.json: by default its "hash").
+    """One step: its module, its title (what its run is called: "Check sales"), its receipt, what it depends on now
+    (`key`), and the fingerprint its last run left (`ran_hash`, from what the run wrote to settings.json: by default
+    its "hash"). `place` is where its Looks right is, when that isn't the title (its tab: "Sales").
 
     A step is out of date when its own calls change or the step it starts from (`after`) has run again since
     (its key holds that step's `ran_at`); nothing further back. A change further back shows where it was made, and
@@ -475,6 +476,7 @@ class Step(Generic[R]):
     after: Step | None = None
     ran_hash: Callable[[dict], str | None] = _hash_field
     again: str = "Run it again first: something changed since it ran."
+    place: str | None = None  # where its Looks right is, in words, when not its title: "Sales" (its tab), not the run
 
     def out_dir(self, project_dir: Path) -> Path:
         return project_dir / "out" / "oakbox" / self.module
@@ -513,7 +515,7 @@ class Step(Generic[R]):
             return None
         if s.receipt is not None and s.stale:
             return f"Run {self.after.title} again first: something it depends on changed since it ran."
-        return f"Press Looks right on {self.after.title} first: this starts from what it wrote."
+        return f"Press Looks right on {self.after.place or self.after.title} first: this starts from what it wrote."
 
     def _own(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
         r, ran = self.ran(project_dir)

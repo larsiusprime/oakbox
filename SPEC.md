@@ -557,7 +557,7 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
 - **Engine** (`engine/enrich-fixes`): on the sales, teardowns and renovations went to every sale of the parcel (worked out on the parcel ID, not the sale ID), so a house sold twice before its demolition had both sales made land sales; the effective year stopped with an error on sales without a year built (sales take their parcel's); `reno_date` was filled with "UNKNOWN" as an improvement category.
 - **Sample:** `in/permits.csv`, 2,140 made-up permits, 40 of them demolitions within a year of an improved sale (planted problem 15).
 
-#### F4. Step 1, Bring in data (its own tab, **1. Inputs**)
+#### F4. Step 1, Inputs: Bring in data (its own tab, **1. Inputs**)
 - **One task at a time** (the frame of F5): **What runs** (❌ when Data has something to fix, with what changed since the last run) › **Bring in data** (the run: **Bring in data ›** where Next is, progress with Skip, then the results open) › **The parcel universe** › **The sales** (each with its funnel and fields) › **Public data and checks** (⚠ when public data was skipped or a check differs), whose Next is **Looks right › Model groups**.
 - **Terms:** the joined parcel table is always the **parcel universe** and the joined sales table the **sales record**, here and in every message (the wizard's messages name the files holding them that way too).
 - **Ready:** what will run (the parcel universe, the sales record, the files joined to them, the map layers, how many fields). It can't run while Data has a problem; the first is shown, with a link to Data.
@@ -602,7 +602,7 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
   - **Left out of notebook 1:** cloud sync (a desktop app's files are on the desktop), and street frontages (`enrich_sup_streets`: the street network is deferred, D29). Its "examine" cells are Bring in data's receipt; "examine in ridiculous detail" is each field's details (click its name).
 - **Not yet:** common areas (deferred), hand edits (map lasso), nested AND/OR, undo/redo, export/import, and a map for very large counties (the shapes are sent whole: fine at 10k parcels, too much at 500k; vector tiles then).
 
-#### F6. Step 3, Check sales (its own tab, **3. Sales**; notebook 2, clean) (built, but for the parts listed under "Not built yet")
+#### F6. Step 3, Sales: Check sales (its own tab, **3. Sales**; notebook 2, clean) (built, but for the parts listed under "Not built yet")
 Notebook 2 makes the data ready to model, and it's where subjective calls go in: which sales count, how prices are brought to one date, what stands in for blanks. So the step shows each call before it runs, and every sale it sets aside with the reason. It starts from the 1-assemble hand-off (F5) and writes the 2-clean hand-off that step 4 (Check my values) and steps 5 and 6 (Variables, Model values) read.
 
 **What runs, in OpenAVMKit's order** (`openavmkit.headless` stage `clean`, in its own process like F4 and F5; about 10 s on the Guilford sample, minutes at 500k parcels):
@@ -670,7 +670,7 @@ Notebook 2 makes the data ready to model, and it's where subjective calls go in:
 
 **Not in this step:** street frontages, spatial lag and area statistics (step 6), the ratio study (step 4), model outliers (step 6's review, in the same register).
 
-#### F8. Step 4, Check my values (its own tab, **4. Evaluate**; built, but for the parts under "Not built yet")
+#### F8. Step 4, Evaluate: Check my values (its own tab, **4. Evaluate**; built, but for the parts under "Not built yet")
 It opens once Check sales has Looks right. The assessor's own values, against what parcels sold for, checked the way a state reviewer would: nothing is modeled. openratiostudy.com (`larsiusprime/openratiostudy`) is the reference for the statistics and views.
 - **Only with existing values** (revised 2026-10-31): the tab is greyed, its tip saying "No existing values to check: add them on Data › Existing values", until a value set has a market value. Model values doesn't wait for it.
 - **What to check** (first): **Check them** or **Skip this step** (Next becomes **Go to Model values ›**; the step's parts are greyed); which value sets (MultiPick, every one by default) and which model groups (every one by default; the studies, overall included, are of those groups only). Only market values are checked: land and improvement values aren't sold on their own.
@@ -700,7 +700,7 @@ It opens once Check sales has Looks right. Steps: **Fill blanks** › **Rare cat
 - **Rare categories:** off by default. The category fields the models use, but not locations, the model group, IDs and addresses (or anything with more distinct values than half the parcels), or dates. With the thresholds (fewer sales than, fewer parcels than), a table per field: its values, how many fold, their parcels, and which ("Become Other"), counted on the sales Check sales kept, as OpenAVMKit counts them.
 - **Prepare the fields:** OpenAVMKit's `fill_unknown_values_sup` and `collapse_sparse_categories_sup` on Check sales' hand-off (`out/oakbox/clean/sup.pickle`), in a process of its own (`python -m oakbox.prepare`), then notebook 2's output written again (`out/2-clean-sup.pickle`, `out/look/2-clean-*`): the same as notebook 2 writes with the same settings. Out of date when Check sales runs again or a fill or the folding changes. The receipt: what was filled (per field, how many, how) and folded (per field, the values and their parcels), and the files.
 
-#### F9. Steps 5 and 6, Variables and Model values: the variable tests and lists, and the models (tab **6. Models**; slices 1 and 2 built, slice 3 in part: see As built)
+#### F9. Steps 5 and 6, Variables and Models: the variable tests and lists, and the models (tab **6. Models**; slices 1 and 2 built, slice 3 in part: see As built)
 What stands between Prepare the fields (F7) and values a model made, and how steps 5 and 6 continue. It replaces §3.10's earlier draft where they differ.
 
 **The spike** (2026-10-29, the sample: 7,994 parcels, 1,477 sales; Prepare's output; a hand-written variable list of finished area, land area, effective age, units, normalized latitude and longitude, polar coordinates, elevation and slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-fold nested cross-validation): `write_canonical_splits`, then `model_runner.run_models` (try, no vacant models), ran headless in **29 s** and wrote `out/models/`. The plumbing works. What it showed:
@@ -863,16 +863,16 @@ Before running, a step shows what's stale and why ("Model groups changed: steps 
 
 A tab asked for that waits on an earlier step (it isn't accepted on an up-to-date run) opens the first step, in order, that isn't, with a notice above the tabs saying why: "Variables waits for Bring in data. Bring in data is out of date: run it again, then press Looks right. What changed: fields worked out after the files join." Never a silent switch to another tab (revised 2026-10-31). Bring in data always names what changed; a change no line names (a newer OAK box writing the step's settings differently) is "how OAK box writes this step's settings (a newer OAK box)". Opening a project rewrites its settings.json if this OAK box would write it differently, so what that changes shows on opening, not at the next unrelated change (a Variables tick once put Bring in data out of date this way, and the screen jumped to Check sales).
 
-Each step is a tab. Where the tab's short label differs from the step's name, it's in brackets: 1 Bring in data (Inputs), 3 Check sales (Sales), 4 Check my values (Evaluate), 6 Model values (Models).
+Each step is a tab, named short (settled 2026-11-05): 1 Inputs, 2 Model groups, 3 Sales, 4 Evaluate, 5 Variables, 6 Models, 7 Report. A step's name is its page's title and what Looks right and the tabs' notices say ("Press Looks right on Sales first"). Its run keeps a verb: **Bring in data** (Inputs), **Check sales** (Sales), **Check my values** (Evaluate); in Models, **Model values** is the step with its Looks right ("Models › Model values"). Elsewhere in this spec the runs' names often stand for their steps.
 
 | Step | What runs (OpenAVMKit stage boundaries) | Internet? |
 |------|------------------------------------------|-----------|
-| 1. Bring in data | Load, merge, condo handling, enrichment (§3.12). The street enrichment is explicitly off. Ends before model group tagging. Then Data health and Field profile (§3.9) | Only for online enrichments |
+| 1. Inputs (run: Bring in data) | Load, merge, condo handling, enrichment (§3.12). The street enrichment is explicitly off. Ends before model group tagging. Then Data health and Field profile (§3.9) | Only for online enrichments |
 | 2. Model groups | Model group tagging (§3.5). Writes the 1-assemble hand-off | No |
-| 3. Check sales | Clean, in OpenAVMKit's order: OpenAVMKit's own fills (the user's are step 5's), equity clusters, sale processing (sales window, validity rules, **time adjustment**), scrutiny (sales set aside, minus the user's keeps, plus their exclusions: §3.6, F6). Writes the 2-clean hand-off (rare categories: step 5) | No |
-| 4. Check my values | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per model group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
+| 3. Sales (run: Check sales) | Clean, in OpenAVMKit's order: OpenAVMKit's own fills (the user's are step 5's), equity clusters, sale processing (sales window, validity rules, **time adjustment**), scrutiny (sales set aside, minus the user's keeps, plus their exclusions: §3.6, F6). Writes the 2-clean hand-off (rare categories: step 5) | No |
+| 4. Evaluate (run: Check my values) | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per model group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
 | 5. Variables | Prepare the fields (the user's fills, rare categories: F7), then the variable tests and the variable lists (F9) | No |
-| 6. Model values | Splits, spatial lag, **Try** models (repeatable) → how they did → small groups → **Finalize** → the model values checked against the sales, beside the roll's (F9). Main models only (`run_vacant=False`) | No |
+| 6. Models | Splits, spatial lag, **Try** models (repeatable) → how they did → small groups → **Finalize** → the model values checked against the sales, beside the roll's (F9). Main models only (`run_vacant=False`) | No |
 | 7. Report | Export (CSV, GeoPackage, Excel, Shapefile, GeoParquet) and a printable HTML report of the model values (F10). Runs nothing | No |
 
 **What each step's receipt shows:**

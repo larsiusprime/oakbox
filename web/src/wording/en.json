@@ -116,7 +116,7 @@
     "loading": "Reading the files…",
     "stepOf": "Step {n} of {of}",
     "back": "‹ Back",
-    "toBringIn": "Bring in data ›",
+    "toBringIn": "Inputs ›",
     "left": {
       "listed": "{n, plural, =1 {1 thing} other {{n} things}} left: {what}",
       "count": "{n, plural, =1 {1 thing left on this step} other {{n} things left on this step}}"
@@ -130,7 +130,7 @@
     "unfinishedRun": {
       "title": "OpenAVMKit can''t run yet",
       "body": "These stop Bring in data. You can look at it anyway: it lists what will run.",
-      "skip": "Go to Bring in data anyway",
+      "skip": "Go to Inputs anyway",
       "finish": "Fix them first"
     },
     "skip": "I don''t have these",
@@ -768,8 +768,8 @@
       "land": "Land value",
       "impr": "Improvement value",
       "roll": "The assessor''s roll",
-      "rollNote": "checked on Check my values, and beside the models as OpenAVMKit''s assessor",
-      "otherNote": "beside the models, and on Check my values",
+      "rollNote": "checked on Evaluate, and beside the models as OpenAVMKit''s assessor",
+      "otherNote": "beside the models, and on Evaluate",
       "name": "Name of the set",
       "add": "Add a set of values",
       "none": "No existing values: the models are judged on their own.",
@@ -1153,17 +1153,17 @@
     "fields": "Data",
     "bring": "1. Inputs",
     "groups": "2. Model groups",
-    "groupsLocked": "Press Looks right on Bring in data first",
+    "groupsLocked": "Press Looks right on Inputs first",
     "sales": "3. Sales",
     "salesLocked": "Press Looks right on Model groups first",
     "check": "4. Evaluate",
     "variables": "5. Variables",
     "values": "6. Models",
     "report": "7. Report",
-    "reportLocked": "Press Looks right on Model values first",
+    "reportLocked": "Press Looks right on Models › Model values first",
     "modelsLocked": "Press Looks right on Variables › What changed first",
     "noValues": "No existing values to check: add them on Data › Existing values.",
-    "valuesLocked": "Press Looks right on Check sales first",
+    "valuesLocked": "Press Looks right on Sales first",
     "waits": "{asked} waits for {shown}.",
     "runAgain": "{step} is out of date: run it again, then press Looks right.",
     "pressLooksRight": "Press Looks right on {step} first.",
@@ -1175,8 +1175,8 @@
       "export": "Export",
       "report": "Report"
     },
-    "notReady": "Finalize the values first (Model values › Finalize).",
-    "notAccepted": "The values haven''t had Looks right on Model values: what''s exported and reported is as finalized.",
+    "notReady": "Finalize the values first (Models › Finalize).",
+    "notAccepted": "The values haven''t had Looks right on Models › Model values: what''s exported and reported is as finalized.",
     "exportLede": "Every parcel''s model value beside the roll''s, why a parcel has none, and for parcels that sold, the sale and its ratio. A file per format, in the project''s folder.",
     "format": "Format",
     "write": "Write the file",
@@ -1227,7 +1227,7 @@
     "noEnrich": "No public data was asked for (Data › Enrichments).",
     "looksRightNext": "Looks right › Model groups",
     "toGroups": "Model groups ›",
-    "title": "Bring in data",
+    "title": "Inputs",
     "lede": "OpenAVMKit loads your files as Data set them up, joins them into the parcel universe and the sales record, and adds what it works out itself: coordinates, ages, distances and the map layers. Model groups come next.",
     "blocked": "{n, plural, =1 {1 thing} other {{n} things}} to fix on Data first:",
     "toData": "Go to Data",
@@ -1423,8 +1423,8 @@
     "checkFix": "To change a group, go back to the builder.",
     "backToBuild": "Build the groups",
     "writeTitle": "Tag the parcels and write notebook 1''s output",
-    "looksRightNext": "Looks right › Check sales",
-    "toSales": "Check sales ›",
+    "looksRightNext": "Looks right › Sales",
+    "toSales": "Sales ›",
     "run": {
       "what": "Notebook 1 ends here: OpenAVMKit tags every parcel with its model group and writes the output that cleaning starts from.",
       "never": "Not written yet.",
@@ -1498,7 +1498,7 @@
       "after": "after running",
       "review": "the sales set aside"
     },
-    "title": "Check sales",
+    "title": "Sales",
     "lede": "Which sales count, how their prices are brought to one date, and what stands in for blanks: the calls that decide what the models learn from. Each one is shown before it runs, and every sale set aside is listed after, for you to keep or exclude.",
     "blocked": "Not yet:",
     "toGroups": "Go to Model groups",
@@ -1669,8 +1669,8 @@
     },
     "stale": "Out of date: something changed since this ran (a call, a keep or an exclusion, or an earlier step).",
     "meter": "✓ {used, number} sales for modeling, {aside, number} set aside for you to look at",
-    "looksRight": "Looks right › Check my values",
-    "toValues": "Check my values ›",
+    "looksRight": "Looks right › Evaluate",
+    "toValues": "Evaluate ›",
     "patterns": {
       "title": "Far from their group, by pattern",
       "lede": "{flagged, number} of {sales, number} sales flagged ({name}). Each pattern says what''s likely wrong and what to check first.",
@@ -1911,12 +1911,12 @@
       ],
       "skip": [
         "Skip this step",
-        "Go straight to Model values. You can come back to it."
+        "Go straight to Models. You can come back to it."
       ],
       "sets": "Values to check",
       "groups": "Model groups",
       "shown": "Values shown",
-      "toValues": "Go to Model values ›"
+      "toValues": "Go to Models ›"
     },
     "steps": {
       "what": "What to check",
@@ -2122,7 +2122,7 @@
       "nominal": "a nominal price: not a sale",
       "high": "value well over the price",
       "low": "value well under the price",
-      "exclude": "Exclude in Check sales",
+      "exclude": "Exclude in Sales",
       "excluded": "excluded: applies when Check sales runs again",
       "note": "Nominal price ({price}): not a market sale",
       "untrimmed": "Untrimmed, these would swing the statistics: a $10 deed makes a ratio in the tens of thousands."
@@ -2176,8 +2176,8 @@
       "lowest": "Cheapest",
       "highest": "Dearest"
     },
-    "looksRight": "Looks right › Model values",
-    "toValues": "Model values ›"
+    "looksRight": "Looks right › Models",
+    "toValues": "Models ›"
   },
   "values": {
     "kicker": "Step 5 of 7",
@@ -2411,9 +2411,9 @@
       "looksRight": "Looks right",
       "run": "Finalize",
       "again": "Finalize again",
-      "stale": "Something changed since the values were made (the try, a small group''s choice, or Check my values'' window or standards): finalize again.",
+      "stale": "Something changed since the values were made (the try, a small group''s choice, or Evaluate''s window or standards): finalize again.",
       "ran": "Values made {at}, in {secs} s.",
-      "valuesLede": "The model values against what parcels sold for, judged as Check my values judges the roll''s, with the roll''s on the same sales beside them.",
+      "valuesLede": "The model values against what parcels sold for, judged as Evaluate judges the roll''s, with the roll''s on the same sales beside them.",
       "judgedOn": "Judged on",
       "sets": {
         "oof": "Out of fold",
@@ -2638,7 +2638,7 @@
           "parcels": "Parcels in the model group the model values.",
           "median": "Value ÷ price, the middle one: the level. IAAO''s range: 0.90 to 1.10.",
           "mean": "Value ÷ price, averaged.",
-          "cod": "Coefficient of dispersion: how far ratios stray from the median, in percent. Its range depends on the model group''s property category (Check my values).",
+          "cod": "Coefficient of dispersion: how far ratios stray from the median, in percent. Its range depends on the model group''s property category (Evaluate).",
           "prd": "Price-related differential: the mean ratio over the value-weighted mean. Reported, not judged.",
           "prb": "Price-related bias: how ratios change as value doubles. Good within ±0.05; unacceptable beyond ±0.10.",
           "vei": "Vertical equity index: how ratios drift from the cheapest sales to the dearest, in percent. Near 0 is even.",
@@ -2729,7 +2729,7 @@
       },
       "bring": {
         "kicker": "Step 1 of 7",
-        "title": "Bring in data",
+        "title": "Inputs",
         "lede": "OpenAVMKit reads the files as Data describes them and joins them into one table of every parcel (the parcel universe) and one of every sale. It also works out what it can on its own: coordinates, building ages, land areas, and the public data you asked for.",
         "happens": [
           "A run, a few minutes for a county, on its own in the background. You can stop it, and leave this tab while it runs.",
@@ -2761,11 +2761,11 @@
         "end": [
           "Every parcel tagged with a model group, and checks that each group has the sales to model."
         ],
-        "needs": "Bring in data, once you''ve pressed Looks right."
+        "needs": "Inputs, once you''ve pressed Looks right."
       },
       "sales": {
         "kicker": "Step 3 of 7",
-        "title": "Check sales",
+        "title": "Sales",
         "lede": "Only fair, open-market sales are evidence of what parcels are worth. This step decides which sales count, and brings their prices to the valuation date.",
         "happens": [
           "OpenAVMKit''s checks set aside sales that aren''t fair evidence: nominal deeds, one sale of several parcels, sales between family, prices far out of line with similar parcels.",
@@ -2784,7 +2784,7 @@
       },
       "check": {
         "kicker": "Step 4 of 7",
-        "title": "Check my values",
+        "title": "Evaluate",
         "lede": "Before modeling anything, how good are the values you have now? This step checks the existing roll, and any other values you loaded, against what parcels actually sold for: the IAAO ratio study.",
         "happens": [
           "Each sale''s value ÷ its price, studied per model group: the level (median ratio), uniformity (COD), and whether dearer and cheaper parcels are valued alike (PRD, PRB, VEI).",
@@ -2799,7 +2799,7 @@
         "end": [
           "A baseline: how the roll does today. The model values are judged the same way later, side by side with it."
         ],
-        "needs": "Check sales, once you''ve pressed Looks right. Skipped if you have no existing values."
+        "needs": "Sales, once you''ve pressed Looks right. Skipped if you have no existing values."
       },
       "variables": {
         "kicker": "Step 5 of 7",
@@ -2818,12 +2818,12 @@
         "end": [
           "Variable lists, each with the evidence for every variable in it. Models are built from them next."
         ],
-        "needs": "Check sales (and Check my values, if you have values), each with Looks right pressed."
+        "needs": "Sales (and Evaluate, if you have values), each with Looks right pressed."
       },
       "values": {
         "kicker": "Step 6 of 7",
-        "title": "Model values",
-        "lede": "This is where the values are made. Each model group gets its models; they''re tried, judged as Check my values judges the roll, and the best are combined into one value for every parcel.",
+        "title": "Models",
+        "lede": "This is where the values are made. Each model group gets its models; they''re tried, judged as Evaluate judges the roll, and the best are combined into one value for every parcel.",
         "happens": [
           "You choose each group''s models (LightGBM, regression, comparable sales…) and the variable list each one uses.",
           "A try trains them with cross-validation: each sale is valued by a model that never saw it, so the figures are honest.",
@@ -2854,7 +2854,7 @@
         "end": [
           "The files and report in the project''s folder, ready to hand on."
         ],
-        "needs": "Model values, once you''ve pressed Looks right."
+        "needs": "Models › Model values, once you''ve pressed Looks right."
       }
     }
   },

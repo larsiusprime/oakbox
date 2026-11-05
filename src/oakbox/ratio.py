@@ -829,6 +829,7 @@ STEP = steps.Step(
     key=settings_key,
     after=clean.STEP,
     again="Check the values again first: something changed since they were checked.",
+    place="Evaluate",
 )
 
 

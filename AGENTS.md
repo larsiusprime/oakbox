@@ -170,6 +170,9 @@ app window, its page from the dev server), or `npm run dev:wording -- --host 127
 `python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. A message may have line breaks (`\n`) and paragraph breaks (`\n\n`): show
 wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
+**Naming the steps:** a step is its tab's short name (Inputs, Model groups, Sales, Evaluate, Variables, Models,
+Report): its page's title, "Looks right › Sales", "Press Looks right on Sales first". Its run keeps a verb (Bring in data,
+Check sales, Check my values), on its Run button and wherever the run is meant ("applies on the next Check sales").
 **Formatting:** `**bold**` and `*italic*` (`\*` for an asterisk). A message with any unescaped `*` is rich: its type
 in `wording.gen.ts` is `ReactNode` (or a function returning one), so it can only be shown, never used as text (a
 `title`, a placeholder, an `aria-label`, a template string); tsc says where. A prop that only ever shows wording
