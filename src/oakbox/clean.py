@@ -489,9 +489,11 @@ def propose(field: str) -> tuple[Fill, str]:
     if field.startswith("days_to_"):
         return Fill(method="leave"), "Blank means no permit: there's no date to count from, so it stays blank."
     if field in CENSUS:
-        return Fill(method="median"), "Blank where a parcel's census block group wasn't matched: its group's median."
+        return Fill(method="median"), (
+            "Blank where the census gives no figure for the parcel's block group or its tract: its group's median."
+        )
     if field.startswith(("elevation_", "slope_")):
-        return Fill(method="median"), "Blank where the elevation tiles didn't cover the parcel: its group's median."
+        return Fill(method="median"), "Blank where the elevation tiles had no cells for the parcel: its group's median."
     return Fill(method="median"), "Blank where the data didn't say: its group's median, as a stand-in."
 
 

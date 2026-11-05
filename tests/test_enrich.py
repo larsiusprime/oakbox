@@ -56,7 +56,14 @@ def test_enrichments_start_on_and_write_openavmkit_settings(client, pid):
     # Census: needs the county and the user's key, kept on this computer, never in the project.
     s |= {"census": True, "fips": "48453", "census_year": 2021}
     v = client.put(f"/api/projects/{pid}/wizard/enrich", json=s).json()
-    assert read_settings(pid)["data"]["process"]["enrich"]["census"] == {"enabled": True, "fips": "48453", "year": 2021}
+    # A withheld block-group figure from its tract; a parcel between block groups, the nearest within 250 m.
+    assert read_settings(pid)["data"]["process"]["enrich"]["census"] == {
+        "enabled": True,
+        "fips": "48453",
+        "year": 2021,
+        "tract_fallback": True,
+        "nearest_m": 250,
+    }
     left = wizard_step(client.get(f"/api/projects/{pid}/wizard").json(), "enrich")["left"]
     # The fixture's parcels are nowhere near Travis County: their census figures would all be blank.
     off = "Census: the parcels aren't in Travis County, TX"
