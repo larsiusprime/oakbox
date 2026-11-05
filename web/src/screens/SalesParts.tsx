@@ -399,9 +399,9 @@ function DatePreview({
       {v.by_year.length > 0 && (
         <>
           <h3 className="wiz-group">{sp.byYear}</h3>
-          {/* A bar per year, its count on top: how the sales spread over time. */}
+          {/* A bar per year, its count on top, the most recent first: how the sales spread over time. */}
           <div className="yr-hist" role="img" aria-label={sp.byYear}>
-            {v.by_year.map((y) => (
+            {[...v.by_year].reverse().map((y) => (
               <div key={y.year} className="yr-col">
                 <span className="yr-n">{y.count.toLocaleString()}</span>
                 <span className="yr-bar" style={{ height: `${(8 * y.count) / top}rem` }} />
