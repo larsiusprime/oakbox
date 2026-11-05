@@ -11,8 +11,8 @@ python\python.exe -m oakbox.engines remove catboost
 ```
 (On Linux, `python/bin/python3`.) A checkout installs both with `uv sync`.
 
-**Making a release** (maintainers): set the version in `pyproject.toml`, commit, then tag and push it (`git tag v0.1.0 && git push origin v0.1.0`). CI builds the bundle and the installer, installs, starts and uninstalls it on a clean Windows machine, and publishes a pre-release with the installer and the portable zip (`packaging/RELEASE_NOTES.md` heads its notes). Every push to `main` builds an installer too (the `installer-windows` artifact, kept a day). Pushes to other branches
-run no CI, but for the ones `bundles.yml` names.
+**Making a release** (maintainers): set the version in `pyproject.toml`, commit, then tag and push it (`git tag v0.1.0 && git push origin v0.1.0`). CI builds the bundle and the installer, installs, starts and uninstalls it on a clean Windows machine, and publishes a pre-release with the installer and the portable zip (`packaging/RELEASE_NOTES.md` heads its notes). Every pull request, and every push to `main`, builds an installer too (the `installer-windows` artifact, kept a
+day).
 
 ## The portable bundle (no installs needed)
 1. On GitHub, open the latest green run: **Actions → bundles**. Download `bundle-windows` or `bundle-linux` from **Artifacts**. They're kept for a day (the storage quota is small); re-run the workflow for fresh ones.
