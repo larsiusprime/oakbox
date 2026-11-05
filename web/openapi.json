@@ -18754,6 +18754,18 @@
       ],
       "title": "Parent"
      },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title",
+      "description": "A part made from a file (More files): its file's name."
+     },
      "status": {
       "type": "string",
       "enum": [
@@ -18796,6 +18808,7 @@
     "required": [
      "key",
      "parent",
+     "title",
      "status",
      "left",
      "fields",
@@ -22192,6 +22205,12 @@
       ],
       "title": "Blank Ok",
       "description": "Acknowledge the rows with no ID (they're dropped)."
+     },
+     "added": {
+      "type": "boolean",
+      "title": "Added",
+      "description": "Added on More files: one of its files, not said yet what it holds (nothing else).",
+      "default": false
      }
     },
     "type": "object",

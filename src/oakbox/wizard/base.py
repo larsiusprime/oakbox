@@ -37,6 +37,9 @@ STEPS: list[Step] = [
     Step(key="vacant_sale", parent="sales", fields=["vacant_sale"], sales=True),
     # More files, one by one, each joined to the universe (a parcel ID) or to the sales (the sale ID).
     Step(key="more_files"),
+    # First the files are added, nothing else asked; then a part each (revised 2026-11-05), "more:<file name>",
+    # made from the files themselves (STEPS has only the first: core.view adds the rest).
+    Step(key="more_add", parent="more_files"),
     # What a model leans on most, a part each (revised 2026-11-04: its own step, not part of More details).
     Step(key="big_five"),
     Step(key="building_size", parent="big_five", fields=["bldg_area_finished_sqft"]),

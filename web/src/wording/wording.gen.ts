@@ -177,6 +177,8 @@ export type Wording = {
       removeCondition: string;
       picks: string;
       matchHead: string;
+      matchParcels: string;
+      matchSales: string;
     };
     rule: {
       choose: string;
@@ -527,6 +529,8 @@ export type Wording = {
       remove: (a: { name: string | number }) => string;
     };
     extraFiles: {
+      configure: string;
+      stepLede: string;
       first: string;
       another: string;
       what: string;

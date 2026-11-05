@@ -184,8 +184,13 @@
       },
       "more_files": {
         "title": "More files",
+        "question": "",
+        "lede": ""
+      },
+      "more_add": {
+        "title": "Add files",
         "question": "Any more files to join?",
-        "lede": "Building details, sale details, more sales… Add each file, say what it''s about and how it joins. Permits have a step of their own, later. None? Just go on."
+        "lede": "Just add all the extra files you''ll be using: building details, sale details, more sales… You''ll configure them one by one in the next steps. Permits have a step of their own, later. None? Just go on."
       },
       "details": {
         "title": "More details",
@@ -373,7 +378,9 @@
       "addCondition": "Add condition",
       "removeCondition": "Remove this condition",
       "picks": "Which sales it picks",
-      "matchHead": "Do the sales find their parcels?"
+      "matchHead": "Do the sales find their parcels?",
+      "matchParcels": "Do its rows find their parcels?",
+      "matchSales": "Do its rows find their sales?"
     },
     "rule": {
       "choose": "Choose values…",
@@ -807,6 +814,8 @@
       "remove": "Remove {name}"
     },
     "extraFiles": {
+      "configure": "Set it up ›",
+      "stepLede": "What it''s about, how it joins, and whether its rows find theirs.",
       "first": "Add a file",
       "another": "Add another file",
       "what": "It''s about",
@@ -2724,6 +2733,10 @@
       "fields": {
         "title": "Welcome to OAK box",
         "lede": "OAK box helps you build models. It needs two datasets for that: a **sales record** and a **parcel universe**\n\nThe **sales record** is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe **parcel universe** is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
+      },
+      "more_files": {
+        "title": "More files",
+        "lede": "Files with more about each parcel or each sale (building details, deeds…), or more of them (older sales, a second parcel file). First add them all; then each gets a part of its own, to say what it''s about, how it joins, and to check its rows find theirs."
       },
       "sales_record": {
         "title": "Sales",

@@ -136,6 +136,9 @@ class WizardState(BaseModel):
             # Sales was one step (the file and its four fields); now five parts.
             if "sales" in steps:
                 steps.extend(p for p in SALES_PARTS if p not in steps)
+            # More files was one step; now its files are added on a part of their own, then a part each.
+            if "more_files" in steps and "more_add" not in steps:
+                steps.append("more_add")
             # Location was one step (the address, the coordinates, the location fields); now three parts.
             if "location" in steps:
                 steps.extend(p for p in ("address", "coordinates") if p not in steps)

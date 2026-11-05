@@ -7877,6 +7877,11 @@ export interface components {
             /** Parent */
             parent: string | null;
             /**
+             * Title
+             * @description A part made from a file (More files): its file's name.
+             */
+            title: string | null;
+            /**
              * Status
              * @description blank: not visited (or an optional step not confirmed yet); blocked: something here stops a run; attention: something to decide, or recommended and missing; done: complete.
              * @enum {string}
@@ -9297,6 +9302,12 @@ export interface components {
              * @description Acknowledge the rows with no ID (they're dropped).
              */
             blank_ok?: boolean | null;
+            /**
+             * Added
+             * @description Added on More files: one of its files, not said yet what it holds (nothing else).
+             * @default false
+             */
+            added: boolean;
         };
         /** WizardLocation */
         WizardLocation: {

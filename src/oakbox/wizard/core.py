@@ -286,18 +286,24 @@ def view(project: Project, in_dir: Path) -> Wizard:
     for step in STEPS:
         if step.parent == "condos" and step.key != "condo_ask" and not has:
             continue  # the rest of Condo units, only once some parcels are units
-        status, left = _status(project, step, out_files, sale_id, out_fields, problems, warnings, layer_list)
-        steps.append(
-            StepView(
-                key=step.key,
-                parent=step.parent,
-                status=status,
-                left=left,
-                fields=step.fields,
-                more=step.more,
-                sales=step.sales,
+        parts = [step]
+        if step.key == "more_add":
+            # More files' files, a part each, after the part that adds them.
+            parts += [Step(key=f"{MORE}{f.name}", parent="more_files") for f in out_files if _extra(f)]
+        for part in parts:
+            status, left = _status(project, part, out_files, sale_id, out_fields, problems, warnings, layer_list)
+            steps.append(
+                StepView(
+                    key=part.key,
+                    parent=part.parent,
+                    title=part.key[len(MORE) :] if part.key.startswith(MORE) else None,
+                    status=status,
+                    left=left,
+                    fields=part.fields,
+                    more=part.more,
+                    sales=part.sales,
+                )
             )
-        )
     for parent in (s for s in steps if s.key in PARENTS):
         # A step with parts (More details, Condo units) shows the worst of them.
         subs = [s.status for s in steps if s.parent == parent.key]
@@ -350,7 +356,9 @@ def _status(
         return "blank", []  # the worst of its parts, filled in by the caller
     if step.key == "condo_ask":
         return _condo_ask_status(project, files)
-    if step.key not in w.visited:
+    # A file's own part says what it needs as soon as it's added on More files (its first part seen), seen or not.
+    seen = step.key in w.visited or (step.key.startswith(MORE) and "more_add" in w.visited)
+    if not seen:
         return "blank", []
     if step.key == "review":
         return ("blocked" if problems else "attention" if warnings else "done"), []
@@ -404,27 +412,22 @@ def _status(
         if base is not None and base.name != BASE_NAME:
             left.append(Left(text="Use this file as the parcel universe"))
         ids(base, "parcel")
-    elif step.key == "more_files":
-        for f in files:
-            # Map layers are the Shapefiles step's; they join by where parcels are, not on an ID.
-            if f.base or f.holds in ("unused", "overlay", "permits") or (f.holds == "sales" and not _more_sales(f)):
-                continue
+    elif step.key.startswith(MORE):
+        # One of More files' files, on a part of its own: what it joins to, its ID, and its checks.
+        f = next((f for f in files if f.name == step.key[len(MORE) :]), None)
+        if f is not None:
             if f.holds is None:
-                left.append(Left(text=f"{f.name}: say what it joins to", blocking=False))
+                left.append(Left(text="Say what it joins to", blocking=False))
             elif f.id_column is None:
-                left.append(Left(text=f"{f.name}: pick the ID it joins on"))
+                left.append(Left(text="Pick the ID it joins on"))
             else:
-                before = len(left)
                 ids(f, f.name)
-                for i in left[before:]:
-                    i.text = f"{f.name}: {i.text}"
             if f.appended is not None:
                 a = f.appended
                 if a.few:
-                    text = f"{f.name}: has {a.have} of the {a.of} fields: the right file?"
-                    left.append(Left(text=text, blocking=False))
+                    left.append(Left(text=f"Has {a.have} of the {a.of} fields: the right file?", blocking=False))
                 if not a.key_ok and f.id_column is not None:
-                    left.append(Left(text=f"{f.name}: {a.key_text}", blocking=False))
+                    left.append(Left(text=a.key_text[:1].upper() + a.key_text[1:], blocking=False))
     elif step.key.startswith("condo_"):
         left.extend(_condo_left(step.key, files))
     elif step.key == "permits":
@@ -467,14 +470,32 @@ def _status(
         return "blocked", left
     if left:
         return "attention", left
-    if step.key in ("universe", *SALES_PARTS, *BIG_FIVE_PARTS):
+    if step.key in ("universe", *SALES_PARTS, *BIG_FIVE_PARTS) or step.key.startswith(MORE):
         return "done", left
     return ("done" if step.key in w.confirmed or step.key in w.skipped else "blank"), left
 
 
+# A part of More files made from one of its files: "more:" and the file's name.
+MORE = "more:"
+
+
+def _extra(f: WizardFile) -> bool:
+    """A file More files joins (or appends), or one added there not yet said what it's about."""
+    if f.base or f.holds in ("unused", "overlay", "permits"):
+        return False
+    return not (f.holds == "sales" and not _more_sales(f))
+
+
+def _known(project: Project, step: str) -> bool:
+    """A step there is: one of STEPS, or More files' part for a file in the project."""
+    if step.startswith(MORE):
+        return any(f.name == step[len(MORE) :] for f in project.files)
+    return step in STEP_KEYS
+
+
 def confirm(project: Project, step: str) -> None:
     """Next (or Start) on a step: an optional step counts as complete once it's been moved on from."""
-    if step not in STEP_KEYS:
+    if not _known(project, step):
         raise LookupError(step)
     if step not in project.wizard.confirmed:
         project.wizard.confirmed.append(step)
@@ -572,9 +593,10 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
 
 def visit(project: Project, in_dir: Path, step: str) -> None:
     """Show a step: fill in guesses for whatever on it hasn't been decided (F3d)."""
-    if step not in STEP_KEYS:
+    if not _known(project, step):
         raise LookupError(step)
-    _guess(project, in_dir, step)
+    if not step.startswith(MORE):  # a file's own part is guessed when it's said what the file holds
+        _guess(project, in_dir, step)
     if step == "enrich":
         enrichments.start(project, in_dir)
     if step not in project.wizard.visited:
@@ -765,6 +787,7 @@ def set_file(
     dupes_sort: str | None = None,
     dupes_desc: bool = False,
     blank_ok: bool | None = None,
+    added: bool = False,
 ) -> None:
     """A file's part (the parcel universe, sales, or more parcel details) and the ID it joins on.
 
@@ -773,6 +796,11 @@ def set_file(
     """
     files = Files(project, in_dir)
     entry = files.entry(name)
+    if added:
+        # Added on More files: one of its files, configured on a part of its own later. Only an unused file changes.
+        if entry.name != project.wizard.base and entry.holds in (None, "unused"):
+            entry.holds = None
+        return
     columns = {c.name for c in files.columns(name)}
     for column in (id_column, extra_column):
         if column is not None and column not in columns:

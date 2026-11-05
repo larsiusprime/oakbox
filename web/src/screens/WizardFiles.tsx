@@ -529,12 +529,19 @@ export function MatchPanel({
   file: WizardFile;
   change: Mutate;
 }) {
-  const base = data.files.find((f) => f.base);
+  // What it joins to: the main sales file for more sales details, else the parcel universe.
+  const base =
+    file.match === "key_sale" ? data.files.find((f) => isMainSales(f)) : data.files.find((f) => f.base);
   const missing = file.not_in_universe;
   if (!base || file.id_column === null || file.id_check?.share == null) return null;
+  const head = isMainSales(file)
+    ? w.salesParts.matchHead
+    : file.match === "key_sale"
+      ? w.salesParts.matchSales
+      : w.salesParts.matchParcels;
   return (
     <div className="frame qc-panel match-panel">
-      <h3 className="wiz-group">{w.salesParts.matchHead}</h3>
+      <h3 className="wiz-group">{head}</h3>
       {missing && (
         <div className="rc-sub">
           {missing.lines.map((line) => (

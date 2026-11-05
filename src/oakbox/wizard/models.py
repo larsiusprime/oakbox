@@ -236,6 +236,7 @@ class Left(BaseModel):
 class StepView(BaseModel):
     key: str
     parent: str | None
+    title: str | None = Field(default=None, description="A part made from a file (More files): its file's name.")
     status: Status = Field(
         description="blank: not visited (or an optional step not confirmed yet); blocked: something here stops a "
         "run; attention: something to decide, or recommended and missing; done: complete."

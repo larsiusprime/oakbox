@@ -583,8 +583,15 @@ def test_more_files_join_the_parcels_or_the_sales(client, tmp_path, monkeypatch)
 
     # Not said yet what they join to: listed as to-dos, not blockers.
     w = client.get(f"/api/projects/{pid}/wizard").json()
-    step = wizard_step(w, "more_files")
-    assert {"text": "cama: say what it joins to", "blocking": False} in step["left"]
+    # Added on More files after being set aside: one of its files again, not said yet what it holds.
+    put_file(client, pid, "cama", holds="unused")
+    w = put_file(client, pid, "cama", added=True).json()
+    assert _file(w, "cama")["holds"] is None
+    # More files: a part to add them, then a part each, its file's name its title.
+    parts = [(st["key"], st["title"]) for st in w["steps"] if st["parent"] == "more_files"]
+    assert parts[0] == ("more_add", None) and ("more:cama", "cama") in parts
+    step = wizard_step(w, "more:cama")
+    assert {"text": "Say what it joins to", "blocking": False} in step["left"]
 
     # CAMA: one row per parcel, joined on REID; padded IDs on one side only.
     w = put_file(client, pid, "cama", holds="parcels", id_column="REID").json()
@@ -617,8 +624,9 @@ def test_more_files_join_the_parcels_or_the_sales(client, tmp_path, monkeypatch)
     assert _file(w, "sale")["holds"] == "sales"  # still the main sales file
     assert w["sale_id"]["file"] == "sale"
     client.put(f"/api/projects/{pid}/wizard/fields/bldg_area_finished_sqft", json={"file": "cama", "column": "AREA"})
-    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/confirm").json()
-    assert wizard_step(w, "more_files")["status"] == "done"
+    client.post(f"/api/projects/{pid}/wizard/steps/more_add/visit")
+    w = client.post(f"/api/projects/{pid}/wizard/steps/more_add/confirm").json()
+    assert wizard_step(w, "more:cama")["status"] == "done" and wizard_step(w, "more_files")["status"] == "done"
 
     process = read_settings(pid)["data"]["process"]
     assert process["merge"]["universe"] == ["geo_parcels", "cama"]
@@ -768,7 +776,7 @@ def test_map_layers_stamped_onto_parcels_or_measured_to(client, tmp_path, monkey
     assert wizard_step(w, "shapefiles")["left"] == []
     # Map layers aren't More files: they don't join on an ID, so they're nothing to do there.
     w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit").json()
-    assert wizard_step(w, "more_files")["left"] == []
+    assert not any(st["key"].startswith("more:") for st in w["steps"])
 
     settings = read_settings(pid)
     enrich = settings["data"]["process"]["enrich"]
@@ -1273,8 +1281,8 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     w = put_file(client, pid, "units", holds="parcels", id_column="ID").json()
     assert _file(w, "units")["unshaped"] == 5  # all but the house
     # Rows without a shape are Condo units' to set up: a pointer there from More files, never a stop.
-    w = client.post(f"/api/projects/{pid}/wizard/steps/more_files/visit").json()
-    pointer = [x for x in wizard_step(w, "more_files")["left"] if "Condo units" in x["text"]]
+    w = client.post(f"/api/projects/{pid}/wizard/steps/more_add/visit").json()
+    pointer = [x for x in wizard_step(w, "more:units")["left"] if "Condo units" in x["text"]]
     assert pointer and not pointer[0]["blocking"]
     assert not any("units:" in p for p in w["problems"])
     # Condo units asks first, worth deciding before it's reached since the files suggest units; its parts wait.
@@ -1377,7 +1385,7 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
     assert _file(w, "units")["units"] is None and w["condos"]["file"] is None
     assert [st["key"] for st in w["steps"] if st["parent"] == "condos"] == ["condo_ask"]
     assert "condos" not in read_settings(pid)["data"]["process"]
-    assert any("no units, you said" in x["text"] for x in wizard_step(w, "more_files")["left"])
+    assert any("no units, you said" in x["text"] for x in wizard_step(w, "more:units")["left"])
 
 
 def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(client, tmp_path):
@@ -1730,6 +1738,12 @@ def test_a_project_from_when_location_was_one_step_has_its_parts_seen():
     """Location was the address, the coordinates and the location fields at once: now three parts."""
     w = projects.WizardState(visited=["location"], skipped=["location"])
     assert {"address", "coordinates", "location"} <= set(w.visited) and {"address", "coordinates"} <= set(w.skipped)
+
+
+def test_a_project_from_when_more_files_was_one_step_has_its_first_part_seen():
+    """More files was one step; its files are now added on a part of their own, then a part each."""
+    w = projects.WizardState(visited=["more_files"], confirmed=["more_files"])
+    assert "more_add" in w.visited and "more_add" in w.confirmed
 
 
 def test_a_project_from_when_sales_was_one_step_has_its_parts_seen():
