@@ -30,7 +30,7 @@ from oakbox.wizard.files import Files, base_file, file_stamp, sales_file, values
 from oakbox.wizard.ids import Reconcile, SampleView, reconcile, set_reconcile
 from oakbox.wizard.maps import LayerMap, MapView, coverage, enrich_view, layer_map, layers, map_view, set_overlay
 from oakbox.wizard.models import LocationField, RepeatRows, Wizard
-from oakbox.wizard.money import NumberPreview, number_preview
+from oakbox.wizard.money import FieldSpread, NumberPreview, field_histogram, number_preview
 from oakbox.wizard.quality import (
     Candidate,
     ScalePreview,
@@ -79,6 +79,8 @@ __all__ = [
     "map_view",
     "MapView",
     "number_preview",
+    "field_histogram",
+    "FieldSpread",
     "NumberPreview",
     "Reconcile",
     "reconcile",

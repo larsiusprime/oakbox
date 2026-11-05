@@ -6190,3 +6190,51 @@ under what it's about; a file appended as rows {
 .ids-box > .wiz-grid {
   display: contents;
 }
+
+/* Big five: a size's or a year's spread, under the fields, a bar per bin. */
+.wiz-capsules > .wiz-capsule-wide {
+  grid-column: 1 / -1;
+}
+.fh-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: min(100%, 36rem);
+  height: 8rem;
+  border-bottom: 1px solid var(--muted);
+}
+.fh-bar {
+  flex: 1;
+  min-height: 1px;
+  background: #9db7df;
+  border-radius: 1px 1px 0 0;
+}
+.fh-bar:hover {
+  background: #6f95cf;
+}
+.fh-axis {
+  display: grid;
+  gap: 2px;
+  width: min(100%, 36rem);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* A row's control spanning the rest of a capsule (Quality's choices), as it does in a .wiz-grid. */
+.wiz-capsules > .wiz-capsule > .wiz-span {
+  grid-column: 2 / -1;
+}
+/* Quality's choices box: a switch as wide as the column's dropdown above it, its options sharing it. */
+.wiz-capsules > .wiz-capsule.qc-ask > .seg-row {
+  display: grid;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+}
+.wiz-capsules > .wiz-capsule.qc-ask > .seg-row > .seg {
+  display: flex;
+  width: 100%;
+}
+.wiz-capsules > .wiz-capsule.qc-ask > .seg-row > .seg > .seg-b {
+  flex: 1;
+}

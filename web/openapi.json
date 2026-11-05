@@ -2606,6 +2606,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/fields/{key}/histogram": {
+   "get": {
+    "summary": "Wizard Field Histogram",
+    "description": "How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five).",
+    "operationId": "wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FieldSpread"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/fields/{key}/scale": {
    "post": {
     "summary": "Wizard Scale",
@@ -6798,6 +6847,29 @@
     ],
     "title": "Band"
    },
+   "Bin": {
+    "properties": {
+     "low": {
+      "type": "number",
+      "title": "Low"
+     },
+     "high": {
+      "type": "number",
+      "title": "High"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "low",
+     "high",
+     "count"
+    ],
+    "title": "Bin"
+   },
    "BorrowBody": {
     "properties": {
      "group": {
@@ -9786,6 +9858,71 @@
      "note"
     ],
     "title": "FieldRow"
+   },
+   "FieldSpread": {
+    "properties": {
+     "unit": {
+      "type": "string",
+      "title": "Unit",
+      "description": "The unit, as words (sq ft, m\u00b2); \"\" for years."
+     },
+     "year": {
+      "type": "boolean",
+      "title": "Year",
+      "description": "Years: bins labelled as years, never in decimals.",
+      "default": false
+     },
+     "bins": {
+      "items": {
+       "$ref": "#/components/schemas/Bin"
+      },
+      "type": "array",
+      "title": "Bins"
+     },
+     "below": {
+      "type": "integer",
+      "title": "Below",
+      "description": "Sizes under the first bin (the smallest 1%)."
+     },
+     "above": {
+      "type": "integer",
+      "title": "Above",
+      "description": "Sizes over the last bin (the largest 1%)."
+     },
+     "empty": {
+      "type": "integer",
+      "title": "Empty",
+      "description": "Rows with no value: blank, zero (none), or not a number."
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     }
+    },
+    "type": "object",
+    "required": [
+     "unit",
+     "year",
+     "bins",
+     "below",
+     "above",
+     "empty",
+     "median",
+     "total"
+    ],
+    "title": "FieldSpread",
+    "description": "A number field's values as loaded (sizes in the project's unit, years as years): bins across the middle 98%,\nand what's outside."
    },
    "Fifth": {
     "properties": {

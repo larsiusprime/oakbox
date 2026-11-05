@@ -930,6 +930,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/fields/{key}/histogram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Field Histogram
+         * @description How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five).
+         */
+        get: operations["wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/fields/{key}/scale": {
         parameters: {
             query?: never;
@@ -2537,6 +2557,15 @@ export interface components {
              */
             value: number | null;
         };
+        /** Bin */
+        Bin: {
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+            /** Count */
+            count: number;
+        };
         /** BorrowBody */
         BorrowBody: {
             /** Group */
@@ -3902,6 +3931,45 @@ export interface components {
             source: string;
             /** Note */
             note: string | null;
+        };
+        /**
+         * FieldSpread
+         * @description A number field's values as loaded (sizes in the project's unit, years as years): bins across the middle 98%,
+         *     and what's outside.
+         */
+        FieldSpread: {
+            /**
+             * Unit
+             * @description The unit, as words (sq ft, m²); "" for years.
+             */
+            unit: string;
+            /**
+             * Year
+             * @description Years: bins labelled as years, never in decimals.
+             * @default false
+             */
+            year: boolean;
+            /** Bins */
+            bins: components["schemas"]["Bin"][];
+            /**
+             * Below
+             * @description Sizes under the first bin (the smallest 1%).
+             */
+            below: number;
+            /**
+             * Above
+             * @description Sizes over the last bin (the largest 1%).
+             */
+            above: number;
+            /**
+             * Empty
+             * @description Rows with no value: blank, zero (none), or not a number.
+             */
+            empty: number;
+            /** Median */
+            median: number | null;
+            /** Total */
+            total: number;
         };
         /** Fifth */
         Fifth: {
@@ -11352,6 +11420,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Candidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldSpread"];
                 };
             };
             /** @description Validation Error */

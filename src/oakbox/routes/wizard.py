@@ -496,6 +496,15 @@ def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
 
 
+@router.get("/api/projects/{project_id}/wizard/fields/{key}/histogram")
+def wizard_field_histogram(project_id: str, key: str) -> wizard.FieldSpread:
+    """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five)."""
+    try:
+        return wizard.field_histogram(load_project(project_id), projects.project_dir(project_id) / "in", key)
+    except LookupError as e:
+        raise HTTPException(404, f"{key} isn't loaded.") from e
+
+
 @router.post("/api/projects/{project_id}/wizard/fields/{key}/scale")
 def wizard_scale(project_id: str, key: str, body: WizardColumnRef) -> wizard.ScalePreview:
     """A quality/condition numbers column read with a meaning, against age and price (F3d)."""

@@ -18,7 +18,7 @@ import { Val } from "../components/Val";
 import { amount } from "../lib/format";
 import { say, t } from "../wording";
 import { FieldRow } from "./FieldRow";
-import { PAIRS, SCALED } from "./Quality";
+import { PAIRS, SCALED, ScaleChoice } from "./Quality";
 import type { MutateAsync } from "./wizardChange";
 
 const q = t.wizard.quality;
@@ -77,32 +77,45 @@ export function QualityStep({
   return (
     <>
       {onlyBase && <p className="wiz-note wiz-another">{t.wizard.anotherFileHint}</p>}
-      <div className="wiz-grid frame">
-        <div className="wiz-label">{q.writtenAsLabel}</div>
-        <div className="wiz-span seg-row">
-          <Seg
-            label={q.writtenAsLabel}
-            value={as}
-            options={(["num", "cat"] as const).map((k) => [k, q.asKinds[k]] as const)}
-            onChange={choose}
+      {/* The column first, in a box of its own (picked for you, often); then what's to say about it, in another. One
+          grid, so the two boxes' columns line up. */}
+      <div className="wiz-grid wiz-capsules">
+        <div className="frame wiz-capsule">
+          <FieldRow
+            project={project}
+            data={data}
+            field={num}
+            sales={false}
+            change={change}
+            label={q.column}
+            bare
+            onPage
+            pickScale={as === "cat" ? TIERS : undefined}
           />
-          {mismatch && source && (
-            <span className="wiz-warn">⚠ {q.notNumbers({ column: source.column })}</span>
+          {ownText && txt && (
+            <FieldRow project={project} data={data} field={txt} sales={false} change={change} onPage bare />
           )}
         </div>
-        <FieldRow
-          project={project}
-          data={data}
-          field={num}
-          sales={false}
-          change={change}
-          label={q.column}
-          bare
-          onPage
-          pickScale={as === "cat" ? TIERS : undefined}
-        />
-        {ownText && txt && (
-          <FieldRow project={project} data={data} field={txt} sales={false} change={change} onPage bare />
+        {source && (
+          <div className="frame wiz-capsule qc-ask">
+            <div className="wiz-label">{q.writtenAsLabel}</div>
+            <div className="wiz-span seg-row">
+              <Seg
+                label={q.writtenAsLabel}
+                value={as}
+                options={(["num", "cat"] as const).map((k) => [k, q.asKinds[k]] as const)}
+                onChange={choose}
+              />
+              {mismatch && <span className="wiz-warn">⚠ {q.notNumbers({ column: source.column })}</span>}
+            </div>
+            {as === "num" && !mismatch && (
+              <ScaleChoice
+                field={num}
+                source={source}
+                change={(c) => void change({ kind: "field", ...c }).catch(() => {})}
+              />
+            )}
+          </div>
         )}
       </div>
       {source && !mismatch && as === "num" && num.scale?.kind && num.scale.kind !== "tiers" && (

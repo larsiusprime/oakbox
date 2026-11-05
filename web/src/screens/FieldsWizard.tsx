@@ -27,6 +27,7 @@ import { say, t } from "../wording";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
+import { FieldHistogram } from "./FieldHistogram";
 import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
 import { Coordinates, LocationFields } from "./Location";
 import { PermitsStep } from "./Permits";
@@ -892,6 +893,14 @@ function FieldsStep({
               <FieldRow project={project} data={data} field={f} sales={step.sales} change={change} bare />
             </div>
           ))}
+          {/* A size or a year: how its values spread, under the fields. */}
+          {shown
+            .filter((f) => f.sources.length > 0 && (f.area_unit || f.key.includes("year")))
+            .map((f) => (
+              <div key={`${f.key}-h`} className="wiz-capsule-wide">
+                <FieldHistogram projectId={project.id} field={f} />
+              </div>
+            ))}
         </div>
       ) : (
         <div className="wiz-grid frame">

@@ -533,6 +533,12 @@ def test_area_columns_are_converted_to_the_projects_small_unit(client, tmp_path,
     ).json()
     assert _field(w, "land_area_sqft")["check"]["warn"]
     client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "acres"})
+    # How the sizes spread, as loaded: in the project's unit, every row in a bin or counted outside.
+    hist = client.get(f"{field}/land_area_sqft/histogram").json()
+    assert hist["unit"] == small and hist["total"] == 3 and hist["empty"] == 0
+    assert sum(b["count"] for b in hist["bins"]) + hist["below"] + hist["above"] == 3
+    assert hist["median"] == (10_890 if units == "imperial" else 0.25 * 4046.8564224)
+    assert client.get(f"{field}/bldg_age_years/histogram").status_code == 404  # not loaded
 
     load = read_settings(pid)["data"]["load"]["geo_parcels"]
     unit = "sqft" if units == "imperial" else "sqm"

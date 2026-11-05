@@ -164,6 +164,13 @@ export type Wording = {
     otherColumn: (a: { field: string | number }) => string;
     save: string;
     warnings: string;
+    histogram: {
+      title: (a: { name: string | number }) => string;
+      median: (a: { m: string | number }) => string;
+      below: (a: { n: number; v: string | number }) => string;
+      above: (a: { n: number; v: string | number }) => string;
+      empty: (a: { n: number }) => string;
+    };
     salesParts: {
       noFile: string;
       asRead: string;

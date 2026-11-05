@@ -366,6 +366,13 @@
     "otherColumn": "Column for {field}",
     "save": "Save",
     "warnings": "Recommended",
+    "histogram": {
+      "title": "{name}: how they spread",
+      "median": "median {m}",
+      "below": "{n, number} under {v}",
+      "above": "{n, number} over {v}",
+      "empty": "{n, number} blank or none"
+    },
     "salesParts": {
       "noFile": "Add the sales file first, on Sales.",
       "asRead": "As it''s read",

@@ -19,7 +19,7 @@ import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
-import { ABSENT, PAIRS, SCALED, ScaleChoice } from "./Quality";
+import { ABSENT, PAIRS, SCALED } from "./Quality";
 import { FilePicker, matchOptions } from "./WizardFiles";
 import type { AreaUnit, MutateAsync } from "./wizardChange";
 
@@ -192,16 +192,9 @@ export function FieldRow({
           <>
             {/* The reading is the button (style guide, 2B): "$270K median ▾" opens how the column is read. One
                 button per row in a column of its own, then the values. */}
-            {onPage ? (
-              // Quality and condition on their page: how it's read is chosen, and shown, below the row. Only
-              // what's still to do is said here ("rank its 8 tiers", "say which way is better").
-              attention &&
-              field.check && (
-                <span className="reading-plain attention" title={field.check.text}>
-                  {shortReading(field.check.text)}
-                </span>
-              )
-            ) : paged ? (
+            {onPage ? // Quality and condition on their page: how it's read is chosen, and shown, in the box below the row,
+            // which is the to-do itself: nothing beside the column.
+            null : paged ? (
               // How it's read is below the row: here only its values.
               sourceFile &&
               column && (
@@ -273,13 +266,6 @@ export function FieldRow({
           </>
         )}
       </div>
-      {scaled && source && (
-        <ScaleChoice
-          field={field}
-          source={source}
-          change={(c) => void change({ kind: "field", ...c }).catch(() => {})}
-        />
-      )}
       {ruling && sourceFile && (
         <RuleDialog
           projectId={project.id}
