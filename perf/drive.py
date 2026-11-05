@@ -138,7 +138,9 @@ def run_step(api: Api, path: str, accept: bool = True) -> dict:
     api.post(f"{path}/run")
     view = wait(api, path)
     if view.get("status") != "done":
-        raise RuntimeError(f"{path}: {view.get('status')}: {json.dumps(view.get('job'))[:800]}")
+        job = view.get("job") or {}
+        last = (job.get("steps") or [{}])[-1].get("message")
+        raise RuntimeError(f"{path}: {view.get('status')} at '{last}': {job.get('error')}")
     if accept:
         # As the page does before Looks right can be pressed: read the step's setup (some steps settle their
         # choices from the run's output there), then the step again.

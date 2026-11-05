@@ -130,3 +130,21 @@ def test_opening_a_project_refreshes_its_settings(client):
     path.write_text(json.dumps(s), encoding="utf-8")
     client.get(f"/api/projects/{pid}")
     assert "stale_by_an_older_oak_box" not in json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_a_failed_run_says_what_stopped_it():
+    traceback = [
+        "Traceback (most recent call last):",
+        '  File "x.py", line 1',
+        "ValueError: no sales",
+        "  warnings.warn(",
+    ]
+    assert steps.failure(1, traceback) == "ValueError: no sales"
+    assert steps.failure(-9, ["  warnings.warn("]) == steps.OUT_OF_MEMORY  # killed: the out-of-memory killer
+    assert steps.failure(
+        1, ["joblib...TerminatedWorkerError: A worker process managed by the executor was killed"]
+    ) == (steps.OUT_OF_MEMORY)
+    assert (
+        steps.failure(1, ["numpy._core._exceptions._ArrayMemoryError: Unable to allocate 3 GiB"]) == steps.OUT_OF_MEMORY
+    )
+    assert steps.failure(3, []) == "stopped with code 3"
