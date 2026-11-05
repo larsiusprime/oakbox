@@ -494,3 +494,7 @@ def test_the_models_study_set_setting_leaves_check_sales_as_it_was(tmp_path):
     assert clean.settings_key(base, project, tmp_path) == clean.settings_key(more, project, tmp_path)
     other = {"analysis": {"ratio_study": {"look_back_years": 2}}}
     assert clean.settings_key(base, project, tmp_path) != clean.settings_key(other, project, tmp_path)
+    # No ratio study settings of its own at first, then the models' alone: still as it was (Prepare runs).
+    none = {"analysis": {}}
+    only_models = {"analysis": {"ratio_study": {"study_set_predictions": "holdout"}}}
+    assert clean.settings_key(none, project, tmp_path) == clean.settings_key(only_models, project, tmp_path)

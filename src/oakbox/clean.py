@@ -279,6 +279,10 @@ def _analysis_key(settings: dict) -> dict:
     out = {k: v for k, v in settings.get("analysis", {}).items() if k != "report"}
     if isinstance(out.get("ratio_study"), dict):
         out["ratio_study"] = {k: v for k, v in out["ratio_study"].items() if k not in MODEL_ONLY}
+        # Nothing of Check sales' own left: as if there were none. The models' settings add the section later (when
+        # the prepared fields are there), and an empty one left Check sales out of date, so Prepare wouldn't run.
+        if not out["ratio_study"]:
+            del out["ratio_study"]
     return out
 
 
