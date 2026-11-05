@@ -368,7 +368,7 @@ def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monk
     w = visit_sales(client, pid)
     check = _file(w, "sale")["id_check"]
     assert (check["share"], check["ok"]) == (0, False)  # nothing matches as is: a blocker
-    assert wizard_step(w, "sales_file")["left"][0] == {
+    assert wizard_step(w, "sales_ids")["left"][0] == {
         "text": "Reconcile the IDs: 0% match",
         "blocking": True,
     }
@@ -1414,7 +1414,7 @@ def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(c
     lines = sales["not_in_universe"]["lines"]
     assert lines[0].startswith("12 sales are for parcels that aren't in the parcel universe.")
     assert "Add it on More files" in lines[1]
-    assert not any("Reconcile" in x["text"] for x in wizard_step(w, "sales_file")["left"])
+    assert not any("Reconcile" in x["text"] for x in wizard_step(w, "sales_ids")["left"])
     assert any("12 sales are for parcels" in x for x in w["warnings"])
 
     # The file that has them, once it's in the project.
@@ -1738,6 +1738,12 @@ def test_a_project_from_when_location_was_one_step_has_its_parts_seen():
     """Location was the address, the coordinates and the location fields at once: now three parts."""
     w = projects.WizardState(visited=["location"], skipped=["location"])
     assert {"address", "coordinates", "location"} <= set(w.visited) and {"address", "coordinates"} <= set(w.skipped)
+
+
+def test_a_project_from_when_the_sales_file_had_a_part_has_its_ids_part_instead():
+    """The sales file's part became its IDs' part when the file moved to Sales itself."""
+    w = projects.WizardState(visited=["sales", "sales_file"], confirmed=["sales_file"])
+    assert "sales_file" not in w.visited and "sales_ids" in w.visited and w.confirmed.count("sales_ids") == 1
 
 
 def test_a_project_from_when_more_files_was_one_step_has_its_first_part_seen():

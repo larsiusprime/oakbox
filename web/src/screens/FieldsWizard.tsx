@@ -20,7 +20,7 @@ import { Disclose } from "../components/Disclose";
 import { NamesFiles, SubEntry } from "../components/FileEntry";
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
-import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
+import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { say, t } from "../wording";
@@ -42,8 +42,6 @@ import { type Change, type Mutate, type MutateAsync, useChange } from "./wizardC
 const QUALITY_STEPS = ["quality", "condition"];
 // Sales' field parts: each field on a page of its own, read and checked under it (SalesFieldPage).
 const SALES_FIELD_STEPS = ["sale_price", "sale_date", "valid_sale", "vacant_sale"];
-// A parent step whose landing page is named otherwise (the Sales tab has its own "sales" landing).
-const LANDING_KEY: Record<string, string> = { sales: "sales_record" };
 // More files' parts made from its files: "more:" and the file's name (the server's StepView.title).
 const MORE = "more:";
 
@@ -134,7 +132,28 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
     );
   }
   const part = firstPart(data.steps, current.key);
-  const page = L[LANDING_KEY[current.key] ?? current.key];
+  if (part && current.key === "sales") {
+    // Sales opens on its file: picked here, then the parts (its date, its IDs, the rest) one by one.
+    const sales = data.files.find(isMainSales);
+    const startPart = stepTitle(data.steps.find((s) => s.key === part)) ?? part;
+    return (
+      <div className="wiz">
+        {list}
+        <div className="wiz-main">
+          <div className="wiz-body">
+            <h2 className="wiz-q">{w.steps.sales?.question}</h2>
+            <p className="wiz-lede">{w.steps.sales?.lede}</p>
+            <SalesFile project={project} data={data} change={change.mutate} />
+          </div>
+          <StepFoot
+            back={prev ? () => go(prev.key) : null}
+            next={{ label: t.landing.start({ step: startPart }), onPress: () => go(part), disabled: !sales }}
+          />
+        </div>
+      </div>
+    );
+  }
+  const page = L[current.key];
   if (part && page) {
     return (
       <div className="wiz">
@@ -179,7 +198,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "universe" && (
             <UniverseStep project={project} data={data} change={change.mutate} />
           )}
-          {current.key === "sales_file" && <SalesStep project={project} data={data} change={change.mutate} />}
+          {current.key === "sales_ids" && <SalesIds project={project} data={data} change={change.mutate} />}
           {SALES_FIELD_STEPS.includes(current.key) && (
             <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />
           )}
@@ -532,7 +551,8 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
   );
 }
 
-function SalesStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
+/** Sales' own page: which file holds the sales. Nothing else is asked here; its parts come next. */
+function SalesFile({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
   const sales = data.files.find(isMainSales);
   const base = data.files.find((f) => f.base);
   if (!sales) {
@@ -546,14 +566,24 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
     );
   }
   return (
-    <>
-      <StepFile
-        file={sales}
-        onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
-        undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
-      >
-        {/* Its two IDs: the parcel each sale finds, and the sale's own. */}
+    <StepFile
+      file={sales}
+      onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
+      undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
+    />
+  );
+}
 
+/** Sales' IDs part: the parcel ID each sale carries and the sale's own ID (a column, or made from the parcel ID and
+ * the sale date), then whether the sales find their parcels, why some don't, and the IDs cleaned up, under it. */
+function SalesIds({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
+  const sales = data.files.find(isMainSales);
+  const base = data.files.find((f) => f.base);
+  if (!sales) return <p className="wiz-note">{w.salesParts.noFile}</p>;
+  return (
+    <>
+      {/* Both IDs on one grid: their labels, controls and checks in the same columns. */}
+      <div className="wiz-grid frame ids-box">
         <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} inline />
         <div className="wiz-grid">
           <div className="wiz-label">
@@ -573,7 +603,7 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
             <CheckText check={data.sale_id.check} />
           </div>
         </div>
-      </StepFile>
+      </div>
       <MatchPanel projectId={project.id} data={data} file={sales} change={change} />
     </>
   );

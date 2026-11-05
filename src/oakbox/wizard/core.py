@@ -441,7 +441,7 @@ def _status(
     elif step.key == "shapefiles":
         for lv in layer_views:
             left.extend(Left(text=f"{lv.name}: {p.text}", blocking=p.blocking) for p in lv.left)
-    elif step.key == "sales_file":
+    elif step.key == "sales_ids":
         sales = next((f for f in files if f.holds == "sales" and not _more_sales(f)), None)
         ids(sales, "sales")
         if sales is not None:
@@ -451,7 +451,7 @@ def _status(
                 left.append(Left(text=f"Sale ID: {sale_id.check.text}"))
     elif step.key in SALES_PARTS:
         if not any(f.holds == "sales" and not _more_sales(f) for f in files):
-            left.append(Left(text="Add the sales file first, on Sales file"))
+            left.append(Left(text="Add the sales file first, on Sales"))
         for f in mine:
             if f.key in ("sale_price", "sale_date", *ASSUMABLE) and not f.sources and not f.assumed:
                 left.append(Left(text=f"Pick the {f.name.lower()}"))
@@ -608,12 +608,13 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
     files = Files(project, in_dir)
     if step == "universe":
         _guess_universe(project, files)
-    if step in ("sales", "sales_file"):
+    if step in ("sales", "sales_ids"):
         _guess_sales(project, files)
     if step == "sales":
         # The sales record's parent: its file's guesses, then every part's fields (a file just given its part).
-        for part in SALES_PARTS[1:]:
-            _guess(project, in_dir, part)
+        for part in SALES_PARTS:
+            if part != "sales_ids":
+                _guess(project, in_dir, part)
         return
     spec = next(s for s in STEPS if s.key == step)
     candidates = [f.name for f in _field_files(project, spec.sales)]

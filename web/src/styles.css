@@ -6182,3 +6182,11 @@ under what it's about; a file appended as rows {
 .frame.qc-panel.match-panel {
   width: min(100%, 64rem);
 }
+
+/* Sales' IDs: the parcel ID and the sale ID rows on one grid. */
+.wiz-grid.frame.ids-box {
+  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+}
+.ids-box > .wiz-grid {
+  display: contents;
+}
