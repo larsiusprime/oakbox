@@ -6085,3 +6085,15 @@ under what it's about; a file appended as rows {
 .wiz-label.wiz-label-top.scale-label {
   padding-top: 2px;
 }
+
+/* Under Metadata: currency, number style and units in one stack, one width. */
+.facts-locale > .form-row {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 20rem;
+  max-width: 100%;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+}
+.facts-locale > .form-row > .choice {
+  width: 100%;
+}
