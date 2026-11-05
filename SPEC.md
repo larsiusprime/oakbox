@@ -77,7 +77,7 @@ OpenAVMKit: creating a locality folder (`in/`, `out/`) and the `locality` block 
 - **Jurisdiction**: what the office calls itself, e.g. "Travis County". Becomes `locality.name`, which OpenAVMKit prints on reports.
 - **Tax year.** OpenAVMKit has no tax-year setting; it is OAK box's project identity (one project per jurisdiction per year, D24) and sets the valuation date's default.
 - **Valuation date**: defaults to 1 January of the tax year. A one-line note: it should match the roll being checked.
-- **Units**: imperial or metric, defaulting from the country. Becomes `locality.units`.
+- **Units**: imperial or metric, defaulting from the country: a dropdown (revised 2026-11-05), so other local units of area can join it later. Becomes `locality.units`.
 
 **OAK box creates:**
 - The project folder `<storage location>/<project name>/`, with OpenAVMKit's `in/` and `out/`.

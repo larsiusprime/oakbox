@@ -1,7 +1,6 @@
 import type { Regions } from "../api/client";
 import { t } from "../wording";
 import { Choice } from "./Form";
-import { Seg } from "./Seg";
 
 export type LocaleValue = {
   units: "imperial" | "metric";
@@ -34,33 +33,29 @@ export function LocaleFields({
       ] as const,
   );
   return (
-    <>
-      <div className="form-row">
-        <Choice
-          label={s.currency}
-          value={value.currency}
-          options={currencies.length ? currencies : [[value.currency, value.currency] as const]}
-          onChange={(currency) => onChange({ currency })}
-        />
-        <Choice
-          label={s.numbers}
-          value={value.numbers}
-          options={Object.entries(s.numberStyles) as [LocaleValue["numbers"], string][]}
-          onChange={(numbers) => onChange({ numbers })}
-        />
-      </div>
-      <div className="field units-field">
-        <span className="field-label">{s.units}</span>
-        <Seg
-          label={s.units}
-          value={value.units}
-          options={[
-            ["imperial", s.imperial],
-            ["metric", s.metric],
-          ]}
-          onChange={(units) => onChange({ units })}
-        />
-      </div>
-    </>
+    <div className="form-row">
+      <Choice
+        label={s.currency}
+        value={value.currency}
+        options={currencies.length ? currencies : [[value.currency, value.currency] as const]}
+        onChange={(currency) => onChange({ currency })}
+      />
+      <Choice
+        label={s.numbers}
+        value={value.numbers}
+        options={Object.entries(s.numberStyles) as [LocaleValue["numbers"], string][]}
+        onChange={(numbers) => onChange({ numbers })}
+      />
+      {/* A list, not two buttons: other local units of area can join it. */}
+      <Choice
+        label={s.units}
+        value={value.units}
+        options={[
+          ["imperial", s.imperial],
+          ["metric", s.metric],
+        ]}
+        onChange={(units) => onChange({ units })}
+      />
+    </div>
   );
 }

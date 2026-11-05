@@ -5877,7 +5877,7 @@ under what it's about; a file appended as rows {
 }
 
 /* New project (SPEC F1): two columns with matching edges. Name and jurisdiction take the full width; country and
-   state, tax year and valuation date, currency and number style pair up; units is a full-width choice. */
+   state, tax year and valuation date, currency and number style pair up, then units. */
 .np-form {
   grid-template-columns: 1fr 1fr;
   column-gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
@@ -5888,7 +5888,6 @@ under what it's about; a file appended as rows {
   display: contents;
 }
 .np-form > .field,
-.np-form > .units-field,
 .np-form > .form-actions,
 .np-form > .error {
   grid-column: 1 / -1;
@@ -5902,14 +5901,6 @@ under what it's about; a file appended as rows {
   width: 100%;
   max-width: none;
   box-sizing: border-box;
-}
-.units-field :is(.seg) {
-  display: flex;
-}
-.units-field :is(.seg-b) {
-  flex: 1 1 0;
-  white-space: nowrap;
-  padding: calc(0.25 * var(--sp)) calc(0.8 * var(--sp));
 }
 
 /* A form in an entry (the import form) has a fixed width: it grows downward as its text wraps, never sideways as
