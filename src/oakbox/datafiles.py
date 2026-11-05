@@ -1,4 +1,5 @@
-"""F2 and F3b (SPEC §3.0): put a file in the project's in/, declare it under data.load, rename, remove.
+"""The input files (SPEC §3.0 F2): checking a file and bringing it into the project's in/, the DataFile model of
+each, and the data.load entries written from them for OpenAVMKit.
 
 Mirrors OpenAVMKit: raw files live in the locality's in/, and each is an entry in
 ``data.load`` with its ``filename`` (and ``layer`` for a GeoPackage). Nothing here

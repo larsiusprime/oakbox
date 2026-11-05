@@ -1,4 +1,4 @@
-"""Step 5 continues: the models (SPEC F9, slice 1). Which variables, which models, a try, and how they did.
+"""Step 6, Model values: the models (SPEC F9, slice 1). Which variables, which models, a try, and how they did.
 
 A try is OpenAVMKit's notebook 3 up to `try_models`: the prepared hand-off (out/2-clean-sup.pickle, written by
 Prepare the fields), the canonical splits, then every model on every model group, main models only (no vacant

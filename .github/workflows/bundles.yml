@@ -1,8 +1,8 @@
 name: bundles
 
 # Checks, then build the portable Windows and Linux bundles on Linux and prove each
-# runs on a clean machine of its platform using only the bundled Python: download
-# the sample county and run steps 1-4 through the real app service.
+# runs on a clean machine of its platform using only the bundled Python (oakbox/smoke.py:
+# OpenAVMKit's own stages on Petersburg's public data, then the app service, a project and a file).
 on:
   push:
     branches: [claude/openavmkit-desktop-wrapper-639lvu, main]

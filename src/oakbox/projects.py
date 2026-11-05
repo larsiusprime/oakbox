@@ -3,10 +3,14 @@
 Layout (SPEC §3.0 F1, §6)::
 
     <storage location>/<project name>/
-        oakbox.json        OAK box's own state: the project's facts and input files
+        oakbox.json        OAK box's own state: everything the user chose
         in/                the user's data files + settings.json for OpenAVMKit
+        in/oakbox/         OAK box's own inputs to runs (sales kept and excluded, time adjustment files)
         out/               OpenAVMKit outputs
+        out/oakbox/<step>/ each step's last finished run: its receipt, and what it depended on
         cache/             enrichment cache
+
+More in docs/ARCHITECTURE.md ("A project on disk").
 
 The folder is an OpenAVMKit locality, so the engine runs on it directly. Projects
 can live anywhere (the storage location can change), so they are found by id

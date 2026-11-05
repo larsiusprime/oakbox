@@ -1,7 +1,7 @@
-"""Step 5: test the variables before the models (SPEC F9). OpenAVMKit's own variable tests, per model group, on the
-variables ticked: are they represented, and those the user picked of how they correlate with price and with each
-other, their p-values together, and VIF. The receipt keeps every test's result for every variable, so the step can
-show the tests one at a time and the user can untick what's a waste of time.
+"""Step 5, Variables: test the variables before the models (SPEC F9). OpenAVMKit's own variable tests, per model group,
+on the variables ticked: are they represented, and those the user picked of how they correlate with price and with
+each other, their p-values together, and VIF. The receipt keeps every test's result for every variable, so the step
+can show the tests one at a time and the user can untick what's a waste of time.
 
 It runs in a process of its own (`python -m oakbox.vartest <project id>`): the prepared hand-off, the canonical
 splits, then `get_variable_recommendations(..., return_tests=True)` per model group, main models only.

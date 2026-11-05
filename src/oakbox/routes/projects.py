@@ -1,5 +1,5 @@
-"""Projects: the regions to choose from, project create, open, locale, disk and delete, the input files
-(add, rename, remove, columns, load), and OpenAVMKit's data dictionary and date formats (SPEC §3.0 F1-F3c)."""
+"""Projects: the regions to choose from, the projects with a run going, creating, opening and deleting a project,
+its locale, disk use and folder, and checking and adding an input file (SPEC §3.0 F1, F1b, F2)."""
 
 from __future__ import annotations
 

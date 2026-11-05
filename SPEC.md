@@ -1,6 +1,6 @@
 # Oakbox — OpenAVMKit in a Box
 
-**Status:** v1.11 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10.
+**Status:** v1.11 draft. Project setup is being redesigned one feature at a time to mirror OpenAVMKit (D41, §3.0); agreed features go in §3.0 before any code. Earlier revisions followed a full read of the OpenAVMKit docs, checked against its code (§6.3). Decisions are in §2; open items are in §10. How the code is built, as it stands: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 1. Purpose
 
@@ -32,7 +32,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D16 | Checking values | The user names the total-value field(s) to check. No particular field is required. Land values are out of scope: a separate land-value tool is planned. |
 | D17 | Online notices | Anything that goes online says what it sends, in a calm one-time notice (§3.11). |
 | D18 | CAMA export | v1 is a generic CSV/Excel file: parcel ID plus new columns. It carries total value only. Land values are left out; a separate land-value tool is planned. Vendor layouts come later. |
-| D19 | Sample county | **Removed for now** (F3). It may be rebuilt on the new flow later. CI still runs OpenAVMKit end to end on `us-va-petersburgcity`, outside the app (§8 smoke test). |
+| D19 | Sample county | **No sample in the app for now** (F3); it may be rebuilt on the new flow later. A synthetic county to add by hand is in the repository ([`sample/`](sample/README.md)). CI still runs OpenAVMKit end to end on `us-va-petersburgcity`, outside the app (§8 smoke test). |
 | D20 | Model choice | Each model group has its own models (LightGBM, MRA and Multi-MRA to start), each taking a named variable list (F9; revised 2026-10-31 from "Choose for me"). |
 | D21 | Name and look | "OAK box" (written "Oakbox" in code and folder names). The look is a dense desktop tool (D43). The look (settled 2026-11-01): **an oak box**, and inside it **Manila folders and white paper**. The box: the inside is dark, low-contrast oak boards (`assets/oak-planks.svg`); a frame of light oak runs round the window (`OakFrame`): its top piece is the lid, the sides run grain down (`oak-v.svg`), the bottom rail grain across (`oak-h.svg`), mitred at 45° at the bottom corners, flat against the lid at the top. Every piece is pinned to the window's edges and its grain tiles seamlessly (stitched noise), so the frame stretches with any window, no script; it never takes a click. The lid (`OakBand`) is polished oak, staying at the top as the page scrolls, with the brass plate on it: **no text sits on the bare wood: what's said is on the plate**, and **the plate is the main navigation** (revised 2026-11-02, `OakBand`, `lib/place.ts`): "OAK box" is the name, not a link; then a trail of where you are, Projects › project › tab › step ("Projects › G2 · 2026 › 6 Model values › **Finalize**"), each crumb above you a link, the one you're on in bold. Each crumb in a project opens a list of the others at its level, each saying where it will open: the projects (each with its last place, "3 Check sales › Sales set aside", "running" when a run is going, "here"), the tabs (each with the step it opens on, ✓ when done, "waits" when locked), the steps (✓, "here"). Choosing an earlier crumb replaces the trail after it with that choice's own: **every project and every tab remembers where you last were** (kept on this computer), so going back opens there; nothing stops or is lost (work saves as it's made, runs keep going). **Back** (Alt+←, or the mouse's back button) retraces the path you took, steps included. No "Next" on the plate: moving on is each step's own Next. The folder tabs and step lists stay. Inside: **a container with a heading, lying on the wood or in a folder, is a Manila folder** (creamy but still Manila, `--manila`), its heading the folder's tab, one piece with it (no line between), the heading larger; what it holds is **crisp white paper** (`--paper`). **On paper already, a container with a heading is a titled section** of the document (its heading over a hairline), never a folder inside a document. The project is one folder lying in the box, its tabs along its top edge on the wood; a step's list of steps lies on the Manila, the step itself is a sheet. **Pop-ups (revised 2026-11-01): anything that blocks the screen is part of the box**: a dialog over a dimmed screen has a light oak frame, its title on a brass plate on the frame, what it says on one white sheet inside. **Anything attached to something on the page belongs to the papers**: a value list, a picker, the parcel inspector on the map are Manila, their heading on the Manila with no line under it, their list or table on white paper. Plain dropdown lists are controls, unchanged. Tables' alternate and highlighted rows are very light blue (`--zebra`, `--head`), not grey. Buttons and controls are unchanged. Print: no wood, no lid, no frame. | Projects" at home, "OAK box | New project", "OAK box | G2 · Tax year 2026" in a project; it takes you home (there is no separate back link). Inside a project the folder tabs stand on the band's bottom edge, paper on wood, and the open one runs into the page; they're always one row (revised 2026-11-03): wider than the window (a narrow window, a high zoom), the row scrolls, with ‹ › at its ends as sheet tabs and browser tab strips have (each greyed when its end is showing), the wheel over the row scrolls it, and the open tab is kept in view (`components/TabStrip.tsx`); a tab that waits on an earlier step says so at the top of the page, under the tabs. Print leaves the band out. Type is IBM Plex Sans and Plex Mono (OFL), bundled, with Noto Sans as the fallback for other scripts. **Landing pages** (settled 2026-11-02): every tab, and every major step with parts (Data › More details, Data › Condo units), opens on a landing page before its first step: the step's number and name, why it exists, then *What happens*, *What you decide* and *What you end with*, a *Needs* line (what must be done first), and **Start: ‹first step› ›**. A tab's is **Overview** (◆, never ✓ or !) at the top of its step list and in the plate's; it opens on its own only the first time the tab is opened in the project (kept on the computer), after that the tab opens where it was left, and Overview is always one click away. A major step's parts are reached through its landing page: its row opens it, and Back and Next pass through it. Metadata is a step list too, with no Overview (revised 2026-11-04): just Project details, whose Next opens Data. The text is `landing` in `wording/en.json`. |
 | D22 | Model groups | A dedicated builder with live map feedback (§3.5). |
@@ -45,7 +45,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D29 | Enrichment | A dedicated Enrichment screen exposing OpenAVMKit's real options, with cost estimates, small-area trial runs and coverage results (§3.12). v1 covers map-layer joins, footprints, census (configurable variables), distances (OpenAVMKit's defaults plus the user's own layers), elevation, permits and missing-value estimation. The street network is deferred. |
 | D30 | Variables | "Plow forward" or "Test variables first" (§3.10). |
 | D31 | Map background | Offline: parcels only. Online: an OpenStreetMap-based background. Every map has a **Street map** box in its corner to take the background away (a plain one, to see only the colours); the choice carries to every map and is remembered on the computer. The user's own imagery comes later (§3.11). |
-| D32 | Custom reports | Sections and branding for everyone; editable Typst templates for power users (§4.3). |
+| D32 | Custom reports | Sections and branding for everyone; editable templates for power users (§4.3; their format is open now that reports are HTML, F10). |
 | D33 | Staleness | Oakbox tracks which settings feed which step and re-runs exactly what changed. OpenAVMKit's checkpoints don't self-invalidate (§6.4). |
 | D34 | Derived fields | Typed "transforms" in Match columns, plus an Advanced formula builder, compile to OpenAVMKit `calc`. Per-parcel corrections compile to `tweak` (§3.13). |
 | D35 | Vacancy | Default: a blank finished area means vacant land (OpenAVMKit's rule), stated clearly. Users opt out per project and supply an explicit vacancy signal instead (§3.9). |
@@ -57,7 +57,7 @@ A desktop app that lets a non-technical assessor run OpenAVMKit on their own par
 | D41 | Mirror OpenAVMKit | OAK box is a GUI for OpenAVMKit, not logic on top of it. Every screen maps to something OpenAVMKit does or a setting it reads, and the user's choices are written as OpenAVMKit settings. When OpenAVMKit can't do something a user needs, the change goes upstream (§7), not into OAK box. OAK box's own logic is limited to presentation: previews, explanations, defaults and checks that read data without changing it. |
 | D42 | Help on hover | Explanations go in hover tooltips (also shown on keyboard focus), not in lines of text on the screen. Screens carry only labels and what the user needs to act. Applies to new screens and to screens as they are revised. |
 | D43 | Dense by default | Compact, information-dense presentation, after mid-2000s desktop software (Mac OS X Tiger): 14 px text, about 24 px controls and table rows, a light grey window, softly rounded panels and tabs, buttons with a classic two-step bevel (two rings of light and shadow, swapped when pressed; grey, blue for the main action, red for danger; hovered icon buttons share it); every dropdown, pick-list or searchable, is a classic combo box: a sunken white field with a bevelled arrow button inside its right edge, folder tabs that touch, the first flush with the panel, slightly rounded inputs, little padding. Tables keep full outlines: an outer border, a gradient header bar, column lines and row lines, with a blue alternate-row tint. **Density** (revised 2026-11-03), View → Density, kept in OAK box's settings: **Default** is the look above. **Compact** is a Windows 2000 dialog's density: every padding, margin and gap is a multiple of one spacing unit (`--sp`: 1rem in Default, 0.2rem in Compact), so all spacing shrinks to a fifth; nothing sits between a box's edge and what's in it; table rows are as tall as their tallest control and no taller; controls are about 20 px. Gaps between things side by side never go below about 3 px (`--gap-min`), lists keep their bullets' indent (`--indent-min`), folder tabs their own height (`--tab-h`), and the plate's ends clear its screws. Default draws exactly as it did before Compact existed (checked pixel for pixel). Comfortable (touch screens) was removed; a saved Comfortable reads as Default. **Zoom** (settled 2026-11-03), View → Zoom in (Ctrl+=), Zoom out (Ctrl+-), Actual size (Ctrl+0), and Ctrl+mouse wheel as in a browser (a level a notch; a trackpad's small movements added up): 67, 75, 80, 90, 100, 110, 125, 150, 175 or 200%, kept in OAK box's settings, the level shown for a moment at the top right. It scales the text (`--zoom` on `<html>`), and with it everything sized in rem, which is nearly all the layout; 1px lines stay 1px and maps keep their own scale. It replaced Large text (a saved Large text opens at 125%); 100% draws exactly as before. **Typing in a dropdown** (settled 2026-11-02): a dropdown of 7 or more choices, and the column picker always, can be typed in (`components/Combo.tsx`). It looks like any dropdown until clicked; a click opens the whole list; typing keeps the choices whose names hold what was typed, anywhere in the name, case aside (names only, not a column's sample values), the letters marked, with "N of M match" under the list; the first match is highlighted, so Enter picks it; Esc or leaving puts back what was chosen. In the column picker a file's heading goes when none of its columns match; "(none)" and the picker's other choices (In another file…, Assumed) stay. Fewer than 7 choices: a plain dropdown. |
-| D44 | Native window | The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (pywebview) and hold only what exists (§3.9). Browser mode has no menus; everything in them is also reachable on the page. |
+| D44 | Native window | The app's name and place are in the native title bar ("Travis County 2026 – OAK box"; "OAK box" on the home screen), not on the page. Menus are native (Win32 on Windows, Qt on Linux) and hold only what exists (§3.14). Browser mode has no menus; everything in them is also reachable on the page. |
 | D45 | Fields wizard | Fields are chosen in a guided wizard over all of a project's files, one small question at a time (F3d), (the per-file table, F3c, was the Advanced view until it was removed on 2026-10-31). Guesses are preselected only on a name match that passes the field's check. |
 | D46 | Tables use the width | Tables use all the width there is (a minimum width, never a maximum); only running text is capped for reading. Everything else that isn't a table (a file's entry, a frame of fields, a form) is as wide as what's in it, not the page (revised 2026-11-04: stretched boxes were mostly empty and moved their ✕ far from what it removes); boxes in one list share the widest one's width. Charts and maps are decided case by case; a layer's map, opened in its entry, takes the page's width. Every table has faint cell lines and alternate gray rows, and a numbers column's header lines up with its numbers. A cell says a short phrase; the fuller explanation is in a tooltip on an ⓘ (D42), and a column's header isn't repeated in its cells. |
 | D47 | Files and items look one way | Settled 2026-11-04, the style guide `docs/style-guide.html`. **A file**, wherever it's added, picked or used, is one thin outline: its first line a faint warm band (revised 2026-11-04), its name in OAK box (mono, bold), its file name (set off like code: mono on a faint box), its facts ("4,712 rows · shapes"), a short check, other actions as icons, then a **red −** at the right edge (centred on a one-line entry, top right on a tall one). What's set on the file (its IDs, what it's about, how it's used) is inside the same outline, labels in one column and controls in the next. − takes the file off that step (the file stays in the project and can be picked again; Undo puts it back). A step with no file yet shows a dashed outline: [Add a file…] or use existing: [Choose…]. The import form is an entry too (its path, its format and size; a grey ✕ closes it, instead of Cancel). Lists and choices that only show files (what Bring in data runs, the Condo units file) use the same first line without outline or −. **Anything removable on its own** (an ID inside a file, a test, a condition, a copied field, a location field) has its own outline, siblings too, and the same red − (a real button, raised like every button, a white − on it: the pair of Add's +; revised 2026-11-04), its label on hover, and **Undo** for a few seconds after it; every "Remove" link, "(remove)", "drop" and grey X is gone. **Deleting for good** is a danger button with a trash can and its words, and asks first; **closing** a popup or an unsaved form is a grey ✕ at its top right; the three never share a look. Adding to an item (another ID) is inside it, at its bottom right; adding another item is after the list. A short choice inside an item is a segmented control, not radio buttons. Every item's outline is the same colour (`--frame`). **Anything pressed is a raised button** (the family: button, primary, delete, add, small, tool, close, remove) unless the style guide keeps it flat, with its reason (navigation, list rows, sortable headers, disclosures with a chevron, swatches); flat is never the default. Text links that did something are small buttons; links that go somewhere stay links, and ones that leave the app carry ↗. |
@@ -557,7 +557,7 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
 - **Engine** (`engine/enrich-fixes`): on the sales, teardowns and renovations went to every sale of the parcel (worked out on the parcel ID, not the sale ID), so a house sold twice before its demolition had both sales made land sales; the effective year stopped with an error on sales without a year built (sales take their parcel's); `reno_date` was filled with "UNKNOWN" as an improvement category.
 - **Sample:** `in/permits.csv`, 2,140 made-up permits, 40 of them demolitions within a year of an improved sale (planted problem 15).
 
-#### F4. Step 1, Bring in data (its own tab, **1 Bring in data**)
+#### F4. Step 1, Bring in data (its own tab, **1. Inputs**)
 - **One task at a time** (the frame of F5): **What runs** (❌ when Data has something to fix, with what changed since the last run) › **Bring in data** (the run: **Bring in data ›** where Next is, progress with Skip, then the results open) › **The parcel universe** › **The sales** (each with its funnel and fields) › **Public data and checks** (⚠ when public data was skipped or a check differs), whose Next is **Looks right › Model groups**.
 - **Terms:** the joined parcel table is always the **parcel universe** and the joined sales table the **sales record**, here and in every message (the wizard's messages name the files holding them that way too).
 - **Ready:** what will run (the parcel universe, the sales record, the files joined to them, the map layers, how many fields). It can't run while Data has a problem; the first is shown, with a link to Data.
@@ -572,7 +572,7 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
 - **Out of date:** when the settings it depends on (`data`, `field_classification`, `locality`) change, the step says what changed (a file added or removed, how a file is read, how the files join, map layers, the centre, location fields) and greys the last receipt until it runs again.
 - **Looks right** is required: **2 Model groups** opens only once it's pressed on an up-to-date receipt, and closes again when Data changes.
 
-#### F5. Step 2, Model groups (its own tab, **2 Model groups**; §3.5 as built so far)
+#### F5. Step 2, Model groups (its own tab, **2. Model groups**; §3.5 as built so far)
 - **One task at a time,** in the Data wizard's frame (steps on the left, ✅ ⚠ ❌ marks, Back and Next at the bottom right): **How to start** › **Build the groups** › **Check them** › **Tag and write** › **What each group got**. Each tab will work this way (Bring in data and Check sales next): the run is a step whose button is where Next is, its progress fills that step, and when it's done the results open by themselves; the results are steps, not dialogs; **Looks right › Check sales** is the last step's Next. The tab opens on the first step not done (on the results when they're up to date).
   - **How to start:** the two choices; once started, starting again asks first ("This replaces your 6 groups").
   - **Build the groups:** the builder below, filling the step. Next saves unsaved changes (**Save and continue ›**).
@@ -602,8 +602,8 @@ A step of its own, after Enrichments: **Do you have building permits?** Add the 
   - **Left out of notebook 1:** cloud sync (a desktop app's files are on the desktop), and street frontages (`enrich_sup_streets`: the street network is deferred, D29). Its "examine" cells are Bring in data's receipt; "examine in ridiculous detail" is each field's details (click its name).
 - **Not yet:** common areas (deferred), hand edits (map lasso), nested AND/OR, undo/redo, export/import, and a map for very large counties (the shapes are sent whole: fine at 10k parcels, too much at 500k; vector tiles then).
 
-#### F6. Step 3, Check sales (its own tab, **3 Check sales**; notebook 2, clean) (built, but for the parts listed under "Not built yet")
-Notebook 2 makes the data ready to model, and it's where subjective calls go in: which sales count, how prices are brought to one date, what stands in for blanks. So the step shows each call before it runs, and every sale it sets aside with the reason. It starts from the 1-assemble hand-off (F5) and writes the 2-clean hand-off that step 4 (Check my values) and step 5 (model values) read.
+#### F6. Step 3, Check sales (its own tab, **3. Sales**; notebook 2, clean) (built, but for the parts listed under "Not built yet")
+Notebook 2 makes the data ready to model, and it's where subjective calls go in: which sales count, how prices are brought to one date, what stands in for blanks. So the step shows each call before it runs, and every sale it sets aside with the reason. It starts from the 1-assemble hand-off (F5) and writes the 2-clean hand-off that step 4 (Check my values) and steps 5 and 6 (Variables, Model values) read.
 
 **What runs, in OpenAVMKit's order** (`openavmkit.headless` stage `clean`, in its own process like F4 and F5; about 10 s on the Guilford sample, minutes at 500k parcels):
 1. **Fill blanks** (`data.process.fill`, per model group).
@@ -668,14 +668,14 @@ Notebook 2 makes the data ready to model, and it's where subjective calls go in:
 
 **Not built yet:** a sales window per model group; the granularity OpenAVMKit settled on per group; a map of the sales set aside; excluding a sale that wasn't set aside (the API takes any sale; the review only lists sales set aside); "vacant at sale = vacant now" as Data's assumption, which needs OpenAVMKit to take a sale's vacancy from its parcel. OpenAVMKit's own notes are listed raw.
 
-**Not in this step:** street frontages, spatial lag and area statistics (step 5), the ratio study (step 4), model outliers (step 5's review, in the same register).
+**Not in this step:** street frontages, spatial lag and area statistics (step 6), the ratio study (step 4), model outliers (step 6's review, in the same register).
 
-#### F8. Step 4, Check my values (its own tab, **4 Check my values**; built, but for the parts under "Not built yet")
+#### F8. Step 4, Check my values (its own tab, **4. Evaluate**; built, but for the parts under "Not built yet")
 It opens once Check sales has Looks right. The assessor's own values, against what parcels sold for, checked the way a state reviewer would: nothing is modeled. openratiostudy.com (`larsiusprime/openratiostudy`) is the reference for the statistics and views.
 - **Only with existing values** (revised 2026-10-31): the tab is greyed, its tip saying "No existing values to check: add them on Data › Existing values", until a value set has a market value. Model values doesn't wait for it.
 - **What to check** (first): **Check them** or **Skip this step** (Next becomes **Go to Model values ›**; the step's parts are greyed); which value sets (MultiPick, every one by default) and which model groups (every one by default; the studies, overall included, are of those groups only). Only market values are checked: land and improvement values aren't sold on their own.
 - **Several sets:** the results show one set at a time, a switch at the top of each part; the choice stays as you go from part to part.
-- **One task at a time:** **What to check** › **Which sales** › **Whose standards** › **The standards** › **Which groups** › **Check my values** (the run) › **Summary** › **By model group** › **Across prices** › **On the map** › **Neighbourhood price levels** › **Similar parcels** › **Extreme ratios**, whose Next is **Looks right › Model values** (it opens step 5; once pressed, **Model values ›**).
+- **One task at a time:** **What to check** › **Which sales** › **Whose standards** › **The standards** › **Which groups** › **Check my values** (the run) › **Summary** › **By model group** › **Across prices** › **On the map** › **Neighbourhood price levels** › **Similar parcels** › **Extreme ratios**, whose Next is **Looks right › Model values** (it opens the Model values tab, step 6, or Variables, step 5, while that waits; once pressed, **Model values ›**).
 - **Which sales:** the sales Check sales kept for modeling, in the window, valid for a ratio study (the parcel looks as it did when sold). The window is two date pickers. Proposed: from the year before the valuation date (the IAAO's window), reaching back a year at a time (up to five) until it holds 30 sales; when the IAAO's year has none it says so ("the latest sale is 2024-11-09"); **Back to the proposed window**. The price: **as sold** (default, the formal ratio study) or brought to the valuation date with Check sales' time adjustment. A small count: for modeling, − outside the window, − the parcel changed since, = sales the values answer to; and per model group.
 - **Standards, in three parts** (revised 2026-10-31). **Whose standards:** **The IAAO's** or **Custom** (a state's, an office's), Custom starting from the IAAO's figures or empty. **The standards:** a row per standard, its name and every target changeable: level (median ratio from–to; missed only when the median's whole 90% range is outside, 11.1), uniformity (COD from–to: above missed, below suspect, possibly sales chasing, 11.2.5), PRB good within ± and unacceptable outside ± (neither between), VEI within ± % (missed only when significantly outside, Appendix E steps 5 to 7), judged with at least N sales; each heading's tip says what it means; **Remove**, **Add a standard**, **Back to the IAAO's**; the PRD and MKI reported, not judged (Table 4); trimming below. The IAAO's are one standard per property category (Table 7): residential 5 to 15, homogeneous (condos) 4 to 10, rural or manufactured 10 to 20, apartments 7 to 20, commercial 10 to 25, vacant land 10 to 20, agricultural 10 to 25, each level 0.90 to 1.10, PRB ±0.05 / ±0.10, VEI ±10%, 5 sales. **Which groups:** a model-group picker per standard (only groups modeled and checked), proposed from the groups' names until one is chosen (then every standard's are as shown); a group in one standard at most; a group in none is shown, not judged, and named. OpenAVMKit judges each group by its standard's own targets (`standards.by_class`, `engine/enrich-fixes`), and Model values pills its figures the same way. Outlying ratios are trimmed (on by default) as Appendix C sets out: beyond 1.5 × IQR with the Standard's quartile positions, at most a tenth of a group, the furthest first. The statistics without them are judged; every sale's are shown beside them, never compared (C.6).
 - **The run** (`python -m oakbox.ratio <id>`): OpenAVMKit's `run_value_field_studies` on `out/2-clean-sup.pickle`, with the window, the price, trimming, the IAAO's order-statistic interval for the median (`median_ci="iaao"`, as openratiostudy) and the targets; a few seconds. Writes `out/oakbox/ratio/` (the receipt, OpenAVMKit's study files, every sale studied with its ratio).
@@ -691,17 +691,17 @@ It opens once Check sales has Looks right. The assessor's own values, against wh
 - **openratiostudy.com, settled:** OAK box and OpenAVMKit follow the IAAO: the PRB is the Standard's (percentage deviation from the median regressed on log2 of the value proxy), not a regression of the ratio on ln(price); VEI significance compares the groups with the highest and lowest medians (Appendix E step 7), not always the last and first; trimmed and untrimmed are both shown. openratiostudy itself is unchanged for now.
 - **On the sample** (2024 to 2025, 181 sales): values are about 67% of prices; single-family COD 19.2, PRB +0.056, VEI +24.3% inconclusive; a $10 deed (2901 St Regis Rd) that Check sales kept is trimmed and pointed out.
 
-**Not built yet:** breakdowns by neighbourhood; the PDF report (step 6); land values against vacant land sales; model values side by side (step 5).
+**Not built yet:** breakdowns by neighbourhood; a printed report of this check (Report, step 7, reports the model values); land values against vacant land sales. (The roll's values beside the model values are on Model values, step 6.)
 
-#### F7. Step 5, Variables: Prepare the fields (its own tab, **5 Variables**; the tests, lists and models are F9)
+#### F7. Step 5, Variables: Prepare the fields (its own tab, **5. Variables**; the tests, lists and models are F9)
 It opens once Check sales has Looks right. Steps: **Fill blanks** › **Rare categories** › **Prepare the fields** (the run) › **What changed** (Looks right) › **Test the variables** › **Variable lists** (F9). **6 Model values** (the models, a try, how they did) opens once What changed has Looks right (revised 2026-10-31: the variables are a tab of their own).
 - **Why here:** they're notebook 2's first and last calls in OpenAVMKit's order, but nothing in Check sales depends on them (the equity groups and the sales checks compare land size, finished area, quality, age and condition, which aren't filled here). Some models fail on a blank (the linear ones); the others read it as unknown.
 - **Fill blanks:** each number the models can use that's blank somewhere after step 2, with what a blank means and a proposal from it: zero where blank means none (renovation permits: `renovation_num`); leave blank where there's nothing to stand in (`days_to_*`: no permit, no date; `land_area_alloc_*`: only condo units have a share of land; finished area and year built: blank means no building); the model group's median for census fields (a block group not matched), elevation and slope (a tile not covering the parcel) and the rest. Changeable to median, mean, most common, zero, smallest, largest or leave blank, for every parcel or only improved or only vacant ones. Written as OpenAVMKit's `data.process.fill` lists, added to its own (`+median`).
 - **Rare categories:** off by default. The category fields the models use, but not locations, the model group, IDs and addresses (or anything with more distinct values than half the parcels), or dates. With the thresholds (fewer sales than, fewer parcels than), a table per field: its values, how many fold, their parcels, and which ("Become Other"), counted on the sales Check sales kept, as OpenAVMKit counts them.
 - **Prepare the fields:** OpenAVMKit's `fill_unknown_values_sup` and `collapse_sparse_categories_sup` on Check sales' hand-off (`out/oakbox/clean/sup.pickle`), in a process of its own (`python -m oakbox.prepare`), then notebook 2's output written again (`out/2-clean-sup.pickle`, `out/look/2-clean-*`): the same as notebook 2 writes with the same settings. Out of date when Check sales runs again or a fill or the folding changes. The receipt: what was filled (per field, how many, how) and folded (per field, the values and their parcels), and the files.
 
-#### F9. Step 5, Build model values: the models (spec; not built)
-What stands between Prepare the fields (F7) and values a model made, and how step 5 continues. It replaces §3.10's earlier draft where they differ.
+#### F9. Steps 5 and 6, Variables and Model values: the variable tests and lists, and the models (tab **6. Models**; slices 1 and 2 built, slice 3 in part: see As built)
+What stands between Prepare the fields (F7) and values a model made, and how steps 5 and 6 continue. It replaces §3.10's earlier draft where they differ.
 
 **The spike** (2026-10-29, the sample: 7,994 parcels, 1,477 sales; Prepare's output; a hand-written variable list of finished area, land area, effective age, units, normalized latitude and longitude, polar coordinates, elevation and slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-fold nested cross-validation): `write_canonical_splits`, then `model_runner.run_models` (try, no vacant models), ran headless in **29 s** and wrote `out/models/`. The plumbing works. What it showed:
 1. **No variables, no models.** OpenAVMKit has no default list: `modeling.models.main.default.ind_vars` must be written, or every model raises. Nothing in OAK box writes it yet.
@@ -770,7 +770,7 @@ What stands between Prepare the fields (F7) and values a model made, and how ste
 
 **Settled (2026-10-29):** small groups are left unvalued; one variable list for every group in slice 1 (per-group lists in slice 3). **Revised 2026-10-31:** no Choose for me: every group starts with LightGBM, log MRA and Multi-MRA, each changeable; variable lists serve any groups.
 
-#### F10. Step 7, Report (its own tab, **7 Report**; built 2026-11-01, `report.py`, `ReportTab.tsx`)
+#### F10. Step 7, Report (its own tab, **7. Report**; built 2026-11-01, `report.py`, `ReportTab.tsx`)
 Opens once Model values has had Looks right (the tab waits for it, as the others do). Reads Finalize's output; runs nothing. Two steps:
 - **Export:** every parcel, one row each: key, model group, model value, the roll's value, change from the roll (%), value per finished area, why there's no value (not modeled, left unvalued, below zero…), the latest sale in the study window (price, date) and the ratio of the value as made to it, latitude and longitude. **Format** (a switch): CSV, GeoPackage, Excel, Shapefile, GeoParquet; GIS formats carry each parcel's shape (Bring in data's), or a point where there's none (said). Written to `out/oakbox/report/export/<project>_<year>_model_values.<ext>`, with **Show in folder**. Shapefile: names cut to 10 characters with a `_fields.csv` key, a warning over 2 GB. Excel: split across sheets past 1,048,575 rows. On the synthetic sample (9,354 parcels): CSV 0.1 s, Excel 1.3 s, GeoPackage 1.4 s (7 MB).
 - **Report:** a printable HTML page (settled 2026-11-01: HTML first, as good-looking as it can be made; Typst only if it falls short), previewed in the step, **Open in browser to print** (print, or save as PDF), and written to `out/oakbox/report/`. Calls: its **Title** (made from the project's name to start) and **Judge the values on** (the user decides: out of fold, held out, as valued; all three to start; at least one), saved as `project.report`. Its parts:
@@ -783,7 +783,7 @@ Opens once Model values has had Looks right (the tab waits for it, as the others
   - Letter pages, a page break before the long sections, system fonts; the footer names OpenAVMKit's version and when the values were finalized.
 - Not yet: picking sections, a logo and header text, filtering by location or class, saved presets and editable templates (§4.3).
 
-#### F4 onwards: building the joins (intent; to be designed feature by feature)
+#### Later: building the joins live (intent; to be designed feature by feature)
 A stage where the user builds the joins between their files in real time: inspect what is in each file and in the joined result as it grows, so they can make informed decisions about how to build it up. Everything it does maps to OpenAVMKit's own settings (`data.load` mappings, `dupes`, `data.process.merge`).
 
 ### 3.1 Home screen
@@ -859,25 +859,28 @@ After Sales basics, the project has one model group, "All properties", with a ma
 ### 3.3 Project screen: the steps
 The setup stages are followed by the steps that run the engine. Each step follows the four parts of §3.2. Its Run has a progress bar, time remaining and **Stop**, and its receipt has **See results**.
 
-Before running, a step shows what's stale and why ("Model groups changed: steps 3–5 will re-run"). Jobs resume after the app is closed where OpenAVMKit supports it (checkpoints, tuning journals).
+Before running, a step shows what's stale and why ("Model groups changed: steps 3–6 will re-run"). **Not built:** a run going on after the app is closed, or picked up again; today a run is known only to the app that started it.
 
 A tab asked for that waits on an earlier step (it isn't accepted on an up-to-date run) opens the first step, in order, that isn't, with a notice above the tabs saying why: "Variables waits for Bring in data. Bring in data is out of date: run it again, then press Looks right. What changed: fields worked out after the files join." Never a silent switch to another tab (revised 2026-10-31). Bring in data always names what changed; a change no line names (a newer OAK box writing the step's settings differently) is "how OAK box writes this step's settings (a newer OAK box)". Opening a project rewrites its settings.json if this OAK box would write it differently, so what that changes shows on opening, not at the next unrelated change (a Variables tick once put Bring in data out of date this way, and the screen jumped to Check sales).
+
+Each step is a tab. Where the tab's short label differs from the step's name, it's in brackets: 1 Bring in data (Inputs), 3 Check sales (Sales), 4 Check my values (Evaluate), 6 Model values (Models).
 
 | Step | What runs (OpenAVMKit stage boundaries) | Internet? |
 |------|------------------------------------------|-----------|
 | 1. Bring in data | Load, merge, condo handling, enrichment (§3.12). The street enrichment is explicitly off. Ends before model group tagging. Then Data health and Field profile (§3.9) | Only for online enrichments |
-| 2. Define model groups | Model group tagging (§3.5). Writes the 1-assemble hand-off | No |
+| 2. Model groups | Model group tagging (§3.5). Writes the 1-assemble hand-off | No |
 | 3. Check sales | Clean, in OpenAVMKit's order: OpenAVMKit's own fills (the user's are step 5's), equity clusters, sale processing (sales window, validity rules, **time adjustment**), scrutiny (sales set aside, minus the user's keeps, plus their exclusions: §3.6, F6). Writes the 2-clean hand-off (rare categories: step 5) | No |
 | 4. Check my values | Ratio, vertical-equity and horizontal-equity studies on the named value fields, per model group and overall (§4.2). Reads the 2-clean hand-off explicitly, never stale step-5 output | No |
-| 5. Build model values | Prepare the fields (the user's fills, rare categories: F7), then splits, spatial lag, area stats, optional variable testing (§3.10), **Try** models (repeatable) → outlier review → **Finalize** → ratio study on model values. Main models only (`run_vacant=False`) | No |
-| 6. Reports and export | PDF reports; Parquet, GeoPackage, Shapefile, CSV, Excel (§4) | No |
+| 5. Variables | Prepare the fields (the user's fills, rare categories: F7), then the variable tests and the variable lists (F9) | No |
+| 6. Model values | Splits, spatial lag, **Try** models (repeatable) → how they did → small groups → **Finalize** → the model values checked against the sales, beside the roll's (F9). Main models only (`run_vacant=False`) | No |
+| 7. Report | Export (CSV, GeoPackage, Excel, Shapefile, GeoParquet) and a printable HTML report of the model values (F10). Runs nothing | No |
 
 **What each step's receipt shows:**
 - **Step 1:** rows read from each file; each attachment's match rate, against the Stitch prediction; rows collapsed by several-rows rules; sales removed as office-invalid. Then Data health and Field profile (§3.9).
 - **Step 2:** parcels and sales per model group, split improved/vacant; parcels left unassigned.
 - **Step 3:** the full **sales funnel**, continuing from Sales basics: outside the sales window → flagged by scrutiny → overridden (§3.6) → used. Plus the time adjustment found per model group, as a chart.
 - **Step 4:** the study tables (§4.2), with the funnel's final count beside each.
-- **Steps 5–6:** as §3.10 and §4.
+- **Steps 5–7:** as F7, F9 and F10.
 
 **Results views:**
 - a map coloured by ratio, value, model group or flag
@@ -988,13 +991,13 @@ Rules for both screens:
 - **Originals are kept.** Oakbox keeps the originally imported values, so exports can always return the office's own data.
 - **Download problem list (Excel),** so the office can fix the source in its appraisal (CAMA) system.
 
-### 3.10 Building model values (step 5)
+### 3.10 Building model values (steps 5 and 6)
 *Superseded by §3.0 F9 where they differ (the variables, models, small groups and the steps); kept for Re-tune, speed tiers and total value only.*
 
 **Variables.** At the start of step 5, the user picks a path. They can switch later.
 - **Plow forward** (default). OpenAVMKit has no built-in default variable list, so Oakbox ships one, using whichever of these fields are mapped or enriched:
   - **The "big five":** building size (finished area), land size, building age (effective age if available, otherwise age), building quality, building condition.
-  - **Location:** latitude, longitude, and neighbourhood characteristics. These are the neighbourhood or other location fields, plus their spatial-lag and area-statistic features from step 5.
+  - **Location:** latitude, longitude, and neighbourhood characteristics. These are the neighbourhood or other location fields, plus their spatial-lag and area-statistic features from step 6.
 
   Missing ones are skipped with a note. ML models (LightGBM, layered comps…) get this list plus any other well-covered fields.
 - **Test variables first.** Oakbox runs variable analysis per model group on the candidate list and shows a review:
@@ -1022,7 +1025,7 @@ Rules for both screens:
 **Map background:**
 - Offline, maps show parcels only.
 - Online, the user can turn on a street background built from OpenStreetMap data.
-  - **Default provider:** a free, no-key service intended for third-party apps, such as OpenFreeMap. The tile URL lives in config, so the provider can change without a software update.
+  - **Default provider:** a free, no-key service intended for third-party apps, such as OpenFreeMap. The tile URL lives in config, so the provider can change without a software update. **As built:** OpenStreetMap's own raster tiles (`tile.openstreetmap.org`), the URL written in `components/MapView.tsx`; moving to a provider meant for apps, and to config, is still to do.
   - **Fallback:** OSMF's own `tile.openstreetmap.org`. Its [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) allows it, but it has no service guarantee and may block heavy use without notice. If used, Oakbox must send an identifying User-Agent, show attribution, and not prefetch or cache tiles for offline use.
 - The user's own aerial imagery (GeoTIFF/MBTiles) comes later.
 
@@ -1132,7 +1135,7 @@ OpenAVMKit has two separate features, and Oakbox keeps them apart, with differen
 - **Blank finished area is not handled here.** It is already 0 (vacant) after step 1, so it's decided in the Field profile instead.
 
 #### 3.12.3 Modeling-time context (step 5)
-**Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) run in step 5. They depend on model groups and train/test splits.
+**Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) run in step 6. They depend on model groups and train/test splits.
 - **Spatial lag: built (2026-11-01), as Variables › Nearby sales and buildings**, after What changed (Prepare accepted). **On by default** (a tick: "Average nearby sales and buildings"; off writes nothing and offers nothing). OpenAVMKit's `enrich_sup_spatial_lag`: the k nearest of each, however far, weighted by distance (a Gaussian whose width is their mean distance, so it adapts to density). OpenAVMKit's `BANDWIDTH_MILES` (half a mile) only scales the `_confidence` columns, not the averages: there is no distance limit (an earlier note here, and the step's text, said otherwise; corrected 2026-11-01).
   - **How many nearest** (a number box, 5 to start, 1 to 50; added 2026-11-01; `LagState.k`): one k for every average, written as `spatial_lag.sale_price` (the price averages) and each `fields` entry. The step's notes follow it ("Averages the 8 nearest of each", "9 or fewer sales"). A distance limit isn't offered: it needs an engine setting (proposed, not built).
   - **What it adds**, as variables (kind: location; in any variable list, tested like the rest): **Nearby sale price** and **Nearby price per finished sq ft** (from the sales), then, from the parcels, nearby finished area, land area, floor area ratio, bedrooms per land area, building age, effective age, quality and condition: those whose fields are there. Not offered: the land and vacant-land price averages (they need vacant sales, which are few), and OpenAVMKit's `_confidence` columns.
@@ -1260,7 +1263,7 @@ On Projects and New project the band carries the plate alone, the page below it:
 - **Parity tests.** Its test suite uses **Table 1 of the IAAO Ratio Studies Exposure Draft** (Sept 2025; 54 observations) as a fixture. OpenAVMKit's study functions must reproduce openratiostudy's results on the same fixtures, within tolerance. This runs in Oakbox's CI. Any definition mismatch is fixed upstream (A4), for example VEI strata rules or the CI level. OpenAVMKit's report uses 95% CIs; the standards profile sets the level, defaulting to 90% to match.
 
 ### 4.3 Reports and customization
-- **Standard PDF reports:**
+- **Standard reports** (the model-values report is built, F10; the others are planned):
   - ratio study
   - equity studies
   - sales scrutiny
@@ -1268,7 +1271,7 @@ On Projects and New project the band carries the plate alone, the page below it:
   - model summary
 - **Rendering:** printable HTML (built 2026-11-01, F10): the browser prints it or saves it as PDF. Typst (open source, a Python wheel with no system install) remains the fallback if HTML can't do what a report needs.
 - **For everyone:** pick sections, filter by location or class, add a logo and header text, choose a standards profile. Saved as a per-project report preset.
-- **For power users and consultants:** the reports are plain Typst template files. **Open template folder** copies them into the project. Edited templates are validated, with a fallback to the stock template on error. Jurisdiction packs ship as template sets.
+- **For power users and consultants (planned):** editable report templates. **Open template folder** copies them into the project. Edited templates are validated, with a fallback to the stock template on error. Jurisdiction packs ship as template sets. (Written when reports were to be Typst; with reports in HTML, the template format is open.)
 
 ## 5. Hardware targets
 **Provisional, from M0 benchmarks** ([`docs/m0/REPORT.md`](docs/m0/REPORT.md)). These came from synthetic data with about 10 fields per parcel, on 4 cores. Real extracts and a real low-end PC still need to confirm them.
@@ -1293,27 +1296,29 @@ On Projects and New project the band carries the plate alone, the page below it:
 ## 6. Architecture
 
 ```
-┌──────────── Oakbox (per-user install) ─────────────────┐
-│ UI: TypeScript web UI in a native window (pywebview →  │
-│     Edge WebView2; falls back to the default browser)  │
-│        │  localhost HTTP + server-sent progress events │
-│ App service (Python): projects, guide, import, checks, │
-│     health, sales register, model group preview,       │
-│     staleness, map tiles, reports, updates             │
-│        │  spawn / cancel                               │
-│ Engine worker (separate process): OpenAVMKit stage     │
-│     runner, one per job; streams progress events       │
+┌──────────── OAK box (per-user install) ────────────────┐
+│ UI: React + TypeScript in a native window (pywebview:  │
+│     WebView2 on Windows, Qt on Linux; else a browser)  │
+│        │  localhost HTTP (JSON); progress is polled    │
+│ App service (Python, FastAPI): projects, the Data      │
+│     wizard, checks, model group preview, staleness,    │
+│     report and export                                  │
+│        │  spawn / stop                                 │
+│ A run (a process of its own, one per run): a step's    │
+│     part of OpenAVMKit; prints a JSON line per part    │
 └────────────────────────────────────────────────────────┘
   Bundled: standalone CPython 3.11 + hash-locked wheels (uv)
 ```
 
+As built in detail (the modules, a run from button to receipt, a project on disk): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 - **Python backend, TypeScript frontend** (§6.5). WebView2 ships with Windows 10 through Windows Update; on Linux the window is Qt, or a browser app window (§6.1).
-- **The engine runs in a worker process.** OpenAVMKit changes the working folder, uses relative paths, and can crash or run out of memory. The worker is given an explicit project directory and environment (API keys).
-- **Large maps.** The app service builds vector tiles on the fly from GeoParquet, so the browser never loads 500k polygons.
+- **Each run is a process of its own.** OpenAVMKit changes the working folder, uses relative paths, and can crash or run out of memory. A run is given its project and environment (UTF-8 mode, API keys); a crash fails that run, not the app.
+- **Large maps.** MapLibre and deck.gl (WebGL) draw the parcels on the page (§6.5); the service sends their shapes as GeoJSON. **Planned if that proves too heavy:** vector tiles built on the fly from GeoParquet, so the browser never loads 500k polygons.
 - **Packaging:**
   - a standalone CPython build plus pre-installed wheels, with no freezing (PyInstaller struggles with GDAL, PROJ and numba)
   - **Windows:** a per-user Inno Setup installer (built 2026-11-04: `packaging/oakbox.iss`) into `%LOCALAPPDATA%\Programs\OAK box`, with no admin rights, a Start menu entry and an uninstaller, plus a portable `.zip` fallback. Unsigned until D14. A version tag (`v<pyproject.toml's version>`) publishes both as a GitHub pre-release; CI installs, starts and uninstalls the installer on a clean machine first. A newer installer replaces the runtime wholesale, so nothing dropped lingers. **Size today (2026-11-04):** 705 MB installed, 232 MB zipped, a 152 MB installer, without XGBoost and CatBoost (OpenAVMKit #420; Optional engines, below). Before them: 1.25 GB and 458 MB (OpenAVMKit #419 had made the cloud SDKs and NGBoost optional extras, 23 packages fewer; before it 1.30 GB and 471 MB). Polars went with OpenAVMKit #418 (it was 1.62 GB and 562 MB); then `packaging/strip_bundle.py` (run by the build) drops what the bundle never runs: libraries' test suites (85 MB), headers, static libraries and stubs (20 MB), pip, setuptools and Python's Tk, IDLE and ensurepip (36 MB). It keeps libraries' `testing` modules, C sources and every `.dist-info`. XGBoost and CatBoost left the bundle with OpenAVMKit #420 (about 545 MB installed). What's left, largest first: llvmlite and numba 114 MB (numba, SHAP), scipy 97, pyarrow 71, rasterio 70 (only the elevation enrichment; kept in the bundle, decided 2026-11-04: about 26 MB of the installer isn't worth another optional download), pyogrio 70, numpy 33, pandas 26, pyproj 25, scikit-learn 20, matplotlib 18. (IPython, jedi, debugpy and the rest of a Jupyter kernel came in through `layeredcompmodel` 0.3.0's `ipykernel`; 0.3.1 dropped it, OpenAVMKit #417, OAK box pins `abdd817`). The longest path in the bundle is 141 characters from its root, so the install folder stays under Windows' 260. Measured in M0: 1.7 GB installed, 544 MB zipped; roughly 350 MB after upstream A13
-  - **Linux:** a portable `.tar.gz`. Its launcher installs per user into `~/.local/share/oakbox` and adds a desktop-menu entry (`.desktop` file), with no root. An AppImage may follow. Measured in M0: 2.5 GB installed, 974 MB compressed. 469 MB of that was NVIDIA's NCCL library, which XGBoost's Linux wheel pulls in to train one model across several GPUs. The bundle leaves it out (CPU and single-GPU training don't use it); Qt for the native window adds about 385 MB once trimmed (`packaging/prune_qt.py`). **Revisit with modelling:** an optional download for multi-GPU training (NCCL), offered in the app rather than shipped to everyone (upstream A13)
+  - **Linux:** a portable `.tar.gz`, run where it's unpacked (`oakbox.sh`), with no root. **Planned:** installing per user into `~/.local/share/oakbox` with a desktop-menu entry (`.desktop` file); an AppImage may follow. Measured in M0: 2.5 GB installed, 974 MB compressed. 469 MB of that was NVIDIA's NCCL library, which XGBoost's Linux wheel pulls in to train one model across several GPUs. The bundle leaves it out (CPU and single-GPU training don't use it); Qt for the native window adds about 385 MB once trimmed (`packaging/prune_qt.py`). **Revisit with modelling:** an optional download for multi-GPU training (NCCL), offered in the app rather than shipped to everyone (upstream A13)
   - **Optional engines (built 2026-11-04):** XGBoost and CatBoost aren't in the bundle: together they'd add about 560 MB installed (XGBoost 144 MB on Windows, CatBoost with plotly, narwhals and graphviz 407 MB) for engines LightGBM already covers. OpenAVMKit has them as extras (`openavmkit[xgboost]`, `[catboost]`, #420); OAK box's own extras of the same names pull them in for a checkout (the dev group has both, so the tests try every engine).
     - **What's fetched is fixed at build time.** `packaging/engines_manifest.py` writes `engines.json` into the bundle: each engine's wheels for that platform from `uv.lock` (what its extra adds that the bundle doesn't already have), with sha256, size, and the disk they take unpacked. Nothing else is downloaded, and a wheel that doesn't match is refused.
     - **Where:** per user, outside the install folder (`%LOCALAPPDATA%\OAK box\engines\<engine>`, `~/.local/share/oakbox/engines/<engine>`), one folder per engine, unpacked from the wheels as a `--target` install would. `oakbox/engines.py` puts installed ones after the bundle's own site-packages on `sys.path`, and on `PYTHONPATH` for the processes a run starts. A folder written for other wheels (an older OAK box's) is left off, so the engine reads as not installed and is fetched again. Installs go to a temporary folder and are renamed into place; a failure or Stop leaves nothing.
@@ -1322,9 +1327,9 @@ On Projects and New project the band carries the plate alone, the page below it:
     - **CI:** the Linux bundle must not import either, then downloads both through `python -m oakbox.engines` and trains with them; the Windows installer is installed with XGBoost ticked (CatBoost not) and checked, then uninstalled.
   - **Both bundles are built on Linux** from one script (`packaging/build_bundle.sh`) and one lockfile. CI smoke-tests each on a clean machine of its platform
 - **Projects** are ordinary folders: an OpenAVMKit locality plus `oakbox.json`. Easy to copy, zip and back up.
-- **Reproducibility.** Each project records the Oakbox and OpenAVMKit versions and the seed. Versions install side by side.
-- **Updates.** **Check for updates** reads GitHub Releases, sending only a plain version request. The user approves each install, and the old version is kept.
-- **Privacy.** No telemetry and no crash upload. **Send log to support** builds a zip the user emails themselves.
+- **Reproducibility.** Each run's receipt records the OpenAVMKit version it ran with. **Planned:** the project recording OAK box's version and the seed; versions installed side by side (today a newer installer replaces the older).
+- **Updates (planned).** **Check for updates** reads GitHub Releases, sending only a plain version request. The user approves each install, and the old version is kept. Today: download the newer installer and run it.
+- **Privacy.** No telemetry and no crash upload. **Planned:** **Send log to support** builds a zip the user emails themselves.
 
 ### 6.1 Cross-platform: Linux now, macOS possible
 **Windows text is UTF-8, always.** Most users are on Windows, where Python reads and writes text in the code page (cp1252) unless told otherwise, so a "−" or an "é" can stop a run there and nowhere else. Every text read and write names `encoding="utf-8"` (`tests/test_encoding.py` checks the source). Every Python process OAK box starts, the launchers included, runs in UTF-8 mode (`-X utf8`, `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`), so OpenAVMKit's own I/O is UTF-8 too. The app's console output is reconfigured to UTF-8. CI runs the whole suite a second time with a non-UTF-8 default encoding. AGENTS.md has the rules for contributors and coding agents.
@@ -1336,16 +1341,16 @@ On Projects and New project the band carries the plate alone, the page below it:
 - Chromium's sandbox inside Qt WebEngine is off: the window only shows OAK box's own UI from 127.0.0.1, and the sandbox can't start on some systems (as root, or under Ubuntu 24.04's user-namespace restriction).
 - **Baseline:** glibc 2.34+ (the `manylinux_2_34` wheels, which Qt needs): Ubuntu 22.04+, Debian 12+, RHEL/Rocky 9+. x86_64. ARM64 Linux is later; its wheels mostly exist.
 - **Shipped as** a per-user `.tar.gz`. It needs no root, Python or package manager (§6). There are no distro packages (.deb/.rpm) in v1.
-- **Tested in CI:** an empty-environment smoke test on `ubuntu-latest` (passes in M0), plus the full test suite.
+- **Tested in CI:** the full test suite, the native window's menus, and the bundle's smoke test on a clean `ubuntu-latest`.
 - **Platform differences** are kept small:
-  - default project folder: `~/Documents/Oakbox` or `XDG_DOCUMENTS_DIR`
-  - hardware probe from `/proc`
-  - `LOKY_MAX_CPU_COUNT` set the same way on every platform
+  - default project folder: `Documents/OAK box`, wherever the desktop keeps Documents (`xdg-user-dir`; Windows' known folder, OneDrive included); the first builds' `Documents/Oakbox` is still searched
+  - the native window and its menus (`winmenu.py`, `qtmenu.py`)
+  - where settings and downloaded engines live (`appsettings.py`, `engines.py`)
 
 **macOS (later).**
 - **The stack already runs on macOS:** pywebview uses WKWebView, the scientific wheels exist for Apple Silicon, and standalone CPython builds exist.
-- **OS-specific code stays contained** in one `platform/` module (Windows, Linux, later macOS). `pathlib` is used everywhere.
-- **CI smoke-tests a macOS build** from M1.
+- **OS-specific code stays contained** in the few places above. `pathlib` is used everywhere.
+- **CI smoke-tests a macOS build** once there is one (not yet).
 - **Deferred macOS costs:**
   - Apple signing and notarization
   - bundling `libomp` for LightGBM/XGBoost
@@ -1354,8 +1359,8 @@ On Projects and New project the band carries the plate alone, the page below it:
 ### 6.2 Licensing
 - **Oakbox code: MIT.** It is permissive, AGPL-compatible, and familiar to government IT.
 - **The engine stays dual-licensed.** OpenAVMKit, including `openavmkit-oakbox`, remains AGPL-3.0 or commercial. Contributions there go through its CLA.
-- **The installer is AGPL-governed** because it contains OpenAVMKit. The About screen and installer link to the exact OpenAVMKit source commit, and a `THIRD-PARTY-LICENSES` file lists every bundled package.
-- **CI licence check** fails the build on a non-free or AGPL-incompatible dependency.
+- **The installer is AGPL-governed** because it contains OpenAVMKit. **Planned:** the About screen and installer link to the exact OpenAVMKit source commit, and a `THIRD-PARTY-LICENSES` file lists every bundled package.
+- **CI licence check (planned)** fails the build on a non-free or AGPL-incompatible dependency.
 
 ### 6.3 Engine facts that shape the design
 These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, the code wins.
@@ -1364,7 +1369,7 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 |---|---|
 | `valid_sale` **and** `vacant_sale` are required; `key_sale` and `data.process.merge` are required | Sales basics always produces them (§3.2) |
 | Without a `dupes` setting, a geometry file is de-duplicated on an *arbitrary* column; the column order comes from a `set` and varies between runs. In M0 this silently dropped up to 99.8% of parcels | Oakbox always writes `dupes` explicitly (`subset: [key]`). Upstream A11 |
-| Importing OpenAVMKit pulls in IPython and costs about 0.7 GB per process; the first Windows import takes about 17 s | The engine worker starts once and shows a splash screen. Upstream A1 |
+| Importing OpenAVMKit pulls in IPython and costs about 0.7 GB per process; the first Windows import takes about 17 s | Each run imports it in its own process; the app service imports it once, in the background, at start-up (`app._warm_engine`). Upstream A1 |
 | Office-invalid sales are deleted at the end of the load and merge step; scrutiny drops outliers by default | Kept as-is: invalid sales never touch modeling. Oakbox reviews them in its own register outside the pipeline (§3.6) |
 | Model groups are tagged at the end of assemble, and sales take their parcel's model group | Step 1 stops before tagging; step 2 tags. Unmatched parcels become `UNKNOWN` and are not modeled |
 | Fills, equity clusters, time adjustment and scrutiny are per model group | Any model group change re-runs steps 3–5 |
@@ -1372,7 +1377,7 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Estimation runs before lookup tables, formulas and the vacancy rule | Those outputs can't be predictors |
 | The only spatial-join rule is "centroid inside" | No "overlaps" in v1 (upstream B3) |
 | Enrichments and each distance feature default to **off** | Oakbox writes `enabled: true` explicitly |
-| Census key comes from the environment; `.env` isn't found outside notebooks | The worker sets the environment |
+| Census key comes from the environment; `.env` isn't found outside notebooks | Each run's environment carries the key (`steps.child_env`) |
 | Checkpoints only check that the file exists | Oakbox owns staleness (§6.4) |
 | The ratio-study report needs a finalized model and hard-codes `assr_market_value`; the field-agnostic study functions exist but don't persist | Step 4 needs upstream A3 |
 | `try_variables` needs an explicit candidate list and runs only correlation and R² | Oakbox supplies candidates; verdicts need A5 |
@@ -1382,16 +1387,18 @@ These were verified in the OpenAVMKit code at `f35b089`. Where the docs differ, 
 | Since 0.7.0: nested CV by default, raw-price ratio study, `benchmark` renamed `model_runner` (shim removed in 0.8) | Benchmarks and the headless API target 0.7+ behaviour |
 
 ### 6.4 Staleness and re-runs
-Oakbox keeps a hash of what each step depends on: its own calls, and the run of the step it starts from (settled 2026-10-30: "follow the run before"). A step is **out of date** when one of its calls changed or the step before it has run again since; nothing further back. A change further back shows only where it was made: every step after that one **waits** for it ("Run Bring in data again first: something it depends on changed since it ran"), and can't start or be accepted until each step before it is accepted (Looks right) on an up-to-date run. So a re-run with nothing changed still puts the steps after it out of date. OpenAVMKit checkpoints are deleted before the re-run.
+Oakbox keeps a hash of what each step depends on: its own calls, and the run of the step it starts from (settled 2026-10-30: "follow the run before"). A step is **out of date** when one of its calls changed or the step before it has run again since; nothing further back. A change further back shows only where it was made: every step after that one **waits** for it ("Run Bring in data again first: something it depends on changed since it ran"), and can't start or be accepted until each step before it is accepted (Looks right) on an up-to-date run. So a re-run with nothing changed still puts the steps after it out of date. Check sales deletes notebook 2's OpenAVMKit checkpoints before it runs. How this is built: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), "Out of date, waits, accepted".
 
 | Change | Re-runs from |
 |---|---|
 | Files, stitch plan, ID fixes, column mapping, transforms, sales basics, condo rules, enrichment settings, keeping an office-invalid sale | Step 1. Unchanged enrichments reuse their cache |
 | Model groups | Step 2 |
-| Fills, validity rules, time adjustment, sales windows, scrutiny settings, excluding a sale | Step 3 |
-| Value fields to check, standards profile | Step 4 only |
-| Variables, models, speed tier, model-outlier exclusions | Step 5 (tuning reused unless Re-tune) |
-| Report presets, export formats | Step 6 only |
+| Validity rules, time adjustment, sales windows, scrutiny settings, keeping or excluding a sale | Step 3 |
+| Value fields to check | Step 4 only |
+| The study's calls: window, price, trimming, standards, classes, region | Step 4, and Finalize (step 6), which judges the model values the same way |
+| Fills, rare categories | Step 5 (Prepare the fields) |
+| Variable lists, models, small groups | Step 6. Planned: speed tiers, model-outlier exclusions, tuning reused unless Re-tune |
+| The report's title and what it judges on, the export format | Step 7 only (nothing runs) |
 
 Step 4 depends on steps 2–3 but not on step 5, so checking values never waits for modeling.
 
@@ -1411,7 +1418,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - **Type checking.** TSX is fully type-checked by `tsc`, the same as Preact.
 - **Costs accepted:**
   - About 45 KB of runtime, irrelevant for a desktop app loading from local disk.
-  - Coarser re-rendering, mitigated by the React Compiler's automatic memoisation. Heavy work isn't in React anyway: MapLibre draws maps, tables are virtualised, and Python does the number-crunching.
+  - Coarser re-rendering, mitigated by the React Compiler's automatic memoisation. Heavy work isn't in React anyway: MapLibre and deck.gl draw maps, and Python does the number-crunching.
 - **Guardrails** against React's usual problems:
   - **No framework.** No Next.js, no server components, no SSR: Vite builds a static SPA.
   - **Lint rules** enforce the rules of hooks and effect dependencies.
@@ -1420,37 +1427,36 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - **No component kit** beyond React Aria. Styling is our own.
 - **Other UI pieces:**
   - **One map for every map** (settled 2026-11-01, replacing Leaflet): MapLibre GL JS draws the street map (OpenStreetMap raster tiles; a **Street map** box takes it away, remembered on the computer) and deck.gl (WebGL, `@deck.gl/mapbox`'s overlay) draws what's on it, so half a million parcels draw as smoothly as a few hundred sales. One component, `components/MapView.tsx` (fit to a box, resize, hover text, a hook for markers such as Location's pin); MapLibre's worker is bundled (`?worker&url`, ES format) as the bundle doesn't keep it beside MapLibre. Used by Model groups' parcel shapes, Location's dots and pin, a map layer over the parcels, Check my values' ratio map and Model values' map. Parcels as dots for now; shapes for every parcel on the value maps are a later choice (deck.gl draws them; at county size, likely as vector tiles made on the computer).
-  - TanStack Virtual for large tables
-  - Observable Plot or uPlot for charts
+  - Charts are SVG drawn by our own components (`screens/ValueCharts.tsx`, `TimeChart.tsx`…), at their width in pixels
+  - Tables are plain `<table>`s, sorted in `DataTable` and `ValueTable`; TanStack Virtual if one ever needs virtualising
 
 **Build stack** (all dev-time only; nothing here ships to users, who get static files):
 
 | Piece | Choice | Why | Not chosen |
 |---|---|---|---|
-| Type checker | `tsc --noEmit`, `strict` + `noUncheckedIndexedAccess` | The only full TypeScript checker. Bundlers *strip* types without checking them, so this runs separately in the editor, a pre-commit hook and CI | — |
+| Type checker | `tsc --noEmit`, `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` | The only full TypeScript checker. Bundlers *strip* types without checking them, so this runs separately in the editor, the build and CI | — |
 | Dev server and bundler | **Vite** (React plugin) | Hot reload in a normal browser while the Python backend runs. Proxies API calls to the backend with one line of config. Production build is a static bundle. Uses esbuild internally, so it's fast | *esbuild alone:* no hot reload or dev proxy. *Webpack:* slow and config-heavy. *Next.js / Turbopack:* server-oriented, not needed for a local SPA |
 | Backend API → TS types | **FastAPI** (pydantic) → OpenAPI → **`openapi-typescript`** + **`openapi-fetch`** | FastAPI emits OpenAPI from the same pydantic models the backend validates with. The generated types and a ~6 KB typed client mean a backend change that breaks the UI fails `tsc` | Hand-written client types, which drift |
 | Lint + format | **Biome** for formatting and general lint, plus **ESLint** limited to `eslint-plugin-react-hooks` and the React Compiler rules | Biome is fast with few dependencies. The hooks rules are React's main bug guard and only ship as ESLint plugins | Full ESLint + Prettier stack: more packages for little gain |
 | Unit tests | **Vitest** | Shares Vite's config and TS handling | Jest, which needs separate TS setup |
-| End-to-end tests | **Playwright** (Chromium already in the build environment) | Drives the real UI against the real backend | — |
+| End-to-end tests | **Playwright** (planned; Chromium is already in the build environment). Today the Python suite drives the real backend through its HTTP API, and CI opens the real window to check its menus | Drives the real UI against the real backend | — |
 | Packages | **npm** with a committed lockfile, `npm ci` in CI; Node LTS, dev only | Ships with Node, one less tool | pnpm (fine too; not worth the extra tool yet) |
-| Python side | **uv**, **ruff**, **pyright** (strict on Oakbox code) | Same "type checker first" rule for the backend | mypy (slower; pyright matches the editor) |
+| Python side | **uv**, **ruff**, **pyright** (standard mode) | Same "type checker first" rule for the backend | mypy (slower; pyright matches the editor) |
 
 **Styling and strings:**
 - plain CSS with design tokens (custom properties) for density and zoom
 - a typed string table (D13), so a missing translation key is a type error: the wording catalog, §6.6
 
-### 6.6 Wording: the catalog and live editing (done 2026-11-03)
+### 6.6 Wording: the catalog and live editing
 
 **Why:** the wording needs a big clean-up (about 15,100 words in the UI, half of it in 246 paragraph-length entries), done fastest by editing it in the running app and reviewing the result in git. The same move readies the copy for translation (D13).
 
-**The catalog.** The UI's wording (its copy) moves out of `strings.ts` (TypeScript: 1,800 strings, 336 functions, 63 lists) into a data file, `web/src/wording/en.json`, with the same nesting as today's `t`. Each value is an **ICU MessageFormat** message (the format translation tools read): `"Add field"`; `"{first} + {n, plural, one {# other field} other {# other fields}}"`; `"{mode, select, move {Moving…} other {Copying…}}"`; numbers as `{n, number}` (in the user's locale, as `toLocaleString` did). Lists stay JSON lists.
+**The catalog.** The UI's wording (its copy) is in a data file, `web/src/wording/en.json`, imported as `t`. Each value is an **ICU MessageFormat** message (the format translation tools read): `"Add field"`; `"{first} + {n, plural, one {# other field} other {# other fields}}"`; `"{mode, select, move {Moving…} other {Copying…}}"`; numbers as `{n, number}` (in the user's locale, as `toLocaleString` did). Lists stay JSON lists.
 - **Runtime:** `intl-messageformat` (FormatJS) formats each message, compiled once and cached.
 - **Types:** a generator reads `en.json` and writes `wording.gen.ts`: a message with no arguments is a `string`; one with arguments is a function of a named-argument object, typed from its placeholders (`plural` and `number` arguments are numbers, `select` a union of its cases, others strings). So `t.wizard.custom.title` stays a string and `t.x.plusOthers({ first, n })` is type-checked. CI checks the generated file is up to date, as it does for the API types.
 - **Lookup tables** (`checkNames`, `checkWhy`…: keys are ids from the backend) stay objects keyed by id; only their values are copy.
 - **What stays in code:** logic that isn't wording. About 20 of today's functions join lists, change case or do arithmetic; the code does that and passes the result in as an argument. A message never computes.
-- **The move is mechanical and checked:** a converter writes `en.json` from `strings.ts` (about 300 of the 336 functions convert automatically; the rest are listed for a hand pass), a codemod rewrites the call sites to named arguments, and the app must render the same text as before: every message is rendered with sample arguments before and after and compared, and screenshots of the main screens are compared pixel for pixel.
-- **Done (2026-11-03):** `en.json` holds 1,937 strings, 333 messages with arguments and 83 lists; 288 functions converted automatically, 45 by hand (5 as plain messages, 40 through `say` in `wording/logic.ts`, keeping their old arguments). 299 call sites were rewritten to named arguments. Every old function was rendered against the new catalog with sample arguments (38,127 comparisons, all the same but for fractional ordinals, "0.5th", which never occur), and 97 screens (every step of every tab) are identical, pixel for pixel and in their text. `wording/records.json` lists the lookup tables. `npm run wording:types` writes `wording.gen.ts`; CI and `npm run build` check it's up to date.
+- **History:** it moved out of `strings.ts` on 2026-11-03, checked by rendering every old function against the new catalog with sample arguments, and comparing screenshots of every step of every tab.
 - **Python's wording** (about 5,600 words: receipt notes, check wording, errors, the report) is the next bite, not this one.
 
 **Live editing (developer builds only).** `npm run dev:wording` runs the Vite dev server in `wordingedit` mode. Only that mode compiles the editor in (`__WORDING_EDIT__`); every other build has none of it (CI checks the shipped bundle).
@@ -1547,6 +1553,8 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 
 ## 8. Milestones
 
+**Where it stands (2026-11-05).** The plan below predates the feature-by-feature redesign (D41, §3.0), and M1–M3 were built in a different order from it: the guided build became the Data tab and its wizard (F3), and steps 1–7 run in the app (F4–F10), with the Windows installer, the Linux bundle and the optional engines. §3.0 says what's built and what isn't; the milestones are kept as they were planned.
+
 - **M0 — Spike.** Prove the packaging and the hardware assumptions. **Done**, including a real-data run on Petersburg. See [`docs/m0/REPORT.md`](docs/m0/REPORT.md).
   - A portable build runs Petersburg end to end on a clean Windows 10 VM with 8 GB RAM. The only online step is the prompted sample download.
   - Benchmark under 0.7 defaults (§5) on synthetic cities of 50k, 150k and 500k parcels.
@@ -1557,7 +1565,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
     2. **App:** start the app service, load the UI (its script must be served as JavaScript), create a project and add one of the downloaded files to it.
 
     When the app's own flow can run steps again, the smoke test goes back to driving it.
-  - **M1a, walking skeleton (done).** Real app shell: home screen, sample county download, steps 1–4 with live progress and Stop, and the results table with IAAO default targets. Engine changes: A1, A2, A3, A11, A12 (horizontal equity), plus a CatBoost Windows fix found by a user run. Bundles ship the app, and CI smoke-tests it end to end on Windows and Linux.
+  - **M1a, walking skeleton (done).** Real app shell: home screen, sample county download (since removed, D19), steps 1–4 with live progress and Stop, and the results table with IAAO default targets. Engine changes: A1, A2, A3, A11, A12 (horizontal equity), plus a CatBoost Windows fix found by a user run. Bundles ship the app, and CI smoke-tests it end to end on Windows and Linux.
   - **M1b, own data.** The guided build's frame (four-part stages, Looks right, Under the hood, staleness of decisions) and the first three setup stages: Basics, Your files and Stitch, with their quick checks. Fixed-width import with the PACS layout, tested on the Travis CAD export. Step 1's receipt (upstream A14 for its counts). The sample becomes a walkthrough of the stages built so far.
   - **M1c, trust the data.** Setup stages Columns and Sales basics; the sales funnel and the receipts for steps 2–4; Data health, Field profile, the "From a field" model group builder, the read-only sales register.
   - **M1d, hand it over.** PDF report, exports, help.
@@ -1581,7 +1589,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - Report presets and editable templates
   - Upstream: B1–B10
 - **M3 — "Build model values."**
-  - Step 5 (§3.0 F9): slice 1 (variables, models, Try, how they did), slice 2 (small groups, Finalize, model values checked), slice 3 (outliers, testing variables, per-group choices, why this value); speed tiers once measured
+  - Steps 5 and 6 (§3.0 F9; slices 1 and 2 built, slice 3 in part): slice 1 (variables, models, Try, how they did), slice 2 (small groups, Finalize, model values checked), slice 3 (outliers, testing variables, per-group choices, why this value); speed tiers once measured
   - CAMA export
   - Model summary report
   - Upstream: C1–C3
@@ -1606,8 +1614,8 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 ## 10. Open items
 **Resolved:**
 - GIS and Excel loaders go upstream into OpenAVMKit (B10).
-- OpenFreeMap is the map tile service.
-- Typst renders reports.
+- OpenFreeMap is the map tile service (not yet: the map uses OpenStreetMap's own tiles, §3.11).
+- Reports are printable HTML (F10, settled 2026-11-01; this replaced Typst).
 - The default variables are the big five plus location.
 - The IAAO default profile is accepted, to be revised later.
 - The frontend is React (§6.5).

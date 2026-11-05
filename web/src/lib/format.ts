@@ -7,10 +7,10 @@ export function num(v: number | null | undefined, digits = 0): string {
     : v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-/** A number with its sign: "+0.152", "−12.6" (a true minus). */
 /** A ratio, to three places. */
 export const ratioText = (v: number | null | undefined) => num(v, 3);
 
+/** A number with its sign: "+0.152", "−12.6" (a true minus). */
 export function signed(v: number, digits: number): string {
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(digits)}`;
 }

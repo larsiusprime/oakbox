@@ -1,8 +1,8 @@
 """The app service: a local HTTP API for the UI, plus the built UI itself.
 
-Binds to 127.0.0.1 only. The UI talks to it over JSON and server-sent events
-(SPEC §6). Types are pydantic models, exported as OpenAPI for the TypeScript
-client.
+Binds to 127.0.0.1 only. The UI talks to it over JSON, and polls a running step for
+its progress (docs/ARCHITECTURE.md). Types are pydantic models, exported as OpenAPI
+for the TypeScript client.
 """
 
 from __future__ import annotations

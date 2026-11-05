@@ -1,6 +1,6 @@
 """Start Oakbox: the local app service plus a window to show it in.
 
-Usage: python -m oakbox [--browser] [--port N] [--no-window] [--selftest-menus]
+Usage: python -m oakbox [--browser] [--port N] [--no-window] [--ui-url URL] [--selftest-menus]
 
 Opens a native window (Edge WebView2 on Windows, Qt on Linux). Where Qt can't open a
 window, or with --browser, it opens the UI in Chromium/Chrome "app" mode if available,

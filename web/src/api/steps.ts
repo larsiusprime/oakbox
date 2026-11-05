@@ -6,8 +6,8 @@ import type { components } from "./schema";
 
 type S = components["schemas"];
 
-/** Each step that runs the engine, and what its state route answers (app.py's _step_routes: the same routes for
- * every step). */
+/** Each step that runs the engine, and what its state route answers (routes/steps.py's _step_routes: the same routes
+ * for every step). */
 export type StepViews = {
   "bring-in": S["View"];
   assemble: S["AssembleView"];
