@@ -39,15 +39,19 @@ try {
 } catch (e) {}
 `;
 
-// Ready: the network quiet, no "Loading…" left on the page, and its main panel drawn. Quiet alone isn't enough: with
-// the CPU throttled, the page's script can take longer than the quiet spell to start asking for its data.
-async function ready(page) {
+// Ready: the network quiet, none of the app's "…" status lines left (Loading…, Reading the files…, Drawing the
+// parcels…), its main panel drawn, and on a page with a map, the map's canvas. Quiet alone isn't enough: with the CPU
+// throttled, the page's script can take longer than the quiet spell to start asking for its data.
+const BUSY = /^(Loading|Reading|Drawing|Checking the columns|Measuring|Working it out|Writing)\b.*…$/;
+
+async function ready(page, map) {
   const until = Date.now() + 300000;
   while (Date.now() < until) {
     await page.waitForLoadState("networkidle", { timeout: 300000 });
-    const loading = await page.getByText(/^Loading/).count();
+    const busy = await page.getByText(BUSY).count();
     const main = await page.locator(".wiz-main, .panel-body, main, .report").count();
-    if (!loading && main) return;
+    const drawn = !map || (await page.locator(".map-canvas canvas").count());
+    if (!busy && main && drawn) return;
     await page.waitForTimeout(250);
   }
   throw new Error("still loading after 300 s");
@@ -67,14 +71,15 @@ async function ready(page) {
     try {
       const t = Date.now();
       await page.goto(`${base}/#/projects/${pid}/${path}`, { waitUntil: "load", timeout: 180000 });
-      await ready(page);
+      const map = label.includes("(map)") || label.includes("on the map");
+      await ready(page, map && !press);
       if (press) {
         // The step in the tab's list, pressed as a user would (its timing includes the tab's overview first).
         const btn = page.getByRole("button", { name: press }).first();
         try {
           await btn.waitFor({ timeout: 60000 });
           await btn.click({ timeout: 60000 });
-          await ready(page);
+          await ready(page, map);
         } catch (e) {
           row.error = `no '${press}' step`;
         }

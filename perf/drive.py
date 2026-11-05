@@ -248,6 +248,9 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=8790)
     ap.add_argument("--home", type=Path, default=None, help="OAKBOX_HOME for the run (default: a new temp folder)")
     ap.add_argument("--ui", action="store_true", help="also time the pages, in a throttled headless Chromium")
+    ap.add_argument(
+        "--ui-only", default=None, metavar="PROJECT", help="time the pages of a project already in --home; no steps"
+    )
     a = ap.parse_args()
 
     home = a.home or Path(tempfile.mkdtemp(prefix="oakbox-perf-"))
@@ -286,8 +289,8 @@ def main() -> None:
             subprocess.run(["sh", "-c", "sync; echo 3 > /proc/sys/vm/drop_caches"], check=False)
         log(f"server up; profile {a.profile or 'none'}; data {a.data}")
         idle = meter.snapshot() if meter else {}
-        result = drive(api, a.data, meter, log)
-        if a.ui and result.get("project"):
+        result = {"project": a.ui_only, "steps": {}} if a.ui_only else drive(api, a.data, meter, log)
+        if (a.ui or a.ui_only) and result.get("project"):
             # The pages, timed in a throttled headless Chromium (perf/ui.js, Node's Playwright).
             slowdown = prof.ui_slowdown if prof else 1
             ui_out = a.out.with_suffix(".ui.json")
