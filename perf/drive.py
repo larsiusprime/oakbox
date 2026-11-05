@@ -261,11 +261,13 @@ def main() -> None:
 
     prof = profiles.PROFILES.get(a.profile) if a.profile else None
     meter = None
+    slower = None
     cmd = [sys.executable, "-X", "utf8", "-m", "oakbox", "--no-window", "--port", str(a.port)]
     env = os.environ | {"OAKBOX_HOME": str(home)}
     if prof:
         group = profiles.make_group(prof, f"oakbox-perf-{a.port}")
         cmd = profiles.wrap(group, cmd)
+        slower = profiles.Slower(prof, group)
         meter = profiles.Meter(group)
     server_log = a.out.with_suffix(".server.log").open("w", encoding="utf-8")
     server = subprocess.Popen(cmd, env=env, stdout=server_log, stderr=subprocess.STDOUT)
@@ -308,6 +310,8 @@ def main() -> None:
         a.out.write_text(json.dumps(result, indent=1), encoding="utf-8")
         log(f"wrote {a.out}")
     finally:
+        if slower:
+            slower.stop()
         server.terminate()
         try:
             server.wait(30)

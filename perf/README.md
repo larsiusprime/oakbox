@@ -30,7 +30,7 @@ ones county assessors' offices have.
 client and antivirus. Speeds are relative to the machine the run is on (the first runs: a 2.1 GHz cloud Xeon).
 
 What the profiles can't stand for: Windows itself (WebView2, antivirus scanning every file written, paths), an old
-chip's caches and missing instructions (a quota only slows it down), a hard disk's seek time, writes held back by a
+chip's caches and missing instructions (freezing the group part of the time only slows it down), a hard disk's seek time, writes held back by a
 slow disk (cgroup v1 only slows reads), paging to disk when memory runs out (here it's killed instead), and the
 downloads (OpenStreetMap, footprints, census, elevation: the runs are offline).
 

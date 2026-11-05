@@ -1,9 +1,9 @@
 """Machine profiles for performance runs, and the Linux cgroup (v1) limits and meters that stand them up.
 
-A profile caps what OAK box and every process it starts may use: how many cores (cpuset), how fast they run (a CFS
-quota: a crude stand-in for a slower chip), how much memory (a hard limit, with out-of-memory kills counted), and how
-fast the disk reads and writes (blkio bandwidth; seek time isn't modelled). Needs root and cgroup v1 controllers
-mounted at /sys/fs/cgroup/<controller>; elsewhere use no profile and the driver runs unconstrained.
+A profile caps what OAK box and every process it starts may use: how many cores (cpuset), how fast they run (the
+group frozen part of the time: a crude stand-in for a slower chip), how much memory (a hard limit, with out-of-memory
+kills counted), and how fast the disk reads (blkio bandwidth; seek time isn't modelled). Needs root and cgroup v1
+controllers mounted at /sys/fs/cgroup/<controller>; elsewhere use no profile and the driver runs unconstrained.
 
 The profiles (see perf/README.md for where each comes from):
 - vdi:      a virtual desktop session on a shared county host: 2 cores at 60%, 2 GB, ~50 MB/s storage.
@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path("/sys/fs/cgroup")
-CONTROLLERS = ("cpu", "cpuacct", "cpuset", "memory", "blkio")
+CONTROLLERS = ("cpu", "cpuacct", "cpuset", "memory", "blkio", "freezer")
 
 
 @dataclass
@@ -70,9 +70,7 @@ def make_group(p: Profile, name: str) -> str:
         raise ValueError(f"profile {p.name} wants {p.cores} cores; this machine has {cpus}")
     _w(g["cpuset"] / "cpuset.cpus", f"0-{p.cores - 1}" if p.cores > 1 else "0")
     _w(g["cpuset"] / "cpuset.mems", _r(ROOT / "cpuset" / "cpuset.mems") or "0")
-    period = 100_000
-    _w(g["cpu"] / "cpu.cfs_period_us", str(period))
-    _w(g["cpu"] / "cpu.cfs_quota_us", str(int(p.cores * p.speed * period)) if p.speed < 1 else "-1")
+    # Slower cores: Slower, below.
     _w(g["memory"] / "memory.limit_in_bytes", str(p.memory_mb * 2**20))
     if p.disk_mb_s:
         bps = p.disk_mb_s * 2**20
@@ -80,6 +78,39 @@ def make_group(p: Profile, name: str) -> str:
             _w(g["blkio"] / "blkio.throttle.read_bps_device", f"{dev} {bps}")
             _w(g["blkio"] / "blkio.throttle.write_bps_device", f"{dev} {bps}")
     return name
+
+
+class Slower:
+    """Slower cores: the run's group frozen (cgroup freezer) for (1 - speed) of every 100 ms. Every thread loses the
+    same share of its time, single-threaded steps included, which a CFS quota or a rival process can't do (a quota
+    caps the group's total, so one busy thread still gets a whole core; cgroup v1 spreads a rival's shares over the
+    cores it runs on). Measured on a Python loop: 0.75 gives 72% of full speed, 0.6 gives 55%. Waits on the disk or
+    the network stretch too, as they would on a machine that's busy with other things. Nothing when speed is 1."""
+
+    PERIOD = 0.1
+
+    def __init__(self, p: Profile, name: str):
+        self.state = ROOT / "freezer" / name / "freezer.state"
+        self.speed = p.speed
+        self.stopped = threading.Event()
+        self.thread = None
+        if p.speed < 1:
+            self.thread = threading.Thread(target=self._run, daemon=True)
+            self.thread.start()
+
+    def _run(self) -> None:
+        while not self.stopped.is_set():
+            time.sleep(self.PERIOD * self.speed)
+            _w(self.state, "FROZEN")
+            time.sleep(self.PERIOD * (1 - self.speed))
+            _w(self.state, "THAWED")
+
+    def stop(self) -> None:
+        self.stopped.set()
+        if self.thread:
+            self.thread.join()
+        if self.state.exists():
+            _w(self.state, "THAWED")
 
 
 def drop_group(name: str) -> None:
