@@ -17,15 +17,16 @@ router = APIRouter()
 @router.post("/api/projects/{project_id}/bring-in/run")
 def bring_in_run(project_id: str) -> bring_in.View:
     """Load and join the files with OpenAVMKit, in a process of its own."""
-    project = load_project(project_id)
-    problems = wizard_view(project).problems
-    if problems:
-        raise HTTPException(422, f"Fix on Data first: {problems[0]}")
-    projects.write_settings(project)
-    try:
-        bring_in.STEP.start(project_id, projects.project_dir(project_id), [])
-    except ValueError as e:
-        raise HTTPException(409, str(e)) from e
+    with projects.lock(project_id):  # the settings it starts with are the project's as it stands
+        project = load_project(project_id)
+        problems = wizard_view(project).problems
+        if problems:
+            raise HTTPException(422, f"Fix on Data first: {problems[0]}")
+        projects.write_settings(project)
+        try:
+            bring_in.STEP.start(project_id, projects.project_dir(project_id), [])
+        except ValueError as e:
+            raise HTTPException(409, str(e)) from e
     return bring_in_view(project)
 
 

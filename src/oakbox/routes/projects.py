@@ -11,7 +11,7 @@ from pydantic import Field
 
 from oakbox import datafiles, projects, steps, wizard
 from oakbox.datafiles import BaseModel
-from oakbox.routes.common import load_project
+from oakbox.routes.common import editing, load_project
 
 router = APIRouter()
 
@@ -152,13 +152,11 @@ def create_project(body: projects.NewProject) -> projects.Project:
 @router.patch("/api/projects/{project_id}/locale")
 def set_locale(project_id: str, body: projects.Locale) -> projects.Project:
     """Change the project's units, currency or number style (SPEC F1)."""
-    project = load_project(project_id)
-    if body.currency is not None and body.currency not in {c["code"] for c in projects.locales()["currencies"]}:
-        raise HTTPException(422, "Choose a currency from the list.")
-    for key, value in body.model_dump(exclude_none=True).items():
-        setattr(project, key, value)
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        if body.currency is not None and body.currency not in {c["code"] for c in projects.locales()["currencies"]}:
+            raise HTTPException(422, "Choose a currency from the list.")
+        for key, value in body.model_dump(exclude_none=True).items():
+            setattr(project, key, value)
     return project
 
 
@@ -171,11 +169,12 @@ def project_disk(project_id: str) -> DiskUsage:
 
 @router.delete("/api/projects/{project_id}")
 def delete_project(project_id: str) -> None:
-    load_project(project_id)
-    try:
-        projects.delete(project_id)
-    except OSError as e:
-        raise HTTPException(500, f"Couldn't move the project to the Recycle Bin: {e}") from e
+    with projects.lock(project_id):  # a change saved after it would bring oakbox.json back
+        load_project(project_id)
+        try:
+            projects.delete(project_id)
+        except OSError as e:
+            raise HTTPException(500, f"Couldn't move the project to the Recycle Bin: {e}") from e
 
 
 @router.post("/api/projects/{project_id}/show-in-folder")
@@ -197,29 +196,28 @@ def check_file(project_id: str, body: FilePath) -> datafiles.FileCheck:
 @router.post("/api/projects/{project_id}/files")
 def add_file(project_id: str, body: AddFile) -> projects.Project:
     """Move or copy a file into in/ and add its data.load entry (SPEC §3.0 F2)."""
-    project = load_project(project_id)
-    try:
-        entry = datafiles.add(
-            projects.project_dir(project_id) / "in",
-            body.path,
-            project.files,
-            body.mode,
-            body.name.strip(),
-            body.layer,
-            body.filename,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    project.files.append(entry)
-    wizard.update_base(project, projects.project_dir(project_id) / "in")
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        try:
+            entry = datafiles.add(
+                projects.project_dir(project_id) / "in",
+                body.path,
+                project.files,
+                body.mode,
+                body.name.strip(),
+                body.layer,
+                body.filename,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        project.files.append(entry)
+        wizard.update_base(project, projects.project_dir(project_id) / "in")
     return project
 
 
 @router.get("/api/projects/{project_id}")
 def get_project(project_id: str) -> ProjectDetail:
-    project = load_project(project_id)
-    folder = projects.project_dir(project_id)
-    projects.refresh_settings(project)
+    with projects.lock(project_id):  # refresh_settings may write settings.json
+        project = load_project(project_id)
+        folder = projects.project_dir(project_id)
+        projects.refresh_settings(project)
     return ProjectDetail(project=project, folder=str(folder), files=[_view(folder / "in", f) for f in project.files])

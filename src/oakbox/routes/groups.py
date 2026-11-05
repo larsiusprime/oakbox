@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 
 from oakbox import assemble, groups, projects
 from oakbox.datafiles import BaseModel
-from oakbox.routes.common import assemble_view, load_project
+from oakbox.routes.common import assemble_view, editing, load_project
 
 router = APIRouter()
 
@@ -47,26 +47,22 @@ def groups_state(project_id: str) -> groups.GroupsView:
 @router.post("/api/projects/{project_id}/groups/start")
 def groups_start(project_id: str, body: GroupsStart) -> groups.GroupsView:
     """Start from scratch (no groups yet) or from a suggested set made from the property-type fields."""
-    project = load_project(project_id)
-    pdir = projects.project_dir(project_id)
-    try:
-        project.groups = groups.suggest(pdir) if body.how == "suggested" else []
-    except LookupError as e:
-        raise HTTPException(409, str(e)) from e
-    project.groups_start = body.how
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        pdir = projects.project_dir(project_id)
+        try:
+            project.groups = groups.suggest(pdir) if body.how == "suggested" else []
+        except LookupError as e:
+            raise HTTPException(409, str(e)) from e
+        project.groups_start = body.how
     return _groups_view(project)
 
 
 @router.put("/api/projects/{project_id}/groups")
 def groups_save(project_id: str, body: GroupsBody) -> groups.GroupsView:
     """Save the groups, in order, and write them into the settings."""
-    project = load_project(project_id)
-    project.groups = groups.clean(projects.project_dir(project_id), body.groups)
-    project.groups_start = project.groups_start or "scratch"
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        project.groups = groups.clean(projects.project_dir(project_id), body.groups)
+        project.groups_start = project.groups_start or "scratch"
     return _groups_view(project)
 
 
@@ -117,9 +113,8 @@ def groups_shapes(project_id: str) -> FileResponse:
 @router.put("/api/projects/{project_id}/assemble/exports")
 def assemble_exports(project_id: str, body: AssembleExports) -> assemble.AssembleView:
     """Also write the output as GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets."""
-    project = load_project(project_id)
-    project.assemble_exports = sorted(set(body.exports))
-    projects.save(project)
+    with editing(project_id) as project:
+        project.assemble_exports = sorted(set(body.exports))
     return assemble_view(project)
 
 

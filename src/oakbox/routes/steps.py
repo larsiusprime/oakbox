@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from oakbox import assemble, bring_in, clean, final, model, prepare, projects, ratio, steps, vartest
-from oakbox.routes.common import assemble_view, bring_in_view, clean_view, load_project
+from oakbox.routes.common import assemble_view, bring_in_view, clean_view, editing, load_project
 
 router = APIRouter()
 
@@ -55,14 +55,15 @@ def _step_routes(
 
         @router.post(f"{base}/run", response_model=view_type, name=f"{name}_run", description=run_doc)
         def run(project_id: str) -> Any:
-            project = load_project(project_id)
-            pdir = projects.project_dir(project_id)
-            try:
-                if before is not None:
-                    before(project, pdir)
-                start(project, pdir)
-            except (ValueError, FileNotFoundError) as e:
-                raise HTTPException(409, str(e)) from e
+            with projects.lock(project_id):  # `before` may save the project; the run starts from it as saved
+                project = load_project(project_id)
+                pdir = projects.project_dir(project_id)
+                try:
+                    if before is not None:
+                        before(project, pdir)
+                    start(project, pdir)
+                except (ValueError, FileNotFoundError) as e:
+                    raise HTTPException(409, str(e)) from e
             return view(project)
 
     @router.post(f"{base}/stop", response_model=view_type, name=f"{name}_stop")
@@ -74,12 +75,11 @@ def _step_routes(
 
         @router.post(f"{base}/accept", response_model=view_type, name=f"{name}_accept")
         def accept_route(project_id: str) -> Any:
-            project = load_project(project_id)
-            try:
-                accept(project, projects.project_dir(project_id))
-            except ValueError as e:
-                raise HTTPException(409, str(e)) from e
-            projects.save(project)
+            with editing(project_id) as project:
+                try:
+                    accept(project, projects.project_dir(project_id))
+                except ValueError as e:
+                    raise HTTPException(409, str(e)) from e
             return view(project)
 
 

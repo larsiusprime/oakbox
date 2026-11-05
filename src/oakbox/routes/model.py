@@ -11,7 +11,7 @@ from pydantic import Field
 
 from oakbox import locstack, model, projects, smallgroups, varlists
 from oakbox.datafiles import BaseModel
-from oakbox.routes.common import load_project
+from oakbox.routes.common import editing, load_project
 
 router = APIRouter()
 
@@ -33,12 +33,11 @@ def model_setup(project_id: str) -> model.ModelSetup:
 
 @router.patch("/api/projects/{project_id}/model/setup")
 def model_change(project_id: str, body: model.ModelPatch) -> model.ModelSetup:
-    project = load_project(project_id)
-    try:
-        model.change(project, body)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        try:
+            model.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     try:
         return model.setup(project, projects.project_dir(project_id))
     except LookupError as e:
@@ -52,15 +51,14 @@ class GroupModelsBody(BaseModel):
 @router.put("/api/projects/{project_id}/model/groups/{group}")
 def model_group(project_id: str, group: str, body: GroupModelsBody) -> model.ModelSetup:
     """A model group's models: each an engine, a name, a variable list and (Multi-MRA, Local area) a location stack."""
-    project = load_project(project_id)
-    pdir = projects.project_dir(project_id)
-    try:
-        model.set_group(project, pdir, group, body.models)
-    except LookupError as e:
-        raise HTTPException(404, f"No model group {group}.") from e
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        pdir = projects.project_dir(project_id)
+        try:
+            model.set_group(project, pdir, group, body.models)
+        except LookupError as e:
+            raise HTTPException(404, f"No model group {group}.") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     try:
         return model.setup(project, pdir)
     except LookupError as e:
@@ -96,23 +94,22 @@ def varlists_view(project_id: str) -> varlists.VarListsView:
 @router.put("/api/projects/{project_id}/varlists")
 def varlists_change(project_id: str, body: VarListsBody) -> varlists.VarListsView:
     """Every variable list at once. A new list (no id) gets one from its name; an id is kept through renames."""
-    project = load_project(project_id)
-    pdir = projects.project_dir(project_id)
-    if body.lists is None:
-        project.model.lists = None
-    else:
-        taken = {x.id for x in body.lists if x.id}
-        given = []
-        for x in body.lists:
-            if not x.id:
-                x = x.model_copy(update={"id": varlists.new_id(taken, x.name)})
-                taken.add(x.id)
-            given.append(x)
-        try:
-            project.model.lists = varlists.check(project, given)
-        except ValueError as e:
-            raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        pdir = projects.project_dir(project_id)
+        if body.lists is None:
+            project.model.lists = None
+        else:
+            taken = {x.id for x in body.lists if x.id}
+            given = []
+            for x in body.lists:
+                if not x.id:
+                    x = x.model_copy(update={"id": varlists.new_id(taken, x.name)})
+                    taken.add(x.id)
+                given.append(x)
+            try:
+                project.model.lists = varlists.check(project, given)
+            except ValueError as e:
+                raise HTTPException(422, str(e)) from e
     return varlists.view(project, pdir)
 
 
@@ -132,13 +129,12 @@ def model_small(project_id: str) -> smallgroups.SmallGroupsView:
 
 @router.put("/api/projects/{project_id}/model/small/{group}")
 def model_small_choice(project_id: str, group: str, body: SmallChoice) -> smallgroups.SmallGroupsView:
-    project = load_project(project_id)
-    pdir = projects.project_dir(project_id)
-    try:
-        smallgroups.choose(project, pdir, group, body.choice)
-    except LookupError as e:
-        raise HTTPException(404, f"No model group {group}.") from e
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        pdir = projects.project_dir(project_id)
+        try:
+            smallgroups.choose(project, pdir, group, body.choice)
+        except LookupError as e:
+            raise HTTPException(404, f"No model group {group}.") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     return smallgroups.view(project, pdir)

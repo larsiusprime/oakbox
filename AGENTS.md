@@ -57,6 +57,10 @@ A helper two modules or screens need lives in a shared place, never in one of th
 `fields.names()`. A step module's `_private` names are its own: what another module needs is made public, under a
 name that says what it is.
 
+A route that changes a project changes it inside `with editing(project_id) as project:` (`routes/common.py`; with
+`settings=True` when settings.json follows from the change), or holds `projects.lock(project_id)` from loading it to
+saving it. The page can send two changes at once, and without the lock the second save undoes the first.
+
 ## Screens
 
 - **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a

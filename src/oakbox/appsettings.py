@@ -10,6 +10,7 @@ it, and these settings in ``<OAKBOX_HOME>/.oakbox``.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -131,9 +132,54 @@ def _path() -> Path:
 
 
 def load() -> AppSettings:
+    """The settings. A file that can't be read whole (edited by hand, damaged, from a newer OAK box) gives what can
+    still be read of it, the rest as default, and a copy is kept beside it before the next save writes over it: the
+    list of where projects are is never lost to one bad setting."""
+    path = _path()
     try:
-        return AppSettings.model_validate_json(_path().read_text(encoding="utf-8"))
-    except (FileNotFoundError, ValueError):
+        data = path.read_bytes()
+    except FileNotFoundError:
+        return AppSettings()
+    try:
+        return AppSettings.model_validate_json(data)
+    except (ValueError, TypeError):  # TypeError: a validator handed a value of the wrong kind (a zoom of null)
+        _keep_damaged(path, data)
+        return _salvage(data)
+
+
+DAMAGED = "settings.damaged.json"
+
+
+def _keep_damaged(path: Path, data: bytes) -> None:
+    """A copy of a settings file that can't be read, beside it, for someone to look at."""
+    copy = path.with_name(DAMAGED)
+    try:
+        if not copy.is_file() or copy.read_bytes() != data:
+            copy.write_bytes(data)
+    except OSError:
+        pass  # the settings still load; only the copy is missing
+
+
+def _salvage(data: bytes) -> AppSettings:
+    """Each setting that reads on its own, and each project folder that's a name and a folder."""
+    try:
+        raw = json.loads(data)
+    except ValueError:
+        return AppSettings()
+    if not isinstance(raw, dict):
+        return AppSettings()
+    kept: dict[str, object] = {}
+    for key, value in raw.items():
+        if key == "projects" and isinstance(value, dict):
+            value = {k: v for k, v in value.items() if isinstance(k, str) and isinstance(v, str)}
+        try:
+            AppSettings.model_validate({key: value})
+        except (ValueError, TypeError):
+            continue
+        kept[key] = value
+    try:
+        return AppSettings.model_validate(kept)
+    except (ValueError, TypeError):
         return AppSettings()
 
 

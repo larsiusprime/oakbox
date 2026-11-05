@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from oakbox import final, projects, ratio, report
-from oakbox.routes.common import load_project
+from oakbox.routes.common import editing, load_project
 
 router = APIRouter()
 
@@ -27,12 +27,11 @@ def ratio_setup(project_id: str) -> ratio.RatioSetup:
 
 @router.patch("/api/projects/{project_id}/ratio/setup")
 def ratio_change(project_id: str, body: ratio.RatioPatch) -> ratio.RatioSetup:
-    project = load_project(project_id)
-    try:
-        ratio.change(project, body)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        try:
+            ratio.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     try:
         return ratio.setup(project, projects.project_dir(project_id))
     except LookupError as e:
@@ -82,12 +81,11 @@ def report_view(project_id: str) -> report.ReportView:
 
 @router.patch("/api/projects/{project_id}/report")
 def report_change(project_id: str, body: report.ReportPatch) -> report.ReportView:
-    project = load_project(project_id)
-    try:
-        report.change(project, body)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        try:
+            report.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     return report.view(project, projects.project_dir(project_id))
 
 

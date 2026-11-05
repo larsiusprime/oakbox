@@ -10,7 +10,7 @@ from pydantic import Field
 
 from oakbox import datafiles, enrichments, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
-from oakbox.routes.common import file_entry, load_project, wizard_view
+from oakbox.routes.common import editing, file_entry, load_project, wizard_view
 
 router = APIRouter()
 
@@ -134,27 +134,29 @@ def get_names(project_id: str, format: names.FormatId | None = None, pattern: st
 @router.put("/api/projects/{project_id}/names")
 def set_names(project_id: str, body: NamesBody) -> names.NamesView:
     """How the deed names are written: one of the formats, or a regular expression with a surname group."""
-    project = load_project(project_id)
-    try:
-        names.save(project, body.format, body.pattern)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        try:
+            names.save(project, body.format, body.pattern)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     return names.view(project, projects.project_dir(project_id) / "in")
 
 
+def _apply(project_id: str, change) -> projects.Project:
+    """A change to the project made by the wizard: saved with its settings.json; 404 for an unknown step or
+    field, 422 for a change that can't be made."""
+    with editing(project_id, settings=True) as project:
+        try:
+            change(project, projects.project_dir(project_id) / "in")
+        except LookupError as e:
+            raise HTTPException(404, f"No such step or field: {e}") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+    return project
+
+
 def _change(project_id: str, change) -> wizard.Wizard:
-    project = load_project(project_id)
-    try:
-        change(project, projects.project_dir(project_id) / "in")
-    except LookupError as e:
-        raise HTTPException(404, f"No such step or field: {e}") from e
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
-    projects.write_settings(project)
-    return wizard_view(project)
+    return wizard_view(_apply(project_id, change))
 
 
 @router.get("/api/projects/{project_id}/wizard")
@@ -425,8 +427,8 @@ def wizard_enrich(project_id: str) -> enrichments.EnrichView:
 @router.put("/api/projects/{project_id}/wizard/enrich")
 def set_wizard_enrich(project_id: str, body: enrichments.Enrichments) -> enrichments.EnrichView:
     """Choose the enrichments and their options (F3e)."""
-    _change(project_id, lambda p, _d: enrichments.set_enrichments(p, body))
-    return wizard.enrich_view(load_project(project_id), projects.project_dir(project_id) / "in")
+    project = _apply(project_id, lambda p, _d: enrichments.set_enrichments(p, body))
+    return wizard.enrich_view(project, projects.project_dir(project_id) / "in")
 
 
 @router.get("/api/projects/{project_id}/wizard/layers/{name}/map")
@@ -450,10 +452,8 @@ def wizard_map(project_id: str) -> wizard.MapView:
 @router.put("/api/projects/{project_id}/center")
 def set_center(project_id: str, body: projects.Center | None = None) -> wizard.MapView:
     """Set the centre polar coordinates are measured from; none: the middle of the parcels (F3d)."""
-    project = load_project(project_id)
-    project.center = body
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        project.center = body
     return wizard.map_view(project, projects.project_dir(project_id) / "in")
 
 

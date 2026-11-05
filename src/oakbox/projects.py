@@ -22,6 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import uuid
 from functools import cache
 from importlib import resources
@@ -270,10 +271,23 @@ def load(project_id: str) -> Project:
 
 
 def save(project: Project, folder: Path | None = None) -> None:
-    from oakbox import atomic
-
+    """Write oakbox.json whole. A change loads the project, changes it and saves it: hold `lock` from the load to
+    the save (routes/common.editing does), or two changes at once each save what they loaded, the second undoing
+    the first."""
     folder = folder or project_dir(project.id)
     atomic.save_text(folder / "oakbox.json", project.model_dump_json(indent=2))
+
+
+# One lock per project, held by a change from loading the project to saving it: the app answers requests on several
+# threads, and the page can send two changes at once (a step shown while a field is set).
+_locks: dict[str, threading.RLock] = {}
+_locks_guard = threading.Lock()
+
+
+def lock(project_id: str) -> threading.RLock:
+    """The project's lock. Re-entrant, so code holding it can call code that takes it again."""
+    with _locks_guard:
+        return _locks.setdefault(project_id, threading.RLock())
 
 
 # ---------- Creating ----------
