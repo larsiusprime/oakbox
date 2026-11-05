@@ -518,7 +518,8 @@ def shapes_path(project_dir: Path) -> Path:
     stamp = _stamp(src)
     out = project_dir / "out" / "oakbox" / "groups" / "shapes.geojson"
     meta = out.with_suffix(".json")
-    if out.is_file() and meta.is_file() and json.loads(meta.read_text(encoding="utf-8")).get("from") == list(stamp):
+    made = json.loads(meta.read_text(encoding="utf-8")) if out.is_file() and meta.is_file() else {}
+    if made.get("from") == list(stamp) and made.get("v") == SHAPES_VERSION:
         return out
     import geopandas as gpd
 
@@ -532,17 +533,27 @@ def shapes_path(project_dir: Path) -> Path:
         feet = "foot" in str(gdf.crs.axis_info[0].unit_name).lower() if gdf.crs.axis_info else False
         gdf["geometry"] = gdf.geometry.simplify(1.5 if feet else 0.5)
     gdf = gdf.set_crs(gdf.crs or 4326).to_crs(4326) if gdf.crs else gdf
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(_features(gdf.geometry.to_numpy()), encoding="utf-8")
+    meta.write_text(json.dumps({"from": list(stamp), "v": SHAPES_VERSION}), encoding="utf-8")
+    return out
+
+
+# The shapes file's make: a new one is made when it changes (2: flat, no heights).
+SHAPES_VERSION = 2
+
+
+def _features(geoms) -> str:
+    """A FeatureCollection, a feature per shape in order (id: its index), flat: a height on each corner (PolygonZ, as
+    county files often have, sometimes a huge "no data") would draw each parcel up in the air, out of sight."""
     import shapely
 
-    geoms = shapely.to_geojson(gdf.geometry.to_numpy())  # None for a parcel with no shape
+    texts = shapely.to_geojson(shapely.force_2d(geoms))  # None for a parcel with no shape
     body = ",".join(
         f'{{"type":"Feature","id":{i},"properties":{{}},"geometry":{_round(g) if g else "null"}}}'
-        for i, g in enumerate(geoms)
+        for i, g in enumerate(texts)
     )
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text('{"type":"FeatureCollection","features":[' + body + "]}", encoding="utf-8")
-    meta.write_text(json.dumps({"from": list(stamp)}), encoding="utf-8")
-    return out
+    return '{"type":"FeatureCollection","features":[' + body + "]}"
 
 
 def _round(text: str) -> str:

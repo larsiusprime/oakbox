@@ -149,3 +149,18 @@ def test_tag_and_write_notebook_1s_output(brought_in_client, brought_in):
     view = client.get(url).json()
     assert view["stale"] and not view["accepted"]
     assert client.post(f"{url}/accept").status_code == 409
+
+
+def test_shapes_for_the_map_are_flat():
+    """A parcel with a height on each corner (PolygonZ, even a huge "no data") is drawn flat on the map."""
+    import json
+
+    import numpy as np
+    from shapely.geometry import Polygon
+
+    from oakbox.groups import _features
+
+    z = Polygon([(0, 0, -1.7e308), (1, 0, -1.7e308), (1, 1, -1.7e308)])
+    fc = json.loads(_features(np.array([z, None], dtype=object)))
+    ring = fc["features"][0]["geometry"]["coordinates"][0]
+    assert all(len(p) == 2 for p in ring) and fc["features"][1]["geometry"] is None

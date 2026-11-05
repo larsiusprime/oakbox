@@ -309,6 +309,9 @@ def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
         raise ValueError(f"{name} has no coordinate system, so it can't be placed on a map.")
     shapes = gpd.GeoDataFrame(geometry=gdf.geometry.iloc[:2000], crs=gdf.crs).to_crs(4326)
     shapes["geometry"] = shapes.geometry.simplify(0.00005, preserve_topology=True)
+    import shapely
+
+    shapes["geometry"] = shapely.force_2d(shapes.geometry.to_numpy())  # flat: a height draws it out of sight
     return LayerMap(shapes=_json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
 
 
