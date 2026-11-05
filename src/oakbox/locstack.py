@@ -17,6 +17,7 @@ from pydantic import Field
 
 from oakbox import clean, fields
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotReady
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -108,7 +109,7 @@ def preview(project_dir: Path, group: str, broadest_first: list[str]) -> StackPr
     names = {x.field: x.name for x in offered(project_dir)}
     df = _group(project_dir, group, list(names))
     if df is None:
-        raise LookupError("Prepare the fields first: the stack is read from what it writes.")
+        raise NotReady("Prepare the fields first: the stack is read from what it writes.")
     levels: list[Level] = []
     above: str | None = None
     for f in broadest_first:

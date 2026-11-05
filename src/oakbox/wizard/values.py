@@ -6,6 +6,7 @@ compared as pass_through models.
 
 from __future__ import annotations
 
+from oakbox.errors import NotFound
 from oakbox.fields import VALUE_PARTS, VALUE_SLOTS
 from oakbox.projects import Project
 from oakbox.valuesets import ROLL, ValueSet, value_field, value_sets
@@ -51,7 +52,7 @@ def change_value_set(project: Project, set_id: str, name: str | None, roll: bool
     sets = list(value_sets(project))
     v = next((x for x in sets if x.id == set_id), None)
     if v is None:
-        raise LookupError(set_id)
+        raise NotFound(set_id)
     if name is not None:
         name = name.strip()
         if not name:
@@ -83,7 +84,7 @@ def remove_value_set(project: Project, set_id: str) -> None:
     """Take a set away, and its fields from every file."""
     sets = list(value_sets(project))
     if not any(v.id == set_id for v in sets):
-        raise LookupError(set_id)
+        raise NotFound(set_id)
     for part in VALUE_PARTS:
         key = value_field(set_id, part)
         for f in project.files:

@@ -22,6 +22,7 @@ from pydantic import Field
 
 from oakbox import cells, clean, fields, steps
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotReady
 from oakbox.valuesets import ROLL, ValueSet, loaded_value_sets, value_field
 
 MODULE = "ratio"
@@ -379,7 +380,7 @@ def setup(project, project_dir: Path) -> RatioSetup:
     s: RatioState = project.ratio
     sales = _sales(project_dir)
     if sales is None:
-        raise LookupError("Check sales first: this starts from its hand-off.")
+        raise NotReady("Check sales first: this starts from its hand-off.")
     universe_path = project_dir / "out" / "look" / "2-clean-universe.parquet"
     universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
     start, end, proposed = window(project, sales)
@@ -585,21 +586,30 @@ class RatioReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-def settings_key(project, project_dir: Path) -> dict:
-    """What a run depends on: the Check sales run it starts from, and the calls."""
+def study_calls(project, project_dir: Path) -> dict:
+    """The calls that decide how values are studied against the sales: the window, the price, the trimming, the
+    standards, the classes and the region. Checking the roll's values and Finalize's study of the model values both
+    depend on them, so a new call goes here, for both."""
     start, end, _ = window(project, project_dir=project_dir)
     s: RatioState = project.ratio
     return {
-        "clean": clean.STEP.ran_at(project_dir),
-        "fields": [value_field(v.id) for v in checked_sets(project)],
         "window": [str(start), str(end)],
         "price": s.price,
         "trim": s.trim,
         "standards": [x.model_dump(exclude={"groups"}) for x in standards(project)],
         "classes": classes(project),
+        "region": region(project),
+    }
+
+
+def settings_key(project, project_dir: Path) -> dict:
+    """What a run depends on: the Check sales run it starts from, the values checked, and the study's calls."""
+    return {
+        "clean": clean.STEP.ran_at(project_dir),
+        "fields": [value_field(v.id) for v in checked_sets(project)],
         "groups": [(g.id, g.name) for g in checked_groups(project)],
         "names": [v.name for v in checked_sets(project)],
-        "region": region(project),
+        **study_calls(project, project_dir),
     }
 
 

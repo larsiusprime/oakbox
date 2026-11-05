@@ -61,9 +61,20 @@ const ALSO: Partial<Record<StepId, string[]>> = {
 };
 
 /** Something about a step changed (a call, a mark, a run): ask it again (unless `self` is false: the caller has
- * its new state), what else its screen shows, and every step after it. */
-export function stepChanged(queryClient: QueryClient, projectId: string, id: StepId, self = true): void {
-  const keys = [...(self ? [id] : []), ...(ALSO[id] ?? []), ...stepsAfter(id)];
+ * its new state), what else its screen shows, and every step after it but those in `leave` (a screen that stays as
+ * it is while the user works through it; the steps after it are still asked). */
+export function stepChanged(
+  queryClient: QueryClient,
+  projectId: string,
+  id: StepId,
+  self = true,
+  leave: readonly StepId[] = [],
+): void {
+  const keys = [
+    ...(self ? [id] : []),
+    ...(ALSO[id] ?? []),
+    ...stepsAfter(id).filter((k) => !leave.includes(k)),
+  ];
   for (const k of keys) void queryClient.invalidateQueries({ queryKey: [k, projectId] });
 }
 

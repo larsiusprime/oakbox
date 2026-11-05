@@ -24,6 +24,7 @@ from pydantic import Field
 
 from oakbox import assemble, bring_in, cells, fields, names, steps
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -215,7 +216,7 @@ def time_file(project, project_dir: Path, group: str, source: Path) -> TimeFileC
     from openavmkit.time_adjustment import read_schedule
 
     if group not in {g.id for g in project.groups}:
-        raise LookupError(group)
+        raise NotFound(group)
     if not source.is_file():
         return TimeFileCheck(ok=False, problems=[f"There's no file at {source}."])
     schedule, problems = read_schedule(str(source))
@@ -1339,7 +1340,7 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
 
     item = next((i for i in _items(project, project_dir) if i.key_sale == key_sale), None)
     if item is None:
-        raise LookupError(key_sale)
+        raise NotFound(key_sale)
     r = _review(project_dir)
     row = r[r["key_sale"] == key_sale].iloc[0]
     unit = "sqft" if project.units == "imperial" else "sqm"

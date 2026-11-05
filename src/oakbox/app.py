@@ -14,12 +14,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from oakbox import __version__
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound, NotReady
 from oakbox.routes import app_settings, bring_in, clean, engines, groups, model, projects, steps, values, wizard
 
 WEB_DIST = Path(__file__).parent / "web"
@@ -77,6 +78,16 @@ def create_app() -> FastAPI:
     # The API's own version, not the app's (that's /api/version): web/openapi.json is checked in, and shouldn't
     # change with every release.
     app = FastAPI(title="OAK box", version="1", lifespan=_lifespan)
+
+    # What a route didn't catch itself: an earlier step to do first (409), or something not there (404), in the
+    # same shape as an HTTPException's answer. Anything else is a bug: a 500, its traceback in the log.
+    @app.exception_handler(NotReady)
+    def not_ready(_request: Request, e: NotReady) -> JSONResponse:
+        return JSONResponse({"detail": str(e)}, status_code=409)
+
+    @app.exception_handler(NotFound)
+    def not_found(_request: Request, e: NotFound) -> JSONResponse:
+        return JSONResponse({"detail": f"Not found: {e}"}, status_code=404)
 
     @app.get("/api/version")
     def version() -> Versions:

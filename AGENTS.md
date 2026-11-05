@@ -61,6 +61,10 @@ A route that changes a project changes it inside `with editing(project_id) as pr
 `settings=True` when settings.json follows from the change), or holds `projects.lock(project_id)` from loading it to
 saving it. The page can send two changes at once, and without the lock the second save undoes the first.
 
+What a request names and isn't there raises `errors.NotFound` (404); an earlier step that has to run first raises
+`errors.NotReady` (409), its message saying which. Routes catch those, never `LookupError` itself, so a `KeyError`
+from a bug stays a 500 with its traceback.
+
 ## Screens
 
 - **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a

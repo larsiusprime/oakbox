@@ -17,6 +17,7 @@ from pydantic import Field
 
 from oakbox import model
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound
 
 MIN_SALES = 15
 SANE = (0.5, 2.0)
@@ -115,7 +116,7 @@ def choose(project, project_dir: Path, group: str, choice: Choice) -> None:
     """Leave a flagged group unvalued, or model it anyway (only if some model produced values for it)."""
     v = next((x for x in view(project, project_dir).groups if x.id == group), None)
     if v is None:
-        raise LookupError(group)
+        raise NotFound(group)
     if choice == "model" and not v.can_model:
         raise ValueError(f"{v.name} can't be modeled: no model produced values for it.")
     if choice == "leave":

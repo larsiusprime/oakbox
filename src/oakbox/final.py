@@ -100,19 +100,13 @@ def unvalued_groups(project, project_dir: Path) -> list[str]:
 
 
 def settings_key(project, project_dir: Path) -> dict:
-    """What it depends on: the try it finalizes, the groups left unvalued, and the study's calls (step 4's)."""
-    start, end, _ = ratio.window(project, project_dir=project_dir)
-    s: ratio.RatioState = project.ratio
+    """What it depends on: the try it finalizes, the groups left unvalued, the roll it compares with, and the
+    study's calls (Check my values')."""
     return {
         "try": model.STEP.ran_at(project_dir),
         "unvalued": unvalued_groups(project, project_dir),
-        "window": [str(start), str(end)],
-        "price": s.price,
-        "trim": s.trim,
-        "standards": [x.model_dump(exclude={"groups"}) for x in ratio.standards(project)],
-        "classes": ratio.classes(project),
-        "region": ratio.region(project),
         "roll": _roll(project),
+        **ratio.study_calls(project, project_dir),
     }
 
 

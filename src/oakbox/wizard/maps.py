@@ -16,6 +16,7 @@ from oakbox.datafiles import (
     DataFile,
     Overlay,
 )
+from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.files import Files, _by_key, base_file, file_stamp
 from oakbox.wizard.models import Check, LayerView, Left
@@ -188,7 +189,7 @@ def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | No
     """Make a file a map layer used as said (stamp or distance); None sets it aside."""
     entry = next((f for f in project.files if f.name == name), None)
     if entry is None:
-        raise LookupError(name)
+        raise NotFound(name)
     if overlay is None:
         entry.holds, entry.overlay = "unused", None
         return
@@ -242,7 +243,7 @@ def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
 
     entry = next((f for f in project.files if f.name == name and f.holds == "overlay"), None)
     if entry is None:
-        raise LookupError(name)
+        raise NotFound(name)
     gdf = _geo(in_dir, entry)
     if gdf.crs is None:
         raise ValueError(f"{name} has no coordinate system, so it can't be placed on a map.")

@@ -20,6 +20,7 @@ from pydantic import Field
 
 from oakbox import assemble, cells, clean, steps
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound
 
 MODULE = "time_preview"
 
@@ -254,11 +255,11 @@ def detail(project_dir: Path, group: str) -> TimeDetail:
     path = out_dir(project_dir) / "detail.json"
     data = json.loads(path.read_text(encoding="utf-8")).get(group) if path.is_file() else None
     if data is None:
-        raise LookupError(group)
+        raise NotFound(group)
     try:
         return TimeDetail.model_validate(data)
     except ValueError as e:  # written by an older OAK box: work it out again
-        raise LookupError(group) from e
+        raise NotFound(group) from e
 
 
 class TimePreview(BaseModel):

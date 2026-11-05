@@ -11,6 +11,7 @@ from pydantic import Field
 
 from oakbox import locstack, model, projects, smallgroups, varlists
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound, NotReady
 from oakbox.routes.common import editing, load_project
 
 router = APIRouter()
@@ -27,7 +28,7 @@ def model_setup(project_id: str) -> model.ModelSetup:
     project = load_project(project_id)
     try:
         return model.setup(project, projects.project_dir(project_id))
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -40,7 +41,7 @@ def model_change(project_id: str, body: model.ModelPatch) -> model.ModelSetup:
             raise HTTPException(422, str(e)) from e
     try:
         return model.setup(project, projects.project_dir(project_id))
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -55,13 +56,13 @@ def model_group(project_id: str, group: str, body: GroupModelsBody) -> model.Mod
         pdir = projects.project_dir(project_id)
         try:
             model.set_group(project, pdir, group, body.models)
-        except LookupError as e:
+        except NotFound as e:
             raise HTTPException(404, f"No model group {group}.") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
     try:
         return model.setup(project, pdir)
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -73,7 +74,7 @@ def model_stack(
     load_project(project_id)
     try:
         return locstack.preview(projects.project_dir(project_id), group, fields or [])
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -133,7 +134,7 @@ def model_small_choice(project_id: str, group: str, body: SmallChoice) -> smallg
         pdir = projects.project_dir(project_id)
         try:
             smallgroups.choose(project, pdir, group, body.choice)
-        except LookupError as e:
+        except NotFound as e:
             raise HTTPException(404, f"No model group {group}.") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e

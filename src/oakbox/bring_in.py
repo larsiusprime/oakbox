@@ -30,6 +30,7 @@ from pydantic import Field
 from oakbox import steps
 from oakbox.datafiles import BaseModel
 from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
+from oakbox.errors import NotFound
 
 ROW_GROUP = 1_000
 PAGE = 50
@@ -229,7 +230,7 @@ def _rows_path(project_dir: Path, name: str) -> Path:
     if name in ("universe", "sales"):
         return base / f"{name}.parquet"
     if not name.replace("_", "").isalnum():
-        raise LookupError(name)
+        raise NotFound(name)
     return base / "rows" / f"{name}.parquet"
 
 
@@ -277,7 +278,7 @@ def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
 
     path = _rows_path(project_dir, name)
     if not path.is_file():
-        raise LookupError(name)
+        raise NotFound(name)
     pf = pq.ParquetFile(path)
     total = pf.metadata.num_rows
     offset = max(0, min(offset, max(0, total - 1)))
@@ -397,10 +398,10 @@ def profile(
     from oakbox.wizard import short_number, sort_counts
 
     if name not in ("universe", "sales"):
-        raise LookupError(name)
+        raise NotFound(name)
     path = _rows_path(project_dir, name)
     if not path.is_file() or field not in pq.ParquetFile(path).schema_arrow.names:
-        raise LookupError(field)
+        raise NotFound(field)
     s = pd.read_parquet(path, columns=[field])[field]
     rows, filled = len(s), s.dropna()
     stats: list[Stat] = []
@@ -462,7 +463,7 @@ def csv_chunks(project_dir: Path, name: str):
 
     path = _rows_path(project_dir, name)
     if not path.is_file():
-        raise LookupError(name)
+        raise NotFound(name)
     pf = pq.ParquetFile(path)
     for g in range(pf.num_row_groups):
         yield pf.read_row_group(g).to_pandas().to_csv(index=False, header=g == 0)

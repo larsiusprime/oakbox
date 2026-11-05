@@ -63,6 +63,7 @@ def _find(files: Files, main: DataFile, entry: DataFile, key: str) -> str | None
 
 def propose(project, in_dir: Path, entry: DataFile) -> None:
     """Match an appended file's columns to the main file's fields, never over one already chosen."""
+    from oakbox.errors import NotFound
     from oakbox.wizard.core import made_sale_id, set_field
 
     main = main_of(project, entry.holds or "")
@@ -77,7 +78,7 @@ def propose(project, in_dir: Path, entry: DataFile) -> None:
             continue
         try:
             set_field(project, in_dir, key, entry.name, column, False, only=entry.name)
-        except (ValueError, LookupError):
+        except (ValueError, NotFound):
             continue
         copy_rule(main, entry, key)
     if entry.holds == "sale_rows":

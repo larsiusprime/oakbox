@@ -10,6 +10,7 @@ from pydantic import Field
 
 from oakbox import datafiles, enrichments, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
+from oakbox.errors import NotFound
 from oakbox.routes.common import editing, file_entry, load_project, wizard_view
 
 router = APIRouter()
@@ -148,7 +149,7 @@ def _apply(project_id: str, change) -> projects.Project:
     with editing(project_id, settings=True) as project:
         try:
             change(project, projects.project_dir(project_id) / "in")
-        except LookupError as e:
+        except NotFound as e:
             raise HTTPException(404, f"No such step or field: {e}") from e
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
@@ -290,7 +291,7 @@ def wizard_rule_preview(project_id: str, key: str, body: datafiles.Rule) -> wiza
     project = load_project(project_id)
     try:
         return wizard.rule_preview(project, projects.project_dir(project_id) / "in", key, body)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No such field: {e}") from e
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
@@ -335,7 +336,7 @@ def wizard_column_values(
             sort=sort,
             desc=desc,
         )
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No column {column} in {name}.") from e
 
 
@@ -437,7 +438,7 @@ def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:
     project = load_project(project_id)
     try:
         return wizard.layer_map(project, projects.project_dir(project_id) / "in", name)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No such layer: {e}") from e
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
@@ -477,7 +478,7 @@ def wizard_numbers(project_id: str, name: str, body: WizardNumbers) -> wizard.Nu
         return wizard.number_preview(
             project, projects.project_dir(project_id) / "in", name, body.key, body.column, body.format
         )
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"{body.key} isn't an amount of money.") from e
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
@@ -488,7 +489,7 @@ def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
     """Columns that look like quality or condition, checked over every row, side by side (F3d)."""
     try:
         return wizard.candidates(load_project(project_id), projects.project_dir(project_id) / "in", key)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
 
 
@@ -504,7 +505,7 @@ def wizard_scale(project_id: str, key: str, body: WizardColumnRef) -> wizard.Sca
             body.column,
             body.scale,
         )
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
@@ -517,7 +518,7 @@ def wizard_tiers(project_id: str, key: str, body: WizardColumnRef) -> wizard.Tie
         return wizard.tiers_preview(
             load_project(project_id), projects.project_dir(project_id) / "in", key, body.file, body.column
         )
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
     except ValueError as e:
         raise HTTPException(422, str(e)) from e

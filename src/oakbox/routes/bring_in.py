@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from oakbox import bring_in, projects, wizard
+from oakbox.errors import NotFound
 from oakbox.routes.common import bring_in_view, load_project, wizard_view
 
 router = APIRouter()
@@ -48,7 +49,7 @@ def bring_in_rows(project_id: str, name: str, offset: int = 0, limit: int = brin
     load_project(project_id)
     try:
         return bring_in.page(projects.project_dir(project_id), name, offset, limit)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No rows called {name}: bring in data first.") from e
 
 
@@ -66,7 +67,7 @@ def bring_in_field(
     load_project(project_id)
     try:
         return bring_in.profile(projects.project_dir(project_id), name, field, search, sort, desc)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No field {field} in {name}: bring in data first.") from e
 
 
@@ -78,7 +79,7 @@ def bring_in_csv(project_id: str, name: str) -> StreamingResponse:
     try:
         chunks = bring_in.csv_chunks(pdir, name)
         first = next(chunks)
-    except (LookupError, StopIteration) as e:
+    except (NotFound, StopIteration) as e:
         raise HTTPException(404, f"No rows called {name}: bring in data first.") from e
 
     def body():

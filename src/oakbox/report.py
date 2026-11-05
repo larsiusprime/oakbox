@@ -18,6 +18,7 @@ from pydantic import Field
 
 from oakbox import final, ratio
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotReady
 
 Format = Literal["csv", "gpkg", "xlsx", "shp", "parquet"]
 FORMATS: dict[Format, tuple[str, str]] = {
@@ -39,7 +40,7 @@ def out_dir(project_dir: Path) -> Path:
 def _receipt(project_dir: Path) -> final.FinalReceipt:
     r, _ = final.STEP.ran(project_dir)
     if r is None:
-        raise LookupError("Finalize first: there are no model values yet.")
+        raise NotReady("Finalize first: there are no model values yet.")
     return r
 
 

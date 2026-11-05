@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Radio, RadioGroup } from "react-aria-components";
 import { navigate } from "../App";
+import { useMarkSale } from "../api/clean";
 import {
   api,
   type FieldResult,
@@ -10,7 +11,7 @@ import {
   type RatioView,
   unwrap,
 } from "../api/client";
-import { stepKey, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
+import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { DateField } from "../components/DateField";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
@@ -641,6 +642,8 @@ function Similar({ result }: { result: FieldResult }) {
   );
 }
 
+const LEAVE = ["ratio"] as const;
+
 function Extreme({
   projectId,
   result,
@@ -650,23 +653,9 @@ function Extreme({
   result: FieldResult;
   currency: string;
 }) {
-  const queryClient = useQueryClient();
   const [done, setDone] = useState<Set<string>>(new Set());
-  const exclude = useMutation({
-    mutationFn: async (m: { key: string; note: string }) =>
-      unwrap(
-        await api.PUT("/api/projects/{project_id}/clean/marks/{key_sale}", {
-          params: { path: { project_id: projectId, key_sale: m.key } },
-          body: { action: "exclude", note: m.note },
-        }),
-      ),
-    onSuccess: (_, m) => {
-      setDone((d) => new Set(d).add(m.key));
-      // Check sales is now out of date; this step's results are left on screen, so several can be marked.
-      void queryClient.invalidateQueries({ queryKey: stepKey("clean", projectId) });
-      void queryClient.invalidateQueries({ queryKey: ["clean-review", projectId] });
-    },
-  });
+  // This step's results stay on screen, so several sales can be excluded in turn.
+  const exclude = useMarkSale(projectId, LEAVE);
   const e = r.extreme;
   if (!result.trimmed.length) return <p className="wiz-from">{e.none}</p>;
   return (
@@ -703,10 +692,14 @@ function Extreme({
                     className="button button-small"
                     isDisabled={exclude.isPending}
                     onPress={() =>
-                      exclude.mutate({
-                        key: x.key_sale,
-                        note: x.nominal ? e.note({ price: money(x.price, currency) }) : "",
-                      })
+                      exclude.mutate(
+                        {
+                          key: x.key_sale,
+                          action: "exclude",
+                          note: x.nominal ? e.note({ price: money(x.price, currency) }) : "",
+                        },
+                        { onSuccess: () => setDone((d) => new Set(d).add(x.key_sale)) },
+                      )
                     }
                   >
                     {e.exclude}

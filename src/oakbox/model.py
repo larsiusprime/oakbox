@@ -30,6 +30,7 @@ from pydantic import Field
 
 from oakbox import cells, fields, locstack, prepare, ratio, steps, valuesets
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound, NotReady
 from oakbox.fields import VALUE_SLOTS
 from oakbox.valuesets import ROLL, value_field
 
@@ -802,7 +803,7 @@ def setup(project, project_dir: Path) -> ModelSetup:
 
     path = _universe_path(project_dir)
     if not path.is_file():
-        raise LookupError("Prepare the fields first: the models start from what it writes.")
+        raise NotReady("Prepare the fields first: the models start from what it writes.")
     columns = pq.ParquetFile(path).schema_arrow.names
     vs = variables(project, project_dir)
     by_field = {v.field: v for v in vs}
@@ -934,7 +935,7 @@ def set_group(project, project_dir: Path, group: str, models: list[ModelEntry] |
     from oakbox import varlists
 
     if group not in {g.id for g in project.groups}:
-        raise LookupError(group)
+        raise NotFound(group)
     if models is None:
         project.model.groups.pop(group, None)
         return

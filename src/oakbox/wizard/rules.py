@@ -20,6 +20,7 @@ from oakbox.datafiles import (
     rule_fields,
     rule_filter,
 )
+from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.base import DATE_WORDS
 from oakbox.wizard.checks import _pct
@@ -93,7 +94,7 @@ def column_values(
     unless sorted otherwise)."""
     files = Files(project, in_dir)
     if file not in files.preview or files.column(file, column) is None:
-        raise LookupError(f"{file}.{column}")
+        raise NotFound(f"{file}.{column}")
     f = files.entry(file)
     counts = _value_counts(file_stamp(in_dir / f.filename), f.layer, column)
     blank = next((n for v, n in counts if v == ""), 0)
@@ -191,7 +192,7 @@ def _rule_entry(project: Project, key: str) -> DataFile:
     if sales is None:
         raise ValueError("Add the sales record first.")
     if d is None or d.type != "boolean":
-        raise LookupError(key)
+        raise NotFound(key)
     return sales
 
 

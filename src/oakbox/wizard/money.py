@@ -20,6 +20,7 @@ from oakbox.datafiles import (
     number_helper,
     small_unit,
 )
+from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.files import Files, file_stamp, values_of
 from oakbox.wizard.models import Check
@@ -290,7 +291,7 @@ def number_preview(
     """A money column read with a format, as OpenAVMKit will: counts, the spread, a scale check, samples."""
     files = Files(project, in_dir)
     if not is_money(key):
-        raise LookupError(key)
+        raise NotFound(key)
     if files.column(name, column) is None:
         raise ValueError(f"{name} has no column {column}.")
     entry = files.entry(name)

@@ -16,6 +16,8 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
+from oakbox.errors import NotFound
+
 # Exactly what OpenAVMKit's data.load reads (by extension, case-insensitively).
 FORMATS = {
     "csv": "CSV",
@@ -760,4 +762,4 @@ def _entry(files: list[DataFile], name: str) -> DataFile:
     for f in files:
         if f.name == name:
             return f
-    raise LookupError(name)
+    raise NotFound(name)

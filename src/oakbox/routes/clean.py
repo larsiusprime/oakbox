@@ -11,6 +11,7 @@ from pydantic import Field
 
 from oakbox import clean, projects, time_preview
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound
 from oakbox.routes.common import clean_view, editing, load_project
 
 router = APIRouter()
@@ -149,7 +150,7 @@ def clean_sale(project_id: str, key_sale: str) -> clean.SaleDetail:
     project = load_project(project_id)
     try:
         return clean.detail(project, projects.project_dir(project_id), key_sale)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No sale {key_sale} was set aside.") from e
 
 
@@ -191,7 +192,7 @@ def clean_time_file(project_id: str, group: str, body: TimeFileBody) -> clean.Ti
         try:
             clean.decide(project, pdir)
             check = clean.time_file(project, pdir, group, Path(body.path).expanduser())
-        except LookupError as e:
+        except NotFound as e:
             raise HTTPException(404, f"No model group {group}.") from e
         if check.ok:
             projects.save(project)
@@ -212,7 +213,7 @@ def clean_time_group(project_id: str, group: str) -> time_preview.TimeDetail:
     load_project(project_id)
     try:
         return time_preview.detail(projects.project_dir(project_id), group)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No time adjustment worked out for {e}") from e
 
 

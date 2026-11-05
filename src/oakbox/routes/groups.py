@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 from oakbox import assemble, groups, projects
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound, NotReady
 from oakbox.routes.common import assemble_view, editing, load_project
 
 router = APIRouter()
@@ -51,7 +52,7 @@ def groups_start(project_id: str, body: GroupsStart) -> groups.GroupsView:
         pdir = projects.project_dir(project_id)
         try:
             project.groups = groups.suggest(pdir) if body.how == "suggested" else []
-        except LookupError as e:
+        except NotReady as e:
             raise HTTPException(409, str(e)) from e
         project.groups_start = body.how
     return _groups_view(project)
@@ -73,7 +74,7 @@ def groups_preview(project_id: str, body: GroupsBody) -> groups.GroupsPreview:
     project = load_project(project_id)
     try:
         return groups.preview(project, projects.project_dir(project_id), body.groups)
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -83,7 +84,7 @@ def groups_inspect(project_id: str, body: InspectBody) -> groups.ParcelInspect:
     load_project(project_id)
     try:
         return groups.inspect(projects.project_dir(project_id), body.groups, body.index)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No parcel {body.index}.") from e
 
 
@@ -93,7 +94,7 @@ def groups_values(project_id: str, field: str) -> groups.GroupValues:
     load_project(project_id)
     try:
         return groups.values(projects.project_dir(project_id), field)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No field {field} in the parcel universe.") from e
 
 
@@ -103,7 +104,7 @@ def groups_shapes(project_id: str) -> FileResponse:
     load_project(project_id)
     try:
         return FileResponse(groups.shapes_path(projects.project_dir(project_id)), media_type="application/geo+json")
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
