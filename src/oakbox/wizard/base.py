@@ -23,6 +23,7 @@ class Step(BaseModel):
     fields: list[str] = Field(default_factory=list, description="Asked on the step.")
     more: list[str] = Field(default_factory=list, description="Asked under More on the step.")
     sales: bool = Field(default=False, description="Its fields come from the sales file.")
+    guess_more: bool = Field(default=True, description="False: the fields under More are never guessed, only picked.")
 
 
 STEPS: list[Step] = [
@@ -65,8 +66,10 @@ STEPS: list[Step] = [
     Step(
         key="property_type",
         parent="details",
-        fields=["land_class", "bldg_type"],
-        more=["bldg_desc", "bldg_class", "bldg_units", "bldg_stories"],
+        fields=["land_class", "bldg_type", "bldg_stories"],
+        # Asked only when wanted (revised 2026-11-05): under More, never guessed.
+        more=["bldg_desc", "bldg_class", "bldg_units"],
+        guess_more=False,
     ),
     # The user's own fields: any other column, under a name they choose, with its class and kind (revised
     # 2026-11-04: a part of its own, not under Land use & building type).

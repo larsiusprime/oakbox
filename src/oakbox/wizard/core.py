@@ -624,7 +624,7 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
     loaded = {field for f in project.files for field in f.load}
     # A field is decided once chosen (even as none) or guessed; a guess that found nothing can
     # still find something in a file added later.
-    for key in [*spec.fields, *spec.more]:
+    for key in [*spec.fields, *(spec.more if spec.guess_more else [])]:
         if key in project.wizard.decided or key not in by_key:
             continue
         if key in loaded or (key in ONLY_WITHOUT and ONLY_WITHOUT[key] in loaded):

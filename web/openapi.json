@@ -2338,6 +2338,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/locations/{name}/map": {
+   "get": {
+    "summary": "Wizard Location Map",
+    "description": "A location field on the map: each parcel's centre, coloured by its area (F3d: Location fields).",
+    "operationId": "wizard_location_map_api_projects__project_id__wizard_locations__name__map_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LocationMap"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/map": {
    "get": {
     "summary": "Wizard Map",
@@ -12310,6 +12359,65 @@
     "type": "object",
     "title": "Locale",
     "description": "The project's units, currency and number style: set from the country, changeable (SPEC F1)."
+   },
+   "LocationMap": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "values": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Values",
+      "description": "Its areas, most parcels first."
+     },
+     "counts": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Counts",
+      "description": "Parcels in each area, as values."
+     },
+     "points": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "number"
+        },
+        {
+         "type": "integer"
+        }
+       ],
+       "type": "array",
+       "maxItems": 3,
+       "minItems": 3
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "[latitude, longitude, area] of up to 20,000 parcel centres; area: its index in values, -1 none."
+     },
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "values",
+     "counts",
+     "points",
+     "parcels"
+    ],
+    "title": "LocationMap",
+    "description": "A location field on the map: each parcel's centre and which of its areas it's in."
    },
    "MapPoint": {
     "properties": {

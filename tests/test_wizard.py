@@ -1284,6 +1284,11 @@ def test_condo_units_without_a_shape_borrow_their_buildings(client, tmp_path):
         client.put(f"{field}/{key}", json={"file": "geo_parcels", "column": col})
     client.put(f"{field}/land_area_sqft", json={"file": "geo_parcels", "column": "ACRES", "area_unit": "acres"})
     client.put(f"/api/projects/{pid}/wizard/locations/district", json={"file": "geo_parcels", "column": "DISTRICT"})
+    # A location field on the map: each parcel's centre, with its area (an index into its areas, most parcels first).
+    view = client.get(f"/api/projects/{pid}/wizard/locations/district/map").json()
+    assert view["parcels"] == len(view["points"]) and sum(view["counts"]) <= view["parcels"]
+    assert all(-1 <= p[2] < len(view["values"]) for p in view["points"])
+    assert client.get(f"/api/projects/{pid}/wizard/locations/nowhere/map").status_code == 404
     w = put_file(client, pid, "units", holds="parcels", id_column="ID").json()
     assert _file(w, "units")["unshaped"] == 5  # all but the house
     # Rows without a shape are Condo units' to set up: a pointer there from More files, never a stop.
@@ -1762,3 +1767,23 @@ def test_a_project_from_when_sales_was_one_step_has_its_parts_seen():
     """Sales was the file and its four fields at once: now five parts, each seen as Sales was."""
     w = projects.WizardState(visited=["universe", "sales"], confirmed=["sales"])
     assert set(projects.SALES_PARTS) <= set(w.visited) and set(projects.SALES_PARTS) <= set(w.confirmed)
+
+
+def test_land_use_and_building_type_asks_three_and_never_guesses_the_rest(client, tmp_path):
+    """Land use, building type and stories are asked; description, class and units are under More, picked only."""
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    gpd.GeoDataFrame(
+        {"ID": ["1", "2"], "LAND_USE": ["R", "C"], "BLDG_DESC": ["Ranch", "Store"], "STORIES": [1, 2]},
+        geometry=[box(n, 0, n + 1, 1) for n in range(2)],
+        crs="EPSG:4326",
+    ).to_parquet(tmp_path / "parcels.parquet")
+    body = {"path": str(tmp_path / "parcels.parquet"), "mode": "copy", "name": "parcels"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "parcels", universe=True, id_column="ID")
+    w = client.post(f"/api/projects/{pid}/wizard/steps/property_type/visit").json()
+    step = wizard_step(w, "property_type")
+    assert step["fields"] == ["land_class", "bldg_type", "bldg_stories"]
+    assert step["more"] == ["bldg_desc", "bldg_class", "bldg_units"]
+    assert _field(w, "bldg_desc")["sources"] == []  # a column named for it, but never guessed
+    w = client.put(f"/api/projects/{pid}/wizard/fields/bldg_desc", json={"file": "geo_parcels", "column": "BLDG_DESC"})
+    assert _field(w.json(), "bldg_desc")["sources"] == [{"file": "geo_parcels", "column": "BLDG_DESC"}]

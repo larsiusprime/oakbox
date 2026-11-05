@@ -445,6 +445,15 @@ def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:
         raise HTTPException(422, str(e)) from e
 
 
+@router.get("/api/projects/{project_id}/wizard/locations/{name}/map")
+def wizard_location_map(project_id: str, name: str) -> wizard.LocationMap:
+    """A location field on the map: each parcel's centre, coloured by its area (F3d: Location fields)."""
+    try:
+        return wizard.location_map(load_project(project_id), projects.project_dir(project_id) / "in", name)
+    except LookupError as e:
+        raise HTTPException(404, f"No such location field: {e}") from e
+
+
 @router.get("/api/projects/{project_id}/wizard/map")
 def wizard_map(project_id: str) -> wizard.MapView:
     """Where the parcels are, and the centre polar coordinates are measured from (F3d)."""

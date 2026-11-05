@@ -260,7 +260,7 @@
       "property_type": {
         "title": "Land use & building type",
         "question": "What kind of property is each parcel?",
-        "lede": "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have."
+        "lede": "Land use, building type and stories: model groups are made from these, after Bring in data. Pick whichever you have; a building description, class or units can be added under More."
       },
       "custom": {
         "title": "Your own fields",
@@ -810,6 +810,9 @@
       "loading": "Loading the map…",
       "mapLabel": "Map of the parcels, with the centre point",
       "pinTitle": "The centre: drag to move it",
+      "mapOf": "On the map",
+      "mapAreas": "{n, number} area{n, plural, =1 {} other {s}}, a colour each",
+      "mapNone": "(none)",
       "centerMiddle": "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",

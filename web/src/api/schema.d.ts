@@ -830,6 +830,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/locations/{name}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Location Map
+         * @description A location field on the map: each parcel's centre, coloured by its area (F3d: Location fields).
+         */
+        get: operations["wizard_location_map_api_projects__project_id__wizard_locations__name__map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/map": {
         parameters: {
             query?: never;
@@ -5054,6 +5074,35 @@ export interface components {
             currency?: string | null;
             /** Numbers */
             numbers?: ("1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56") | null;
+        };
+        /**
+         * LocationMap
+         * @description A location field on the map: each parcel's centre and which of its areas it's in.
+         */
+        LocationMap: {
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @description Its areas, most parcels first.
+             */
+            values: string[];
+            /**
+             * Counts
+             * @description Parcels in each area, as values.
+             */
+            counts: number[];
+            /**
+             * Points
+             * @description [latitude, longitude, area] of up to 20,000 parcel centres; area: its index in values, -1 none.
+             */
+            points: [
+                number,
+                number,
+                number
+            ][];
+            /** Parcels */
+            parcels: number;
         };
         /** MapPoint */
         MapPoint: {
@@ -11250,6 +11299,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LayerMap"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_location_map_api_projects__project_id__wizard_locations__name__map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationMap"];
                 };
             };
             /** @description Validation Error */

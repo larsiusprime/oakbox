@@ -525,6 +525,9 @@ export type Wording = {
       loading: string;
       mapLabel: string;
       pinTitle: string;
+      mapOf: string;
+      mapAreas: (a: { n: number }) => string;
+      mapNone: string;
       centerMiddle: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;

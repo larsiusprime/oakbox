@@ -54,6 +54,67 @@ def _map_points(stamp: tuple[str, float, int], layer: str | None):
     return points, (round(middle.y, 6), round(middle.x, 6)), len(gdf)
 
 
+class LocationMap(BaseModel):
+    """A location field on the map: each parcel's centre and which of its areas it's in."""
+
+    name: str
+    values: list[str] = Field(description="Its areas, most parcels first.")
+    counts: list[int] = Field(description="Parcels in each area, as values.")
+    points: list[tuple[float, float, int]] = Field(
+        description="[latitude, longitude, area] of up to 20,000 parcel centres; area: its index in values, -1 none."
+    )
+    parcels: int
+
+
+@lru_cache(maxsize=8)
+def _centres(stamp: tuple[str, float, int], layer: str | None) -> tuple[tuple[float, float] | None, ...]:
+    """Every row's centre in degrees, in the file's order (None without a shape)."""
+    import geopandas as gpd
+
+    path = Path(stamp[0])
+    gdf = (
+        gpd.read_parquet(path)
+        if path.suffix.lower() in (".parquet", ".geoparquet")
+        else gpd.read_file(path, layer=layer)
+    )
+    if gdf.crs is None:
+        return tuple(None for _ in range(len(gdf)))
+    centres = gdf.geometry.centroid.to_crs(4326)
+    return tuple(None if p is None or p.is_empty else (round(p.y, 6), round(p.x, 6)) for p in centres)
+
+
+def location_map(project: Project, in_dir: Path, name: str) -> LocationMap:
+    """Where each of a location field's areas is: the parcel universe's centres, each with its area."""
+    import random
+    from collections import Counter
+
+    if name not in project.wizard.locations:
+        raise LookupError(name)
+    entry = next((f for f in project.files if name in f.load and f.holds not in ("sales", "overlay", "unused")), None)
+    base = base_file(project)
+    if entry is None or base is None or not (in_dir / base.filename).is_file():
+        raise LookupError(name)
+    files = Files(project, in_dir)
+    values = files.values(entry.name, entry.load[name][0])
+    by_id: dict[str, str] = {}
+    for i, v in zip(files.ids(entry.name, entry.match), values, strict=False):
+        if i and i not in by_id:
+            by_id[i] = v
+    centres = _centres(file_stamp(in_dir / base.filename), base.layer)
+    rows = [(c, by_id.get(i, "")) for i, c in zip(files.ids(base.name, "key"), centres, strict=False) if c is not None]
+    counts = Counter(v for _, v in rows if v)
+    order = [v for v, _ in counts.most_common()]
+    index = {v: k for k, v in enumerate(order)}
+    shown = random.Random(0).sample(rows, min(20_000, len(rows)))
+    return LocationMap(
+        name=name,
+        values=order,
+        counts=[counts[v] for v in order],
+        points=[(c[0], c[1], index.get(v, -1)) for c, v in shown],
+        parcels=len(rows),
+    )
+
+
 def map_view(project: Project, in_dir: Path) -> MapView:
     base = base_file(project)
     center = (project.center.latitude, project.center.longitude) if project.center else None
