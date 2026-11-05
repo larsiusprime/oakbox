@@ -9,10 +9,12 @@ depends on now hashes differently, and accepted (Looks right) when the hash it w
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -60,24 +62,37 @@ _procs: dict[str, subprocess.Popen] = {}
 _lock = threading.Lock()
 
 
+APP_PID = "OAKBOX_APP_PID"  # a run's environment: the app that started it, which it doesn't outlive (die_with_app)
+
+
+def command(module: str, project_id: str) -> list[str]:
+    """How a step's process is started (tests start something else here)."""
+    return [sys.executable, "-X", "utf8", "-m", f"oakbox.{module}", project_id]
+
+
 def start(project_id: str, project_dir: Path, module: str) -> Job:
     """Run `python -m oakbox.<module> <project id>` in a process of its own, following the JSON step lines it
-    prints. One run per module and project at a time; its log is out/oakbox/<module>.log."""
+    prints. One run per module and project at a time; its log is out/oakbox/<module>.log.
+
+    On Linux and macOS the run leads a process group of its own, so stopping it reaches every process it started
+    (OpenAVMKit's workers), and none of them gets the terminal's Ctrl+C meant for the app."""
     key = f"{module}:{project_id}"
     with _lock:
         if key in _jobs and _jobs[key].status == "running":
             raise ValueError("It's already running.")
         log = project_dir / "out" / "oakbox" / f"{module}.log"
         log.parent.mkdir(parents=True, exist_ok=True)
-        proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
-            [sys.executable, "-X", "utf8", "-m", f"oakbox.{module}", project_id],
-            stdout=subprocess.PIPE,
-            stderr=log.open("w", encoding="utf-8"),
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=child_env(),
-        )
+        with log.open("w", encoding="utf-8") as err:  # the run has its own handle; the app keeps none open
+            proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
+                command(module, project_id),
+                stdout=subprocess.PIPE,
+                stderr=err,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env={**child_env(), APP_PID: str(os.getpid())},
+                start_new_session=sys.platform != "win32",
+            )
         job = Job(status="running", started=time.time(), heard=time.time())
         _jobs[key], _procs[key] = job, proc
 
@@ -140,13 +155,64 @@ def _keys() -> dict[str, str]:
 
 
 def stop(project_id: str, module: str) -> None:
+    """Stop a run and every process it started; the page isn't kept waiting while they go."""
     key = f"{module}:{project_id}"
     proc = _procs.get(key)
     job = _jobs.get(key)
     if proc is None or job is None or job.status != "running":
         return
     job.status = "stopped"
-    proc.terminate()
+    threading.Thread(target=end, args=(proc,), daemon=True).start()
+
+
+def stop_all() -> None:
+    """Stop every run going, and every process they started, and wait until they've gone: when the app closes, no
+    process of OAK box's is left behind. Safe to call more than once."""
+    with _lock:
+        going = [(key, p) for key, p in _procs.items() if p.poll() is None]
+    for key, _ in going:
+        if (j := _jobs.get(key)) is not None and j.status == "running":
+            j.status = "stopped"
+    threads = [threading.Thread(target=end, args=(p,)) for _, p in going]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+
+def end(proc: subprocess.Popen, grace: float = 3.0) -> None:
+    """End a run's process and every process it started: asked to stop, then killed if still there after `grace`
+    seconds. On Linux and macOS its whole process group (see start), which also takes workers started after the
+    family was listed."""
+    import psutil
+
+    try:
+        family = [psutil.Process(proc.pid), *psutil.Process(proc.pid).children(recursive=True)]
+    except psutil.NoSuchProcess:
+        family = []
+    group = proc.pid if sys.platform != "win32" else None
+
+    def signal_all(sig: int) -> None:
+        if group is not None:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(group, sig)
+        for p in family:
+            with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied):
+                if sig == _KILL:
+                    p.kill()
+                else:
+                    p.send_signal(sig)
+
+    signal_all(signal.SIGTERM)
+    _, alive = psutil.wait_procs(family, timeout=grace)
+    if alive or group is not None:
+        signal_all(_KILL)  # the group again too: a worker started meanwhile isn't in the family
+        psutil.wait_procs(alive, timeout=grace)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        proc.wait(timeout=grace)
+
+
+_KILL = getattr(signal, "SIGKILL", signal.SIGTERM)  # Windows: psutil's kill() is TerminateProcess
 
 
 def job(project_id: str, module: str) -> Job | None:
@@ -302,9 +368,37 @@ def key_hash(key: Any) -> str:
     return hashlib.sha256(json.dumps(key, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
+def die_with_app(every: float = 1.0) -> None:
+    """In a run: when the app that started it is gone, however it went (closed, crashed, killed), end every process
+    the run started, then the run itself. The app stops its runs as it closes (stop_all); this covers the ways it
+    can't. A run started by hand (no OAKBOX_APP_PID) has no app to follow."""
+    pid = os.environ.get(APP_PID)
+    if not pid:
+        return
+    import psutil
+
+    try:
+        app = psutil.Process(int(pid))
+    except (ValueError, psutil.NoSuchProcess):
+        app = None
+
+    def watch() -> None:
+        # is_running() also notices the app's number taken by a new process (it compares start times).
+        while app is not None and app.is_running():
+            time.sleep(every)
+        with contextlib.suppress(psutil.Error):
+            for child in psutil.Process().children(recursive=True):
+                with contextlib.suppress(psutil.Error):
+                    child.kill()
+        os._exit(1)
+
+    threading.Thread(target=watch, daemon=True).start()
+
+
 def main(run: Callable[[str], None]) -> None:
     """A step's process: run it for the project named on the command line; on an error, the log's last line says
     what went wrong (the app shows it)."""
+    die_with_app()
     from oakbox.net import use_system_certificates
 
     use_system_certificates()

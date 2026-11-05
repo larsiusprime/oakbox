@@ -859,7 +859,7 @@ After Sales basics, the project has one model group, "All properties", with a ma
 ### 3.3 Project screen: the steps
 The setup stages are followed by the steps that run the engine. Each step follows the four parts of §3.2. Its Run has a progress bar, time remaining and **Stop**, and its receipt has **See results**.
 
-Before running, a step shows what's stale and why ("Model groups changed: steps 3–6 will re-run"). **Not built:** a run going on after the app is closed, or picked up again; today a run is known only to the app that started it.
+Before running, a step shows what's stale and why ("Model groups changed: steps 3–6 will re-run"). A run ends with the app: closing it (or the app ending any other way) stops every run and every process they started. **Not built:** picking a run up again after the app reopens.
 
 A tab asked for that waits on an earlier step (it isn't accepted on an up-to-date run) opens the first step, in order, that isn't, with a notice above the tabs saying why: "Variables waits for Bring in data. Bring in data is out of date: run it again, then press Looks right. What changed: fields worked out after the files join." Never a silent switch to another tab (revised 2026-10-31). Bring in data always names what changed; a change no line names (a newer OAK box writing the step's settings differently) is "how OAK box writes this step's settings (a newer OAK box)". Opening a project rewrites its settings.json if this OAK box would write it differently, so what that changes shows on opening, not at the next unrelated change (a Variables tick once put Bring in data out of date this way, and the screen jumped to Check sales).
 

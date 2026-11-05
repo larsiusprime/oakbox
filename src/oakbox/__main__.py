@@ -10,6 +10,7 @@ else in the default browser (SPEC §6.1).
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import re
@@ -74,6 +75,11 @@ def main() -> None:
         parser.error("--ui-url must be a local address, http://127.0.0.1:<port>")
     if args.selftest_menus:
         os.environ.setdefault("OAKBOX_HOME", tempfile.mkdtemp(prefix="oakbox-menus-"))
+
+    # However the app ends normally, the runs it started end with it (steps.die_with_app covers the rest).
+    from oakbox import steps
+
+    atexit.register(steps.stop_all)
 
     port = args.port or _free_port()
     url = f"http://127.0.0.1:{port}"
@@ -155,6 +161,9 @@ def _window(url: str, selftest: bool = False) -> bool:
         if selftest:
             raise
         return False
+    from oakbox import steps
+
+    steps.stop_all()  # the window is closed: no run outlives it (os._exit below skips atexit)
     if gui == "qt":
         # Qt WebEngine's threads abort the process ("terminate called without an active
         # exception") if Python tears Qt down at exit. Nothing is left to save (settings and

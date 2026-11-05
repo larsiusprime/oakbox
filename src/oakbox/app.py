@@ -71,6 +71,9 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Importing OpenAVMKit takes seconds; start it now so the first project opened doesn't wait.
     threading.Thread(target=_warm_engine, daemon=True).start()
     yield
+    from oakbox import steps
+
+    steps.stop_all()  # the service is shutting down: its runs end with it
 
 
 def create_app() -> FastAPI:

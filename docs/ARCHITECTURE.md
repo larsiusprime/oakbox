@@ -24,9 +24,12 @@ python -m oakbox (__main__.py)
   paths, takes seconds to import and can crash or run out of memory; each run gets a process of its own, so a crash
   fails that run, not the app. The service does import OpenAVMKit (warmed in the background at start-up,
   `app._warm_engine`) for small things, such as reading settings with OpenAVMKit's defaults.
-- **Runs are known only in memory.** `steps._jobs` holds each run's progress. Nothing stops a run when the app
-  closes, and an app opened afterwards doesn't know of it: a step shows its last finished run until a run of its
-  own finishes. (What a run does once the app that started it has gone, its stdout's pipe closed, isn't tested.)
+- **Runs end with the app.** `steps._jobs` holds each run's progress, in memory only. Stop, and the app closing
+  (`steps.stop_all`, on every way out of `__main__`), end a run and every process it started: on Linux each run
+  leads a process group of its own (`start_new_session`), and `steps.end` signals the group and the process tree,
+  then kills what's left after 3 s. For the ways the app can't run its code as it goes (a crash, Task Manager), each
+  run watches the app's process (`steps.die_with_app`, from `OAKBOX_APP_PID`) and ends itself and its workers when
+  it's gone. `tests/test_runs_end.py` checks all three.
 
 ## The code, by job
 
