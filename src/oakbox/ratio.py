@@ -55,8 +55,16 @@ def out_dir(project_dir: Path) -> Path:
     return project_dir / "out" / "oakbox" / "ratio"
 
 
+# Check my values starts from Check sales as it ran: the copies it keeps in its own folder, never out/2-clean-*,
+# which Prepare the fields (step 5) writes again, filled and folded.
+
+
+def _hand_off(project_dir: Path) -> Path:
+    return clean.out_dir(project_dir) / "sup.pickle"
+
+
 def _hydrated(project_dir: Path) -> Path:
-    return project_dir / "out" / "look" / "2-clean-sales-hydrated.parquet"
+    return clean.out_dir(project_dir) / clean.SALES_KEPT
 
 
 # ---------- The calls ----------
@@ -381,7 +389,7 @@ def setup(project, project_dir: Path) -> RatioSetup:
     sales = _sales(project_dir)
     if sales is None:
         raise NotReady("Check sales first: this starts from its hand-off.")
-    universe_path = project_dir / "out" / "look" / "2-clean-universe.parquet"
+    universe_path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
     universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
     start, end, proposed = window(project, sales)
     val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
@@ -700,7 +708,7 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    src = pdir / "out" / "2-clean-sup.pickle"
+    src = _hand_off(pdir)
     if not src.is_file():
         raise RuntimeError("Check sales first: this starts from its hand-off.")
     s: RatioState = project.ratio
@@ -828,7 +836,7 @@ def blocked(project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
-    if not (project_dir / "out" / "2-clean-sup.pickle").is_file() or not _hydrated(project_dir).is_file():
+    if not _hand_off(project_dir).is_file() or not _hydrated(project_dir).is_file():
         return ["Run Check sales again first: this starts from the sales it kept."]
     return []
 

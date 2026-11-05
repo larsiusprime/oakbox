@@ -16,6 +16,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import shutil
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -859,8 +860,10 @@ def run(project_id: str) -> None:
     receipt.engine = version("openavmkit")
     _review_tables(tmp, hydrated, sup.sales, flags, project.units)
     _related_table(tmp, before, settings)
-    # Step 5 prepares the fields from this (the user's fills, rare categories) and writes 2-clean again.
+    # Step 5 prepares the fields from this (the user's fills, rare categories) and writes 2-clean again, so what
+    # starts from Check sales as it ran (Check my values) reads its own copies here, never out/2-clean-*.
     pd.to_pickle(sup, tmp / "sup.pickle")
+    _keep_look(pdir, tmp)
     pd.DataFrame({"key_sale": sorted(used)}).to_parquet(tmp / "used.parquet", index=False)
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(
@@ -871,6 +874,25 @@ def run(project_id: str) -> None:
     steps.emit(
         step="done", fraction=1.0, message=f"{receipt.used:,} sales for modeling, {receipt.set_aside:,} set aside"
     )
+
+
+SALES_KEPT = "sales_hydrated.parquet"  # the sales it kept, each with its parcel's fields (out/look/'s, as it wrote it)
+UNIVERSE_KEPT = "universe.parquet"  # the parcel universe as it left it, without the shapes
+
+
+def _keep_look(pdir: Path, tmp: Path) -> None:
+    """Copies of the tables notebook 2 just wrote (out/look/2-clean-*), before Prepare the fields writes them again:
+    the hydrated sales as they are, the universe without its shapes (only its fields are read)."""
+    import pyarrow.parquet as pq
+
+    look = pdir / "out" / "look"
+    if (look / "2-clean-sales-hydrated.parquet").is_file():
+        shutil.copyfile(look / "2-clean-sales-hydrated.parquet", tmp / SALES_KEPT)
+    if (look / "2-clean-universe.parquet").is_file():
+        names = pq.read_schema(look / "2-clean-universe.parquet").names
+        table = pq.read_table(look / "2-clean-universe.parquet", columns=[c for c in names if c != "geometry"])
+        meta = {k: v for k, v in (table.schema.metadata or {}).items() if k != b"geo"}  # no shapes: not GeoParquet
+        pq.write_table(table.replace_schema_metadata(meta), tmp / UNIVERSE_KEPT)
 
 
 def _valid_keys(sales) -> set[str]:

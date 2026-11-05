@@ -342,6 +342,26 @@ def test_prepare_fills_and_folds_on_what_check_sales_wrote(prepared, brought_in_
     assert not client.get(prep).json()["stale"]  # and back as it was
 
 
+def test_check_my_values_starts_from_check_sales_not_from_what_prepare_wrote(prepared, brought_in_client, brought_in):
+    """Prepare the fields (step 5) writes out/2-clean-* again, filled and folded: Check my values (step 4) reads
+    Check sales' own copies, so it's the same whether step 5 has run or not."""
+    client, pid = brought_in_client, brought_in[1]
+    pdir = projects.project_dir(pid)
+    rv = f"/api/projects/{pid}/ratio"
+    before = client.get(f"{rv}/setup").json()
+    shared = [pdir / "out" / "2-clean-sup.pickle", *(pdir / "out" / "look").glob("2-clean-*")]
+    aside = pdir / "aside"
+    aside.mkdir()
+    try:
+        for f in shared:
+            f.rename(aside / f.name)
+        assert client.get(rv).json()["blocked"] == []
+        assert client.get(f"{rv}/setup").json() == before
+    finally:
+        for f in shared:
+            (aside / f.name).rename(f)
+
+
 def test_the_variable_lists_and_each_groups_models(prepared, brought_in_client, brought_in):
     client, pid = brought_in_client, brought_in[1]
     # Variables › Variable lists (F9): none to start (the user makes them); each variable judged per group and type.
