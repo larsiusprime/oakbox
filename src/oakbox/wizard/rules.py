@@ -267,6 +267,11 @@ class DateFormat(BaseModel):
     words: str
 
 
+class YearCount(BaseModel):
+    year: int
+    count: int
+
+
 class DatePreview(BaseModel):
     format: str
     words: str
@@ -279,6 +284,7 @@ class DatePreview(BaseModel):
     samples: list[DateSample] = Field(description="Ones that don't read first, then a spread of ones that do.")
     also: list[DateFormat] = Field(description="Other formats that read every date too, but differently.")
     formats: list[DateFormat]
+    by_year: list[YearCount] = Field(default_factory=list, description="How many read in each year, oldest first.")
 
 
 @lru_cache(maxsize=128)
@@ -363,4 +369,5 @@ def date_preview(project: Project, in_dir: Path, name: str, column: str, fmt: st
         samples=samples,
         also=[DateFormat(format=f, words=DATE_WORDS.get(f, f)) for f in _also(files, name, column, fmt)],
         formats=[DateFormat(format=f, words=DATE_WORDS.get(f, f)) for f in fields.DATE_FORMATS],
+        by_year=[YearCount(year=int(y), count=int(c)) for y, c in sorted(ok.dt.year.value_counts().items())],
     )

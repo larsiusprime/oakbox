@@ -154,8 +154,33 @@
       },
       "sales": {
         "title": "Sales",
-        "question": "Now your sales",
-        "lede": "Add the file that holds the sales record. Each sale must find its parcel in the parcel universe. Files with more about each sale (deeds, say) come next: just pick the main one for now."
+        "question": "",
+        "lede": ""
+      },
+      "sales_file": {
+        "title": "Sales file",
+        "question": "Which file holds the sales?",
+        "lede": "The sales record: one row per sale. Each sale must find its parcel in the parcel universe. Files with more about each sale (deeds, say) come later: just pick the main one for now."
+      },
+      "sale_price": {
+        "title": "Sale price",
+        "question": "What did each sell for?",
+        "lede": "The price paid. Amounts are read exactly as OpenAVMKit will read them: currency signs, spaces and the thousands separator are dropped, (10) is −10, and N/A, TBD, - and blanks are missing."
+      },
+      "sale_date": {
+        "title": "Sale date",
+        "question": "When was each sold?",
+        "lede": "The date of sale. Dates are read exactly as OpenAVMKit will read them."
+      },
+      "valid_sale": {
+        "title": "Valid sale",
+        "question": "Which sales are valid?",
+        "lede": "Arm''s-length sales, usable for modelling. Say which values mean valid; the price condition leaves out nominal sales."
+      },
+      "vacant_sale": {
+        "title": "Vacant sale",
+        "question": "Which sales were of vacant land?",
+        "lede": "Land with no building when it sold: vacant sales value the land. Say which values mean vacant."
       },
       "more_files": {
         "title": "More files",
@@ -336,6 +361,20 @@
     "otherColumn": "Column for {field}",
     "save": "Save",
     "warnings": "Recommended",
+    "salesParts": {
+      "noFile": "Add the sales file first, on Sales file.",
+      "asRead": "As it''s read",
+      "writtenAs": "Written as",
+      "byYear": "Sales by year",
+      "ruleIf": "A sale is {word} if",
+      "allOf": "All of these",
+      "anyOf": "Any of these",
+      "areTrue": "are true",
+      "addCondition": "Add condition",
+      "removeCondition": "Remove this condition",
+      "picks": "Which sales it picks",
+      "matchHead": "Do the sales find their parcels?"
+    },
     "rule": {
       "choose": "Choose values…",
       "edit": "Edit rule…",
@@ -2685,6 +2724,10 @@
       "fields": {
         "title": "Welcome to OAK box",
         "lede": "OAK box helps you build models. It needs two datasets for that: a **sales record** and a **parcel universe**\n\nThe **sales record** is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe **parcel universe** is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
+      },
+      "sales_record": {
+        "title": "Sales",
+        "lede": "The sales record: which file it is and how its sales find their parcels, then what each sold for, when, whether it was a valid sale, and whether it was of vacant land. One short part each, checked as you go."
       },
       "big_five": {
         "title": "Big five",

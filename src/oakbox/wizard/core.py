@@ -27,7 +27,7 @@ from oakbox.datafiles import (
     small_unit,
 )
 from oakbox.fields import VALUE_PARTS
-from oakbox.projects import BIG_FIVE_PARTS, Project
+from oakbox.projects import BIG_FIVE_PARTS, SALES_PARTS, Project
 from oakbox.valuesets import ROLL, value_field, value_sets
 from oakbox.wizard.base import (
     ABSENT_OK,
@@ -438,7 +438,7 @@ def _status(
     elif step.key == "shapefiles":
         for lv in layer_views:
             left.extend(Left(text=f"{lv.name}: {p.text}", blocking=p.blocking) for p in lv.left)
-    elif step.key == "sales":
+    elif step.key == "sales_file":
         sales = next((f for f in files if f.holds == "sales" and not _more_sales(f)), None)
         ids(sales, "sales")
         if sales is not None:
@@ -446,9 +446,12 @@ def _status(
                 left.append(Left(text="Pick a sale ID, or make one"))
             elif sale_id.check is not None and not sale_id.check.ok:
                 left.append(Left(text=f"Sale ID: {sale_id.check.text}"))
-            for f in mine:
-                if f.key in ("sale_price", "sale_date", *ASSUMABLE) and not f.sources and not f.assumed:
-                    left.append(Left(text=f"Pick the {f.name.lower()}"))
+    elif step.key in SALES_PARTS:
+        if not any(f.holds == "sales" and not _more_sales(f) for f in files):
+            left.append(Left(text="Add the sales file first, on Sales file"))
+        for f in mine:
+            if f.key in ("sale_price", "sale_date", *ASSUMABLE) and not f.sources and not f.assumed:
+                left.append(Left(text=f"Pick the {f.name.lower()}"))
     elif step.key == "building_size":
         by_key = {f.key: f for f in flds}
         left.extend(
@@ -464,7 +467,7 @@ def _status(
         return "blocked", left
     if left:
         return "attention", left
-    if step.key in ("universe", "sales", *BIG_FIVE_PARTS):
+    if step.key in ("universe", *SALES_PARTS, *BIG_FIVE_PARTS):
         return "done", left
     return ("done" if step.key in w.confirmed or step.key in w.skipped else "blank"), left
 
@@ -583,8 +586,13 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
     files = Files(project, in_dir)
     if step == "universe":
         _guess_universe(project, files)
-    if step == "sales":
+    if step in ("sales", "sales_file"):
         _guess_sales(project, files)
+    if step == "sales":
+        # The sales record's parent: its file's guesses, then every part's fields (a file just given its part).
+        for part in SALES_PARTS[1:]:
+            _guess(project, in_dir, part)
+        return
     spec = next(s for s in STEPS if s.key == step)
     candidates = [f.name for f in _field_files(project, spec.sales)]
     if not candidates:
@@ -1030,9 +1038,8 @@ def skip(project: Project, step: str) -> None:
     spec = next((s for s in STEPS if s.key == step), None)
     if spec is None or not spec.fields:
         raise LookupError(step)
-    for key in [*spec.fields, *spec.more]:
-        if key in ASSUMABLE:
-            raise ValueError("Sales need a valid sale and a vacant sale field.")
+    if spec.parent == "sales":
+        raise ValueError("Sales need a price, a date, and a valid sale and a vacant sale field.")
     for f in _field_files(project, spec.sales):
         for key in [*spec.fields, *spec.more]:
             f.load.pop(key, None)

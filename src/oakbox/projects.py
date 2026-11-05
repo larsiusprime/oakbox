@@ -100,6 +100,7 @@ class CustomField(BaseModel):
 # Big five's parts (revised 2026-11-04): a project saved when Big five was one step has it seen, skipped or moved on
 # from as a whole; each part counts as the same.
 BIG_FIVE_PARTS = ("building_size", "land_size", "age", "quality", "condition")
+SALES_PARTS = ("sales_file", "sale_price", "sale_date", "valid_sale", "vacant_sale")
 
 
 class WizardState(BaseModel):
@@ -132,6 +133,9 @@ class WizardState(BaseModel):
         for steps in (self.visited, self.skipped, self.confirmed):
             if "big_five" in steps:
                 steps.extend(p for p in BIG_FIVE_PARTS if p not in steps)
+            # Sales was one step (the file and its four fields); now five parts.
+            if "sales" in steps:
+                steps.extend(p for p in SALES_PARTS if p not in steps)
             # Location was one step (the address, the coordinates, the location fields); now three parts.
             if "location" in steps:
                 steps.extend(p for p in ("address", "coordinates") if p not in steps)

@@ -3,7 +3,16 @@
 import geopandas as gpd
 import pandas as pd
 import pytest
-from helpers import NEW, put_file, read_settings, start_wizard, visit_big_five, wizard_files, wizard_step
+from helpers import (
+    NEW,
+    put_file,
+    read_settings,
+    start_wizard,
+    visit_big_five,
+    visit_sales,
+    wizard_files,
+    wizard_step,
+)
 from shapely.geometry import box
 
 from oakbox import projects
@@ -120,7 +129,7 @@ def test_sales_assumptions_and_settings(client, pid):
     for key in ("valid_sale", "vacant_sale"):
         w = client.put(f"/api/projects/{pid}/wizard/fields/{key}", json={"assume": True}).json()
         assert _field(w, key)["assumed"]
-    assert client.post(f"/api/projects/{pid}/wizard/steps/sales/skip").status_code == 422
+    assert client.post(f"/api/projects/{pid}/wizard/steps/valid_sale/skip").status_code == 422
     entry = read_settings(pid)["data"]["load"]["sales"]
     assert entry["dupes"] == {"subset": ["key_sale"], "sort_by": ["key_sale", "asc"], "drop": True}
     assert entry["calc"] == {
@@ -166,7 +175,7 @@ def test_sales_matched_by_the_second_id(client, pid, monkeypatch):
     assert put_file(client, pid, "shapes", universe=True, extra_field="key2", extra_column="MAP_NO").status_code == 200
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sales_by_map", holds="sales")
-    w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    w = visit_sales(client, pid)
     sales = _file(w, "sales_by_map")
     assert (sales["match"], sales["id_column"]) == ("key2", "MAP_NO")
     assert sales["id_check"]["text"] == "100% match"
@@ -194,7 +203,7 @@ def test_names_say_the_jurisdiction(client, pid):
 
 def test_guesses_come_when_the_file_is_added_after_the_step_is_shown(client, pid):
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
-    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")  # no sales file yet: nothing decided
+    visit_sales(client, pid)  # no sales file yet: nothing decided
     w = put_file(client, pid, "shapes", universe=True).json()
     assert _file(w, "geo_parcels")["id_column"] == "PARCEL_ID"
     w = put_file(client, pid, "sales", holds="sales").json()
@@ -313,7 +322,7 @@ def test_step_marks_come_from_what_is_on_each_step(client, pid):
     assert marks()["universe"] == "blocked"  # visited, no file yet
     put_file(client, pid, "shapes", universe=True)
     assert marks()["universe"] == "done"
-    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    visit_sales(client, pid)
     assert marks()["sales"] == "blocked"  # no sales file
     put_file(client, pid, "sales", holds="sales")
     for key in ("valid_sale", "vacant_sale"):
@@ -356,10 +365,10 @@ def test_reconcile_cleans_ids_so_sales_find_their_parcels(client, tmp_path, monk
     put_file(client, pid, "parcels", universe=True, id_column="GDV_REID", blank_ok=True)
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sale", holds="sales", id_column="REID")
-    w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    w = visit_sales(client, pid)
     check = _file(w, "sale")["id_check"]
     assert (check["share"], check["ok"]) == (0, False)  # nothing matches as is: a blocker
-    assert wizard_step(w, "sales")["left"][0] == {
+    assert wizard_step(w, "sales_file")["left"][0] == {
         "text": "Reconcile the IDs: 0% match",
         "blocking": True,
     }
@@ -421,7 +430,7 @@ def test_valid_and_vacant_sale_rules_and_date_formats(client, tmp_path, monkeypa
     put_file(client, pid, "parcels", universe=True, id_column="ID")
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sale", holds="sales", id_column="PID")
-    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    visit_sales(client, pid)
     field = f"/api/projects/{pid}/wizard/fields"
     client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
 
@@ -433,6 +442,7 @@ def test_valid_and_vacant_sale_rules_and_date_formats(client, tmp_path, monkeypa
     view = client.post(dates, json={"column": "DATE", "format": "%d/%m/%Y"}).json()
     assert (view["read"], view["failed"], view["first"], view["last"]) == (6, 0, "2024-04-03", "2025-02-01")
     assert view["also"] == [{"format": "%m/%d/%Y", "words": "month/day/year"}]
+    assert sum(y["count"] for y in view["by_year"]) == 6 and [y["year"] for y in view["by_year"]] == [2024, 2025]
     assert client.post(dates, json={"column": "DATE", "format": "%Y-%m-%d"}).json()["failed"] == 6
     w = client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE", "date_format": "%d/%m/%Y"}).json()
     assert _field(w, "sale_date")["date_format"] == "%d/%m/%Y"
@@ -1396,7 +1406,7 @@ def test_sales_of_parcels_missing_from_the_universe_are_a_note_not_a_reconcile(c
     lines = sales["not_in_universe"]["lines"]
     assert lines[0].startswith("12 sales are for parcels that aren't in the parcel universe.")
     assert "Add it on More files" in lines[1]
-    assert not any("Reconcile" in x["text"] for x in wizard_step(w, "sales")["left"])
+    assert not any("Reconcile" in x["text"] for x in wizard_step(w, "sales_file")["left"])
     assert any("12 sales are for parcels" in x for x in w["warnings"])
 
     # The file that has them, once it's in the project.
@@ -1482,7 +1492,7 @@ def test_valid_and_vacant_sale_from_one_column(client, tmp_path, monkeypatch):
     put_file(client, pid, "parcels", universe=True, id_column="ID")
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sale", holds="sales", id_column="PID")
-    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    visit_sales(client, pid)
     field = f"/api/projects/{pid}/wizard/fields"
     client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
     client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
@@ -1536,7 +1546,7 @@ def test_more_sales_appended_and_details_on_a_made_sale_id(client, tmp_path, mon
     put_file(client, pid, "parcels", universe=True, id_column="ID")
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sale", holds="sales", id_column="PID")
-    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    visit_sales(client, pid)
     field = f"/api/projects/{pid}/wizard/fields"
     client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
     client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
@@ -1610,7 +1620,7 @@ def test_more_parcels_appended(client, tmp_path, monkeypatch):
     put_file(client, pid, "parcels", universe=True, id_column="ID")
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sale", holds="sales", id_column="PID")
-    client.post(f"/api/projects/{pid}/wizard/steps/sales/visit")
+    visit_sales(client, pid)
     field = f"/api/projects/{pid}/wizard/fields"
     client.put(f"{field}/sale_price", json={"file": "sale", "column": "PRICE"})
     client.put(f"{field}/sale_date", json={"file": "sale", "column": "DATE"})
@@ -1663,10 +1673,7 @@ def test_effective_year_zero_means_no_renovation(client, tmp_path):
     r = client.put(f"{field}/bldg_effective_year_built", json={"file": "geo_parcels", "column": "EFF"})
     assert r.status_code == 200, r.text
     w = r.json()
-    assert (
-        _field(w, "bldg_effective_year_built")["check"]["text"]
-        == "✓ 2006–2006 · 0 = no renovation: the year built"
-    )
+    assert _field(w, "bldg_effective_year_built")["check"]["text"] == "✓ 2006–2006 · 0 = no renovation: the year built"
     assert "calc" not in read_settings(pid)["data"]["process"].get("enrich", {})  # no year built yet
     client.put(f"{field}/bldg_year_built", json={"file": "geo_parcels", "column": "BUILT"})
     calc = read_settings(pid)["data"]["process"]["enrich"]["calc"]["universe"]
@@ -1694,7 +1701,7 @@ def test_a_yes_no_sales_column_still_asks_which_values_mean_yes(client, tmp_path
     put_file(client, pid, "parcels", universe=True, id_column="ID")
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     put_file(client, pid, "sale", holds="sales", id_column="PID")
-    w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    w = visit_sales(client, pid)
     # Guessed from its name: a rule on the column, no values yet.
     valid = _field(w, "valid_sale")
     assert valid["rule"]["conditions"] == [{"column": "valid_sale", "op": "isin", "values": []}]
@@ -1723,3 +1730,9 @@ def test_a_project_from_when_location_was_one_step_has_its_parts_seen():
     """Location was the address, the coordinates and the location fields at once: now three parts."""
     w = projects.WizardState(visited=["location"], skipped=["location"])
     assert {"address", "coordinates", "location"} <= set(w.visited) and {"address", "coordinates"} <= set(w.skipped)
+
+
+def test_a_project_from_when_sales_was_one_step_has_its_parts_seen():
+    """Sales was the file and its four fields at once: now five parts, each seen as Sales was."""
+    w = projects.WizardState(visited=["universe", "sales"], confirmed=["sales"])
+    assert set(projects.SALES_PARTS) <= set(w.visited) and set(projects.SALES_PARTS) <= set(w.confirmed)

@@ -164,6 +164,20 @@ export type Wording = {
     otherColumn: (a: { field: string | number }) => string;
     save: string;
     warnings: string;
+    salesParts: {
+      noFile: string;
+      asRead: string;
+      writtenAs: string;
+      byYear: string;
+      ruleIf: (a: { word: string | number }) => string;
+      allOf: string;
+      anyOf: string;
+      areTrue: string;
+      addCondition: string;
+      removeCondition: string;
+      picks: string;
+      matchHead: string;
+    };
     rule: {
       choose: string;
       edit: string;

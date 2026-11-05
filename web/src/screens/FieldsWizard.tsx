@@ -31,14 +31,19 @@ import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
 import { Coordinates, LocationFields } from "./Location";
 import { PermitsStep } from "./Permits";
 import { QualityStep } from "./QualityStep";
+import { SalesFieldPage } from "./SalesParts";
 import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep, UnitsPointer } from "./Units";
 import { ValueSetsStep } from "./ValueSets";
-import { CheckText, FilePicker, IdCheck, IdRow, isMainSales, StepFile } from "./WizardFiles";
+import { CheckText, FilePicker, IdCheck, IdRow, isMainSales, MatchPanel, StepFile } from "./WizardFiles";
 import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 // Quality and condition: numbers or categories, on a page of their own (QualityStep).
 const QUALITY_STEPS = ["quality", "condition"];
+// Sales' field parts: each field on a page of its own, read and checked under it (SalesFieldPage).
+const SALES_FIELD_STEPS = ["sale_price", "sale_date", "valid_sale", "vacant_sale"];
+// A parent step whose landing page is named otherwise (the Sales tab has its own "sales" landing).
+const LANDING_KEY: Record<string, string> = { sales: "sales_record" };
 const w = t.wizard;
 const L = t.landing.pages;
 const MAKE = "__make";
@@ -119,7 +124,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
     );
   }
   const part = firstPart(data.steps, current.key);
-  const page = L[current.key];
+  const page = L[LANDING_KEY[current.key] ?? current.key];
   if (part && page) {
     return (
       <div className="wiz">
@@ -137,7 +142,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   }
   const copy = w.steps[current.key] ?? { title: current.key, question: "", lede: "" };
   // Sales must have their fields; a step of optional fields (deeds, too) can be answered "I don't have these".
-  const skippable = current.fields.length > 0 && current.key !== "sales";
+  const skippable = current.fields.length > 0 && current.parent !== "sales";
   // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
   // Only what stops a run greys Next; warnings and notes stay on the step without holding it up.
   const gated = current.status === "blocked";
@@ -162,7 +167,10 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.key === "universe" && (
             <UniverseStep project={project} data={data} change={change.mutate} />
           )}
-          {current.key === "sales" && <SalesStep project={project} data={data} change={change.mutate} />}
+          {current.key === "sales_file" && <SalesStep project={project} data={data} change={change.mutate} />}
+          {SALES_FIELD_STEPS.includes(current.key) && (
+            <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />
+          )}
           {current.key === "more_files" && (
             <MoreFilesStep project={project} data={data} change={change.mutate} />
           )}
@@ -175,7 +183,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {current.fields.length > 0 &&
             current.key !== "assessed" &&
             !QUALITY_STEPS.includes(current.key) &&
-            (current.key !== "sales" || data.sale_id.file) && (
+            !SALES_FIELD_STEPS.includes(current.key) && (
               <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
             )}
           {QUALITY_STEPS.includes(current.key) && (
@@ -523,33 +531,36 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
     );
   }
   return (
-    <StepFile
-      file={sales}
-      onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
-      undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
-    >
-      {/* Its two IDs: the parcel each sale finds, and the sale's own. */}
+    <>
+      <StepFile
+        file={sales}
+        onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
+        undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
+      >
+        {/* Its two IDs: the parcel each sale finds, and the sale's own. */}
 
-      <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
-      <div className="wiz-grid">
-        <div className="wiz-label">
-          <TipOn text={w.saleIdTip}>
-            <span>{w.saleIdColumn}</span>
-          </TipOn>
+        <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} inline />
+        <div className="wiz-grid">
+          <div className="wiz-label">
+            <TipOn text={w.saleIdTip}>
+              <span>{w.saleIdColumn}</span>
+            </TipOn>
+          </div>
+          <Choice
+            label={w.saleIdColumn}
+            hideLabel
+            value={data.sale_id.made ? MAKE : data.sale_id.column}
+            placeholder={w.choose}
+            options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
+            onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
+          />
+          <div className="wiz-samples">
+            <CheckText check={data.sale_id.check} />
+          </div>
         </div>
-        <Choice
-          label={w.saleIdColumn}
-          hideLabel
-          value={data.sale_id.made ? MAKE : data.sale_id.column}
-          placeholder={w.choose}
-          options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
-          onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
-        />
-        <div className="wiz-samples">
-          <CheckText check={data.sale_id.check} />
-        </div>
-      </div>
-    </StepFile>
+      </StepFile>
+      <MatchPanel projectId={project.id} data={data} file={sales} change={change} />
+    </>
   );
 }
 

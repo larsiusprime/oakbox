@@ -24,3 +24,16 @@ export function useWidth<T extends Element>(fallback = 800, min = 320) {
   }, [min]);
   return [ref, w] as const;
 }
+
+/** Runs `run` with the value once it has stopped changing for `ms` (a change saved as it settles, on a page with no
+ * Save button). The value is compared by its content, so a new object with the same content doesn't count. */
+export function useOnSettled<T>(value: T, run: (v: T) => void, ms = 600): void {
+  const settled = useSettled(JSON.stringify(value), ms);
+  const latest = useRef(run);
+  useEffect(() => {
+    latest.current = run;
+  });
+  useEffect(() => {
+    latest.current(JSON.parse(settled) as T);
+  }, [settled]);
+}

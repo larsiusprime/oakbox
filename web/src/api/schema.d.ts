@@ -2702,7 +2702,7 @@ export interface components {
             /** Sales From */
             sales_from: number;
             /** Years */
-            years: components["schemas"]["YearCount"][];
+            years: components["schemas"]["oakbox__clean__YearCount"][];
             /**
              * Total
              * @description Valid sales from Data.
@@ -3349,6 +3349,11 @@ export interface components {
             also: components["schemas"]["DateFormat"][];
             /** Formats */
             formats: components["schemas"]["DateFormat"][];
+            /**
+             * By Year
+             * @description How many read in each year, oldest first.
+             */
+            by_year: components["schemas"]["oakbox__wizard__rules__YearCount"][];
         };
         /** DateSample */
         DateSample: {
@@ -9435,15 +9440,6 @@ export interface components {
             /** Bytes */
             bytes: number;
         };
-        /** YearCount */
-        YearCount: {
-            /** Year */
-            year: number;
-            /** Improved */
-            improved: number;
-            /** Vacant */
-            vacant: number;
-        };
         /** ZoomStep */
         ZoomStep: {
             /**
@@ -9489,6 +9485,15 @@ export interface components {
              * @description What its index is of, as chosen; None: automatic.
              */
             per: ("impr" | "land") | null;
+        };
+        /** YearCount */
+        oakbox__clean__YearCount: {
+            /** Year */
+            year: number;
+            /** Improved */
+            improved: number;
+            /** Vacant */
+            vacant: number;
         };
         /** GroupValues */
         oakbox__final__GroupValues: {
@@ -9595,6 +9600,13 @@ export interface components {
             check: components["schemas"]["Check"];
             /** Distinct */
             distinct: number | null;
+        };
+        /** YearCount */
+        oakbox__wizard__rules__YearCount: {
+            /** Year */
+            year: number;
+            /** Count */
+            count: number;
         };
     };
     responses: never;

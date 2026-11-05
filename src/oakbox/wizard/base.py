@@ -27,7 +27,14 @@ class Step(BaseModel):
 
 STEPS: list[Step] = [
     Step(key="universe"),
-    Step(key="sales", fields=["sale_price", "sale_date", "valid_sale", "vacant_sale"], sales=True),
+    # The sales record, in parts (revised 2026-11-05): the file and how its sales find their parcels, then each
+    # field on a page of its own, read and checked live.
+    Step(key="sales", sales=True),
+    Step(key="sales_file", parent="sales", sales=True),
+    Step(key="sale_price", parent="sales", fields=["sale_price"], sales=True),
+    Step(key="sale_date", parent="sales", fields=["sale_date"], sales=True),
+    Step(key="valid_sale", parent="sales", fields=["valid_sale"], sales=True),
+    Step(key="vacant_sale", parent="sales", fields=["vacant_sale"], sales=True),
     # More files, one by one, each joined to the universe (a parcel ID) or to the sales (the sale ID).
     Step(key="more_files"),
     # What a model leans on most, a part each (revised 2026-11-04: its own step, not part of More details).

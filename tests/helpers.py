@@ -91,7 +91,15 @@ def start_wizard(client, pid):
     assert put_file(client, pid, "shapes", universe=True).status_code == 200
     client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
     assert put_file(client, pid, "sales", holds="sales").status_code == 200
-    return client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    return visit_sales(client, pid)
+
+
+def visit_sales(client, pid):
+    """Show Sales and each of its parts, as Start and Next do; the wizard after the last."""
+    w = client.post(f"/api/projects/{pid}/wizard/steps/sales/visit").json()
+    for part in projects.SALES_PARTS:
+        w = client.post(f"/api/projects/{pid}/wizard/steps/{part}/visit").json()
+    return w
 
 
 def visit_big_five(client, pid):

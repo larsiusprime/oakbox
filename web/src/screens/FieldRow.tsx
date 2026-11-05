@@ -46,6 +46,7 @@ export function FieldRow({
   label,
   inGroup,
   onPage,
+  paged,
   pickScale,
   bare,
 }: {
@@ -59,6 +60,8 @@ export function FieldRow({
   inGroup?: boolean;
   /** Quality or condition on its own page, which ranks a category's tiers itself: no dialog for them. */
   onPage?: boolean;
+  /** A sales field on its own page, which reads and checks it below the row: no dialogs, the values kept. */
+  paged?: boolean;
   /** Sent with a column picked (Categories chosen: the column is ranked, numbers or not). */
   pickScale?: Scale | undefined;
   /** Big five's parts: no grey line under the label ("Required", "Used for modelling"). */
@@ -106,6 +109,7 @@ export function FieldRow({
         ...(pickScale ? { scale: pickScale } : {}),
       })
         .then((next) => {
+          if (paged) return; // the page shows how it's read, below the row
           // Not yes/no (Q/U, a deed code): straight on to choosing which values mean yes (SPEC F3d).
           const now = next.fields.find((f) => f.key === field.key);
           if (now?.rule && !ruleComplete(now.rule)) setRuling(true);
@@ -116,8 +120,9 @@ export function FieldRow({
     }
   };
   // What changes how the column is read, if anything: the reading is its button.
-  const action: { label: string; press: () => void } | null =
-    sourceFile && column && field.type === "boolean" && sales
+  const action: { label: string; press: () => void } | null = paged
+    ? null
+    : sourceFile && column && field.type === "boolean" && sales
       ? {
           label: !field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose,
           press: () => setRuling(true),
@@ -195,6 +200,17 @@ export function FieldRow({
                 <span className="reading-plain attention" title={field.check.text}>
                   {shortReading(field.check.text)}
                 </span>
+              )
+            ) : paged ? (
+              // How it's read is below the row: here only its values.
+              sourceFile &&
+              column && (
+                <ValuesButton
+                  projectId={project.id}
+                  file={sourceFile.name}
+                  column={column.name}
+                  distinct={field.distinct}
+                />
               )
             ) : quiet ? (
               sourceFile &&

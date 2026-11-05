@@ -6097,3 +6097,88 @@ under what it's about; a file appended as rows {
 .facts-locale > .form-row > .choice {
   width: 100%;
 }
+
+/* Valid and vacant sale on their pages: the logic in a box of its own (an entry: tinted head and body), each
+   condition a white row, the rows stacked flush, the add buttons at its bottom right. */
+.entry.rl-env {
+  margin: calc(0.35 * var(--sp)) 0;
+}
+.rl-env-head {
+  font-weight: 600;
+}
+.entry.rl-env > .rl-env-head > .choice {
+  width: 10rem;
+  font-weight: 400;
+}
+.rl-conds {
+  display: grid;
+  grid-template-columns: 12rem 10rem 16rem max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rl-cond {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+  padding: calc(0.3 * var(--sp)) calc(0.4 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--frame);
+}
+.rl-cond + .rl-cond {
+  margin-top: -1px;
+}
+.rl-cond > :is(.choice, .rl-mini) {
+  min-width: 0;
+}
+.rl-cond .input.rl-input {
+  width: 100%;
+}
+@media (max-width: 760px) {
+  .rl-conds {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+  }
+}
+
+/* Sale date: sales by year, a bar each, its count on top. */
+.yr-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--muted);
+  max-width: 100%;
+  overflow-x: auto;
+}
+.yr-col {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 2px;
+  min-width: 2.6rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.yr-n {
+  color: var(--muted);
+}
+.yr-bar {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  background: #9db7df;
+  border-radius: 1px 1px 0 0;
+}
+.yr-x {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+/* The Sales file's match panel: the reconcile layout, on the page. */
+.match-panel > .rc-inline {
+  width: 100%;
+}
+.frame.qc-panel.match-panel {
+  width: min(100%, 64rem);
+}
