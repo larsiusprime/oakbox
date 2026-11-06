@@ -1285,7 +1285,18 @@ export type Wording = {
         impr: string;
         vacant: string;
       };
-      example: (a: { method: string | number; v: string | number }) => string;
+      example: (a: { method: string | number; among: string | number; v: string | number; group: string | number }) => string;
+      among: {
+        all: string;
+        impr: string;
+        vacant: string;
+      };
+      nothing: string;
+      emptyGroups: (a: { groups: string | number }) => string;
+      outside: {
+        impr: (a: { n: string | number }) => string;
+        vacant: (a: { n: string | number }) => string;
+      };
       leaveNote: string;
       none: string;
       auto: (a: { n: string | number }) => string;

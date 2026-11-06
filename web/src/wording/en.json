@@ -1685,7 +1685,18 @@
         "impr": "only improved",
         "vacant": "only vacant"
       },
-      "example": "its model group''s {method}, e.g. {v}",
+      "example": "its model group''s {method}{among}, e.g. {v} in {group}",
+      "among": {
+        "all": "",
+        "impr": " among improved parcels",
+        "vacant": " among vacant parcels"
+      },
+      "nothing": "no blanks on these parcels: nothing filled",
+      "emptyGroups": "Stays blank in {groups}: no values there to take it from.",
+      "outside": {
+        "impr": "Blanks on vacant parcels stay blank: {n}.",
+        "vacant": "Blanks on improved parcels stay blank: {n}."
+      },
       "leaveNote": "stays blank (some models can''t use a field with blanks)",
       "none": "✓ Every number the models can use is filled in already.",
       "auto": "What OpenAVMKit always does ({n})",

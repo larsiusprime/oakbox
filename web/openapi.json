@@ -7870,6 +7870,12 @@
       "title": "Fills",
       "description": "Per field with blanks; written once proposed."
      },
+     "fills_scoped": {
+      "type": "boolean",
+      "title": "Fills Scoped",
+      "description": "A building's fields proposed for improved parcels only (decide): a project from before has its old proposal (median, every parcel) moved over once.",
+      "default": false
+     },
      "location": {
       "anyOf": [
        {
@@ -7967,6 +7973,7 @@
      "time_files",
      "per",
      "fills",
+     "fills_scoped",
      "location",
      "checks",
      "collapse",
@@ -10595,6 +10602,45 @@
     ],
     "title": "FillChange"
    },
+   "FillExample": {
+    "properties": {
+     "blanks": {
+      "type": "integer",
+      "title": "Blanks",
+      "description": "Blanks it fills (the rest stay blank)."
+     },
+     "group": {
+      "type": "string",
+      "title": "Group",
+      "description": "The model group with the most of those blanks: the example's (its name)."
+     },
+     "values": {
+      "additionalProperties": {
+       "type": "number"
+      },
+      "type": "object",
+      "title": "Values",
+      "description": "median, mean, mode, min, max of that group's values: what goes into its blanks."
+     },
+     "empty": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Empty",
+      "description": "Model groups (names) with blanks but no values to take a median (mean, smallest, largest) from: theirs stay blank. A most-common fill puts 0 there."
+     }
+    },
+    "type": "object",
+    "required": [
+     "blanks",
+     "group",
+     "values",
+     "empty"
+    ],
+    "title": "FillExample",
+    "description": "What a fill puts in, for one of who it's for (every parcel, only improved, only vacant): as OpenAVMKit fills,\neach model group from its own parcels' values (only improved ones' for only improved)."
+   },
    "FillRow": {
     "properties": {
      "field": {
@@ -10613,6 +10659,11 @@
       "type": "integer",
       "title": "Parcels"
      },
+     "building": {
+      "type": "boolean",
+      "title": "Building",
+      "description": "One of the building's fields: 0 on vacant parcels already (OpenAVMKit)."
+     },
      "fill": {
       "$ref": "#/components/schemas/Fill"
      },
@@ -10624,13 +10675,20 @@
       "title": "Why",
       "description": "Why that's proposed: what a blank means for this field."
      },
-     "stats": {
+     "examples": {
       "additionalProperties": {
-       "type": "number"
+       "$ref": "#/components/schemas/FillExample"
+      },
+      "propertyNames": {
+       "enum": [
+        "all",
+        "impr",
+        "vacant"
+       ]
       },
       "type": "object",
-      "title": "Stats",
-      "description": "median, mean, mode, min, max of the values there are."
+      "title": "Examples",
+      "description": "What each \"For\" puts in."
      }
     },
     "type": "object",
@@ -10639,10 +10697,11 @@
      "name",
      "blanks",
      "parcels",
+     "building",
      "fill",
      "proposed",
      "why",
-     "stats"
+     "examples"
     ],
     "title": "FillRow"
    },

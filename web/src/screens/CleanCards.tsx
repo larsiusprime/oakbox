@@ -36,14 +36,47 @@ export function Card({
 
 const METHODS = ["median", "mean", "mode", "zero", "min", "max", "leave"] as const;
 
-function putsIn(row: FillRow): string {
+// Fills that take a value from the group's own: with none there, its blanks stay blank.
+const FROM_VALUES = new Set(["median", "mean", "min", "max"]);
+
+/** What the fill puts in, as OpenAVMKit works it out for who it's for: an example (the model group with the most of
+ * those blanks), then the blanks it leaves. */
+function putsIn(row: FillRow): { text: string; notes: string[] } {
   const m = row.fill.method;
-  if (m === "leave") return s.fill.leaveNote;
-  if (m === "zero") return "0";
-  const v = row.stats[m];
-  return v === undefined
-    ? "—"
-    : s.fill.example({ method: s.fill.methods[m], v: num(v, Math.abs(v) < 10 ? 1 : 0) });
+  if (m === "leave") return { text: s.fill.leaveNote, notes: [] };
+  const scope = row.fill.scope;
+  const ex = row.examples[scope];
+  const notes: string[] = [];
+  const left = row.blanks - (ex?.blanks ?? 0);
+  if (scope !== "all" && left > 0) notes.push(s.fill.outside[scope]({ n: num(left) }));
+  if (!ex || ex.blanks === 0) return { text: s.fill.nothing, notes };
+  if (FROM_VALUES.has(m) && ex.empty.length) notes.push(s.fill.emptyGroups({ groups: ex.empty.join(", ") }));
+  if (m === "zero") return { text: "0", notes };
+  const v = ex.values[m];
+  const text =
+    v === undefined
+      ? "—"
+      : s.fill.example({
+          method: s.fill.methods[m],
+          among: s.fill.among[scope],
+          v: num(v, Math.abs(v) < 10 ? 1 : 0),
+          group: ex.group,
+        });
+  return { text, notes };
+}
+
+function PutsIn({ row }: { row: FillRow }) {
+  const { text, notes } = putsIn(row);
+  return (
+    <>
+      {text}
+      {notes.map((n) => (
+        <div key={n} className="cs-why-fill">
+          {n}
+        </div>
+      ))}
+    </>
+  );
 }
 
 export function FillCard({ v, set }: CardProps) {
@@ -78,7 +111,9 @@ export function FillCard({ v, set }: CardProps) {
                     onChange={(method) => set({ fill: { field: row.field, method, scope: row.fill.scope } })}
                   />
                 </td>
-                <td className="wiz-from">{putsIn(row)}</td>
+                <td className="wiz-from">
+                  <PutsIn row={row} />
+                </td>
                 <td>
                   <Choice
                     label={s.fill.for}

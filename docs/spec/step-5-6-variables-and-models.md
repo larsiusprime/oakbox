@@ -18,6 +18,14 @@ their own).
   matched), elevation and slope (a tile not covering the parcel) and the rest. Changeable to median, mean, most common,
   zero, smallest, largest or leave blank, for every parcel or only improved or only vacant ones. Written as OpenAVMKit's
   `data.process.fill` lists, added to its own (`+median`).
+  - A building's field (OpenAVMKit's `impr` fields) is proposed for **only improved** parcels (`+median_impr`): on
+    vacant ones OpenAVMKit has made it 0 already, and those 0s, counted in a median over every parcel, pull it down
+    (the sample: quality 3 over every parcel, 4 over improved ones). Projects from before have that old proposal
+    (median, every parcel), still as it was, moved over once (`fills_scoped`); any other choice stays.
+  - **Puts in** is worked out as OpenAVMKit fills: each model group from its own parcels' values, only those the fill
+    is for. Its example is the model group with the most of those blanks. It says the blanks a fill for only improved
+    (or only vacant) parcels leaves, and the model groups with blanks but no values to take a median (mean, smallest,
+    largest) from: theirs stay blank (most common puts 0 there).
 - **Rare categories:** off by default. The category fields the models use, but not locations, the model group, IDs and
   addresses (or anything with more distinct values than half the parcels), or dates. With the thresholds (fewer sales
   than, fewer parcels than), a table per field: its values, how many fold, their parcels, and which ("Become Other"),

@@ -3022,6 +3022,12 @@ export interface components {
                 [key: string]: components["schemas"]["Fill"];
             };
             /**
+             * Fills Scoped
+             * @description A building's fields proposed for improved parcels only (decide): a project from before has its old proposal (median, every parcel) moved over once.
+             * @default false
+             */
+            fills_scoped: boolean;
+            /**
              * Location
              * @description Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.
              */
@@ -4279,6 +4285,35 @@ export interface components {
              */
             scope: "all" | "impr" | "vacant";
         };
+        /**
+         * FillExample
+         * @description What a fill puts in, for one of who it's for (every parcel, only improved, only vacant): as OpenAVMKit fills,
+         *     each model group from its own parcels' values (only improved ones' for only improved).
+         */
+        FillExample: {
+            /**
+             * Blanks
+             * @description Blanks it fills (the rest stay blank).
+             */
+            blanks: number;
+            /**
+             * Group
+             * @description The model group with the most of those blanks: the example's (its name).
+             */
+            group: string;
+            /**
+             * Values
+             * @description median, mean, mode, min, max of that group's values: what goes into its blanks.
+             */
+            values: {
+                [key: string]: number;
+            };
+            /**
+             * Empty
+             * @description Model groups (names) with blanks but no values to take a median (mean, smallest, largest) from: theirs stay blank. A most-common fill puts 0 there.
+             */
+            empty: string[];
+        };
         /** FillRow */
         FillRow: {
             /** Field */
@@ -4289,6 +4324,11 @@ export interface components {
             blanks: number;
             /** Parcels */
             parcels: number;
+            /**
+             * Building
+             * @description One of the building's fields: 0 on vacant parcels already (OpenAVMKit).
+             */
+            building: boolean;
             fill: components["schemas"]["Fill"];
             proposed: components["schemas"]["Fill"];
             /**
@@ -4297,11 +4337,11 @@ export interface components {
              */
             why: string;
             /**
-             * Stats
-             * @description median, mean, mode, min, max of the values there are.
+             * Examples
+             * @description What each "For" puts in.
              */
-            stats: {
-                [key: string]: number;
+            examples: {
+                [key: string]: components["schemas"]["FillExample"];
             };
         };
         /** Filled */

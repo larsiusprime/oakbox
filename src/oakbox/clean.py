@@ -123,6 +123,11 @@ class CleanState(BaseModel):
         "missing: OpenAVMKit works it out from the sales.",
     )
     fills: dict[str, Fill] = Field(default_factory=dict, description="Per field with blanks; written once proposed.")
+    fills_scoped: bool = Field(
+        default=False,
+        description="A building's fields proposed for improved parcels only (decide): a project from before has its "
+        "old proposal (median, every parcel) moved over once.",
+    )
     location: str | None = Field(
         default=None, description='Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.'
     )
@@ -346,15 +351,31 @@ class GroupSetup(BaseModel):
     per: IndexOn | None = Field(default=None, description="What its index is of, as chosen; None: automatic.")
 
 
+class FillExample(BaseModel):
+    """What a fill puts in, for one of who it's for (every parcel, only improved, only vacant): as OpenAVMKit fills,
+    each model group from its own parcels' values (only improved ones' for only improved)."""
+
+    blanks: int = Field(description="Blanks it fills (the rest stay blank).")
+    group: str = Field(description="The model group with the most of those blanks: the example's (its name).")
+    values: dict[str, float] = Field(
+        description="median, mean, mode, min, max of that group's values: what goes into its blanks."
+    )
+    empty: list[str] = Field(
+        description="Model groups (names) with blanks but no values to take a median (mean, smallest, largest) "
+        "from: theirs stay blank. A most-common fill puts 0 there."
+    )
+
+
 class FillRow(BaseModel):
     field: str
     name: str
     blanks: int
     parcels: int
+    building: bool = Field(description="One of the building's fields: 0 on vacant parcels already (OpenAVMKit).")
     fill: Fill
     proposed: Fill
     why: str = Field(description="Why that's proposed: what a blank means for this field.")
-    stats: dict[str, float] = Field(description="median, mean, mode, min, max of the values there are.")
+    examples: dict[FillScope, FillExample] = Field(description='What each "For" puts in.')
 
 
 class Choice(BaseModel):
@@ -442,7 +463,8 @@ def _valid(sales) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
 
 def _fill_rows(project: Project, project_dir: Path, universe) -> list[FillRow]:
     """Every number the models can use that's still blank somewhere after step 1, with its fill."""
-    from openavmkit.utilities.settings import get_fields_numeric
+    import pandas as pd
+    from openavmkit.utilities.settings import get_fields_impr, get_fields_numeric
 
     s = steps.engine_settings(project_dir)
     template = {f for fs in s.get("data", {}).get("process", {}).get("fill", {}).values() for f in fs}
@@ -452,45 +474,85 @@ def _fill_rows(project: Project, project_dir: Path, universe) -> list[FillRow]:
         for f in get_fields_numeric(s, universe, include_boolean=False) or []
         if f in universe and f not in YEAR_AGE and (f not in template or f in mine)
     ]
+    building = set((get_fields_impr(s, universe) or {}).get("numeric", []))
     names = fields.names()
+    group_names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned", NO_PARCEL: "Unassigned"}
+    groups = model_groups_of(universe)
+    vacant = (
+        universe["is_vacant"].astype("boolean").fillna(False).astype(bool)
+        if "is_vacant" in universe
+        else pd.Series(False, index=universe.index)
+    )
+    scopes = {"all": vacant | ~vacant, "impr": ~vacant, "vacant": vacant}
     rows = []
     for f in numeric:
         x = cells.numbers(universe, f)
         blanks = int(x.isna().sum())
         if not blanks:
             continue
-        there = x.dropna()
-        stats = {}
-        if len(there):
-            mode = there.mode()
-            stats = {
-                "median": float(there.median()),
-                "mean": float(there.mean()),
-                "mode": float(mode.iloc[0]) if len(mode) else float("nan"),
-                "min": float(there.min()),
-                "max": float(there.max()),
-            }
-        proposed, why = propose(f)
+        examples = {scope: _fill_example(x, groups, mask, group_names) for scope, mask in scopes.items()}
+        proposed, why = propose(f, building=f in building)
+        fill = project.clean.fills.get(f, proposed)
+        if not project.clean.fills_scoped and f in building and fill == OLD_PROPOSAL:
+            fill = proposed
         rows.append(
             FillRow(
                 field=f,
                 name=names.get(f, f),
                 blanks=blanks,
                 parcels=len(x),
-                fill=project.clean.fills.get(f, proposed),
+                building=f in building,
+                fill=fill,
                 proposed=proposed,
                 why=why,
-                stats=stats,
+                examples=examples,
             )
         )
     return rows
 
 
+def _fill_example(x: pd.Series, groups: pd.Series, mask: pd.Series, group_names: dict[str, str]) -> FillExample:
+    """What a fill for these parcels (mask) puts in, as OpenAVMKit works it out: each model group's blanks from that
+    group's values among the same parcels."""
+    blank = x.isna() & mask
+    by_group = blank.groupby(groups).sum()
+    by_group = by_group[by_group > 0]
+    has = x.notna() & mask
+    empty = [g for g in by_group.index if not has[groups == g].any()]
+    values: dict[str, float] = {}
+    group = ""
+    if len(by_group):
+        g = str(by_group.sort_values(ascending=False, kind="stable").index[0])
+        group = group_names.get(g, g)
+        there = x[has & (groups == g)]
+        if len(there):
+            mode = there.mode()
+            values = {
+                "median": float(there.median()),
+                "mean": float(there.mean()),
+                "mode": float(mode.iloc[0]) if len(mode) else 0.0,
+                "min": float(there.min()),
+                "max": float(there.max()),
+            }
+        else:
+            values = {"mode": 0.0}  # OpenAVMKit's most common with nothing to count: 0
+    return FillExample(
+        blanks=int(blank.sum()),
+        group=group,
+        values=values,
+        empty=[group_names.get(str(g), str(g)) for g in empty],
+    )
+
+
+# What every number with blanks was proposed before a building's fields were filled on improved parcels only.
+OLD_PROPOSAL = Fill(method="median")
+
 CENSUS = ("median_income", "median_c_rent", "median_g_rent", "total_population")
 
 
-def propose(field: str) -> tuple[Fill, str]:
-    """A fill for a field, from what a blank means in it."""
+def propose(field: str, building: bool = False) -> tuple[Fill, str]:
+    """A fill for a field, from what a blank means in it. A building's field is filled only on improved parcels: on
+    vacant ones OpenAVMKit has made it 0 already, and those 0s would pull every parcel's median down."""
     if field in NEVER_PROPOSED:
         return Fill(method="leave"), "Blank means no building: 0 already says so."
     if field.startswith("land_area_alloc"):
@@ -505,6 +567,11 @@ def propose(field: str) -> tuple[Fill, str]:
         )
     if field.startswith(("elevation_", "slope_")):
         return Fill(method="median"), "Blank where the elevation tiles had no cells for the parcel: its group's median."
+    if building:
+        return Fill(method="median", scope="impr"), (
+            "Blank where the data didn't say: its group's median among improved parcels, as a stand-in (vacant "
+            "parcels have 0 already)."
+        )
     return Fill(method="median"), "Blank where the data didn't say: its group's median, as a stand-in."
 
 
@@ -693,7 +760,8 @@ def decide(project: Project, project_dir: Path) -> None:
     universe, _ = _data(project_dir)
     c: CleanState = project.clean
     for row in _fill_rows(project, project_dir, universe):
-        c.fills.setdefault(row.field, row.proposed)
+        c.fills[row.field] = row.fill  # what's saved, or proposed (or moved over: fills_scoped)
+    c.fills_scoped = True
     locations = location_fields(project_dir, universe)
     if c.location is None:
         c.location = _proposed_location(locations)
