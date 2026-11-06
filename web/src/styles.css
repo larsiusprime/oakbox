@@ -1620,19 +1620,6 @@ a.row-title:hover {
   transform: rotate(180deg);
 }
 
-.choice-columns {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)))
-    max(calc(2.5 * var(--sp)), min(2.5rem, var(--gap-min)));
-}
-
-.choice-column {
-  display: grid;
-  gap: max(calc(0.9 * var(--sp)), min(0.9rem, var(--gap-min)));
-}
-
 .already {
   min-height: 2.4rem;
   display: flex;
@@ -1993,14 +1980,6 @@ a.row-title:hover {
 .wiz-warn-icon {
   width: 1.4rem;
   height: 1.4rem;
-}
-
-.wiz-welcome {
-  max-width: 44rem;
-}
-
-.wiz-welcome p {
-  margin: 0 0 calc(0.6 * var(--sp));
 }
 
 .wiz-pair {
@@ -2743,16 +2722,6 @@ like the wizard's Next {
 /* ---------- Step 2, Model groups (SPEC §3.5) ---------- */
 .mg-pad {
   padding: calc(0.8 * var(--sp));
-}
-.mg-start {
-  display: grid;
-  gap: max(calc(0.7 * var(--sp)), min(0.7rem, var(--gap-min)));
-  padding: calc(0.6 * var(--sp)) calc(0.6 * var(--sp)) calc(1 * var(--sp));
-  max-width: 56rem;
-}
-.mg-start-q {
-  margin: calc(0.4 * var(--sp)) 0 0;
-  font-size: 1rem;
 }
 .mg-start-cards {
   grid-template-columns: repeat(auto-fit, minmax(14rem, 24rem));
@@ -4698,35 +4667,6 @@ table.tbl > * > tr.rv-total > td {
   background: #333;
 }
 
-/* Step 5's variables: each kind a heading that stands out and folds its rows away. */
-.tbl.md-vars > tbody > tr.md-kind > td {
-  padding: calc(0.5 * var(--sp)) calc(0.4 * var(--sp)) calc(0.35 * var(--sp));
-  background: #e9edf3;
-  border-top: 2px solid var(--rule);
-}
-.md-kind-row {
-  display: flex;
-  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
-  align-items: center;
-}
-.md-kind-name {
-  display: inline-flex;
-  gap: max(calc(0.35 * var(--sp)), min(0.35rem, var(--gap-min)));
-  align-items: center;
-  padding: 0;
-  font: inherit;
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--ink, var(--text));
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-.md-kind-count {
-  font-size: 0.82rem;
-  font-weight: 400;
-  color: var(--muted);
-}
 .vt-name {
   display: flex;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
@@ -4992,9 +4932,6 @@ table.tbl.dt > * > tr > :is(th, td) {
   align-items: center;
   margin: 0;
   font-size: 1.35rem;
-}
-.gm-stackline {
-  margin-top: calc(0.2 * var(--sp));
 }
 .gm-warn {
   margin: calc(0.2 * var(--sp)) 0 0;
