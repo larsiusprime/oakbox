@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from oakbox.datafiles import Condition, DataFile, Rule
-from oakbox.wizard.files import Files, _by_key, base_file, sales_file
+from oakbox.wizard.files import Files, _by_key, sales_file
 from oakbox.wizard.models import RowField, RowsView
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ NOT_MIRRORED = {"key", "key2", "key3"}
 
 def main_of(project: Project, holds: str) -> DataFile | None:
     """The file appended rows join: the sales record, or the parcel universe."""
-    return sales_file(project) if ROWS.get(holds) == "sales" else base_file(project)
+    return sales_file(project) if ROWS.get(holds) == "sales" else project.base_file()
 
 
 # Fields the sales record may assume rather than read (valid and vacant sale): an appended file assumes the same
@@ -180,7 +180,7 @@ def view(project: Project, files: Files, entry: DataFile) -> RowsView | None:
     else:
         key_text = f"its parcel IDs don't look like the {what}: {_describe(*a)} here, {_describe(*b)} there"
         key_ok = False
-    universe = base_file(project)
+    universe = project.base_file()
     parcels = set(files.ids(universe.name, "key")) if universe is not None and "key" in universe.load else set()
     present = [v for v in mine if v]
     found = sum(1 for v in present if v in parcels)

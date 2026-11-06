@@ -593,7 +593,7 @@ def run(project_id: str) -> None:
     universe, sales = sup.universe, sup.sales
     recount(enriched, universe)
     files = wizard.Files(project, in_dir)
-    base = wizard.base_file(project)
+    base = project.base_file()
     keys = set(universe["key"].astype(str))
     rows_dir = tmp / "rows"
 
@@ -868,10 +868,10 @@ def run(project_id: str) -> None:
             )
         )
     for lv in wizard.layers(project, in_dir):
-        o = next((f.overlay for f in project.files if f.name == lv.name), None)
-        if o is None or o.use != "stamp" or not o.fields or o.fields[0].name not in universe:
+        entry = project.file(lv.name)
+        o = entry.overlay if entry else None
+        if entry is None or o is None or o.use != "stamp" or not o.fields or o.fields[0].name not in universe:
             continue
-        entry = next(f for f in project.files if f.name == lv.name)
         if base is None or not lv.projected:
             continue
         one, several, none = wizard.coverage(
@@ -948,7 +948,7 @@ def plan(project: Project, in_dir: Path) -> Plan:
     from oakbox import wizard
 
     files = wizard.Files(project, in_dir)
-    base = wizard.base_file(project)
+    base = project.base_file()
     out: list[PlanFile] = []
     layers: list[str] = []
     for f in project.files:

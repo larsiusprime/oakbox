@@ -32,7 +32,7 @@ def editing(project_id: str, settings: bool = False) -> Iterator[projects.Projec
 
 
 def file_entry(project: projects.Project, name: str) -> datafiles.DataFile:
-    entry = next((f for f in project.files if f.name == name), None)
+    entry = project.file(name)
     if entry is None:
         raise HTTPException(404, "No such input file")
     return entry

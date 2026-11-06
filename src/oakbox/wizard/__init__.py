@@ -26,7 +26,7 @@ from oakbox.wizard.core import (
     visit,
 )
 from oakbox.wizard.deeds_permits import deed_names, set_permits
-from oakbox.wizard.files import Files, base_file, file_stamp, sales_file, values_of
+from oakbox.wizard.files import Files, file_stamp, sales_file, values_of
 from oakbox.wizard.ids import Reconcile, SampleView, reconcile, set_reconcile
 from oakbox.wizard.maps import LayerMap, MapView, coverage, enrich_view, layer_map, layers, map_view, set_overlay
 from oakbox.wizard.models import LocationField, RepeatRows, Wizard
@@ -58,7 +58,6 @@ from oakbox.wizard.user_fields import locations, set_custom, set_location
 from oakbox.wizard.values import add_value_set, change_value_set, remove_value_set
 
 __all__ = [
-    "base_file",
     "Candidate",
     "candidates",
     "column_values",

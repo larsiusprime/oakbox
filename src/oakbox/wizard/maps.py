@@ -18,7 +18,7 @@ from oakbox.datafiles import (
 )
 from oakbox.errors import NotFound
 from oakbox.projects import Project
-from oakbox.wizard.files import Files, _by_key, base_file, file_stamp
+from oakbox.wizard.files import Files, _by_key, file_stamp
 from oakbox.wizard.models import Check, LayerView, Left
 from oakbox.wizard.user_fields import TAKEN
 
@@ -56,7 +56,7 @@ def _map_points(stamp: tuple[str, float, int], layer: str | None):
 
 
 def map_view(project: Project, in_dir: Path) -> MapView:
-    base = base_file(project)
+    base = project.base_file()
     center = (project.center.latitude, project.center.longitude) if project.center else None
     if base is None or not (in_dir / base.filename).is_file():
         return MapView(points=[], middle=None, center=center, parcels=0)
@@ -101,7 +101,7 @@ def coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple[
 
 def layers(project: Project, in_dir: Path) -> list[LayerView]:
     files = Files(project, in_dir)
-    base = base_file(project)
+    base = project.base_file()
     out = []
     for f in project.files:
         if f.holds != "overlay" or not (in_dir / f.filename).is_file():
@@ -187,7 +187,7 @@ def _taken_names(project: Project, skip: str) -> set[str]:
 
 def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | None) -> None:
     """Make a file a map layer used as said (stamp or distance); None sets it aside."""
-    entry = next((f for f in project.files if f.name == name), None)
+    entry = project.file(name)
     if entry is None:
         raise NotFound(name)
     if overlay is None:

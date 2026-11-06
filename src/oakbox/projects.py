@@ -217,6 +217,14 @@ class Project(BaseModel):
         default_factory=dict, description="Step -> the settings it was run with when Looks right was pressed."
     )
 
+    def file(self, name: str) -> DataFile | None:
+        """An input file by its name in OAK box; None when there's none (callers say what that means)."""
+        return next((f for f in self.files if f.name == name), None)
+
+    def base_file(self) -> DataFile | None:
+        """The parcel universe's file: the one the others join onto (wizard.base)."""
+        return self.file(self.wizard.base) if self.wizard.base else None
+
 
 # ---------- Finding projects ----------
 
@@ -522,7 +530,7 @@ def _condos(project: Project, out: dict) -> None:
     the parcel universe file (prefix), or the parent ID in the units file, cleaned as the parcel ID is (parent).
     """
     u = units_file(project)
-    base = next((f for f in project.files if f.name == project.wizard.base), None)
+    base = project.base_file()
     if u is None or base is None or u.units is None or u.units.column is None:
         return
     units = u.units

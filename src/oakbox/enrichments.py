@@ -256,7 +256,7 @@ def _bounds(path: str, mtime: float, size: int, layer: str | None) -> tuple[floa
 
 
 def area(project: Project, in_dir: Path) -> Area | None:
-    base = next((f for f in project.files if f.name == project.wizard.base), None)
+    base = project.base_file()
     if base is None or not (in_dir / base.filename).is_file():
         return None
     st = (in_dir / base.filename).stat()

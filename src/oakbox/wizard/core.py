@@ -63,7 +63,6 @@ from oakbox.wizard.files import (
     _field_files,
     _more_sales,
     _rows,
-    base_file,
     file_stamp,
     sales_file,
     values_of,
@@ -127,7 +126,7 @@ def update_base(project: Project, in_dir: Path, rename: bool = False) -> None:
     if base is not None and rename and base.name != BASE_NAME:
         from oakbox.datafiles import suggest_name
 
-        holder = next((f for f in project.files if f.name == BASE_NAME), None)
+        holder = project.file(BASE_NAME)
         if holder is not None:
             holder.name = suggest_name(holder.filename, {f.name for f in project.files} | {BASE_NAME})
         base.name = BASE_NAME
@@ -608,7 +607,7 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
 
 
 def _guess_universe(project: Project, files: Files) -> None:
-    base = base_file(project)
+    base = project.base_file()
     if base is not None and "key" not in base.load and base.name in files.preview:
         column = _guess_id(files, base.name, "parcels", None)
         if column:
@@ -619,7 +618,7 @@ def _guess_sales(project: Project, files: Files) -> None:
     sales = sales_file(project)
     if sales is None or sales.name not in files.preview:
         return
-    base = base_file(project)
+    base = project.base_file()
     names = {c.name for c in files.columns(sales.name)}
     if not any(k in sales.load for k in ("key", *EXTRA_IDS)):
         # The universe's ID column names in the sales file decide: its parcel ID first, then its extra IDs.
@@ -677,7 +676,7 @@ def _guess_join(project: Project, files: Files, entry: DataFile) -> None:
         found = found or (_best_match(files, entry.name, main, "key_sale") if main and column else None)
         found = found or _guess_sale_id(files, entry.name)
     else:
-        base = base_file(project)
+        base = project.base_file()
         column = base.load[entry.match][0] if base and entry.match in base.load else None
         found = column if column in names else None
         found = found or (_best_match(files, entry.name, base, entry.match) if base and column else None)
@@ -978,7 +977,7 @@ def set_row_field(
 ) -> None:
     """One field of a file appended as rows (or the date of more sales details on a made sale ID): its own column,
     or none (blank for its rows). A yes/no field takes the main file's rule, on this column."""
-    entry = next((f for f in project.files if f.name == name), None)
+    entry = project.file(name)
     if entry is None or not (entry.holds in ROWS or _more_sales(entry)):
         raise NotFound(name)
     main = rows_main(project, entry.holds or "")

@@ -406,7 +406,7 @@ def set_units(project: Project, in_dir: Path, name: str, units: Units | None, gu
 def set_unit_field(project: Project, in_dir: Path, name: str, field: str, column: str | None) -> None:
     """Give the units a parcel universe field from a column of their file (or take it away)."""
     f = next((x for x in project.files if x.name == name and x.units is not None), None)
-    base = next((x for x in project.files if x.name == project.wizard.base), None)
+    base = project.base_file()
     if f is None or base is None:
         raise ValueError("Set up the units first.")
     land_key = "land_area_sqft" if project.units == "imperial" else "land_area_sqm"

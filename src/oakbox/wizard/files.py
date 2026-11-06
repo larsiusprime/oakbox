@@ -83,7 +83,7 @@ class Files:
                 self.problem[f.name] = f"Couldn't read {f.filename}: {e}"
 
     def entry(self, name: str) -> DataFile:
-        entry = next((f for f in self.project.files if f.name == name), None)
+        entry = self.project.file(name)
         if entry is None:
             raise NotFound(name)
         return entry
@@ -133,10 +133,6 @@ def _more_sales(f: DataFile | WizardFile) -> bool:
 def _field_files(project: Project, sales: bool) -> list[DataFile]:
     holds = "sales" if sales else "parcels"
     return [f for f in project.files if f.holds == holds]
-
-
-def base_file(project: Project) -> DataFile | None:
-    return next((f for f in project.files if f.name == project.wizard.base), None)
 
 
 def _rows(files: Files, name: str) -> int | None:
