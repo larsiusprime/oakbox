@@ -50,7 +50,11 @@ and
 each setting as **Recommended** (what the tier chose, which follows a new check) or the user's own choice, which
 stays); then Display (density, zoom), Projects (where they're kept) and Data keys (the Census API key). Kept in OAK
 box's settings on the computer, never in a project. Models and Finalize set OpenAVMKit's `cv_max_workers` from it in
-memory only, and shut the fold workers down once the models are trained.
+memory only, and shut the fold workers down once the models are trained. With one fold at a time, the tuning
+trials run one at a time too (`OPENAVMKIT_TUNE_WORKERS=1`, 2026-11-06): OpenAVMKit otherwise runs them on a thread
+pool in the one process, and two LightGBM trials at once crashed it now and then (a segmentation fault or a
+floating-point exception, never memory: 7 runs in 11 on two slow cores, 1 in 3 on four; none in 11 one at a time, in
+the same time).
 
 **Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings). Drawn
 as dots, the Model groups map shows each parcel's centre in its group's colour, clickable; zoomed in to 5,000 parcels

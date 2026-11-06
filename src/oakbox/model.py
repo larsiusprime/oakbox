@@ -1145,8 +1145,9 @@ def for_models(project: Project, modeled, own: dict[str, dict[str, str]]):
     steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
     settings = pl.load_settings()
     # Folds at once, from this computer's performance settings (SPEC §5): only here, never in the settings file, so
-    # it's no part of any step's key (the values are the same either way; it changes the time and memory).
-    settings.setdefault("modeling", {}).setdefault("instructions", {})["cv_max_workers"] = machine.folds_at_once()
+    # it's no part of any step's key (the values are the same either way; it changes the time and memory). With one
+    # at a time, the tuning trials one at a time too (machine.apply_folds: two at once crash LightGBM now and then).
+    machine.apply_folds(settings)
     sup = pl.load_cleaned_data_for_modeling(settings)
     # A variable with infinite values stops every model with an error that names none: say which, before.
     gnames = {g.id: g.name for g in project.groups if g.id in modeled}
