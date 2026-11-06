@@ -16,7 +16,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox.datafiles import BaseModel, file_ext
+from oakbox.datafiles import BaseModel, csv_encoding, file_ext
 
 SAMPLE_ROWS = 1000
 SAMPLES = 5
@@ -134,7 +134,7 @@ def _head(path: Path, layer: str | None):
         df = batch.to_pandas() if batch is not None else pd.DataFrame({n: [] for n in names})
         return df, pf.metadata.num_rows
     if ext == "csv":
-        return pd.read_csv(path, nrows=SAMPLE_ROWS), None
+        return pd.read_csv(path, nrows=SAMPLE_ROWS, encoding=csv_encoding(path)), None
 
     import pyogrio
 
@@ -147,7 +147,7 @@ def _csv_text(path: Path):
     """CSV values as written in the file, for samples (pandas would show 1987 as 1987.0 beside a blank)."""
     import pandas as pd
 
-    return pd.read_csv(path, nrows=SAMPLE_ROWS, dtype=str, keep_default_na=False)
+    return pd.read_csv(path, nrows=SAMPLE_ROWS, dtype=str, keep_default_na=False, encoding=csv_encoding(path))
 
 
 def _samples(series) -> list[str]:

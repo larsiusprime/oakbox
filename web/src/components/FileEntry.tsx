@@ -15,9 +15,17 @@ export function FileName({ filename, path }: { filename: string; path?: string |
 }
 
 /** What's known of a file, said the same way everywhere: its rows, and whether it has shapes. */
-export function fileFacts(file: { rows: number | null; geometry?: boolean }): string | null {
+/** A file's facts: its rows, whether it has shapes, and a CSV's text when it isn't UTF-8 (Windows text: Excel's
+ * plain CSV), as OpenAVMKit reads it. */
+export function fileFacts(file: {
+  rows: number | null;
+  geometry?: boolean;
+  encoding?: string | null;
+}): string | null {
   if (file.rows === null) return file.geometry ? t.files.shapesOnly : null;
-  return t.files.facts({ rows: file.rows, shapes: file.geometry ? "yes" : "no" });
+  const e = file.encoding ?? "";
+  const text = e.startsWith("utf-16") ? "utf16" : e && !e.startsWith("utf-8") ? "windows" : "plain";
+  return t.files.facts({ rows: file.rows, shapes: file.geometry ? "yes" : "no", text });
 }
 
 /** A file's first line, without the outline: its name in OAK box (mono, bold), its file name, its facts. For

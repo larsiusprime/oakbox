@@ -126,3 +126,28 @@ def test_openavmkit_loads_what_was_written(client, pid, tmp_path, monkeypatch):
     df = load_dataframe(entry, {})
     assert df is not None
     assert df["key"].tolist() == ["0", "1", "2"] and df.crs.to_epsg() == 4326
+
+
+def test_a_csv_in_windows_text_is_read_as_it_is(client, pid, tmp_path, monkeypatch):
+    """Excel's plain "CSV (Comma delimited)" is the Windows code page (cp1252), not UTF-8. OAK box works that out
+    (as OpenAVMKit's "encoding": "auto" does), reads it so in its previews, and writes it into data.load, so the run
+    reads the same: no "Couldn't read" and no UnicodeDecodeError on an accented name."""
+    from openavmkit.data import load_dataframe
+
+    text = "PIN,OWNER\n1,José Peña\n2,Zoë Müller\n"
+    (tmp_path / "owners.csv").write_bytes(text.encode("cp1252"))
+    (tmp_path / "plain.csv").write_bytes(text.encode("utf-8"))
+    for name in ("owners", "plain"):
+        body = {"path": str(tmp_path / f"{name}.csv"), "mode": "copy", "name": name}
+        assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    files = {f["name"]: f for f in client.get(f"/api/projects/{pid}/wizard").json()["files"]}
+    assert files["owners"]["problem"] is None and files["owners"]["encoding"] == "cp1252"
+    assert files["plain"]["encoding"] == "utf-8"
+    owner = next(c for c in files["owners"]["columns"] if c["name"] == "OWNER")
+    assert "José Peña" in owner["samples"]
+    load = read_settings(pid)["data"]["load"]
+    assert load["owners"]["encoding"] == "cp1252"
+    assert "encoding" not in load["plain"]  # UTF-8: as before, nothing said
+    monkeypatch.chdir(projects.project_dir(pid))
+    df = load_dataframe(load["owners"] | {"load": {"key": ["PIN", "string"], "owner": ["OWNER", "string"]}}, {})
+    assert df is not None and df["owner"].tolist() == ["José Peña", "Zoë Müller"]

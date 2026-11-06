@@ -14,6 +14,7 @@ from oakbox.datafiles import (
     CleanStep,
     DataFile,
     clean_value,
+    csv_encoding,
 )
 from oakbox.errors import NotFound
 from oakbox.fields import Column, DictionaryField
@@ -41,7 +42,10 @@ def values_of(stamp: tuple[str, float, int], layer: str | None, column: str, raw
     path = Path(stamp[0])
     ext = path.suffix.lower().lstrip(".")
     if ext == "csv":
-        s = pd.read_csv(path, usecols=lambda c: c == column, dtype=str, keep_default_na=False)[column]
+        encoding = csv_encoding(path)
+        s = pd.read_csv(path, usecols=lambda c: c == column, dtype=str, keep_default_na=False, encoding=encoding)[
+            column
+        ]
     elif ext in ("parquet", "geoparquet"):
         s = pd.read_parquet(path, columns=[column])[column]
     else:

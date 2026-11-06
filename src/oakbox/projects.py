@@ -445,7 +445,7 @@ def _data(project: Project) -> dict:
     A parcel file joined on an extra ID merges on it (key2, key3). Sales joined on an extra ID get
     the parcel ID (key) from the base by a reference-table lookup on that ID.
     """
-    out: dict = {"load": data_load(project.files, project.units)}
+    out: dict = {"load": data_load(project.files, project.units, project_dir(project.id) / "in")}
     base = project.wizard.base
     parcels: list = [f for f in project.files if f.holds == "parcels"]
     # The main sales file first; more sales details (joined on the sale ID) after it.
