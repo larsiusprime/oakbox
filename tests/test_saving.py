@@ -85,3 +85,39 @@ def test_the_street_map_is_openfreemaps_unless_the_settings_name_another(client)
     own = "https://tiles.example.org/styles/ours.json"
     appsettings.save(appsettings.load().model_copy(update={"map_style": own}))
     assert client.get("/api/app-settings").json()["map_style"] == own
+
+
+def test_settings_changed_at_once_each_count(oakbox_home, monkeypatch):
+    """The menus' thread and the app's requests both change OAK box's settings: through appsettings.changing, each
+    change is made on the settings as the last one left them."""
+    load = appsettings.load
+
+    def slow_load():
+        s = load()
+        time.sleep(0.02)  # widen the gap between loading and saving, so a missing lock fails every time
+        return s
+
+    monkeypatch.setattr(appsettings, "load", slow_load)
+
+    def remember(pid: str) -> None:
+        with appsettings.changing() as s:
+            s.recent = [pid, *s.recent]
+
+    threads = [threading.Thread(target=remember, args=(f"p{i}",)) for i in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(load().recent) == [f"p{i}" for i in range(5)]
+
+
+def test_a_change_to_the_settings_that_fails_saves_nothing(oakbox_home):
+    with appsettings.changing() as s:
+        s.census_api_key = "KEY"
+    try:
+        with appsettings.changing() as s:
+            s.census_api_key = None
+            raise ValueError("stopped half way")
+    except ValueError:
+        pass
+    assert appsettings.load().census_api_key == "KEY"

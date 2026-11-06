@@ -67,6 +67,8 @@ name that says what it is.
 A route that changes a project changes it inside `with editing(project_id) as project:` (`routes/common.py`; with
 `settings=True` when settings.json follows from the change), or holds `projects.lock(project_id)` from loading it to
 saving it. The page can send two changes at once, and without the lock the second save undoes the first.
+OAK box's own settings (appsettings.py) change the same way: `with appsettings.changing() as s:`, never
+`load()` then `save()`.
 
 What a request names and isn't there raises `errors.NotFound` (404); an earlier step that has to run first raises
 `errors.NotReady` (409), its message saying which. Routes catch those, never `LookupError` itself, so a `KeyError`

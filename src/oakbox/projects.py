@@ -261,10 +261,8 @@ class Project(BaseModel):
 
 
 def _register(project_id: str, folder: Path) -> None:
-    s = appsettings.load()
-    if s.projects.get(project_id) != str(folder):
+    with appsettings.changing() as s:
         s.projects[project_id] = str(folder)
-        appsettings.save(s)
 
 
 def _read(folder: Path) -> Project | None:
@@ -288,8 +286,8 @@ def _discover() -> dict[str, Path]:
             if project is not None and project.id not in found:
                 found[project.id] = meta.parent
     if found != {pid: Path(f) for pid, f in s.projects.items()}:
-        s.projects = {pid: str(f) for pid, f in found.items()}
-        appsettings.save(s)
+        with appsettings.changing() as now:
+            now.projects = {pid: str(f) for pid, f in found.items()}
     return found
 
 
@@ -724,9 +722,8 @@ def delete(project_id: str) -> None:
 
     folder = project_dir(project_id)
     send2trash(str(folder))
-    s = appsettings.load()
-    s.projects.pop(project_id, None)
-    appsettings.save(s)
+    with appsettings.changing() as s:
+        s.projects.pop(project_id, None)
 
 
 def show_in_folder(project_id: str) -> None:

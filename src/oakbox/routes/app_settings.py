@@ -59,19 +59,16 @@ def _settings_view() -> AppSettingsView:
 @router.put("/api/app-settings/display")
 def put_display(body: Display) -> AppSettingsView:
     """Density and zoom (SPEC D43, View menu)."""
-    s = appsettings.load()
-    s.density, s.zoom = body.density, appsettings.AppSettings(zoom=body.zoom).zoom
-    appsettings.save(s)
+    with appsettings.changing() as s:
+        s.density, s.zoom = body.density, appsettings.AppSettings(zoom=body.zoom).zoom
     return _settings_view()
 
 
 @router.post("/api/app-settings/zoom")
 def post_zoom(body: ZoomStep) -> AppSettingsView:
     """A zoom level larger, smaller, or actual size (View menu, Ctrl+= / Ctrl+- / Ctrl+0, Ctrl+mouse wheel)."""
-    with appsettings.LOCK:
-        s = appsettings.load()
+    with appsettings.changing() as s:
         s.zoom = appsettings.zoom_step(s.zoom, body.by)
-        appsettings.save(s)
     return _settings_view()
 
 
@@ -83,26 +80,22 @@ def get_app_settings() -> AppSettingsView:
 @router.put("/api/app-settings/storage-location")
 def put_storage_location(body: StorageLocation) -> AppSettingsView:
     """Where new projects are kept. Existing projects stay where they are."""
-    s = appsettings.load()
-    if body.storage_location:
-        folder = Path(body.storage_location).expanduser()
+    folder = Path(body.storage_location).expanduser() if body.storage_location else None
+    if folder is not None:
         try:
             folder.mkdir(parents=True, exist_ok=True)
         except OSError as e:
             raise HTTPException(422, f"OAK box can't use that folder: {e.strerror or e}") from e
-        s.storage_location = str(folder)
-    else:
-        s.storage_location = None
-    appsettings.save(s)
+    with appsettings.changing() as s:
+        s.storage_location = str(folder) if folder is not None else None
     return _settings_view()
 
 
 @router.put("/api/census-key")
 def put_census_key(body: CensusKey) -> None:
     """Save the user's Census API key on this computer (OAK box's settings, not the project); empty forgets it."""
-    s = appsettings.load()
-    s.census_api_key = body.key.strip() or None
-    appsettings.save(s)
+    with appsettings.changing() as s:
+        s.census_api_key = body.key.strip() or None
 
 
 # ---------- This computer: the check and the performance settings (SPEC §5) ----------
@@ -193,17 +186,13 @@ def check_disk() -> Disk:
 @router.put("/api/machine")
 def put_machine(body: Found) -> MachineView:
     """Keep what the check found; its tier then decides every setting left at Recommended."""
-    with appsettings.LOCK:
-        s = appsettings.load()
+    with appsettings.changing() as s:
         s.machine = computer.finish(body.model_dump())
-        appsettings.save(s)
     return _machine_view()
 
 
 @router.put("/api/performance")
 def put_performance(body: computer.Performance) -> MachineView:
-    with appsettings.LOCK:
-        s = appsettings.load()
+    with appsettings.changing() as s:
         s.performance = body
-        appsettings.save(s)
     return _machine_view()
