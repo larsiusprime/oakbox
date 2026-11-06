@@ -1267,10 +1267,23 @@ export type Wording = {
       sub: string;
       what: string;
       field: string;
+      kind: string;
       blank: string;
-      with: string;
-      puts: string;
-      for: string;
+      kinds: {
+        building: string;
+        land: string;
+        other: string;
+      };
+      kindTips: {
+        building: string;
+        land: string;
+        other: string;
+      };
+      parcels: {
+        impr: string;
+        vacant: string;
+        all: string;
+      };
       methods: {
         median: string;
         mean: string;
@@ -1280,27 +1293,15 @@ export type Wording = {
         max: string;
         leave: string;
       };
-      scopes: {
-        all: string;
-        impr: string;
-        vacant: string;
-      };
-      example: (a: { method: string | number; among: string | number; v: string | number; group: string | number }) => string;
-      among: {
-        all: string;
-        impr: string;
-        vacant: string;
-      };
-      nothing: string;
-      emptyGroups: (a: { groups: string | number }) => string;
-      outside: {
-        impr: (a: { n: string | number }) => string;
-        vacant: (a: { n: string | number }) => string;
-      };
-      leaveNote: string;
+      autoMethod: (a: { method: string | number }) => string;
+      split: string;
+      locked: string;
       none: string;
-      auto: (a: { n: string | number }) => string;
-      area: string;
+      groupsField: string;
+      stays: string;
+      staysTip: string;
+      left: string;
+      noGroups: string;
     };
     scrutiny: {
       title: string;
@@ -1757,6 +1758,7 @@ export type Wording = {
     modelsKicker: string;
     steps: {
       fill: string;
+      fillgroups: string;
       rare: string;
       run: string;
       done: string;

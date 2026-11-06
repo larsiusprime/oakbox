@@ -2914,6 +2914,7 @@ export interface components {
             groups: components["schemas"]["oakbox__clean__GroupSetup"][];
             /** Fills */
             fills: components["schemas"]["FillRow"][];
+            fill_preview: components["schemas"]["FillPreview"];
             /**
              * Auto
              * @description What OpenAVMKit always fills itself, with how many.
@@ -3022,11 +3023,11 @@ export interface components {
                 [key: string]: components["schemas"]["Fill"];
             };
             /**
-             * Fills Scoped
-             * @description A building's fields proposed for improved parcels only (decide): a project from before has its old proposal (median, every parcel) moved over once.
+             * Fills Auto
+             * @description Fills are auto unless chosen (decide): a project from before, whose proposals were written down as if chosen, has each that's still its proposal made auto once.
              * @default false
              */
-            fills_scoped: boolean;
+            fills_auto: boolean;
             /**
              * Location
              * @description Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.
@@ -4253,66 +4254,102 @@ export interface components {
             /** Path */
             path: string;
         };
-        /** Fill */
+        /**
+         * Fill
+         * @description A field's fill, by its kind. A building's field fills improved parcels only (OpenAVMKit has made it 0 on vacant
+         *     ones); a land field every parcel alike (a fact about the land or its area, census figures among them, is the same
+         *     built on or not); any other every parcel alike, or improved and vacant parcels each their own (split).
+         */
         Fill: {
             /**
              * Method
-             * @description leave: no fill (the field stays blank).
+             * @description Every parcel's; a building's field's, or split, improved parcels'. auto: proposed (propose); leave: no fill (the field stays blank).
+             * @default auto
              * @enum {string}
              */
-            method: "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
+            method: "auto" | "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
             /**
-             * Scope
-             * @description Every parcel, or only improved / only vacant ones.
-             * @default all
+             * Split
+             * @description Improved and vacant parcels each their own (an Other field only).
+             * @default false
+             */
+            split: boolean;
+            /**
+             * Vacant
+             * @description Split: vacant parcels'.
+             * @default auto
              * @enum {string}
              */
-            scope: "all" | "impr" | "vacant";
+            vacant: "auto" | "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
+            /**
+             * Kind
+             * @description The field's kind, as last seen (decide keeps it up to date).
+             * @default other
+             * @enum {string}
+             */
+            kind: "building" | "land" | "other";
         };
-        /** FillChange */
+        /**
+         * FillCell
+         * @description A field's fill in one model group: every parcel's (a building's field, or split: improved parcels').
+         */
+        FillCell: {
+            /** @description None: no blanks there. */
+            main: components["schemas"]["FillPart"] | null;
+            /** @description Split: vacant parcels' (None: no blanks there). */
+            vacant: components["schemas"]["FillPart"] | null;
+        };
+        /**
+         * FillChange
+         * @description Only what's named changes.
+         */
         FillChange: {
             /** Field */
             field: string;
-            /**
-             * Method
-             * @enum {string}
-             */
-            method: "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
-            /**
-             * Scope
-             * @default all
-             * @enum {string}
-             */
-            scope: "all" | "impr" | "vacant";
+            /** Method */
+            method?: ("auto" | "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave") | null;
+            /** Split */
+            split?: boolean | null;
+            /** Vacant */
+            vacant?: ("auto" | "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave") | null;
         };
-        /**
-         * FillExample
-         * @description What a fill puts in, for one of who it's for (every parcel, only improved, only vacant): as OpenAVMKit fills,
-         *     each model group from its own parcels' values (only improved ones' for only improved).
-         */
-        FillExample: {
-            /**
-             * Blanks
-             * @description Blanks it fills (the rest stay blank).
-             */
+        /** FillPart */
+        FillPart: {
+            /** Blanks */
             blanks: number;
             /**
-             * Group
-             * @description The model group with the most of those blanks: the example's (its name).
+             * Value
+             * @description What goes into them; None: they stay blank (left, or nothing to take).
              */
-            group: string;
+            value: number | null;
             /**
-             * Values
-             * @description median, mean, mode, min, max of that group's values: what goes into its blanks.
+             * Left
+             * @description Left blank, as chosen.
+             * @default false
              */
-            values: {
-                [key: string]: number;
-            };
+            left: boolean;
+        };
+        /** FillPreview */
+        FillPreview: {
             /**
-             * Empty
-             * @description Model groups (names) with blanks but no values to take a median (mean, smallest, largest) from: theirs stay blank. A most-common fill puts 0 there.
+             * Groups
+             * @description The model groups with parcels (value: id; label: name).
              */
-            empty: string[];
+            groups: components["schemas"]["Choice"][];
+            /** Rows */
+            rows: components["schemas"]["FillPreviewRow"][];
+        };
+        /** FillPreviewRow */
+        FillPreviewRow: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Cells
+             * @description One per group, in groups' order.
+             */
+            cells: components["schemas"]["FillCell"][];
         };
         /** FillRow */
         FillRow: {
@@ -4322,27 +4359,19 @@ export interface components {
             name: string;
             /** Blanks */
             blanks: number;
-            /** Parcels */
-            parcels: number;
             /**
-             * Building
-             * @description One of the building's fields: 0 on vacant parcels already (OpenAVMKit).
+             * Kind
+             * @description OpenAVMKit's classification: a building's field is 0 on vacant parcels.
+             * @enum {string}
              */
-            building: boolean;
+            kind: "building" | "land" | "other";
             fill: components["schemas"]["Fill"];
-            proposed: components["schemas"]["Fill"];
             /**
-             * Why
-             * @description Why that's proposed: what a blank means for this field.
+             * Auto
+             * @description What auto is: the fill proposed from what a blank means.
+             * @enum {string}
              */
-            why: string;
-            /**
-             * Examples
-             * @description What each "For" puts in.
-             */
-            examples: {
-                [key: string]: components["schemas"]["FillExample"];
-            };
+            auto: "median" | "mean" | "mode" | "zero" | "min" | "max" | "leave";
         };
         /** Filled */
         Filled: {

@@ -83,6 +83,7 @@ export type CleanView = components["schemas"]["CleanView"];
 export type CleanSetup = components["schemas"]["CleanSetup"];
 export type CleanReceipt = components["schemas"]["CleanReceipt"];
 export type FillRow = components["schemas"]["FillRow"];
+export type FillPart = components["schemas"]["FillPart"];
 export type ReviewItem = components["schemas"]["ReviewItem"];
 export type SaleDetail = components["schemas"]["SaleDetail"];
 export type RelatedSale = components["schemas"]["RelatedSale"];

@@ -7678,6 +7678,9 @@
       "type": "array",
       "title": "Fills"
      },
+     "fill_preview": {
+      "$ref": "#/components/schemas/FillPreview"
+     },
      "auto": {
       "items": {
        "type": "string"
@@ -7787,6 +7790,7 @@
      "period",
      "groups",
      "fills",
+     "fill_preview",
      "auto",
      "location",
      "location_proposed",
@@ -7870,10 +7874,10 @@
       "title": "Fills",
       "description": "Per field with blanks; written once proposed."
      },
-     "fills_scoped": {
+     "fills_auto": {
       "type": "boolean",
-      "title": "Fills Scoped",
-      "description": "A building's fields proposed for improved parcels only (decide): a project from before has its old proposal (median, every parcel) moved over once.",
+      "title": "Fills Auto",
+      "description": "Fills are auto unless chosen (decide): a project from before, whose proposals were written down as if chosen, has each that's still its proposal made auto once.",
       "default": false
      },
      "location": {
@@ -7973,7 +7977,7 @@
      "time_files",
      "per",
      "fills",
-     "fills_scoped",
+     "fills_auto",
      "location",
      "checks",
      "collapse",
@@ -10535,6 +10539,7 @@
      "method": {
       "type": "string",
       "enum": [
+       "auto",
        "median",
        "mean",
        "mode",
@@ -10544,36 +10549,19 @@
        "leave"
       ],
       "title": "Method",
-      "description": "leave: no fill (the field stays blank)."
+      "description": "Every parcel's; a building's field's, or split, improved parcels'. auto: proposed (propose); leave: no fill (the field stays blank).",
+      "default": "auto"
      },
-     "scope": {
+     "split": {
+      "type": "boolean",
+      "title": "Split",
+      "description": "Improved and vacant parcels each their own (an Other field only).",
+      "default": false
+     },
+     "vacant": {
       "type": "string",
       "enum": [
-       "all",
-       "impr",
-       "vacant"
-      ],
-      "title": "Scope",
-      "description": "Every parcel, or only improved / only vacant ones.",
-      "default": "all"
-     }
-    },
-    "type": "object",
-    "required": [
-     "method",
-     "scope"
-    ],
-    "title": "Fill"
-   },
-   "FillChange": {
-    "properties": {
-     "field": {
-      "type": "string",
-      "title": "Field"
-     },
-     "method": {
-      "type": "string",
-      "enum": [
+       "auto",
        "median",
        "mean",
        "mode",
@@ -10582,64 +10570,216 @@
        "max",
        "leave"
       ],
-      "title": "Method"
+      "title": "Vacant",
+      "description": "Split: vacant parcels'.",
+      "default": "auto"
      },
-     "scope": {
+     "kind": {
       "type": "string",
       "enum": [
-       "all",
-       "impr",
-       "vacant"
+       "building",
+       "land",
+       "other"
       ],
-      "title": "Scope",
-      "default": "all"
+      "title": "Kind",
+      "description": "The field's kind, as last seen (decide keeps it up to date).",
+      "default": "other"
      }
     },
     "type": "object",
     "required": [
-     "field",
-     "method"
+     "method",
+     "split",
+     "vacant",
+     "kind"
     ],
-    "title": "FillChange"
+    "title": "Fill",
+    "description": "A field's fill, by its kind. A building's field fills improved parcels only (OpenAVMKit has made it 0 on vacant\nones); a land field every parcel alike (a fact about the land or its area, census figures among them, is the same\nbuilt on or not); any other every parcel alike, or improved and vacant parcels each their own (split)."
    },
-   "FillExample": {
+   "FillCell": {
+    "properties": {
+     "main": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FillPart"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "None: no blanks there."
+     },
+     "vacant": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FillPart"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Split: vacant parcels' (None: no blanks there)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "main",
+     "vacant"
+    ],
+    "title": "FillCell",
+    "description": "A field's fill in one model group: every parcel's (a building's field, or split: improved parcels')."
+   },
+   "FillChange": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "method": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "auto",
+         "median",
+         "mean",
+         "mode",
+         "zero",
+         "min",
+         "max",
+         "leave"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Method"
+     },
+     "split": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Split"
+     },
+     "vacant": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "auto",
+         "median",
+         "mean",
+         "mode",
+         "zero",
+         "min",
+         "max",
+         "leave"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vacant"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field"
+    ],
+    "title": "FillChange",
+    "description": "Only what's named changes."
+   },
+   "FillPart": {
     "properties": {
      "blanks": {
       "type": "integer",
-      "title": "Blanks",
-      "description": "Blanks it fills (the rest stay blank)."
+      "title": "Blanks"
      },
-     "group": {
-      "type": "string",
-      "title": "Group",
-      "description": "The model group with the most of those blanks: the example's (its name)."
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value",
+      "description": "What goes into them; None: they stay blank (left, or nothing to take)."
      },
-     "values": {
-      "additionalProperties": {
-       "type": "number"
-      },
-      "type": "object",
-      "title": "Values",
-      "description": "median, mean, mode, min, max of that group's values: what goes into its blanks."
-     },
-     "empty": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Empty",
-      "description": "Model groups (names) with blanks but no values to take a median (mean, smallest, largest) from: theirs stay blank. A most-common fill puts 0 there."
+     "left": {
+      "type": "boolean",
+      "title": "Left",
+      "description": "Left blank, as chosen.",
+      "default": false
      }
     },
     "type": "object",
     "required": [
      "blanks",
-     "group",
-     "values",
-     "empty"
+     "value",
+     "left"
     ],
-    "title": "FillExample",
-    "description": "What a fill puts in, for one of who it's for (every parcel, only improved, only vacant): as OpenAVMKit fills,\neach model group from its own parcels' values (only improved ones' for only improved)."
+    "title": "FillPart"
+   },
+   "FillPreview": {
+    "properties": {
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/Choice"
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "The model groups with parcels (value: id; label: name)."
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/FillPreviewRow"
+      },
+      "type": "array",
+      "title": "Rows"
+     }
+    },
+    "type": "object",
+    "required": [
+     "groups",
+     "rows"
+    ],
+    "title": "FillPreview"
+   },
+   "FillPreviewRow": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "cells": {
+      "items": {
+       "$ref": "#/components/schemas/FillCell"
+      },
+      "type": "array",
+      "title": "Cells",
+      "description": "One per group, in groups' order."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "cells"
+    ],
+    "title": "FillPreviewRow"
    },
    "FillRow": {
     "properties": {
@@ -10655,40 +10795,32 @@
       "type": "integer",
       "title": "Blanks"
      },
-     "parcels": {
-      "type": "integer",
-      "title": "Parcels"
-     },
-     "building": {
-      "type": "boolean",
-      "title": "Building",
-      "description": "One of the building's fields: 0 on vacant parcels already (OpenAVMKit)."
+     "kind": {
+      "type": "string",
+      "enum": [
+       "building",
+       "land",
+       "other"
+      ],
+      "title": "Kind",
+      "description": "OpenAVMKit's classification: a building's field is 0 on vacant parcels."
      },
      "fill": {
       "$ref": "#/components/schemas/Fill"
      },
-     "proposed": {
-      "$ref": "#/components/schemas/Fill"
-     },
-     "why": {
+     "auto": {
       "type": "string",
-      "title": "Why",
-      "description": "Why that's proposed: what a blank means for this field."
-     },
-     "examples": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/FillExample"
-      },
-      "propertyNames": {
-       "enum": [
-        "all",
-        "impr",
-        "vacant"
-       ]
-      },
-      "type": "object",
-      "title": "Examples",
-      "description": "What each \"For\" puts in."
+      "enum": [
+       "median",
+       "mean",
+       "mode",
+       "zero",
+       "min",
+       "max",
+       "leave"
+      ],
+      "title": "Auto",
+      "description": "What auto is: the fill proposed from what a blank means."
      }
     },
     "type": "object",
@@ -10696,12 +10828,9 @@
      "field",
      "name",
      "blanks",
-     "parcels",
-     "building",
+     "kind",
      "fill",
-     "proposed",
-     "why",
-     "examples"
+     "auto"
     ],
     "title": "FillRow"
    },

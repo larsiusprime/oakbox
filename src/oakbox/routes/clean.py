@@ -27,9 +27,12 @@ class TimeFileBody(BaseModel):
 
 
 class FillChange(BaseModel):
+    """Only what's named changes."""
+
     field: str
-    method: clean.FillMethod
-    scope: clean.FillScope = "all"
+    method: clean.FillChoice | None = None
+    split: bool | None = None
+    vacant: clean.FillChoice | None = None
 
 
 class IndexOnChange(BaseModel):
@@ -93,7 +96,9 @@ def clean_change(project_id: str, body: CleanPatch) -> clean.CleanSetup:
                 c.checks |= value or {}
             elif name == "fill":
                 if value is not None:
-                    c.fills[value.field] = clean.Fill(method=value.method, scope=value.scope)
+                    old = c.fills.get(value.field, clean.Fill())
+                    named = {k: getattr(value, k) for k in ("method", "split", "vacant")}
+                    c.fills[value.field] = old.model_copy(update={k: v for k, v in named.items() if v is not None})
             elif name == "index_on":
                 if value is not None and value.per is None:
                     c.per.pop(value.group, None)
