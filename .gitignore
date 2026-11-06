@@ -9,3 +9,6 @@ __pycache__/
 
 work/
 /sample/*/.cache/
+
+# OpenAVMKit writes its cache next to wherever it runs: never the checkout.
+/cache/
