@@ -11,6 +11,7 @@ import { TabStrip } from "../components/TabStrip";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { navigate, TABS, type TabId } from "../lib/route";
+import { lockedTabs } from "../lib/tabs";
 import { say, t } from "../wording";
 import { BringInTab, useAccepted } from "./BringIn";
 import { SalesTab, useSalesAccepted } from "./CheckSales";
@@ -80,13 +81,8 @@ function ProjectView({
   const first = order.find((k) => !views[k]?.accepted);
   // A tab that waits on an earlier step shows the first step, in order, not accepted on an up-to-date run: where
   // something needs doing, with a notice saying why (never silently somewhere else).
-  const tabLocked =
-    (tab === "groups" && !accepted) ||
-    (tab === "sales" && !grouped) ||
-    ((tab === "values" || tab === "variables" || tab === "check") && !checked) ||
-    (tab === "check" && !hasValues) ||
-    (tab === "values" && !prepared) ||
-    (tab === "report" && !finalized);
+  const locked = lockedTabs({ accepted, grouped, checked, hasValues, prepared, finalized });
+  const tabLocked = tab !== null && locked.has(tab);
   const loaded = order.every((k) => views[k] !== undefined);
   // Opened without a tab: the one last open in this project here (if it's open to you), else Data.
   const last = lastTab(projectId) as TabId | null;
@@ -113,14 +109,6 @@ function ProjectView({
           .filter(Boolean)
           .join(" ")
       : null;
-  const locked = [
-    ...(accepted ? [] : ["groups"]),
-    ...(grouped ? [] : ["sales"]),
-    ...(checked ? [] : ["check", "variables", "values"]),
-    ...(hasValues ? [] : ["check"]),
-    ...(prepared ? [] : ["values"]),
-    ...(finalized ? [] : ["report"]),
-  ];
 
   // The plate: where you are, and the tabs it lists (each one's name, whether it waits, whether it's done).
   setWhere({ projectId, tab: selected });
@@ -134,7 +122,7 @@ function ProjectView({
   const tabList = TABS.map((id) => ({
     id,
     title: name(id),
-    locked: locked.includes(id),
+    locked: locked.has(id),
     done: !!done[id],
   }));
   useEffect(() => {
