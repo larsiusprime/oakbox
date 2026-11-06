@@ -15,15 +15,18 @@ import os
 import subprocess
 import sys
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from oakbox import atomic
 from oakbox.machine import Machine, Performance
 
-# One change to the settings at a time (the menus' thread and the app's requests both write them).
-LOCK = threading.Lock()
+# One change to the settings at a time (the menus' thread and the app's requests both write them): changing().
+LOCK = threading.RLock()
 
 # The street map under every map (SPEC §3.11): OpenFreeMap's vector tiles, free, with no key, meant for apps like
 # this one (openfreemap.org), in its light grey style, so what OAK box draws reads on top. Its address can be set
@@ -203,9 +206,20 @@ def _salvage(data: bytes) -> AppSettings:
 
 
 def save(s: AppSettings) -> None:
-    from oakbox import atomic
-
     atomic.save_text(_path(), s.model_dump_json(indent=2))
+
+
+@contextmanager
+def changing() -> Iterator[AppSettings]:
+    """OAK box's settings, to change: loaded, then saved when the block ends (if anything changed), all under the
+    lock, so two changes at once (the menus' thread, two requests) can't undo each other. An exception in the block
+    saves nothing."""
+    with LOCK:
+        s = load()
+        before = s.model_dump()
+        yield s
+        if s.model_dump() != before:
+            save(s)
 
 
 def map_style() -> str:

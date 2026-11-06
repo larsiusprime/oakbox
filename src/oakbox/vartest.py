@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
-from oakbox import cells, model, prepare, steps
+from oakbox import cells, model, prepare, spatiallag, steps
 from oakbox.datafiles import BaseModel
 
 if TYPE_CHECKING:
@@ -207,9 +207,9 @@ def run(project_id: str) -> None:
         pl.write_canonical_splits(sup, settings, verbose=False)
         if settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"):
             steps.emit(step="lag", fraction=0.03, message="Averaging nearby sales and buildings")
-            model.lag_prune(settings, sup.universe)
+            spatiallag.lag_prune(settings, sup.universe)
             sup = pl.enrich_sup_spatial_lag(sup, settings, verbose=False)
-            sup = model.lag_stable(sup, model.sale_field(project))
+            sup = spatiallag.lag_stable(sup, spatiallag.sale_field(project))
         sales = get_hydrated_sales_from_sup(sup)
         universe = sup.universe
         from oakbox import assemble
@@ -235,7 +235,7 @@ def run(project_id: str) -> None:
             vg.empty += [
                 v
                 for v in variables
-                if v.startswith(model.LAG)
+                if v.startswith(spatiallag.LAG)
                 and v in df_s.columns
                 and v not in vg.empty
                 and bool(df_s[v].fillna(0).eq(0).all())
@@ -310,8 +310,8 @@ def _lag(project: Project, project_dir: Path) -> dict:
     from oakbox import assemble
 
     modeled = assemble.modeled(project, project_dir)
-    return model.lag_settings(
-        project, [g.id for g in project.groups if g.id in modeled], model._universe_fields(project_dir)
+    return spatiallag.lag_settings(
+        project, [g.id for g in project.groups if g.id in modeled], model.universe_fields(project_dir)
     )
 
 

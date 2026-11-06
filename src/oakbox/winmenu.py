@@ -12,6 +12,7 @@ UI thread free.
 
 from __future__ import annotations
 
+import sys
 import threading
 from typing import Any
 
@@ -23,8 +24,6 @@ SC_KEYMENU = 0xF100
 
 def unavailable() -> str | None:
     """Why the Win32 menu bar can't be used here, or None when it can."""
-    import sys
-
     if sys.platform != "win32":
         return "not Windows"
     try:

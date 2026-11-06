@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { ModelSetup } from "../api/client";
 import { Field, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { num } from "../lib/format";
 import { say, t } from "../wording";
 
 const l = t.values.lag;
@@ -99,7 +100,7 @@ export function LagStep({
                   <td>
                     <span className="mg-sw ab-sw" style={{ background: g.color }} /> {g.name}
                   </td>
-                  <td className="num">{g.sales.toLocaleString()}</td>
+                  <td className="num">{num(g.sales)}</td>
                   <td>
                     <MultiPick
                       label={l.borrowFor({ group: g.name })}

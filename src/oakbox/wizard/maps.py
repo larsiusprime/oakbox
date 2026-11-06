@@ -4,7 +4,10 @@ measured to, how many parcels each covers, and its shapes for the map. Also the 
 
 from __future__ import annotations
 
+import json
+import random
 import re
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
@@ -18,7 +21,7 @@ from oakbox.datafiles import (
 )
 from oakbox.errors import NotFound
 from oakbox.projects import Project
-from oakbox.wizard.files import Files, _by_key, file_stamp
+from oakbox.wizard.files import Files, dictionary_by_key, file_stamp
 from oakbox.wizard.models import Check, LayerView, Left
 from oakbox.wizard.user_fields import TAKEN
 
@@ -92,9 +95,6 @@ def _centres(stamp: tuple[str, float, int], layer: str | None) -> tuple[tuple[fl
 
 def location_map(project: Project, in_dir: Path, name: str) -> LocationMap:
     """Where each of a location field's areas is: the parcel universe's centres, each with its area."""
-    import random
-    from collections import Counter
-
     if name not in project.wizard.locations:
         raise NotFound(name)
     entry = next((f for f in project.files if name in f.load and f.holds not in ("sales", "overlay", "unused")), None)
@@ -135,7 +135,7 @@ def map_view(project: Project, in_dir: Path) -> MapView:
 
 
 @lru_cache(maxsize=16)
-def _read_geo(stamp: tuple[str, float, int], layer: str | None):
+def read_geo(stamp: tuple[str, float, int], layer: str | None):
     import geopandas as gpd
 
     path = Path(stamp[0])
@@ -147,7 +147,7 @@ def _read_geo(stamp: tuple[str, float, int], layer: str | None):
 
 
 def _geo(in_dir: Path, f: DataFile):
-    return _read_geo(file_stamp(in_dir / f.filename), f.layer)
+    return read_geo(file_stamp(in_dir / f.filename), f.layer)
 
 
 @lru_cache(maxsize=16)
@@ -155,8 +155,8 @@ def coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple[
     """(parcels in exactly one shape, in several, in none): their centres, as OpenAVMKit joins them."""
     import geopandas as gpd
 
-    parcels = _read_geo(base, base_layer)
-    shapes = _read_geo(other, layer)
+    parcels = read_geo(base, base_layer)
+    shapes = read_geo(other, layer)
     shapes = gpd.GeoDataFrame(shapes[shapes.geometry.geom_type.isin(["Polygon", "MultiPolygon"])]).to_crs(parcels.crs)
     centres = gpd.GeoDataFrame(geometry=parcels.geometry.centroid, crs=parcels.crs)
     hits = gpd.sjoin(centres, gpd.GeoDataFrame(geometry=shapes.geometry), how="inner", predicate="within")
@@ -266,7 +266,7 @@ def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | No
     if not files.geometry(name):
         raise ValueError(f"{name} has no shapes: a map layer needs geometry.")
     columns = {c.name for c in files.columns(name)}
-    by_key = _by_key()
+    by_key = dictionary_by_key()
     taken = _taken_names(project, name)
 
     def check_name(n: str, what: str) -> None:
@@ -304,8 +304,6 @@ class LayerMap(BaseModel):
 
 
 def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
-    import json as _json
-
     import geopandas as gpd
 
     entry = next((f for f in project.files if f.name == name and f.holds == "overlay"), None)
@@ -319,7 +317,7 @@ def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
     import shapely
 
     shapes["geometry"] = shapely.force_2d(shapes.geometry.to_numpy())  # flat: a height draws it out of sight
-    return LayerMap(shapes=_json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
+    return LayerMap(shapes=json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
 
 
 # ---------- Enrichments (F3e) ----------

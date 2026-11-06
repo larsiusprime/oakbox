@@ -13,6 +13,7 @@ import os
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -264,8 +265,6 @@ def speed_work() -> float:
 def disk(folder: Path, mb: int = 128) -> int | None:
     """Writing `mb` MB in `folder` (where projects are kept) and making sure it's on the disk: MB/s. None when it
     can't be written there."""
-    import tempfile
-
     block = os.urandom(4 * 2**20)
     try:
         folder.mkdir(parents=True, exist_ok=True)

@@ -144,10 +144,8 @@ class Controller:
         self.set_title(title)
         self.project_id = project_id
         if project_id:
-            with appsettings.LOCK:
-                s = appsettings.load()
+            with appsettings.changing() as s:
                 s.recent = [project_id, *[p for p in s.recent if p != project_id]][:RECENT]
-                appsettings.save(s)
 
     def run(self, command: str) -> None:
         if command == "exit":
@@ -155,13 +153,11 @@ class Controller:
         elif command == "docs":
             self.open_url(OPENAVMKIT_DOCS)
         elif command in ("density-default", "density-compact", *ZOOM_STEPS):
-            with appsettings.LOCK:
-                s = appsettings.load()
+            with appsettings.changing() as s:
                 if command.startswith("density-"):
                     s.density = command.removeprefix("density-")  # type: ignore[assignment]
                 else:
                     s.zoom = appsettings.zoom_step(s.zoom, ZOOM_STEPS[command])
-                appsettings.save(s)
             self.send("display")  # the page re-reads the settings and restyles
         else:
             self.send(command)

@@ -190,7 +190,7 @@ def show_in_folder(project_id: str) -> None:
 def check_file(project_id: str, body: FilePath) -> datafiles.FileCheck:
     """What OAK box can tell about a file before adding it (SPEC §3.0 F2)."""
     project = load_project(project_id)
-    return datafiles.check(projects.project_dir(project_id) / "in", body.path, project.files)
+    return datafiles.check(projects.inputs_dir(project_id), body.path, project.files)
 
 
 @router.post("/api/projects/{project_id}/files")
@@ -199,7 +199,7 @@ def add_file(project_id: str, body: AddFile) -> projects.Project:
     with editing(project_id, settings=True) as project:
         try:
             entry = datafiles.add(
-                projects.project_dir(project_id) / "in",
+                projects.inputs_dir(project_id),
                 body.path,
                 project.files,
                 body.mode,
@@ -210,7 +210,7 @@ def add_file(project_id: str, body: AddFile) -> projects.Project:
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
         project.files.append(entry)
-        wizard.update_base(project, projects.project_dir(project_id) / "in")
+        wizard.update_base(project, projects.inputs_dir(project_id))
     return project
 
 

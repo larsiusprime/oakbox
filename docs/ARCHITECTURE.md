@@ -48,7 +48,7 @@ writing `in/settings.json` for OpenAVMKit), `appsettings.py` (OAK box's own sett
 
 **Setting up the data** (the Data tab, before step 1): `datafiles.py` (a file brought into `in/` and its `data.load`
 entry), `fields.py` (what's in a file), `wizard/` (the Fields wizard: `core.py` builds its view and makes its
-changes; `base.py` is its steps as data; the other modules are its parts: IDs, money, quality, condos, map layers,
+changes, `setfield.py` sets a field; `base.py` is its steps as data; the other modules are its parts: IDs, money, quality, condos, map layers,
 rows appended, user fields, deeds and permits, existing values), `enrichments.py`, `names.py` (deed names),
 `valuesets.py`.
 
@@ -58,10 +58,10 @@ rows appended, user fields, deeds and permits, existing values), `enrichments.py
 |---|---|---|---|---|
 | 1 | Inputs (Bring in data) | `bring_in.py` | the files and settings | `out/oakbox/bring_in/sup.pickle` |
 | 2 | Model groups | `assemble.py` (run), `groups.py` (the builder) | Bring in data | `out/1-assemble-sup.pickle` |
-| 3 | Sales (Check sales) | `clean.py`, `time_preview.py` (the time adjustment alone, a run of its own) | `out/1-assemble-sup.pickle` | `out/oakbox/clean/` (its hand-off, and copies of its sales and universe), `out/2-clean-*` |
+| 3 | Sales (Check sales) | `clean.py`, `salereview.py` (the review of the sales it set aside), `time_preview.py` (the time adjustment alone, a run of its own) | `out/1-assemble-sup.pickle` | `out/oakbox/clean/` (its hand-off, and copies of its sales and universe), `out/2-clean-*` |
 | 4 | Evaluate (Check my values) | `ratio.py` | `out/oakbox/clean/`: Check sales as it ran, never `out/2-clean-*` | its receipt only |
 | 5 | Variables | `prepare.py` (Prepare the fields), `vartest.py` (Test the variables), `varlists.py` | `out/oakbox/clean/sup.pickle` | `out/2-clean-*` again, filled and folded |
-| 6 | Models (Try them, Finalize) | `model.py` (Try them), `smallgroups.py`, `locstack.py`, `final.py` (Finalize) | Prepare the fields | the model values |
+| 6 | Models (Try them, Finalize) | `model.py` (Try them), `spatiallag.py` (nearby sales and buildings), `smallgroups.py`, `locstack.py`, `final.py` (Finalize) | Prepare the fields | the model values |
 | 7 | Report | `report.py` (no run of its own: it reads Finalize's) | Finalize | exports, the printable report |
 
 Shared by the steps: `steps.py` (running, the receipt, out of date, accepted), `cells.py` (values read out of
@@ -124,7 +124,8 @@ out of date (their key holds its `ran_at`).
 ```
 
 Code finds these through `steps.py`: `out_dir(pdir, module)`, `settings_path`, `handoff(pdir, "2-clean")`,
-`look_dir` and `look(pdir, "2-clean-universe")`; never by spelling the path out.
+`look_dir` and `look(pdir, "2-clean-universe")`, and `in/` through `projects.inputs_dir(project_id)`; never by
+spelling the path out.
 
 OAK box's own settings (`appsettings.py`): `%APPDATA%\OAK box\settings.json` on Windows, `~/.config/oakbox/` on
 Linux; downloaded engines: `%LOCALAPPDATA%\OAK box\engines\`, `~/.local/share/oakbox/engines/`. `OAKBOX_HOME` (tests,

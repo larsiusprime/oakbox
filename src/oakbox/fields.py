@@ -22,7 +22,6 @@ SAMPLE_ROWS = 1000
 SAMPLES = 5
 # Types OpenAVMKit casts to in data.load, and the third item each needs (SPEC F3c).
 TYPES = ("string", "float", "int", "bool", "datetime")
-BLANKS = ("na_false", "na_true")
 DATE_FORMATS = (
     "%Y-%m-%d",
     "%m/%d/%Y",
@@ -227,6 +226,10 @@ def _fill(text: str, jurisdiction: str) -> str:
     out = re.sub(r"^\{jurisdiction\} ", "Assessor's ", out)
     out = out.replace("{jurisdiction}", "the assessor")
     return out[:1].upper() + out[1:]
+
+
+# Names for fields OpenAVMKit makes that the data dictionary doesn't name.
+MADE_NAMES = {"polar_radius": "Distance from the centre", "polar_angle": "Direction from the centre"}
 
 
 def names() -> dict[str, str]:

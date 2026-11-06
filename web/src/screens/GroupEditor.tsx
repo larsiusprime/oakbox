@@ -15,7 +15,7 @@ import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton, RemoveTextButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
-import { moneyShort } from "../lib/format";
+import { moneyShort, num } from "../lib/format";
 import { t } from "../wording";
 
 const g = t.groups;
@@ -105,15 +105,15 @@ export function GroupEditor({
       {stats && (
         <div className="mg-stats">
           <div>
-            <b className="mg-stat-n">{stats.parcels.toLocaleString()}</b>
+            <b className="mg-stat-n">{num(stats.parcels)}</b>
             <span className="mg-stat-l">{g.statParcels({ v: stats.vacant })}</span>
           </div>
           <div>
-            <b className="mg-stat-n">{stats.sales.toLocaleString()}</b>
+            <b className="mg-stat-n">{num(stats.sales)}</b>
             <span className="mg-stat-l">{g.statSales}</span>
           </div>
           <div>
-            <b className="mg-stat-n">{stats.vacant_sales.toLocaleString()}</b>
+            <b className="mg-stat-n">{num(stats.vacant_sales)}</b>
             <span className="mg-stat-l">{g.statVacant}</span>
           </div>
           <div>

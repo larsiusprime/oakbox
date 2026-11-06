@@ -12,7 +12,7 @@ import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
-import { num } from "../lib/format";
+import { num, pct } from "../lib/format";
 import { say, t } from "../wording";
 
 const s = t.values.lists;
@@ -217,7 +217,7 @@ function ListEditor({
   const order = view.variables.map((x) => x.field);
   const set = (fields: Set<string>) => change({ variables: order.filter((f) => fields.has(f)) });
   const names = Object.fromEntries(view.variables.map((x) => [x.field, x.name]));
-  const pct = (r: TestRow | null) => (r?.value == null ? "—" : `${Math.round(100 * r.value)}%`);
+  const share = (r: TestRow | null) => (r?.value == null ? "—" : pct(r.value));
   return (
     <div className="vl-edit">
       {/* Labels in one column, what's set in the next. */}
@@ -343,7 +343,7 @@ function ListEditor({
                     {x.name} <span className="mono wiz-from">{x.field}</span>
                   </td>
                   <td className="wiz-from">{x.values != null ? s.category({ n: x.values }) : s.number}</td>
-                  <td className="cs-n">{pct(f.rep)}</td>
+                  <td className="cs-n">{share(f.rep)}</td>
                   <td className="cs-n">
                     {f.corr?.value == null ? (
                       "—"

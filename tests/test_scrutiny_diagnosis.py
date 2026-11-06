@@ -9,7 +9,7 @@ import pytest
 from helpers import NEW
 from shapely.geometry import box
 
-from oakbox import clean, names, projects
+from oakbox import clean, names, projects, salereview
 
 SELLERS = ["SMITH JOHN A", "LEE ANN & BOB", "ACME HOLDINGS LLC", "PARK JO", "", "GARCIA MARIA"]
 BUYERS = ["SMITH MARY", "KIM DAE & LEE SU", "JONES TOM", "PARK JO", "WHITE AL", "TRIAD HOMES LLC"]
@@ -103,7 +103,7 @@ def test_related_sales(tmp_path):
             "deed": ["B1-P2", "B1-P2", "B9-P9", None, None, "B1-P2"],
         }
     ).to_parquet(out / "related.parquet", index=False)
-    got = {r.key_sale: r for r in clean._related(tmp_path, "a", aside={"b"})}
+    got = {r.key_sale: r for r in salereview._related(tmp_path, "a", aside={"b"})}
     # b: the same deed, the same day, 33 m away, the same buyer (written another way); set aside too.
     assert set(got["b"].why) == {"deed", "day_near", "day_buyer"} and got["b"].set_aside
     assert 30 < (got["b"].distance or 0) < 40

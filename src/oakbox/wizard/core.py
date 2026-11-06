@@ -9,30 +9,27 @@ import re
 from pathlib import Path
 from typing import cast
 
-from oakbox import enrichments, fields
+from oakbox import cells, enrichments, fields
 from oakbox.datafiles import (
     AREA_FIELDS,
     EXTRA_IDS,
-    QC_FIELDS,
-    AreaUnit,
     Condition,
     DataFile,
     Dupes,
     Holds,
     Match,
-    NumberFormat,
     Rule,
     Scale,
     csv_encoding,
     guess_area_unit,
     small_unit,
+    suggest_name,
 )
 from oakbox.errors import NotFound
 from oakbox.fields import VALUE_PARTS
 from oakbox.projects import BIG_FIVE_PARTS, SALES_PARTS, Project
 from oakbox.valuesets import ROLL, value_field, value_sets
 from oakbox.wizard.base import (
-    ABSENT_OK,
     ASSUMABLE,
     ONLY_WITHOUT,
     PAIRS,
@@ -40,6 +37,7 @@ from oakbox.wizard.base import (
     RECOMMENDED,
     RENAMED,
     REQUIRED,
+    ROWS,
     SCALED,
     STEP_KEYS,
     STEPS,
@@ -48,28 +46,28 @@ from oakbox.wizard.base import (
 from oakbox.wizard.checks import (
     MATCH_MIN,
     MATCH_OK,
-    _guess_field,
-    _guess_id,
-    _guess_sale_id,
-    _id_check,
-    _n,
-    _pct,
+    check_ids,
+    counted,
     field_check,
+    guess_field,
+    guess_id,
+    guess_sale_id,
+    share_text,
 )
-from oakbox.wizard.condos import _condo_ask_status, _condo_left, _condos_view, _unshaped, has_condos, units_view
-from oakbox.wizard.deeds_permits import _deeds_check, _guess_permits, _permits_left, _permits_view
+from oakbox.wizard.condos import condo_ask_status, condo_left, condos_view, has_condos, units_view, unshaped_rows
+from oakbox.wizard.deeds_permits import deeds_check, guess_permits, permits_left, permits_view
 from oakbox.wizard.files import (
     Files,
-    _by_key,
-    _field_files,
-    _more_sales,
-    _rows,
+    dictionary_by_key,
+    field_files,
     file_stamp,
+    is_more_sales,
+    row_count,
     sales_file,
     values_of,
 )
 from oakbox.wizard.maps import layers
-from oakbox.wizard.missing import _diagnose_missing
+from oakbox.wizard.missing import diagnose_missing
 from oakbox.wizard.models import (
     AGE,
     ORDER,
@@ -88,14 +86,15 @@ from oakbox.wizard.models import (
     WizardField,
     WizardFile,
 )
-from oakbox.wizard.money import _area_check, _money_check, _plain, detect_number_format, is_money
-from oakbox.wizard.quality import _new_scale, _scale_check
-from oakbox.wizard.rows import ROWS, copy_rule
+from oakbox.wizard.money import area_check, is_money, money_check, plain_numbers
+from oakbox.wizard.quality import new_scale, scale_check
 from oakbox.wizard.rows import assume as rows_assume
+from oakbox.wizard.rows import copy_rule
 from oakbox.wizard.rows import main_of as rows_main
 from oakbox.wizard.rows import propose as propose_rows
 from oakbox.wizard.rows import view as rows_view
-from oakbox.wizard.rules import _date_check, _distinct, _rule_check
+from oakbox.wizard.rules import date_check, distinct_count, rule_check
+from oakbox.wizard.setfield import made_sale_id, set_field
 from oakbox.wizard.user_fields import custom_fields, locations
 
 # ---------- Reading and changing the wizard ----------
@@ -125,8 +124,6 @@ def update_base(project: Project, in_dir: Path, rename: bool = False) -> None:
     shaped = [f for f in project.files if f.holds == "parcels" and files.geometry(f.name)]
     base = next((f for f in shaped if f.name == BASE_NAME), shaped[0] if shaped else None)
     if base is not None and rename and base.name != BASE_NAME:
-        from oakbox.datafiles import suggest_name
-
         holder = project.file(BASE_NAME)
         if holder is not None:
             holder.name = suggest_name(holder.filename, {f.name for f in project.files} | {BASE_NAME})
@@ -145,8 +142,8 @@ def view(project: Project, in_dir: Path) -> Wizard:
     for f in project.files:
         match: Match = "key" if f.name == base else f.match
         # More sales details joined on a made sale ID: their own made from their parcel ID and date.
-        key = f.load.get("key") if _more_sales(f) and "key_sale" in f.calc else f.load.get(match)
-        id_check, repeats = _id_check(files, f.name, f.holds, base)
+        key = f.load.get("key") if is_more_sales(f) and "key_sale" in f.calc else f.load.get(match)
+        id_check, repeats = check_ids(files, f.name, f.holds, base)
         extra_ids = []
         if f.name == base and f.name in files.preview:
             for field in EXTRA_IDS:
@@ -159,7 +156,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 filename=f.filename,
                 missing=not (in_dir / f.filename).is_file(),
                 problem=files.problem.get(f.name),
-                rows=len(files.values(f.name, key[0])) if key and f.name in files.preview else _rows(files, f.name),
+                rows=len(files.values(f.name, key[0])) if key and f.name in files.preview else row_count(files, f.name),
                 geometry=files.geometry(f.name),
                 encoding=csv_encoding(in_dir / f.filename),
                 holds=f.holds,
@@ -171,10 +168,10 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 columns=files.columns(f.name),
                 base=f.name == base,
                 clean=f.clean,
-                unshaped=_unshaped(files, f, base),
+                unshaped=unshaped_rows(files, f, base),
                 units=units_view(project, files, f) if f.units is not None else None,
                 appended=rows_view(project, files, f) if f.holds in ROWS else None,
-                date_column=f.load.get("sale_date", [None])[0] if _more_sales(f) else None,
+                date_column=f.load.get("sale_date", [None])[0] if is_more_sales(f) else None,
             )
         )
 
@@ -204,13 +201,13 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 if d is None:
                     continue
                 # A units file gives its units the parcel universe's own fields: not a second source of them.
-                given = [f for f in _field_files(project, step.sales) if key in f.load]
+                given = [f for f in field_files(project, step.sales) if key in f.load]
                 sources = [
                     Source(file=f.name, column=f.load[key][0])
                     for f in given
                     if f.units is None or all(g.units is not None for g in given)
                 ]
-                ruled = next((f for f in _field_files(project, step.sales) if key in f.rules), None)
+                ruled = next((f for f in field_files(project, step.sales) if key in f.rules), None)
                 rule = ruled.rules[key] if ruled else None
                 if ruled and rule and rule.conditions:
                     sources.append(Source(file=ruled.name, column=rule.conditions[0].column))
@@ -221,7 +218,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 scale = None
                 numbers = None
                 if ruled and rule is not None and len(sources) == 1:
-                    check = _rule_check(files, ruled, key, rule)
+                    check = rule_check(files, ruled, key, rule)
                 elif len(sources) == 1 and d.type == "boolean" and step.sales:
                     # Read as a yes/no column by an earlier OAK box: its values are still the user's to choose.
                     check = Check(ok=False, text="choose which values mean yes")
@@ -230,22 +227,22 @@ def view(project: Project, in_dir: Path) -> Wizard:
                     spec = files.entry(sources[0].file).load.get(key, [])
                     if col and d.type == "date" and len(spec) == 3:
                         date_format = spec[2]
-                        check = _date_check(files, sources[0].file, col.name, spec[2])
+                        check = date_check(files, sources[0].file, col.name, spec[2])
                     elif col and key in AREA_FIELDS:
                         entry = files.entry(sources[0].file)
                         area_unit = entry.area_units.get(key, small_unit(project.units))
                         check = field_check(d, col)[0]
                         if check.ok:
-                            check = _area_check(files, entry, key, col.name, area_unit, project.units)
+                            check = area_check(files, entry, key, col.name, area_unit, project.units)
                     elif col and key in SCALED:
                         entry = files.entry(sources[0].file)
                         scale = entry.scales.get(key) or Scale()
-                        check = _scale_check(files, entry, key, col.name, scale)
-                        numbers = _plain(values_of(file_stamp(in_dir / entry.filename), entry.layer, col.name))
+                        check = scale_check(files, entry, key, col.name, scale)
+                        numbers = plain_numbers(values_of(file_stamp(in_dir / entry.filename), entry.layer, col.name))
                     elif col and is_money(key):
                         entry = files.entry(sources[0].file)
                         number_format = entry.numbers.get(key)
-                        check = _money_check(project, files, entry, key, col.name, number_format)
+                        check = money_check(project, files, entry, key, col.name, number_format)
                     else:
                         check = field_check(d, col)[0] if col else Check(ok=False, text="not in the file")
                 elif len(sources) > 1:
@@ -274,12 +271,12 @@ def view(project: Project, in_dir: Path) -> Wizard:
                         number_format=number_format,
                         scale=scale,
                         absent=key in project.wizard.absent and not sources,
-                        distinct=_distinct(files, sources[0]) if len(sources) == 1 else None,
+                        distinct=distinct_count(files, sources[0]) if len(sources) == 1 else None,
                         numbers=numbers,
                     )
                 )
 
-    _diagnose_missing(project, files, out_files)
+    diagnose_missing(project, files, out_files)
     problems = _problems(out_files, sale_id, out_fields)
     warnings = _warnings(out_files, out_fields)
     layer_list = layers(project, in_dir)
@@ -334,9 +331,9 @@ def view(project: Project, in_dir: Path) -> Wizard:
         locations=locations(project, in_dir),
         custom=custom_fields(project, in_dir),
         layers=layer_list,
-        deeds=_deeds_check(project, files),
-        permits=_permits_view(project, files),
-        condos=_condos_view(project, out_files),
+        deeds=deeds_check(project, files),
+        permits=permits_view(project, files),
+        condos=condos_view(project, out_files),
         value_sets=[ValueSetView(id=v.id, name=v.name, roll=v.id == ROLL) for v in value_sets(project)],
     )
 
@@ -357,7 +354,7 @@ def _status(
     if step.key in PARENTS:
         return "blank", []  # the worst of its parts, filled in by the caller
     if step.key == "condo_ask":
-        return _condo_ask_status(project, files)
+        return condo_ask_status(project, files)
     # A file's own part says what it needs as soon as it's added on More files (its first part seen), seen or not.
     seen = step.key in w.visited or (step.key.startswith(MORE) and "more_add" in w.visited)
     if not seen:
@@ -385,7 +382,7 @@ def _status(
             low = share is not None and share < MATCH_OK
             if low and _shapeless(f):
                 # Rows without a shape of their own are the Condo units step's: a pointer there, never a stop here.
-                n = _n(f.unshaped, "row")
+                n = counted(f.unshaped, "row")
                 text = (
                     f"{n} without a shape of their own are left out: no units, you said on Condo units"
                     if project.wizard.condos is False
@@ -399,7 +396,7 @@ def _status(
                     left.append(Left(text=f.not_in_universe.lines[0]))
             elif low:
                 text = f.id_check.text
-                matched = text if "match" in text else f"only {_pct(round((share or 0) * 1000), 1000)} match"
+                matched = text if "match" in text else f"only {share_text(round((share or 0) * 1000), 1000)} match"
                 left.append(Left(text=f"Reconcile the IDs: {matched}", blocking=(share or 0) < MATCH_MIN))
             if (
                 not f.id_check.ok
@@ -431,12 +428,12 @@ def _status(
                 if not a.key_ok and f.id_column is not None:
                     left.append(Left(text=a.key_text[:1].upper() + a.key_text[1:], blocking=False))
     elif step.key.startswith("condo_"):
-        left.extend(_condo_left(step.key, files))
+        left.extend(condo_left(step.key, files))
     elif step.key == "permits":
         f = next((f for f in files if f.holds == "permits"), None)
         if f is not None:
             ids(f, "permits")
-            pv = _permits_left(project)
+            pv = permits_left(project)
             left.extend(Left(text=t) for t in pv)
     elif step.key == "enrich":
         left.extend(Left(text=t, blocking=False) for t in enrichments.left(project))
@@ -444,7 +441,7 @@ def _status(
         for lv in layer_views:
             left.extend(Left(text=f"{lv.name}: {p.text}", blocking=p.blocking) for p in lv.left)
     elif step.key == "sales_ids":
-        sales = next((f for f in files if f.holds == "sales" and not _more_sales(f)), None)
+        sales = next((f for f in files if f.holds == "sales" and not is_more_sales(f)), None)
         ids(sales, "sales")
         if sales is not None:
             if sale_id.column is None and not sale_id.made:
@@ -452,7 +449,7 @@ def _status(
             elif sale_id.check is not None and not sale_id.check.ok:
                 left.append(Left(text=f"Sale ID: {sale_id.check.text}"))
     elif step.key in SALES_PARTS:
-        if not any(f.holds == "sales" and not _more_sales(f) for f in files):
+        if not any(f.holds == "sales" and not is_more_sales(f) for f in files):
             left.append(Left(text="Add the sales file first, on Sales"))
         for f in mine:
             if f.key in ("sale_price", "sale_date", *ASSUMABLE) and not f.sources and not f.assumed:
@@ -485,7 +482,7 @@ def _extra(f: WizardFile) -> bool:
     """A file More files joins (or appends), or one added there not yet said what it's about."""
     if f.base or f.holds in ("unused", "overlay", "permits"):
         return False
-    return not (f.holds == "sales" and not _more_sales(f))
+    return not (f.holds == "sales" and not is_more_sales(f))
 
 
 def _known(project: Project, step: str) -> bool:
@@ -512,7 +509,7 @@ def _label(f: WizardFile) -> str:
     """What a file is called in messages: the parcel universe and the sales record by those names (our terms)."""
     if f.base:
         return "Parcel universe"
-    if f.holds == "sales" and not _more_sales(f):
+    if f.holds == "sales" and not is_more_sales(f):
         return "Sales record"
     return f.name
 
@@ -566,14 +563,14 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
         if r is None or f.holds not in ("parcels", "sales"):
             continue
         if r.blank and not r.blank_ok and f.holds == "sales":
-            what = _n(r.blank, "sale")
+            what = counted(r.blank, "sale")
             out.append(
                 f"{_label(f)}: {what} {'has' if r.blank == 1 else 'have'} no ID and will be dropped. "
                 f"That can mean {f.id_column} isn't the right ID."
             )
         if f.holds == "parcels" and r.extra and r.few and r.policy is None:
             out.append(
-                f"{_label(f)}: {_n(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}. "
+                f"{_label(f)}: {counted(r.repeated, 'ID')} repeat{'s' if r.repeated == 1 else ''}. "
                 "Resolve it on its step; until then OpenAVMKit keeps the first row of each."
             )
     for f in files:
@@ -619,10 +616,10 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
                 _guess(project, in_dir, part)
         return
     spec = next(s for s in STEPS if s.key == step)
-    candidates = [f.name for f in _field_files(project, spec.sales)]
+    candidates = [f.name for f in field_files(project, spec.sales)]
     if not candidates:
         return
-    by_key = _by_key()
+    by_key = dictionary_by_key()
     loaded = {field for f in project.files for field in f.load}
     # A field is decided once chosen (even as none) or guessed; a guess that found nothing can
     # still find something in a file added later.
@@ -635,7 +632,7 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
             continue  # the number's there: the category is loaded only if asked for (F3d)
         if key in SCALED and key in project.wizard.absent:
             continue
-        found = _guess_field(files, by_key[key], candidates, _used(project))
+        found = guess_field(files, by_key[key], candidates, _used(project))
         if found and by_key[key].type == "boolean" and spec.sales:
             # A guessed valid or vacant sale column: its values are the user's to choose (a rule with none yet).
             files.entry(found[0]).rules[key] = Rule(conditions=[Condition(column=found[1][0])])
@@ -645,7 +642,7 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
             files.entry(found[0]).load[key] = found[1]
             if key in SCALED:
                 entry = files.entry(found[0])
-                entry.scales[key] = _new_scale(files, entry, key, found[1][0])
+                entry.scales[key] = new_scale(files, entry, key, found[1][0])
                 if entry.scales[key].kind == "tiers" and PAIRS[key] not in loaded:
                     entry.load[PAIRS[key]] = [found[1][0], "string"]  # the category's text: the same column
                     loaded.add(PAIRS[key])
@@ -659,7 +656,7 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
 def _guess_universe(project: Project, files: Files) -> None:
     base = project.base_file()
     if base is not None and "key" not in base.load and base.name in files.preview:
-        column = _guess_id(files, base.name, "parcels", None)
+        column = guess_id(files, base.name, "parcels", None)
         if column:
             base.load["key"] = [column, "string"]
 
@@ -679,11 +676,11 @@ def _guess_sales(project: Project, files: Files) -> None:
         else:
             # The column whose values are the universe's parcel IDs, even written differently; else by name.
             column = _best_match(files, sales.name, base, "key") if base and "key" in base.load else None
-            column = column or _guess_id(files, sales.name, "sales", None)
+            column = column or guess_id(files, sales.name, "sales", None)
             if column:
                 sales.load["key"] = [column, "string"]
     if "key_sale" not in sales.load and "key_sale" not in sales.calc:
-        column = _guess_sale_id(files, sales.name)
+        column = guess_sale_id(files, sales.name)
         if column:
             sales.load["key_sale"] = [column, "string"]
         else:
@@ -724,14 +721,14 @@ def _guess_join(project: Project, files: Files, entry: DataFile) -> None:
         column = main.load["key_sale"][0] if main and "key_sale" in main.load else None
         found = column if column in names else None
         found = found or (_best_match(files, entry.name, main, "key_sale") if main and column else None)
-        found = found or _guess_sale_id(files, entry.name)
+        found = found or guess_sale_id(files, entry.name)
     else:
         base = project.base_file()
         column = base.load[entry.match][0] if base and entry.match in base.load else None
         found = column if column in names else None
         found = found or (_best_match(files, entry.name, base, entry.match) if base and column else None)
         # Several rows per parcel are fine here (building cards): don't insist on one each.
-        found = found or _guess_id(files, entry.name, "sales", column)
+        found = found or guess_id(files, entry.name, "sales", column)
     if found:
         entry.load[entry.match] = [found, "string"]
 
@@ -750,10 +747,8 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
         if v:
             counts[v] = counts.get(v, 0) + 1
     # A few of the most repeated, then shown sorted by the ID, each ID's rows together.
-    from oakbox.bring_in import bands, natural
-
     ids = [v for v, n in sorted(counts.items(), key=lambda kv: -kv[1]) if n > 1][:limit]
-    ids.sort(key=natural)
+    ids.sort(key=cells.natural_key)
     loaded = [s[0] for s in entry.load.values()]
     shown = [spec[0], *[c for c in loaded if c != spec[0]]][:8]
     rest = [c.name for c in files.columns(name) if c.name not in shown]
@@ -762,7 +757,7 @@ def repeat_rows(project: Project, in_dir: Path, name: str, limit: int = 5) -> Re
     columns = {c: files.values(name, c) for c in shown}
     rows = [[columns[c][i] for c in shown] for i in sorted(picked, key=lambda i: ids.index(values[i]))]
     rows = rows[:40]
-    return RepeatRows(columns=shown, rows=rows, bands=bands(r[0] for r in rows))
+    return RepeatRows(columns=shown, rows=rows, bands=cells.alternating(r[0] for r in rows))
 
 
 def _main_made(project: Project) -> bool:
@@ -771,15 +766,11 @@ def _main_made(project: Project) -> bool:
     return main is not None and "key_sale" in main.calc
 
 
-def made_sale_id(match: Match) -> list:
-    """The sale ID made from the parcel ID + sale date, e.g. "0012-001-2023-01-09" (an OpenAVMKit calc)."""
-    return ["join", ["values", match, "sale_date"], "str:-"]
-
-
 def set_file(
     project: Project,
     in_dir: Path,
     name: str,
+    *,
     holds: Holds | None,
     id_column: str | None,
     extra_field: str | None = None,
@@ -898,7 +889,7 @@ def set_file(
             if f is not entry and f.holds == "permits":
                 f.holds, f.permits = "unused", None
         if entry.permits is None:
-            entry.permits = _guess_permits(Files(project, in_dir), entry)
+            entry.permits = guess_permits(Files(project, in_dir), entry)
     elif holds == "parcels":  # more parcel details: the steps already seen may find more in it
         for step in STEPS:
             if step.fields and not step.sales and step.key in project.wizard.visited:
@@ -925,131 +916,13 @@ def set_sale_id(project: Project, column: str | None, make: bool) -> None:
         _put(sales, "key_sale", [column, "string"])
 
 
-def set_field(
-    project: Project,
-    in_dir: Path,
-    key: str,
-    file: str | None,
-    column: str | None,
-    assume: bool,
-    date_format: str | None = None,
-    area_unit: AreaUnit | None = None,
-    number_format: NumberFormat | None = None,
-    scale: Scale | None = None,
-    absent: bool = False,
-    only: str | None = None,
-) -> None:
-    """Load a field from one file's column, from nowhere, or (valid/vacant sale) as an assumption.
-
-    A yes/no field from a column that isn't yes/no gets a rule to fill in: which values mean yes. ``only``: in
-    that one file, which carries its own (a file appended as rows, or the date of more sales details joined on a
-    made sale ID), the other files untouched."""
-    by_key = _by_key()
-    step = next((s for s in STEPS if key in s.fields or key in s.more), None)
-    if step is None or key not in by_key:
-        raise NotFound(key)
-    allowed = _field_files(project, step.sales)
-    if only is not None:
-        allowed = [f for f in project.files if f.name == only and (f.holds in ROWS or _more_sales(f))]
-        if not allowed:
-            raise NotFound(only)
-        step = step.model_copy(update={"sales": allowed[0].holds in ("sales", "sale_rows")})
-    sales = sales_file(project)
-    target: DataFile | None = None
-    spec: list[str] | None = None
-    reading: NumberFormat | None = None
-    if file is not None and column is not None:
-        target = next((f for f in allowed if f.name == file), None)
-        if target is None:
-            where = "the sales record" if step.sales else "the parcel universe or a file joined to it"
-            raise ValueError(f"{key} comes from {where}.")
-        col = Files(project, in_dir).column(file, column)
-        if col is None:
-            raise ValueError(f"{file} has no column {column}.")
-        d = by_key[key]
-        check, spec = field_check(d, col)
-        if d.type == "boolean" and step.sales:
-            # Which values mean a valid (or vacant) sale is the user's to say, even in a yes/no column: never read
-            # as "true = yes" on its own. It becomes a rule with no values yet, which the row asks for.
-            spec = None
-        if key in SCALED:
-            # Numbers, or a category to rank into tiers: either way it becomes a number (F3d).
-            entry = next(f for f in allowed if f.name == file)
-            plain = _plain(values_of(file_stamp(in_dir / entry.filename), entry.layer, column))
-            # Numbers or a category is the user's to say: numbers (1–6) can be codes to rank, too.
-            tiers = not plain or (scale is not None and scale.kind == "tiers")
-            spec = [column, "string"] if tiers else [column, "float"]
-            if not plain and scale is not None and scale.kind not in (None, "tiers"):
-                raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
-        if is_money(key):
-            # Money written as text ($250,000.00, N/A): read with a format, worked out from the whole column.
-            entry = next(f for f in allowed if f.name == file)
-            values = values_of(file_stamp(in_dir / entry.filename), entry.layer, column)
-            reading = number_format or (None if _plain(values) else detect_number_format(values, project.numbers)[0])
-            if reading is not None:
-                spec = [column, "float"]
-        if d.type == "date" and date_format:
-            spec = [column, "datetime", date_format]
-        elif spec is None and d.type == "boolean" and step.sales:
-            spec = None  # becomes a rule, below
-        elif spec is None:
-            raise ValueError(f"{column}: {check.text}.")
-        for other, s in target.load.items():
-            # A category can be both the text and, ranked, the number (F3d).
-            if s[0] == column and other != key and not (key in QC_FIELDS and other in QC_FIELDS):
-                raise ValueError(f"{column} is already loaded as {other}.")
-    elif assume and (key not in ASSUMABLE or sales is None):
-        raise ValueError(f"{key} can't be assumed.")
-    elif absent and key not in ABSENT_OK:
-        raise ValueError(f"{key} can't be said not to exist.")
-    # The category's text follows a category number (one column, both ways); a number drops it again.
-    pair = PAIRS.get(key) if key in SCALED and only is None else None
-    was = next((f.load[key][0] for f in allowed if key in f.load), None)
-    if pair is not None:
-        for f in allowed:
-            if was is not None and f.load.get(pair, [None])[0] == was:
-                f.load.pop(pair, None)
-    for f in allowed:
-        f.load.pop(key, None)
-        f.rules.pop(key, None)
-        f.area_units.pop(key, None)
-        f.numbers.pop(key, None)
-        f.scales.pop(key, None)
-    if only is None and key in project.wizard.absent:
-        project.wizard.absent.remove(key)
-    if absent and only is None:
-        project.wizard.absent.append(key)
-    if only is None and sales is not None and key in ASSUMABLE:  # (one file's own: the sales record untouched)
-        sales.calc.pop(key, None)
-    if target is not None and spec is None:
-        target.rules[key] = Rule(conditions=[Condition(column=cast(str, column))])
-    if target is not None and spec is not None:
-        target.load[key] = spec
-        if key in AREA_FIELDS:
-            target.area_units[key] = area_unit or guess_area_unit(cast(str, column)) or small_unit(project.units)
-        if reading is not None:
-            target.numbers[key] = reading
-        if key in SCALED:
-            target.scales[key] = _new_scale(Files(project, in_dir), target, key, spec[0], scale)
-            if pair is not None and target.scales[key].kind == "tiers" and not any(pair in f.load for f in allowed):
-                target.load[pair] = [cast(str, column), "string"]
-    elif assume and sales is not None:
-        sales.calc[key] = ["set", ASSUMABLE[key]]
-    if only is not None:
-        return
-    if key not in project.wizard.decided:
-        project.wizard.decided.append(key)
-    if step.key in project.wizard.skipped and (file or assume):
-        project.wizard.skipped.remove(step.key)
-
-
 def set_row_field(
     project: Project, in_dir: Path, name: str, key: str, column: str | None, date_format: str | None = None
 ) -> None:
     """One field of a file appended as rows (or the date of more sales details on a made sale ID): its own column,
     or none (blank for its rows). A yes/no field takes the main file's rule, on this column."""
     entry = project.file(name)
-    if entry is None or not (entry.holds in ROWS or _more_sales(entry)):
+    if entry is None or not (entry.holds in ROWS or is_more_sales(entry)):
         raise NotFound(name)
     main = rows_main(project, entry.holds or "")
     if column is None:
@@ -1074,7 +947,7 @@ def skip(project: Project, step: str) -> None:
     for key in [*spec.fields, *spec.more]:
         if key in ASSUMABLE:
             raise ValueError("Sales need a valid sale and a vacant sale field.")
-    for f in _field_files(project, spec.sales):
+    for f in field_files(project, spec.sales):
         for key in [*spec.fields, *spec.more]:
             f.load.pop(key, None)
     for key in [*spec.fields, *spec.more]:

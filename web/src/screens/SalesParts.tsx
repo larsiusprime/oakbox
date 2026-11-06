@@ -18,7 +18,7 @@ import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { Val } from "../components/Val";
-import { amount, pct } from "../lib/format";
+import { amount, num, pct } from "../lib/format";
 import { useOnSettled, useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
 import { FieldRow } from "./FieldRow";
@@ -403,7 +403,7 @@ function DatePreview({
           <div className="yr-hist" role="img" aria-label={sp.byYear}>
             {[...v.by_year].reverse().map((y) => (
               <div key={y.year} className="yr-col">
-                <span className="yr-n">{y.count.toLocaleString()}</span>
+                <span className="yr-n">{num(y.count)}</span>
                 <span className="yr-bar" style={{ height: `${(8 * y.count) / top}rem` }} />
                 <span className="yr-x">{y.year}</span>
               </div>

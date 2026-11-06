@@ -201,7 +201,7 @@ def run(project_id: str) -> None:
                 run_ensemble=True,
             )
         except Exception as e:
-            raise model._crashed(e, project, pdir, {}, sup, settings, gnames, own) from e
+            raise model.explain_crash(e, project, pdir, {}, sup, settings, gnames, own) from e
         model.release_workers()
 
         steps.emit(step="values", fraction=0.86, message="Collecting the values")
@@ -286,11 +286,11 @@ def run(project_id: str) -> None:
             field=field,
             name=label,
             groups=[
-                ratio._study(g.id, g.name, g.color, cls.get(g.id), study["groups"][g.id], table)
+                ratio.study_view(g.id, g.name, g.color, cls.get(g.id), study["groups"][g.id], table)
                 for g in shown
                 if g.id in study["groups"]
             ],
-            overall=ratio._study("", "All model groups", "#888888", None, study["overall"], table),
+            overall=ratio.study_view("", "All model groups", "#888888", None, study["overall"], table),
             trimmed=[],
         )
 

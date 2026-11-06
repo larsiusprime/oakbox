@@ -5,7 +5,7 @@ import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from ".
 import { Disclose } from "../components/Disclose";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
-import { num, short } from "../lib/format";
+import { num, pct, short } from "../lib/format";
 import { say, t } from "../wording";
 
 const vt = t.values.vartest;
@@ -15,7 +15,7 @@ const LOWER_BETTER = new Set(["vif"]);
 
 function figure(test: string, v: number | null | undefined): string {
   if (v == null) return "—";
-  if (test === "represented") return `${Math.round(100 * v)}%`;
+  if (test === "represented") return pct(v);
   if (test === "corr") return num(v, 3);
   return num(v, 2);
 }

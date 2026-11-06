@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -260,10 +261,8 @@ class Project(BaseModel):
 
 
 def _register(project_id: str, folder: Path) -> None:
-    s = appsettings.load()
-    if s.projects.get(project_id) != str(folder):
+    with appsettings.changing() as s:
         s.projects[project_id] = str(folder)
-        appsettings.save(s)
 
 
 def _read(folder: Path) -> Project | None:
@@ -287,8 +286,8 @@ def _discover() -> dict[str, Path]:
             if project is not None and project.id not in found:
                 found[project.id] = meta.parent
     if found != {pid: Path(f) for pid, f in s.projects.items()}:
-        s.projects = {pid: str(f) for pid, f in found.items()}
-        appsettings.save(s)
+        with appsettings.changing() as now:
+            now.projects = {pid: str(f) for pid, f in found.items()}
     return found
 
 
@@ -324,6 +323,11 @@ def save(project: Project, folder: Path | None = None) -> None:
 # threads, and the page can send two changes at once (a step shown while a field is set).
 _locks: dict[str, threading.RLock] = {}
 _locks_guard = threading.Lock()
+
+
+def inputs_dir(project_id: str) -> Path:
+    """The project's in/ folder: the files the user brought, and the settings OpenAVMKit reads."""
+    return project_dir(project_id) / "in"
 
 
 def lock(project_id: str) -> threading.RLock:
@@ -475,7 +479,7 @@ def _data(project: Project) -> dict:
     A parcel file joined on an extra ID merges on it (key2, key3). Sales joined on an extra ID get
     the parcel ID (key) from the base by a reference-table lookup on that ID.
     """
-    out: dict = {"load": data_load(project.files, project.units, project_dir(project.id) / "in")}
+    out: dict = {"load": data_load(project.files, project.units, inputs_dir(project.id))}
     base = project.wizard.base
     parcels: list = [f for f in project.files if f.holds == "parcels"]
     # The main sales file first; more sales details (joined on the sale ID) after it.
@@ -718,9 +722,8 @@ def delete(project_id: str) -> None:
 
     folder = project_dir(project_id)
     send2trash(str(folder))
-    s = appsettings.load()
-    s.projects.pop(project_id, None)
-    appsettings.save(s)
+    with appsettings.changing() as s:
+        s.projects.pop(project_id, None)
 
 
 def show_in_folder(project_id: str) -> None:
@@ -742,8 +745,6 @@ def show_file(path: Path) -> None:
 
 def _open_in_file_manager(folder: Path) -> None:
     if sys.platform == "win32":
-        import os
-
         os.startfile(folder)  # type: ignore[attr-defined]  # noqa: S606
     elif sys.platform == "darwin":
         subprocess.Popen(["open", str(folder)])

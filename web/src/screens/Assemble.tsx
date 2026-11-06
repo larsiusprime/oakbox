@@ -4,7 +4,8 @@ import { Button } from "react-aria-components";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
-import { size, when } from "../lib/format";
+import { NO_COLOUR } from "../lib/colours";
+import { num, size, when } from "../lib/format";
 import { t } from "../wording";
 
 const r = t.groups.run;
@@ -64,7 +65,7 @@ export function AssembleResults({
       ),
   });
   if (!rc) return null;
-  const colour = (id: string) => groups.find((x) => x.id === id)?.color ?? "#9a9a9a";
+  const colour = (id: string) => groups.find((x) => x.id === id)?.color ?? NO_COLOUR;
   return (
     <div className="ab-results">
       <p className="rc-sub">
@@ -96,13 +97,13 @@ export function AssembleResults({
                 <span className="mg-sw ab-sw" style={{ background: colour(x.id) }} />
                 {x.id === "UNKNOWN" ? r.unassigned : x.name}
               </td>
-              <td className="rc-td ab-n">{x.parcels.toLocaleString()}</td>
-              <td className="rc-td ab-n">{x.vacant.toLocaleString()}</td>
-              <td className="rc-td ab-n">{x.sales.toLocaleString()}</td>
-              <td className="rc-td ab-n">{x.vacant_sales.toLocaleString()}</td>
+              <td className="rc-td ab-n">{num(x.parcels)}</td>
+              <td className="rc-td ab-n">{num(x.vacant)}</td>
+              <td className="rc-td ab-n">{num(x.sales)}</td>
+              <td className="rc-td ab-n">{num(x.vacant_sales)}</td>
               {!rc.matches_preview && (
                 <td className={`rc-td ab-n ${x.preview !== x.parcels ? "wiz-warn" : ""}`}>
-                  {x.preview?.toLocaleString() ?? "—"}
+                  {num(x.preview)}
                 </td>
               )}
             </tr>

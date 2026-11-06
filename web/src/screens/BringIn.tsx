@@ -15,10 +15,10 @@ import { Callout } from "../components/Callout";
 import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
-import { band, pct, when } from "../lib/format";
+import { band, num, pct, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 
@@ -31,11 +31,6 @@ function TooBig({ note }: { note: MemoryNote }) {
       <p>{b.memoryMore}</p>
     </Callout>
   );
-}
-
-/** Whether Looks right was pressed on an up-to-date receipt: model groups can start. */
-export function useAccepted(projectId: string): boolean {
-  return useStep("bring-in", projectId).data?.accepted ?? false;
 }
 
 type BiStep = "plan" | "run" | "universe" | "sales" | "more";
@@ -68,27 +63,25 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const go = nav.go;
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
   const toGroups = () => navigate({ name: "project", id: projectId, tab: "groups" });
+  const statusOf = (key: BiStep): StepStatus => {
+    switch (key) {
+      case "plan":
+        return v.blocked.length ? "blocked" : "done";
+      case "run":
+        if (!r) return "blank";
+        return v.stale ? "attention" : "done";
+      case "more":
+        if (r && (r.enrichments.some((x) => x.status !== "ok") || r.checks.some((c) => !c.ok)))
+          return "attention";
+        return v.accepted ? "done" : "blank";
+      default:
+        return v.accepted ? "done" : "blank";
+    }
+  };
   const steps: Step[] = BI_STEPS.map((key) => ({
     key,
     title: b.steps[key],
-    status:
-      key === "plan"
-        ? v.blocked.length
-          ? "blocked"
-          : "done"
-        : key === "run"
-          ? r
-            ? v.stale
-              ? "attention"
-              : "done"
-            : "blank"
-          : key === "more" &&
-              r &&
-              (r.enrichments.some((x) => x.status !== "ok") || r.checks.some((c) => !c.ok))
-            ? "attention"
-            : v.accepted
-              ? "done"
-              : "blank",
+    status: statusOf(key),
     disabled: key !== "plan" && key !== "run" && !r,
   }));
   const prev = BI_STEPS[BI_STEPS.indexOf(current) - 1];
@@ -432,7 +425,7 @@ function Section({
                 className={`bi-line${l.op === "=" ? " bi-tot" : ""}${l.op === "=" && i > 0 ? " bi-rule" : ""}`}
               >
                 <span className="bi-op">{l.op}</span>
-                <span className="bi-n">{l.n.toLocaleString()}</span>
+                <span className="bi-n">{num(l.n)}</span>
                 <span>{l.text}</span>
                 <span>
                   {l.rows && (
@@ -483,7 +476,7 @@ function Section({
                     <span className="bi-bar">
                       <i style={{ width: `${Math.round(100 * f.share)}%` }} />
                     </span>
-                    {f.filled.toLocaleString()} · {pct(f.share)}
+                    {num(f.filled)} · {pct(f.share)}
                   </td>
                   <td>{f.summary}</td>
                   <td className="mono bi-src">{f.source}</td>

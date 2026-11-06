@@ -19,7 +19,6 @@ import datetime as dt
 import hashlib
 import json
 import os
-import re
 import shutil
 import time
 from pathlib import Path
@@ -27,7 +26,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from oakbox import steps
+from oakbox import cells, steps
 from oakbox.datafiles import BaseModel
 from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
 from oakbox.errors import NotFound
@@ -206,21 +205,11 @@ class Rows(BaseModel):
     )
 
 
-def bands(values) -> list[int]:
-    """0 or 1 per row, changing where the value does: the rows of one ID share a background, IDs alternate."""
-    out, band, last = [], 1, object()
-    for v in values:
-        if v != last:
-            band, last = 1 - band, v
-        out.append(band)
-    return out
-
-
 def by_id(df, ids):
     """Rows of repeated IDs, the ID column first and the rows sorted by it (each ID's rows in file order)."""
     values = [str(v) for v in ids]
     # Numbers in an ID as numbers: 99 before 100.
-    order = sorted(range(len(values)), key=lambda i: natural(values[i]))
+    order = sorted(range(len(values)), key=lambda i: cells.natural_key(values[i]))
     out = df.iloc[order]
     column = getattr(ids, "name", None)
     if column in out.columns:
@@ -251,10 +240,6 @@ def _text(df) -> list[list[str]]:
         return str(v)
 
     return [[cell(v) for v in row] for row in df.itertuples(index=False, name=None)]
-
-
-def natural(v: str) -> list:
-    return [(0, int(p), "") if p.isdigit() else (1, 0, p) for p in re.split(r"(\d+)", v) if p]
 
 
 # The column marking each repeated row: a name no assessor's file uses.
@@ -300,7 +285,7 @@ def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
     if name.endswith("_repeats") and total:
         # Bands over the whole set, so they carry on from one page to the next.
         first_col = pf.schema_arrow.names[0]
-        banded = bands(pf.read(columns=[first_col]).column(0).to_pylist())[offset : offset + len(df)]
+        banded = cells.alternating(pf.read(columns=[first_col]).column(0).to_pylist())[offset : offset + len(df)]
         if MARK in df.columns:
             kept = [v == KEPT for v in df[MARK]]
             kept_total = sum(v == KEPT for v in pf.read(columns=[MARK]).column(0).to_pylist())

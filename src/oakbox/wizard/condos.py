@@ -19,9 +19,9 @@ from oakbox.datafiles import (
 )
 from oakbox.projects import Project
 from oakbox.wizard.base import RENAMED
-from oakbox.wizard.checks import _base_ids, _n
-from oakbox.wizard.files import Files, _by_key, _cleaned, _more_sales, _steps_key, file_stamp, values_of
-from oakbox.wizard.maps import _read_geo
+from oakbox.wizard.checks import counted, parcel_ids
+from oakbox.wizard.files import Files, cleaned_ids, dictionary_by_key, file_stamp, is_more_sales, steps_key, values_of
+from oakbox.wizard.maps import read_geo
 from oakbox.wizard.models import (
     Check,
     CondoFile,
@@ -33,7 +33,7 @@ from oakbox.wizard.models import (
     UnitsView,
     WizardFile,
 )
-from oakbox.wizard.quality import _field_by_id
+from oakbox.wizard.quality import field_by_id
 from oakbox.wizard.rules import rule_result
 
 # ---------- Units of a shared parcel: condos (F3d) ----------
@@ -64,11 +64,11 @@ def from_shape(project: Project, units: Units) -> list[str]:
     return out
 
 
-def _unshaped(files: Files, f: DataFile, base: str | None) -> int:
+def unshaped_rows(files: Files, f: DataFile, base: str | None) -> int:
     """A parcel file's rows whose ID finds no parcel shape (its own blank IDs aside)."""
     if f.holds != "parcels" or f.name == base or base is None or f.name not in files.preview or "key" not in f.load:
         return 0
-    shaped = _base_ids(files, base) | (unit_ids(files) if f.units is None else set())
+    shaped = parcel_ids(files, base) | (unit_ids(files) if f.units is None else set())
     return sum(1 for v in files.ids(f.name, "key") if v and v not in shaped)
 
 
@@ -84,7 +84,7 @@ def unit_ids(files: Files) -> set[str]:
 
 def _unit_rows(files: Files, f: DataFile, units: Units) -> list[int]:
     """Rows of the file without a shape that the rule says are units."""
-    shaped = _base_ids(files, files.project.wizard.base)
+    shaped = parcel_ids(files, files.project.wizard.base)
     ids = files.ids(f.name, "key")
     rows = [i for i, v in enumerate(ids) if v and v not in shaped]
     if units.rule and units.rule.conditions:
@@ -116,7 +116,7 @@ def _links(files: Files, f: DataFile, units: Units, rows: list[int]) -> list[str
                 building.setdefault(v[:n], k)
         return [building.get(mine[i][:n]) if mine[i] else None for i in rows]
     entry = files.entry(base)
-    shaped = _base_ids(files, base)
+    shaped = parcel_ids(files, base)
     steps = entry.clean.get("key", [])
     return [
         (c if (c := clean_value(mine[i], steps) if mine[i] else "") in shaped else None) if mine[i] else None
@@ -167,7 +167,7 @@ def units_view(project: Project, files: Files, f: DataFile) -> UnitsView:
         )
         for i in show
     ]
-    by_key = _by_key()
+    by_key = dictionary_by_key()
 
     def named(k: str) -> str:
         return RENAMED.get(k, (by_key[k].name, ""))[0] if k in by_key else k
@@ -209,7 +209,9 @@ def units_view(project: Project, files: Files, f: DataFile) -> UnitsView:
         check = Check(ok=False, text="say how each unit finds the parcel it's on")
     else:
         missing = len(rows) - len(linked)
-        text = f"{len(linked):,} of {len(rows):,} units find the parcel they're on ({_n(len(set(linked)), 'parcel')})"
+        text = (
+            f"{len(linked):,} of {len(rows):,} units find the parcel they're on ({counted(len(set(linked)), 'parcel')})"
+        )
         if missing:
             text += f" · {missing:,} {'finds' if missing == 1 else 'find'} none: left out"
         check = Check(ok=bool(linked), warn=missing > 0, text=("✓ " if not missing else "") + text)
@@ -250,11 +252,11 @@ def units_view(project: Project, files: Files, f: DataFile) -> UnitsView:
 def _shape_areas(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> dict[str, float]:
     """Each parcel shape's area in square feet, by its parcel ID (cleaned as it joins): a building's land when its
     units share it, as OpenAVMKit measures it."""
-    gdf = _read_geo(stamp, layer)
+    gdf = read_geo(stamp, layer)
     if gdf.crs is None or column not in gdf.columns:
         return {}
     area = gdf.to_crs(gdf.estimate_utm_crs()).geometry.area * 10.7639
-    cleaned = _cleaned(stamp, layer, column, steps)
+    cleaned = cleaned_ids(stamp, layer, column, steps)
     raw = values_of(stamp, layer, column)
     by_raw = {r: c for r, c in zip(raw, cleaned, strict=False)}
     out: dict[str, float] = {}
@@ -278,7 +280,7 @@ def _unit_land(
             file_stamp(files.in_dir / base.filename),
             base.layer,
             base.load["key"][0],
-            _steps_key(base.clean.get("key", [])),
+            steps_key(base.clean.get("key", [])),
         )
 
     def acres(sqft: float) -> str:
@@ -310,7 +312,7 @@ def _unit_land(
             return Check(ok=False, text=text), shares
         floors: dict[str, float] = {}
         for x in [f, *(y for y in project.files if y is not f and y.holds == "parcels")]:
-            for k, v in _field_by_id(project, files, "bldg_area_finished_sqft", "key", only=x).items():
+            for k, v in field_by_id(project, files, "bldg_area_finished_sqft", "key", only=x).items():
                 floors.setdefault(k, v)
         for b, rs in by_building.items():
             total = sum(floors.get(ids[r], 0.0) for r in rs)
@@ -323,7 +325,7 @@ def _unit_land(
     if land_key not in f.load:
         text = f"pick the column of {f.name} with each unit's land size, or share the parcel's land"
         return Check(ok=False, text=text), shares
-    own = _field_by_id(project, files, land_key, "key", only=f)
+    own = field_by_id(project, files, land_key, "key", only=f)
     filled = sum(1 for r in rows if ids[r] in own)
     for r in rows:
         if ids[r] in own:
@@ -436,7 +438,7 @@ def has_condos(project: Project) -> bool | None:
     return True if projects.units_file(project) is not None else None
 
 
-def _condo_ask_status(project: Project, files: list[WizardFile]) -> tuple[Status, list[Left]]:
+def condo_ask_status(project: Project, files: list[WizardFile]) -> tuple[Status, list[Left]]:
     """Do you have condos? Done once answered; until then worth deciding when the files suggest units, even before
     the step is reached."""
     if has_condos(project) is not None:
@@ -456,13 +458,15 @@ def _condo_evidence(files: list[WizardFile]) -> list[str]:
         if f.holds == "parcels" and not f.base and f.unshaped and many:
             of = f" of {f.rows:,}" if f.rows else ""
             out.append(f"{f.filename}: {f.unshaped:,}{of} rows have a parcel ID but no shape in the parcel universe.")
-        elif f.holds == "sales" and not _more_sales(f) and f.not_in_universe and f.not_in_universe.kind == "missing":
+        elif f.holds == "sales" and not is_more_sales(f) and f.not_in_universe and f.not_in_universe.kind == "missing":
             n = f.not_in_universe.rows
-            out.append(f"{_n(n, 'sale')} {'is' if n == 1 else 'are'} for parcels the parcel universe doesn't have.")
+            out.append(
+                f"{counted(n, 'sale')} {'is' if n == 1 else 'are'} for parcels the parcel universe doesn't have."
+            )
     return out
 
 
-def _condo_left(key: str, files: list[WizardFile]) -> list[Left]:
+def condo_left(key: str, files: list[WizardFile]) -> list[Left]:
     """What's left on a part of Condo units."""
     u = next((f for f in files if f.units is not None), None)
     if key == "condo_file":
@@ -484,11 +488,11 @@ def _condo_left(key: str, files: list[WizardFile]) -> list[Left]:
             return [Left(text=v.land.text.removeprefix("✓ "), blocking=False)]
     if key == "condo_fields" and v.offers:
         n = len(v.offers)
-        return [Left(text=f"{_n(n, 'field')} of {u.name} could be given to the units", blocking=False)]
+        return [Left(text=f"{counted(n, 'field')} of {u.name} could be given to the units", blocking=False)]
     return []
 
 
-def _condos_view(project: Project, files: list[WizardFile]) -> CondosView:
+def condos_view(project: Project, files: list[WizardFile]) -> CondosView:
     parcels = sorted(
         (f for f in files if f.holds == "parcels" and not f.base), key=lambda f: -f.unshaped / (f.rows or 1)
     )

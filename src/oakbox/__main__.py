@@ -245,11 +245,9 @@ def _skip_machine_check() -> None:
     from oakbox import appsettings
     from oakbox import machine as computer
 
-    with appsettings.LOCK:
-        s = appsettings.load()
+    with appsettings.changing() as s:
         if s.machine is None:
             s.machine = computer.finish(computer.basics())
-            appsettings.save(s)
 
 
 def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str]) -> None:

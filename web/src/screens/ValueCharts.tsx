@@ -1,5 +1,6 @@
 /** Check my values' charts: ratios by price band, and each sale's ratio against its price. */
 import type { RatioStudy } from "../api/client";
+import { BY_SALE, CHART, TRIMMED } from "../lib/colours";
 import { useWidth } from "../lib/hooks";
 import { t } from "../wording";
 
@@ -39,19 +40,26 @@ export function BandChart({ series }: { series: { label: string; color: string; 
         role="img"
         aria-label={series.map((x) => x.label).join("; ")}
       >
-        <rect x={L} y={y(1.1)} width={W - L - R} height={y(0.9) - y(1.1)} fill="#e7f5ec" />
+        <rect x={L} y={y(1.1)} width={W - L - R} height={y(0.9) - y(1.1)} fill={CHART.band} />
         {rticks.map((v) => (
           <g key={v}>
-            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e2e4e6" />
-            <text x={L - 6} y={y(v) + 4} fontSize="11" textAnchor="end" fill="#555">
+            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke={CHART.grid} />
+            <text x={L - 6} y={y(v) + 4} fontSize="11" textAnchor="end" fill={CHART.label}>
               {v.toFixed(1)}
             </text>
           </g>
         ))}
-        <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke="#888" />
+        <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke={CHART.axis} />
         {Array.from({ length: n }, (_, k) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: the groups are positions
-          <text key={k} x={L + slot * (k + 0.5)} y={H - B + 16} fontSize="11" textAnchor="middle" fill="#555">
+          <text
+            // biome-ignore lint/suspicious/noArrayIndexKey: the groups are positions
+            key={k}
+            x={L + slot * (k + 0.5)}
+            y={H - B + 16}
+            fontSize="11"
+            textAnchor="middle"
+            fill={CHART.label}
+          >
             {name(k)}
           </text>
         ))}
@@ -126,18 +134,18 @@ export function Scatter({
       role="img"
       aria-label={r.prices.lede}
     >
-      <rect x={L} y={y(1.1)} width={W - L - R} height={y(0.9) - y(1.1)} fill="#e7f5ec" />
+      <rect x={L} y={y(1.1)} width={W - L - R} height={y(0.9) - y(1.1)} fill={CHART.band} />
       {rticks.map((v) => (
         <g key={v}>
-          <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#e2e4e6" />
-          <text x={L - 6} y={y(v) + 4} fontSize="11" textAnchor="end" fill="#555">
+          <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke={CHART.grid} />
+          <text x={L - 6} y={y(v) + 4} fontSize="11" textAnchor="end" fill={CHART.label}>
             {v.toFixed(1)}
           </text>
         </g>
       ))}
-      <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke="#888" />
+      <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke={CHART.axis} />
       {ticks.map((v) => (
-        <text key={v} x={x(v)} y={H - B + 16} fontSize="11" textAnchor="middle" fill="#555">
+        <text key={v} x={x(v)} y={H - B + 16} fontSize="11" textAnchor="middle" fill={CHART.label}>
           {new Intl.NumberFormat(undefined, { style: "currency", currency, notation: "compact" }).format(v)}
         </text>
       ))}
@@ -148,7 +156,7 @@ export function Scatter({
           cx={x(p)}
           cy={y(q)}
           r="2.6"
-          fill={trimmed ? "#9a9a9a" : "#d4566f"}
+          fill={trimmed ? TRIMMED.line : BY_SALE}
           opacity="0.55"
         />
       ))}
@@ -159,7 +167,7 @@ export function Scatter({
           x2={x(f.high)}
           y1={y(f.median)}
           y2={y(f.median)}
-          stroke="#222"
+          stroke={CHART.ink}
           strokeWidth="2.5"
         />
       ))}

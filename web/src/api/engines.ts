@@ -14,6 +14,21 @@ export function useEngines() {
   });
 }
 
+/** The optional engines by key. `missing(key)` is the state of one that isn't installed (to ask about it, or show
+ * its download); an engine that's always there (LightGBM, OLS…) is never missing. */
+export function useOptionalEngines() {
+  const all = useEngines().data ?? [];
+  const byKey = new Map(all.map((e) => [e.key, e]));
+  return {
+    all,
+    get: (key: string): EngineState | undefined => byKey.get(key),
+    missing: (key: string): EngineState | undefined => {
+      const e = byKey.get(key);
+      return e && !e.installed ? e : undefined;
+    },
+  };
+}
+
 type Key = "xgboost" | "catboost";
 const path = (key: string) => ({ params: { path: { key: key as Key } } });
 

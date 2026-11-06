@@ -4,7 +4,7 @@ import { Button, Input, TextField } from "react-aria-components";
 import { api, type CleanPatch, unwrap } from "../api/client";
 import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { Choice, Tick } from "../components/Form";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
@@ -16,11 +16,6 @@ import { SalesResult, TimePreviewPanel, useTimePreview } from "./SalesResults";
 
 const s = t.sales;
 type Patch = CleanPatch;
-
-/** Whether Looks right was pressed on an up-to-date Check sales: step 4 can start. */
-export function useSalesAccepted(projectId: string): boolean {
-  return useStep("clean", projectId).data?.accepted ?? false;
-}
 
 type CsStep = "window" | "time" | "scrutiny" | "run" | "sales" | "aside";
 const CS_STEPS: CsStep[] = ["window", "time", "scrutiny", "run", "sales", "aside"];
@@ -74,29 +69,24 @@ export function SalesTab({
   const u = setup.data;
   const set = (body: Patch) => change.mutate(body);
   const called = r ? (v.stale ? "attention" : "done") : "blank";
+  const statusOf = (key: CsStep): StepStatus => {
+    switch (key) {
+      case "scrutiny":
+        return u && !u.location ? "attention" : called;
+      case "sales":
+        return r ? "done" : "blank";
+      case "aside":
+        if (v.accepted) return "done";
+        if (!r) return "blank";
+        return (counts?.undecided ?? 0) > 0 ? "attention" : "done";
+      default:
+        return called;
+    }
+  };
   const steps: Step[] = CS_STEPS.map((key) => ({
     key,
     title: s.steps[key],
-    status:
-      key === "window"
-        ? called
-        : key === "scrutiny"
-          ? u && !u.location
-            ? "attention"
-            : called
-          : key === "sales"
-            ? r
-              ? "done"
-              : "blank"
-            : key === "aside"
-              ? v.accepted
-                ? "done"
-                : r && (counts?.undecided ?? 0) > 0
-                  ? "attention"
-                  : r
-                    ? "done"
-                    : "blank"
-              : called,
+    status: statusOf(key),
     disabled: (key === "sales" || key === "aside") && !r,
   }));
   const i = CS_STEPS.indexOf(current);

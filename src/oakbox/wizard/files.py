@@ -57,14 +57,14 @@ def values_of(stamp: tuple[str, float, int], layer: str | None, column: str, raw
 
 
 @lru_cache(maxsize=64)
-def _cleaned(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> tuple[str, ...]:
+def cleaned_ids(stamp: tuple[str, float, int], layer: str | None, column: str, steps: str) -> tuple[str, ...]:
     """An ID column as OpenAVMKit will join on it: as written, after its clean-up steps (JSON)."""
     values = values_of(stamp, layer, column, raw=True)
     parsed = [CleanStep.model_validate(x) for x in json.loads(steps)]
     return tuple(clean_value(v, parsed) for v in values) if parsed else values
 
 
-def _steps_key(steps: list[CleanStep]) -> str:
+def steps_key(steps: list[CleanStep]) -> str:
     return json.dumps([x.model_dump() for x in steps])
 
 
@@ -110,7 +110,7 @@ class Files:
         if spec is None or name not in self.preview:
             return ()
         use = f.clean.get(field, []) if steps is None else steps
-        return _cleaned(file_stamp(self.in_dir / f.filename), f.layer, spec[0], _steps_key(use))
+        return cleaned_ids(file_stamp(self.in_dir / f.filename), f.layer, spec[0], steps_key(use))
 
     def geometry(self, name: str) -> bool:
         p = self.preview.get(name)
@@ -120,7 +120,7 @@ class Files:
 # ---------- What the steps share about the project's files ----------
 
 
-def _by_key() -> dict[str, DictionaryField]:
+def dictionary_by_key() -> dict[str, DictionaryField]:
     return {d.key: d for d in fields.dictionary()}
 
 
@@ -129,17 +129,17 @@ def sales_file(project: Project) -> DataFile | None:
     return next((f for f in project.files if f.holds == "sales" and f.match != "key_sale"), None)
 
 
-def _more_sales(f: DataFile | WizardFile) -> bool:
+def is_more_sales(f: DataFile | WizardFile) -> bool:
     """More sales details: a sales file joined to the main one on the sale ID."""
     return f.holds == "sales" and f.match == "key_sale"
 
 
-def _field_files(project: Project, sales: bool) -> list[DataFile]:
+def field_files(project: Project, sales: bool) -> list[DataFile]:
     holds = "sales" if sales else "parcels"
     return [f for f in project.files if f.holds == holds]
 
 
-def _rows(files: Files, name: str) -> int | None:
+def row_count(files: Files, name: str) -> int | None:
     p = files.preview.get(name)
     if p is None:
         return None

@@ -16,7 +16,6 @@ from oakbox.wizard.condos import set_condos, set_unit_field, set_units, unit_ids
 from oakbox.wizard.core import (
     confirm,
     repeat_rows,
-    set_field,
     set_file,
     set_row_field,
     set_sale_id,
@@ -65,6 +64,7 @@ from oakbox.wizard.rules import (
     set_rule,
     sort_counts,
 )
+from oakbox.wizard.setfield import set_field
 from oakbox.wizard.user_fields import locations, set_custom, set_location
 from oakbox.wizard.values import add_value_set, change_value_set, remove_value_set
 

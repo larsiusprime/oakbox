@@ -9,7 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
-from oakbox import clean, projects, time_preview
+from oakbox import clean, projects, salereview, time_preview
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound
 from oakbox.routes.common import clean_view, editing, load_project
@@ -128,11 +128,11 @@ def clean_review(
     offset: int = 0,
     limit: int = 100,
     pattern: str = "",
-) -> clean.ReviewPage:
+) -> salereview.ReviewPage:
     """The sales set aside, furthest from their group first; filtered by model group, check, status and pattern
     (1 to 5, other)."""
     project = load_project(project_id)
-    return clean.review(
+    return salereview.review(
         project,
         projects.project_dir(project_id),
         group or None,
@@ -145,11 +145,11 @@ def clean_review(
 
 
 @router.get("/api/projects/{project_id}/clean/review/{key_sale}")
-def clean_sale(project_id: str, key_sale: str) -> clean.SaleDetail:
+def clean_sale(project_id: str, key_sale: str) -> salereview.SaleDetail:
     """One sale set aside: its numbers, and the sales it was compared with."""
     project = load_project(project_id)
     try:
-        return clean.detail(project, projects.project_dir(project_id), key_sale)
+        return salereview.detail(project, projects.project_dir(project_id), key_sale)
     except NotFound as e:
         raise HTTPException(404, f"No sale {key_sale} was set aside.") from e
 
@@ -159,7 +159,7 @@ def clean_mark(project_id: str, key_sale: str, body: MarkBody) -> clean.CleanVie
     """Keep a sale set aside (with a note), exclude a sale, or undo either: it applies on the next run."""
     with editing(project_id, settings=True) as project:
         try:
-            clean.mark(project, key_sale, body.action, body.note)
+            salereview.mark(project, key_sale, body.action, body.note)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
     return clean_view(project)

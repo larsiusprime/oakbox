@@ -18,8 +18,6 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
 
-from oakbox.errors import NotFound
-
 # Exactly what OpenAVMKit's data.load reads (by extension, case-insensitively).
 FORMATS = {
     "csv": "CSV",
@@ -785,10 +783,3 @@ def has_geometry(path: Path, layer: str | None) -> bool | None:
     """Whether OpenAVMKit sees a geometry column."""
     names = column_names(path, layer)
     return None if names is None else "geometry" in names
-
-
-def _entry(files: list[DataFile], name: str) -> DataFile:
-    for f in files:
-        if f.name == name:
-            return f
-    raise NotFound(name)

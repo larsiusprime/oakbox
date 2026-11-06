@@ -2190,6 +2190,7 @@ export type Wording = {
     title: (a: { name: string | number }) => string;
     taxYear: (a: { year: string | number }) => string;
     loading: string;
+    serverError: string;
   };
   callout: {
     show: string;

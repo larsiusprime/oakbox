@@ -253,5 +253,9 @@ DATE_WORDS = {
 }
 
 
-def _norm(text: str) -> str:
+def normalized(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+# What a file appended as rows adds to.
+ROWS = {"sale_rows": "sales", "parcel_rows": "parcels"}

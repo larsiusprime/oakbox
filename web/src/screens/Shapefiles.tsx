@@ -24,6 +24,7 @@ import { Choice, Tick } from "../components/Form";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
+import { BAD, PICKED } from "../lib/colours";
 import { t } from "../wording";
 import { FilePicker } from "./WizardFiles";
 
@@ -442,15 +443,15 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
         getPosition: (p) => [p[0], p[1]],
         getRadius: 2,
         radiusUnits: "pixels",
-        getFillColor: rgba("#1d5bb8", 0.6),
+        getFillColor: rgba(PICKED, 0.6),
       }),
       ...(shapes
         ? [
             new GeoJsonLayer({
               id: "layer",
               data: shapes,
-              getFillColor: rgba("#a3231b", 0.08),
-              getLineColor: rgba("#a3231b"),
+              getFillColor: rgba(BAD, 0.08),
+              getLineColor: rgba(BAD),
               getLineWidth: 2,
               lineWidthUnits: "pixels",
               pointType: "circle",

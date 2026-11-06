@@ -15,9 +15,10 @@ import { DateField } from "../components/DateField";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { BY_SALE } from "../lib/colours";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
@@ -58,11 +59,6 @@ const STEPS: RStep[] = [
 ];
 const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
 
-/** Whether Looks right was pressed on an up-to-date Check my values. */
-export function useValuesChecked(projectId: string): boolean {
-  return useStep("ratio", projectId).data?.accepted ?? false;
-}
-
 const pct = (v: number) => Math.round(100 * v);
 
 /** Step 4, Check my values (SPEC F8): the values on the roll against what parcels sold for, judged against the
@@ -86,26 +82,22 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const result: FieldResult | undefined = rc?.results.find((x) => x.field === shown) ?? rc?.results[0];
   const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
   const called = rc ? (v.stale ? "attention" : "done") : "blank";
+  const statusOf = (key: RStep): StepStatus => {
+    // The results' pages: only Extreme values is ever marked (the nominal values it found, or Looks right).
+    if (AFTER.includes(key)) {
+      if (!rc || key !== "extreme") return "blank";
+      if (nominal.length) return "attention";
+      return v.accepted ? "done" : "blank";
+    }
+    if (key === "run") return called;
+    if (key === "what" && v.skipped) return "done";
+    if (!setup.data) return "blank";
+    return key === "sales" && setup.data.year_before === 0 ? "attention" : "done";
+  };
   const steps: Step[] = STEPS.map((key) => ({
     key,
     title: r.steps[key],
-    status: AFTER.includes(key)
-      ? !rc
-        ? "blank"
-        : key === "extreme" && nominal.length
-          ? "attention"
-          : key === "extreme" && v.accepted
-            ? "done"
-            : "blank"
-      : key === "run"
-        ? called
-        : key === "what" && v.skipped
-          ? "done"
-          : key === "sales" && setup.data && setup.data.year_before === 0
-            ? "attention"
-            : setup.data
-              ? "done"
-              : "blank",
+    status: statusOf(key),
     disabled: (AFTER.includes(key) && !rc) || (v.skipped && key !== "what"),
   }));
   const i = STEPS.indexOf(current);
@@ -572,7 +564,7 @@ function Prices({
                 verdict: r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
               })}
             </p>
-            <BandChart series={[{ label: p.bySale, color: "#d4566f", bands: g.strata }]} />
+            <BandChart series={[{ label: p.bySale, color: BY_SALE, bands: g.strata }]} />
             <table className="tbl">
               <thead>
                 <tr>

@@ -20,6 +20,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -464,8 +465,6 @@ def main(run: Callable[[str], None]) -> None:
     try:
         run(sys.argv[1])
     except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
-        import traceback
-
         traceback.print_exc()
         print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
         sys.exit(1)

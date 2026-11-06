@@ -10,7 +10,7 @@ import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } 
 import { CloseButton } from "../components/Buttons";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
-import { short } from "../lib/format";
+import { money, short } from "../lib/format";
 import { useResolved } from "../lib/machine";
 import { t } from "../wording";
 
@@ -231,6 +231,7 @@ export function Inspector({
   index,
   name,
   colour,
+  currency,
   onShow,
   onClose,
 }: {
@@ -239,6 +240,7 @@ export function Inspector({
   index: number;
   name: (id: string) => string;
   colour: (id: string) => string;
+  currency: string;
   onShow: (n: number[]) => void;
   onClose: () => void;
 }) {
@@ -299,7 +301,7 @@ export function Inspector({
             <ul className="mg-pop-sales">
               {v.sales.map((s) => (
                 <li key={`${s.date}${s.price}`}>
-                  {s.date} · {s.price != null ? `$${Math.round(s.price).toLocaleString()}` : "—"}
+                  {s.date} · {money(s.price, currency)}
                   {s.vacant ? ` · ${g.vacantSale}` : ""}
                 </li>
               ))}

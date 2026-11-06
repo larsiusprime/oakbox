@@ -6,6 +6,7 @@ and age for a condition. Also the candidate columns for these fields.
 from __future__ import annotations
 
 import re
+import statistics
 from collections import Counter
 from pathlib import Path
 from typing import Literal
@@ -25,10 +26,10 @@ from oakbox.datafiles import (
 from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.base import PAIRS, SCALED, YES
-from oakbox.wizard.checks import _pct
+from oakbox.wizard.checks import share_text
 from oakbox.wizard.files import Files, file_stamp, sales_file, values_of
 from oakbox.wizard.models import Check
-from oakbox.wizard.money import _plain, _read_numbers, _symbol
+from oakbox.wizard.money import currency_symbol, plain_numbers, read_numbers
 from oakbox.wizard.rules import rule_complete, rule_result
 
 # ---------- Quality and condition: a number where higher is better (F3d) ----------
@@ -115,11 +116,11 @@ def _qc_values(files: Files, entry: DataFile, column: str) -> tuple[str, ...]:
     return values_of(file_stamp(files.in_dir / entry.filename), entry.layer, column)
 
 
-def _new_scale(files: Files, entry: DataFile, key: str, column: str, given: Scale | None = None) -> Scale:
+def new_scale(files: Files, entry: DataFile, key: str, column: str, given: Scale | None = None) -> Scale:
     """A scale for a column: the user's, with the column's range filled in; or a first one that says nothing yet
     (a category: tiers to rank; numbers: which way they run, and for condition whether they're 0-1 fractions)."""
     values = _qc_values(files, entry, column)
-    if not _plain(values) or (given is not None and given.kind == "tiers"):
+    if not plain_numbers(values) or (given is not None and given.kind == "tiers"):
         return Scale(kind="tiers", tiers=dict(given.tiers) if given and given.kind == "tiers" else {})
     nums = [float(v) for v in values if v]
     s = given.model_copy(update={"tiers": {}}) if given is not None else Scale()
@@ -144,10 +145,8 @@ def short_number(v: float) -> str:
     return f"{v:,.2f}".rstrip("0").rstrip(".") if v != round(v) else f"{v:,.0f}"
 
 
-def _scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
+def scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
     """'✓ 0.15–4.5 · 47 values', '✓ as % good: 0.12 → 88 · median 84', or what's still to say."""
-    import statistics
-
     raw = _qc_values(files, entry, column)
     if s.kind == "tiers":
         distinct = {v for v in raw if v}
@@ -187,9 +186,7 @@ def _scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale)
 # Evidence: what the choices are checked against. Optional: each part says what it's based on, and what's missing.
 
 
-def _field_by_id(
-    project: Project, files: Files, key: str, match: str, only: DataFile | None = None
-) -> dict[str, float]:
+def field_by_id(project: Project, files: Files, key: str, match: str, only: DataFile | None = None) -> dict[str, float]:
     """A loaded parcel field as numbers, by parcel ID (the first row of each): areas in the project's unit. From the
     first parcel file that loads it, or from the one file given."""
     import pandas as pd
@@ -210,7 +207,7 @@ def _field_by_id(
     stamp = file_stamp(files.in_dir / f.filename)
     column = f.load[key][0]
     if key in f.numbers:
-        nums = list(_read_numbers(stamp, f.layer, column, f.numbers[key].model_dump_json()))
+        nums = list(read_numbers(stamp, f.layer, column, f.numbers[key].model_dump_json()))
     else:
         nums = pd.Series(pd.to_numeric(pd.Series(values_of(stamp, f.layer, column)), errors="coerce")).tolist()
     factor = 1.0
@@ -227,7 +224,7 @@ def _ages(project: Project, files: Files, match: str) -> tuple[dict[str, float],
     """Each building's age at the valuation date, from the effective year built (or, failing that, year built)."""
     year = project.valuation_date.year if project.valuation_date else project.tax_year
     for key, basis in (("bldg_effective_year_built", "effective age"), ("bldg_year_built", "age (year built)")):
-        built = _field_by_id(project, files, key, match)
+        built = field_by_id(project, files, key, match)
         ages = {i: year - v for i, v in built.items() if 1700 <= v <= 2100}
         if ages:
             return ages, basis
@@ -246,7 +243,7 @@ def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tu
     stamp = file_stamp(files.in_dir / sales.filename)
     column = sales.load["sale_price"][0]
     if "sale_price" in sales.numbers:
-        prices = list(_read_numbers(stamp, sales.layer, column, sales.numbers["sale_price"].model_dump_json()))
+        prices = list(read_numbers(stamp, sales.layer, column, sales.numbers["sale_price"].model_dump_json()))
     else:
         prices = pd.Series(pd.to_numeric(pd.Series(values_of(stamp, sales.layer, column)), errors="coerce")).tolist()
     notes = []
@@ -278,12 +275,10 @@ def _price_by(
     project: Project, files: Files, match: str, group: dict[str, str]
 ) -> tuple[dict[str, PriceGroup], str | None, list[str]]:
     """Median price per sq ft (or sale price, without a building size) for each group of parcels."""
-    import statistics
-
     rows, notes = _sales_evidence(project, files, match)
     if not rows:
         return {}, None, notes
-    size = _field_by_id(project, files, "bldg_area_finished_sqft", match)
+    size = field_by_id(project, files, "bldg_area_finished_sqft", match)
     unit = "sq ft" if small_unit(project.units) == "sqft" else "m²"
     basis = f"price per {unit}" if size else "sale price"
     if not size:
@@ -399,7 +394,7 @@ def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: s
         unplaced=unplaced,
         basis=basis,
         notes=notes,
-        symbol=_symbol(project),
+        symbol=currency_symbol(project),
     )
 
 
@@ -468,8 +463,6 @@ def scale_preview(
     project: Project, in_dir: Path, key: str, file: str, column: str, scale: Scale | None
 ) -> ScalePreview:
     """A numbers column read with a meaning: against age (newer should be better) and what it sells for."""
-    import statistics
-
     if key not in SCALED:
         raise NotFound(key)
     files = Files(project, in_dir)
@@ -477,10 +470,10 @@ def scale_preview(
         raise ValueError(f"{file} has no column {column}.")
     entry = files.entry(file)
     raw = _qc_values(files, entry, column)
-    if not _plain(raw):
+    if not plain_numbers(raw):
         raise ValueError(f"{column} isn't numbers: rank its tiers instead.")
     saved = entry.scales.get(key) if entry.load.get(key, [None])[0] == column else None
-    s = _new_scale(files, entry, key, column, scale or saved)
+    s = new_scale(files, entry, key, column, scale or saved)
     nums = [float(v) for v in raw if v]
     kinds = ["higher", "lower"] if key == "bldg_quality_num" else ["pct_good", "pct_depr", "higher", "lower", "life"]
     trend, age_basis = _trend(project, files, entry, column)
@@ -543,7 +536,7 @@ def scale_preview(
         samples=[ScaleSample(raw=r, value=v) for r, v in zip(seen, out, strict=True)],
         calc=written[1] if read else None,
         load=written[0] if read else {},
-        symbol=_symbol(project),
+        symbol=currency_symbol(project),
     )
 
 
@@ -605,8 +598,6 @@ def _value_bands(
     """Each band's sales: median price, price per area, and the price among the most common type alone. A grade's
     price per area mostly says how big its buildings are and what kind they are, so on its own it can run the
     wrong way; the price within one type is the fairer read."""
-    import statistics
-
     bands = _value_cuts(as_read, s.kind)
 
     def band_of(v: float) -> str | None:
@@ -627,7 +618,7 @@ def _value_bands(
     sold = [(i, p, label_of[i]) for i, p in rows if i in label_of]
     if not sold:
         return [], None, "", "", [*notes, "no sales found these parcels"]
-    size = _field_by_id(project, files, "bldg_area_finished_sqft", entry.match)
+    size = field_by_id(project, files, "bldg_area_finished_sqft", entry.match)
     unit = "sq ft" if small_unit(project.units) == "sqft" else "m²"
     if not size:
         notes.append("no building size: choose it on this step to see the price per area")
@@ -708,7 +699,7 @@ def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
             values = values_of(file_stamp(in_dir / f.filename), f.layer, col.name)
             filled = [v for v in values if v]
             distinct = set(filled)
-            numbers = bool(filled) and _plain(values)
+            numbers = bool(filled) and plain_numbers(values)
             nums = [float(v) for v in filled] if numbers else []
             notes: list[str] = []
             warn = False
@@ -719,7 +710,7 @@ def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
                 notes.append("One value on every row: tells nothing apart")
                 warn = True
             if values and len(filled) / len(values) < 0.5 and filled:
-                notes.append(f"{_pct(len(values) - len(filled), len(values))} blank")
+                notes.append(f"{share_text(len(values) - len(filled), len(values))} blank")
                 warn = True
             if numbers and len(distinct) > 1:
                 if min(nums) >= 0 and max(nums) <= 1:

@@ -23,10 +23,10 @@ from oakbox.datafiles import (
 from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.base import DATE_WORDS
-from oakbox.wizard.checks import _pct
-from oakbox.wizard.files import Files, _by_key, file_stamp, sales_file, values_of
+from oakbox.wizard.checks import share_text
+from oakbox.wizard.files import Files, dictionary_by_key, file_stamp, sales_file, values_of
 from oakbox.wizard.models import Check, Source
-from oakbox.wizard.money import _read_numbers
+from oakbox.wizard.money import read_numbers
 
 # ---------- Yes/no rules (valid and vacant sale) and dates: previews (F3d) ----------
 
@@ -37,17 +37,17 @@ class ValueCount(BaseModel):
 
 
 @lru_cache(maxsize=256)
-def _value_counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
+def value_counts(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[tuple[str, int], ...]:
     """A column's values (trimmed, as shown) with how many rows have each, most common first; blanks as ''."""
     counts = Counter(values_of(stamp, layer, column))
     return tuple(sorted(counts.items(), key=lambda vc: (-vc[1], vc[0])))
 
 
-def _distinct(files: Files, source: Source) -> int | None:
+def distinct_count(files: Files, source: Source) -> int | None:
     if source.file not in files.preview or files.column(source.file, source.column) is None:
         return None
     f = files.entry(source.file)
-    counts = _value_counts(file_stamp(files.in_dir / f.filename), f.layer, source.column)
+    counts = value_counts(file_stamp(files.in_dir / f.filename), f.layer, source.column)
     return sum(1 for v, _ in counts if v)
 
 
@@ -96,7 +96,7 @@ def column_values(
     if file not in files.preview or files.column(file, column) is None:
         raise NotFound(f"{file}.{column}")
     f = files.entry(file)
-    counts = _value_counts(file_stamp(in_dir / f.filename), f.layer, column)
+    counts = value_counts(file_stamp(in_dir / f.filename), f.layer, column)
     blank = next((n for v, n in counts if v == ""), 0)
     listed = [(v, n) for v, n in counts if v]
     q = search.strip().lower()
@@ -153,7 +153,7 @@ def rule_result(files: Files, entry: DataFile, rule: Rule):
     for column, (field, kind) in names.items():
         values = pd.Series(values_of(stamp, entry.layer, column, raw=True))
         if field in entry.numbers and entry.load.get(field, [None])[0] == column:
-            frame[field] = pd.Series(_read_numbers(stamp, entry.layer, column, entry.numbers[field].model_dump_json()))
+            frame[field] = pd.Series(read_numbers(stamp, entry.layer, column, entry.numbers[field].model_dump_json()))
         elif kind == "float":
             frame[field] = pd.to_numeric(values.str.strip(), errors="coerce")
         else:
@@ -170,7 +170,7 @@ def rule_complete(rule: Rule) -> bool:
     return bool(rule.conditions) and all(c.values or c.op in ("isempty", "notempty") for c in rule.conditions)
 
 
-def _rule_check(files: Files, entry: DataFile, key: str, rule: Rule) -> Check:
+def rule_check(files: Files, entry: DataFile, key: str, rule: Rule) -> Check:
     if any(files.column(entry.name, c.column) is None for c in rule.conditions):
         return Check(ok=False, text="a column it tests isn't in the file")
     if not rule_complete(rule):
@@ -181,14 +181,14 @@ def _rule_check(files: Files, entry: DataFile, key: str, rule: Rule) -> Check:
         return Check(ok=False, text=f"OpenAVMKit can't run this: {e}")
     yes, total = int(result.sum()), len(result)
     word = {"valid_sale": "valid", "vacant_sale": "vacant"}.get(key, "yes")
-    text = f"{yes:,} of {total:,} {word} ({_pct(yes, total)})"
+    text = f"{yes:,} of {total:,} {word} ({share_text(yes, total)})"
     # All or nothing is legal, but usually means the wrong values were picked.
     return Check(ok=True, text=("✓ " if 0 < yes < total else "") + text, warn=yes in (0, total))
 
 
 def _rule_entry(project: Project, key: str) -> DataFile:
     sales = sales_file(project)
-    d = _by_key().get(key)
+    d = dictionary_by_key().get(key)
     if sales is None:
         raise ValueError("Add the sales record first.")
     if d is None or d.type != "boolean":
@@ -218,7 +218,7 @@ def rule_preview(project: Project, in_dir: Path, key: str, rule: Rule) -> RulePr
         cells = {c: values_of(stamp, entry.layer, c, raw=True) for c in columns}
         for c in as_read:
             field = next(f for f in entry.numbers if entry.load.get(f, [None])[0] == c)
-            read = _read_numbers(stamp, entry.layer, c, entry.numbers[field].model_dump_json())
+            read = read_numbers(stamp, entry.layer, c, entry.numbers[field].model_dump_json())
             cells[c] = tuple("" if v != v else f"{v:,.2f}".removesuffix(".00") for v in read)
         rng = random.Random(0)
         for want in (True, False):
@@ -289,7 +289,7 @@ class DatePreview(BaseModel):
 
 
 @lru_cache(maxsize=128)
-def _parse(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str):
+def parse_dates(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str):
     """The column read with a date format the way OpenAVMKit does (pd.to_datetime with format=)."""
     import pandas as pd
 
@@ -306,7 +306,7 @@ def _date_stats(files: Files, name: str, column: str, fmt: str) -> tuple[int, in
     stamp = file_stamp(files.in_dir / entry.filename)
     values = values_of(stamp, entry.layer, column, raw=True)
     blank = sum(1 for v in values if not v.strip())
-    read = int(_parse(stamp, entry.layer, column, fmt).notna().sum())
+    read = int(parse_dates(stamp, entry.layer, column, fmt).notna().sum())
     return len(values), blank, read
 
 
@@ -316,18 +316,18 @@ def _also(files: Files, name: str, column: str, fmt: str) -> list[str]:
     stamp = file_stamp(files.in_dir / entry.filename)
     col = files.column(name, column)
     samples = col.samples if col else []
-    mine = _parse(stamp, entry.layer, column, fmt)
+    mine = parse_dates(stamp, entry.layer, column, fmt)
     out = []
     for other in fields.DATE_FORMATS:
         if other == fmt or not samples or not all(p for p in fields.check_dates(samples, other).parsed):
             continue
-        theirs = _parse(stamp, entry.layer, column, other)
+        theirs = parse_dates(stamp, entry.layer, column, other)
         if theirs.notna().sum() == mine.notna().sum() and not theirs.equals(mine):
             out.append(other)
     return out
 
 
-def _date_check(files: Files, name: str, column: str, fmt: str) -> Check:
+def date_check(files: Files, name: str, column: str, fmt: str) -> Check:
     total, blank, read = _date_stats(files, name, column, fmt)
     words = DATE_WORDS.get(fmt, fmt)
     failed = total - blank - read
@@ -349,7 +349,7 @@ def date_preview(project: Project, in_dir: Path, name: str, column: str, fmt: st
     entry = files.entry(name)
     stamp = file_stamp(in_dir / entry.filename)
     total, blank, read = _date_stats(files, name, column, fmt)
-    parsed = _parse(stamp, entry.layer, column, fmt)
+    parsed = parse_dates(stamp, entry.layer, column, fmt)
     values = values_of(stamp, entry.layer, column, raw=True)
     as_text = [None if p is None or p != p else p.strftime("%Y-%m-%d") for p in parsed.tolist()]
     bad = list(dict.fromkeys(v for v, p in zip(values, as_text, strict=True) if v.strip() and p is None))[:4]

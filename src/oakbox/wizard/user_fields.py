@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Literal
 
 from oakbox.projects import Project
-from oakbox.wizard.base import RENAMED
-from oakbox.wizard.files import Files, _by_key, _field_files
+from oakbox.wizard.base import RENAMED, STEPS
+from oakbox.wizard.files import Files, dictionary_by_key, field_files
 from oakbox.wizard.models import Check, CustomFieldView, LocationField, Source
-from oakbox.wizard.rules import _distinct
+from oakbox.wizard.rules import distinct_count
 
 # ---------- Location fields the user names, and where the parcels are (F3d) ----------
 
@@ -31,9 +31,7 @@ MADE_PREFIXES = ("census_", "dist_to_", "true_")
 def own_name_problem(name: str) -> str | None:
     """Why a user's own field can't take this name, or None. One of OpenAVMKit's own fields is fine when nothing else
     sets it: it's loaded under OpenAVMKit's name, so OpenAVMKit treats it as it would (zoning, bldg_rooms_bed…)."""
-    from oakbox.wizard.base import STEPS
-
-    d = _by_key().get(name)
+    d = dictionary_by_key().get(name)
     if name in TAKEN or name.startswith("polar_") or (d is not None and d.source in ("derived", "reserved")):
         return f"OpenAVMKit works out {name} itself: choose another name."
     if name in MADE or name.startswith(MADE_PREFIXES):
@@ -47,7 +45,7 @@ def locations(project: Project, in_dir: Path) -> list[LocationField]:
     files = Files(project, in_dir)
     out = []
     for name in project.wizard.locations:
-        entry = next((f for f in _field_files(project, False) if name in f.load), None)
+        entry = next((f for f in field_files(project, False) if name in f.load), None)
         if entry is None:
             continue
         column = entry.load[name][0]
@@ -67,7 +65,7 @@ def locations(project: Project, in_dir: Path) -> list[LocationField]:
                 file=entry.name,
                 column=column,
                 check=check,
-                distinct=_distinct(files, Source(file=entry.name, column=column)),
+                distinct=distinct_count(files, Source(file=entry.name, column=column)),
             )
         )
     return out
@@ -75,9 +73,9 @@ def locations(project: Project, in_dir: Path) -> list[LocationField]:
 
 def set_location(project: Project, in_dir: Path, name: str, file: str | None, column: str | None) -> None:
     """Load a column of a parcel file as a location field the user names (or, with no column, remove it)."""
-    by_key = _by_key()
+    by_key = dictionary_by_key()
     if column is None:
-        for f in _field_files(project, False):
+        for f in field_files(project, False):
             if name in project.wizard.locations:
                 f.load.pop(name, None)
         if name in project.wizard.locations:
@@ -88,7 +86,7 @@ def set_location(project: Project, in_dir: Path, name: str, file: str | None, co
     d = by_key.get(name)
     if name in TAKEN or name.startswith("polar_") or (d is not None and d.source in ("derived", "reserved")):
         raise ValueError(f"OpenAVMKit works out {name} itself: choose another name.")
-    entry = next((f for f in _field_files(project, False) if f.name == file), None)
+    entry = next((f for f in field_files(project, False) if f.name == file), None)
     if entry is None:
         raise ValueError("Locations come from a parcel file: the universe, or one joined to it.")
     if Files(project, in_dir).column(entry.name, column) is None:
@@ -113,7 +111,7 @@ def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
     files = Files(project, in_dir)
     out = []
     for c in project.wizard.custom:
-        entry = next((f for f in _field_files(project, False) if c.name in f.load), None)
+        entry = next((f for f in field_files(project, False) if c.name in f.load), None)
         if entry is None:
             continue
         column = entry.load[c.name][0]
@@ -142,7 +140,7 @@ def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
                 file=entry.name,
                 column=column,
                 check=check,
-                distinct=_distinct(files, Source(file=entry.name, column=column)),
+                distinct=distinct_count(files, Source(file=entry.name, column=column)),
             )
         )
     return out
@@ -150,7 +148,7 @@ def custom_fields(project: Project, in_dir: Path) -> list[CustomFieldView]:
 
 def _field_name(key: str) -> str:
     """A field as the wizard names it ("Building units"); the user's own fields by their own name."""
-    d = _by_key().get(key)
+    d = dictionary_by_key().get(key)
     return RENAMED.get(key, (d.name, ""))[0] if d else key
 
 
@@ -177,7 +175,7 @@ def set_custom(
     mine = [c.name for c in project.wizard.custom]
     if column is None:
         if name in mine:
-            for f in _field_files(project, False):
+            for f in field_files(project, False):
                 f.load.pop(name, None)
             project.wizard.custom = [c for c in project.wizard.custom if c.name != name]
         return
@@ -188,7 +186,7 @@ def set_custom(
         raise ValueError(problem)
     if name in project.wizard.locations:
         raise ValueError(f"{name} is already a location field.")
-    entry = next((f for f in _field_files(project, False) if f.name == file), None)
+    entry = next((f for f in field_files(project, False) if f.name == file), None)
     if entry is None:
         raise ValueError("Your own fields come from a parcel file: the parcel universe, or one joined to it.")
     if Files(project, in_dir).column(entry.name, column) is None:

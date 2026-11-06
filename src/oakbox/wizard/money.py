@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import math
 import re
+import statistics
 from functools import lru_cache
 from pathlib import Path
 
@@ -43,10 +44,8 @@ PLAUSIBLE_SQFT = {"land_area_sqft": (500, 5_000_000), "bldg_area_finished_sqft":
 PLAUSIBLE_SQFT["bldg_area_footprint_sqft"] = PLAUSIBLE_SQFT["bldg_area_finished_sqft"]
 
 
-def _area_check(files: Files, entry: DataFile, key: str, column: str, unit: str, units: str) -> Check:
+def area_check(files: Files, entry: DataFile, key: str, column: str, unit: str, units: str) -> Check:
     """'✓ 0.114 acres → 4,966 sq ft', and a warning when the typical size says the unit is wrong."""
-    import statistics
-
     target = small_unit(units)
     factor = SQFT_PER[unit] / SQFT_PER[target]
     nums = []
@@ -107,8 +106,6 @@ def _step(span: float, bins: int, whole: bool = False) -> float:
 def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) -> FieldSpread:
     """How a number field's values spread, read as it's loaded: an area in its unit, converted to the project's; a
     year as a year (0, written for none, left out)."""
-    import statistics
-
     files = Files(project, in_dir)
     entry = next(
         (f for f in project.files if key in f.load and f.holds not in ("sales", "overlay", "unused")),
@@ -177,7 +174,7 @@ COMMA_STYLES = ("1.234,56", "1 234,56")
 EXCEL = re.compile(r"^\s*\$?\s*[-+]?\d(\.\d+)?[eE]\+?\d+\s*$")
 
 
-def _plain(values: tuple[str, ...]) -> bool:
+def plain_numbers(values: tuple[str, ...]) -> bool:
     """Every value a plain number (or blank), as OpenAVMKit reads a float column."""
     for v in values:
         if v:
@@ -207,7 +204,7 @@ def detect_number_format(values: tuple[str, ...], style: str) -> tuple[NumberFor
 
 
 @lru_cache(maxsize=64)
-def _read_numbers(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str) -> tuple[float, ...]:
+def read_numbers(stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str) -> tuple[float, ...]:
     """The column read by OpenAVMKit's own calc, as number_calc writes it for the format (JSON)."""
     import pandas as pd
     from openavmkit.calculations import perform_calculations
@@ -253,7 +250,7 @@ class NumberPreview(BaseModel):
     samples: list[NumberSample] = Field(description="Ones that don't read first, then a spread of ones that do.")
 
 
-def _symbol(project: Project) -> str:
+def currency_symbol(project: Project) -> str:
     from oakbox.projects import locales
 
     found = next((c["symbol"] for c in locales()["currencies"] if c["code"] == project.currency), project.currency)
@@ -272,8 +269,6 @@ def _assessed_ratio(
     project: Project, files: Files, entry: DataFile, prices: list[float]
 ) -> tuple[float | None, str | None]:
     """Sale prices: the median of price ÷ the parcel's assessed value, over sales that find one."""
-    import statistics
-
     if entry.holds != "sales" or entry.match not in entry.load:
         return None, None
     for key in ("assr_market_value", "assr_land_value"):
@@ -284,7 +279,7 @@ def _assessed_ratio(
             continue
         stamp = file_stamp(files.in_dir / parcel.filename)
         fmt = parcel.numbers.get(key, NumberFormat()).model_dump_json()
-        values = _read_numbers(stamp, parcel.layer, parcel.load[key][0], fmt)
+        values = read_numbers(stamp, parcel.layer, parcel.load[key][0], fmt)
         by_id: dict[str, float] = {}
         for i, v in zip(files.ids(parcel.name, entry.match), values, strict=True):
             by_id.setdefault(i, v)
@@ -299,18 +294,16 @@ def _assessed_ratio(
 
 
 def _number_stats(project: Project, files: Files, entry: DataFile, key: str, column: str, fmt: NumberFormat) -> dict:
-    import statistics
-
     stamp = file_stamp(files.in_dir / entry.filename)
     raw = values_of(stamp, entry.layer, column, raw=True)
-    read = _read_numbers(stamp, entry.layer, column, fmt.model_dump_json())
+    read = read_numbers(stamp, entry.layer, column, fmt.model_dump_json())
     blank = sum(1 for v in raw if v.strip().lower() in PLACEHOLDERS)
     got = [v for v in read if v == v]
     positive = sorted(v for v in got if v > 0)
     median = statistics.median(positive) if positive else None
     ratio, against = _assessed_ratio(project, files, entry, list(read)) if key == "sale_price" else (None, None)
     hint = None
-    symbol = _symbol(project)
+    symbol = currency_symbol(project)
     if ratio is not None and (ratio >= 30 or ratio <= 1 / 30):
         times = 10 ** round(-math.log10(ratio))
         word = "thousands" if times == 1000 else "cents" if times == 0.01 else f"× {times:g}"
@@ -355,14 +348,16 @@ def _number_stats(project: Project, files: Files, entry: DataFile, key: str, col
     )
 
 
-def _money_check(
+def money_check(
     project: Project, files: Files, entry: DataFile, key: str, column: str, fmt: NumberFormat | None
 ) -> Check:
     """'✓ median $254K', or what's wrong: values that don't read, a scale that looks off, Excel's rounding."""
     s = _number_stats(project, files, entry, key, column, fmt or NumberFormat())
     if s["read"] == 0:
         return Check(ok=False, text="doesn't read as numbers: say how to read it")
-    parts = [f"median {_amount(_symbol(project), s['median'])}" if s["median"] is not None else "none above zero"]
+    parts = [
+        f"median {_amount(currency_symbol(project), s['median'])}" if s["median"] is not None else "none above zero"
+    ]
     warn = False
     if s["failed"]:
         parts.append(f"{s['failed']:,} don't read")
@@ -416,7 +411,7 @@ def number_preview(
         format=use,
         detected=detected,
         guessed=guessed,
-        symbol=_symbol(project),
+        symbol=currency_symbol(project),
         samples=samples,
         **s,
     )

@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
-import { short } from "../lib/format";
+import { num, short } from "../lib/format";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
 import { AddButton } from "./AddButton";
@@ -112,9 +112,7 @@ export function MultiPick({
                   <Val v={text(x)} max={60} />
                 </span>
                 {x.note && <span className="mp-n mono">{x.note}</span>}
-                {x.count !== undefined && x.count >= 0 && (
-                  <span className="mp-n">{x.count.toLocaleString()}</span>
-                )}
+                {x.count !== undefined && x.count >= 0 && <span className="mp-n">{num(x.count)}</span>}
               </Tick>
             ))}
             {rows.length === 0 && !canAdd && <p className="vals-sub">{m.noMatch}</p>}

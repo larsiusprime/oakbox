@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import pytest
 
-from oakbox import model, projects, ratio
+from oakbox import model, projects, ratio, spatiallag
 
 
 def _project(units="imperial"):
@@ -401,7 +401,7 @@ def test_nearby_sales_and_buildings(prepared):
     # And not worked out: only the picked ones are asked of OpenAVMKit.
     lag = model.settings(p, prepared)["data"]["process"]["enrich"]["spatial_lag"]
     assert lag["sales"] == ["price"] and lag["fields"] == {"land_area_sqft": 5, "bath_half": 5}
-    offered = {v.field for v in model.variables(p, prepared) if v.field.startswith(model.LAG)}
+    offered = {v.field for v in model.variables(p, prepared) if v.field.startswith(spatiallag.LAG)}
     assert offered == {"spatial_lag_sale_price", "spatial_lag_land_area_sqft", "spatial_lag_bath_half"}
     view = model.setup(p, prepared).lag
     assert view.chosen == ["spatial_lag_sale_price", "spatial_lag_land_area_sqft"]
@@ -417,7 +417,7 @@ def test_nearby_sales_and_buildings(prepared):
     # Off: nothing written, nothing offered.
     model.change(p, model.ModelPatch(lag_on=False))
     assert "data" not in model.settings(p, prepared)
-    assert not [v for v in model.variables(p, prepared) if v.field.startswith(model.LAG)]
+    assert not [v for v in model.variables(p, prepared) if v.field.startswith(spatiallag.LAG)]
 
 
 def test_a_nearby_average_with_too_few_sales_is_named():
@@ -435,22 +435,22 @@ def test_a_nearby_average_with_too_few_sales_is_named():
         },
     }
     names = {"sf": "Single family", "th": "Townhomes"}
-    zeros = model.lag_zeros(None, universe, settings, names)
+    zeros = spatiallag.lag_zeros(None, universe, settings, names)
     assert zeros == {"sf": ["spatial_lag_sale_price"]}
     # Not worked out at all (every group too small to average): the same.
-    assert model.lag_zeros(None, universe[["model_group"]], settings, names) == {
+    assert spatiallag.lag_zeros(None, universe[["model_group"]], settings, names) == {
         "sf": ["spatial_lag_sale_price"],
         "th": ["spatial_lag_sale_price"],
     }
     # Left out of that group's models only, for the run, and said; the other group keeps it.
-    lines = model.drop_lag_zeros(settings, zeros, names)
+    lines = spatiallag.drop_lag_zeros(settings, zeros, names)
     assert settings["modeling"]["models"]["main"]["sf"]["m"]["ind_vars"] == ["land_area_sqft"]
     assert settings["modeling"]["models"]["main"]["th"]["m"]["ind_vars"] == "$$variable_lists.l"
     assert lines[0].startswith("Single family: spatial_lag_sale_price left out of its models")
     # A model left with nothing stops the run.
     bare = {"modeling": {"models": {"main": {"sf": {"m": {"ind_vars": ["spatial_lag_sale_price"]}}}}}}
     with pytest.raises(ValueError):
-        model.drop_lag_zeros(bare, zeros, names)
+        spatiallag.drop_lag_zeros(bare, zeros, names)
 
 
 def test_groups_too_small_to_average_are_left_out():
@@ -468,8 +468,8 @@ def test_groups_too_small_to_average_are_left_out():
             }
         }
     }
-    assert model.lag_prune(settings, universe) == ["tiny"]
+    assert spatiallag.lag_prune(settings, universe) == ["tiny"]
     assert settings["data"]["process"]["enrich"]["spatial_lag"]["model_groups"] == {"sf": {"sample_from": ["sf"]}}
     # More nearest asks for more parcels: twice k, so 12 is too few for 8 nearest.
     settings["data"]["process"]["enrich"]["spatial_lag"]["fields"] = {"land_area_sqft": 8}
-    assert model.lag_prune(settings, universe) == ["sf"]
+    assert spatiallag.lag_prune(settings, universe) == ["sf"]

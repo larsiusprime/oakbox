@@ -21,7 +21,7 @@ import { say, t } from "../wording";
 import { DateDialog, NumberDialog, RuleDialog, ruleComplete } from "./FieldRules";
 import { ABSENT, PAIRS, SCALED } from "./Quality";
 import { FilePicker, matchOptions } from "./WizardFiles";
-import type { AreaUnit, MutateAsync } from "./wizardChange";
+import type { AreaUnit, Change, MutateAsync } from "./wizardChange";
 
 const w = t.wizard;
 
@@ -67,11 +67,14 @@ export function FieldRow({
   /** Big five's parts: no grey line under the label ("Required", "Used for modelling"). */
   bare?: boolean;
 }) {
-  const [confirming, setConfirming] = useState(false);
-  const [elsewhere, setElsewhere] = useState(false);
-  const [ruling, setRuling] = useState(false);
-  const [dating, setDating] = useState(false);
-  const [reading, setReading] = useState(false);
+  // The dialog open, if any: assuming the field, finding it in another file, or how its column is read.
+  const [dialog, setDialog] = useState<"assume" | "elsewhere" | "rule" | "date" | "number" | null>(null);
+  const close = () => setDialog(null);
+  /** Save a change, and close the dialog once it's saved (an error shows on the step: change.error). */
+  const saveThen = (c: Change) =>
+    void change(c)
+      .then(close)
+      .catch(() => {});
   const scaled = SCALED.includes(field.key);
   const paired = field.key in PAIRS;
   const money = isMoney(field.key);
@@ -95,9 +98,9 @@ export function FieldRow({
   const sourceFile = source ? files.find((f) => f.name === source.file) : undefined;
   const column = source && sourceFile?.columns.find((c) => c.name === source.column);
   const pick = (v: string) => {
-    if (v === ASSUME) setConfirming(true);
+    if (v === ASSUME) setDialog("assume");
     else if (v === ABSENT) void change({ kind: "field", key: field.key, absent: true }).catch(() => {});
-    else if (v === ELSEWHERE) setElsewhere(true);
+    else if (v === ELSEWHERE) setDialog("elsewhere");
     else if (v === NONE) void change({ kind: "field", key: field.key }).catch(() => {});
     else {
       const [file, col] = v.split("\u0000");
@@ -112,9 +115,10 @@ export function FieldRow({
           if (paged) return; // the page shows how it's read, below the row
           // Not yes/no (Q/U, a deed code): straight on to choosing which values mean yes (SPEC F3d).
           const now = next.fields.find((f) => f.key === field.key);
-          if (now?.rule && !ruleComplete(now.rule)) setRuling(true);
+          if (now?.rule && !ruleComplete(now.rule)) setDialog("rule");
           // A sale price that needs reading, or whose amounts look wrong: straight to how it's read.
-          if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn)) setReading(true);
+          if (field.key === "sale_price" && now?.check && (!now.check.ok || now.check.warn))
+            setDialog("number");
         })
         .catch(() => {});
     }
@@ -125,12 +129,12 @@ export function FieldRow({
     : sourceFile && column && field.type === "boolean" && sales
       ? {
           label: !field.rule ? w.rule.make : ruleComplete(field.rule) ? w.rule.edit : w.rule.choose,
-          press: () => setRuling(true),
+          press: () => setDialog("rule"),
         }
       : sourceFile && column && field.type === "date" && column.type !== "date"
-        ? { label: w.dates.change, press: () => setDating(true) }
+        ? { label: w.dates.change, press: () => setDialog("date") }
         : sourceFile && column && money
-          ? { label: w.numbers.change, press: () => setReading(true) }
+          ? { label: w.numbers.change, press: () => setDialog("number") }
           : null;
   const attention = Boolean(field.check && (field.check.warn || !field.check.ok));
   // An area's reading only repeats the unit chosen beside it ("in sq ft"): said only when it needs a look, and the
@@ -266,78 +270,58 @@ export function FieldRow({
           </>
         )}
       </div>
-      {ruling && sourceFile && (
+      {dialog === "rule" && sourceFile && (
         <RuleDialog
           projectId={project.id}
           field={field}
           file={sourceFile}
           price={data.fields.find((f) => f.key === "sale_price")}
-          close={() => setRuling(false)}
-          save={(rule) =>
-            void change({ kind: "rule", key: field.key, rule })
-              .then(() => setRuling(false))
-              .catch(() => {})
-          }
+          close={close}
+          save={(rule) => saveThen({ kind: "rule", key: field.key, rule })}
         />
       )}
-      {dating && sourceFile && source && (
+      {dialog === "date" && sourceFile && source && (
         <DateDialog
           projectId={project.id}
           field={field}
           file={sourceFile}
           column={source.column}
-          close={() => setDating(false)}
+          close={close}
           save={(date_format) =>
-            void change({
-              kind: "field",
-              key: field.key,
-              file: source.file,
-              column: source.column,
-              date_format,
-            })
-              .then(() => setDating(false))
-              .catch(() => {})
+            saveThen({ kind: "field", key: field.key, file: source.file, column: source.column, date_format })
           }
         />
       )}
-      {reading && sourceFile && source && (
+      {dialog === "number" && sourceFile && source && (
         <NumberDialog
           projectId={project.id}
           field={field}
           file={sourceFile}
           column={source.column}
-          close={() => setReading(false)}
+          close={close}
           save={(number_format) =>
-            void change({
+            saveThen({
               kind: "field",
               key: field.key,
               file: source.file,
               column: source.column,
               number_format,
             })
-              .then(() => setReading(false))
-              .catch(() => {})
           }
         />
       )}
-      {confirming && (
+      {dialog === "assume" && (
         <AssumeDialog
           field={field.key}
-          close={() => setConfirming(false)}
+          close={close}
           confirm={() => {
-            setConfirming(false);
+            close();
             void change({ kind: "field", key: field.key, assume: true }).catch(() => {});
           }}
         />
       )}
-      {elsewhere && (
-        <OtherFileDialog
-          project={project}
-          data={data}
-          field={field}
-          change={change}
-          close={() => setElsewhere(false)}
-        />
+      {dialog === "elsewhere" && (
+        <OtherFileDialog project={project} data={data} field={field} change={change} close={close} />
       )}
     </>
   );

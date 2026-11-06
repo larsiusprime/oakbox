@@ -21,12 +21,16 @@ From a checkout there's no engines.json: an engine is there if uv installed it (
 from __future__ import annotations
 
 import hashlib
+import importlib
+import importlib.util
 import json
 import os
 import shutil
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 import uuid
 import zipfile
 from collections.abc import Callable
@@ -132,14 +136,11 @@ def activate() -> None:
     if paths:
         have = [x for x in os.environ.get("PYTHONPATH", "").split(os.pathsep) if x]
         os.environ["PYTHONPATH"] = os.pathsep.join(have + [p for p in paths if p not in have])
-    import importlib
 
     importlib.invalidate_caches()
 
 
 def installed(key: str) -> bool:
-    import importlib.util
-
     return importlib.util.find_spec(OPTIONAL[key][1]) is not None
 
 
@@ -172,7 +173,6 @@ def states() -> list[EngineState]:
 
 
 def _fetch(w: Wheel, to: Path, progress: Callable[[int], None], stop: threading.Event) -> None:
-    import urllib.request
 
     from oakbox.net import USER_AGENT
 
@@ -273,7 +273,6 @@ def remove(key: str) -> None:
     if p in sys.path:
         sys.path.remove(p)
     os.environ["PYTHONPATH"] = os.pathsep.join(x for x in os.environ.get("PYTHONPATH", "").split(os.pathsep) if x != p)
-    import importlib
 
     importlib.invalidate_caches()
 
@@ -337,8 +336,6 @@ def forget(key: str) -> None:
 
 
 def _say(e: Exception) -> str:
-    import urllib.error
-
     if isinstance(e, urllib.error.URLError | TimeoutError | ConnectionError):
         return "It couldn't download: check the internet connection, then try again."
     if isinstance(e, OSError) and getattr(e, "errno", None) == 28:

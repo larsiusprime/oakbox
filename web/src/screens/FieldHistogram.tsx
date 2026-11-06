@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, unwrap, type WizardField } from "../api/client";
+import { num } from "../lib/format";
 import { t } from "../wording";
 
 const h = t.wizard.histogram;
@@ -48,7 +49,7 @@ export function FieldHistogram({ projectId, field }: { projectId: string; field:
             key={b.low}
             className="fh-bar"
             style={{ height: `${(8 * b.count) / top}rem` }}
-            title={`${edge(b.low, v.year)}–${edge(b.high, v.year)}${unit}: ${b.count.toLocaleString()}`}
+            title={`${edge(b.low, v.year)}–${edge(b.high, v.year)}${unit}: ${num(b.count)}`}
           />
         ))}
       </div>
