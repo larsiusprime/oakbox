@@ -15,7 +15,7 @@ import { Callout } from "../components/Callout";
 import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { band, pct, when } from "../lib/format";
@@ -68,27 +68,25 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const go = nav.go;
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
   const toGroups = () => navigate({ name: "project", id: projectId, tab: "groups" });
+  const statusOf = (key: BiStep): StepStatus => {
+    switch (key) {
+      case "plan":
+        return v.blocked.length ? "blocked" : "done";
+      case "run":
+        if (!r) return "blank";
+        return v.stale ? "attention" : "done";
+      case "more":
+        if (r && (r.enrichments.some((x) => x.status !== "ok") || r.checks.some((c) => !c.ok)))
+          return "attention";
+        return v.accepted ? "done" : "blank";
+      default:
+        return v.accepted ? "done" : "blank";
+    }
+  };
   const steps: Step[] = BI_STEPS.map((key) => ({
     key,
     title: b.steps[key],
-    status:
-      key === "plan"
-        ? v.blocked.length
-          ? "blocked"
-          : "done"
-        : key === "run"
-          ? r
-            ? v.stale
-              ? "attention"
-              : "done"
-            : "blank"
-          : key === "more" &&
-              r &&
-              (r.enrichments.some((x) => x.status !== "ok") || r.checks.some((c) => !c.ok))
-            ? "attention"
-            : v.accepted
-              ? "done"
-              : "blank",
+    status: statusOf(key),
     disabled: key !== "plan" && key !== "run" && !r,
   }));
   const prev = BI_STEPS[BI_STEPS.indexOf(current) - 1];

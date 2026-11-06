@@ -8,7 +8,7 @@ import { AddButton } from "../components/AddButton";
 import { DeleteButton, ToolButton } from "../components/Buttons";
 import { Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { when } from "../lib/format";
 import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
@@ -122,33 +122,26 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
           : "build";
   const current = nav.current(a.status, fallback, "results");
   const go = nav.go;
+  const statusOf = (key: MgStep): StepStatus => {
+    switch (key) {
+      case "start":
+        return v.start ? "done" : "blank";
+      case "build":
+        return saved.length ? "done" : "blank";
+      case "check":
+        if (!saved.length) return "blank";
+        return worst === "ok" ? "done" : "attention"; // nothing here stops the run: ❌ is for what does
+      case "write":
+        if (!a.receipt) return "blank";
+        return a.stale ? "attention" : "done";
+      case "results":
+        return a.accepted ? "done" : "blank";
+    }
+  };
   const steps: Step[] = STEPS.map((key) => ({
     key,
     title: g.steps[key],
-    status:
-      key === "start"
-        ? v.start
-          ? "done"
-          : "blank"
-        : key === "build"
-          ? saved.length
-            ? "done"
-            : "blank"
-          : key === "check"
-            ? !saved.length
-              ? "blank"
-              : worst === "ok"
-                ? "done"
-                : "attention" // nothing here stops the run: ❌ is for what does
-            : key === "write"
-              ? a.receipt
-                ? a.stale
-                  ? "attention"
-                  : "done"
-                : "blank"
-              : a.accepted
-                ? "done"
-                : "blank",
+    status: statusOf(key),
     disabled:
       (key !== "start" && !v.start) ||
       ((key === "check" || key === "write") && !saved.length) ||

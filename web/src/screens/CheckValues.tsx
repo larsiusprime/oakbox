@@ -15,7 +15,7 @@ import { DateField } from "../components/DateField";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
@@ -86,26 +86,22 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const result: FieldResult | undefined = rc?.results.find((x) => x.field === shown) ?? rc?.results[0];
   const nominal = result?.trimmed.filter((x) => x.nominal) ?? [];
   const called = rc ? (v.stale ? "attention" : "done") : "blank";
+  const statusOf = (key: RStep): StepStatus => {
+    // The results' pages: only Extreme values is ever marked (the nominal values it found, or Looks right).
+    if (AFTER.includes(key)) {
+      if (!rc || key !== "extreme") return "blank";
+      if (nominal.length) return "attention";
+      return v.accepted ? "done" : "blank";
+    }
+    if (key === "run") return called;
+    if (key === "what" && v.skipped) return "done";
+    if (!setup.data) return "blank";
+    return key === "sales" && setup.data.year_before === 0 ? "attention" : "done";
+  };
   const steps: Step[] = STEPS.map((key) => ({
     key,
     title: r.steps[key],
-    status: AFTER.includes(key)
-      ? !rc
-        ? "blank"
-        : key === "extreme" && nominal.length
-          ? "attention"
-          : key === "extreme" && v.accepted
-            ? "done"
-            : "blank"
-      : key === "run"
-        ? called
-        : key === "what" && v.skipped
-          ? "done"
-          : key === "sales" && setup.data && setup.data.year_before === 0
-            ? "attention"
-            : setup.data
-              ? "done"
-              : "blank",
+    status: statusOf(key),
     disabled: (AFTER.includes(key) && !rc) || (v.skipped && key !== "what"),
   }));
   const i = STEPS.indexOf(current);

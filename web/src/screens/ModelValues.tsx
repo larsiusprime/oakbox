@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
-import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { when } from "../lib/format";
 import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
@@ -64,29 +64,26 @@ export function ValuesTab({
       g.models.length === 0 ||
       g.models.some((e) => e.warnings.some((w) => w.code === "no_list" || w.code === "list_empty")),
   );
+  const statusOf = (key: MvStep): StepStatus => {
+    switch (key) {
+      case "models":
+        return unlisted.length ? "attention" : "done";
+      case "try":
+        return tried;
+      case "how":
+      case "small":
+        return mr && !mv.stale ? "done" : "blank";
+      case "final":
+        if (!fr) return "blank";
+        return fv?.stale || (fv?.blocked.length ?? 0) > 0 ? "attention" : "done";
+      case "values":
+        return fv?.accepted ? "done" : "blank";
+    }
+  };
   const steps: Step[] = MV_STEPS.map((key) => ({
     key,
     title: m.steps[key],
-    status:
-      key === "final"
-        ? fr
-          ? fv?.stale || (fv?.blocked.length ?? 0) > 0
-            ? "attention"
-            : "done"
-          : "blank"
-        : key === "values"
-          ? fv?.accepted
-            ? "done"
-            : "blank"
-          : key === "try"
-            ? tried
-            : key === "how" || key === "small"
-              ? mr && !mv.stale
-                ? "done"
-                : "blank"
-              : unlisted.length
-                ? "attention"
-                : "done",
+    status: statusOf(key),
     disabled: ((key === "how" || key === "small" || key === "final") && !mr) || (key === "values" && !fr),
   }));
   const i = MV_STEPS.indexOf(current);
