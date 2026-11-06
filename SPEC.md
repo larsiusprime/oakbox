@@ -1586,6 +1586,10 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
    - expose the ray and buffer parameters
 5. *(Moved to the separate land-value tool: land/improvement allocation.)*
 6. **Low-memory mode:** smaller dtypes, capped workers, chunked enrichment.
+7. **Speed, decided 2026-11-06** (from the performance runs, §5), in [larsiusprime/openavmkit#423](https://github.com/larsiusprime/openavmkit/pull/423):
+   - **Sales scrutiny's clustering on NumPy, with the same results:** `_crunch` takes one `np.percentile` call and `np.searchsorted` instead of nine pandas `quantile` calls and up to three `pd.cut` per cluster, reproducing pandas exactly (types included). At 50,000 parcels: `make_clusters` 13.9 s → 3.6 s, the whole sales scrutiny 25.6 s → 15.6 s, every output identical. Equivalence tests keep the old version verbatim as the reference.
+   - **The parcels' middle without the dissolve:** `locality.center_method: "area_weighted"`, the area-weighted mean of the distinct parcels' centroids (the same point as the dissolved shape's centroid where parcels don't overlap; stacked duplicates count once), about 50 ms instead of about 5 s at 50,000 parcels. `"union"` stays OpenAVMKit's default; **OAK box writes `"area_weighted"`** (decided: a pure win, since the default middle stands in for downtown and is a guess anyway), and the Coordinates page's pin is worked out the same way, so it stays the point the engine measures from. Once the PR is merged and pinned, existing projects without a centre of their own see Bring in data as out of date once: their polar values can move slightly where shapes partly overlap.
+   - **To decide:** `make_clusters` without a copy of the whole table per cluster (measured: 3.6 s → 1.5 s, outputs identical), and with the labels joined once per field (1.2 s).
 
 ### D. Documentation fixes found during review
 - **Spatial-join key name.** The real key is `geometry`. `advanced_settings` §4.2 calls it `spatial_joins`.
