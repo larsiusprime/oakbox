@@ -1025,7 +1025,7 @@ Rules for both screens:
 **Map background:**
 - Offline, maps show parcels only.
 - Online, the user can turn on a street background built from OpenStreetMap data.
-  - **Default provider:** a free, no-key service intended for third-party apps, such as OpenFreeMap. The tile URL lives in config, so the provider can change without a software update. **As built:** OpenStreetMap's own raster tiles (`tile.openstreetmap.org`), the URL written in `components/MapView.tsx`; moving to a provider meant for apps, and to config, is still to do.
+  - **Default provider:** a free, no-key service intended for third-party apps, such as OpenFreeMap. The tile URL lives in config, so the provider can change without a software update. **As built (2026-11-06):** OpenFreeMap's vector tiles, its light grey `positron` style (`appsettings.MAP_STYLE`), fetched when a map is shown with **Street map** ticked; offline, or unticked, the map is a plain background. The address can be changed in OAK box's settings (`map_style`), for a tile server of one's own. **Later:** hosting our own tile server for OAK box's users, so no one else's service carries them. The one-time online notice isn't built; the **Street map** box's ⓘ says where the map comes from and what's sent.
   - **Fallback:** OSMF's own `tile.openstreetmap.org`. Its [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) allows it, but it has no service guarantee and may block heavy use without notice. If used, Oakbox must send an identifying User-Agent, show attribution, and not prefetch or cache tiles for offline use.
 - The user's own aerial imagery (GeoTIFF/MBTiles) comes later.
 
@@ -1426,7 +1426,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
   - **Data:** server state lives in a typed query layer (TanStack Query over the generated API client). UI state uses plain React state/context, and a small store library only if one proves necessary.
   - **No component kit** beyond React Aria. Styling is our own.
 - **Other UI pieces:**
-  - **One map for every map** (settled 2026-11-01, replacing Leaflet): MapLibre GL JS draws the street map (OpenStreetMap raster tiles; a **Street map** box takes it away, remembered on the computer) and deck.gl (WebGL, `@deck.gl/mapbox`'s overlay) draws what's on it, so half a million parcels draw as smoothly as a few hundred sales. One component, `components/MapView.tsx` (fit to a box, resize, hover text, a hook for markers such as Location's pin); MapLibre's worker is bundled (`?worker&url`, ES format) as the bundle doesn't keep it beside MapLibre. Used by Model groups' parcel shapes, Location's dots and pin, a map layer over the parcels, Check my values' ratio map and Model values' map. Parcels as dots for now; shapes for every parcel on the value maps are a later choice (deck.gl draws them; at county size, likely as vector tiles made on the computer).
+  - **One map for every map** (settled 2026-11-01, replacing Leaflet): MapLibre GL JS draws the street map (OpenFreeMap's vector tiles, §3.11; a **Street map** box takes it away, remembered on the computer) and deck.gl (WebGL, `@deck.gl/mapbox`'s overlay) draws what's on it, so half a million parcels draw as smoothly as a few hundred sales. One component, `components/MapView.tsx` (fit to a box, resize, hover text, a hook for markers such as Location's pin); MapLibre's worker is bundled (`?worker&url`, ES format) as the bundle doesn't keep it beside MapLibre. Used by Model groups' parcel shapes, Location's dots and pin, a map layer over the parcels, Check my values' ratio map and Model values' map. Parcels as dots for now; shapes for every parcel on the value maps are a later choice (deck.gl draws them; at county size, likely as vector tiles made on the computer).
   - Charts are SVG drawn by our own components (`screens/ValueCharts.tsx`, `TimeChart.tsx`…), at their width in pixels
   - Tables are plain `<table>`s, sorted in `DataTable` and `ValueTable`; TanStack Virtual if one ever needs virtualising
 
@@ -1614,7 +1614,7 @@ Step 4 depends on steps 2–3 but not on step 5, so checking values never waits 
 ## 10. Open items
 **Resolved:**
 - GIS and Excel loaders go upstream into OpenAVMKit (B10).
-- OpenFreeMap is the map tile service (not yet: the map uses OpenStreetMap's own tiles, §3.11).
+- OpenFreeMap is the map tile service (built 2026-11-06, §3.11); hosting our own is for later.
 - Reports are printable HTML (F10, settled 2026-11-01; this replaced Typst).
 - The default variables are the big five plus location.
 - The IAAO default profile is accepted, to be revised later.

@@ -2450,6 +2450,11 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+            /**
+             * Map Style
+             * @description The street map's MapLibre style address (appsettings.map_style).
+             */
+            map_style: string;
         };
         /** Area */
         Area: {

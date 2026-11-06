@@ -1308,7 +1308,8 @@
     "close": "Close"
   },
   "map": {
-    "basemap": "Street map"
+    "basemap": "Street map",
+    "basemapTip": "The street map comes from OpenFreeMap (openfreemap.org), over the internet. It''s sent which part of the map you''re looking at, and your computer''s internet address; nothing about your parcels. Untick it to draw without it; offline, the map is drawn without it."
   },
   "multiPick": {
     "plusOthers": "{first} + {n} other field{n, plural, =1 {} other {s}}",

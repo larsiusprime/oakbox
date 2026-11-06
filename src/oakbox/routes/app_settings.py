@@ -31,6 +31,7 @@ class AppSettingsView(BaseModel):
     storage_location: str
     default_storage_location: str
     display: Display
+    map_style: str = Field(description="The street map's MapLibre style address (appsettings.map_style).")
 
 
 class CensusKey(BaseModel):
@@ -47,6 +48,7 @@ def _settings_view() -> AppSettingsView:
         storage_location=str(appsettings.storage_location()),
         default_storage_location=str(appsettings.default_storage()),
         display=Display(density=s.density, zoom=s.zoom),
+        map_style=s.map_style or appsettings.MAP_STYLE,
     )
 
 

@@ -954,6 +954,7 @@ export type Wording = {
   };
   map: {
     basemap: string;
+    basemapTip: string;
   };
   multiPick: {
     plusOthers: (a: { first: string | number; n: number }) => string;

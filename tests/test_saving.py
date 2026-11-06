@@ -77,3 +77,11 @@ def test_a_project_kept_elsewhere_is_still_listed_after_a_bad_setting(client, tm
     path = appsettings.config_dir() / "settings.json"
     _write_settings({**json.loads(path.read_text(encoding="utf-8")), "zoom": "very big"})
     assert pid in [p["id"] for p in client.get("/api/projects").json()]
+
+
+def test_the_street_map_is_openfreemaps_unless_the_settings_name_another(client):
+    assert client.get("/api/app-settings").json()["map_style"] == appsettings.MAP_STYLE
+    assert appsettings.MAP_STYLE.startswith("https://tiles.openfreemap.org/")
+    own = "https://tiles.example.org/styles/ours.json"
+    appsettings.save(appsettings.load().model_copy(update={"map_style": own}))
+    assert client.get("/api/app-settings").json()["map_style"] == own

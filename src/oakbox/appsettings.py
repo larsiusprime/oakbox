@@ -23,6 +23,11 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # One change to the settings at a time (the menus' thread and the app's requests both write them).
 LOCK = threading.Lock()
 
+# The street map under every map (SPEC §3.11): OpenFreeMap's vector tiles, free, with no key, meant for apps like
+# this one (openfreemap.org), in its light grey style, so what OAK box draws reads on top. Its address can be set
+# (map_style) to a tile server of one's own.
+MAP_STYLE = "https://tiles.openfreemap.org/styles/positron"
+
 # Zoom levels in percent, as browsers step them (View › Zoom in / Zoom out, Ctrl+mouse wheel).
 ZOOMS = (67, 75, 80, 90, 100, 110, 125, 150, 175, 200)
 
@@ -66,6 +71,9 @@ class AppSettings(BaseModel):
 
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
     census_api_key: str | None = Field(default=None, description="The user's own, for the Census enrichment (F3e).")
+    map_style: str | None = Field(
+        default=None, description="The street map's MapLibre style address; None: OpenFreeMap's (MAP_STYLE)."
+    )
 
 
 def _override() -> Path | None:
@@ -187,6 +195,11 @@ def save(s: AppSettings) -> None:
     from oakbox import atomic
 
     atomic.save_text(_path(), s.model_dump_json(indent=2))
+
+
+def map_style() -> str:
+    """The street map's style address: the one set in the settings (a tile server of one's own), else MAP_STYLE."""
+    return load().map_style or MAP_STYLE
 
 
 def storage_location() -> Path:
