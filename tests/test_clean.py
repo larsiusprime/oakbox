@@ -34,15 +34,29 @@ def test_the_calls_are_openavmkit_settings():
 
     p.clean.sales_from = 2023
     p.clean.per = {"condos": "impr"}  # condos indexed on finished area, whatever OpenAVMKit would choose
-    p.clean.fills = {"slope": clean.Fill(method="median"), "lot": clean.Fill(method="zero", scope="vacant")}
-    p.clean.fills["skip"] = clean.Fill(method="leave")
+    p.clean.fills = {
+        "slope": clean.Fill(method="median"),
+        "lot": clean.Fill(method="zero", scope="vacant"),  # from before: a split, improved parcels left blank
+        "skip": clean.Fill(method="leave"),
+        "renovation_num": clean.Fill(),  # auto: zero (blank means no permit)
+        "quality": clean.Fill(method="auto", split=True, kind="building"),  # a building's: improved parcels only
+        "income": clean.Fill(method="mean", split=True, vacant="zero", kind="land"),  # land: every parcel alike
+        "deck": clean.Fill(method="median", split=True, vacant="zero"),
+    }
     p.clean.location, p.clean.checks = "", {"dupe_date_price": False}
     s = clean.settings(p)
     # Vacant land has no window of its own: it follows the sales window.
     assert s["modeling"]["metadata"]["use_sales_from"] == {"improved": 2023, "vacant": 2023}
     assert s["data"]["process"]["time_adjustment"]["per"] == {"condos": "impr"}
     # Added to OpenAVMKit's own fill lists ("+"), not replacing them.
-    assert s["data"]["process"]["fill"] == {"+median": ["slope"], "+zero_vacant": ["lot"]}
+    assert s["data"]["process"]["fill"] == {
+        "+mean": ["income"],
+        "+median": ["slope"],
+        "+zero": ["renovation_num"],
+        "+median_impr": ["deck", "quality"],
+        "+zero_vacant": ["deck", "lot"],
+    }
+    assert clean.fill_words("deck", p.clean.fills["deck"]) == "median (improved), zero (vacant)"
     assert s["analysis"]["sales_scrutiny"]["location"] is None
     assert s["analysis"]["horizontal_equity"] == {"location": None}
     assert s["analysis"]["sales_scrutiny"]["heuristics"]["dupe_date_price"] is False
@@ -472,6 +486,31 @@ def test_a_try_of_one_model(prepared, brought_in_client, brought_in):
     assert client.get(mdl).json()["stale"]
 
 
+def test_a_project_from_before_has_its_proposals_made_auto(assembled, brought_in_client, brought_in):
+    """Proposals were written down as if chosen: each still as proposed becomes auto, once (a building's field's
+    split from only improved too); a choice stays; after that, the proposal's method is a choice like any."""
+    pid = brought_in[1]
+    project, pdir = projects.load(pid), projects.project_dir(pid)
+    universe, _ = clean._data(pdir)
+    universe = universe.copy()
+    improved = universe.index[~universe["is_vacant"].astype(bool)]
+    universe.loc[improved[:5], ["bldg_quality_num", "bldg_condition_num"]] = None
+    project.clean.fills_auto = False  # as a project from before (the file's other tests may have run decide)
+    project.clean.fills = {
+        "bldg_quality_num": clean.Fill.model_validate({"method": "median", "scope": "impr"}),
+        "bldg_condition_num": clean.Fill(method="mean"),
+    }
+
+    rows = {r.field: r for r in clean._fill_rows(project, pdir, universe)}
+    q = rows["bldg_quality_num"]
+    assert (q.kind, q.auto, q.fill.method, q.fill.kind) == ("building", "median", "auto", "building")
+    assert rows["bldg_condition_num"].fill.method == "mean"  # a choice: stays
+
+    project.clean.fills_auto = True  # made auto already: median is a choice now
+    project.clean.fills["bldg_quality_num"] = clean.Fill(method="median")
+    assert {r.field: r for r in clean._fill_rows(project, pdir, universe)}["bldg_quality_num"].fill.method == "median"
+
+
 @pytest.mark.parametrize("value", ["", "None", "nan", None])
 def test_a_sale_with_no_parcel_has_no_group(value):
     assert clean.group_of(value) == clean.NO_PARCEL
@@ -487,9 +526,48 @@ def test_a_sale_with_no_parcel_has_no_group(value):
         ("bldg_area_finished_sqft", "leave"),  # blank: no building
     ],
 )
-def test_fills_proposed_from_what_a_blank_means(field, method):
-    fill, why = clean.propose(field)
-    assert fill.method == method and why
+def test_auto_is_proposed_from_what_a_blank_means(field, method):
+    assert clean.propose(field) == method
+
+
+def test_what_each_group_gets_is_worked_out_as_openavmkit_fills():
+    """Each model group from its own parcels' values; a building's field from improved parcels only (vacant ones'
+    0s don't count); a group with blanks and nothing to take a median from stays blank; split: each its own."""
+    import pandas as pd
+
+    p = projects.Project.model_validate(
+        {"id": "x", "name": "x", "created_at": "2026-01-01T00:00:00", "tax_year": 2026, "valuation_date": "2026-01-01"}
+    )
+    p.groups = [
+        projects.ModelGroup(id="sf", name="Single-family", color="#c55"),
+        projects.ModelGroup(id="condo", name="Condos", color="#58c"),
+    ]
+    # Single-family: an improved 4, two improved blanks, two vacant 0s and a vacant blank; a condo with a blank.
+    u = pd.DataFrame(
+        {
+            "model_group": ["sf"] * 6 + ["condo"],
+            "is_vacant": [False, False, False, True, True, True, False],
+            "q": [4.0, None, None, 0.0, 0.0, None, None],
+        }
+    )
+
+    def cells(**fill):
+        row = clean.FillRow(field="q", name="Q", blanks=4, kind="other", fill=clean.Fill(**fill), auto="median")
+        prev = clean.fill_preview(p, u, [row])
+        assert [g.label for g in prev.groups] == ["Single-family", "Condos"]
+        return prev.rows[0].cells
+
+    sf, condo = cells()  # every parcel: the vacant 0s count
+    assert sf.main and (sf.main.blanks, sf.main.value) == (3, 0.0) and sf.vacant is None
+    assert condo.main and (condo.main.blanks, condo.main.value) == (1, None)  # nothing to take: stays blank
+    sf, _ = cells(kind="building")  # improved parcels only
+    assert sf.main and (sf.main.blanks, sf.main.value) == (2, 4.0)
+    sf, _ = cells(split=True, method="median", vacant="leave")
+    assert sf.main and sf.main.value == 4.0 and sf.vacant and sf.vacant.left and sf.vacant.blanks == 1
+    sf, _ = cells(split=True, method="median", vacant="leave", kind="land")  # land: never split
+    assert sf.main and (sf.main.blanks, sf.main.value) == (3, 0.0) and sf.vacant is None
+    sf, _ = cells(method="mode")
+    assert sf.main and sf.main.value == 0.0
 
 
 def test_a_failed_write_fails_the_run():

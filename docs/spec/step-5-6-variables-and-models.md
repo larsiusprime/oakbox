@@ -11,13 +11,26 @@ their own).
 - **Why here:** they're notebook 2's first and last calls in OpenAVMKit's order, but nothing in Check sales depends on
   them (the equity groups and the sales checks compare land size, finished area, quality, age and condition, which
   aren't filled here). Some models fail on a blank (the linear ones); the others read it as unknown.
-- **Fill blanks:** each number the models can use that's blank somewhere after step 2, with what a blank means and a
-  proposal from it: zero where blank means none (renovation permits: `renovation_num`); leave blank where there's
-  nothing to stand in (`days_to_*`: no permit, no date; `land_area_alloc_*`: only condo units have a share of land;
-  finished area and year built: blank means no building); the model group's median for census fields (a block group not
-  matched), elevation and slope (a tile not covering the parcel) and the rest. Changeable to median, mean, most common,
-  zero, smallest, largest or leave blank, for every parcel or only improved or only vacant ones. Written as OpenAVMKit's
-  `data.process.fill` lists, added to its own (`+median`).
+- **Fill blanks:** each number the models can use that's blank somewhere after step 2, one row each: the field, its
+  **kind** (OpenAVMKit's field classification, a tag: Building, Land or Other), its blanks, and a method dropdown in
+  three columns, **Improved**, **Vacant** and **All**. The columns that don't apply are hatched:
+  - **Building** (`impr` fields): Improved only. Vacant is locked (🔒): OpenAVMKit has made it 0 there already, and
+    those 0s would pull a median over every parcel down. Written as `+<method>_impr`.
+  - **Land**: All only, never split. A fact about the land or the area it's in is the same built on or not: census
+    figures (a fact about the block group), elevation, distances.
+  - **Other**: All. Its dropdown also has **Split**: Improved and Vacant then each have their own (written
+    `+<method>_impr`, `+<method>_vacant`), starting from All's; a method in All joins them again.
+  - Each dropdown's first choice is **Auto (…)**: the fill proposed from what a blank means, followed if that changes
+    (zero for renovation permits, `renovation_num`; leave blank where there's nothing to stand in, `days_to_*`,
+    `land_area_alloc_*`, finished area and year built; the model group's median for the rest). Then median, mean,
+    most common, zero, smallest, largest, leave blank. Written as OpenAVMKit's `data.process.fill` lists, added to
+    its own (`+median`). Projects from before had their proposals written down as if chosen: each still as proposed
+    is made Auto once (`fills_auto`); fills from before for only improved or only vacant parcels are a split.
+  - **What each group gets**, under the choices: a row per field, a column per model group, the value that goes into
+    that group's blanks, worked out as OpenAVMKit fills (each group from its own parcels' values, improved or vacant
+    ones' when filled separately). "—" where the group has no blanks; **blank** (amber) where it has blanks but no
+    values to take a median, mean, smallest or largest from: those stay blank; split, the vacant parcels' value under
+    it.
 - **Rare categories:** off by default. The category fields the models use, but not locations, the model group, IDs and
   addresses (or anything with more distinct values than half the parcels), or dates. With the thresholds (fewer sales
   than, fewer parcels than), a table per field: its values, how many fold, their parcels, and which ("Become Other"),

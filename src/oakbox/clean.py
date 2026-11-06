@@ -24,7 +24,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast, get_args
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from oakbox import assemble, atomic, bring_in, cells, fields, names, steps
 from oakbox.datafiles import BaseModel
@@ -58,7 +58,9 @@ YEAR_AGE = ("bldg_year_built", "bldg_effective_year_built", "bldg_age_years", "b
 NEVER_PROPOSED = ("bldg_area_finished_sqft", "bldg_area_finished_sqm", *YEAR_AGE)
 
 FillMethod = Literal["median", "mean", "mode", "zero", "min", "max", "leave"]
+FillChoice = Literal["auto", "median", "mean", "mode", "zero", "min", "max", "leave"]
 FillScope = Literal["all", "impr", "vacant"]
+FieldKind = Literal["building", "land", "other"]
 Period = Literal["M", "Q"]
 
 
@@ -86,8 +88,52 @@ def out_dir(project_dir: Path) -> Path:
 
 
 class Fill(BaseModel):
-    method: FillMethod = Field(description="leave: no fill (the field stays blank).")
-    scope: FillScope = Field(default="all", description="Every parcel, or only improved / only vacant ones.")
+    """A field's fill, by its kind. A building's field fills improved parcels only (OpenAVMKit has made it 0 on vacant
+    ones); a land field every parcel alike (a fact about the land or its area, census figures among them, is the same
+    built on or not); any other every parcel alike, or improved and vacant parcels each their own (split)."""
+
+    method: FillChoice = Field(
+        default="auto",
+        description="Every parcel's; a building's field's, or split, improved parcels'. auto: proposed (propose); "
+        "leave: no fill (the field stays blank).",
+    )
+    split: bool = Field(default=False, description="Improved and vacant parcels each their own (an Other field only).")
+    vacant: FillChoice = Field(default="auto", description="Split: vacant parcels'.")
+    kind: FieldKind = Field(default="other", description="The field's kind, as last seen (decide keeps it up to date).")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _from_scope(cls, data: object) -> object:
+        """Fills from before (a method for every parcel, only improved, or only vacant): a split."""
+        if isinstance(data, dict) and "scope" in data:
+            data = dict(data)
+            scope = data.pop("scope")
+            if scope == "impr":
+                data |= {"split": True, "vacant": "leave"}
+            elif scope == "vacant":
+                data |= {"split": True, "vacant": data.get("method", "auto"), "method": "leave"}
+        return data
+
+
+def fill_words(field: str, f: Fill) -> str:
+    """A fill in a few words, for the receipt: "median", "median (improved)", "median (improved), zero (vacant)"."""
+    parts = fill_parts(field, f)
+    if len(parts) == 1 and parts[0][1] == "all":
+        return parts[0][0]
+    return ", ".join(f"{m} ({'improved' if sc == 'impr' else 'vacant'})" for m, sc in parts) or "leave"
+
+
+def fill_parts(field: str, f: Fill) -> list[tuple[FillMethod, FillScope]]:
+    """What a fill asks of OpenAVMKit: each method and the parcels it's for (auto as proposed; leave: nothing)."""
+    auto = propose(field)
+    method = cast(FillMethod, auto if f.method == "auto" else f.method)
+    if f.kind == "building":
+        parts: list[tuple[FillMethod, FillScope]] = [(method, "impr")]
+    elif f.split and f.kind == "other":
+        parts = [(method, "impr"), (cast(FillMethod, auto if f.vacant == "auto" else f.vacant), "vacant")]
+    else:
+        parts = [(method, "all")]
+    return [(m, sc) for m, sc in parts if m != "leave"]
 
 
 class SaleMark(BaseModel):
@@ -123,6 +169,11 @@ class CleanState(BaseModel):
         "missing: OpenAVMKit works it out from the sales.",
     )
     fills: dict[str, Fill] = Field(default_factory=dict, description="Per field with blanks; written once proposed.")
+    fills_auto: bool = Field(
+        default=False,
+        description="Fills are auto unless chosen (decide): a project from before, whose proposals were written down "
+        "as if chosen, has each that's still its proposal made auto once.",
+    )
     location: str | None = Field(
         default=None, description='Where "near" is for scrutiny and the equity clusters; "" none; None: not decided.'
     )
@@ -165,11 +216,9 @@ def settings(project: Project) -> dict:
     start = window(project)
     fill: dict[str, list[str]] = {}
     for field, f in sorted(c.fills.items()):
-        if f.method != "leave":
+        for method, scope in fill_parts(field, f):
             # "+": added to OpenAVMKit's own fill lists, not replacing them.
-            fill.setdefault("+" + f.method + {"all": "", "impr": "_impr", "vacant": "_vacant"}[f.scope], []).append(
-                field
-            )
+            fill.setdefault("+" + method + {"all": "", "impr": "_impr", "vacant": "_vacant"}[scope], []).append(field)
     ta: dict[str, Any] = {"use": c.time_adjust, "period": c.period}
     if c.borrow:
         ta["borrow"] = dict(sorted(c.borrow.items()))
@@ -350,11 +399,33 @@ class FillRow(BaseModel):
     field: str
     name: str
     blanks: int
-    parcels: int
+    kind: FieldKind = Field(description="OpenAVMKit's classification: a building's field is 0 on vacant parcels.")
     fill: Fill
-    proposed: Fill
-    why: str = Field(description="Why that's proposed: what a blank means for this field.")
-    stats: dict[str, float] = Field(description="median, mean, mode, min, max of the values there are.")
+    auto: FillMethod = Field(description="What auto is: the fill proposed from what a blank means.")
+
+
+class FillPart(BaseModel):
+    blanks: int
+    value: float | None = Field(description="What goes into them; None: they stay blank (left, or nothing to take).")
+    left: bool = Field(default=False, description="Left blank, as chosen.")
+
+
+class FillCell(BaseModel):
+    """A field's fill in one model group: every parcel's (a building's field, or split: improved parcels')."""
+
+    main: FillPart | None = Field(description="None: no blanks there.")
+    vacant: FillPart | None = Field(default=None, description="Split: vacant parcels' (None: no blanks there).")
+
+
+class FillPreviewRow(BaseModel):
+    field: str
+    name: str
+    cells: list[FillCell] = Field(description="One per group, in groups' order.")
+
+
+class FillPreview(BaseModel):
+    groups: list[Choice] = Field(description="The model groups with parcels (value: id; label: name).")
+    rows: list[FillPreviewRow]
 
 
 class Choice(BaseModel):
@@ -386,6 +457,7 @@ class CleanSetup(BaseModel):
     period: Period
     groups: list[GroupSetup]
     fills: list[FillRow]
+    fill_preview: FillPreview
     auto: list[str] = Field(description="What OpenAVMKit always fills itself, with how many.")
     location: str | None = Field(description='The location in use; "" none.')
     location_proposed: str
@@ -441,71 +513,102 @@ def _valid(sales) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
 
 
 def _fill_rows(project: Project, project_dir: Path, universe) -> list[FillRow]:
-    """Every number the models can use that's still blank somewhere after step 1, with its fill."""
-    from openavmkit.utilities.settings import get_fields_numeric
+    """Every number the models can use that's still blank somewhere after step 1, its kind and its fill."""
+    from openavmkit.utilities.settings import get_fields_impr, get_fields_land, get_fields_numeric
 
     s = steps.engine_settings(project_dir)
     template = {f for fs in s.get("data", {}).get("process", {}).get("fill", {}).values() for f in fs}
-    mine = {f for f, x in project.clean.fills.items()}
+    mine = set(project.clean.fills)
     numeric = [
         f
         for f in get_fields_numeric(s, universe, include_boolean=False) or []
         if f in universe and f not in YEAR_AGE and (f not in template or f in mine)
     ]
+    building = set((get_fields_impr(s, universe) or {}).get("numeric", []))
+    land = set((get_fields_land(s, universe) or {}).get("numeric", []))
     names = fields.names()
+    c: CleanState = project.clean
     rows = []
     for f in numeric:
-        x = cells.numbers(universe, f)
-        blanks = int(x.isna().sum())
+        blanks = int(cells.numbers(universe, f).isna().sum())
         if not blanks:
             continue
-        there = x.dropna()
-        stats = {}
-        if len(there):
-            mode = there.mode()
-            stats = {
-                "median": float(there.median()),
-                "mean": float(there.mean()),
-                "mode": float(mode.iloc[0]) if len(mode) else float("nan"),
-                "min": float(there.min()),
-                "max": float(there.max()),
-            }
-        proposed, why = propose(f)
-        rows.append(
-            FillRow(
-                field=f,
-                name=names.get(f, f),
-                blanks=blanks,
-                parcels=len(x),
-                fill=project.clean.fills.get(f, proposed),
-                proposed=proposed,
-                why=why,
-                stats=stats,
-            )
-        )
+        auto = propose(f)
+        kind: FieldKind = "building" if f in building else "land" if f in land else "other"
+        fill = c.fills.get(f, Fill()).model_copy(update={"kind": kind})
+        if not c.fills_auto:
+            # Written down before auto: a proposal kept as it was is auto (a building's or land field's, split or not).
+            if fill.method == auto and (kind != "other" or not fill.split):
+                fill = fill.model_copy(update={"method": "auto", "split": False, "vacant": "auto"})
+        rows.append(FillRow(field=f, name=names.get(f, f), blanks=blanks, kind=kind, fill=fill, auto=auto))
     return rows
 
 
-CENSUS = ("median_income", "median_c_rent", "median_g_rent", "total_population")
+def _put_in(x: pd.Series, blank: pd.Series, has: pd.Series, method: FillMethod) -> FillPart | None:
+    """What a fill puts into these blanks from these values, as OpenAVMKit works it out (_fill_thing)."""
+    n = int(blank.sum())
+    if not n:
+        return None
+    if method == "leave":
+        return FillPart(blanks=n, value=None, left=True)
+    there = x[has]
+    if method == "zero":
+        value: float | None = 0.0
+    elif method == "mode":
+        mode = there.mode()
+        value = float(mode.iloc[0]) if len(mode) else 0.0  # nothing to count: 0
+    elif not len(there):
+        value = None  # nothing to take a median (mean, smallest, largest) from: they stay blank
+    else:
+        value = float(getattr(there, method)())
+    return FillPart(blanks=n, value=value)
 
 
-def propose(field: str) -> tuple[Fill, str]:
-    """A fill for a field, from what a blank means in it."""
+def fill_preview(project: Project, universe, rows: list[FillRow]) -> FillPreview:
+    """What each model group gets: a group fills from its own parcels' values (improved or vacant ones' for those)."""
+    import pandas as pd
+
+    groups = model_groups_of(universe).replace({NO_PARCEL: UNKNOWN})
+    present = set(groups)
+    cols = [Choice(value=g.id, label=g.name) for g in project.groups if g.id in present]
+    if UNKNOWN in present:
+        cols.append(Choice(value=UNKNOWN, label="Unassigned"))
+    vacant = (
+        universe["is_vacant"].astype("boolean").fillna(False).astype(bool)
+        if "is_vacant" in universe
+        else pd.Series(False, index=universe.index)
+    )
+    out = []
+    for row in rows:
+        x = cells.numbers(universe, row.field)
+        f = row.fill
+        main_m = cast(FillMethod, row.auto if f.method == "auto" else f.method)
+        vac_m = cast(FillMethod, row.auto if f.vacant == "auto" else f.vacant)
+        split = f.split and f.kind == "other"
+        cs = []
+        for col in cols:
+            g = groups == col.value
+            if f.kind == "building" or split:
+                main = _put_in(x, g & ~vacant & x.isna(), g & ~vacant & x.notna(), main_m)
+                vac = _put_in(x, g & vacant & x.isna(), g & vacant & x.notna(), vac_m) if split else None
+            else:
+                main, vac = _put_in(x, g & x.isna(), g & x.notna(), main_m), None
+            cs.append(FillCell(main=main, vacant=vac))
+        out.append(FillPreviewRow(field=row.field, name=row.name, cells=cs))
+    return FillPreview(groups=cols, rows=out)
+
+
+def propose(field: str) -> FillMethod:
+    """A field's auto fill, from what a blank means in it."""
     if field in NEVER_PROPOSED:
-        return Fill(method="leave"), "Blank means no building: 0 already says so."
+        return "leave"  # blank means no building: 0 already says so
     if field.startswith("land_area_alloc"):
-        return Fill(method="leave"), "Only condo units have a share of land: blank for the rest is right."
+        return "leave"  # only condo units have a share of land: blank for the rest is right
     if field in ("renovation_num", "is_renovated"):
-        return Fill(method="zero"), "Blank means no renovation permit: 0 is none."
+        return "zero"  # blank means no renovation permit: 0 is none
     if field.startswith("days_to_"):
-        return Fill(method="leave"), "Blank means no permit: there's no date to count from, so it stays blank."
-    if field in CENSUS:
-        return Fill(method="median"), (
-            "Blank where the census gives no figure for the parcel's block group or its tract: its group's median."
-        )
-    if field.startswith(("elevation_", "slope_")):
-        return Fill(method="median"), "Blank where the elevation tiles had no cells for the parcel: its group's median."
-    return Fill(method="median"), "Blank where the data didn't say: its group's median, as a stand-in."
+        return "leave"  # blank means no permit: there's no date to count from
+    return "median"  # census, elevation, the rest: the group's median, as a stand-in
 
 
 def _auto(project_dir: Path, universe) -> list[str]:
@@ -668,7 +771,8 @@ def setup(project: Project, project_dir: Path) -> CleanSetup:
         time_adjust=c.time_adjust,
         period=c.period,
         groups=groups,
-        fills=_fill_rows(project, project_dir, universe),
+        fills=(rows := _fill_rows(project, project_dir, universe)),
+        fill_preview=fill_preview(project, universe, rows),
         auto=_auto(project_dir, universe),
         location=location,
         location_proposed=proposed,
@@ -693,7 +797,8 @@ def decide(project: Project, project_dir: Path) -> None:
     universe, _ = _data(project_dir)
     c: CleanState = project.clean
     for row in _fill_rows(project, project_dir, universe):
-        c.fills.setdefault(row.field, row.proposed)
+        c.fills[row.field] = row.fill  # auto unless chosen; its kind kept up to date
+    c.fills_auto = True
     locations = location_fields(project_dir, universe)
     if c.location is None:
         c.location = _proposed_location(locations)

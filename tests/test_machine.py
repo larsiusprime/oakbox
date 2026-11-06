@@ -1,6 +1,8 @@
 """This computer (machine.py, SPEC §5): the tier the check puts it in, the settings each tier recommends, the
 user's own choices over them, and the memory warning for a large county."""
 
+import os
+
 from oakbox import appsettings, bring_in, machine
 
 
@@ -93,3 +95,17 @@ def test_a_many_core_computer_isnt_warned_for_workers_it_wont_run(client):
     assert v["machine"]["tier"] == "strong" and v["resolved"]["folds_at_once"] == 5 and v["cores_workers"] == 5
     assert bring_in.memory_note(150_000) is None
     assert bring_in.memory_note(500_000) is not None
+
+
+def test_one_fold_at_a_time_runs_its_tuning_trials_one_at_a_time(monkeypatch):
+    """With folds one at a time, OpenAVMKit tunes on a thread pool in the one process, and two LightGBM trials at once
+    crash it now and then: OPENAVMKIT_TUNE_WORKERS=1 makes them one at a time. More folds at once leave it alone
+    (each fold's process runs its trials one at a time already)."""
+    monkeypatch.delenv("OPENAVMKIT_TUNE_WORKERS", raising=False)
+    settings: dict = {}
+    assert machine.apply_folds(settings, 2) == 2
+    assert settings["modeling"]["instructions"]["cv_max_workers"] == 2
+    assert "OPENAVMKIT_TUNE_WORKERS" not in os.environ
+    assert machine.apply_folds(settings, 1) == 1
+    assert settings["modeling"]["instructions"]["cv_max_workers"] == 1
+    assert os.environ["OPENAVMKIT_TUNE_WORKERS"] == "1"

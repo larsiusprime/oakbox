@@ -511,14 +511,14 @@ def inspect(project_dir: Path, groups: list[ModelGroup], pos: int) -> ParcelInsp
 
 
 def shapes_path(project_dir: Path) -> Path:
-    """GeoJSON of the parcel universe's shapes in its order, in degrees, simplified for the screen. Made from
-    Bring in data's results the first time it's asked for, and again when they change."""
+    """The parcel universe's shapes for the map (shapes.bin, `_binary`), in its order, in degrees, simplified for the
+    screen. Made from Bring in data's results the first time it's asked for, and again when they change."""
     import pandas as pd
 
     base = out_dir(project_dir)
     src = base / "sup.pickle"
     stamp = _stamp(src)
-    out = steps.out_dir(project_dir, "groups") / "shapes.geojson"
+    out = steps.out_dir(project_dir, "groups") / "shapes.bin"
     meta = out.with_suffix(".json")
     made = json.loads(meta.read_text(encoding="utf-8")) if out.is_file() and meta.is_file() else {}
     if made.get("from") == list(stamp) and made.get("v") == SHAPES_VERSION:
@@ -545,15 +545,16 @@ def shapes_path(project_dir: Path) -> Path:
         centres = centres.to_crs(4326)
     gdf = gdf.set_crs(gdf.crs or 4326).to_crs(4326) if gdf.crs else gdf
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(_features(gdf.geometry.to_numpy()), encoding="utf-8")
+    out.write_bytes(_binary(gdf.geometry.to_numpy()))
+    out.with_name("shapes.geojson").unlink(missing_ok=True)  # the old make's
     pts = [None if p is None or p.is_empty else [round(p.x, 6), round(p.y, 6)] for p in centres]
     out.with_name("centres.json").write_text(json.dumps(pts, separators=(",", ":")), encoding="utf-8")
     meta.write_text(json.dumps({"from": list(stamp), "v": SHAPES_VERSION}), encoding="utf-8")
     return out
 
 
-# The shapes file's make: a new one is made when it changes (2: flat, no heights; 3: with centres.json).
-SHAPES_VERSION = 3
+# The shapes file's make: a new one is made when it changes (2: flat, no heights; 3: with centres.json; 4: binary).
+SHAPES_VERSION = 4
 
 
 def centres_path(project_dir: Path) -> Path:
@@ -562,22 +563,45 @@ def centres_path(project_dir: Path) -> Path:
     return shapes_path(project_dir).with_name("centres.json")
 
 
-def _features(geoms) -> str:
-    """A FeatureCollection, a feature per shape in order (id: its index), flat: a height on each corner (PolygonZ, as
-    county files often have, sometimes a huge "no data") would draw each parcel up in the air, out of sight."""
+SHAPES_MAGIC = b"OAKSHP01"
+
+
+def _binary(geoms) -> bytes:
+    """The shapes as the map reads them: a few arrays, not GeoJSON text (a tenth of the size at 50,000 parcels, and
+    nothing to parse). Little-endian; every parcel has a place, a parcel with no shape (or not an area) none:
+
+        b"OAKSHP01", then int32 parcels, polygons, rings, corners;
+        int32 parcel_polygons[parcels + 1]   each parcel's polygons start here (a polygon of a multipolygon each)
+        int32 polygon_rings[polygons + 1]    each polygon's rings start here (its outline, then its holes)
+        int32 ring_corners[rings + 1]        each ring's corners start here (closed: its last is its first)
+        int32 corners[corners * 2]           longitude, latitude in millionths of a degree (about 10 cm)
+
+    Flat: a height on each corner (PolygonZ, as county files often have, sometimes a huge "no data") would draw each
+    parcel up in the air, out of sight."""
+    import numpy as np
     import shapely
 
-    texts = shapely.to_geojson(shapely.force_2d(geoms))  # None for a parcel with no shape
-    body = ",".join(
-        f'{{"type":"Feature","id":{i},"properties":{{}},"geometry":{_round(g) if g else "null"}}}'
-        for i, g in enumerate(texts)
+    g = shapely.force_2d(np.asarray(geoms, dtype=object))
+    areas = np.isin(shapely.get_type_id(g), [3, 6])  # Polygon, MultiPolygon
+    g = np.where(areas, g, None)
+    if not areas.any():  # no shapes at all
+        xy = np.zeros((0, 2))
+        rings = polygons = np.zeros(1, np.int64)
+        parcels = np.zeros(len(g) + 1, np.int64)
+    else:
+        kind, xy, offsets = shapely.to_ragged_array(g)
+        if kind == shapely.GeometryType.MULTIPOLYGON:
+            rings, polygons, parcels = offsets
+        else:  # single polygons only: each parcel one polygon, or none when it has no shape
+            rings, starts = offsets
+            has = np.diff(starts) > 0
+            parcels = np.concatenate([[0], np.cumsum(has)])
+            polygons = np.concatenate([starts[:-1][has], starts[-1:]])
+    head = [len(parcels) - 1, len(polygons) - 1, len(rings) - 1, len(xy)]
+    corners = np.round(np.asarray(xy, dtype=np.float64) * 1e6).astype("<i4")
+    return SHAPES_MAGIC + b"".join(
+        np.asarray(a).astype("<i4").tobytes() for a in (head, parcels, polygons, rings, corners)
     )
-    return '{"type":"FeatureCollection","features":[' + body + "]}"
-
-
-def _round(text: str) -> str:
-    """Coordinates to 6 decimals (about 10 cm)."""
-    return re.sub(r"(-?\d+\.\d{6})\d+", r"\1", text)
 
 
 # ---------- A suggested set ----------

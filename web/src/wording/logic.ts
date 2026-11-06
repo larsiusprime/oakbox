@@ -135,7 +135,6 @@ export const say = {
       tip: (price: string, per: string, perWhat: string) =>
         t.sales.time.tip({ price, per, perWhat: dropLead(perWhat, "price ") }),
     },
-    fill: { auto: (n: number) => t.sales.fill.auto({ n: n + 1 }) },
     review: {
       related: {
         feet: (m: number) => t.sales.review.related.feet({ n: Math.round(m * 3.28084) }),

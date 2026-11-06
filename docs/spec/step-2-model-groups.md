@@ -77,7 +77,7 @@ As built (F5), then the builder as first specified (§3.5).
   valued".
 - **Map:** the parcel shapes on OpenStreetMap tiles when online, plain background offline. Coloured by **Group**, or by
   **Changes** (parcels in a different group than when saved, coloured by their new group; the rest grey). The shapes are
-  made once from Bring in data's results (`out/oakbox/groups/shapes.geojson`, simplified to about half a metre, in
+  made once from Bring in data's results (`out/oakbox/groups/shapes.bin`, simplified to about half a metre, in
   degrees) and recoloured, not redrawn, on each preview.
 - **Inspect:** clicking a parcel shows its key fields (address, land use, building type and description, units, size,
   year built, land size, zoning, neighbourhood, assessed value, and every field a rule tests), its valid sales, and why

@@ -1667,10 +1667,23 @@
       "sub": "stand-ins so the models can run",
       "what": "A filled value is a simple stand-in, not a fact about the property: it''s used for modeling only. OpenAVMKit records which values were filled (out/filled.parquet).",
       "field": "Field",
+      "kind": "Kind",
       "blank": "Blank",
-      "with": "Fill with",
-      "puts": "Puts in",
-      "for": "For",
+      "kinds": {
+        "building": "Building",
+        "land": "Land",
+        "other": "Other"
+      },
+      "kindTips": {
+        "building": "A building's field: OpenAVMKit has made it 0 on vacant parcels already.",
+        "land": "A fact about the land or the area it's in: the same for improved and vacant parcels.",
+        "other": "Neither the building's nor the land's."
+      },
+      "parcels": {
+        "impr": "Improved",
+        "vacant": "Vacant",
+        "all": "All"
+      },
       "methods": {
         "median": "median",
         "mean": "mean",
@@ -1680,16 +1693,15 @@
         "max": "largest",
         "leave": "leave blank"
       },
-      "scopes": {
-        "all": "every parcel",
-        "impr": "only improved",
-        "vacant": "only vacant"
-      },
-      "example": "its model group''s {method}, e.g. {v}",
-      "leaveNote": "stays blank (some models can''t use a field with blanks)",
+      "autoMethod": "Auto ({method})",
+      "split": "Split",
+      "locked": "0 already: no building",
       "none": "✓ Every number the models can use is filled in already.",
-      "auto": "What OpenAVMKit always does ({n})",
-      "area": "Finished area isn''t filled here: 0 already means no building (Data)."
+      "groupsField": "Field",
+      "stays": "blank",
+      "staysTip": "No values in this group to take it from: these stay blank.",
+      "left": "left blank",
+      "noGroups": "✓ No blanks to fill."
     },
     "scrutiny": {
       "title": "Sales scrutiny",
@@ -2255,6 +2267,7 @@
     "modelsKicker": "Step 6 of 7",
     "steps": {
       "fill": "Fill blanks",
+      "fillgroups": "What each group gets",
       "rare": "Rare categories",
       "run": "Prepare the fields",
       "done": "What changed",

@@ -8,10 +8,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { CloseButton } from "../components/Buttons";
-import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
+import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
 import { money, short } from "../lib/format";
 import { useResolved } from "../lib/machine";
+import { type BinaryShapes, readShapes, shapeSize, shapesBounds, toBinary } from "../lib/shapes";
 import { t } from "../wording";
 
 const g = t.groups;
@@ -24,7 +25,12 @@ export const SAME = "__same";
 // the shapes in view are drawn instead of their dots.
 const DOTS_ABOVE = 20_000;
 const SHAPES_IN_VIEW = 5_000;
+// Scattered specks of shapes (shapes.ts: some parcel files hold only a small square at each parcel's point) smaller
+// than this on screen fill no pixel: drawn as dots, or with Parcel shapes chosen, drawn at least this size.
+const SHAPE_MIN_PX = 3;
 type Centre = [number, number] | null;
+const NONE: [number, number, number, number] = [0, 0, 0, 0];
+const parcelOf = (f: unknown) => (f as { properties: { parcel: number } }).properties.parcel;
 
 /** The parcel shapes on OpenStreetMap (when online), coloured by group or by what moved. */
 export function ParcelMap({
@@ -61,7 +67,6 @@ export function ParcelMap({
       return (await r.json()) as Centre[];
     },
     staleTime: Number.POSITIVE_INFINITY,
-    enabled: detail !== "shapes",
   });
   const n = centres.data?.length ?? 0;
   const dots = detail === "dots" || (detail === "auto" && n > DOTS_ABOVE);
@@ -72,17 +77,30 @@ export function ParcelMap({
     queryFn: async () => {
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/groups/shapes`);
       if (!r.ok) throw new Error(await r.text());
-      return (await r.json()) as GeoJSON.FeatureCollection;
+      return readShapes(await r.arrayBuffer());
     },
     staleTime: Number.POSITIVE_INFINITY,
     enabled: detail === "shapes" || (centres.isSuccess && (!dots || inView !== null)),
   });
-  const fc = shapes.data;
+  const sh = shapes.data;
+  const whole = useMemo(() => (sh ? toBinary(sh) : null), [sh]);
   const bounds = useMemo(
     () =>
-      dots ? boundsOf((centres.data ?? []).filter((c): c is [number, number] => !!c)) : boundsOfGeoJson(fc),
-    [dots, centres.data, fc],
+      dots
+        ? boundsOf((centres.data ?? []).filter((c): c is [number, number] => !!c))
+        : sh
+          ? (shapesBounds(sh) ?? null)
+          : null,
+    [dots, centres.data, sh],
   );
+
+  const size = useMemo(() => (sh ? shapeSize(sh) : null), [sh]);
+  // Metres a pixel covers now (MapLibre's 512-pixel tiles), for whether the shapes would show.
+  const [perPixel, setPerPixel] = useState<number | null>(null);
+  const specks = !!size?.scattered && perPixel != null && size.metres / perPixel < SHAPE_MIN_PX;
+  // Parcel shapes chosen: shapes, always (specks drawn bigger). Otherwise specks are dots.
+  const asDots = dots || (specks && detail !== "shapes");
+  const swell = specks && detail === "shapes";
 
   // Which parcels are in view, when few enough to draw as shapes.
   const centresNow = useRef<Centre[] | undefined>(undefined);
@@ -92,6 +110,8 @@ export function ParcelMap({
   const watch = useCallback((m: maplibregl.Map | null) => {
     if (!m) return;
     const look = () => {
+      const lat = (m.getCenter().lat * Math.PI) / 180;
+      setPerPixel((40_075_016.686 * Math.cos(lat)) / (512 * 2 ** m.getZoom()));
       const all = centresNow.current;
       if (!all) return;
       const b = m.getBounds();
@@ -106,6 +126,7 @@ export function ParcelMap({
       setInView(seen);
     };
     m.on("moveend", look);
+    m.once("load", look);
   }, []);
 
   // Each parcel's look: its group's colour (grey when it didn't move), dimmed off the highlight, hidden when its
@@ -130,32 +151,38 @@ export function ParcelMap({
     };
   }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
 
+  // Followed only when drawn as dots: shapes drawn whole needn't be made again on every move.
+  const seen = asDots ? inView : null;
   const layers = useMemo(() => {
-    const idOf = (f: GeoJSON.Feature) => Number(f.id ?? -1);
-    const shapesLayer = (features: GeoJSON.Feature[]) =>
+    const shapesLayer = (data: BinaryShapes) =>
       new GeoJsonLayer({
         id: "parcels",
-        data: { type: "FeatureCollection", features } as GeoJSON.FeatureCollection,
+        data: data as never,
         pickable: true,
         stroked: true,
         filled: true,
         lineWidthUnits: "pixels",
-        getFillColor: (f) => look(idOf(f))?.fill ?? [0, 0, 0, 0],
-        getLineColor: (f) => look(idOf(f))?.line ?? [0, 0, 0, 0],
-        getLineWidth: (f) => look(idOf(f))?.width ?? 0,
-        updateTriggers: { getFillColor: look, getLineColor: look, getLineWidth: look },
-        onClick: ({ object }) => {
-          // A parcel switched off in the legend isn't there to click.
-          if (object && look(idOf(object))) onPick(idOf(object));
+        lineWidthMinPixels: swell ? SHAPE_MIN_PX : 0,
+        getFillColor: (f) => look(parcelOf(f))?.fill ?? NONE,
+        getLineColor: (f) => {
+          const l = look(parcelOf(f));
+          return !l ? NONE : swell ? l.fill : l.line;
+        },
+        getLineWidth: (f) => look(parcelOf(f))?.width ?? 0,
+        updateTriggers: { getFillColor: look, getLineColor: [look, swell], getLineWidth: look },
+        // A pick's index is its parcel's (shapes.ts). A parcel switched off in the legend isn't there to click.
+        onClick: ({ index }) => {
+          if (index >= 0 && look(index)) onPick(index);
         },
       });
     const out: Layer[] = [];
     const all = centres.data;
-    if (dots && all) {
-      const few =
-        inView && fc ? inView.map((i) => fc.features[i]).filter((f): f is GeoJSON.Feature => !!f) : null;
-      if (few) out.push(shapesLayer(few));
-      else {
+    let drawnAsShapes = false;
+    if (asDots && all) {
+      if (!specks && sh && seen) {
+        out.push(shapesLayer(toBinary(sh, seen)));
+        drawnAsShapes = true;
+      } else {
         const idx = all.flatMap((c, i) => (c ? [i] : []));
         out.push(
           new ScatterplotLayer<number>({
@@ -165,7 +192,7 @@ export function ParcelMap({
             radiusUnits: "pixels",
             getRadius: 2.5,
             getPosition: (i) => all[i] as [number, number],
-            getFillColor: (i) => look(i)?.fill ?? [0, 0, 0, 0],
+            getFillColor: (i) => look(i)?.fill ?? NONE,
             updateTriggers: { getFillColor: look },
             onClick: ({ object }) => {
               if (object != null && look(object)) onPick(object);
@@ -173,13 +200,16 @@ export function ParcelMap({
           }),
         );
       }
-    } else if (!dots && fc) out.push(shapesLayer(fc.features));
-    const f = picked == null ? undefined : fc?.features[picked];
-    if (f?.geometry)
+    } else if (!asDots && whole) {
+      out.push(shapesLayer(whole));
+      drawnAsShapes = true;
+    }
+    const outline = picked != null && drawnAsShapes && sh ? toBinary(sh, [picked]) : null;
+    if (outline && outline.polygons.polygonIndices.value.length > 1)
       out.push(
         new GeoJsonLayer({
           id: "picked",
-          data: { type: "FeatureCollection", features: [f] } as GeoJSON.FeatureCollection,
+          data: outline as never,
           stroked: true,
           filled: false,
           lineWidthUnits: "pixels",
@@ -203,9 +233,9 @@ export function ParcelMap({
         }),
       );
     return out;
-  }, [dots, centres.data, inView, fc, look, picked, onPick]);
+  }, [asDots, specks, swell, centres.data, seen, sh, whole, look, picked, onPick]);
 
-  const ready = dots ? !!centres.data : !!fc;
+  const ready = dots ? !!centres.data : !!sh;
   const failed = (dots ? centres.error : shapes.error)?.message;
   return (
     <div className="mg-map-body">
@@ -217,7 +247,7 @@ export function ParcelMap({
           bounds={bounds}
           fitKey={dots ? "centres" : "shapes"}
           resizeKey={mode}
-          {...(dots ? { onMap: watch } : {})}
+          onMap={watch}
         />
       )}
       {!ready && <p className="mg-map-msg">{failed ?? g.loadingMap}</p>}

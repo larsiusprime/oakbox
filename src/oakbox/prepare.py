@@ -106,11 +106,7 @@ def run(project_id: str) -> None:
             if col not in project.clean.fills:
                 continue  # OpenAVMKit's own tidy-ups (UNKNOWN categories) ran in Check sales
             how = project.clean.fills.get(col)
-            words = (
-                f"{how.method}{'' if how.scope == 'all' else ' (' + how.scope + ' only)'}"
-                if how
-                else "OpenAVMKit's own"
-            )
+            words = clean.fill_words(col, how) if how else "OpenAVMKit's own"
             filled.append(clean.Filled(field=col, name=names.get(col) or col, count=int(f[col].sum()), how=words))
     folded: list[FieldFold] = []
     for field in settings.get("data", {}).get("process", {}).get("collapse_sparse_categories", {}):

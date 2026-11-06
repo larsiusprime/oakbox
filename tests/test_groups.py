@@ -3,6 +3,7 @@
 import json
 from typing import cast
 
+import numpy as np
 import pandas as pd
 from helpers import NEW, wait
 
@@ -101,8 +102,10 @@ def test_saved_groups_are_what_openavmkit_tags(brought_in_client, brought_in, mo
     assert counts == {s["id"]: s["parcels"] for s in p["stats"] if s["id"] and s["parcels"]}
 
     # The map's shapes: one per parcel, in the preview's order.
-    shapes = client.get(f"{_url(pid)}/shapes").json()
-    assert len(shapes["features"]) == len(p["assign"]) and shapes["features"][3]["id"] == 3
+    shapes = client.get(f"{_url(pid)}/shapes")
+    assert shapes.headers["content-type"] == "application/octet-stream"
+    head, parcels, *_ = _read_shapes(shapes.content)
+    assert head[0] == len(p["assign"]) and (np.diff(parcels) == 1).all()  # a polygon each
 
 
 def test_from_scratch_starts_empty_and_needs_data_first(client):
@@ -151,16 +154,35 @@ def test_tag_and_write_notebook_1s_output(brought_in_client, brought_in):
     assert client.post(f"{url}/accept").status_code == 409
 
 
-def test_shapes_for_the_map_are_flat():
-    """A parcel with a height on each corner (PolygonZ, even a huge "no data") is drawn flat on the map."""
-    import json
+def _read_shapes(b: bytes):
+    """shapes.bin (groups._binary): its four counts, then each offset array, then the corners as (x, y) in degrees."""
+    assert b[:8] == b"OAKSHP01"
+    a = np.frombuffer(b[8:], dtype="<i4")
+    n, p, r, c = (int(x) for x in a[:4])
+    at = 4
+    out = []
+    for k in (n + 1, p + 1, r + 1, 2 * c):
+        out.append(a[at : at + k])
+        at += k
+    return [n, p, r, c], out[0], out[1], out[2], out[3].reshape(-1, 2) / 1e6
 
-    import numpy as np
-    from shapely.geometry import Polygon
 
-    from oakbox.groups import _features
+def test_shapes_for_the_map_are_flat_arrays():
+    """The map's shapes: a parcel's polygons, their rings and corners. Flat: a parcel with a height on each corner
+    (PolygonZ, even a huge "no data") is drawn flat. No shape, or a point, is a parcel with no polygon; a hole is a
+    ring of its polygon; a multipolygon's parts are polygons of the one parcel."""
+    from shapely.geometry import MultiPolygon, Point, Polygon
+
+    from oakbox.groups import _binary
 
     z = Polygon([(0, 0, -1.7e308), (1, 0, -1.7e308), (1, 1, -1.7e308)])
-    fc = json.loads(_features(np.array([z, None], dtype=object)))
-    ring = fc["features"][0]["geometry"]["coordinates"][0]
-    assert all(len(p) == 2 for p in ring) and fc["features"][1]["geometry"] is None
+    holed = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)], [[(1, 1), (2, 1), (2, 2), (1, 1)]])
+    head, parcels, polygons, rings, xy = _read_shapes(
+        _binary(np.array([z, None, Point(3, 3), MultiPolygon([holed, z])], dtype=object))
+    )
+    assert head == [4, 3, 4, 17]
+    assert parcels.tolist() == [0, 1, 1, 1, 3]  # z; nothing; nothing; two polygons
+    assert polygons.tolist() == [0, 1, 3, 4]  # the holed polygon: two rings
+    assert rings.tolist() == [0, 4, 9, 13, 17]
+    assert xy[:4].tolist() == [[0, 0], [1, 0], [1, 1], [0, 0]]
+    assert _read_shapes(_binary(np.array([None, None], dtype=object)))[0] == [2, 0, 0, 0]

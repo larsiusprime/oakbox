@@ -134,6 +134,20 @@ def resolve(p: Performance, m: Machine | None) -> Resolved:
     )
 
 
+def apply_folds(settings: dict, folds: int | None = None) -> int:
+    """For a Models or Finalize run, in its own process: how many cross-validation folds run at once
+    (`cv_max_workers`, into the settings in memory, never the file). With one at a time, the tuning trials run one at
+    a time too (`OPENAVMKIT_TUNE_WORKERS=1`): OpenAVMKit otherwise runs them on a thread pool in that one process,
+    and two LightGBM trials at once there crash it now and then (a segmentation fault or a floating-point exception:
+    measured, 7 runs in 11 on two slow cores, 1 in 3 on four; none in 11 with trials one at a time, in the same time).
+    With more folds at once, each fold's process already runs its trials one at a time. The folds at once."""
+    n = folds_at_once() if folds is None else folds
+    settings.setdefault("modeling", {}).setdefault("instructions", {})["cv_max_workers"] = n
+    if n == 1:
+        os.environ["OPENAVMKIT_TUNE_WORKERS"] = "1"
+    return n
+
+
 def folds_at_once() -> int:
     """For a Models or Finalize run: how many cross-validation folds to run at once (OpenAVMKit's cv_max_workers).
     The values are the same either way (measured: bit-identical files), so it isn't part of any step's key."""

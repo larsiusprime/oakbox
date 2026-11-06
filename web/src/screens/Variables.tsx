@@ -4,7 +4,7 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { short, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
-import { CollapseCard, FillCard } from "./CleanCards";
+import { CollapseCard, FillCard, FillGroups } from "./CleanCards";
 import { LagStep } from "./LagStep";
 import { VarListsStep } from "./VarLists";
 import { TestPicker, TestStep, WhatToKeep } from "./VarTests";
@@ -120,7 +120,19 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       {current === "fill" && (
         <>
           <StepBody title={m.steps.fill} lede={m.fillLede}>
-            {u ? <FillCard v={u} set={set} /> : <p className="empty">{t.project.loading}</p>}
+            {u ? (
+              <>
+                <FillCard v={u} set={set} />
+                {u.fills.length > 0 && (
+                  <>
+                    <h3 className="fill-sub">{m.steps.fillgroups}</h3>
+                    <FillGroups v={u} />
+                  </>
+                )}
+              </>
+            ) : (
+              <p className="empty">{t.project.loading}</p>
+            )}
             {errors}
           </StepBody>
           <StepFoot next={onward} />
