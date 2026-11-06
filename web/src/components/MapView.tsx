@@ -1,34 +1,19 @@
 /** Every map in OAK box: MapLibre for the street map underneath, deck.gl (WebGL) for what's drawn on it, so a
  * county's half a million parcels draw as smoothly as a few hundred sales. A "Street map" box takes the street map
- * away (a plain background, to see only the colours); the choice carries to every map. */
+ * away (a plain background, to see only the colours); each map starts as Settings › Performance says (SPEC §5),
+ * and on a computer where maps wait for a click, each starts as a Show map button in its place. */
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "react-aria-components";
+import { openSettings, useResolved } from "../lib/machine";
 import { t } from "../wording";
 
 // MapLibre looks for its worker beside its own file, which the bundle doesn't keep: here it is, bundled.
 maplibregl.setWorkerUrl(workerUrl);
-
-const KEY = "oakbox.basemap";
-
-function wanted(): boolean {
-  try {
-    return localStorage.getItem(KEY) !== "off";
-  } catch {
-    return true;
-  }
-}
-
-function remember(on: boolean): void {
-  try {
-    localStorage.setItem(KEY, on ? "on" : "off");
-  } catch {
-    // Not remembered: the next map shows it again.
-  }
-}
 
 /** [west, south] and [east, north]. */
 export type Bounds = [[number, number], [number, number]];
@@ -128,7 +113,34 @@ const STYLE: maplibregl.StyleSpecification = {
   ],
 };
 
-export function MapView({
+type Props = Omit<Parameters<typeof MapCanvas>[0], "street">;
+
+/** The map, or, where maps wait for a click (Settings › Performance), a panel in its place until Show map. */
+export function MapView(props: Props) {
+  const r = useResolved();
+  const [shown, setShown] = useState(false);
+  if (r.maps === "click" && !shown)
+    return (
+      <div className={`map-view map-wait ${props.className}`}>
+        <div className="map-wait-ask">
+          <b>{props.label}</b>
+          <Button className="button" onPress={() => setShown(true)}>
+            {t.map.show}
+          </Button>
+          <small>
+            {t.map.waitNote}{" "}
+            <Button className="wiz-link map-wait-settings" onPress={() => openSettings("performance")}>
+              {t.map.waitSettings}
+            </Button>
+          </small>
+        </div>
+      </div>
+    );
+  return <MapCanvas {...props} street={r.street_map === "on"} />;
+}
+
+function MapCanvas({
+  street: startStreet,
   layers,
   bounds,
   fitKey,
@@ -152,6 +164,8 @@ export function MapView({
   /** True: the wheel always zooms (a map that is the page). "focus": a map inside a page: the wheel zooms once it's
    * clicked (or tabbed) into, and scrolls the page again once something else is. False: never. */
   scrollZoom?: boolean | "focus";
+  /** The street map starts on (Settings › Performance); the box turns it on or off on this map. */
+  street: boolean;
   /** What hovering an object says. */
   tooltip?: (info: PickingInfo) => string | null;
   /** The map, once made (and null when gone): for markers of its own, like a pin to drag. */
@@ -161,7 +175,7 @@ export function MapView({
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
-  const [street, setStreet] = useState(wanted);
+  const [street, setStreet] = useState(startStreet);
   const [ready, setReady] = useState(false);
   const first = useRef({ bounds, scrollZoom, street, onMap });
 
@@ -171,7 +185,11 @@ export function MapView({
     const { bounds: b, scrollZoom: wheel, street: on, onMap: give } = first.current;
     const m = new maplibregl.Map({
       container: el.current,
-      style: STYLE,
+      // Hidden from the start when off: no street map tiles are fetched until it's turned on.
+      style: {
+        ...STYLE,
+        layers: STYLE.layers.map((l) => (l.id === "osm" ? { ...l, layout: { visibility: on ? "visible" : "none" } } : l)),
+      },
       ...(b ? { bounds: b, fitBoundsOptions: { padding: 12 } } : { center: [0, 0], zoom: 1 }),
       attributionControl: { compact: true },
       dragRotate: false,
@@ -254,14 +272,7 @@ export function MapView({
     <div className={`map-view ${className}`}>
       <div ref={el} className="map-canvas" role="img" aria-label={label} />
       <label className="map-street">
-        <input
-          type="checkbox"
-          checked={street}
-          onChange={(e) => {
-            setStreet(e.target.checked);
-            remember(e.target.checked);
-          }}
-        />
+        <input type="checkbox" checked={street} onChange={(e) => setStreet(e.target.checked)} />
         {t.map.basemap}
       </label>
       {children}

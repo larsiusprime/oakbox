@@ -5,6 +5,7 @@ import { navigate, type Route } from "./App";
 import { api, unwrap } from "./api/client";
 import { ModelEnginesDialog } from "./components/Engines";
 import { desktop } from "./desktop";
+import { openSettings } from "./lib/machine";
 import { type MenuCommand, useMenu } from "./menu";
 import { t } from "./wording";
 
@@ -88,6 +89,8 @@ export function AppMenus({ route }: { route: Route }) {
         return setEngines(true);
       case "about":
         return setAbout(true);
+      case "settings":
+        return openSettings();
     }
   };
   useMenu(run);
@@ -126,7 +129,9 @@ export function AppMenus({ route }: { route: Route }) {
         return;
       }
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
-        const command = ({ n: "new-project", "1": "tab-metadata", "2": "tab-data" } as const)[e.key];
+        const command = (
+          { n: "new-project", "1": "tab-metadata", "2": "tab-data", ",": "settings" } as const
+        )[e.key];
         if (command) {
           e.preventDefault();
           window.oakboxMenu?.(command);

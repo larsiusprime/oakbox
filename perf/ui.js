@@ -84,6 +84,13 @@ async function ready(page, map) {
           row.error = `no '${press}' step`;
         }
       }
+      // Where maps wait for a click (Settings › Performance), a user clicks Show map: timed with the page.
+      const show = page.getByRole("button", { name: "Show map" });
+      if (await show.count()) {
+        await show.first().click();
+        await ready(page, true);
+        row.show_map = true;
+      }
       await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
       row.ready_s = Math.round((Date.now() - t) / 10) / 100;
       row.long_tasks_s = Math.round((await page.evaluate(() => window.__long || 0)) / 10) / 100;

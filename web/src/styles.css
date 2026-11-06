@@ -6305,3 +6305,229 @@ under what it's about; a file appended as rows {
   flex: 1;
   min-height: 18rem;
 }
+
+/* ---------- This computer and Settings (SPEC §5) ---------- */
+
+/* Settings on the plate: a small raised brass button at its right end, before the screw. */
+.plate-gear {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.35rem;
+  padding: 0;
+  margin-left: calc(0.2 * var(--sp));
+  color: var(--plate-text);
+  border: 1px solid var(--plate-edge);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--plate-hi), var(--plate-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 1px rgba(30, 15, 0, 0.35);
+  cursor: pointer;
+}
+.plate-gear[data-hovered] {
+  background: linear-gradient(to bottom, #fff2c8, var(--plate-mid));
+}
+.plate-gear[data-pressed] {
+  box-shadow: inset 0 1px 2px rgba(30, 15, 0, 0.45);
+}
+.plate-gear[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* The check: one sheet, as wide as what's on it. */
+.panel.mc {
+  display: grid;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  width: fit-content;
+  max-width: 100%;
+  margin: calc(1 * var(--sp)) auto 0;
+  padding: calc(1 * var(--sp)) calc(1.2 * var(--sp));
+  justify-items: start;
+}
+.mc-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.mc-lede,
+.mc-tier p,
+.mc-note {
+  margin: 0;
+  max-width: 64ch;
+}
+.mc-note {
+  color: var(--muted);
+}
+.mc-checks {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1.2rem max-content minmax(0, 26rem);
+  column-gap: max(calc(0.6 * var(--sp)), var(--gap-min));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  max-width: 100%;
+}
+.mc-line {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: calc(0.35 * var(--sp)) calc(0.7 * var(--sp));
+}
+.mc-line + .mc-line {
+  border-top: 1px solid var(--rule);
+}
+.mc-line dt {
+  font-weight: 600;
+}
+.mc-line dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.mc-line dd small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.mc-tick {
+  color: var(--ok);
+  font-weight: 700;
+}
+.mc-tick.mc-wait,
+.mc-checking {
+  color: var(--muted);
+}
+.mc-tier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: max(calc(0.6 * var(--sp)), var(--gap-min));
+}
+.pill.mc-tier-pill {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.15rem 0.7rem;
+}
+.mc-recs {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: calc(0.25 * var(--sp)) max(calc(1 * var(--sp)), var(--gap-min));
+  padding: calc(0.5 * var(--sp)) calc(0.8 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  background: var(--entry-body);
+  max-width: 100%;
+}
+.mc-recs dt {
+  font-weight: 600;
+}
+.mc-recs dd {
+  margin: 0;
+}
+.panel.mc > .mc-actions {
+  justify-self: stretch;
+}
+
+/* Settings: wider than the usual dialog, its sections down the left. */
+.modal.settings-modal {
+  width: min(100%, 52rem);
+}
+.st-tabs {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  min-height: 20rem;
+  align-items: start;
+}
+.modal-body > .st-tabs {
+  padding: 0;
+}
+.st-list {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  align-self: stretch;
+  padding: calc(0.5 * var(--sp)) calc(0.4 * var(--sp));
+  background: var(--manila);
+  border-right: 1px solid var(--frame);
+}
+.st-tab {
+  padding: calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+}
+.st-tab[data-hovered] {
+  background: var(--select);
+}
+.st-tab[data-selected] {
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+  color: #ffffff;
+  font-weight: 600;
+}
+.st-tab[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.st-panel {
+  display: grid;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-content: start;
+  min-width: 0;
+  padding: calc(0.8 * var(--sp)) calc(1 * var(--sp));
+  outline: none;
+}
+.st-h {
+  margin: 0;
+  font-size: 1rem;
+}
+.st-machine {
+  display: grid;
+  gap: calc(0.3 * var(--sp));
+  padding: calc(0.5 * var(--sp)) calc(0.8 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  background: var(--entry-body);
+}
+.st-machine-head {
+  display: flex;
+  align-items: center;
+  gap: max(calc(0.6 * var(--sp)), var(--gap-min));
+}
+div.st-machine-head > .button {
+  margin-left: auto;
+}
+.st-grid .set-note {
+  max-width: 46ch;
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .st-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .st-list {
+    grid-auto-flow: column;
+    border-right: 0;
+    border-bottom: 1px solid var(--frame);
+  }
+}
+
+/* A map waiting for a click (Settings › Performance): the map's own box, a plain panel in it. */
+.map-view.map-wait {
+  display: grid;
+  place-items: center;
+  background: var(--zebra);
+  border: 1px solid var(--rule);
+}
+.map-wait-ask {
+  display: grid;
+  justify-items: center;
+  gap: max(calc(0.5 * var(--sp)), var(--gap-min));
+  padding: calc(1 * var(--sp));
+  text-align: center;
+}
+div.map-wait-ask small {
+  max-width: 34ch;
+  color: var(--muted);
+}

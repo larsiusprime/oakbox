@@ -33,6 +33,7 @@ class AppSettingsView(BaseModel):
     storage_location: str
     default_storage_location: str
     display: Display
+    census_key_end: str | None = Field(description="The saved Census API key's last four characters; None: none.")
 
 
 class CensusKey(BaseModel):
@@ -49,6 +50,7 @@ def _settings_view() -> AppSettingsView:
         storage_location=str(appsettings.storage_location()),
         default_storage_location=str(appsettings.default_storage()),
         display=Display(density=s.density, zoom=s.zoom),
+        census_key_end=s.census_api_key[-4:] if s.census_api_key else None,
     )
 
 

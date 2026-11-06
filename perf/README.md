@@ -17,6 +17,12 @@ ones county assessors' offices have.
   are measured there.
 - `matrix.py`: every profile on every size, one after another, results as JSON.
 
+Before a run, `drive.py` records the computer check (SPEC §5) as the profile's machine: its memory (what the profile
+leaves OAK box, plus the 5.5 GB Windows and the usual programs take), its cores, its speed measured under its limits,
+and graphics in software (headless Chromium has no GPU). Its tier then picks the Recommended performance settings, as
+on a real first run. The server runs with `OAKBOX_KEEP_MACHINE=1`, so it keeps that record instead of checking this
+machine again. Where maps wait for a click, the page timings press Show map, and the click counts in the time.
+
 ## The profiles
 
 | Profile | Stands for | Cores | Speed | Memory for OAK box | Disk reads | Pages slowed |

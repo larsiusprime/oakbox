@@ -2608,6 +2608,11 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+            /**
+             * Census Key End
+             * @description The saved Census API key's last four characters; None: none.
+             */
+            census_key_end: string | null;
         };
         /** Area */
         Area: {

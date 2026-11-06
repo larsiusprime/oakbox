@@ -1,6 +1,7 @@
 /** Wording that needs code before its message (SPEC §6.6): a list joined, a case changed, a number worked out or
  * rounded, a choice between messages. The words are all in en.json; this only picks the message and works out its
  * arguments. Each keeps the place and the arguments it had in `t`, so `say.wizard.left(n, what)`. */
+import type { Machine } from "../api/client";
 import { t } from "./catalog";
 
 const lower = (s: string) => s.toLowerCase();
@@ -158,4 +159,22 @@ export const say = {
     final: { ran: (at: string, secs: number) => t.values.final.ran({ at, secs: Math.round(secs) }) },
     model: { unlisted: (groups: string[]) => t.values.model.unlisted({ groups: list(groups) }) },
   },
+  /** Why the check put this computer in its tier (as machine.tier_of decides it: the first reason that holds). */
+  machineWhy: (m: Machine, have: number | null | undefined) => {
+    if (m.cancelled) return t.machine.whyCancelled;
+    if (m.tier === "strong") return t.machine.whyStrong;
+    if (m.tier === "standard") return t.machine.whyStandard;
+    if (m.memory_gb < 12) return t.machine.whyMemory({ gb: Math.round(m.memory_gb), have: have ?? 0 });
+    if (m.cores <= 2) return t.machine.whyCores;
+    return t.machine.whySpeed;
+  },
+  /** One line of what the check found, for Settings. */
+  machineSpecs: (m: Machine) =>
+    t.settings.specs({
+      gb: Math.round(m.memory_gb),
+      processor: m.processor || t.machine.processorValue({ cores: m.cores }),
+      speed: m.speed ?? t.settings.noValue,
+      disk: m.disk_mb_s != null ? t.machine.diskValue({ mbs: m.disk_mb_s }) : t.settings.noValue,
+      graphics: m.graphics ?? t.machine.graphicsNone,
+    }),
 };

@@ -147,7 +147,10 @@ def memory_for_oakbox_gb(m: Machine) -> float:
 
 
 def changed(m: Machine) -> bool:
-    """Memory or cores changed since the check (a new computer, or one upgraded): time to check again."""
+    """Memory or cores changed since the check (a new computer, or one upgraded): time to check again. Never with
+    OAKBOX_KEEP_MACHINE=1: the record stays as set (perf/ stands a profile's machine in for this one)."""
+    if os.environ.get("OAKBOX_KEEP_MACHINE") == "1":
+        return False
     b = basics()
     return abs(b["memory_gb"] - m.memory_gb) >= 1 or b["cores"] != m.cores
 

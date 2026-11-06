@@ -1,15 +1,17 @@
 /** Model groups' map of the parcel shapes, coloured by group or by what moved, and the parcel inspector. */
 
 import type { Layer } from "@deck.gl/core";
-import { GeoJsonLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import type * as maplibregl from "maplibre-gl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { CloseButton } from "../components/Buttons";
-import { boundsOfGeoJson, MapView, rgba } from "../components/MapView";
+import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
 import { short } from "../lib/format";
+import { useResolved } from "../lib/machine";
 import { t } from "../wording";
 
 const g = t.groups;
@@ -18,6 +20,11 @@ export type MapMode = "docked" | "full" | "hidden";
 export type ColourBy = "group" | "changes";
 export const CHANGE_GREY = "#d9dcd4";
 export const SAME = "__same";
+// Map detail (Settings › Performance, SPEC §5): "dots above" this many parcels; and zoomed in to this many or fewer,
+// the shapes in view are drawn instead of their dots.
+const DOTS_ABOVE = 20_000;
+const SHAPES_IN_VIEW = 5_000;
+type Centre = [number, number] | null;
 
 /** The parcel shapes on OpenStreetMap (when online), coloured by group or by what moved. */
 export function ParcelMap({
@@ -45,6 +52,21 @@ export function ParcelMap({
   mode: MapMode;
   onPick: (i: number) => void;
 }) {
+  const detail = useResolved().map_detail;
+  const centres = useQuery({
+    queryKey: ["group-centres", projectId],
+    queryFn: async () => {
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/groups/centres`);
+      if (!r.ok) throw new Error(await r.text());
+      return (await r.json()) as Centre[];
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+    enabled: detail !== "shapes",
+  });
+  const n = centres.data?.length ?? 0;
+  const dots = detail === "dots" || (detail === "auto" && n > DOTS_ABOVE);
+  // Drawn as dots: zoomed in far enough, the parcels in view (few enough) are drawn as shapes.
+  const [inView, setInView] = useState<number[] | null>(null);
   const shapes = useQuery({
     queryKey: ["group-shapes", projectId],
     queryFn: async () => {
@@ -53,9 +75,38 @@ export function ParcelMap({
       return (await r.json()) as GeoJSON.FeatureCollection;
     },
     staleTime: Number.POSITIVE_INFINITY,
+    enabled: detail === "shapes" || (centres.isSuccess && (!dots || inView !== null)),
   });
   const fc = shapes.data;
-  const bounds = useMemo(() => boundsOfGeoJson(fc), [fc]);
+  const bounds = useMemo(
+    () =>
+      dots ? boundsOf((centres.data ?? []).filter((c): c is [number, number] => !!c)) : boundsOfGeoJson(fc),
+    [dots, centres.data, fc],
+  );
+
+  // Which parcels are in view, when few enough to draw as shapes.
+  const centresNow = useRef<Centre[] | undefined>(undefined);
+  useEffect(() => {
+    centresNow.current = centres.data;
+  }, [centres.data]);
+  const watch = useCallback((m: maplibregl.Map | null) => {
+    if (!m) return;
+    const look = () => {
+      const all = centresNow.current;
+      if (!all) return;
+      const b = m.getBounds();
+      const seen: number[] = [];
+      for (let i = 0; i < all.length; i++) {
+        const c = all[i];
+        if (c && b.contains(c)) {
+          seen.push(i);
+          if (seen.length > SHAPES_IN_VIEW) return setInView(null);
+        }
+      }
+      setInView(seen);
+    };
+    m.on("moveend", look);
+  }, []);
 
   // Each parcel's look: its group's colour (grey when it didn't move), dimmed off the highlight, hidden when its
   // legend entry is switched off.
@@ -80,12 +131,11 @@ export function ParcelMap({
   }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
 
   const layers = useMemo(() => {
-    if (!fc) return [];
     const idOf = (f: GeoJSON.Feature) => Number(f.id ?? -1);
-    const out: Layer[] = [
+    const shapesLayer = (features: GeoJSON.Feature[]) =>
       new GeoJsonLayer({
         id: "parcels",
-        data: fc,
+        data: { type: "FeatureCollection", features } as GeoJSON.FeatureCollection,
         pickable: true,
         stroked: true,
         filled: true,
@@ -98,9 +148,33 @@ export function ParcelMap({
           // A parcel switched off in the legend isn't there to click.
           if (object && look(idOf(object))) onPick(idOf(object));
         },
-      }),
-    ];
-    const f = picked == null ? undefined : fc.features[picked];
+      });
+    const out: Layer[] = [];
+    const all = centres.data;
+    if (dots && all) {
+      const few =
+        inView && fc ? inView.map((i) => fc.features[i]).filter((f): f is GeoJSON.Feature => !!f) : null;
+      if (few) out.push(shapesLayer(few));
+      else {
+        const idx = all.flatMap((c, i) => (c ? [i] : []));
+        out.push(
+          new ScatterplotLayer<number>({
+            id: "dots",
+            data: idx,
+            pickable: true,
+            radiusUnits: "pixels",
+            getRadius: 2.5,
+            getPosition: (i) => all[i] as [number, number],
+            getFillColor: (i) => look(i)?.fill ?? [0, 0, 0, 0],
+            updateTriggers: { getFillColor: look },
+            onClick: ({ object }) => {
+              if (object != null && look(object)) onPick(object);
+            },
+          }),
+        );
+      }
+    } else if (!dots && fc) out.push(shapesLayer(fc.features));
+    const f = picked == null ? undefined : fc?.features[picked];
     if (f?.geometry)
       out.push(
         new GeoJsonLayer({
@@ -113,22 +187,40 @@ export function ParcelMap({
           getLineWidth: 3,
         }),
       );
+    else if (picked != null && all?.[picked])
+      out.push(
+        new ScatterplotLayer<[number, number]>({
+          id: "picked",
+          data: [all[picked] as [number, number]],
+          radiusUnits: "pixels",
+          getRadius: 6,
+          stroked: true,
+          filled: false,
+          lineWidthUnits: "pixels",
+          getLineWidth: 2,
+          getLineColor: [0, 0, 0, 255],
+          getPosition: (c) => c,
+        }),
+      );
     return out;
-  }, [fc, look, picked, onPick]);
+  }, [dots, centres.data, inView, fc, look, picked, onPick]);
 
+  const ready = dots ? !!centres.data : !!fc;
+  const failed = (dots ? centres.error : shapes.error)?.message;
   return (
     <div className="mg-map-body">
-      {fc && (
+      {ready && (
         <MapView
           className="mg-mapview"
           label={g.mapLabel}
           layers={layers}
           bounds={bounds}
-          fitKey="shapes"
+          fitKey={dots ? "centres" : "shapes"}
           resizeKey={mode}
+          {...(dots ? { onMap: watch } : {})}
         />
       )}
-      {!shapes.data && <p className="mg-map-msg">{shapes.error?.message ?? g.loadingMap}</p>}
+      {!ready && <p className="mg-map-msg">{failed ?? g.loadingMap}</p>}
     </div>
   );
 }

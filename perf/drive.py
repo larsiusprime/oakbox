@@ -185,6 +185,27 @@ STEPS = [
 ]
 
 
+def stand_in(api: Api, prof: profiles.Profile | None) -> dict:
+    """The computer check, as the profile's machine (SPEC §5): its memory (what it leaves OAK box, plus what Windows
+    and the usual programs take), its cores, its speed measured under its limits, and graphics in software (headless
+    Chromium has no GPU). Without a profile, this machine as it is. Its tier then picks every Recommended setting,
+    as on first run."""
+    from oakbox.machine import OTHERS_GB
+
+    basics = api.post("/api/machine/basics")
+    if prof:
+        basics |= {
+            "memory_gb": round(prof.memory_mb / 1024 + OTHERS_GB, 1),
+            "memory_free_gb": round(prof.memory_mb / 1024, 1),
+            "cores": prof.cores,
+            "threads": prof.cores,
+        }
+    speed = api.post("/api/machine/speed")["speed"]
+    disk = api.post("/api/machine/disk")["disk_mb_s"]
+    found = {**basics, "speed": speed, "disk_mb_s": disk, "graphics": "Google SwiftShader", "cancelled": False}
+    return api.put("/api/machine", found)
+
+
 def drive(api: Api, data: Path, meter: profiles.Meter | None, log) -> dict:
     out: dict = {"steps": {}}
     pid = None
@@ -268,7 +289,8 @@ def main() -> None:
     meter = None
     slower = None
     cmd = [sys.executable, "-X", "utf8", "-m", "oakbox", "--no-window", "--port", str(a.port)]
-    env = os.environ | {"OAKBOX_HOME": str(home)}
+    # The machine the check records is the profile's, not this one: kept as set (machine.changed).
+    env = os.environ | {"OAKBOX_HOME": str(home), "OAKBOX_KEEP_MACHINE": "1"}
     if prof:
         group = profiles.make_group(prof, f"oakbox-perf-{a.port}")
         cmd = profiles.wrap(group, cmd)
@@ -288,6 +310,8 @@ def main() -> None:
             # A cold start: nothing of the data in the file cache, as on a machine that's been doing other work.
             subprocess.run(["sh", "-c", "sync; echo 3 > /proc/sys/vm/drop_caches"], check=False)
         log(f"server up; profile {a.profile or 'none'}; data {a.data}")
+        machine = stand_in(api, prof)
+        log(f"machine: {machine['machine']['tier']}; {machine['resolved']}")
         idle = meter.snapshot() if meter else {}
         result = {"project": a.ui_only, "steps": {}} if a.ui_only else drive(api, a.data, meter, log)
         if (a.ui or a.ui_only) and result.get("project"):
@@ -304,6 +328,7 @@ def main() -> None:
             result["ui"] = json.loads(ui_out.read_text()) if ui_out.is_file() else {"error": ui.stderr[-800:]}
             result["ui_slowdown"] = slowdown
         result |= {
+            "machine": machine,
             "profile": a.profile,
             "limits": prof.__dict__ if prof else None,
             "data": str(a.data),

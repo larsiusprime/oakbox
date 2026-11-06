@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
 import { OakFrame } from "./components/OakFrame";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { UndoToast } from "./components/UndoToast";
+import { onOpenSettings, type SettingsSection, useMachine } from "./lib/machine";
 import { back, record } from "./lib/place";
 import { HomeScreen } from "./screens/HomeScreen";
+import { MachineCheck } from "./screens/MachineCheck";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
 import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
 
@@ -34,6 +37,25 @@ export function navigate(route: Route): void {
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+  // The computer check (SPEC §5): first run, its memory or cores changed, or asked for in Settings.
+  const machine = useMachine();
+  const [check, setCheck] = useState<"first" | "changed" | "asked" | null>(null);
+  // Not checked yet, or changed since: the check starts (state adjusted as the answer comes in; once it's on screen,
+  // it stays until it's done, though the answer changes as it saves).
+  const needed = !machine.data
+    ? null
+    : !machine.data.machine
+      ? "first"
+      : machine.data.changed
+        ? "changed"
+        : null;
+  const [seen, setSeen] = useState<typeof machine.data>(undefined);
+  if (machine.data !== seen) {
+    setSeen(machine.data);
+    if (needed && check === null) setCheck(needed);
+  }
+  const [settings, setSettings] = useState<SettingsSection | null>(null);
+  useEffect(() => onOpenSettings(setSettings), []);
 
   // Back (Alt+←, or the mouse's back button): one stop back along the path you took, steps included.
   useEffect(() => {
@@ -69,12 +91,27 @@ export function App() {
   return (
     <div className="app">
       <main className="content">
-        {route.name === "home" && <HomeScreen />}
-        {route.name === "new" && <NewProjectScreen />}
-        {route.name === "project" && (
-          <ProjectScreen projectId={route.id} tab={route.tab ?? null} step={route.step ?? null} />
+        {check ? (
+          <MachineCheck again={check} onDone={() => setCheck(null)} />
+        ) : machine.isPending ? null : (
+          <>
+            {route.name === "home" && <HomeScreen />}
+            {route.name === "new" && <NewProjectScreen />}
+            {route.name === "project" && (
+              <ProjectScreen projectId={route.id} tab={route.tab ?? null} step={route.step ?? null} />
+            )}
+          </>
         )}
       </main>
+      <SettingsDialog
+        section={settings}
+        onSection={setSettings}
+        onClose={() => setSettings(null)}
+        onCheck={() => {
+          setSettings(null);
+          setCheck("asked");
+        }}
+      />
       <UndoToast />
       <OakFrame />
       <AppMenus route={route} />

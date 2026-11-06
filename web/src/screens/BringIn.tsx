@@ -2,8 +2,17 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { navigate } from "../App";
-import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
+import {
+  api,
+  type EnrichResult,
+  type Funnel,
+  type MemoryNote,
+  type Receipt,
+  type ReceiptField,
+  unwrap,
+} from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
+import { Callout } from "../components/Callout";
 import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
@@ -14,6 +23,15 @@ import { band, pct, when } from "../lib/format";
 import { t } from "../wording";
 
 const b = t.bringIn;
+
+/** A county that may need more memory than this computer has (SPEC §5): said before the long steps, never a block. */
+function TooBig({ note }: { note: MemoryNote }) {
+  return (
+    <Callout summary={b.memory({ need: note.need_gb, parcels: note.parcels, have: note.have_gb })}>
+      <p>{b.memoryMore}</p>
+    </Callout>
+  );
+}
 
 /** Whether Looks right was pressed on an up-to-date receipt: model groups can start. */
 export function useAccepted(projectId: string): boolean {
@@ -99,6 +117,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
                 <b>{b.stale}</b> {v.changed.join(", ")}.
               </div>
             )}
+            {v.plan.memory && <TooBig note={v.plan.memory} />}
             <h3 className="wiz-group">{b.whatRuns}</h3>
             <ul className="bi-plan">
               {v.plan.files.map((f) => (
@@ -132,6 +151,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
               <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} skip={(part) => skip.mutate(part)} />
             ) : (
               <>
+                {v.plan.memory && <TooBig note={v.plan.memory} />}
                 {v.status === "failed" && v.job?.error && (
                   <div className="bi-warn" role="alert">
                     <b>{t.step.failed}</b> <span className="mono">{v.job.error}</span>
