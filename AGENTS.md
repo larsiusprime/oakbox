@@ -87,8 +87,9 @@ from a bug stays a 500 with its traceback.
   numbers.
 - **Pills and colours:** a short status word or mark is `.pill` (`pill-ok`, `pill-warn`, `pill-bad`, `pill-info`;
   grey without), or `components/Pill.tsx` for a verdict. Colours are the `:root` tokens (`--ok`, `--ok-tint`,
-  `--ok-edge`, the same for warn and bad; info has `--info-tint` and `--info-edge`; `--select`, `--zebra`, `--cell-line`, `--rule`), never a hex in a
-  rule; the buttons' and titlebar's bevels are the exception.
+  `--ok-edge`, the same for warn and bad; info has `--info-tint` and `--info-edge`; `--select`, `--zebra`, `--cell-line`, `--rule`, a chart's `--chart-bar`), never a hex in a
+  rule; the buttons' and titlebar's bevels are the exception. What's drawn in SVG or on a map, where the tokens
+  don't reach, takes its colours from `lib/colours.ts` (`CHART`, `TRIMMED`, `PICKED`…), never a hex in the screen.
   A chart is drawn at its own width in pixels (a `ResizeObserver`), not scaled, so its text stays its size.
 - **Funnels and other line lists** (a count, a phrase, a link): columns only as wide as their content, so a link
   sits beside its line, not at the far edge (`.cs-funnel`, `.bi-fn`: one grid, the lines on it by `subgrid`).

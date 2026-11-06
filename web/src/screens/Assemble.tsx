@@ -4,6 +4,7 @@ import { Button } from "react-aria-components";
 import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
+import { NO_COLOUR } from "../lib/colours";
 import { size, when } from "../lib/format";
 import { t } from "../wording";
 
@@ -64,7 +65,7 @@ export function AssembleResults({
       ),
   });
   if (!rc) return null;
-  const colour = (id: string) => groups.find((x) => x.id === id)?.color ?? "#9a9a9a";
+  const colour = (id: string) => groups.find((x) => x.id === id)?.color ?? NO_COLOUR;
   return (
     <div className="ab-results">
       <p className="rc-sub">

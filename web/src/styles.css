@@ -27,6 +27,8 @@
   --entry-body: #fcfaf6; /* a file entry's body: a third of the way from white to its first line, under white rows */
   --entry-head: #f6f2e6; /* a file entry's first line: a faint warm band, so the file reads as the box's title */
   --cell-line: #e2e4e6; /* every table's cell lines */
+  --chart-bar: #7fa3d9; /* a chart's bars and dots (lib/colours.ts CHART.bar) */
+  --chart-bar-soft: #9db7df; /* small bars beside text: a year's sales, a field's values */
   --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
 
   --btn-top: #ffffff;
@@ -2545,7 +2547,7 @@ like the wizard's Next {
 .qc-bar {
   display: inline-block;
   height: 0.6rem;
-  background: #9db7df;
+  background: var(--chart-bar-soft);
   border-radius: 2px;
   vertical-align: middle;
   margin-right: calc(0.4 * var(--sp));
@@ -2747,7 +2749,7 @@ like the wizard's Next {
   left: 0;
   top: 0;
   bottom: 0;
-  background: #7fa3d9;
+  background: var(--chart-bar);
   border-radius: 2px;
 }
 .bi-details summary {
@@ -4072,7 +4074,7 @@ tr.bi-kept > td {
   border-bottom: 1px solid var(--rule);
 }
 .fd-hist rect {
-  fill: #7a9fd6;
+  fill: var(--chart-bar);
 }
 .fd-hist rect:hover {
   fill: var(--link);
@@ -4135,7 +4137,7 @@ tr.bi-kept > td {
 }
 .cs-bar i {
   display: block;
-  background: #7fa3d9;
+  background: var(--chart-bar);
   border-radius: 2px 2px 0 0;
   min-height: 1px;
 }
@@ -4733,7 +4735,7 @@ table.tbl > * > tr.rv-total > td {
 .vt-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: #6f9be0;
+  background: var(--chart-bar);
   border-radius: 2px;
 }
 .vt-fill-bad {
@@ -6105,7 +6107,7 @@ under what it's about; a file appended as rows {
   display: block;
   width: 100%;
   min-height: 1px;
-  background: #9db7df;
+  background: var(--chart-bar-soft);
   border-radius: 1px 1px 0 0;
 }
 .yr-x {
@@ -6143,7 +6145,7 @@ under what it's about; a file appended as rows {
 .fh-bar {
   flex: 1;
   min-height: 1px;
-  background: #9db7df;
+  background: var(--chart-bar-soft);
   border-radius: 1px 1px 0 0;
 }
 .fh-bar:hover {

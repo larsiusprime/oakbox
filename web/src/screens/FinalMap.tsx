@@ -9,7 +9,7 @@ import type { components } from "../api/schema";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
-import { ratioColor, ratioStroke } from "../lib/colours";
+import { ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, signed } from "../lib/format";
 import { t } from "../wording";
 
@@ -32,7 +32,9 @@ const SEQ = [
   "#7a1d3a",
   "#4f1533",
 ];
-const NONE: [number, number, number, number] = [150, 150, 150, 110];
+// No value: grey, faint on the map.
+const UNVALUED = "#969696";
+const NONE = rgba(UNVALUED, 110 / 255);
 
 type Parcels = components["schemas"]["ParcelPoints"];
 
@@ -112,8 +114,8 @@ export function FinalMap({
               getPosition: (x) => [x.lon, x.lat],
               getRadius: (x) => (x.trimmed ? 3 : 4.5),
               radiusUnits: "pixels",
-              getFillColor: (x) => (x.trimmed ? rgba("#d0d0d0", 0.85) : rgba(ratioColor(x.ratio), 0.85)),
-              getLineColor: (x) => (x.trimmed ? rgba("#9a9a9a") : rgba(ratioStroke(x.ratio))),
+              getFillColor: (x) => (x.trimmed ? rgba(TRIMMED.fill, 0.85) : rgba(ratioColor(x.ratio), 0.85)),
+              getLineColor: (x) => (x.trimmed ? rgba(TRIMMED.line) : rgba(ratioStroke(x.ratio))),
               stroked: true,
               lineWidthUnits: "pixels",
               getLineWidth: 0.85,
@@ -249,13 +251,13 @@ export function FinalMap({
             ))}
         {view !== "ratio" && (
           <span>
-            <span className="rv-swatch" style={{ background: "#969696", borderColor: "#969696" }} />
+            <span className="rv-swatch" style={{ background: UNVALUED, borderColor: UNVALUED }} />
             {mp.unvalued}
           </span>
         )}
         {view === "ratio" && (
           <span>
-            <span className="rv-swatch" style={{ background: "#d0d0d0", borderColor: "#9a9a9a" }} />
+            <span className="rv-swatch" style={{ background: TRIMMED.fill, borderColor: TRIMMED.line }} />
             {rm.trimmed}
           </span>
         )}

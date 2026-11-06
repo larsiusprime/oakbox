@@ -9,6 +9,7 @@ import { DeleteButton, ToolButton } from "../components/Buttons";
 import { Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
+import { NO_COLOUR } from "../lib/colours";
 import { when } from "../lib/format";
 import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
@@ -566,7 +567,7 @@ function Builder({
                 index={picked}
                 name={name}
                 colour={(id) =>
-                  id === "" ? view.unassigned_color : (asked.find((x) => x.id === id)?.color ?? "#888")
+                  id === "" ? view.unassigned_color : (asked.find((x) => x.id === id)?.color ?? NO_COLOUR)
                 }
                 onShow={(n) => setHighlight(n)}
                 onClose={() => setPicked(null)}

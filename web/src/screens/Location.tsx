@@ -9,6 +9,7 @@ import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
+import { PICKED } from "../lib/colours";
 import { say, t } from "../wording";
 
 const l = t.wizard.location;
@@ -107,7 +108,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
         getPosition: (p) => [p[0], p[1]],
         getRadius: 2,
         radiusUnits: "pixels",
-        getFillColor: rgba("#1d5bb8", 0.7),
+        getFillColor: rgba(PICKED, 0.7),
       }),
     ],
     [points],

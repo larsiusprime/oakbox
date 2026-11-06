@@ -14,6 +14,7 @@ import {
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
 import { desktop } from "../desktop";
+import { CHART, SALE } from "../lib/colours";
 import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
 import { say, t } from "../wording";
@@ -693,19 +694,19 @@ function Dots({
       role="img"
       aria-label={s.review.dotsLabel}
     >
-      <line x1="40" x2={w - 40} y1="62" y2="62" stroke="#888" />
+      <line x1="40" x2={w - 40} y1="62" y2="62" stroke={CHART.axis} />
       {ticks.map((v) => (
         <g key={v}>
-          <line x1={x(v)} x2={x(v)} y1="58" y2="66" stroke="#888" />
-          <text x={x(v)} y="84" textAnchor="middle" fontSize="12" fill="#555">
+          <line x1={x(v)} x2={x(v)} y1="58" y2="66" stroke={CHART.axis} />
+          <text x={x(v)} y="84" textAnchor="middle" fontSize="12" fill={CHART.label}>
             {money(v, currency)}
           </text>
         </g>
       ))}
       {median && median > 0 && (
         <g>
-          <line x1={x(median)} x2={x(median)} y1="18" y2="58" stroke="#333" strokeDasharray="3 3" />
-          <text x={x(median)} y="13" textAnchor="middle" fontSize="12" fill="#333">
+          <line x1={x(median)} x2={x(median)} y1="18" y2="58" stroke={CHART.mark} strokeDasharray="3 3" />
+          <text x={x(median)} y="13" textAnchor="middle" fontSize="12" fill={CHART.mark}>
             {s.review.median({ m: money(median, currency) })}
           </text>
         </g>
@@ -718,7 +719,7 @@ function Dots({
             cx={x(m.price_per_area ?? 1)}
             cy="40"
             r={m.key_sale === self ? 7 : 5}
-            fill={m.key_sale === self ? "#d33" : m.flagged ? "#e8955a" : "#6f9be0"}
+            fill={m.key_sale === self ? SALE.self : m.flagged ? SALE.flagged : SALE.other}
             opacity="0.85"
           >
             <title>{`${m.address ?? m.key_sale}: ${money(m.price_per_area, currency)}`}</title>

@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
-import { ratioColor, ratioStroke } from "../lib/colours";
+import { BY_LEVEL, BY_SALE, ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
 import { BandChart } from "./ValueCharts";
@@ -45,8 +45,8 @@ export function RatioMap({
               getPosition: (p) => [p.lon, p.lat],
               getRadius: (p) => (p.trimmed ? 3 : 4.5),
               radiusUnits: "pixels",
-              getFillColor: (p) => (p.trimmed ? rgba("#d0d0d0", 0.85) : rgba(ratioColor(p.ratio), 0.85)),
-              getLineColor: (p) => (p.trimmed ? rgba("#9a9a9a") : rgba(ratioStroke(p.ratio))),
+              getFillColor: (p) => (p.trimmed ? rgba(TRIMMED.fill, 0.85) : rgba(ratioColor(p.ratio), 0.85)),
+              getLineColor: (p) => (p.trimmed ? rgba(TRIMMED.line) : rgba(ratioStroke(p.ratio))),
               stroked: true,
               lineWidthUnits: "pixels",
               getLineWidth: 0.85,
@@ -97,7 +97,7 @@ export function RatioMap({
           </span>
         ))}
         <span>
-          <span className="rv-swatch" style={{ background: "#d0d0d0", borderColor: "#9a9a9a" }} />
+          <span className="rv-swatch" style={{ background: TRIMMED.fill, borderColor: TRIMMED.line }} />
           {mp.trimmed}
         </span>
       </div>
@@ -169,8 +169,8 @@ export function Regions({
           </p>
           <BandChart
             series={[
-              { label: rr.byLevel, color: "#2f5d9b", bands: rg.strata },
-              ...(g.strata.length ? [{ label: rr.bySale, color: "#d4566f", bands: g.strata }] : []),
+              { label: rr.byLevel, color: BY_LEVEL, bands: rg.strata },
+              ...(g.strata.length ? [{ label: rr.bySale, color: BY_SALE, bands: g.strata }] : []),
             ]}
           />
           <table className="tbl">

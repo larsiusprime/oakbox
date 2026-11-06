@@ -1,4 +1,5 @@
 import type { ModelGroup } from "../api/client";
+import { NO_COLOUR } from "./colours";
 
 /** A new model group named `name`: an id no other group has (from its name), and the first of `colors` none uses. */
 export function newGroup(
@@ -15,6 +16,6 @@ export function newGroup(
   let id = base;
   for (let n = 2; groups.some((x) => x.id === id); n++) id = `${base}_${n}`;
   const used = new Set(groups.map((x) => x.color));
-  const color = colors.find((c) => !used.has(c)) ?? colors[groups.length % colors.length] ?? "#888";
+  const color = colors.find((c) => !used.has(c)) ?? colors[groups.length % colors.length] ?? NO_COLOUR;
   return { id, name, modeled: null, color, rule: { join: "any", conditions }, numeric: [] };
 }

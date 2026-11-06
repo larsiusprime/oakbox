@@ -18,6 +18,7 @@ import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { BY_SALE } from "../lib/colours";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
@@ -568,7 +569,7 @@ function Prices({
                 verdict: r.table.verdicts[g.vei_verdict ?? ""] ?? "—",
               })}
             </p>
-            <BandChart series={[{ label: p.bySale, color: "#d4566f", bands: g.strata }]} />
+            <BandChart series={[{ label: p.bySale, color: BY_SALE, bands: g.strata }]} />
             <table className="tbl">
               <thead>
                 <tr>
