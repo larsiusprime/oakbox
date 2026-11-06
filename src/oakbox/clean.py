@@ -19,9 +19,9 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast, get_args
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from oakbox import assemble, bring_in, cells, fields, names, steps
 from oakbox.datafiles import BaseModel
@@ -29,6 +29,8 @@ from oakbox.errors import NotFound
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from oakbox.projects import Project
 
 MODULE = "clean"
 UNKNOWN = assemble.UNKNOWN
@@ -74,7 +76,7 @@ def _frame(*columns: str) -> pd.DataFrame:
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "clean"
+    return steps.out_dir(project_dir, MODULE)
 
 
 # ---------- The calls: the project's state, and the settings it writes ----------
@@ -128,23 +130,30 @@ class CleanState(BaseModel):
     nominal_below: int = Field(default=1_000, description="A price under this is a nominal deed, not a price.")
     collapse_univ_min: int = 20
     marks: dict[str, SaleMark] = Field(default_factory=dict, description="key_sale -> kept or excluded by the user.")
-    name_format: str | None = Field(
+    name_format: names.FormatId | None = Field(
         default=None, description="How deed names are written (names.FORMATS, or custom); None: not decided."
     )
+
+    @field_validator("name_format", mode="before")
+    @classmethod
+    def _known_format(cls, v: object) -> object:
+        """A format this OAK box doesn't know (renamed since) reads as not decided: the guess is shown again."""
+        return v if v in get_args(names.FormatId) else None
+
     name_pattern: str | None = Field(default=None, description="The custom format: a regex with a surname group.")
 
 
-def valuation_year(project) -> int:
+def valuation_year(project: Project) -> int:
     return project.valuation_date.year if project.valuation_date else int(project.tax_year)
 
 
-def window(project) -> int:
+def window(project: Project) -> int:
     """The first year sales count from: improved and vacant alike (vacant land isn't modeled on its own yet, so it
     has no window of its own)."""
     return project.clean.sales_from or valuation_year(project) - YEARS_BEFORE
 
 
-def settings(project) -> dict:
+def settings(project: Project) -> dict:
     """The parts of settings.json this step writes, merged into the rest (projects.base_settings); nothing until
     the step is used (its proposals are written down then: decide)."""
     c: CleanState = project.clean
@@ -212,7 +221,7 @@ class TimeFileCheck(BaseModel):
     file: TimeFile | None = None
 
 
-def time_file(project, project_dir: Path, group: str, source: Path) -> TimeFileCheck:
+def time_file(project: Project, project_dir: Path, group: str, source: Path) -> TimeFileCheck:
     """Check a time adjustment file with OpenAVMKit's own reader; if it can be used, keep a copy for the group."""
     from openavmkit.time_adjustment import read_schedule
 
@@ -253,7 +262,7 @@ def merge(base: dict, more: dict) -> dict:
     return out
 
 
-def write_marks(project, project_dir: Path) -> None:
+def write_marks(project: Project, project_dir: Path) -> None:
     """The user's keeps and exclusions, as OpenAVMKit reads them (a key_sale column), with their notes."""
     import csv
     import io
@@ -284,7 +293,7 @@ def _analysis_key(settings: dict) -> dict:
     return out
 
 
-def settings_key(settings: dict, project, project_dir: Path) -> dict:
+def settings_key(settings: dict, project: Project, project_dir: Path) -> dict:
     """What this run depends on: the Model groups run it starts from, and this step's calls and the user's keeps and
     exclusions."""
     process = settings.get("data", {}).get("process", {})
@@ -302,7 +311,7 @@ def settings_key(settings: dict, project, project_dir: Path) -> dict:
 FIELD_PROCESS = ("fill", "collapse_sparse_categories")
 
 
-def without_fields(settings: dict, project) -> dict:
+def without_fields(settings: dict, project: Project) -> dict:
     """The settings Check sales runs with: OpenAVMKit's own fills, but not the user's, and no folding."""
     import copy
 
@@ -398,7 +407,7 @@ _setup_cache: dict[str, tuple[tuple, Any]] = {}
 
 
 def _look(project_dir: Path, name: str) -> Path:
-    return project_dir / "out" / "look" / f"1-assemble-{name}.parquet"
+    return steps.look(project_dir, f"1-assemble-{name}")
 
 
 def _data(project_dir: Path):
@@ -431,7 +440,7 @@ def _valid(sales) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     return valid, _years(valid), cells.yes(valid, "vacant_sale")
 
 
-def _fill_rows(project, project_dir: Path, universe) -> list[FillRow]:
+def _fill_rows(project: Project, project_dir: Path, universe) -> list[FillRow]:
     """Every number the models can use that's still blank somewhere after step 1, with its fill."""
     from openavmkit.utilities.settings import get_fields_numeric
 
@@ -554,7 +563,7 @@ def _collapsible(project_dir: Path, universe, locations: list[str]) -> list[str]
     ]
 
 
-def folds(project, project_dir: Path) -> list[Fold]:
+def folds(project: Project, project_dir: Path) -> list[Fold]:
     """What rare categories would fold, per field, at the thresholds set: a value with fewer valid sales than
     collapse_sales_min, or fewer parcels than collapse_univ_min, becomes Other (as OpenAVMKit counts them)."""
     import pandas as pd
@@ -597,7 +606,7 @@ def _last_run(project_dir: Path) -> dict[str, float | None]:
     return {g.id: g.per_year for g in r.groups} if r else {}
 
 
-def setup(project, project_dir: Path) -> CleanSetup:
+def setup(project: Project, project_dir: Path) -> CleanSetup:
     universe, sales = _data(project_dir)
     valid, year, vacant = _valid(sales)
     start = window(project)
@@ -677,7 +686,7 @@ def setup(project, project_dir: Path) -> CleanSetup:
     )
 
 
-def decide(project, project_dir: Path) -> None:
+def decide(project: Project, project_dir: Path) -> None:
     """Write down what was proposed (fills, the location, the categories to fold), so the settings say it all."""
     universe, _ = _data(project_dir)
     c: CleanState = project.clean
@@ -799,12 +808,12 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    src = pdir / "out" / "1-assemble-sup.pickle"
+    src = steps.handoff(pdir, "1-assemble")
     if not src.is_file():
         raise RuntimeError("Write step 2 first (Model groups): this starts from its hand-off.")
     tmp = steps.workdir(out_dir(pdir))
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
-    settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
+    settings_text = steps.settings_path(pdir).read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit import progress
@@ -885,7 +894,7 @@ def _keep_look(pdir: Path, tmp: Path) -> None:
     the hydrated sales as they are, the universe without its shapes (only its fields are read)."""
     import pyarrow.parquet as pq
 
-    look = pdir / "out" / "look"
+    look = steps.look_dir(pdir)
     if (look / "2-clean-sales-hydrated.parquet").is_file():
         shutil.copyfile(look / "2-clean-sales-hydrated.parquet", tmp / SALES_KEPT)
     if (look / "2-clean-universe.parquet").is_file():
@@ -911,7 +920,9 @@ def _flags(project_dir: Path):
     return f
 
 
-def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sales, t0, caught) -> CleanReceipt:
+def _receipt(
+    project: Project, pdir, before, start, processed, used, flags, hydrated, sales, t0, caught
+) -> CleanReceipt:
     import pandas as pd
 
     start_year = window(project)
@@ -1018,7 +1029,7 @@ def _receipt(project, pdir, before, start, processed, used, flags, hydrated, sal
             )
             filled.append(Filled(field=col, name=names.get(col, col), count=n, how=words))
     written = []
-    for path in [pdir / "out" / "2-clean-sup.pickle", *sorted((pdir / "out" / "look").glob("2-clean-*"))]:
+    for path in [steps.handoff(pdir, "2-clean"), *sorted(steps.look_dir(pdir).glob("2-clean-*"))]:
         if path.is_file():
             written.append(
                 assemble.Written(
@@ -1055,7 +1066,7 @@ def _flag_only(flags) -> pd.Series:
     return flags["flag_only"].astype("boolean").fillna(False).astype(bool)
 
 
-def _pattern_tables(project, flags, h, excluded: set[str]) -> list[PatternTable]:
+def _pattern_tables(project: Project, flags, h, excluded: set[str]) -> list[PatternTable]:
     """Each pattern's sales among those checked, all groups and per group (the article's Results table)."""
     names = {g.id: g.name for g in project.groups} | {UNKNOWN: "Unassigned"}
     groups = model_groups_of(h)
@@ -1261,7 +1272,7 @@ def _review(project_dir: Path):
     return pd.read_parquet(path) if path.is_file() else _frame("key_sale", "check")
 
 
-def _items(project, project_dir: Path) -> list[ReviewItem]:
+def _items(project: Project, project_dir: Path) -> list[ReviewItem]:
     r = _review(project_dir)
     if len(r) == 0:
         return []
@@ -1324,7 +1335,7 @@ def _items(project, project_dir: Path) -> list[ReviewItem]:
 
 
 def review(
-    project,
+    project: Project,
     project_dir: Path,
     group: str | None = None,
     check: str | None = None,
@@ -1357,7 +1368,7 @@ def review(
     )
 
 
-def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
+def detail(project: Project, project_dir: Path, key_sale: str) -> SaleDetail:
     import pandas as pd
 
     item = next((i for i in _items(project, project_dir) if i.key_sale == key_sale), None)
@@ -1406,7 +1417,7 @@ def detail(project, project_dir: Path, key_sale: str) -> SaleDetail:
     )
 
 
-def _together(project, project_dir: Path, key_sale: str, item, aside: set[str]):
+def _together(project: Project, project_dir: Path, key_sale: str, item, aside: set[str]):
     """The sales recorded with this one: on its deed the same day when it was flagged for that, else the same day at
     the same price; itself first."""
     import pandas as pd
@@ -1517,7 +1528,7 @@ def _related(project_dir: Path, key_sale: str, aside: set[str]) -> list[RelatedS
     return out[:30]
 
 
-def mark(project, key_sale: str, action: Literal["keep", "exclude"] | None, note: str) -> None:
+def mark(project: Project, key_sale: str, action: Literal["keep", "exclude"] | None, note: str) -> None:
     """Keep a sale set aside (a note says why it's a market sale), exclude a sale, or undo either."""
     if action is None:
         project.clean.marks.pop(key_sale, None)
@@ -1546,7 +1557,7 @@ STEP = steps.Step(
 )
 
 
-def blocked(project, project_dir: Path) -> list[str]:
+def blocked(project: Project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
@@ -1555,7 +1566,7 @@ def blocked(project, project_dir: Path) -> list[str]:
     return []
 
 
-def view(project, project_dir: Path) -> CleanView:
+def view(project: Project, project_dir: Path) -> CleanView:
     s = STEP.state(project, project_dir)
     return CleanView(
         status=s.status,
@@ -1567,7 +1578,7 @@ def view(project, project_dir: Path) -> CleanView:
     )
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 

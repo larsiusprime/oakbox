@@ -13,10 +13,14 @@ from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from oakbox.datafiles import Condition, DataFile, Rule
 from oakbox.wizard.files import Files, _by_key, base_file, sales_file
 from oakbox.wizard.models import RowField, RowsView
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 # What a file appended as rows adds to.
 ROWS = {"sale_rows": "sales", "parcel_rows": "parcels"}
@@ -24,7 +28,7 @@ ROWS = {"sale_rows": "sales", "parcel_rows": "parcels"}
 NOT_MIRRORED = {"key", "key2", "key3"}
 
 
-def main_of(project, holds: str) -> DataFile | None:
+def main_of(project: Project, holds: str) -> DataFile | None:
     """The file appended rows join: the sales record, or the parcel universe."""
     return sales_file(project) if ROWS.get(holds) == "sales" else base_file(project)
 
@@ -61,7 +65,7 @@ def _find(files: Files, main: DataFile, entry: DataFile, key: str) -> str | None
     return found[1][0] if found else None
 
 
-def propose(project, in_dir: Path, entry: DataFile) -> None:
+def propose(project: Project, in_dir: Path, entry: DataFile) -> None:
     """Match an appended file's columns to the main file's fields, never over one already chosen."""
     from oakbox.errors import NotFound
     from oakbox.wizard.core import made_sale_id, set_field
@@ -150,7 +154,7 @@ def sale_keys(files: Files, entry: DataFile) -> set[str]:
     return set()
 
 
-def view(project, files: Files, entry: DataFile) -> RowsView | None:
+def view(project: Project, files: Files, entry: DataFile) -> RowsView | None:
     main = main_of(project, entry.holds or "")
     if main is None or entry.name not in files.preview:
         return None

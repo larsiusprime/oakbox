@@ -23,7 +23,7 @@ import re
 import shutil
 import time
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
@@ -31,6 +31,9 @@ from oakbox import steps
 from oakbox.datafiles import BaseModel
 from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
 from oakbox.errors import NotFound
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 ROW_GROUP = 1_000
 PAGE = 50
@@ -41,7 +44,7 @@ MODULE = "bring_in"
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / MODULE
+    return steps.out_dir(project_dir, MODULE)
 
 
 # ---------- The receipt ----------
@@ -941,7 +944,7 @@ class View(steps.RunView):
     plan: Plan
 
 
-def plan(project, in_dir: Path) -> Plan:
+def plan(project: Project, in_dir: Path) -> Plan:
     from oakbox import wizard
 
     files = wizard.Files(project, in_dir)
@@ -989,7 +992,7 @@ STEP = steps.Step(
 )
 
 
-def view(project, project_dir: Path, problems: list[str]) -> View:
+def view(project: Project, project_dir: Path, problems: list[str]) -> View:
     s = STEP.state(project, project_dir)
     return View(
         status=s.status,

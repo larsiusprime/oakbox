@@ -20,13 +20,16 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
 from oakbox import model, ratio, smallgroups, steps
 from oakbox.datafiles import BaseModel
 from oakbox.valuesets import ROLL, loaded_value_sets, value_field
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 MODULE = "final"
 VALUE = "market_value"  # OpenAVMKit's name for the ensemble's value
@@ -39,7 +42,7 @@ BIG_CHANGE = 0.20  # a value this far from the roll's, either way, is counted
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / MODULE
+    return steps.out_dir(project_dir, MODULE)
 
 
 class SetResult(BaseModel):
@@ -78,7 +81,7 @@ class FinalReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-def _roll(project) -> tuple[str, str] | None:
+def _roll(project: Project) -> tuple[str, str] | None:
     """The existing values set beside the model's: the roll if loaded, else the first loaded. (field, name)"""
     loaded = loaded_value_sets(project)
     if not loaded:
@@ -94,12 +97,12 @@ def _look(keys, table: dict[str, float]):
     return pd.Series([table.get(str(k), float("nan")) for k in keys], index=keys.index, dtype=float)
 
 
-def unvalued_groups(project, project_dir: Path) -> list[str]:
+def unvalued_groups(project: Project, project_dir: Path) -> list[str]:
     """The model groups Small groups leaves unvalued (flagged, and not modeled anyway)."""
     return [g.id for g in smallgroups.view(project, project_dir).groups if g.choice == "leave"]
 
 
-def settings_key(project, project_dir: Path) -> dict:
+def settings_key(project: Project, project_dir: Path) -> dict:
     """What it depends on: the try it finalizes, the groups left unvalued, the roll it compares with, and the
     study's calls (Check my values')."""
     return {
@@ -152,7 +155,7 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    if not (pdir / "out" / "2-clean-sup.pickle").is_file():
+    if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
     tmp = steps.workdir(out_dir(pdir))
     depends = STEP.now(project, pdir)
@@ -461,24 +464,24 @@ STEP = steps.Step(
 )
 
 
-def blocked(project, project_dir: Path) -> list[str]:
+def blocked(project: Project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
     return model.not_installed(model.engines_used(project, project_dir))
 
 
-def view(project, project_dir: Path) -> FinalView:
+def view(project: Project, project_dir: Path) -> FinalView:
     stop = blocked(project, project_dir)
     s = STEP.state(project, project_dir, check=not stop)
     return FinalView(status=s.status, job=s.job, receipt=s.receipt, stale=s.stale, blocked=stop, accepted=s.accepted)
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 
-def accept(project, project_dir: Path) -> None:
+def accept(project: Project, project_dir: Path) -> None:
     if blocked(project, project_dir):
         raise ValueError(STEP.again)
     STEP.accept(project, project_dir)

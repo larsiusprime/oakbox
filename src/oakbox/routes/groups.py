@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from oakbox import assemble, groups, projects
+from oakbox import assemble, groups, projects, steps
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.routes.common import assemble_view, editing, load_project
@@ -123,6 +123,6 @@ def assemble_exports(project_id: str, body: AssembleExports) -> assemble.Assembl
 def assemble_show(project_id: str) -> None:
     """Show the written files (out/look/) in the file manager."""
     load_project(project_id)
-    look = projects.project_dir(project_id) / "out" / "look"
+    look = steps.look_dir(projects.project_dir(project_id))
     first = next(iter(sorted(look.glob("1-assemble-universe*"))), None)
     projects.show_file(first or look)

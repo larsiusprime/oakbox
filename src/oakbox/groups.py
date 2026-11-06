@@ -18,6 +18,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from oakbox import steps
 from oakbox.bring_in import out_dir
 from oakbox.datafiles import BaseModel, Condition, Rule
 from oakbox.errors import NotFound, NotReady
@@ -517,7 +518,7 @@ def shapes_path(project_dir: Path) -> Path:
     base = out_dir(project_dir)
     src = base / "sup.pickle"
     stamp = _stamp(src)
-    out = project_dir / "out" / "oakbox" / "groups" / "shapes.geojson"
+    out = steps.out_dir(project_dir, "groups") / "shapes.geojson"
     meta = out.with_suffix(".json")
     if out.is_file() and meta.is_file() and json.loads(meta.read_text(encoding="utf-8")).get("from") == list(stamp):
         return out

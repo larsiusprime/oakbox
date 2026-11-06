@@ -514,3 +514,9 @@ def test_the_models_study_set_setting_leaves_check_sales_as_it_was(tmp_path):
     assert clean.settings_key(base, project, tmp_path) == clean.settings_key(more, project, tmp_path)
     other = {"analysis": {"ratio_study": {"look_back_years": 2}}}
     assert clean.settings_key(base, project, tmp_path) != clean.settings_key(other, project, tmp_path)
+
+
+def test_a_deed_name_format_this_oak_box_doesnt_know_reads_as_not_decided():
+    """A format renamed since it was saved: the guess is shown again, not an error on Data › Deeds or the project."""
+    assert clean.CleanState(name_format="last_word").name_format == "last_word"
+    assert clean.CleanState.model_validate({"name_format": "surname_first"}).name_format is None

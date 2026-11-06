@@ -18,11 +18,14 @@ import re
 from functools import cache, lru_cache
 from importlib import resources
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel, DistanceUnit
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 # ---------- What the user chooses (stored on the project) ----------
 
@@ -252,7 +255,7 @@ def _bounds(path: str, mtime: float, size: int, layer: str | None) -> tuple[floa
     return float(w), float(s), float(e), float(n)
 
 
-def area(project, in_dir: Path) -> Area | None:
+def area(project: Project, in_dir: Path) -> Area | None:
     base = next((f for f in project.files if f.name == project.wizard.base), None)
     if base is None or not (in_dir / base.filename).is_file():
         return None
@@ -317,7 +320,7 @@ def adds(e: Enrichments, units: str) -> list[Adds]:
     return out
 
 
-def view(project, in_dir: Path, taken: set[str]) -> EnrichView:
+def view(project: Project, in_dir: Path, taken: set[str]) -> EnrichView:
     from oakbox import appsettings
 
     e = project.enrich or defaults(project.units)
@@ -341,7 +344,7 @@ def view(project, in_dir: Path, taken: set[str]) -> EnrichView:
     )
 
 
-def _guess(project, a: Area | None) -> str | None:
+def _guess(project: Project, a: Area | None) -> str | None:
     """The county for census figures: the one the project's place names, if the parcels are in it; else the one
     the parcels are in."""
     named = guess_county(project.region, project.jurisdiction)
@@ -351,7 +354,7 @@ def _guess(project, a: Area | None) -> str | None:
     return here.fips if here else named
 
 
-def start(project, in_dir: Path) -> None:
+def start(project: Project, in_dir: Path) -> None:
     """Visiting the step the first time: the defaults, the county from the project's place, the detail for its
     size."""
     if project.enrich is not None:
@@ -364,7 +367,7 @@ def start(project, in_dir: Path) -> None:
     project.enrich = e
 
 
-def set_enrichments(project, e: Enrichments) -> None:
+def set_enrichments(project: Project, e: Enrichments) -> None:
     for k in e.features:
         if k not in SPECS:
             raise ValueError(f"No such feature: {k}")
@@ -376,7 +379,7 @@ def set_enrichments(project, e: Enrichments) -> None:
     project.enrich = e
 
 
-def left(project) -> list[str]:
+def left(project: Project) -> list[str]:
     """What's still to do on the step (none of it stops a run)."""
     from oakbox import appsettings
 

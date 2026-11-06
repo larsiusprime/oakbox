@@ -15,19 +15,22 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
 from oakbox import bring_in, steps
 from oakbox.datafiles import BaseModel
 
+if TYPE_CHECKING:
+    from oakbox.projects import Project
+
 MODULE = "assemble"
 UNKNOWN = "UNKNOWN"  # OpenAVMKit's model group for parcels no group's rule meets
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "assemble"
+    return steps.out_dir(project_dir, MODULE)
 
 
 def settings_key(settings: dict, exports: list[str], project_dir: Path) -> dict:
@@ -136,7 +139,7 @@ def run(project_id: str) -> None:
             )
         )
     written = []
-    for path in [pdir / "out" / "1-assemble-sup.pickle", *sorted((pdir / "out" / "look").glob("1-assemble-*"))]:
+    for path in [steps.handoff(pdir, "1-assemble"), *sorted(steps.look_dir(pdir).glob("1-assemble-*"))]:
         if path.is_file():
             rel = path.relative_to(pdir).as_posix()
             written.append(Written(path=rel, what=steps.what_written(path.name), bytes=path.stat().st_size))
@@ -178,7 +181,7 @@ STEP = steps.Step(
 )
 
 
-def modeled(project, project_dir: Path) -> set[str]:
+def modeled(project: Project, project_dir: Path) -> set[str]:
     """The model groups to model: as chosen on Check them, else proposed from the sales the last run counted."""
     from oakbox.groups import is_modeled
 
@@ -187,7 +190,7 @@ def modeled(project, project_dir: Path) -> set[str]:
     return {g.id for g in project.groups if is_modeled(g, sales.get(g.id))}
 
 
-def blocked(project, project_dir: Path) -> list[str]:
+def blocked(project: Project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     return [
         *([] if project.groups else ["Add at least one model group, and save."]),
@@ -195,7 +198,7 @@ def blocked(project, project_dir: Path) -> list[str]:
     ]
 
 
-def view(project, project_dir: Path) -> AssembleView:
+def view(project: Project, project_dir: Path) -> AssembleView:
     s = STEP.state(project, project_dir)
     return AssembleView(
         status=s.status,
@@ -208,7 +211,7 @@ def view(project, project_dir: Path) -> AssembleView:
     )
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 

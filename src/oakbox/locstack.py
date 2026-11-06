@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, cast
 
 from pydantic import Field
 
-from oakbox import clean, fields
+from oakbox import clean, fields, steps
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotReady
 
@@ -47,7 +47,7 @@ class StackPreview(BaseModel):
 
 
 def _paths(project_dir: Path) -> tuple[Path, Path]:
-    look = project_dir / "out" / "look"
+    look = steps.look_dir(project_dir)
     return look / "2-clean-universe.parquet", look / "2-clean-sales.parquet"
 
 

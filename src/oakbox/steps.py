@@ -23,12 +23,15 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generic, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar, cast
 
 import pydantic
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 Status = Literal["never", "running", "failed", "stopped", "done"]
 
@@ -62,6 +65,36 @@ _procs: dict[str, subprocess.Popen] = {}
 _lock = threading.Lock()
 
 
+# ---------- Where things are in a project (docs/ARCHITECTURE.md, "A project on disk") ----------
+
+Notebook = Literal["1-assemble", "2-clean"]  # OpenAVMKit's notebooks whose output a later step starts from
+
+
+def out_dir(project_dir: Path, module: str) -> Path:
+    """OAK box's own folder for a step: its last finished run (receipt.json, settings.json, its tables)."""
+    return project_dir / "out" / "oakbox" / module
+
+
+def settings_path(project_dir: Path) -> Path:
+    """The project's settings as written for OpenAVMKit (projects.write_settings)."""
+    return project_dir / "in" / "settings.json"
+
+
+def handoff(project_dir: Path, notebook: Notebook) -> Path:
+    """A notebook's hand-off as OpenAVMKit writes it (write_notebook_output_sup): out/<notebook>-sup.pickle."""
+    return project_dir / "out" / f"{notebook}-sup.pickle"
+
+
+def look_dir(project_dir: Path) -> Path:
+    """Where OpenAVMKit writes a notebook's tables to look at (Parquet, and the formats asked for)."""
+    return project_dir / "out" / "look"
+
+
+def look(project_dir: Path, name: str) -> Path:
+    """One of those tables, as Parquet: look(pdir, "2-clean-universe")."""
+    return look_dir(project_dir) / f"{name}.parquet"
+
+
 APP_PID = "OAKBOX_APP_PID"  # a run's environment: the app that started it, which it doesn't outlive (die_with_app)
 
 
@@ -80,7 +113,7 @@ def start(project_id: str, project_dir: Path, module: str) -> Job:
     with _lock:
         if key in _jobs and _jobs[key].status == "running":
             raise ValueError("It's already running.")
-        log = project_dir / "out" / "oakbox" / f"{module}.log"
+        log = out_dir(project_dir, module).with_suffix(".log")
         log.parent.mkdir(parents=True, exist_ok=True)
         with log.open("w", encoding="utf-8") as err:  # the run has its own handle; the app keeps none open
             proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
@@ -230,7 +263,7 @@ def running_projects() -> list[str]:
 
 def skip_path(project_dir: Path, module: str) -> Path:
     """Where the app asks a running run to skip a part (one name per line): the run checks it at each checkpoint."""
-    return project_dir / "out" / "oakbox" / f"{module}.skip"
+    return out_dir(project_dir, module).with_suffix(".skip")
 
 
 def skip(project_id: str, project_dir: Path, part: str, module: str) -> None:
@@ -335,14 +368,14 @@ def publish(tmp: Path, final: Path) -> None:
 
 def read_settings(project_dir: Path) -> dict:
     """The project's settings as written for OpenAVMKit (in/settings.json), as they stand."""
-    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
+    return json.loads(settings_path(project_dir).read_text(encoding="utf-8"))
 
 
 def engine_settings(project_dir: Path) -> dict:
     """The same, as OpenAVMKit reads them (its defaults filled in)."""
     from openavmkit.utilities.settings import load_settings
 
-    return cast(dict, load_settings(str(project_dir / "in" / "settings.json"), warning=False))
+    return cast(dict, load_settings(str(settings_path(project_dir)), warning=False))
 
 
 # The files the runs write, in words (by the start of their name).
@@ -472,14 +505,14 @@ class Step(Generic[R]):
     module: str
     title: str
     receipt: type[R]
-    key: Callable[[Any, Path], Any]
+    key: Callable[[Project, Path], Any]
     after: Step | None = None
     ran_hash: Callable[[dict], str | None] = _hash_field
     again: str = "Run it again first: something changed since it ran."
     place: str | None = None  # where its Looks right is, in words, when not its title: "Sales" (its tab), not the run
 
     def out_dir(self, project_dir: Path) -> Path:
-        return project_dir / "out" / "oakbox" / self.module
+        return out_dir(project_dir, self.module)
 
     def ran(self, project_dir: Path) -> tuple[R | None, dict | None]:
         return read(self.out_dir(project_dir), self.receipt)
@@ -490,10 +523,10 @@ class Step(Generic[R]):
         r, _ = self.ran(project_dir)
         return cast(str | None, getattr(r, "ran_at", None)) if r else None
 
-    def now(self, project, project_dir: Path) -> str:
+    def now(self, project: Project, project_dir: Path) -> str:
         return key_hash(self.key(project, project_dir))
 
-    def state(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
+    def state(self, project: Project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
         """Its job, receipt and whether the receipt still holds; and what an earlier step needs first, if anything.
         `check=False` when what it depends on can't be worked out yet (it's blocked): then it isn't called out of
         date."""
@@ -502,7 +535,7 @@ class Step(Generic[R]):
         s.accepted = s.accepted and s.waiting is None
         return s
 
-    def waiting(self, project, project_dir: Path) -> str | None:
+    def waiting(self, project: Project, project_dir: Path) -> str | None:
         """What the earliest step before this one that isn't accepted on an up-to-date run needs, in words; None
         when each is."""
         if self.after is None:
@@ -517,7 +550,7 @@ class Step(Generic[R]):
             return f"Run {self.after.title} again first: something it depends on changed since it ran."
         return f"Press Looks right on {self.after.place or self.after.title} first: this starts from what it wrote."
 
-    def _own(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
+    def _own(self, project: Project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
         r, ran = self.ran(project_dir)
         j = job(project.id, self.module)
         if check and now is None:
@@ -533,11 +566,11 @@ class Step(Generic[R]):
             now=now,
         )
 
-    def accepted(self, project, project_dir: Path) -> bool:
+    def accepted(self, project: Project, project_dir: Path) -> bool:
         """Looks right was pressed on its last run, and nothing it depends on has changed since."""
         return self.state(project, project_dir).accepted
 
-    def accept(self, project, project_dir: Path) -> None:
+    def accept(self, project: Project, project_dir: Path) -> None:
         s = self.state(project, project_dir)
         if s.waiting:
             raise ValueError(s.waiting)

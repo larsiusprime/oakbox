@@ -35,7 +35,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from oakbox import appsettings, atomic
+from oakbox import appsettings, atomic, steps
 from oakbox import clean as clean_settings
 from oakbox import model as model_calls
 from oakbox.clean import CleanState
@@ -639,7 +639,7 @@ def refresh_settings(project: Project) -> bool:
     """Rewrite settings.json when this OAK box would write it differently (a newer OAK box): on opening the project,
     so what that changes shows at once (Bring in data out of date, say), not at the next unrelated change. True when
     it was rewritten."""
-    path = project_dir(project.id) / "in" / "settings.json"
+    path = steps.settings_path(project_dir(project.id))
     if not path.exists():
         return False
     try:
@@ -653,7 +653,7 @@ def refresh_settings(project: Project) -> bool:
 
 
 def write_settings(project: Project) -> Path:
-    path = project_dir(project.id) / "in" / "settings.json"
+    path = steps.settings_path(project_dir(project.id))
     settings = base_settings(project)
     # In one step: the app reads it while a run is being started.
     atomic.save_text(path, json.dumps(settings, indent=2))

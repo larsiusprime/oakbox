@@ -14,18 +14,21 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
 from oakbox import cells, model, prepare, steps
 from oakbox.datafiles import BaseModel
 
+if TYPE_CHECKING:
+    from oakbox.projects import Project
+
 MODULE = "vartest"
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "vartest"
+    return steps.out_dir(project_dir, MODULE)
 
 
 class TestRow(BaseModel):
@@ -177,7 +180,7 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    if not (pdir / "out" / "2-clean-sup.pickle").is_file():
+    if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the tests start from what it writes.")
     variables = [v.field for v in model.variables(project, pdir)]  # every variable: lists are built from the results
     to_run = model.tests(project)
@@ -302,7 +305,7 @@ class VarTestView(steps.RunView):
     receipt: VarTestReceipt | None
 
 
-def _lag(project, project_dir: Path) -> dict:
+def _lag(project: Project, project_dir: Path) -> dict:
     """The nearby sales and buildings it tests (spatial lag): what changes their values."""
     from oakbox import assemble
 
@@ -312,7 +315,7 @@ def _lag(project, project_dir: Path) -> dict:
     )
 
 
-def _key(project, project_dir: Path) -> dict:
+def _key(project: Project, project_dir: Path) -> dict:
     from oakbox import assemble
 
     return {
@@ -336,7 +339,7 @@ STEP = steps.Step(
 )
 
 
-def view(project, project_dir: Path) -> VarTestView:
+def view(project: Project, project_dir: Path) -> VarTestView:
     s = STEP.state(project, project_dir)
     r = s.receipt
     every = {v.field for v in model.variables(project, project_dir)}
@@ -347,7 +350,7 @@ def view(project, project_dir: Path) -> VarTestView:
     )
 
 
-def _blocked(project, project_dir: Path, every: set[str]) -> list[str]:
+def _blocked(project: Project, project_dir: Path, every: set[str]) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
@@ -356,7 +359,7 @@ def _blocked(project, project_dir: Path, every: set[str]) -> list[str]:
     return []
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     every = {v.field for v in model.variables(project, project_dir)}
     STEP.start(project.id, project_dir, _blocked(project, project_dir, every))
 

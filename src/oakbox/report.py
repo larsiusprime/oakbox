@@ -12,13 +12,16 @@ import html
 import math
 import re
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
-from oakbox import final, ratio
+from oakbox import final, ratio, steps
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotReady
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 Format = Literal["csv", "gpkg", "xlsx", "shp", "parquet"]
 FORMATS: dict[Format, tuple[str, str]] = {
@@ -34,7 +37,7 @@ SHAPEFILE_LIMIT = 2 * 1024**3
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "report"
+    return steps.out_dir(project_dir, "report")
 
 
 def _receipt(project_dir: Path) -> final.FinalReceipt:
@@ -52,7 +55,7 @@ def _slug(text: str) -> str:
 # ---------- Export ----------
 
 
-def table(project, project_dir: Path):
+def table(project: Project, project_dir: Path):
     """Every parcel: its key, model group, model value, the roll's, the change, value per finished area, why it has no
     value, and its latest sale in the window with the ratio of the value as made to it."""
     import numpy as np
@@ -126,7 +129,7 @@ def _shapes(project_dir: Path, keys):
     return g.geometry.reindex(pd.Index(keys).astype(str)), g.crs
 
 
-def export(project, project_dir: Path, fmt: Format) -> ExportResult:
+def export(project: Project, project_dir: Path, fmt: Format) -> ExportResult:
     import geopandas as gpd
     import pandas as pd
 
@@ -467,7 +470,7 @@ STATS = [
 ]
 
 
-def build(project, project_dir: Path) -> str:
+def build(project: Project, project_dir: Path) -> str:
     """The report, as one HTML page that prints well."""
     receipt = _receipt(project_dir)
     state = project.report
@@ -605,7 +608,7 @@ def final_set_name(key: str) -> str:
     return {"oof": "out-of-fold", "held": "held-out", "valued": "as-valued"}.get(key, key)
 
 
-def _method(project, project_dir: Path, receipt: final.FinalReceipt, stds: dict[str, ratio.Standard]) -> str:
+def _method(project: Project, project_dir: Path, receipt: final.FinalReceipt, stds: dict[str, ratio.Standard]) -> str:
     from oakbox import assemble, clean, model, varlists
 
     out = ['<section class="page"><h2>How the values were made</h2><dl>']
@@ -669,7 +672,7 @@ def _method(project, project_dir: Path, receipt: final.FinalReceipt, stds: dict[
     return "".join(out)
 
 
-def write(project, project_dir: Path) -> Path:
+def write(project: Project, project_dir: Path) -> Path:
     path = out_dir(project_dir) / f"{_slug(project.name)}_{project.tax_year}_report.html"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(build(project, project_dir), encoding="utf-8")
@@ -692,7 +695,7 @@ class ReportView(BaseModel):
     ran_at: str | None
 
 
-def view(project, project_dir: Path) -> ReportView:
+def view(project: Project, project_dir: Path) -> ReportView:
     r, _ = final.STEP.ran(project_dir)
     default = f"{project.name}: model values, tax year {project.tax_year}"
     return ReportView(
@@ -712,7 +715,7 @@ class ReportPatch(BaseModel):
     title: str | None = Field(default=None, description='"" back to the default.')
 
 
-def change(project, body: ReportPatch) -> None:
+def change(project: Project, body: ReportPatch) -> None:
     if body.sets is not None:
         if not body.sets:
             raise ValueError("Choose at least one set of sales to judge the values on.")

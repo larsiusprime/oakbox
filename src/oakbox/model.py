@@ -24,7 +24,7 @@ import re
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
@@ -33,6 +33,9 @@ from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.fields import VALUE_SLOTS
 from oakbox.valuesets import ROLL, value_field
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 MODULE = "model"
 
@@ -179,13 +182,13 @@ class ModelState(BaseModel):
 TESTS = ("corr", "vif")
 
 
-def tests(project) -> list[str]:
+def tests(project: Project) -> list[str]:
     chosen = project.model.tests
     return list(TESTS) if chosen is None else [x for x in TESTS if x in chosen]
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "model"
+    return steps.out_dir(project_dir, MODULE)
 
 
 # ---------- The variables there are ----------
@@ -206,7 +209,7 @@ class Variable(BaseModel):
 
 
 def _universe_path(project_dir: Path) -> Path:
-    return project_dir / "out" / "look" / "2-clean-universe.parquet"
+    return steps.look(project_dir, "2-clean-universe")
 
 
 def _offered(field: str) -> bool:
@@ -320,7 +323,7 @@ def _universe_fields(project_dir: Path) -> list[str]:
     return pq.ParquetFile(path).schema_arrow.names if path.is_file() else []
 
 
-def _outside(project, project_dir: Path) -> list[str]:
+def _outside(project: Project, project_dir: Path) -> list[str]:
     """The value sets besides the roll that Prepare's output carries a market value for."""
     have = set(_universe_fields(project_dir))
     return [v.id for v in valuesets.value_sets(project) if v.id != ROLL and value_field(v.id) in have]
@@ -357,7 +360,7 @@ LAG_OWN = (
 )
 
 
-def lag_fields(project, columns: list[str] | set[str], everything: bool = False) -> list[tuple[str, str]]:
+def lag_fields(project: Project, columns: list[str] | set[str], everything: bool = False) -> list[tuple[str, str]]:
     """(field, name) of each nearby-average variable offered, by its stable name: the sales' price and price per
     finished area, then the parcels' fields OpenAVMKit averages that are there, then the user's own. Those of
     OpenAVMKit's own the user unticked are left out, unless `everything`."""
@@ -390,7 +393,7 @@ def lag_fields(project, columns: list[str] | set[str], everything: bool = False)
     return [(f, n) for f, n in out if f in mine or f not in project.model.lag.skip]
 
 
-def lag_own(project, columns: list[str] | set[str]) -> list[tuple[str, str]]:
+def lag_own(project: Project, columns: list[str] | set[str]) -> list[tuple[str, str]]:
     """OpenAVMKit's own nearby averages there can be here (whether ticked or not): the prices, and the parcels' fields
     it averages that are there."""
     plain = project.model_copy(update={"model": project.model.model_copy(update={"lag": LagState()})})
@@ -402,7 +405,7 @@ def lag_actual(field: str, sale_field: str) -> str:
     return field.replace(LAG_PRICE, f"spatial_lag_{sale_field}", 1) if field.startswith(LAG_PRICE) else field
 
 
-def sale_field(project) -> str:
+def sale_field(project: Project) -> str:
     """The price OpenAVMKit models (and averages nearby): time adjusted when Check sales adjusts it."""
     return "sale_price_time_adj" if project.clean.time_adjust else "sale_price"
 
@@ -500,7 +503,7 @@ def lag_prune(settings: dict, universe) -> list[str]:
     return few
 
 
-def lag_settings(project, modeled: list[str], columns: list[str] | set[str]) -> dict:
+def lag_settings(project: Project, modeled: list[str], columns: list[str] | set[str]) -> dict:
     """data.process.enrich.spatial_lag: each modeled group averages its own sales and any it borrows; and only the
     averages picked are worked out (`only`, OpenAVMKit #414): the sales' prices as `sales`, the
     parcels' fields (OpenAVMKit's own picked, and the user's) as `fields`, the k nearest each (5 to start).
@@ -520,13 +523,13 @@ def lag_settings(project, modeled: list[str], columns: list[str] | set[str]) -> 
     }
 
 
-def variables(project, project_dir: Path) -> list[Variable]:
+def variables(project: Project, project_dir: Path) -> list[Variable]:
     path = _universe_path(project_dir)
     if not path.is_file():
         return []
     names = fields.names() | NAMES
     out = []
-    settings_path = project_dir / "in" / "settings.json"
+    settings_path = steps.settings_path(project_dir)
     stamp = settings_path.stat().st_mtime if settings_path.is_file() else 0.0
     for f, kind, numeric, parcels, blanks, values in _scan(str(path), path.stat().st_mtime, stamp, project.units):
         out.append(
@@ -553,7 +556,7 @@ def variables(project, project_dir: Path) -> list[Variable]:
     return out
 
 
-def missing(project, project_dir: Path) -> list[str]:
+def missing(project: Project, project_dir: Path) -> list[str]:
     """The big five fields Prepare's output doesn't have, in words."""
     return (
         big_five_missing(_universe_fields(project_dir), project.units) if _universe_path(project_dir).is_file() else []
@@ -570,7 +573,7 @@ def entry_key(name: str, taken: set[str]) -> str:
     return out
 
 
-def default_models(project, project_dir: Path, group: str) -> list[ModelEntry]:
+def default_models(project: Project, project_dir: Path, group: str) -> list[ModelEntry]:
     taken: set[str] = set()
     out = []
     for engine in DEFAULT_MODELS:
@@ -580,7 +583,9 @@ def default_models(project, project_dir: Path, group: str) -> list[ModelEntry]:
     return out
 
 
-def group_models(project, project_dir: Path, group: str, all_lists: list[VarList] | None = None) -> list[ModelEntry]:
+def group_models(
+    project: Project, project_dir: Path, group: str, all_lists: list[VarList] | None = None
+) -> list[ModelEntry]:
     """A group's models as they'll run: each with its list (the group's first of its type unless told otherwise, or
     if its own was removed) and its location stack (proposed unless told otherwise)."""
     from oakbox import locstack, varlists
@@ -611,7 +616,7 @@ def _areas(by_field: dict[str, Variable]) -> list[str]:
     return [f for f in AREAS if f in by_field]
 
 
-def settings(project, project_dir: Path) -> dict:
+def settings(project: Project, project_dir: Path) -> dict:
     """OpenAVMKit's modeling settings for the calls: nothing until Prepare the fields has written its output.
 
     The variable lists go in `variable_lists`; each modeled group has its own block of models under
@@ -795,7 +800,7 @@ def _entry_view(e: ModelEntry, raw: ModelEntry | None, lists: dict[str, VarList]
     return EntryView(**e.model_dump(), warnings=w)
 
 
-def setup(project, project_dir: Path) -> ModelSetup:
+def setup(project: Project, project_dir: Path) -> ModelSetup:
     import pandas as pd
     import pyarrow.parquet as pq
 
@@ -810,7 +815,7 @@ def setup(project, project_dir: Path) -> ModelSetup:
     all_lists = varlists.lists(project, project_dir)
     lists = {x.id: x for x in all_lists}
     universe = pd.read_parquet(path, columns=["key", "model_group"]) if "model_group" in columns else None
-    sales_path = project_dir / "out" / "look" / "2-clean-sales.parquet"
+    sales_path = steps.look(project_dir, "2-clean-sales")
     per: dict[str, int] = {}
     sold: dict[str, int] = {}
     if universe is not None:
@@ -898,7 +903,7 @@ class ModelPatch(BaseModel):
     )
 
 
-def change(project, body: ModelPatch) -> None:
+def change(project: Project, body: ModelPatch) -> None:
     s: ModelState = project.model
     if body.lag_on is not None:
         s.lag.on = body.lag_on
@@ -929,7 +934,7 @@ def change(project, body: ModelPatch) -> None:
         s.tests = [x for x in TESTS if x in body.tests]
 
 
-def set_group(project, project_dir: Path, group: str, models: list[ModelEntry] | None) -> None:
+def set_group(project: Project, project_dir: Path, group: str, models: list[ModelEntry] | None) -> None:
     """A model group's models (None: back to the default ones). Each gets the engine's name unless given one, and a
     key from its name; a list must be one of the lists, a stack's fields location fields."""
     from oakbox import varlists
@@ -1257,7 +1262,14 @@ def _infinite_error(found: list[str]) -> str:
 
 
 def _crashed(
-    e: Exception, project, pdir: Path, at: dict[str, str], sup, settings: dict, gnames: dict[str, str], own: dict
+    e: Exception,
+    project: Project,
+    pdir: Path,
+    at: dict[str, str],
+    sup,
+    settings: dict,
+    gnames: dict[str, str],
+    own: dict,
 ) -> Exception:
     """OpenAVMKit's error, with what can be said about it: the model group and model it was training, its variable
     list, what in the data could have caused it (infinite variables, prices a log can't take), and where in the code
@@ -1309,7 +1321,7 @@ def _crashed(
     return type(type(e).__name__, (Exception,), {})(" ".join(said))
 
 
-def for_models(project, modeled, own: dict[str, dict[str, str]]):
+def for_models(project: Project, modeled, own: dict[str, dict[str, str]]):
     """The prepared hand-off as the models take it (in the project's folder, inside a run): the settings, the sales
     split into folds, and the nearby averages worked out. (sup, settings, the notes on averages left out, the
     modeled groups' names.) Try them and Finalize both start here."""
@@ -1345,11 +1357,11 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    if not (pdir / "out" / "2-clean-sup.pickle").is_file():
+    if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the models start from what it writes.")
     tmp = steps.workdir(out_dir(pdir))
     depends = STEP.now(project, pdir)  # what it starts from, before anything can change
-    settings_text = (pdir / "in" / "settings.json").read_text(encoding="utf-8")
+    settings_text = (steps.settings_path(pdir)).read_text(encoding="utf-8")
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit import progress
@@ -1508,7 +1520,7 @@ class ModelView(steps.RunView):
     receipt: ModelReceipt | None
 
 
-def _key(project, project_dir: Path) -> dict:
+def _key(project: Project, project_dir: Path) -> dict:
     from oakbox import projects
 
     return settings_key(projects.base_settings(project), project_dir)
@@ -1524,14 +1536,14 @@ STEP = steps.Step(
 )
 
 
-def blocked(project, project_dir: Path) -> list[str]:
+def blocked(project: Project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
     return problems(project, project_dir)
 
 
-def problems(project, project_dir: Path) -> list[str]:
+def problems(project: Project, project_dir: Path) -> list[str]:
     """What stops a try in the models themselves: a group with none, a list with no variables, a Local area with no
     location."""
     from oakbox import assemble, varlists
@@ -1570,21 +1582,21 @@ def not_installed(used: set[str]) -> list[str]:
     ]
 
 
-def engines_used(project, project_dir: Path) -> set[str]:
+def engines_used(project: Project, project_dir: Path) -> set[str]:
     from oakbox import assemble
 
     modeled = assemble.modeled(project, project_dir)
     return {e.engine for g in project.groups if g.id in modeled for e in group_models(project, project_dir, g.id)}
 
 
-def view(project, project_dir: Path) -> ModelView:
+def view(project: Project, project_dir: Path) -> ModelView:
     s = STEP.state(project, project_dir)
     return ModelView(
         status=s.status, job=s.job, receipt=s.receipt, stale=s.stale, blocked=blocked(project, project_dir)
     )
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 

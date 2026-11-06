@@ -7570,7 +7570,13 @@
      "name_format": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "enum": [
+         "first_word",
+         "before_comma",
+         "last_word",
+         "custom"
+        ]
        },
        {
         "type": "null"
