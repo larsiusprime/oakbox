@@ -75,6 +75,7 @@ def main() -> None:
         parser.error("--ui-url must be a local address, http://127.0.0.1:<port>")
     if args.selftest_menus:
         os.environ.setdefault("OAKBOX_HOME", tempfile.mkdtemp(prefix="oakbox-menus-"))
+        _skip_machine_check()
 
     # However the app ends normally, the runs it started end with it (steps.die_with_app covers the rest).
     from oakbox import steps
@@ -236,6 +237,19 @@ class _Picker:
         types = ("Data files (*.csv;*.parquet;*.geoparquet;*.gpkg;*.shp)", "All files (*.*)")
         result = self._window.create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=types)
         return str(result[0]) if result else None
+
+
+def _skip_machine_check() -> None:
+    """The self-test's settings are new, so the page would open on the first-run computer check (SPEC §5) and never
+    show a project: keep this computer's basics as checked, without the slow speed and disk tests."""
+    from oakbox import appsettings
+    from oakbox import machine as computer
+
+    with appsettings.LOCK:
+        s = appsettings.load()
+        if s.machine is None:
+            s.machine = computer.finish(computer.basics())
+            appsettings.save(s)
 
 
 def _selftest_menus(window: Any, picker: _Picker, url: str, failures: list[str]) -> None:
