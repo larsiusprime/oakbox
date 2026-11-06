@@ -58,7 +58,7 @@ rows appended, user fields, deeds and permits, existing values), `enrichments.py
 |---|---|---|---|---|
 | 1 | Inputs (Bring in data) | `bring_in.py` | the files and settings | `out/oakbox/bring_in/sup.pickle` |
 | 2 | Model groups | `assemble.py` (run), `groups.py` (the builder) | Bring in data | `out/1-assemble-sup.pickle` |
-| 3 | Sales (Check sales) | `clean.py`, `time_preview.py` (the time adjustment alone, a run of its own) | `out/1-assemble-sup.pickle` | `out/oakbox/clean/` (its hand-off, and copies of its sales and universe), `out/2-clean-*` |
+| 3 | Sales (Check sales) | `clean.py`, `salereview.py` (the review of the sales it set aside), `time_preview.py` (the time adjustment alone, a run of its own) | `out/1-assemble-sup.pickle` | `out/oakbox/clean/` (its hand-off, and copies of its sales and universe), `out/2-clean-*` |
 | 4 | Evaluate (Check my values) | `ratio.py` | `out/oakbox/clean/`: Check sales as it ran, never `out/2-clean-*` | its receipt only |
 | 5 | Variables | `prepare.py` (Prepare the fields), `vartest.py` (Test the variables), `varlists.py` | `out/oakbox/clean/sup.pickle` | `out/2-clean-*` again, filled and folded |
 | 6 | Models (Try them, Finalize) | `model.py` (Try them), `smallgroups.py`, `locstack.py`, `final.py` (Finalize) | Prepare the fields | the model values |

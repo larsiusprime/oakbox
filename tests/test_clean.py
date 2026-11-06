@@ -474,7 +474,7 @@ def test_a_try_of_one_model(prepared, brought_in_client, brought_in):
 
 @pytest.mark.parametrize("value", ["", "None", "nan", None])
 def test_a_sale_with_no_parcel_has_no_group(value):
-    assert clean._group(value) == clean.NO_PARCEL
+    assert clean.group_of(value) == clean.NO_PARCEL
 
 
 @pytest.mark.parametrize(
