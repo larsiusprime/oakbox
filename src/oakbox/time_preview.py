@@ -178,7 +178,7 @@ def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path, 
     there's none when there's none (its own reasons, worked out as it works them out); and the group's sales and
     index for the expanded chart."""
     import pandas as pd
-    from openavmkit.time_adjustment import _determine_time_resolution, _determine_value_driver
+    from openavmkit.time_adjustment import determine_time_resolution, determine_value_driver
     from openavmkit.utilities.settings import area_unit
 
     unit = area_unit(settings)
@@ -192,7 +192,7 @@ def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path, 
     area = {k: cells.numbers(s, f"{f}_{unit}") for k, f in (("impr", "bldg_area_finished"), ("land", "land_area"))}
     sized = {k: int(a.gt(0).sum()) for k, a in area.items()}
     try:
-        g.per = cast(Literal["impr", "land"], chosen or _determine_value_driver(s, settings))
+        g.per = cast(Literal["impr", "land"], chosen or determine_value_driver(s, settings))
         g.per_chosen = chosen is not None
     except Exception:  # its own checks can fail on odd data: then the reason below says what's known
         g.per = "impr" if sized["impr"] else "land"
@@ -202,7 +202,7 @@ def _diagnose(g: TimeGroup, sales, settings: dict, period: str, schedule: Path, 
     if len(with_size):
         try:
             g.period = cast(
-                Literal["M", "Q", "Y"], _determine_time_resolution(with_size, "_per", MIN_PER_PERIOD, period)
+                Literal["M", "Q", "Y"], determine_time_resolution(with_size, "_per", MIN_PER_PERIOD, period)
             )
         except Exception:
             g.period = None

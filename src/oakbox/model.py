@@ -1236,7 +1236,8 @@ def run(project_id: str) -> None:
             raise explain_crash(e, project, pdir, at, sup, settings, gnames, own) from e
     release_workers()
     steps.emit(step="receipt", fraction=0.97, message="Counting")
-    from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
+    from openavmkit.model_runner import academic_metrics
+    from openavmkit.utilities.settings import get_max_ratio_study_trim
 
     per, sold = _counts(sup.universe, sup.sales["key"].tolist())
     judged_by = ratio.standard_of(project)
@@ -1283,7 +1284,7 @@ def run(project_id: str) -> None:
                 )
             )
             continue
-        untrimmed, trimmed = academic_metrics(r, _get_max_ratio_study_trim(settings, g.id))
+        untrimmed, trimmed = academic_metrics(r, get_max_ratio_study_trim(settings, g.id))
         out.append(
             ModelGroupResult(
                 id=g.id,

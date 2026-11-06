@@ -771,10 +771,10 @@ def plain_utf8(encoding: str | None) -> bool:
 
 def column_names(path: Path, layer: str | None) -> list[str] | None:
     """The file's columns as OpenAVMKit sees them (geometry included), reading names only. None if unreadable."""
-    from openavmkit.data import _snoop_column_names
+    from openavmkit.data import snoop_column_names
 
     try:
-        return [str(c) for c in _snoop_column_names(str(path), layer, csv_encoding(path))]
+        return [str(c) for c in snoop_column_names(str(path), layer, csv_encoding(path))]
     except Exception:  # noqa: BLE001 - a damaged file shows as unknown, not an error page
         return None
 
