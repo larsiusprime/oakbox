@@ -22,6 +22,7 @@ from oakbox.datafiles import (
     scale_helper,
     small_unit,
 )
+from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.base import PAIRS, SCALED, YES
 from oakbox.wizard.checks import _pct
@@ -363,7 +364,7 @@ class TiersPreview(BaseModel):
 def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: str) -> TiersPreview:
     """A category's tiers, worst to best, with a number each and what they sell for."""
     if key not in SCALED:
-        raise LookupError(key)
+        raise NotFound(key)
     files = Files(project, in_dir)
     if files.column(file, column) is None:
         raise ValueError(f"{file} has no column {column}.")
@@ -470,7 +471,7 @@ def scale_preview(
     import statistics
 
     if key not in SCALED:
-        raise LookupError(key)
+        raise NotFound(key)
     files = Files(project, in_dir)
     if files.column(file, column) is None:
         raise ValueError(f"{file} has no column {column}.")
@@ -690,7 +691,7 @@ class Candidate(BaseModel):
 def candidates(project: Project, in_dir: Path, key: str) -> list[Candidate]:
     """Columns that look like quality (or condition), each checked over every row, to choose from side by side."""
     if key not in PAIRS:
-        raise LookupError(key)
+        raise NotFound(key)
     num = key if key in SCALED else PAIRS[key]
     txt = PAIRS[num]
     names = QUALITY_NAMES if num == "bldg_quality_num" else CONDITION_NAMES

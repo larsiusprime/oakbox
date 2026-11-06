@@ -1,6 +1,8 @@
 """F3e Enrichments, F3f Deeds and F3g Permits: what each writes for OpenAVMKit, and how a failed download is
 skipped rather than stopping Bring in data."""
 
+from typing import cast
+
 import geopandas as gpd
 import pandas as pd
 import pytest
@@ -8,6 +10,7 @@ from helpers import NEW, put_file, read_settings, start_wizard, wizard_files, wi
 from shapely.geometry import box
 
 from oakbox import enrichments, projects
+from oakbox.projects import Project
 
 
 @pytest.fixture
@@ -133,9 +136,9 @@ def test_census_is_for_the_county_the_parcels_are_in():
     class P:
         region, jurisdiction = "NC", "Guilford Synthetic"
 
-    assert enrichments._guess(P(), guilford) == "37081"
+    assert enrichments._guess(cast(Project, P()), guilford) == "37081"
     P.jurisdiction = "Wake County"
-    assert enrichments._guess(P(), guilford) == "37081"  # the place's name, but the parcels aren't there
+    assert enrichments._guess(cast(Project, P()), guilford) == "37081"  # the place's name, but the parcels aren't there
 
 
 def test_a_certificate_that_cant_be_checked_says_so_plainly(monkeypatch):

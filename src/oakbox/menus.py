@@ -1,10 +1,11 @@
 """The menus (SPEC §3.14, D44): File, View, Project, Help.
 
-One definition, two ways to show it:
-- on Windows, a real Win32 menu bar on pywebview's window (``winmenu``), with shortcut
-  labels, check marks, greyed-out items, and Open recent filled as the menu opens;
-- elsewhere, pywebview's own menus, which are fixed at start-up (no check marks or
-  greyed items, Open recent as it was at start-up).
+One definition, shown natively:
+- on Windows, a real Win32 menu bar on pywebview's window (``winmenu``);
+- on Linux, a Qt menu bar on pywebview's Qt window (``qtmenu``);
+both with shortcut labels, check marks, greyed-out items, and Open recent filled as the
+menu opens. Where neither can be used, pywebview's own menus are the fallback
+(``pywebview_menus``): fixed at start-up, with no check marks or greyed items.
 
 Python keeps the state the menus show: the display settings and recent projects are in
 OAK box's settings, and the page says which project is open (``Controller.set_context``).

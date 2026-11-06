@@ -14,18 +14,22 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
 from oakbox import assemble, cells, clean, steps
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 MODULE = "time_preview"
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "time_preview"
+    return steps.out_dir(project_dir, MODULE)
 
 
 def settings_key(settings: dict, project_dir: Path) -> dict:
@@ -102,14 +106,14 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    src = pdir / "out" / "1-assemble-sup.pickle"
+    src = steps.handoff(pdir, "1-assemble")
     if not src.is_file():
         raise RuntimeError("Write step 2 first (Model groups): this starts from its hand-off.")
     base = out_dir(pdir)
     work = base / "work"
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
-    settings_path = pdir / "in" / "settings.json"
+    settings_path = steps.settings_path(pdir)
     settings_text = settings_path.read_text(encoding="utf-8")
     os.chdir(work)
     from openavmkit import pipeline as pl
@@ -254,11 +258,11 @@ def detail(project_dir: Path, group: str) -> TimeDetail:
     path = out_dir(project_dir) / "detail.json"
     data = json.loads(path.read_text(encoding="utf-8")).get(group) if path.is_file() else None
     if data is None:
-        raise LookupError(group)
+        raise NotFound(group)
     try:
         return TimeDetail.model_validate(data)
     except ValueError as e:  # written by an older OAK box: work it out again
-        raise LookupError(group) from e
+        raise NotFound(group) from e
 
 
 class TimePreview(BaseModel):
@@ -268,7 +272,7 @@ class TimePreview(BaseModel):
     stale: bool = Field(description="The window, the time adjustment, or the data changed since it ran.")
 
 
-def view(project, project_dir: Path) -> TimePreview:
+def view(project: Project, project_dir: Path) -> TimePreview:
     j = steps.job(project.id, MODULE)
     path = out_dir(project_dir) / "preview.json"
     result, stale = None, False
@@ -279,7 +283,7 @@ def view(project, project_dir: Path) -> TimePreview:
     return TimePreview(status=j.status if j else ("done" if result else "never"), job=j, result=result, stale=stale)
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     j = steps.job(project.id, MODULE)
     if j and j.status == "running":
         return

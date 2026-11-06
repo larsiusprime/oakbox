@@ -1,7 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { navigate } from "../App";
 import {
   api,
   type EnrichResult,
@@ -20,6 +19,7 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { band, pct, when } from "../lib/format";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 
 const b = t.bringIn;

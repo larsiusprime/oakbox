@@ -1,8 +1,8 @@
-import { navigate } from "../App";
 import type { PrepareView } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { short, when } from "../lib/format";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { CollapseCard, FillCard } from "./CleanCards";
 import { LagStep } from "./LagStep";

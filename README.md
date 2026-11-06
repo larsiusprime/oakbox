@@ -38,7 +38,9 @@ On Windows, `build.bat` then `run.bat` do the last two steps.
 
 - [docs/RUNNING.md](docs/RUNNING.md): the portable bundle, developing the UI, editing wording live, the checks CI
   runs, and making a release.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the code is built: the modules, how a step runs, a project on
+  disk.
 - [AGENTS.md](AGENTS.md): conventions for working on the code (people and coding agents alike).
-- [SPEC.md](SPEC.md): what OAK box does and why, screen by screen.
+- [SPEC.md](SPEC.md): what OAK box does and why, screen by screen (an index of `docs/spec/`).
 
 MIT licensed. OpenAVMKit itself is dual-licensed (AGPL-3.0 or commercial): see its repository.

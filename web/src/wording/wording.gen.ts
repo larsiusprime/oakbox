@@ -164,29 +164,6 @@ export type Wording = {
     otherColumn: (a: { field: string | number }) => string;
     save: string;
     warnings: string;
-    histogram: {
-      title: (a: { name: string | number }) => string;
-      median: (a: { m: string | number }) => string;
-      below: (a: { n: number; v: string | number }) => string;
-      above: (a: { n: number; v: string | number }) => string;
-      empty: (a: { n: number }) => string;
-    };
-    salesParts: {
-      noFile: string;
-      asRead: string;
-      writtenAs: string;
-      byYear: string;
-      ruleIf: (a: { word: string | number }) => string;
-      allOf: string;
-      anyOf: string;
-      areTrue: string;
-      addCondition: string;
-      removeCondition: string;
-      picks: string;
-      matchHead: string;
-      matchParcels: string;
-      matchSales: string;
-    };
     rule: {
       choose: string;
       edit: string;
@@ -839,6 +816,29 @@ export type Wording = {
     change: string;
     nothing: string;
     from: (a: { column: string | number; file: string | number }) => string;
+    histogram: {
+      title: (a: { name: string | number }) => string;
+      median: (a: { m: string | number }) => string;
+      below: (a: { n: number; v: string | number }) => string;
+      above: (a: { n: number; v: string | number }) => string;
+      empty: (a: { n: number }) => string;
+    };
+    salesParts: {
+      noFile: string;
+      asRead: string;
+      writtenAs: string;
+      byYear: string;
+      ruleIf: (a: { word: string | number }) => string;
+      allOf: string;
+      anyOf: string;
+      areTrue: string;
+      addCondition: string;
+      removeCondition: string;
+      picks: string;
+      matchHead: string;
+      matchParcels: string;
+      matchSales: string;
+    };
   };
   tabs: {
     scrollLeft: string;
@@ -990,6 +990,7 @@ export type Wording = {
   };
   map: {
     basemap: string;
+    basemapTip: string;
     waitTitle: (a: { label: string | number }) => string;
     show: string;
     waitNote: string;
@@ -2244,6 +2245,10 @@ export type Wording = {
     delete: string;
     cancel: string;
     cleared: (a: { what: string | number }) => string;
+  };
+  format: {
+    todayAt: (a: { time: string | number }) => string;
+    dayAt: (a: { date: string | number; time: string | number }) => string;
   };
   machine: {
     title: string;

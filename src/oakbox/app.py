@@ -1,8 +1,8 @@
 """The app service: a local HTTP API for the UI, plus the built UI itself.
 
-Binds to 127.0.0.1 only. The UI talks to it over JSON and server-sent events
-(SPEC §6). Types are pydantic models, exported as OpenAPI for the TypeScript
-client.
+Binds to 127.0.0.1 only. The UI talks to it over JSON, and polls a running step for
+its progress (docs/ARCHITECTURE.md). Types are pydantic models, exported as OpenAPI
+for the TypeScript client.
 """
 
 from __future__ import annotations
@@ -14,12 +14,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from oakbox import __version__
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound, NotReady
 from oakbox.routes import app_settings, bring_in, clean, engines, groups, model, projects, steps, values, wizard
 
 WEB_DIST = Path(__file__).parent / "web"
@@ -70,6 +71,9 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Importing OpenAVMKit takes seconds; start it now so the first project opened doesn't wait.
     threading.Thread(target=_warm_engine, daemon=True).start()
     yield
+    from oakbox import steps
+
+    steps.stop_all()  # the service is shutting down: its runs end with it
 
 
 def create_app() -> FastAPI:
@@ -77,6 +81,16 @@ def create_app() -> FastAPI:
     # The API's own version, not the app's (that's /api/version): web/openapi.json is checked in, and shouldn't
     # change with every release.
     app = FastAPI(title="OAK box", version="1", lifespan=_lifespan)
+
+    # What a route didn't catch itself: an earlier step to do first (409), or something not there (404), in the
+    # same shape as an HTTPException's answer. Anything else is a bug: a 500, its traceback in the log.
+    @app.exception_handler(NotReady)
+    def not_ready(_request: Request, e: NotReady) -> JSONResponse:
+        return JSONResponse({"detail": str(e)}, status_code=409)
+
+    @app.exception_handler(NotFound)
+    def not_found(_request: Request, e: NotFound) -> JSONResponse:
+        return JSONResponse({"detail": f"Not found: {e}"}, status_code=404)
 
     @app.get("/api/version")
     def version() -> Versions:

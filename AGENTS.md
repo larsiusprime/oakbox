@@ -1,7 +1,10 @@
 # Guidance for coding agents (OAK box)
 
-OAK box is a desktop app, and **most of its users are on Windows**. Develop and test on Linux, but write for
-Windows first. SPEC.md is the product spec: keep it in step with what's built.
+OAK box is a desktop app, and **most of its users are on Windows**. Develop and test on Linux, but write for Windows
+first. The product spec is docs/spec/, one file per area; SPEC.md is its index (where each numbered section, §3.5,
+F9, D21, now is). Keep it in step with what's built, and keep a section's number when you move or change it: the
+code cites them. docs/ARCHITECTURE.md is how the code is built (the modules, a run from button to receipt, a project
+on disk): change it with the code it describes.
 
 ## Windows: text is always UTF-8 (non-negotiable)
 
@@ -16,7 +19,7 @@ encode character…`). Every time you touch I/O:
 - **CSVs and other files the user brings** may not be UTF-8 (Excel writes cp1252, sometimes with a BOM). Read them
   as their files are, never as the computer's default; `utf-8-sig` drops a BOM.
 - **Every Python process OAK box starts runs in UTF-8 mode** (`-X utf8`, `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`:
-  `bring_in.child_env()`), so OpenAVMKit's own reads, writes and prints are UTF-8 too. The launchers
+  `steps.child_env()`), so OpenAVMKit's own reads, writes and prints are UTF-8 too. The launchers
   (`Oakbox.cmd`, `oakbox.sh`, `run.bat`) start it with `-X utf8`. A new launcher or subprocess does the same.
 - **Printing:** `pythonw` has no console (`sys.stdout` is `None`); a console may not be UTF-8. The app reconfigures
   its streams to UTF-8; don't print where it can fail a run.
@@ -38,8 +41,8 @@ choices turned into settings.
 
 ## Steps that run the engine
 
-Every step that runs OpenAVMKit (Bring in data, Model groups, Check sales, Check my values, Prepare, the variable
-tests, the models) is built on `steps.py`, not on another step's module: a `steps.Step` (its module, its receipt,
+Every step that runs OpenAVMKit (Bring in data, Model groups, Check sales and its time adjustment preview, Check my
+values, Prepare the fields, the variable tests, Try them, Finalize) is built on `steps.py`, not on another step's module: a `steps.Step` (its module, its receipt,
 `key`: what it depends on now), and in its run `steps.workdir` / `steps.publish`, `steps.emit`, `steps.heartbeat()`,
 `steps.engine_notes`, `steps.main`. Its routes come from `_step_routes` in `routes/steps.py` (each area of the API
 is a router in `routes/`). A step that needs an earlier one done asks `<earlier>.STEP.accepted(...)` (cheap), never
@@ -52,10 +55,20 @@ again (`NEXT`: the one table of which step starts from which).
 ## Shared helpers
 
 A helper two modules or screens need lives in a shared place, never in one of them for the other to import:
-`web/src/lib/format.ts` (numbers, money, dates, sizes, percentages), `web/src/lib/hooks.ts`, `web/src/components/`;
-`cells.py` (a value read out of OpenAVMKit's tables), `steps.py` (the settings file, what a run wrote),
+`web/src/lib/format.ts` (numbers, money, dates, sizes, percentages), `web/src/lib/hooks.ts`, `web/src/lib/route.ts`
+(the address: `navigate`, the tabs), `web/src/lib/colours.ts`, `web/src/components/`;
+`cells.py` (a value read out of OpenAVMKit's tables), `steps.py` (the settings file, what a run wrote, and where
+each is: `out_dir`, `settings_path`, `handoff`, `look`),
 `fields.names()`. A step module's `_private` names are its own: what another module needs is made public, under a
 name that says what it is.
+
+A route that changes a project changes it inside `with editing(project_id) as project:` (`routes/common.py`; with
+`settings=True` when settings.json follows from the change), or holds `projects.lock(project_id)` from loading it to
+saving it. The page can send two changes at once, and without the lock the second save undoes the first.
+
+What a request names and isn't there raises `errors.NotFound` (404); an earlier step that has to run first raises
+`errors.NotReady` (409), its message saying which. Routes catch those, never `LookupError` itself, so a `KeyError`
+from a bug stays a 500 with its traceback.
 
 ## Screens
 
@@ -72,7 +85,7 @@ name that says what it is.
   numbers.
 - **Pills and colours:** a short status word or mark is `.pill` (`pill-ok`, `pill-warn`, `pill-bad`, `pill-info`;
   grey without), or `components/Pill.tsx` for a verdict. Colours are the `:root` tokens (`--ok`, `--ok-tint`,
-  `--ok-edge`, the same for warn, bad and info; `--select`, `--zebra`, `--cell-line`, `--rule`), never a hex in a
+  `--ok-edge`, the same for warn and bad; info has `--info-tint` and `--info-edge`; `--select`, `--zebra`, `--cell-line`, `--rule`), never a hex in a
   rule; the buttons' and titlebar's bevels are the exception.
   A chart is drawn at its own width in pixels (a `ResizeObserver`), not scaled, so its text stays its size.
 - **Funnels and other line lists** (a count, a phrase, a link): columns only as wide as their content, so a link
@@ -92,7 +105,7 @@ name that says what it is.
     facts (`fileFacts`: rows, shapes), a short check, other actions as icons, then the red −. What's set on the file goes
     in its body, inside the same outline: labels in one column, controls in the next (`.wiz-grid`, `.ly-grid`, `.set-grid` outside a file), so
     they line up like a two-column table. Not a sentence with a blank in it ("A sale demolished within [365] days…"),
-    which stays a sentence, nor a question with its answers below it (a radio group). A step with no file yet is `FilePicker`: a dashed outline round
+    which stays a sentence, nor a question with its answers below it (a radio group). A step with no file yet is `FilePicker` (`screens/WizardFiles.tsx`): a dashed outline round
     [Add a file…] and "or use existing:". Read-only lists and choices of files use `FileLine` (the same first line,
     no outline, no ✕).
   - **A file's own name** (`parcels.csv`) is always `FileName` (`.file-name`): mono on a faint box, like code in a
@@ -166,17 +179,22 @@ name that says what it is.
 
 ## Wording
 
-Every word the UI shows is in `web/src/wording/en.json` (ICU MessageFormat, SPEC §6.6), imported as `t` from
-`web/src/wording`; never a string literal in a screen. A message with arguments is called with them by name,
+Every word the page shows is in `web/src/wording/en.json` (ICU MessageFormat, SPEC §6.6), imported as `t` from
+`web/src/wording`; never a string literal in a screen. (Words that come from Python, such as receipts, checks, errors and the report, are still
+written in Python, in plain English: SPEC §6.6 has moving them as the next step. Write new ones as the ones beside
+them are.) A message with arguments is called with them by name,
 `t.x.plusOthers({ first, n })`; plurals and choices are the message's (`{n, plural, =1 {sale} other {sales}}`,
 `{mode, select, move {…} other {…}}`), never a `?:` in the screen. What needs code first (joining a list, changing
 case, arithmetic, picking between messages) is `say` in `wording/logic.ts`; a message never computes. After changing
 `en.json`, `npm run wording:types` (CI checks `wording.gen.ts` is up to date). A lookup keyed by an id from the backend is
 listed in `wording/records.json`. To edit wording in the running app: `edit-wording.bat` (Windows: the
-app window, its page from the dev server), or `npm run dev:wording` with
+app window, its page from the dev server), or `npm run dev:wording -- --host 127.0.0.1` with
 `python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. A message may have line breaks (`\n`) and paragraph breaks (`\n\n`): show
 wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
+**Naming the steps:** a step is its tab's short name (Inputs, Model groups, Sales, Evaluate, Variables, Models,
+Report): its page's title, "Looks right › Sales", "Press Looks right on Sales first". Its run keeps a verb (Bring in data,
+Check sales, Check my values), on its Run button and wherever the run is meant ("applies on the next Check sales").
 **Formatting:** `**bold**` and `*italic*` (`\*` for an asterisk). A message with any unescaped `*` is rich: its type
 in `wording.gen.ts` is `ReactNode` (or a function returning one), so it can only be shown, never used as text (a
 `title`, a placeholder, an `aria-label`, a template string); tsc says where. A prop that only ever shows wording

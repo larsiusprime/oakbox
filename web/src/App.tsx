@@ -5,35 +5,11 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { UndoToast } from "./components/UndoToast";
 import { onOpenSettings, type SettingsSection, useMachine } from "./lib/machine";
 import { back, record } from "./lib/place";
+import { parseHash, type Route } from "./lib/route";
 import { HomeScreen } from "./screens/HomeScreen";
 import { MachineCheck } from "./screens/MachineCheck";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
-import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
-
-export type Route =
-  | { name: "home" }
-  | { name: "new" }
-  | { name: "project"; id: string; tab?: TabId | null; step?: string | null };
-
-function parseHash(hash: string): Route {
-  if (hash === "#/new") return { name: "new" };
-  const match = /^#\/projects\/([a-z0-9-]+)(?:\/([a-z]+)(?:\/([^/]+))?)?$/.exec(hash);
-  if (!match?.[1]) return { name: "home" };
-  const wanted = match[2];
-  const tab = TABS.find((x) => x === wanted) ?? null;
-  // #/projects/<id>/fields/<step>: a step of the Data wizard (F3d); a file's own part is "more:<its name>".
-  const step = tab === "fields" && match[3] ? decodeURIComponent(match[3]) : null;
-  return { name: "project", id: match[1], tab, step };
-}
-
-export function navigate(route: Route): void {
-  if (route.name === "project") {
-    const step = route.tab === "fields" && route.step ? `/${encodeURIComponent(route.step)}` : "";
-    window.location.hash = `#/projects/${route.id}${route.tab ? `/${route.tab}` : ""}${step}`;
-  } else {
-    window.location.hash = route.name === "new" ? "#/new" : "#/";
-  }
-}
+import { ProjectScreen } from "./screens/ProjectScreen";
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));

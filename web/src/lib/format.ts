@@ -1,4 +1,5 @@
 /** How OAK box writes numbers, money, dates and sizes on screen: one way each, everywhere. */
+import { t } from "../wording";
 
 /** A number, its decimals fixed; "—" for none. */
 export function num(v: number | null | undefined, digits = 0): string {
@@ -7,10 +8,10 @@ export function num(v: number | null | undefined, digits = 0): string {
     : v.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-/** A number with its sign: "+0.152", "−12.6" (a true minus). */
 /** A ratio, to three places. */
 export const ratioText = (v: number | null | undefined) => num(v, 3);
 
+/** A number with its sign: "+0.152", "−12.6" (a true minus). */
 export function signed(v: number, digits: number): string {
   return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(digits)}`;
 }
@@ -70,8 +71,8 @@ export function when(iso: string): string {
   const d = new Date(iso);
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   return new Date().toDateString() === d.toDateString()
-    ? `today at ${time}`
-    : `${d.toLocaleDateString()} at ${time}`;
+    ? t.format.todayAt({ time })
+    : t.format.dayAt({ date: d.toLocaleDateString(), time });
 }
 
 /** A duration on a clock: "3:07". */

@@ -8,8 +8,8 @@ const lower = (s: string) => s.toLowerCase();
 // A message's own text can start with the live editor's invisible markers (npm run dev:wording): they're kept in front.
 const LEAD = "[\u200C\u200D\u2060-\u2064\uFEFF]*";
 const dropLead = (s: string, word: string) => s.replace(new RegExp(`^(${LEAD})${word}`), "$1");
-// "4 Check sales" → "Check sales": a step's name without its number.
-const unnumbered = (s: string) => dropLead(s, "\\d+ ");
+// "3. Sales" → "Sales": a tab's name without its number.
+const unnumbered = (s: string) => dropLead(s, "\\d+\\.? ");
 const list = (xs: string[]) => xs.join(", ");
 
 type Kinds = typeof t.wizard.reconcile.kinds;

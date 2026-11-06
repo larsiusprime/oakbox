@@ -116,7 +116,8 @@ export function drawTest(n = 20_000): Promise<number | null> {
         onAfterRender: () => {
           // The first frame with the layer drawn. WebGL only queues the drawing: reading a pixel back waits for it
           // to be done, as the screen would.
-          const gl = (canvas.getContext("webgl2") ?? canvas.getContext("webgl")) as WebGLRenderingContext | null;
+          const gl = (canvas.getContext("webgl2") ??
+            canvas.getContext("webgl")) as WebGLRenderingContext | null;
           gl?.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
           window.clearTimeout(timer);
           finish(Math.round(performance.now() - t0));

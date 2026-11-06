@@ -6849,6 +6849,11 @@
       ],
       "title": "Census Key End",
       "description": "The saved Census API key's last four characters; None: none."
+     },
+     "map_style": {
+      "type": "string",
+      "title": "Map Style",
+      "description": "The street map's MapLibre style address (appsettings.map_style)."
      }
     },
     "type": "object",
@@ -6856,7 +6861,8 @@
      "storage_location",
      "default_storage_location",
      "display",
-     "census_key_end"
+     "census_key_end",
+     "map_style"
     ],
     "title": "AppSettingsView"
    },
@@ -7924,7 +7930,13 @@
      "name_format": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "enum": [
+         "first_word",
+         "before_comma",
+         "last_word",
+         "custom"
+        ]
        },
        {
         "type": "null"

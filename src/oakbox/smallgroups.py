@@ -11,12 +11,16 @@ model a group to judge it.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
 from oakbox import model
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotFound
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 MIN_SALES = 15
 SANE = (0.5, 2.0)
@@ -72,7 +76,7 @@ def flags(group: model.ModelGroupResult) -> list[Flag]:
     return out
 
 
-def view(project, project_dir: Path) -> SmallGroupsView:
+def view(project: Project, project_dir: Path) -> SmallGroupsView:
     from oakbox import assemble
 
     receipt = model.STEP.state(project, project_dir, check=False).receipt
@@ -111,11 +115,11 @@ def view(project, project_dir: Path) -> SmallGroupsView:
     )
 
 
-def choose(project, project_dir: Path, group: str, choice: Choice) -> None:
+def choose(project: Project, project_dir: Path, group: str, choice: Choice) -> None:
     """Leave a flagged group unvalued, or model it anyway (only if some model produced values for it)."""
     v = next((x for x in view(project, project_dir).groups if x.id == group), None)
     if v is None:
-        raise LookupError(group)
+        raise NotFound(group)
     if choice == "model" and not v.can_model:
         raise ValueError(f"{v.name} can't be modeled: no model produced values for it.")
     if choice == "leave":

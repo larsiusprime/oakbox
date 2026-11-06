@@ -34,6 +34,7 @@ class AppSettingsView(BaseModel):
     default_storage_location: str
     display: Display
     census_key_end: str | None = Field(description="The saved Census API key's last four characters; None: none.")
+    map_style: str = Field(description="The street map's MapLibre style address (appsettings.map_style).")
 
 
 class CensusKey(BaseModel):
@@ -51,6 +52,7 @@ def _settings_view() -> AppSettingsView:
         default_storage_location=str(appsettings.default_storage()),
         display=Display(density=s.density, zoom=s.zoom),
         census_key_end=s.census_api_key[-4:] if s.census_api_key else None,
+        map_style=s.map_style or appsettings.MAP_STYLE,
     )
 
 

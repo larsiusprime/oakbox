@@ -54,6 +54,15 @@ describe("a step changed", () => {
     expect(qc.getQueryState(["prepare", "p1"])?.isInvalidated).toBe(true);
   });
 
+  it("leaves a step whose screen stays as it is, but still asks the steps after it", () => {
+    const qc = new QueryClient();
+    for (const k of ["ratio", "prepare", "final"]) qc.setQueryData([k, "p1"], { status: "done" });
+    stepChanged(qc, "p1", "clean", false, ["ratio"]);
+    expect(qc.getQueryState(["ratio", "p1"])?.isInvalidated).toBe(false);
+    expect(qc.getQueryState(["prepare", "p1"])?.isInvalidated).toBe(true);
+    expect(qc.getQueryState(["final", "p1"])?.isInvalidated).toBe(true);
+  });
+
   it("a model setup change also asks the variable tests again (what was tested is judged against it)", () => {
     const qc = new QueryClient();
     qc.setQueryData(["vartest", "p1"], { status: "done" });

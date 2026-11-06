@@ -16,21 +16,24 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from pydantic import Field
 
 from oakbox import assemble, clean, fields, steps
 from oakbox.datafiles import BaseModel
 
+if TYPE_CHECKING:
+    from oakbox.projects import Project
+
 MODULE = "prepare"
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "prepare"
+    return steps.out_dir(project_dir, MODULE)
 
 
-def settings_key(settings: dict, project, project_dir: Path) -> dict:
+def settings_key(settings: dict, project: Project, project_dir: Path) -> dict:
     """What this run depends on: the Check sales run it starts from, and the fills and folding."""
     process = settings.get("data", {}).get("process", {})
     return {
@@ -125,7 +128,7 @@ def run(project_id: str) -> None:
                 )
             )
     written = []
-    for path in [pdir / "out" / "2-clean-sup.pickle", *sorted((pdir / "out" / "look").glob("2-clean-*"))]:
+    for path in [steps.handoff(pdir, "2-clean"), *sorted(steps.look_dir(pdir).glob("2-clean-*"))]:
         if path.is_file():
             written.append(
                 assemble.Written(
@@ -166,10 +169,11 @@ STEP = steps.Step(
     key=lambda project, pdir: settings_key(steps.read_settings(pdir), project, pdir),
     after=clean.STEP,
     again="Prepare the fields again first: something changed since it ran.",
+    place="Variables › What changed",
 )
 
 
-def blocked(project, project_dir: Path) -> list[str]:
+def blocked(project: Project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
@@ -178,7 +182,7 @@ def blocked(project, project_dir: Path) -> list[str]:
     return []
 
 
-def view(project, project_dir: Path) -> PrepareView:
+def view(project: Project, project_dir: Path) -> PrepareView:
     s = STEP.state(project, project_dir)
     return PrepareView(
         status=s.status,
@@ -190,7 +194,7 @@ def view(project, project_dir: Path) -> PrepareView:
     )
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     STEP.start(project.id, project_dir, blocked(project, project_dir))
 
 

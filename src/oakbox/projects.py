@@ -3,10 +3,14 @@
 Layout (SPEC §3.0 F1, §6)::
 
     <storage location>/<project name>/
-        oakbox.json        OAK box's own state: the project's facts and input files
+        oakbox.json        OAK box's own state: everything the user chose
         in/                the user's data files + settings.json for OpenAVMKit
+        in/oakbox/         OAK box's own inputs to runs (sales kept and excluded, time adjustment files)
         out/               OpenAVMKit outputs
+        out/oakbox/<step>/ each step's last finished run: its receipt, and what it depended on
         cache/             enrichment cache
+
+More in docs/ARCHITECTURE.md ("A project on disk").
 
 The folder is an OpenAVMKit locality, so the engine runs on it directly. Projects
 can live anywhere (the storage location can change), so they are found by id
@@ -22,6 +26,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import uuid
 from functools import cache
 from importlib import resources
@@ -30,7 +35,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from oakbox import appsettings, atomic
+from oakbox import appsettings, atomic, steps
 from oakbox import clean as clean_settings
 from oakbox import model as model_calls
 from oakbox.clean import CleanState
@@ -130,26 +135,26 @@ class WizardState(BaseModel):
 
     @model_validator(mode="after")
     def _big_five_parts(self) -> WizardState:
-        for steps in (self.visited, self.skipped, self.confirmed):
-            if "big_five" in steps:
-                steps.extend(p for p in BIG_FIVE_PARTS if p not in steps)
+        for done in (self.visited, self.skipped, self.confirmed):
+            if "big_five" in done:
+                done.extend(p for p in BIG_FIVE_PARTS if p not in done)
             # Sales was one step (the file and its four fields); now five parts.
-            if "sales" in steps:
-                steps.extend(p for p in SALES_PARTS if p not in steps)
+            if "sales" in done:
+                done.extend(p for p in SALES_PARTS if p not in done)
             # The sales file's part (its IDs) was "sales_file", before the file moved to Sales itself.
-            if "sales_file" in steps:
-                steps.remove("sales_file")
-                if "sales_ids" not in steps:
-                    steps.append("sales_ids")
+            if "sales_file" in done:
+                done.remove("sales_file")
+                if "sales_ids" not in done:
+                    done.append("sales_ids")
             # More files was one step; now its files are added on a part of their own, then a part each.
-            if "more_files" in steps and "more_add" not in steps:
-                steps.append("more_add")
+            if "more_files" in done and "more_add" not in done:
+                done.append("more_add")
             # Location was one step (the address, the coordinates, the location fields); now three parts.
-            if "location" in steps:
-                steps.extend(p for p in ("address", "coordinates") if p not in steps)
+            if "location" in done:
+                done.extend(p for p in ("address", "coordinates") if p not in done)
             # Your own fields were on Land use & building type.
-            if "property_type" in steps and "custom" not in steps:
-                steps.append("custom")
+            if "property_type" in done and "custom" not in done:
+                done.append("custom")
         return self
 
 
@@ -242,6 +247,14 @@ class Project(BaseModel):
         default_factory=dict, description="Step -> the settings it was run with when Looks right was pressed."
     )
 
+    def file(self, name: str) -> DataFile | None:
+        """An input file by its name in OAK box; None when there's none (callers say what that means)."""
+        return next((f for f in self.files if f.name == name), None)
+
+    def base_file(self) -> DataFile | None:
+        """The parcel universe's file: the one the others join onto (wizard.base)."""
+        return self.file(self.wizard.base) if self.wizard.base else None
+
 
 # ---------- Finding projects ----------
 
@@ -300,10 +313,23 @@ def load(project_id: str) -> Project:
 
 
 def save(project: Project, folder: Path | None = None) -> None:
-    from oakbox import atomic
-
+    """Write oakbox.json whole. A change loads the project, changes it and saves it: hold `lock` from the load to
+    the save (routes/common.editing does), or two changes at once each save what they loaded, the second undoing
+    the first."""
     folder = folder or project_dir(project.id)
     atomic.save_text(folder / "oakbox.json", project.model_dump_json(indent=2))
+
+
+# One lock per project, held by a change from loading the project to saving it: the app answers requests on several
+# threads, and the page can send two changes at once (a step shown while a field is set).
+_locks: dict[str, threading.RLock] = {}
+_locks_guard = threading.Lock()
+
+
+def lock(project_id: str) -> threading.RLock:
+    """The project's lock. Re-entrant, so code holding it can call code that takes it again."""
+    with _locks_guard:
+        return _locks.setdefault(project_id, threading.RLock())
 
 
 # ---------- Creating ----------
@@ -534,7 +560,7 @@ def _condos(project: Project, out: dict) -> None:
     the parcel universe file (prefix), or the parent ID in the units file, cleaned as the parcel ID is (parent).
     """
     u = units_file(project)
-    base = next((f for f in project.files if f.name == project.wizard.base), None)
+    base = project.base_file()
     if u is None or base is None or u.units is None or u.units.column is None:
         return
     units = u.units
@@ -651,7 +677,7 @@ def refresh_settings(project: Project) -> bool:
     """Rewrite settings.json when this OAK box would write it differently (a newer OAK box): on opening the project,
     so what that changes shows at once (Bring in data out of date, say), not at the next unrelated change. True when
     it was rewritten."""
-    path = project_dir(project.id) / "in" / "settings.json"
+    path = steps.settings_path(project_dir(project.id))
     if not path.exists():
         return False
     try:
@@ -665,7 +691,7 @@ def refresh_settings(project: Project) -> bool:
 
 
 def write_settings(project: Project) -> Path:
-    path = project_dir(project.id) / "in" / "settings.json"
+    path = steps.settings_path(project_dir(project.id))
     settings = base_settings(project)
     # In one step: the app reads it while a run is being started.
     atomic.save_text(path, json.dumps(settings, indent=2))

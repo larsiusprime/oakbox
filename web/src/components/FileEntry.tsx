@@ -66,7 +66,7 @@ export function FileEntry({
   facts?: ReactNode;
   /** A short check on the file itself, after its facts. */
   status?: ReactNode;
-  /** Other actions, as icon buttons, before the −. */
+  /** Other actions, as icon buttons, before the red −. */
   actions?: ReactNode;
   /** Takes the file off its step (the red −), and `undo` puts it back. */
   onRemove?: () => void;

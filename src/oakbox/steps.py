@@ -9,11 +9,13 @@ depends on now hashes differently, and accepted (Looks right) when the hash it w
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -22,12 +24,15 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generic, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar, cast
 
 import pydantic
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 Status = Literal["never", "running", "failed", "stopped", "done"]
 
@@ -61,24 +66,67 @@ _procs: dict[str, subprocess.Popen] = {}
 _lock = threading.Lock()
 
 
+# ---------- Where things are in a project (docs/ARCHITECTURE.md, "A project on disk") ----------
+
+Notebook = Literal["1-assemble", "2-clean"]  # OpenAVMKit's notebooks whose output a later step starts from
+
+
+def out_dir(project_dir: Path, module: str) -> Path:
+    """OAK box's own folder for a step: its last finished run (receipt.json, settings.json, its tables)."""
+    return project_dir / "out" / "oakbox" / module
+
+
+def settings_path(project_dir: Path) -> Path:
+    """The project's settings as written for OpenAVMKit (projects.write_settings)."""
+    return project_dir / "in" / "settings.json"
+
+
+def handoff(project_dir: Path, notebook: Notebook) -> Path:
+    """A notebook's hand-off as OpenAVMKit writes it (write_notebook_output_sup): out/<notebook>-sup.pickle."""
+    return project_dir / "out" / f"{notebook}-sup.pickle"
+
+
+def look_dir(project_dir: Path) -> Path:
+    """Where OpenAVMKit writes a notebook's tables to look at (Parquet, and the formats asked for)."""
+    return project_dir / "out" / "look"
+
+
+def look(project_dir: Path, name: str) -> Path:
+    """One of those tables, as Parquet: look(pdir, "2-clean-universe")."""
+    return look_dir(project_dir) / f"{name}.parquet"
+
+
+APP_PID = "OAKBOX_APP_PID"  # a run's environment: the app that started it, which it doesn't outlive (die_with_app)
+
+
+def command(module: str, project_id: str) -> list[str]:
+    """How a step's process is started (tests start something else here)."""
+    return [sys.executable, "-X", "utf8", "-m", f"oakbox.{module}", project_id]
+
+
 def start(project_id: str, project_dir: Path, module: str) -> Job:
     """Run `python -m oakbox.<module> <project id>` in a process of its own, following the JSON step lines it
-    prints. One run per module and project at a time; its log is out/oakbox/<module>.log."""
+    prints. One run per module and project at a time; its log is out/oakbox/<module>.log.
+
+    On Linux and macOS the run leads a process group of its own, so stopping it reaches every process it started
+    (OpenAVMKit's workers), and none of them gets the terminal's Ctrl+C meant for the app."""
     key = f"{module}:{project_id}"
     with _lock:
         if key in _jobs and _jobs[key].status == "running":
             raise ValueError("It's already running.")
-        log = project_dir / "out" / "oakbox" / f"{module}.log"
+        log = out_dir(project_dir, module).with_suffix(".log")
         log.parent.mkdir(parents=True, exist_ok=True)
-        proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
-            [sys.executable, "-X", "utf8", "-m", f"oakbox.{module}", project_id],
-            stdout=subprocess.PIPE,
-            stderr=log.open("w", encoding="utf-8"),
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=child_env(),
-        )
+        with log.open("w", encoding="utf-8") as err:  # the run has its own handle; the app keeps none open
+            proc = subprocess.Popen(  # noqa: S603 - our own module, with the project's id
+                command(module, project_id),
+                stdout=subprocess.PIPE,
+                stderr=err,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env={**child_env(), APP_PID: str(os.getpid())},
+                start_new_session=sys.platform != "win32",
+            )
         job = Job(status="running", started=time.time(), heard=time.time())
         _jobs[key], _procs[key] = job, proc
 
@@ -163,13 +211,64 @@ def _keys() -> dict[str, str]:
 
 
 def stop(project_id: str, module: str) -> None:
+    """Stop a run and every process it started; the page isn't kept waiting while they go."""
     key = f"{module}:{project_id}"
     proc = _procs.get(key)
     job = _jobs.get(key)
     if proc is None or job is None or job.status != "running":
         return
     job.status = "stopped"
-    proc.terminate()
+    threading.Thread(target=end, args=(proc,), daemon=True).start()
+
+
+def stop_all() -> None:
+    """Stop every run going, and every process they started, and wait until they've gone: when the app closes, no
+    process of OAK box's is left behind. Safe to call more than once."""
+    with _lock:
+        going = [(key, p) for key, p in _procs.items() if p.poll() is None]
+    for key, _ in going:
+        if (j := _jobs.get(key)) is not None and j.status == "running":
+            j.status = "stopped"
+    threads = [threading.Thread(target=end, args=(p,)) for _, p in going]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+
+def end(proc: subprocess.Popen, grace: float = 3.0) -> None:
+    """End a run's process and every process it started: asked to stop, then killed if still there after `grace`
+    seconds. On Linux and macOS its whole process group (see start), which also takes workers started after the
+    family was listed."""
+    import psutil
+
+    try:
+        family = [psutil.Process(proc.pid), *psutil.Process(proc.pid).children(recursive=True)]
+    except psutil.NoSuchProcess:
+        family = []
+    group = proc.pid if sys.platform != "win32" else None
+
+    def signal_all(sig: int) -> None:
+        if group is not None:
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(group, sig)
+        for p in family:
+            with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied):
+                if sig == _KILL:
+                    p.kill()
+                else:
+                    p.send_signal(sig)
+
+    signal_all(signal.SIGTERM)
+    _, alive = psutil.wait_procs(family, timeout=grace)
+    if alive or group is not None:
+        signal_all(_KILL)  # the group again too: a worker started meanwhile isn't in the family
+        psutil.wait_procs(alive, timeout=grace)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        proc.wait(timeout=grace)
+
+
+_KILL = getattr(signal, "SIGKILL", signal.SIGTERM)  # Windows: psutil's kill() is TerminateProcess
 
 
 def job(project_id: str, module: str) -> Job | None:
@@ -187,7 +286,7 @@ def running_projects() -> list[str]:
 
 def skip_path(project_dir: Path, module: str) -> Path:
     """Where the app asks a running run to skip a part (one name per line): the run checks it at each checkpoint."""
-    return project_dir / "out" / "oakbox" / f"{module}.skip"
+    return out_dir(project_dir, module).with_suffix(".skip")
 
 
 def skip(project_id: str, project_dir: Path, part: str, module: str) -> None:
@@ -292,14 +391,14 @@ def publish(tmp: Path, final: Path) -> None:
 
 def read_settings(project_dir: Path) -> dict:
     """The project's settings as written for OpenAVMKit (in/settings.json), as they stand."""
-    return json.loads((project_dir / "in" / "settings.json").read_text(encoding="utf-8"))
+    return json.loads(settings_path(project_dir).read_text(encoding="utf-8"))
 
 
 def engine_settings(project_dir: Path) -> dict:
     """The same, as OpenAVMKit reads them (its defaults filled in)."""
     from openavmkit.utilities.settings import load_settings
 
-    return cast(dict, load_settings(str(project_dir / "in" / "settings.json"), warning=False))
+    return cast(dict, load_settings(str(settings_path(project_dir)), warning=False))
 
 
 # The files the runs write, in words (by the start of their name).
@@ -325,9 +424,37 @@ def key_hash(key: Any) -> str:
     return hashlib.sha256(json.dumps(key, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
+def die_with_app(every: float = 1.0) -> None:
+    """In a run: when the app that started it is gone, however it went (closed, crashed, killed), end every process
+    the run started, then the run itself. The app stops its runs as it closes (stop_all); this covers the ways it
+    can't. A run started by hand (no OAKBOX_APP_PID) has no app to follow."""
+    pid = os.environ.get(APP_PID)
+    if not pid:
+        return
+    import psutil
+
+    try:
+        app = psutil.Process(int(pid))
+    except (ValueError, psutil.NoSuchProcess):
+        app = None
+
+    def watch() -> None:
+        # is_running() also notices the app's number taken by a new process (it compares start times).
+        while app is not None and app.is_running():
+            time.sleep(every)
+        with contextlib.suppress(psutil.Error):
+            for child in psutil.Process().children(recursive=True):
+                with contextlib.suppress(psutil.Error):
+                    child.kill()
+        os._exit(1)
+
+    threading.Thread(target=watch, daemon=True).start()
+
+
 def main(run: Callable[[str], None]) -> None:
     """A step's process: run it for the project named on the command line; on an error, the log's last line says
     what went wrong (the app shows it)."""
+    die_with_app()
     from oakbox.net import use_system_certificates
 
     use_system_certificates()
@@ -389,8 +516,9 @@ def _hash_field(ran: dict) -> str | None:
 
 @dataclass(frozen=True)
 class Step(Generic[R]):
-    """One step: its module, its receipt, what it depends on now (`key`), and the fingerprint its last run left
-    (`ran_hash`, from what the run wrote to settings.json: by default its "hash").
+    """One step: its module, its title (what its run is called: "Check sales"), its receipt, what it depends on now
+    (`key`), and the fingerprint its last run left (`ran_hash`, from what the run wrote to settings.json: by default
+    its "hash"). `place` is where its Looks right is, when that isn't the title (its tab: "Sales").
 
     A step is out of date when its own calls change or the step it starts from (`after`) has run again since
     (its key holds that step's `ran_at`); nothing further back. A change further back shows where it was made, and
@@ -400,13 +528,14 @@ class Step(Generic[R]):
     module: str
     title: str
     receipt: type[R]
-    key: Callable[[Any, Path], Any]
+    key: Callable[[Project, Path], Any]
     after: Step | None = None
     ran_hash: Callable[[dict], str | None] = _hash_field
     again: str = "Run it again first: something changed since it ran."
+    place: str | None = None  # where its Looks right is, in words, when not its title: "Sales" (its tab), not the run
 
     def out_dir(self, project_dir: Path) -> Path:
-        return project_dir / "out" / "oakbox" / self.module
+        return out_dir(project_dir, self.module)
 
     def ran(self, project_dir: Path) -> tuple[R | None, dict | None]:
         return read(self.out_dir(project_dir), self.receipt)
@@ -417,10 +546,10 @@ class Step(Generic[R]):
         r, _ = self.ran(project_dir)
         return cast(str | None, getattr(r, "ran_at", None)) if r else None
 
-    def now(self, project, project_dir: Path) -> str:
+    def now(self, project: Project, project_dir: Path) -> str:
         return key_hash(self.key(project, project_dir))
 
-    def state(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
+    def state(self, project: Project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
         """Its job, receipt and whether the receipt still holds; and what an earlier step needs first, if anything.
         `check=False` when what it depends on can't be worked out yet (it's blocked): then it isn't called out of
         date."""
@@ -429,7 +558,7 @@ class Step(Generic[R]):
         s.accepted = s.accepted and s.waiting is None
         return s
 
-    def waiting(self, project, project_dir: Path) -> str | None:
+    def waiting(self, project: Project, project_dir: Path) -> str | None:
         """What the earliest step before this one that isn't accepted on an up-to-date run needs, in words; None
         when each is."""
         if self.after is None:
@@ -442,9 +571,9 @@ class Step(Generic[R]):
             return None
         if s.receipt is not None and s.stale:
             return f"Run {self.after.title} again first: something it depends on changed since it ran."
-        return f"Press Looks right on {self.after.title} first: this starts from what it wrote."
+        return f"Press Looks right on {self.after.place or self.after.title} first: this starts from what it wrote."
 
-    def _own(self, project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
+    def _own(self, project: Project, project_dir: Path, now: str | None = None, check: bool = True) -> State[R]:
         r, ran = self.ran(project_dir)
         j = job(project.id, self.module)
         if check and now is None:
@@ -460,11 +589,11 @@ class Step(Generic[R]):
             now=now,
         )
 
-    def accepted(self, project, project_dir: Path) -> bool:
+    def accepted(self, project: Project, project_dir: Path) -> bool:
         """Looks right was pressed on its last run, and nothing it depends on has changed since."""
         return self.state(project, project_dir).accepted
 
-    def accept(self, project, project_dir: Path) -> None:
+    def accept(self, project: Project, project_dir: Path) -> None:
         s = self.state(project, project_dir)
         if s.waiting:
             raise ValueError(s.waiting)

@@ -7,9 +7,10 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from oakbox import assemble, groups, projects
+from oakbox import assemble, groups, projects, steps
 from oakbox.datafiles import BaseModel
-from oakbox.routes.common import assemble_view, load_project
+from oakbox.errors import NotFound, NotReady
+from oakbox.routes.common import assemble_view, editing, load_project
 
 router = APIRouter()
 
@@ -47,26 +48,22 @@ def groups_state(project_id: str) -> groups.GroupsView:
 @router.post("/api/projects/{project_id}/groups/start")
 def groups_start(project_id: str, body: GroupsStart) -> groups.GroupsView:
     """Start from scratch (no groups yet) or from a suggested set made from the property-type fields."""
-    project = load_project(project_id)
-    pdir = projects.project_dir(project_id)
-    try:
-        project.groups = groups.suggest(pdir) if body.how == "suggested" else []
-    except LookupError as e:
-        raise HTTPException(409, str(e)) from e
-    project.groups_start = body.how
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        pdir = projects.project_dir(project_id)
+        try:
+            project.groups = groups.suggest(pdir) if body.how == "suggested" else []
+        except NotReady as e:
+            raise HTTPException(409, str(e)) from e
+        project.groups_start = body.how
     return _groups_view(project)
 
 
 @router.put("/api/projects/{project_id}/groups")
 def groups_save(project_id: str, body: GroupsBody) -> groups.GroupsView:
     """Save the groups, in order, and write them into the settings."""
-    project = load_project(project_id)
-    project.groups = groups.clean(projects.project_dir(project_id), body.groups)
-    project.groups_start = project.groups_start or "scratch"
-    projects.save(project)
-    projects.write_settings(project)
+    with editing(project_id, settings=True) as project:
+        project.groups = groups.clean(projects.project_dir(project_id), body.groups)
+        project.groups_start = project.groups_start or "scratch"
     return _groups_view(project)
 
 
@@ -77,7 +74,7 @@ def groups_preview(project_id: str, body: GroupsBody) -> groups.GroupsPreview:
     project = load_project(project_id)
     try:
         return groups.preview(project, projects.project_dir(project_id), body.groups)
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -87,7 +84,7 @@ def groups_inspect(project_id: str, body: InspectBody) -> groups.ParcelInspect:
     load_project(project_id)
     try:
         return groups.inspect(projects.project_dir(project_id), body.groups, body.index)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No parcel {body.index}.") from e
 
 
@@ -97,7 +94,7 @@ def groups_values(project_id: str, field: str) -> groups.GroupValues:
     load_project(project_id)
     try:
         return groups.values(projects.project_dir(project_id), field)
-    except LookupError as e:
+    except NotFound as e:
         raise HTTPException(404, f"No field {field} in the parcel universe.") from e
 
 
@@ -107,7 +104,7 @@ def groups_shapes(project_id: str) -> FileResponse:
     load_project(project_id)
     try:
         return FileResponse(groups.shapes_path(projects.project_dir(project_id)), media_type="application/geo+json")
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -117,7 +114,7 @@ def groups_centres(project_id: str) -> FileResponse:
     load_project(project_id)
     try:
         return FileResponse(groups.centres_path(projects.project_dir(project_id)), media_type="application/json")
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -127,9 +124,8 @@ def groups_centres(project_id: str) -> FileResponse:
 @router.put("/api/projects/{project_id}/assemble/exports")
 def assemble_exports(project_id: str, body: AssembleExports) -> assemble.AssembleView:
     """Also write the output as GeoPackage, zipped Shapefile or CSV, for map viewers and spreadsheets."""
-    project = load_project(project_id)
-    project.assemble_exports = sorted(set(body.exports))
-    projects.save(project)
+    with editing(project_id) as project:
+        project.assemble_exports = sorted(set(body.exports))
     return assemble_view(project)
 
 
@@ -137,6 +133,6 @@ def assemble_exports(project_id: str, body: AssembleExports) -> assemble.Assembl
 def assemble_show(project_id: str) -> None:
     """Show the written files (out/look/) in the file manager."""
     load_project(project_id)
-    look = projects.project_dir(project_id) / "out" / "look"
+    look = steps.look_dir(projects.project_dir(project_id))
     first = next(iter(sorted(look.glob("1-assemble-universe*"))), None)
     projects.show_file(first or look)

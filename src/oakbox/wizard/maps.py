@@ -16,8 +16,9 @@ from oakbox.datafiles import (
     DataFile,
     Overlay,
 )
+from oakbox.errors import NotFound
 from oakbox.projects import Project
-from oakbox.wizard.files import Files, _by_key, base_file, file_stamp
+from oakbox.wizard.files import Files, _by_key, file_stamp
 from oakbox.wizard.models import Check, LayerView, Left
 from oakbox.wizard.user_fields import TAKEN
 
@@ -95,11 +96,11 @@ def location_map(project: Project, in_dir: Path, name: str) -> LocationMap:
     from collections import Counter
 
     if name not in project.wizard.locations:
-        raise LookupError(name)
+        raise NotFound(name)
     entry = next((f for f in project.files if name in f.load and f.holds not in ("sales", "overlay", "unused")), None)
-    base = base_file(project)
+    base = project.base_file()
     if entry is None or base is None or not (in_dir / base.filename).is_file():
-        raise LookupError(name)
+        raise NotFound(name)
     files = Files(project, in_dir)
     values = files.values(entry.name, entry.load[name][0])
     by_id: dict[str, str] = {}
@@ -122,7 +123,7 @@ def location_map(project: Project, in_dir: Path, name: str) -> LocationMap:
 
 
 def map_view(project: Project, in_dir: Path) -> MapView:
-    base = base_file(project)
+    base = project.base_file()
     center = (project.center.latitude, project.center.longitude) if project.center else None
     if base is None or not (in_dir / base.filename).is_file():
         return MapView(points=[], middle=None, center=center, parcels=0)
@@ -167,7 +168,7 @@ def coverage(base: tuple[str, float, int], base_layer: str | None, other: tuple[
 
 def layers(project: Project, in_dir: Path) -> list[LayerView]:
     files = Files(project, in_dir)
-    base = base_file(project)
+    base = project.base_file()
     out = []
     for f in project.files:
         if f.holds != "overlay" or not (in_dir / f.filename).is_file():
@@ -253,9 +254,9 @@ def _taken_names(project: Project, skip: str) -> set[str]:
 
 def set_overlay(project: Project, in_dir: Path, name: str, overlay: Overlay | None) -> None:
     """Make a file a map layer used as said (stamp or distance); None sets it aside."""
-    entry = next((f for f in project.files if f.name == name), None)
+    entry = project.file(name)
     if entry is None:
-        raise LookupError(name)
+        raise NotFound(name)
     if overlay is None:
         entry.holds, entry.overlay = "unused", None
         return
@@ -309,7 +310,7 @@ def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
 
     entry = next((f for f in project.files if f.name == name and f.holds == "overlay"), None)
     if entry is None:
-        raise LookupError(name)
+        raise NotFound(name)
     gdf = _geo(in_dir, entry)
     if gdf.crs is None:
         raise ValueError(f"{name} has no coordinate system, so it can't be placed on a map.")

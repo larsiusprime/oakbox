@@ -1,7 +1,9 @@
 /** Every map in OAK box: MapLibre for the street map underneath, deck.gl (WebGL) for what's drawn on it, so a
- * county's half a million parcels draw as smoothly as a few hundred sales. A "Street map" box takes the street map
- * away (a plain background, to see only the colours); each map starts as Settings › Performance says (SPEC §5),
- * and on a computer where maps wait for a click, each starts as a Show map button in its place. */
+ * county's half a million parcels draw as smoothly as a few hundred sales. The street map is OpenFreeMap's vector
+ * style (or a tile server of one's own: the app settings' map_style); a "Street map" box takes it away (a plain
+ * background, to see only the colours). Each map starts with it on or off as Settings › Performance says (SPEC §5),
+ * and on a computer where maps wait for a click, each starts as a Show map button in its place. Offline, or with the
+ * box off, the map is the plain background, and what's drawn on it is all there. */
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import * as maplibregl from "maplibre-gl";
@@ -9,8 +11,10 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
+import { useAppSettings } from "../api/app";
 import { openSettings, useResolved } from "../lib/machine";
 import { t } from "../wording";
+import { InfoTip } from "./Tip";
 
 // MapLibre looks for its worker beside its own file, which the bundle doesn't keep: here it is, bundled.
 maplibregl.setWorkerUrl(workerUrl);
@@ -95,23 +99,28 @@ const TIP = {
   borderRadius: "4px",
 };
 
-const STYLE: maplibregl.StyleSpecification = {
+/** No street map: a plain background. */
+const PLAIN: maplibregl.StyleSpecification = {
   version: 8,
-  sources: {
-    osm: {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap ↗</a> contributors',
-    },
-  },
-  layers: [
-    { id: "plain", type: "background", paint: { "background-color": "#fafafa" } },
-    { id: "osm", type: "raster", source: "osm" },
-  ],
+  sources: {},
+  layers: [{ id: "plain", type: "background", paint: { "background-color": "#fafafa" } }],
 };
+
+// Each street map style, fetched once for every map; one that couldn't be fetched (offline) is asked again next time.
+const styles = new Map<string, Promise<maplibregl.StyleSpecification>>();
+
+function streetStyle(url: string): Promise<maplibregl.StyleSpecification> {
+  let style = styles.get(url);
+  if (!style) {
+    style = fetch(url).then((r) => {
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json() as Promise<maplibregl.StyleSpecification>;
+    });
+    styles.set(url, style);
+    style.catch(() => styles.delete(url));
+  }
+  return style;
+}
 
 type Props = Omit<Parameters<typeof MapCanvas>[0], "street">;
 
@@ -177,19 +186,16 @@ function MapCanvas({
   const overlay = useRef<MapboxOverlay | null>(null);
   const [street, setStreet] = useState(startStreet);
   const [ready, setReady] = useState(false);
-  const first = useRef({ bounds, scrollZoom, street, onMap });
+  const styleUrl = useAppSettings().data?.map_style;
+  const first = useRef({ bounds, scrollZoom, onMap });
 
   // The map, once.
   useEffect(() => {
     if (!el.current) return;
-    const { bounds: b, scrollZoom: wheel, street: on, onMap: give } = first.current;
+    const { bounds: b, scrollZoom: wheel, onMap: give } = first.current;
     const m = new maplibregl.Map({
       container: el.current,
-      // Hidden from the start when off: no street map tiles are fetched until it's turned on.
-      style: {
-        ...STYLE,
-        layers: STYLE.layers.map((l) => (l.id === "osm" ? { ...l, layout: { visibility: on ? "visible" : "none" } } : l)),
-      },
+      style: PLAIN,
       ...(b ? { bounds: b, fitBoundsOptions: { padding: 12 } } : { center: [0, 0], zoom: 1 }),
       attributionControl: { compact: true },
       dragRotate: false,
@@ -213,10 +219,7 @@ function MapCanvas({
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     const o = new MapboxOverlay({ interleaved: false, layers: [] });
     m.addControl(o);
-    m.on("load", () => {
-      m.setLayoutProperty("osm", "visibility", on ? "visible" : "none");
-      setReady(true);
-    });
+    m.on("load", () => setReady(true));
     map.current = m;
     overlay.current = o;
     give?.(m);
@@ -264,16 +267,34 @@ function MapCanvas({
     return () => clearTimeout(id);
   }, [resizeKey]);
 
+  // The street map once its style has come (the plain background until then, and if it can't come).
   useEffect(() => {
-    if (ready) map.current?.setLayoutProperty("osm", "visibility", street ? "visible" : "none");
-  }, [street, ready]);
+    const m = map.current;
+    if (!ready || !m) return;
+    if (!street || !styleUrl) {
+      m.setStyle(PLAIN);
+      return;
+    }
+    let gone = false;
+    streetStyle(styleUrl).then(
+      (style) => {
+        if (!gone) m.setStyle(style);
+      },
+      () => {
+        if (!gone) m.setStyle(PLAIN);
+      },
+    );
+    return () => {
+      gone = true;
+    };
+  }, [street, styleUrl, ready]);
 
   return (
     <div className={`map-view ${className}`}>
       <div ref={el} className="map-canvas" role="img" aria-label={label} />
       <label className="map-street">
         <input type="checkbox" checked={street} onChange={(e) => setStreet(e.target.checked)} />
-        {t.map.basemap}
+        <InfoTip label={t.map.basemap} text={t.map.basemapTip} />
       </label>
       {children}
     </div>

@@ -18,8 +18,10 @@ from typing import Literal
 
 from pydantic import Field
 
+from oakbox import steps
 from oakbox.bring_in import out_dir
 from oakbox.datafiles import BaseModel, Condition, Rule
+from oakbox.errors import NotFound, NotReady
 from oakbox.projects import ModelGroup, Project, group_filter
 
 MIN_SALES = 15  # fewer improved sales than this: too few to model (SPEC §3.5)
@@ -53,7 +55,7 @@ UNASSIGNED = "#9a9a9a"
 
 def _stamp(path: Path) -> tuple[str, float]:
     if not path.is_file():
-        raise LookupError("Bring in data first: model groups are made from its parcel universe.")
+        raise NotReady("Bring in data first: model groups are made from its parcel universe.")
     return str(path), path.stat().st_mtime
 
 
@@ -171,7 +173,7 @@ def values(project_dir: Path, field: str) -> GroupValues:
 
     u, s = _data(project_dir)
     if field not in u.columns:
-        raise LookupError(field)
+        raise NotFound(field)
     text = u[field].map(_text)
     vacant = u["is_vacant"].fillna(False).astype(bool) if "is_vacant" in u.columns else pd.Series(False, index=u.index)
     sold = s["pos"].value_counts().reindex(u.index, fill_value=0)
@@ -446,7 +448,7 @@ def inspect(project_dir: Path, groups: list[ModelGroup], pos: int) -> ParcelInsp
 
     u, s = _data(project_dir)
     if not 0 <= pos < len(u):
-        raise LookupError(pos)
+        raise NotFound(pos)
     groups = numeric_fields(project_dir, groups)
     now, met = assign(u, groups)
     labels = _labels()
@@ -516,7 +518,7 @@ def shapes_path(project_dir: Path) -> Path:
     base = out_dir(project_dir)
     src = base / "sup.pickle"
     stamp = _stamp(src)
-    out = project_dir / "out" / "oakbox" / "groups" / "shapes.geojson"
+    out = steps.out_dir(project_dir, "groups") / "shapes.geojson"
     meta = out.with_suffix(".json")
     made = json.loads(meta.read_text(encoding="utf-8")) if out.is_file() and meta.is_file() else {}
     if made.get("from") == list(stamp) and made.get("v") == SHAPES_VERSION:
@@ -662,7 +664,7 @@ class GroupsView(BaseModel):
 def view(project: Project, project_dir: Path) -> GroupsView:
     try:
         flds = fields(project_dir)
-    except LookupError:
+    except NotReady:
         return GroupsView(
             ready=False, start=project.groups_start, groups=project.groups, fields=[], colors=COLORS, can_suggest=False
         )
@@ -686,5 +688,5 @@ def clean(project_dir: Path, groups: list[ModelGroup]) -> list[ModelGroup]:
         out.append(g.model_copy(update={"id": gid, "name": name}))
     try:
         return numeric_fields(project_dir, out)
-    except LookupError:
+    except NotReady:
         return out

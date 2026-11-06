@@ -7,7 +7,7 @@
 #   python/        standalone CPython 3.11 (python-build-standalone)
 #   site-packages  every dependency for that platform, from uv.lock
 #   Oakbox.cmd     (Windows) / oakbox.sh (Linux) launcher
-#   smoke.cmd|sh   end-to-end test through the app service on the sample county
+#   smoke.cmd|sh   end-to-end test (oakbox/smoke.py): the engine on Petersburg's data, then the app service
 #
 # No freezing: the interpreter and wheels are shipped as-is (see SPEC §6).
 set -euo pipefail

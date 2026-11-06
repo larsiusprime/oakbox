@@ -44,9 +44,9 @@ const w = t.wizard;
 
 // ---------- Welcome, parcel universe, sales ----------
 
-/** The sales record itself, not a file of more about each sale. */
-export /** The sales file the Sales step is about; more sales details join it on the sale ID. */
-function isMainSales(f: WizardFile): boolean {
+/** The sales record itself: the sales file the Sales step is about, not a file of more about each sale (which joins
+ * it on the sale ID). */
+export function isMainSales(f: WizardFile): boolean {
   return f.holds === "sales" && f.match !== "key_sale";
 }
 
@@ -351,7 +351,7 @@ export function FilePicker({
   data: Wizard;
   exclude: string[];
   onChosen: (name: string) => void;
-  /** Where the slot can be taken away again (another file, not yet chosen): its ✕. */
+  /** Where the slot can be taken away again (another file, not yet chosen): its red −. */
   onCancel?: () => void;
 }) {
   const canPick = useCanPickFile();
@@ -409,7 +409,7 @@ export function FilePicker({
   );
 }
 
-/** A file a step uses: its entry, the ✕ taking it off the step (it stays in the project), its settings inside. */
+/** A file a step uses: its entry, the red − taking it off the step (it stays in the project), its settings inside. */
 export function StepFile({
   file,
   onRemove,
