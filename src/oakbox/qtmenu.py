@@ -35,7 +35,14 @@ def unavailable() -> str | None:
         return f"{type(e).__name__}: {e}"
     probe = "import sys; from PySide6.QtWidgets import QApplication; QApplication(sys.argv)"
     try:
-        tried = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, timeout=30)
+        tried = subprocess.run(
+            [sys.executable, "-c", probe],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+        )
     except (OSError, subprocess.TimeoutExpired) as e:
         return f"Qt didn't start: {e}"
     if tried.returncode != 0:

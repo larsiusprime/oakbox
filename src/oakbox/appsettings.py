@@ -118,7 +118,14 @@ def documents_dir() -> Path:
             pass
     else:
         try:
-            found = subprocess.run(["xdg-user-dir", "DOCUMENTS"], capture_output=True, text=True, timeout=5)
+            found = subprocess.run(
+                ["xdg-user-dir", "DOCUMENTS"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=5,
+            )
             if found.returncode == 0 and found.stdout.strip() and Path(found.stdout.strip()) != Path.home():
                 return Path(found.stdout.strip())
         except (OSError, subprocess.SubprocessError):
