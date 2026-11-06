@@ -31,7 +31,8 @@ def test_each_tier_recommends():
     std = machine.recommended(found(memory_gb=15.8))
     assert (std.fold_workers, std.maps, std.map_detail, std.street_map) == ("two", "now", "auto", "on")
     strong = machine.recommended(found(memory_gb=31.8, cores=8, threads=16))
-    assert (strong.fold_workers, strong.folds_at_once, strong.map_detail) == ("cores", 14, "shapes")
+    # 16 threads: OpenAVMKit runs no more fold workers than folds (5), so 5, not 14
+    assert (strong.fold_workers, strong.folds_at_once, strong.map_detail) == ("cores", 5, "shapes")
 
 
 def test_graphics_in_software_draw_maps_simply_on_any_tier():
@@ -49,7 +50,8 @@ def test_a_choice_stays_and_recommended_follows_the_check():
     assert light.maps == "now" and light.fold_workers == "one"
     std = machine.resolve(p, found(memory_gb=15.8))
     assert std.maps == "now" and std.fold_workers == "two"
-    assert machine.resolve(machine.Performance(fold_workers="cores"), found()).folds_at_once == 4
+    assert machine.resolve(machine.Performance(fold_workers="cores"), found()).folds_at_once == 4  # 6 threads - 2
+    assert machine.cores_workers(3) == 1 and machine.cores_workers(18) == machine.CV_FOLDS
 
 
 def test_memory_need_grows_with_the_county_and_the_workers():
@@ -81,3 +83,13 @@ def test_a_county_too_big_for_this_computer_is_said_before_it_runs(client):
     assert bring_in.memory_note(50_000) is None  # 1.5 GB of 2.3
     note = bring_in.memory_note(200_000)
     assert note is not None and note.parcels == 200_000 and note.need_gb == 4.5 and note.have_gb == 2.3
+
+
+def test_a_many_core_computer_isnt_warned_for_workers_it_wont_run(client):
+    """The assessor's laptop (Core Ultra 5 125H: 14 cores, 18 threads, 32 GB): Strong, 5 folds at once (OpenAVMKit's
+    folds), so 150,000 parcels fit in the 26 GB it leaves OAK box; 16 workers would have warned."""
+    client.put("/api/machine", json={"memory_gb": 31.6, "cores": 14, "threads": 18, "graphics": "Intel(R) Arc(TM)"})
+    v = client.get("/api/machine").json()
+    assert v["machine"]["tier"] == "strong" and v["resolved"]["folds_at_once"] == 5 and v["cores_workers"] == 5
+    assert bring_in.memory_note(150_000) is None
+    assert bring_in.memory_note(500_000) is not None

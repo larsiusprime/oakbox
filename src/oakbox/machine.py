@@ -90,9 +90,15 @@ def tier_of(m: Machine) -> Tier:
     return "standard"
 
 
+# OpenAVMKit's cross-validation folds (modeling.instructions.cv_folds, its default; OAK box doesn't change it). It
+# never runs more fold workers than folds, however many cores there are.
+CV_FOLDS = 5
+
+
 def cores_workers(threads: int | None = None) -> int:
-    """OpenAVMKit's own default: the logical processors less two, at least one."""
-    return max(1, (threads or os.cpu_count() or 2) - 2)
+    """OpenAVMKit's own default, as it really runs: the logical processors less two, at least one, and never more
+    than the folds (an 18-thread computer runs 5 at once, not 16)."""
+    return max(1, min(CV_FOLDS, (threads or os.cpu_count() or 2) - 2))
 
 
 def recommended(m: Machine | None) -> Resolved:

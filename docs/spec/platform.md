@@ -40,7 +40,7 @@ changed. Settings › Performance › Check again does the same any time.
 | Setting | Light | Standard | Strong | Graphics in software |
 |---|---|---|---|---|
 | Computer | under 12 GB, or 2 cores, or speed under 60 | 12 to 24 GB | 24 GB or more and 6 cores or more | any tier |
-| Model training | One fold at a time | Two at a time | As many as the cores allow (logical − 2, OpenAVMKit's default) | — |
+| Model training | One fold at a time | Two at a time | As many as the cores allow (logical − 2, OpenAVMKit's default; at most 5, its folds, as it never runs more) | — |
 | Maps | When Show map is clicked | Right away | Right away | When clicked |
 | Map detail | Dots | Dots above 20,000 parcels | Shapes | Dots |
 | Street map | Off | On | On | Off |
