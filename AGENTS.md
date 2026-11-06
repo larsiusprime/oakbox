@@ -1,8 +1,10 @@
 # Guidance for coding agents (OAK box)
 
-OAK box is a desktop app, and **most of its users are on Windows**. Develop and test on Linux, but write for
-Windows first. SPEC.md is the product spec: keep it in step with what's built. docs/ARCHITECTURE.md is how the code
-is built (the modules, a run from button to receipt, a project on disk): change it with the code it describes.
+OAK box is a desktop app, and **most of its users are on Windows**. Develop and test on Linux, but write for Windows
+first. The product spec is docs/spec/, one file per area; SPEC.md is its index (where each numbered section, §3.5,
+F9, D21, now is). Keep it in step with what's built, and keep a section's number when you move or change it: the
+code cites them. docs/ARCHITECTURE.md is how the code is built (the modules, a run from button to receipt, a project
+on disk): change it with the code it describes.
 
 ## Windows: text is always UTF-8 (non-negotiable)
 
