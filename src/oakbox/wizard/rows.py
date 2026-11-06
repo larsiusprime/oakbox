@@ -16,14 +16,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from oakbox.datafiles import Condition, DataFile, Rule
-from oakbox.wizard.files import Files, _by_key, sales_file
+from oakbox.wizard.base import ROWS
+from oakbox.wizard.files import Files, dictionary_by_key, sales_file
 from oakbox.wizard.models import RowField, RowsView
+from oakbox.wizard.setfield import made_sale_id, set_field
 
 if TYPE_CHECKING:
     from oakbox.projects import Project
 
-# What a file appended as rows adds to.
-ROWS = {"sale_rows": "sales", "parcel_rows": "parcels"}
 # Fields that aren't the main file's own to copy: the ID is the file's join, and made fields are worked out.
 NOT_MIRRORED = {"key", "key2", "key3"}
 
@@ -58,17 +58,16 @@ def _find(files: Files, main: DataFile, entry: DataFile, key: str) -> str | None
             return want
         if want and want.lower() in lower:
             return lower[want.lower()]
-    from oakbox.wizard.checks import _guess_field
+    from oakbox.wizard.checks import guess_field
 
-    d = _by_key().get(key)
-    found = _guess_field(files, d, [entry.name], {}) if d else None
+    d = dictionary_by_key().get(key)
+    found = guess_field(files, d, [entry.name], {}) if d else None
     return found[1][0] if found else None
 
 
 def propose(project: Project, in_dir: Path, entry: DataFile) -> None:
     """Match an appended file's columns to the main file's fields, never over one already chosen."""
     from oakbox.errors import NotFound
-    from oakbox.wizard.core import made_sale_id, set_field
 
     main = main_of(project, entry.holds or "")
     if main is None:
@@ -126,7 +125,7 @@ def _shape(values: list[str]) -> tuple[int | None, bool, bool]:
     return length, digits, zeros
 
 
-def _describe(length: int | None, digits: bool, zeros: bool) -> str:
+def describe_steps(length: int | None, digits: bool, zeros: bool) -> str:
     kind = "digits" if digits else "characters"
     return f"{length} {kind}" + (", leading zeros kept" if zeros else "")
 
@@ -158,7 +157,7 @@ def view(project: Project, files: Files, entry: DataFile) -> RowsView | None:
     main = main_of(project, entry.holds or "")
     if main is None or entry.name not in files.preview:
         return None
-    names = _by_key()
+    names = dictionary_by_key()
     wanted = mirrored(main)
     fields = []
     for k in wanted:
@@ -176,9 +175,9 @@ def view(project: Project, files: Files, entry: DataFile) -> RowsView | None:
     if not mine:
         key_text, key_ok = "pick its parcel ID", False
     elif a == b:
-        key_text, key_ok = f"its parcel IDs look like the {what}: {_describe(*a)}", True
+        key_text, key_ok = f"its parcel IDs look like the {what}: {describe_steps(*a)}", True
     else:
-        key_text = f"its parcel IDs don't look like the {what}: {_describe(*a)} here, {_describe(*b)} there"
+        key_text = f"its parcel IDs don't look like the {what}: {describe_steps(*a)} here, {describe_steps(*b)} there"
         key_ok = False
     universe = project.base_file()
     parcels = set(files.ids(universe.name, "key")) if universe is not None and "key" in universe.load else set()

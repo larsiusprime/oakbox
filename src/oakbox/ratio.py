@@ -667,7 +667,7 @@ def _figures(data: dict) -> Figures:
     )
 
 
-def _study(gid: str, name: str, color: str, cls, data: dict, table) -> Study:
+def study_view(gid: str, name: str, color: str, cls, data: dict, table) -> Study:
     """The statistics shown and judged: without the trimmed sales when trimming is on (every sale's beside them)."""
     main = data.get("trimmed_study") or data
     f = _figures(main)
@@ -767,7 +767,7 @@ def run(project_id: str) -> None:
         if table is None:
             table = pd.DataFrame({c: [] for c in ("model_group", "sale_price", "ratio", "trimmed")})
         groups = [
-            _study(g.id, g.name, g.color, cls[g.id], study["groups"][g.id], table)
+            study_view(g.id, g.name, g.color, cls[g.id], study["groups"][g.id], table)
             for g in checked_groups(project)
             if g.id in study["groups"]
         ]
@@ -793,7 +793,7 @@ def run(project_id: str) -> None:
                 field=field,
                 name=sets.get(field) or field,
                 groups=groups,
-                overall=_study("", "All model groups", "#888888", None, study["overall"], table),
+                overall=study_view("", "All model groups", "#888888", None, study["overall"], table),
                 trimmed=trimmed,
             )
         )

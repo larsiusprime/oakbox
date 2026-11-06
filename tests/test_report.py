@@ -27,7 +27,7 @@ def _project():
     )
 
 
-def _study(gid, name, median=0.97, sales=40, judged=True):
+def study_view(gid, name, median=0.97, sales=40, judged=True):
     return ratio.Study(
         id=gid,
         name=name,
@@ -57,15 +57,15 @@ def finalized(tmp_path):
     model = ratio.FieldResult(
         field="oak_oof",
         name="Model values",
-        groups=[_study("sf", "Single-family")],
-        overall=_study("", "All"),
+        groups=[study_view("sf", "Single-family")],
+        overall=study_view("", "All"),
         trimmed=[],
     )
     roll = ratio.FieldResult(
         field="oak_roll_oof",
         name="Roll",
-        groups=[_study("sf", "Single-family", 0.84)],
-        overall=_study("", "All", 0.84),
+        groups=[study_view("sf", "Single-family", 0.84)],
+        overall=study_view("", "All", 0.84),
         trimmed=[],
     )
     receipt = final.FinalReceipt(

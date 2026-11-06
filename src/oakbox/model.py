@@ -1065,7 +1065,7 @@ def _infinite_error(found: list[str]) -> str:
     )
 
 
-def _crashed(
+def explain_crash(
     e: Exception,
     project: Project,
     pdir: Path,
@@ -1235,7 +1235,7 @@ def run(project_id: str) -> None:
                 or {}
             )
         except Exception as e:
-            raise _crashed(e, project, pdir, at, sup, settings, gnames, own) from e
+            raise explain_crash(e, project, pdir, at, sup, settings, gnames, own) from e
     release_workers()
     steps.emit(step="receipt", fraction=0.97, message="Counting")
     from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics

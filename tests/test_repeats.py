@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from oakbox import bring_in
+from oakbox import bring_in, cells
 
 
 def test_rows_are_sorted_by_the_id_and_lead_with_it():
@@ -14,7 +14,7 @@ def test_rows_are_sorted_by_the_id_and_lead_with_it():
 
 
 def test_each_ids_rows_share_a_band_and_ids_alternate():
-    assert bring_in.bands(["99", "100", "100", "120", "120", "120", "7"]) == [0, 1, 1, 0, 0, 0, 1]
+    assert cells.alternating(["99", "100", "100", "120", "120", "120", "7"]) == [0, 1, 1, 0, 0, 0, 1]
 
 
 def test_a_page_of_repeats_carries_its_bands_from_the_whole_set(tmp_path):

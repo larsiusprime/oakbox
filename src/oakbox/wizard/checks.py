@@ -10,8 +10,8 @@ from oakbox.datafiles import (
     Holds,
 )
 from oakbox.fields import Column, DictionaryField
-from oakbox.wizard.base import ALIASES, DATE_WORDS, ID_NAMES, NO, SALE_ID_NAMES, YES, _norm
-from oakbox.wizard.files import Files, _more_sales, sales_file
+from oakbox.wizard.base import ALIASES, DATE_WORDS, ID_NAMES, NO, SALE_ID_NAMES, YES, normalized
+from oakbox.wizard.files import Files, is_more_sales, sales_file
 from oakbox.wizard.models import Check, Issue, Repeats
 
 # ---------- Checks ----------
@@ -96,13 +96,13 @@ def _repeats_of(files: Files, name: str, field: str) -> Repeats:
     )
 
 
-def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) -> tuple[Check | None, Repeats | None]:
+def check_ids(files: Files, name: str, holds: Holds | None, base: str | None) -> tuple[Check | None, Repeats | None]:
     """The result on one line ("219,381 parcels"), and anything worth a look as separate issues."""
     from oakbox.wizard.condos import unit_ids, units_view  # condos reads the checks: imported here, not above
 
     f = files.entry(name)
     match = "key" if name == base else f.match
-    made = _more_sales(f) and "key_sale" in f.calc
+    made = is_more_sales(f) and "key_sale" in f.calc
     if made:  # details on a made sale ID: their own made from their parcel ID and date
         match = "key"
     spec = f.load.get(match)
@@ -112,12 +112,12 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
     present = [v for v in files.ids(name, match) if v]
     flagged = r if (r.extra or r.blank) else None
     issues: list[Issue] = []
-    more_sales = _more_sales(f)
+    more_sales = is_more_sales(f)
     # One row each is expected of a parcel file (per parcel) and of more sales details (per sale).
     # (A parcel ID repeats in details on a made sale ID: a parcel sold more than once.)
     one_each = holds in ("parcels", "parcel_rows") or (more_sales and not made)
     if r.extra and one_each and (r.few or r.policy):
-        repeated = _n(r.repeated, "repeated ID")
+        repeated = counted(r.repeated, "repeated ID")
         if r.policy is None:  # nothing chosen yet (OpenAVMKit would keep the first)
             issues.append(Issue(text=repeated, resolved=False, todo=f"{repeated} to decide"))
         else:
@@ -127,7 +127,7 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         outcome = "won't match a sale" if more_sales else "won't match a parcel" if holds == "sales" else "dropped"
         # Blank IDs wreck joins: on a parcel file they block until confirmed as dropped.
         blocking = holds == "parcels" and not r.blank_ok
-        blank = _n(r.blank, "blank ID")
+        blank = counted(r.blank, "blank ID")
         todo = f"{blank} to confirm"
         issues.append(Issue(text=f"{blank}, {outcome}", resolved=r.blank_ok, blocking=blocking, todo=todo))
     open_issues = any(not i.resolved for i in issues)
@@ -136,7 +136,7 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         main = sales_file(files.project)
         # (On a made sale ID the parcel ID repeats: a parcel sold more than once. Its made IDs are what count.)
         if r.extra and not r.few and r.policy is None and not made:
-            text = f"{_n(r.repeated, 'repeated sale ID')} ({_n(r.extra, 'extra row')}): choose what to do"
+            text = f"{counted(r.repeated, 'repeated sale ID')} ({counted(r.extra, 'extra row')}): choose what to do"
             return Check(ok=False, text=text, issues=issues), flagged
         from oakbox.wizard.rows import sale_keys
 
@@ -153,16 +153,16 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         share = found / len(mine) if mine else 0.0
         if share < MATCH_MIN and "key_sale" in main.calc:
             text = (
-                f"{_pct(found, len(mine))} match a sale. Most don't: are these sales of their own? "
+                f"{share_text(found, len(mine))} match a sale. Most don't: are these sales of their own? "
                 "Then append them as extra rows"
             )
             return Check(ok=False, text=text, warn=True, issues=issues, share=share), flagged
-        text = f"{_pct(found, len(mine))} match a sale"
+        text = f"{share_text(found, len(mine))} match a sale"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds == "parcel_rows":
         # More parcels: each a parcel of its own; one already in the universe is kept once, the universe's.
-        parcels = _base_ids(files, base, "key")
+        parcels = parcel_ids(files, base, "key")
         new = len(set(present) - parcels)
         text = f"{r.distinct:,} parcels · {new:,} new, {r.distinct - new:,} already in the universe"
         return Check(ok=not blocked, text=text, warn=open_issues, issues=issues), flagged
@@ -170,21 +170,21 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         flagged = r if r.blank else None
         if base is None or base == name:
             return Check(ok=True, text=f"{r.rows:,} sales", warn=open_issues, issues=issues), flagged
-        base_ids = _base_ids(files, base, match)
+        base_ids = parcel_ids(files, base, match)
         if match == "key":
             base_ids = base_ids | unit_ids(files)  # units that find their building are parcels too
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
-        text = f"{_pct(found, r.rows)} match"
+        text = f"{share_text(found, r.rows)} match"
         # Under half matching is a blocker; under 95% worth reconciling (SPEC F3d).
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds == "permits":
         # Many permits to a parcel is expected; what matters is that they find their parcel.
-        base_ids = _base_ids(files, base, match) | unit_ids(files)
+        base_ids = parcel_ids(files, base, match) | unit_ids(files)
         found = sum(1 for v in present if v in base_ids)
         share = found / r.rows if r.rows else 0.0
-        text = f"{r.rows:,} permits · {_pct(found, r.rows)} match"
+        text = f"{r.rows:,} permits · {share_text(found, r.rows)} match"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN, text=text, warn=warn, issues=issues, share=share), flagged
     if holds != "parcels":
@@ -193,11 +193,11 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
     share = None
     if name != base:
         # Units that find their building are parcels too, for every other file (their building cards, say).
-        parcels = _base_ids(files, base, match) | (unit_ids(files) if match == "key" and f.units is None else set())
+        parcels = parcel_ids(files, base, match) | (unit_ids(files) if match == "key" and f.units is None else set())
         found = len(set(present) & parcels)
         share = found / len(set(present)) if present else 0.0
     if r.extra and not r.few and r.policy is None:
-        text = f"{_n(r.repeated, 'repeated ID')} ({_n(r.extra, 'extra row')}): choose what to do"
+        text = f"{counted(r.repeated, 'repeated ID')} ({counted(r.extra, 'extra row')}): choose what to do"
         return Check(ok=False, text=text, issues=issues, share=share), flagged
     kept = r.singles if r.policy == "all" else r.distinct
     tick = "" if open_issues else "✓ "
@@ -209,28 +209,28 @@ def _id_check(files: Files, name: str, holds: Holds | None, base: str | None) ->
         # Units that find their building's shape join as well as rows with a shape of their own.
         v = units_view(files.project, files, f)
         share = min(1.0, share + v.linked / len(set(present)))
-        pct = _pct(round(share * 1000), 1000)
+        pct = share_text(round(share * 1000), 1000)
         text = f"{tick}one row per parcel · {pct} match (units by their parcel)"
         warn = open_issues or share < MATCH_OK
         return Check(ok=share >= MATCH_MIN and not blocked, text=text, warn=warn, issues=issues, share=share), flagged
-    text = f"{tick}one row per parcel · {_pct(round(share * 1000), 1000)} match"
+    text = f"{tick}one row per parcel · {share_text(round(share * 1000), 1000)} match"
     warn = open_issues or share < MATCH_OK
     ok = share >= MATCH_MIN and not blocked
     return Check(ok=ok, text=text, warn=warn, issues=issues, share=share), flagged
 
 
-def _base_ids(files: Files, base: str | None, field: str = "key") -> set[str]:
+def parcel_ids(files: Files, base: str | None, field: str = "key") -> set[str]:
     if base is None or base not in files.preview:
         return set()
     return {v for v in files.ids(base, field) if v}
 
 
-def _n(n: int, word: str) -> str:
+def counted(n: int, word: str) -> str:
     """'1 ID', '3 IDs', '1,204 extra rows'."""
     return f"{n:,} {word}" if n == 1 else f"{n:,} {word}s"
 
 
-def _pct(n: int, total: int) -> str:
+def share_text(n: int, total: int) -> str:
     if not total:
         return "0%"
     p = 100 * n / total
@@ -241,12 +241,12 @@ def _pct(n: int, total: int) -> str:
 
 
 def _names(d: DictionaryField) -> set[str]:
-    return {_norm(d.key), _norm(d.name), *ALIASES.get(d.key, [])}
+    return {normalized(d.key), normalized(d.name), *ALIASES.get(d.key, [])}
 
 
-def _guess_id(files: Files, name: str, holds: Holds, base_column: str | None) -> str | None:
+def guess_id(files: Files, name: str, holds: Holds, base_column: str | None) -> str | None:
     cols = files.columns(name)
-    named = [c.name for c in cols if ID_NAMES.fullmatch(_norm(c.name))]
+    named = [c.name for c in cols if ID_NAMES.fullmatch(normalized(c.name))]
     if base_column and base_column in {c.name for c in cols} and base_column not in named:
         named.insert(0, base_column)
     named.sort(key=lambda c: (c != base_column, _id_rank(c)))
@@ -261,27 +261,27 @@ def _guess_id(files: Files, name: str, holds: Holds, base_column: str | None) ->
 
 
 def _id_rank(column: str) -> int:
-    n = _norm(column)
+    n = normalized(column)
     for i, word in enumerate(("pin", "apn", "parcel", "prop", "account", "acct", "key", "geoid", "folio", "id")):
         if n.startswith(word):
             return i
     return 99
 
 
-def _guess_sale_id(files: Files, name: str) -> str | None:
+def guess_sale_id(files: Files, name: str) -> str | None:
     for c in files.columns(name):
-        if SALE_ID_NAMES.fullmatch(_norm(c.name)):
+        if SALE_ID_NAMES.fullmatch(normalized(c.name)):
             present = [v for v in files.values(name, c.name) if v]
             if present and len(set(present)) == len(present):
                 return c.name
     return None
 
 
-def _guess_field(files: Files, d: DictionaryField, candidates: list[str], used: dict[str, dict[str, str]]):
+def guess_field(files: Files, d: DictionaryField, candidates: list[str], used: dict[str, dict[str, str]]):
     names = _names(d)
     for name in candidates:
         for col in files.columns(name):
-            if col.name in used.get(name, {}) or _norm(col.name) not in names:
+            if col.name in used.get(name, {}) or normalized(col.name) not in names:
                 continue
             if d.key == "address" and re.search(r"mail|owner", col.name, re.IGNORECASE):
                 continue  # the situs address, never the owner's mailing address

@@ -19,8 +19,8 @@ from oakbox.datafiles import (
     clean_calc,
 )
 from oakbox.projects import Project
-from oakbox.wizard.checks import _base_ids
-from oakbox.wizard.files import Files, _more_sales, file_stamp, sales_file, values_of
+from oakbox.wizard.checks import parcel_ids
+from oakbox.wizard.files import Files, file_stamp, is_more_sales, sales_file, values_of
 
 # ---------- Reconcile: clean up IDs so the sales find their parcels (F3d) ----------
 
@@ -67,7 +67,7 @@ def _sides(project: Project, in_dir: Path, name: str) -> tuple[Files, DataFile, 
     """A file and what it joins to: the parcel universe, or (more sales details) the main sales file."""
     files = Files(project, in_dir)
     entry = files.entry(name)
-    if _more_sales(entry):
+    if is_more_sales(entry):
         main = sales_file(project)
         if main is None or "key_sale" not in main.load:
             raise ValueError("The sales record has no sale ID column to join on.")
@@ -101,7 +101,7 @@ _TRIES: list[list[CleanStep]] = [
 ]
 
 
-def _describe(steps: list[CleanStep]) -> str:
+def describe_steps(steps: list[CleanStep]) -> str:
     names = {"zeros": "remove leading zeros", "trim": "trim spaces", "upper": "make letters capitals"}
     out = []
     for st in steps:
@@ -112,7 +112,7 @@ def _describe(steps: list[CleanStep]) -> str:
     return " and ".join(out)
 
 
-def _suggest(
+def suggest_match(
     files: Files, entry: DataFile, base: DataFile, field: Match, now: float, kind: str = "sales"
 ) -> Suggestion | None:
     """The simplest clean-up pair from a few common ones that matches clearly more sales. Only a suggestion."""
@@ -137,7 +137,7 @@ def _suggest(
         mine = "sales IDs"
 
     def on(steps: list[CleanStep], what: str) -> str:
-        return f"{_describe(steps)} {'in' if all(st.kind == 'upper' for st in steps) else 'from'} the {what}"
+        return f"{describe_steps(steps)} {'in' if all(st.kind == 'upper' for st in steps) else 'from'} the {what}"
 
     if _TRIES[b]:
         parts.append(on(_TRIES[b], target))
@@ -163,7 +163,7 @@ def reconcile(
     base_ids = files.ids(base.name, field, base_steps)
     base_set = {v for v in base_ids if v}
     file_set = {v for v in file_ids if v}
-    saved = _matched(files.ids(name, field), _base_ids(files, base.name, field))
+    saved = _matched(files.ids(name, field), parcel_ids(files, base.name, field))
     matched = _matched(file_ids, base_set)
     total = len(file_ids)
     rng = random.Random(seed)
@@ -184,7 +184,7 @@ def reconcile(
     ]
     base_samples = [Sample(raw=r, clean=c, hit=c in file_set) for r, c in pick(base_raw, base_ids, bool)]
     writes = {n: clean_calc(field, st) for n, st in ((base.name, base_steps), (name, file_steps)) if st}
-    kind = "more_sales" if _more_sales(entry) else "sales" if entry.holds == "sales" else "parcels"
+    kind = "more_sales" if is_more_sales(entry) else "sales" if entry.holds == "sales" else "parcels"
     return Reconcile(
         file=name,
         base=base.name,
@@ -199,7 +199,9 @@ def reconcile(
         saved_share=saved / total if total else 0.0,
         file_samples=file_samples,
         base_samples=base_samples,
-        suggestion=_suggest(files, entry, base, field, matched / total if total else 0.0, kind) if suggest else None,
+        suggestion=suggest_match(files, entry, base, field, matched / total if total else 0.0, kind)
+        if suggest
+        else None,
         writes=writes,
     )
 

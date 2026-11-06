@@ -48,7 +48,7 @@ writing `in/settings.json` for OpenAVMKit), `appsettings.py` (OAK box's own sett
 
 **Setting up the data** (the Data tab, before step 1): `datafiles.py` (a file brought into `in/` and its `data.load`
 entry), `fields.py` (what's in a file), `wizard/` (the Fields wizard: `core.py` builds its view and makes its
-changes; `base.py` is its steps as data; the other modules are its parts: IDs, money, quality, condos, map layers,
+changes, `setfield.py` sets a field; `base.py` is its steps as data; the other modules are its parts: IDs, money, quality, condos, map layers,
 rows appended, user fields, deeds and permits, existing values), `enrichments.py`, `names.py` (deed names),
 `valuesets.py`.
 
