@@ -2,10 +2,22 @@
 
 ## 8. Milestones
 
-**Where it stands (2026-11-05).** The plan below predates the feature-by-feature redesign (D41, §3.0), and M1–M3 were
+**Where it stands (2026-11-06).** The plan below predates the feature-by-feature redesign (D41, §3.0), and M1–M3 were
 built in a different order from it: the guided build became the Data tab and its wizard (F3), and steps 1–7 run in the
 app (F4–F10), with the Windows installer, the Linux bundle and the optional engines. §3.0 says what's built and what
 isn't; the milestones are kept as they were planned.
+
+- **Built since (2026-11-03 to 11-06): performance** (§5). A first-run computer check and Settings with every
+  performance setting; tiers (Light, Standard, Strong) choosing the folds at once and the maps (on click, dots, street
+  map); a large county said before the long steps. Engine: sales clustering about 4× faster, the parcels' middle
+  without the dissolve, LightGBM tuning one trial at a time (a crash on Light computers), census population a land
+  field. The Model groups map draws parcel files of small squares, and its shapes are binary arrays. Fill blanks by
+  each field's kind, with what each model group gets.
+- **Left of M3:** slice 3 of the models (outliers back into Check sales, per-group variables and models, why this
+  value), CAMA export, the model summary report. Area figures (§3.12.3) is specified and mocked up, not built.
+- **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried).
+- **Waiting on the maintainer:** real extracts (Travis CAD first), the usability test with three assessors, and timing
+  on a real low-end PC.
 
 - **M0 — Spike.** Prove the packaging and the hardware assumptions. **Done**, including a real-data run on Petersburg.
   See [`docs/m0/REPORT.md`](../m0/REPORT.md).
