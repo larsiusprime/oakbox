@@ -166,7 +166,7 @@ def run(project_id: str) -> None:
     os.chdir(pdir)
     from openavmkit import pipeline as pl
     from openavmkit import progress
-    from openavmkit.data import SalesUniversePair, _read_split_keys
+    from openavmkit.data import SalesUniversePair, read_split_keys
     from openavmkit.value_studies import run_value_field_studies
 
     groups = [g.id for g in project.groups]
@@ -219,7 +219,7 @@ def run(project_id: str) -> None:
             p = e.field_prediction
             made.update(zip(e.df_universe["key"].astype(str), e.df_universe[p].astype(float), strict=True))
             oof.update(zip(e.df_test["key_sale"].astype(str), e.df_test[p].astype(float), strict=True))
-            _, train = _read_split_keys(g)
+            _, train = read_split_keys(g)
             trained = set(map(str, train))
             held.update(k for k in e.df_test["key_sale"].astype(str) if k not in trained)
         v = _look(values["key"], made)
