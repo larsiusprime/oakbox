@@ -4,7 +4,8 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { when } from "../lib/format";
 import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
-import { GroupModelsCard, HowTheyDid } from "./Models";
+import { HowTheyDid } from "./HowTheyDid";
+import { GroupModelsCard } from "./Models";
 import { SmallGroupsStep } from "./SmallGroups";
 
 const m = t.values;
