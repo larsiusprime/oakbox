@@ -4742,7 +4742,7 @@
   "/api/projects/{project_id}/groups/shapes": {
    "get": {
     "summary": "Groups Shapes",
-    "description": "The parcel shapes as GeoJSON, in the parcel universe's order (a preview's indexes).",
+    "description": "The parcel shapes for the map, in the parcel universe's order (a preview's indexes): binary, laid out as\ngroups._binary says.",
     "operationId": "groups_shapes_api_projects__project_id__groups_shapes_get",
     "parameters": [
      {

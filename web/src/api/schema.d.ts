@@ -1855,7 +1855,8 @@ export interface paths {
         };
         /**
          * Groups Shapes
-         * @description The parcel shapes as GeoJSON, in the parcel universe's order (a preview's indexes).
+         * @description The parcel shapes for the map, in the parcel universe's order (a preview's indexes): binary, laid out as
+         *     groups._binary says.
          */
         get: operations["groups_shapes_api_projects__project_id__groups_shapes_get"];
         put?: never;

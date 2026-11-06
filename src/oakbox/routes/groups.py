@@ -100,10 +100,11 @@ def groups_values(project_id: str, field: str) -> groups.GroupValues:
 
 @router.get("/api/projects/{project_id}/groups/shapes")
 def groups_shapes(project_id: str) -> FileResponse:
-    """The parcel shapes as GeoJSON, in the parcel universe's order (a preview's indexes)."""
+    """The parcel shapes for the map, in the parcel universe's order (a preview's indexes): binary, laid out as
+    groups._binary says."""
     load_project(project_id)
     try:
-        return FileResponse(groups.shapes_path(projects.project_dir(project_id)), media_type="application/geo+json")
+        return FileResponse(groups.shapes_path(projects.project_dir(project_id)), media_type="application/octet-stream")
     except NotReady as e:
         raise HTTPException(409, str(e)) from e
 

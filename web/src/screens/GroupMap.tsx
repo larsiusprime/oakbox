@@ -8,10 +8,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { CloseButton } from "../components/Buttons";
-import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
+import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Val } from "../components/Val";
 import { money, short } from "../lib/format";
 import { useResolved } from "../lib/machine";
+import { type BinaryShapes, readShapes, shapeSize, shapesBounds, toBinary } from "../lib/shapes";
 import { t } from "../wording";
 
 const g = t.groups;
@@ -24,48 +25,12 @@ export const SAME = "__same";
 // the shapes in view are drawn instead of their dots.
 const DOTS_ABOVE = 20_000;
 const SHAPES_IN_VIEW = 5_000;
-// Shapes smaller than this on screen, and scattered (covering under a tenth of the ground they're spread over), are
-// drawn as dots: a speck of a polygon fills no pixel. Some parcel files hold a small square at each parcel's point.
+// Scattered specks of shapes (shapes.ts: some parcel files hold only a small square at each parcel's point) smaller
+// than this on screen fill no pixel: drawn as dots, or with Parcel shapes chosen, drawn at least this size.
 const SHAPE_MIN_PX = 3;
-const SCATTERED = 0.1;
 type Centre = [number, number] | null;
-
-/** The shapes' typical size (the median longer side, in metres), and whether they're scattered specks. */
-export function shapeSize(fc: GeoJSON.FeatureCollection): { metres: number; scattered: boolean } | null {
-  const sides: number[] = [];
-  let cover = 0;
-  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
-  const step = Math.max(1, Math.floor(fc.features.length / 4000));
-  for (let i = 0; i < fc.features.length; i += step) {
-    const g = fc.features[i]?.geometry;
-    if (!g || (g.type !== "Polygon" && g.type !== "MultiPolygon")) continue;
-    const rings = g.type === "Polygon" ? [g.coordinates[0]] : g.coordinates.map((p) => p[0]);
-    let [a, b, c, d] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const ring of rings)
-      for (const pt of ring ?? []) {
-        const [x, y] = pt as [number, number];
-        a = Math.min(a, x);
-        b = Math.min(b, y);
-        c = Math.max(c, x);
-        d = Math.max(d, y);
-      }
-    if (!Number.isFinite(a)) continue;
-    const k = 111_320 * Math.cos((((b + d) / 2) * Math.PI) / 180);
-    const w = (c - a) * k;
-    const h = (d - b) * 110_540;
-    sides.push(Math.max(w, h));
-    cover += w * h;
-    [x0, y0, x1, y1] = [Math.min(x0, a), Math.min(y0, b), Math.max(x1, c), Math.max(y1, d)];
-  }
-  if (!sides.length) return null;
-  sides.sort((p, q) => p - q);
-  const k = 111_320 * Math.cos((((y0 + y1) / 2) * Math.PI) / 180);
-  const ground = (x1 - x0) * k * ((y1 - y0) * 110_540);
-  return {
-    metres: sides[Math.floor(sides.length / 2)] ?? 0,
-    scattered: ground > 0 && cover / ground < SCATTERED,
-  };
-}
+const NONE: [number, number, number, number] = [0, 0, 0, 0];
+const parcelOf = (f: unknown) => (f as { properties: { parcel: number } }).properties.parcel;
 
 /** The parcel shapes on OpenStreetMap (when online), coloured by group or by what moved. */
 export function ParcelMap({
@@ -112,22 +77,30 @@ export function ParcelMap({
     queryFn: async () => {
       const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/groups/shapes`);
       if (!r.ok) throw new Error(await r.text());
-      return (await r.json()) as GeoJSON.FeatureCollection;
+      return readShapes(await r.arrayBuffer());
     },
     staleTime: Number.POSITIVE_INFINITY,
     enabled: detail === "shapes" || (centres.isSuccess && (!dots || inView !== null)),
   });
-  const fc = shapes.data;
+  const sh = shapes.data;
+  const whole = useMemo(() => (sh ? toBinary(sh) : null), [sh]);
   const bounds = useMemo(
     () =>
-      dots ? boundsOf((centres.data ?? []).filter((c): c is [number, number] => !!c)) : boundsOfGeoJson(fc),
-    [dots, centres.data, fc],
+      dots
+        ? boundsOf((centres.data ?? []).filter((c): c is [number, number] => !!c))
+        : sh
+          ? (shapesBounds(sh) ?? null)
+          : null,
+    [dots, centres.data, sh],
   );
 
-  const size = useMemo(() => (fc ? shapeSize(fc) : null), [fc]);
+  const size = useMemo(() => (sh ? shapeSize(sh) : null), [sh]);
   // Metres a pixel covers now (MapLibre's 512-pixel tiles), for whether the shapes would show.
   const [perPixel, setPerPixel] = useState<number | null>(null);
   const specks = !!size?.scattered && perPixel != null && size.metres / perPixel < SHAPE_MIN_PX;
+  // Parcel shapes chosen: shapes, always (specks drawn bigger). Otherwise specks are dots.
+  const asDots = dots || (specks && detail !== "shapes");
+  const swell = specks && detail === "shapes";
 
   // Which parcels are in view, when few enough to draw as shapes.
   const centresNow = useRef<Centre[] | undefined>(undefined);
@@ -179,39 +152,37 @@ export function ParcelMap({
   }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
 
   // Followed only when drawn as dots: shapes drawn whole needn't be made again on every move.
-  const seen = dots ? inView : null;
+  const seen = asDots ? inView : null;
   const layers = useMemo(() => {
-    const idOf = (f: GeoJSON.Feature) => Number(f.id ?? -1);
-    const shapesLayer = (features: GeoJSON.Feature[]) =>
+    const shapesLayer = (data: BinaryShapes) =>
       new GeoJsonLayer({
         id: "parcels",
-        data: { type: "FeatureCollection", features } as GeoJSON.FeatureCollection,
+        data: data as never,
         pickable: true,
         stroked: true,
         filled: true,
         lineWidthUnits: "pixels",
-        getFillColor: (f) => look(idOf(f))?.fill ?? [0, 0, 0, 0],
-        getLineColor: (f) => look(idOf(f))?.line ?? [0, 0, 0, 0],
-        getLineWidth: (f) => look(idOf(f))?.width ?? 0,
-        updateTriggers: { getFillColor: look, getLineColor: look, getLineWidth: look },
-        onClick: ({ object }) => {
-          // A parcel switched off in the legend isn't there to click.
-          if (object && look(idOf(object))) onPick(idOf(object));
+        lineWidthMinPixels: swell ? SHAPE_MIN_PX : 0,
+        getFillColor: (f) => look(parcelOf(f))?.fill ?? NONE,
+        getLineColor: (f) => {
+          const l = look(parcelOf(f));
+          return !l ? NONE : swell ? l.fill : l.line;
+        },
+        getLineWidth: (f) => look(parcelOf(f))?.width ?? 0,
+        updateTriggers: { getFillColor: look, getLineColor: [look, swell], getLineWidth: look },
+        // A pick's index is its parcel's (shapes.ts). A parcel switched off in the legend isn't there to click.
+        onClick: ({ index }) => {
+          if (index >= 0 && look(index)) onPick(index);
         },
       });
     const out: Layer[] = [];
     const all = centres.data;
-    if ((dots || specks) && all) {
-      const few =
-        specks || !fc
-          ? null
-          : !dots
-            ? fc.features
-            : seen
-              ? seen.map((i) => fc.features[i]).filter((f): f is GeoJSON.Feature => !!f)
-              : null;
-      if (few) out.push(shapesLayer(few));
-      else {
+    let drawnAsShapes = false;
+    if (asDots && all) {
+      if (!specks && sh && seen) {
+        out.push(shapesLayer(toBinary(sh, seen)));
+        drawnAsShapes = true;
+      } else {
         const idx = all.flatMap((c, i) => (c ? [i] : []));
         out.push(
           new ScatterplotLayer<number>({
@@ -221,7 +192,7 @@ export function ParcelMap({
             radiusUnits: "pixels",
             getRadius: 2.5,
             getPosition: (i) => all[i] as [number, number],
-            getFillColor: (i) => look(i)?.fill ?? [0, 0, 0, 0],
+            getFillColor: (i) => look(i)?.fill ?? NONE,
             updateTriggers: { getFillColor: look },
             onClick: ({ object }) => {
               if (object != null && look(object)) onPick(object);
@@ -229,13 +200,16 @@ export function ParcelMap({
           }),
         );
       }
-    } else if (!dots && fc) out.push(shapesLayer(fc.features));
-    const f = picked == null || specks ? undefined : fc?.features[picked];
-    if (f?.geometry)
+    } else if (!asDots && whole) {
+      out.push(shapesLayer(whole));
+      drawnAsShapes = true;
+    }
+    const outline = picked != null && drawnAsShapes && sh ? toBinary(sh, [picked]) : null;
+    if (outline && outline.polygons.polygonIndices.value.length > 1)
       out.push(
         new GeoJsonLayer({
           id: "picked",
-          data: { type: "FeatureCollection", features: [f] } as GeoJSON.FeatureCollection,
+          data: outline as never,
           stroked: true,
           filled: false,
           lineWidthUnits: "pixels",
@@ -259,9 +233,9 @@ export function ParcelMap({
         }),
       );
     return out;
-  }, [dots, specks, centres.data, seen, fc, look, picked, onPick]);
+  }, [asDots, specks, swell, centres.data, seen, sh, whole, look, picked, onPick]);
 
-  const ready = dots ? !!centres.data : !!fc;
+  const ready = dots ? !!centres.data : !!sh;
   const failed = (dots ? centres.error : shapes.error)?.message;
   return (
     <div className="mg-map-body">

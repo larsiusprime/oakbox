@@ -58,7 +58,10 @@ the same time).
 
 **Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings). Drawn
 as dots, the Model groups map shows each parcel's centre in its group's colour, clickable; zoomed in to 5,000 parcels
-or fewer in view, their shapes are drawn instead. Whatever the setting, shapes that are scattered specks (covering under a tenth of the ground they're spread over) and smaller than 3 pixels on screen are drawn as dots: some parcel files hold only a small square at each parcel's point, which a whole-county view can't show. Every other parcel map already draws points. A street map that's
+or fewer in view, their shapes are drawn instead. Some parcel files hold only a small square at each parcel's point
+(Manassas Park: a 20-foot square each); when the shapes are such scattered specks (covering under a tenth of the ground
+they're spread over) and smaller than 3 pixels on screen, a whole-county view can't show them: with Parcel shapes chosen
+each is drawn at least 3 pixels across, otherwise as a dot. Every other parcel map already draws points. A street map that's
 off isn't fetched.
 
 **A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
@@ -101,7 +104,8 @@ As built in detail (the modules, a run from button to receipt, a project on disk
 - **Each run is a process of its own.** OpenAVMKit changes the working folder, uses relative paths, and can crash or run
   out of memory. A run is given its project and environment (UTF-8 mode, API keys); a crash fails that run, not the app.
 - **Large maps.** MapLibre and deck.gl (WebGL) draw the parcels on the page (§6.5); the service sends their shapes as
-  GeoJSON. **Planned if that proves too heavy:** vector tiles built on the fly from GeoParquet, so the browser never
+  arrays, not GeoJSON (`shapes.bin`: each parcel's polygons, rings and corners in millionths of a degree; a quarter
+  of GeoJSON's size and nothing to parse), which deck.gl draws as its binary features. **Planned if that proves too heavy:** vector tiles built on the fly from GeoParquet, so the browser never
   loads 500k polygons.
 - **Packaging:**
   - a standalone CPython build plus pre-installed wheels, with no freezing (PyInstaller struggles with GDAL, PROJ and
