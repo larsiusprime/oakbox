@@ -49,7 +49,7 @@ async function ready(page, map) {
   while (Date.now() < until) {
     await page.waitForLoadState("networkidle", { timeout: 300000 });
     const busy = await page.getByText(BUSY).count();
-    const main = await page.locator(".wiz-main, .panel-body, main, .report").count();
+    const main = await page.locator(".wiz-main, .panel-body, .report").count();
     // A map page whose map is there (not every one has a map to show): its canvas drawn.
     const drawn =
       !map || !(await page.locator(".map-view:not(.map-wait)").count()) || (await page.locator(".map-canvas canvas").count());
