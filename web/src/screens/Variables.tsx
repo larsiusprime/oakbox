@@ -119,7 +119,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
     <StepFrame steps={steps} current={current} go={go} landing="variables">
       {current === "fill" && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.fill} lede={m.fillLede}>
+          <StepBody title={m.steps.fill} lede={m.fillLede}>
             {u ? <FillCard v={u} set={set} /> : <p className="empty">{t.project.loading}</p>}
             {errors}
           </StepBody>
@@ -128,7 +128,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "rare" && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.rare}>
+          <StepBody title={m.steps.rare}>
             {u ? <CollapseCard v={u} set={set} /> : <p className="empty">{t.project.loading}</p>}
             {errors}
           </StepBody>
@@ -137,7 +137,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "run" && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.run} lede={m.runLede}>
+          <StepBody title={m.steps.run} lede={m.runLede}>
             {blocked}
             {running ? (
               <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} />
@@ -176,7 +176,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "done" && r && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.done}>
+          <StepBody title={m.steps.done}>
             <Prepared view={v} />
           </StepBody>
           <StepFoot
@@ -196,7 +196,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "lag" && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.lag} lede={m.lag.lede}>
+          <StepBody title={m.steps.lag} lede={m.lag.lede}>
             {mu ? <LagStep setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
             {errors}
           </StepBody>
@@ -205,7 +205,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "test" && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.test} lede={m.vartest.runLede}>
+          <StepBody title={m.steps.test} lede={m.vartest.runLede}>
             {vv.blocked.length > 0 && (
               <div className="bi-warn">
                 <b>{m.blocked}</b> {vv.blocked[0]}
@@ -249,7 +249,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {(TESTS as readonly string[]).includes(current) && vr && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps[current]}>
+          <StepBody title={m.steps[current]}>
             {vv.stale && <p className="wiz-warn">{m.vartest.stale}</p>}
             {mu ? (
               <TestStep key={current} test={current} view={vv} setup={mu} fill={() => go("fill")} />
@@ -263,7 +263,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "verdict" && vr && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.verdict}>
+          <StepBody title={m.steps.verdict}>
             {mu ? <WhatToKeep view={vv} setup={mu} /> : <p className="empty">{t.project.loading}</p>}
             {errors}
           </StepBody>
@@ -272,7 +272,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       )}
       {current === "lists" && (
         <>
-          <StepBody kicker={m.kicker} title={m.steps.lists} lede={m.lists.lede}>
+          <StepBody title={m.steps.lists} lede={m.lists.lede}>
             <VarListsStep projectId={projectId} />
           </StepBody>
           <StepFoot

@@ -38,7 +38,7 @@ class Issue(BaseModel):
 
 class Check(BaseModel):
     ok: bool
-    text: str = Field(description="Short: '✓ years 1890–2025', 'several rows per parcel'.")
+    text: str = Field(description="Short: '✓ 1890–2025', 'several rows per parcel'.")
     warn: bool = Field(default=False, description="Usable, but worth a look (repeats handled, blank IDs dropped).")
     issues: list[Issue] = Field(default_factory=list, description="What's worth a look, each short.")
     share: float | None = Field(default=None, description="Sales: the share that find a parcel (0-1), for Reconcile.")
@@ -118,6 +118,7 @@ class MissingParcels(BaseModel):
     rows: int = Field(description="Its rows that find no parcel.")
     ids: int = Field(description="The different parcel IDs they're for.")
     lines: list[str] = Field(description="What it means and what to do, a sentence each.")
+    title: str = Field(default="", description="A few words for the row it's on: '777 sales off the map'.")
     units: bool = Field(
         default=False, description="They look like units without a shape of their own: the Condo units step's."
     )
@@ -219,6 +220,9 @@ class WizardField(BaseModel):
     scale: Scale | None = Field(default=None, description="Quality/condition number: how it becomes higher-is-better.")
     absent: bool = Field(default=False, description="Said not to exist (no condition: effective age carries it).")
     distinct: int | None = Field(default=None, description="How many different values its column has (not blank).")
+    numbers: bool | None = Field(
+        default=None, description="Quality/condition: its column is all numbers, so it can be read as numbers."
+    )
 
 
 Status = Literal["blank", "blocked", "attention", "done"]
@@ -235,6 +239,7 @@ class Left(BaseModel):
 class StepView(BaseModel):
     key: str
     parent: str | None
+    title: str | None = Field(default=None, description="A part made from a file (More files): its file's name.")
     status: Status = Field(
         description="blank: not visited (or an optional step not confirmed yet); blocked: something here stops a "
         "run; attention: something to decide, or recommended and missing; done: complete."

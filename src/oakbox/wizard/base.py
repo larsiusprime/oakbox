@@ -23,44 +23,57 @@ class Step(BaseModel):
     fields: list[str] = Field(default_factory=list, description="Asked on the step.")
     more: list[str] = Field(default_factory=list, description="Asked under More on the step.")
     sales: bool = Field(default=False, description="Its fields come from the sales file.")
+    guess_more: bool = Field(default=True, description="False: the fields under More are never guessed, only picked.")
 
 
 STEPS: list[Step] = [
     Step(key="universe"),
-    Step(key="sales", fields=["sale_price", "sale_date", "valid_sale", "vacant_sale"], sales=True),
+    # The sales record, in parts (revised 2026-11-05): the file is picked on Sales itself; then the sale date (a sale
+    # ID can be made from it), the IDs and how the sales find their parcels, and each other field on a page of its own.
+    Step(key="sales", sales=True),
+    Step(key="sale_date", parent="sales", fields=["sale_date"], sales=True),
+    Step(key="sales_ids", parent="sales", sales=True),
+    Step(key="sale_price", parent="sales", fields=["sale_price"], sales=True),
+    Step(key="valid_sale", parent="sales", fields=["valid_sale"], sales=True),
+    Step(key="vacant_sale", parent="sales", fields=["vacant_sale"], sales=True),
     # More files, one by one, each joined to the universe (a parcel ID) or to the sales (the sale ID).
     Step(key="more_files"),
-    Step(key="details"),
+    # First the files are added, nothing else asked; then a part each (revised 2026-11-05), "more:<file name>",
+    # made from the files themselves (STEPS has only the first: core.view adds the rest).
+    Step(key="more_add", parent="more_files"),
+    # What a model leans on most, a part each (revised 2026-11-04: its own step, not part of More details).
+    Step(key="big_five"),
+    Step(key="building_size", parent="big_five", fields=["bldg_area_finished_sqft"]),
+    Step(key="land_size", parent="big_five", fields=["land_area_sqft"]),
     Step(
-        key="big_five",
-        parent="details",
-        fields=[
-            "bldg_area_finished_sqft",
-            "land_area_sqft",
-            "bldg_year_built",
-            "bldg_effective_year_built",
-            # A number for modelling, and the category as text: both asked, the number preferred (F3d).
-            "bldg_quality_num",
-            "bldg_quality_txt",
-            "bldg_condition_num",
-            "bldg_condition_txt",
-        ],
+        key="age",
+        parent="big_five",
+        fields=["bldg_year_built", "bldg_effective_year_built"],
         more=["bldg_age_years", "bldg_effective_age_years"],
     ),
-    Step(
-        key="location",
-        parent="details",
-        # The situs address; the areas parcels belong to are the user's own location fields (set_location).
-        # Land, Building and Rooms & features steps are left out for now: their fields are in the advanced view.
-        fields=["address"],
-    ),
+    # A number for modelling, and the category as text: both asked, the number preferred (F3d).
+    Step(key="quality", parent="big_five", fields=["bldg_quality_num", "bldg_quality_txt"]),
+    Step(key="condition", parent="big_five", fields=["bldg_condition_num", "bldg_condition_txt"]),
+    Step(key="details"),
+    # Where each parcel is, in three parts (revised 2026-11-04): the situs address; the coordinates OpenAVMKit works
+    # out (and the centre they're measured from); the areas parcels belong to, the user's own location fields
+    # (set_location). Land, Building and Rooms & features steps are left out for now: their fields are in the
+    # advanced view.
+    Step(key="address", parent="details", fields=["address"]),
+    Step(key="coordinates", parent="details"),
+    Step(key="location", parent="details"),
     # What kind of property each parcel is: model groups are made from these (F5).
     Step(
         key="property_type",
         parent="details",
-        fields=["land_class", "bldg_type"],
-        more=["bldg_desc", "bldg_class", "bldg_units", "bldg_stories"],
+        fields=["land_class", "bldg_type", "bldg_stories"],
+        # Asked only when wanted (revised 2026-11-05): under More, never guessed.
+        more=["bldg_desc", "bldg_class", "bldg_units"],
+        guess_more=False,
     ),
+    # The user's own fields: any other column, under a name they choose, with its class and kind (revised
+    # 2026-11-04: a part of its own, not under Land use & building type).
+    Step(key="custom", parent="details"),
     Step(
         key="assessed",
         parent="details",

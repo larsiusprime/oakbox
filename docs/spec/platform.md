@@ -4,32 +4,73 @@ How it's built as it stands is in [docs/ARCHITECTURE.md](../ARCHITECTURE.md); th
 decisions and plans.
 
 ## 5. Hardware targets
-**Provisional, from M0 benchmarks** ([`docs/m0/REPORT.md`](../m0/REPORT.md)). These came from synthetic data with
-about 10 fields per parcel, on 4 cores. Real extracts and a real low-end PC still need to confirm them.
 
-| Tier | Machine | Model step setting | Parcels (target) |
-|------|---------|--------------------|------------------|
-| Below floor | 4 GB RAM | 1 fold worker | Samples and jurisdictions under 25k; warns |
-| Floor | Win10 x64, 4 cores, 8 GB RAM, 25 GB free disk | 1 fold worker (`cv_max_workers=1`) | up to ~150k |
-| Recommended | 4+ cores, 16 GB RAM, SSD | 2 fold workers | up to ~500k |
-| Large | 8+ cores, 32 GB RAM, SSD | `cores − 2` workers | 500k+, or real data with many columns |
+**Measured** (2026-11-05/06, `perf/`): the whole pipeline on synthetic counties of 5,000, 20,000 and 50,000 parcels,
+under four machine profiles made with cgroup limits (cores, slower cores, memory for OAK box, disk reads), the pages
+timed in a slowed headless Chromium. At 50,000 parcels with two fold workers, the three profiles with 2–2.5 GB for
+OAK box ran out of memory in Models or Finalize; Finalize needed 2.65 GB, of which about 1.2 GB was two idle fold
+workers. One fold at a time brought it to 1.51 GB in about the same time. The Model groups map froze the page for
+12–20 s at 50,000 parcel shapes without graphics hardware; 20,000 dots, 2.1 s at most. Earlier, M0
+([`docs/m0/REPORT.md`](../m0/REPORT.md)): 500,000 parcels, Thorough model step, about 36 min end to end and 9.2 GB
+peak memory on 4 cores.
 
-**Measured** at 500k parcels, Thorough model step: about 36 min end to end, 9.2 GB peak memory, 3.9 GB of project
-outputs.
+**Folds at once give the same values.** Measured: four Models runs from scratch (two with two workers, two with one)
+wrote bit-identical files, predictions included; Finalize too. Tuning trials are fitted single-threaded and
+deterministic, picked in fixed batches and recorded in the order asked, so threads change only the time. So the
+setting is speed against memory, and no part of any step's key.
 
-- **Memory has a fixed base.** About 0.7 GB per process (the OpenAVMKit import), plus about 0.7 GB per cross-validation
-  fold worker. The data-proportional part grows with column count, so real extracts will raise it.
-- **Plain warning, never a block.** "This county has 520,000 parcels. This computer has 8 GB of memory; we recommend 16
-  GB. Steps may be very slow or fail." The user can continue.
-- **Automatic scaling.** Oakbox reads RAM, cores and disk, then sets fold workers and enrichment defaults to fit.
-- **Disk per project.** Outputs are roughly 100× the input size (3.9 GB for 500k). Oakbox prunes intermediate outputs
-  after each step, and the disk check counts the project's expected size.
+**The computer check** (built 2026-11-06, `oakbox/machine.py`, `screens/MachineCheck.tsx`). On first run, before the
+projects page, OAK box checks the computer (about 15 seconds; Cancel takes the safest settings, Light):
+
+| Check | How |
+|---|---|
+| Memory | Installed, and free right now |
+| Processor | Its name, physical and logical cores |
+| Speed | A fixed piece of pandas and NumPy work like OAK box's own, in a process of its own; the test machine (a 2.1 GHz cloud Xeon) = 100 |
+| Disk | Writing 128 MB in the projects folder, flushed to disk (on Windows, the antivirus included) |
+| Graphics | In the page: WebGL's renderer (software: SwiftShader, llvmpipe, Microsoft Basic Render Driver, or none) and 20,000 parcels drawn and timed |
+| Remote session | Remote Desktop or Citrix, noted |
+
+It shows what it found, the tier, why, and the settings it recommends: Use these settings, or Change them… (Settings).
+It checks again on its own when the memory or core count changes, and shows the result again only if the tier
+changed. Settings › Performance › Check again does the same any time.
+
+**Tiers.** Memory decides, because memory is what failed:
+
+| Setting | Light | Standard | Strong | Graphics in software |
+|---|---|---|---|---|
+| Computer | under 12 GB, or 2 cores, or speed under 60 | 12 to 24 GB | 24 GB or more and 6 cores or more | any tier |
+| Model training | One fold at a time | Two at a time | As many as the cores allow (logical − 2, OpenAVMKit's default; at most 5, its folds, as it never runs more) | — |
+| Maps | When Show map is clicked | Right away | Right away | When clicked |
+| Map detail | Dots | Dots above 20,000 parcels | Shapes | Dots |
+| Street map | Off | On | On | Off |
+
+**Settings** (a gear on the plate, File › Settings…, Ctrl+,): Performance first (what the check found, Check again,
+and
+each setting as **Recommended** (what the tier chose, which follows a new check) or the user's own choice, which
+stays); then Display (density, zoom), Projects (where they're kept) and Data keys (the Census API key). Kept in OAK
+box's settings on the computer, never in a project. Models and Finalize set OpenAVMKit's `cv_max_workers` from it in
+memory only, and shut the fold workers down once the models are trained.
+
+**Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings). Drawn
+as dots, the Model groups map shows each parcel's centre in its group's colour, clickable; zoomed in to 5,000 parcels
+or fewer in view, their shapes are drawn instead. Every other parcel map already draws points. A street map that's
+off isn't fetched.
+
+**A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
+needs (0.5 GB, plus 1 GB per 50,000 parcels, plus 0.6 GB per 50,000 for each extra fold worker: the test runs'
+figures) against what the computer leaves OAK box (its memory less 5.5 GB for Windows and the usual programs), and
+says so when it's short: a warning, never a block.
+
 - **Why this floor:**
   - Windows 10 is still about 26% of Windows PCs ([StatCounter via Yahoo, May
     2026](https://tech.yahoo.com/computing/articles/microsoft-giving-windows-10-users-180152418.html)), with paid
     security updates to Oct 2027.
-  - About 10% of machines have 8 GB RAM ([PassMark](https://www.memorybenchmark.net/amount-of-ram-installed.html)), and
-    office PCs skew lower.
+  - About 10% of machines have 8 GB RAM ([PassMark](https://www.memorybenchmark.net/amount-of-ram-installed.html)),
+    and office PCs skew lower.
+- **Disk per project.** Outputs are roughly 100× the input size (3.9 GB for 500k, M0). Not checked yet.
+- **Still to measure:** a real county office PC (run `perf/drive.py` there without a profile), real extracts with
+  many columns (they need more memory than the synthetic counties), and paging on Windows instead of a kill.
 
 ## 6. Architecture
 

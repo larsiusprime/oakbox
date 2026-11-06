@@ -73,7 +73,7 @@ export function DeleteButton({
         <Trash2 aria-hidden="true" size="1em" />
         {children}
       </Button>
-      <Popover className="popover" placement="bottom end">
+      <Popover className="popover" placement="bottom end" offset={0}>
         <Dialog className="popover-body confirm-pop" role="alertdialog" aria-label={confirm}>
           <p>{confirm}</p>
           <div className="form-actions">

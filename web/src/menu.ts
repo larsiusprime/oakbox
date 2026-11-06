@@ -12,6 +12,7 @@ export const MENU_COMMANDS = [
   "tab-data",
   "engines",
   "about",
+  "settings",
   "display",
 ] as const;
 export type MenuCommand = (typeof MENU_COMMANDS)[number] | { open: string };

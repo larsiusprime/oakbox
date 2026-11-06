@@ -34,6 +34,7 @@ PAGE_COMMANDS = (
     "tab-data",
     "engines",
     "about",
+    "settings",
 )
 
 
@@ -81,6 +82,8 @@ MENUS: tuple[Submenu, ...] = (
             Submenu("Open &recent", fill=_recent),
             Item("show-folder", "Show project &folder", enabled=_in_project),
             Item("close-project", "&Close project", enabled=_in_project),
+            None,
+            Item("settings", "&Settings…", "Ctrl+,"),
             None,
             Item("exit", "E&xit"),
         ),

@@ -19,7 +19,7 @@ import { Disclose } from "../components/Disclose";
 import { NamesFiles, SubEntry } from "../components/FileEntry";
 import { Choice } from "../components/Form";
 import { Seg } from "../components/Seg";
-import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
+import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
@@ -27,15 +27,30 @@ import { say, t } from "../wording";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
+import { FieldHistogram } from "./FieldHistogram";
 import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
-import { LocationExtras } from "./Location";
+import { Coordinates, LocationFields } from "./Location";
 import { PermitsStep } from "./Permits";
+import { QualityStep } from "./QualityStep";
+import { SalesFieldPage } from "./SalesParts";
 import { ShapefilesStep } from "./Shapefiles";
 import { CondoStep, UnitsPointer } from "./Units";
 import { ValueSetsStep } from "./ValueSets";
-import { CheckText, FilePicker, IdCheck, IdRow, isMainSales, StepFile } from "./WizardFiles";
-import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
+import { CheckText, FilePicker, IdCheck, IdRow, isMainSales, MatchPanel, StepFile } from "./WizardFiles";
+import { type Change, type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
+// Quality and condition: numbers or categories, on a page of their own (QualityStep).
+const QUALITY_STEPS = ["quality", "condition"];
+// Sales' field parts: each field on a page of its own, read and checked under it (SalesFieldPage).
+const SALES_FIELD_STEPS = ["sale_price", "sale_date", "valid_sale", "vacant_sale"];
+// More files' parts made from its files: "more:" and the file's name (the server's StepView.title).
+const MORE = "more:";
+
+/** A step's title: a file's own part by its file's name, the others by their wording. */
+function stepTitle(s: WizardStep | undefined): string {
+  if (!s) return "";
+  return s.title ?? w.steps[s.key]?.title ?? s.key;
+}
 const w = t.wizard;
 const L = t.landing.pages;
 const MAKE = "__make";
@@ -78,7 +93,9 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const landing = asked === OVERVIEW;
   // Back and Next go through every step, a major step's landing page before its parts.
   const seq = data.steps;
-  const current = seq.find((s) => s.key === asked) ?? seq.find((s) => s.key === opening) ?? seq[0];
+  // A file's own part gone (the file set aside): back to adding files.
+  const gone = asked?.startsWith(MORE) && !seq.some((s) => s.key === asked) ? "more_add" : null;
+  const current = seq.find((s) => s.key === (gone ?? asked)) ?? seq.find((s) => s.key === opening) ?? seq[0];
   const change = useChange(projectId);
   const [unfinished, setUnfinished] = useState(false);
   const go = (key: string) => navigate({ name: "project", id: projectId, tab: "fields", step: key });
@@ -97,8 +114,6 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
   const index = seq.indexOf(current);
   const prev = seq[index - 1];
   const next = seq[index + 1];
-  const tops = data.steps.filter((s) => !s.parent);
-  const top = current.parent ?? current.key;
   const list = <StepList steps={data.steps} current={landing ? OVERVIEW : current.key} go={go} />;
   const tabPage = L.fields;
   if (landing && tabPage) {
@@ -118,6 +133,27 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
     );
   }
   const part = firstPart(data.steps, current.key);
+  if (part && current.key === "sales") {
+    // Sales opens on its file: picked here, then the parts (its date, its IDs, the rest) one by one.
+    const sales = data.files.find(isMainSales);
+    const startPart = stepTitle(data.steps.find((s) => s.key === part)) ?? part;
+    return (
+      <div className="wiz">
+        {list}
+        <div className="wiz-main">
+          <div className="wiz-body">
+            <h2 className="wiz-q">{w.steps.sales?.question}</h2>
+            <p className="wiz-lede">{w.steps.sales?.lede}</p>
+            <SalesFile project={project} data={data} change={change.mutate} />
+          </div>
+          <StepFoot
+            back={prev ? () => go(prev.key) : null}
+            next={{ label: t.landing.start({ step: startPart }), onPress: () => go(part), disabled: !sales }}
+          />
+        </div>
+      </div>
+    );
+  }
   const page = L[current.key];
   if (part && page) {
     return (
@@ -126,8 +162,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
         <div className="wiz-main">
           <LandingPage
             page={page}
-            kicker={`${t.tabs.fields} · ${w.stepOf({ n: tops.indexOf(current) + 1, of: tops.length })}`}
-            start={w.steps[part]?.title ?? part}
+            start={stepTitle(data.steps.find((s) => s.key === part)) ?? part}
             onStart={() => go(part)}
             back={prev ? () => go(prev.key) : null}
           />
@@ -135,15 +170,11 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
       </div>
     );
   }
-  const copy = w.steps[current.key] ?? { title: current.key, question: "", lede: "" };
-  const kicker = [
-    w.stepOf({ n: tops.findIndex((s) => s.key === top) + 1, of: tops.length }),
-    current.parent ? `${w.steps[current.parent]?.title} › ${copy.title}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const copy = current.key.startsWith(MORE)
+    ? { title: stepTitle(current), question: stepTitle(current), lede: w.extraFiles.stepLede }
+    : (w.steps[current.key] ?? { title: current.key, question: "", lede: "" });
   // Sales must have their fields; a step of optional fields (deeds, too) can be answered "I don't have these".
-  const skippable = current.fields.length > 0 && current.key !== "sales";
+  const skippable = current.fields.length > 0 && current.parent !== "sales";
   // Next is greyed until the step is ✅, but still answers a click: it says what's left (SPEC F3d).
   // Only what stops a run greys Next; warnings and notes stay on the step without holding it up.
   const gated = current.status === "blocked";
@@ -163,15 +194,20 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
       {list}
       <div className="wiz-main">
         <div className="wiz-body">
-          <p className="wiz-kicker">{kicker}</p>
           <h2 className="wiz-q">{copy.question}</h2>
           {copy.lede && <p className="wiz-lede">{copy.lede}</p>}
           {current.key === "universe" && (
             <UniverseStep project={project} data={data} change={change.mutate} />
           )}
-          {current.key === "sales" && <SalesStep project={project} data={data} change={change.mutate} />}
-          {current.key === "more_files" && (
-            <MoreFilesStep project={project} data={data} change={change.mutate} />
+          {current.key === "sales_ids" && <SalesIds project={project} data={data} change={change.mutate} />}
+          {SALES_FIELD_STEPS.includes(current.key) && (
+            <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />
+          )}
+          {current.key === "more_add" && (
+            <AddFilesStep project={project} data={data} change={change.mutate} go={go} />
+          )}
+          {current.key.startsWith(MORE) && (
+            <FileStep project={project} data={data} step={current} change={change.mutate} go={go} />
           )}
           {current.key === "review" && (
             <ReviewStep projectId={projectId} data={data} go={go} change={change.mutate} />
@@ -181,13 +217,20 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           )}
           {current.fields.length > 0 &&
             current.key !== "assessed" &&
-            (current.key !== "sales" || data.sale_id.file) && (
+            !QUALITY_STEPS.includes(current.key) &&
+            !SALES_FIELD_STEPS.includes(current.key) && (
               <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
             )}
-          {current.key === "location" && (
-            <LocationExtras project={project} data={data} change={change.mutate} />
+          {QUALITY_STEPS.includes(current.key) && (
+            <QualityStep project={project} data={data} step={current} change={change.mutateAsync} />
           )}
-          {current.key === "property_type" && (
+          {current.key === "coordinates" && (
+            <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
+          )}
+          {current.key === "location" && (
+            <LocationFields projectId={projectId} data={data} change={change.mutate} />
+          )}
+          {current.key === "custom" && (
             <CustomFields projectId={projectId} data={data} change={change.mutate} />
           )}
           {current.key === "shapefiles" && (
@@ -314,7 +357,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
       { key: OVERVIEW, title: t.landing.overview, status: "blank" },
       ...steps.map((s) => ({
         key: s.key,
-        title: w.steps[s.key]?.title ?? s.key,
+        title: stepTitle(s),
         status: s.status,
         ...(s.parent ? { parent: s.parent } : {}),
       })),
@@ -358,7 +401,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               <span className="mark" aria-hidden="true">
                 {icon && <img src={icon} alt="" className="wiz-step-icon" />}
               </span>
-              {w.steps[s.key]?.title ?? s.key}
+              {stepTitle(s)}
             </button>
           </li>
         );
@@ -503,12 +546,14 @@ function NewExtraIdRow({ file, change, done }: { file: WizardFile; change: Mutat
           }
         />
       }
-      onClose={done}
+      what={ordinal}
+      onRemove={done}
     />
   );
 }
 
-function SalesStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
+/** Sales' own page: which file holds the sales. Nothing else is asked here; its parts come next. */
+function SalesFile({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
   const sales = data.files.find(isMainSales);
   const base = data.files.find((f) => f.base);
   if (!sales) {
@@ -526,39 +571,50 @@ function SalesStep({ project, data, change }: { project: Project; data: Wizard; 
       file={sales}
       onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
       undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}
-    >
-      {/* Its two IDs: the parcel each sale finds, and the sale's own. */}
+    />
+  );
+}
 
-      <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} />
-      <div className="wiz-grid">
-        <div className="wiz-label">
-          <TipOn text={w.saleIdTip}>
-            <span>{w.saleIdColumn}</span>
-          </TipOn>
-        </div>
-        <Choice
-          label={w.saleIdColumn}
-          hideLabel
-          value={data.sale_id.made ? MAKE : data.sale_id.column}
-          placeholder={w.choose}
-          options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
-          onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
-        />
-        <div className="wiz-samples">
-          <CheckText check={data.sale_id.check} />
+/** Sales' IDs part: the parcel ID each sale carries and the sale's own ID (a column, or made from the parcel ID and
+ * the sale date), then whether the sales find their parcels, why some don't, and the IDs cleaned up, under it. */
+function SalesIds({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
+  const sales = data.files.find(isMainSales);
+  const base = data.files.find((f) => f.base);
+  if (!sales) return <p className="wiz-note">{w.salesParts.noFile}</p>;
+  return (
+    <>
+      {/* Both IDs on one grid: their labels, controls and checks in the same columns. */}
+      <div className="wiz-grid frame ids-box">
+        <IdRow projectId={project.id} data={data} file={sales} base={base} change={change} inline />
+        <div className="wiz-grid">
+          <div className="wiz-label">
+            <TipOn text={w.saleIdTip}>
+              <span>{w.saleIdColumn}</span>
+            </TipOn>
+          </div>
+          <Choice
+            label={w.saleIdColumn}
+            hideLabel
+            value={data.sale_id.made ? MAKE : data.sale_id.column}
+            placeholder={w.choose}
+            options={[[MAKE, w.makeSaleId] as const, ...sales.columns.map((c) => [c.name, c.name] as const)]}
+            onChange={(v) => change({ kind: "saleId", column: v === MAKE ? null : v, make: v === MAKE })}
+          />
+          <div className="wiz-samples">
+            <CheckText check={data.sale_id.check} />
+          </div>
         </div>
       </div>
-    </StepFile>
+      <MatchPanel projectId={project.id} data={data} file={sales} change={change} />
+    </>
   );
 }
 
 /** F3d: more files, one by one: what each joins to (parcels or sales), the ID it joins on, and its checks. */
-function MoreFilesStep({ project, data, change }: { project: Project; data: Wizard; change: Mutate }) {
-  const base = data.files.find((f) => f.base);
+/** More files' files: those it joins (or appends), and those added here not said yet what they hold. */
+function extraFiles(data: Wizard): WizardFile[] {
   const main = data.files.find(isMainSales);
-  // Picked here this visit: shown even before it's said what it holds.
-  const [chosen, setChosen] = useState<string[]>([]);
-  const extras = data.files.filter(
+  return data.files.filter(
     (f) =>
       !f.base &&
       f !== main &&
@@ -566,34 +622,40 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
         f.holds === "sales" ||
         f.holds === "parcel_rows" ||
         f.holds === "sale_rows" ||
-        f.holds === null ||
-        chosen.includes(f.name)),
+        f.holds === null),
   );
+}
+
+/** F3d (revised 2026-11-05): More files' first part: add the files, one by one, nothing else asked. Each then has a
+ * part of its own (FileStep). */
+function AddFilesStep({
+  project,
+  data,
+  change,
+  go,
+}: {
+  project: Project;
+  data: Wizard;
+  change: Mutate;
+  go: (key: string) => void;
+}) {
+  const base = data.files.find((f) => f.base);
+  const main = data.files.find(isMainSales);
+  const extras = extraFiles(data);
   const [adding, setAdding] = useState(extras.length === 0);
   return (
     <div className="entry-list">
       {extras.map((f) => (
-        <ExtraFile
+        <StepFile
           key={f.name}
-          project={project}
-          data={data}
           file={f}
-          base={base}
-          main={main}
-          change={change}
-          drop={() => {
-            setChosen((c) => c.filter((n) => n !== f.name));
-            change({ kind: "file", name: f.name, holds: "unused" });
-          }}
-          restore={() => {
-            setChosen((c) => [...c, f.name]);
-            if (f.holds && f.holds !== "unused" && f.holds !== "overlay")
-              change(
-                f.holds === "sales"
-                  ? { kind: "file", name: f.name, holds: f.holds, match: "key_sale" }
-                  : { kind: "file", name: f.name, holds: f.holds },
-              );
-          }}
+          onRemove={() => change({ kind: "file", name: f.name, holds: "unused" })}
+          undo={() => change(restoreFile(f))}
+          actions={
+            <Button className="button button-small" onPress={() => go(`${MORE}${f.name}`)}>
+              {w.extraFiles.configure}
+            </Button>
+          }
         />
       ))}
       {adding ? (
@@ -602,7 +664,7 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
           data={data}
           exclude={[...(base ? [base.name] : []), ...(main ? [main.name] : []), ...extras.map((f) => f.name)]}
           onChosen={(name) => {
-            setChosen((c) => [...c, name]);
+            change({ kind: "file", name, added: true });
             setAdding(false);
           }}
           {...(extras.length > 0 ? { onCancel: () => setAdding(false) } : {})}
@@ -613,6 +675,53 @@ function MoreFilesStep({ project, data, change }: { project: Project; data: Wiza
         </AddButton>
       )}
     </div>
+  );
+}
+
+/** What puts a file set aside back as it was: its part, or one of More files' files not said yet what it holds. */
+function restoreFile(f: WizardFile): Change {
+  if (f.holds === "sales") return { kind: "file", name: f.name, holds: "sales", match: "key_sale" };
+  if (f.holds && f.holds !== "unused" && f.holds !== "overlay" && f.holds !== "permits")
+    return { kind: "file", name: f.name, holds: f.holds };
+  return { kind: "file", name: f.name, added: true };
+}
+
+/** One of More files' files, on a part of its own: what it's about, how it joins, its ID, and whether its rows find
+ * theirs, laid out under it (what "See them…", "Reconcile…" and the ⚠ held). */
+function FileStep({
+  project,
+  data,
+  step,
+  change,
+  go,
+}: {
+  project: Project;
+  data: Wizard;
+  step: WizardStep;
+  change: Mutate;
+  go: (key: string) => void;
+}) {
+  const file = data.files.find((f) => f.name === step.title);
+  if (!file) return null;
+  const base = data.files.find((f) => f.base);
+  const main = data.files.find(isMainSales);
+  return (
+    <>
+      <ExtraFile
+        project={project}
+        data={data}
+        file={file}
+        base={base}
+        main={main}
+        change={change}
+        drop={() => {
+          change({ kind: "file", name: file.name, holds: "unused" });
+          go("more_add");
+        }}
+        restore={() => change(restoreFile(file))}
+      />
+      {file.holds && <MatchPanel projectId={project.id} data={data} file={file} change={change} />}
+    </>
   );
 }
 
@@ -691,7 +800,7 @@ function ExtraFile({
           </>
         )}
       </div>
-      {about && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} />}
+      {about && <IdRow projectId={project.id} data={data} file={file} base={base} change={change} inline />}
       {file.appended && <Appended file={file} change={change} />}
       {file.holds === "parcels" && <UnitsPointer projectId={project.id} file={file} />}
     </StepFile>
@@ -768,7 +877,7 @@ function FieldsStep({
   const [more, setMore] = useState(false);
   const mine = data.fields.filter((f) => f.step === step.key && !f.hidden);
   // Only the universe so far: building details are often in a separate file (a CAMA export).
-  const onlyBase = step.key === "big_five" && data.files.filter((f) => f.holds === "parcels").length <= 1;
+  const onlyBase = step.parent === "big_five" && data.files.filter((f) => f.holds === "parcels").length <= 1;
   // A field under More that's loaded (guessed or chosen) always shows: nothing loaded is ever out of sight.
   const inUse = (f: WizardField) => f.sources.length > 0 || f.assumed || f.absent;
   const shown = mine.filter((f) => !f.more || more || inUse(f));
@@ -776,41 +885,60 @@ function FieldsStep({
   return (
     <>
       {onlyBase && <p className="wiz-note wiz-another">{w.anotherFileHint}</p>}
-      <div className="wiz-grid frame">
-        {groupsFor(step.key, shown).map(([title, fields]) =>
-          // A section of one field is that row, numbered; a section of several gets a heading.
-          title && fields.length === 1 && fields[0]
-            ? [
-                <FieldRow
-                  key={fields[0].key}
-                  project={project}
-                  data={data}
-                  field={fields[0]}
-                  sales={step.sales}
-                  change={change}
-                  label={title}
-                />,
-              ]
-            : [
-                title && (
-                  <h3 key={`group-${title}`} className="wiz-group">
-                    {title}
-                  </h3>
-                ),
-                ...fields.map((f) => (
+      {step.parent === "big_five" ? (
+        // Big five's parts: each field a capsule of its own, their columns lined up (one grid, each a subgrid).
+        <div className="wiz-grid wiz-capsules">
+          {shown.map((f) => (
+            <div key={f.key} className="frame wiz-capsule">
+              <FieldRow project={project} data={data} field={f} sales={step.sales} change={change} bare />
+            </div>
+          ))}
+          {/* A size or a year: how its values spread, under the fields. */}
+          {shown
+            .filter((f) => f.sources.length > 0 && (f.area_unit || f.key.includes("year")))
+            .map((f) => (
+              <div key={`${f.key}-h`} className="wiz-capsule-wide">
+                <FieldHistogram projectId={project.id} field={f} />
+              </div>
+            ))}
+        </div>
+      ) : (
+        <div className="wiz-grid frame">
+          {groupsFor(step.key, shown).map(([title, fields]) =>
+            // A section of one field is that row, numbered; a section of several gets a heading.
+            title && fields.length === 1 && fields[0]
+              ? [
                   <FieldRow
-                    key={f.key}
+                    key={fields[0].key}
                     project={project}
                     data={data}
-                    field={f}
+                    field={fields[0]}
                     sales={step.sales}
                     change={change}
-                    inGroup={Boolean(title)}
-                  />
-                )),
-              ],
-        )}
-      </div>
+                    label={title}
+                  />,
+                ]
+              : [
+                  title && (
+                    <h3 key={`group-${title}`} className="wiz-group">
+                      {title}
+                    </h3>
+                  ),
+                  ...fields.map((f) => (
+                    <FieldRow
+                      key={f.key}
+                      project={project}
+                      data={data}
+                      field={f}
+                      sales={step.sales}
+                      change={change}
+                      inGroup={Boolean(title)}
+                    />
+                  )),
+                ],
+          )}
+        </div>
+      )}
       {hidden > 0 && (
         <Disclose className="wiz-more" open={more} onPress={() => setMore(!more)}>
           {more ? w.fewer : w.more({ n: hidden })}
@@ -820,16 +948,12 @@ function FieldsStep({
   );
 }
 
-/** The Big five step's numbered sections (year built and effective year built are one: age). */
-function groupsFor(step: string, fields: WizardField[]): [string | null, WizardField[]][] {
-  if (step !== "big_five") return [[null, fields]];
-  return w.bigFive
-    .map(([title, keys], i) => [`${i + 1}. ${title}`, fields.filter((f) => keys.includes(f.key))] as const)
-    .filter(([, group]) => group.length > 0)
-    .map(([title, group]) => [title, [...group]]);
+/** A step's fields in one section (Big five's parts are steps of their own now, not numbered sections). */
+function groupsFor(_step: string, fields: WizardField[]): [string | null, WizardField[]][] {
+  return [[null, fields]];
 }
 
-// ---------- Step 9: Review ----------
+// ---------- Review ----------
 
 function ReviewStep({
   projectId,
@@ -902,7 +1026,7 @@ function ReviewStep({
               <tr key={s.key} className="wiz-review-head">
                 <th colSpan={3}>
                   {s.parent ? `${w.steps[s.parent]?.title} › ` : ""}
-                  {w.steps[s.key]?.title}
+                  {stepTitle(s)}
                 </th>
               </tr>,
               ...rows.map((f) => (

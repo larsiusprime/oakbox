@@ -56,8 +56,8 @@
     "newFilenameHelp": "The project already has a file called {taken}. Give this one another name.",
     "already": "Already in the project folder",
     "how": "How to import",
-    "copy": "Copy it (a new copy is made for the project)",
-    "move": "Move it (the original moves into the project)",
+    "copy": "Copy it",
+    "move": "Move it",
     "addButton": "Import",
     "adding": "{mode, select, move {Moving…} other {Copying…}}",
     "file": "{layer, select, null {{filename}} other {{filename}, layer {layer}}}",
@@ -75,7 +75,9 @@
     "no": "No",
     "newName": "New name for {name}",
     "save": "Save",
-    "remove": "Remove"
+    "remove": "Remove",
+    "copyNote": "A new copy is made for the project; the original stays where it is.",
+    "moveNote": "The original moves into the project folder."
   },
   "about": {
     "version": "OAK box",
@@ -114,7 +116,6 @@
       "outside": "Names too irregular for any pattern are better split before they come in: give the sales file clear seller and buyer surname columns, and load them as Seller surname and Buyer surname (above). They''re used as given."
     },
     "loading": "Reading the files…",
-    "stepOf": "Step {n} of {of}",
     "back": "‹ Back",
     "toBringIn": "Inputs ›",
     "left": {
@@ -153,13 +154,43 @@
       },
       "sales": {
         "title": "Sales",
-        "question": "Now your sales",
-        "lede": "Add the file that holds the sales record. Each sale must find its parcel in the parcel universe. Files with more about each sale (deeds, say) come next: just pick the main one for now."
+        "question": "Which file holds the sales?",
+        "lede": "The sales record: one row per sale. Pick it here; its date, its IDs and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
+      },
+      "sales_ids": {
+        "title": "IDs",
+        "question": "How does each sale find its parcel?",
+        "lede": "The parcel ID each sale carries, and the sale''s own ID: a column, or made from the parcel ID and the sale date. Each sale must find its parcel in the parcel universe."
+      },
+      "sale_price": {
+        "title": "Sale price",
+        "question": "What did each sell for?",
+        "lede": "The price paid. Amounts are read exactly as OpenAVMKit will read them: currency signs, spaces and the thousands separator are dropped, (10) is −10, and N/A, TBD, - and blanks are missing."
+      },
+      "sale_date": {
+        "title": "Sale date",
+        "question": "When was each sold?",
+        "lede": "The date of sale, read exactly as OpenAVMKit will read it. It comes first: a sale ID can be made from the parcel ID and this date."
+      },
+      "valid_sale": {
+        "title": "Valid sale",
+        "question": "Which sales are valid?",
+        "lede": "Arm''s-length sales, usable for modelling. Say which values mean valid; the price condition leaves out nominal sales."
+      },
+      "vacant_sale": {
+        "title": "Vacant sale",
+        "question": "Which sales were of vacant land?",
+        "lede": "Land with no building when it sold: vacant sales value the land. Say which values mean vacant."
       },
       "more_files": {
         "title": "More files",
+        "question": "",
+        "lede": ""
+      },
+      "more_add": {
+        "title": "Add files",
         "question": "Any more files to join?",
-        "lede": "Building details, sale details, more sales… Add each file, say what it''s about and how it joins. Permits have a step of their own, later. None? Just go on."
+        "lede": "Just add all the extra files you''ll be using: building details, sale details, more sales… You''ll configure them one by one in the next steps. Permits have a step of their own, later. None? Just go on."
       },
       "details": {
         "title": "More details",
@@ -168,13 +199,48 @@
       },
       "big_five": {
         "title": "Big five",
-        "question": "What a model needs most",
-        "lede": "Building size is required. Land size is worked out from the shapes if you leave it out. Age, quality and condition are strongly recommended."
+        "question": "",
+        "lede": ""
+      },
+      "building_size": {
+        "title": "Building size",
+        "question": "How big is each building?",
+        "lede": "The finished area of the building, in the unit its column is in. Required: every model starts from it."
+      },
+      "land_size": {
+        "title": "Land size",
+        "question": "How big is each parcel''s land?",
+        "lede": "The parcel''s land area. Left out, it''s worked out from each parcel''s shape."
+      },
+      "age": {
+        "title": "Age",
+        "question": "How old is each building?",
+        "lede": "When it was built and, if it has one, the year a major renovation makes it act its age from. Strongly recommended."
+      },
+      "quality": {
+        "title": "Quality",
+        "question": "How well is each building built?",
+        "lede": "One column the models can use. Numbers say which way is better; categories are ranked into tiers, best first, and each tier gets a number."
+      },
+      "condition": {
+        "title": "Condition",
+        "question": "What condition is each building in?",
+        "lede": "One column the models can use. Numbers say what they mean (% good, years of life left…); categories are ranked into tiers, best first, and each tier gets a number."
+      },
+      "address": {
+        "title": "Address",
+        "question": "What is each parcel''s address?",
+        "lede": "The site address of each parcel (its situs), for reports and for finding a parcel. Optional."
+      },
+      "coordinates": {
+        "title": "Coordinates",
+        "question": "Where is each parcel?",
+        "lede": "OpenAVMKit works out where each parcel is from its shape: nothing to load. Check the centre the distances and directions are measured from."
       },
       "location": {
-        "title": "Location",
-        "question": "Where is each parcel?",
-        "lede": "The site address, where each parcel is, and the areas it belongs to."
+        "title": "Location fields",
+        "question": "What areas does each parcel belong to?",
+        "lede": "Areas each parcel belongs to: neighborhood, market area, school district, zoning district… Pick the column and give it a name; models use them as categories. Add as many as you like, one at a time."
       },
       "land": {
         "title": "Land",
@@ -194,7 +260,12 @@
       "property_type": {
         "title": "Land use & building type",
         "question": "What kind of property is each parcel?",
-        "lede": "Land use and building type: model groups are made from these, after Bring in data. Pick whichever you have, and add any other field you want to use, saying whether it''s a land/location, improvement or other field."
+        "lede": "Land use, building type and stories: model groups are made from these, after Bring in data. Pick whichever you have; a building description, class or units can be added under More."
+      },
+      "custom": {
+        "title": "Your own fields",
+        "question": "Any other columns to use?",
+        "lede": "Any other column of a parcel file, under a name you choose. Say whether it''s a land/location, improvement or other field, and whether it''s a category or a number: OpenAVMKit treats them that way when it models."
       },
       "assessed": {
         "title": "Existing values",
@@ -345,7 +416,6 @@
       "result": "Result",
       "yes": "yes",
       "no": "no",
-      "writes": "What this writes to the settings",
       "cancel": "Cancel",
       "save": "Save"
     },
@@ -685,8 +755,6 @@
       "toFile": "Units file…"
     },
     "custom": {
-      "title": "Your own fields",
-      "lede": "Any other column of a parcel file, under a name you choose. Say whether it''s a land/location, improvement or other field, and whether it''s a category or a number: OpenAVMKit treats them that way when it models.",
       "column": "Column",
       "pickColumn": "Pick a column…",
       "name": "Name",
@@ -710,7 +778,6 @@
     },
     "location": {
       "areas": "{n, plural, =1 {area} other {areas}}",
-      "coordinates": "Coordinates",
       "latlon": "Latitude and longitude",
       "latlonHow": "worked out by OpenAVMKit from each parcel''s shape (its centre point). Nothing to load.",
       "polar": "Polar coordinates",
@@ -720,14 +787,12 @@
       "loading": "Loading the map…",
       "mapLabel": "Map of the parcels, with the centre point",
       "pinTitle": "The centre: drag to move it",
+      "mapOf": "On the map",
+      "mapAreas": "{n, number} area{n, plural, =1 {} other {s}}, a colour each",
+      "mapNone": "(none)",
       "centerMiddle": "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
-      "centerMiddleHidden": "The centre is the middle of the parcels. Show the map to move it (downtown, say).",
-      "showMap": "Show map",
-      "hideMap": "Hide map",
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",
-      "fields": "Location fields",
-      "fieldsLede": "Areas each parcel belongs to: neighborhood, market area, school district, zoning district… Pick the column and give it a name; models use them as categories. Add as many as you like, one at a time.",
       "column": "Column",
       "pickColumn": "Choose a column…",
       "name": "Name",
@@ -736,6 +801,8 @@
       "remove": "Remove {name}"
     },
     "extraFiles": {
+      "configure": "Set it up ›",
+      "stepLede": "What it''s about, how it joins, and whether its rows find theirs.",
       "first": "Add a file",
       "another": "Add another file",
       "what": "It''s about",
@@ -853,7 +920,6 @@
       "matches": "matches",
       "noMatch": "no match",
       "noUnmatched": "Nothing left unmatched.",
-      "writes": "What this writes to the settings",
       "nothing": "Nothing yet: no clean-up steps.",
       "cancel": "Cancel",
       "save": "Save",
@@ -951,43 +1017,6 @@
       "all": "Drop every row with a repeated ID",
       "result": "{rows, number} rows → {kept, number} parcels"
     },
-    "bigFive": [
-      [
-        "Building size",
-        [
-          "bldg_area_finished_sqft"
-        ]
-      ],
-      [
-        "Land size",
-        [
-          "land_area_sqft"
-        ]
-      ],
-      [
-        "Age",
-        [
-          "bldg_year_built",
-          "bldg_effective_year_built",
-          "bldg_age_years",
-          "bldg_effective_age_years"
-        ]
-      ],
-      [
-        "Quality",
-        [
-          "bldg_quality_num",
-          "bldg_quality_txt"
-        ]
-      ],
-      [
-        "Condition",
-        [
-          "bldg_condition_num",
-          "bldg_condition_txt"
-        ]
-      ]
-    ],
     "rowNames": {
       "bldg_quality_num": "Number",
       "bldg_quality_txt": "Category",
@@ -1048,8 +1077,8 @@
       "directionLede": "OpenAVMKit wants quality with higher meaning better. Say which way this column runs; lower-is-better numbers are flipped within their range as they load.",
       "fits": "fits: loaded this way, newer is better by {basis}",
       "writtenAs": "Written as",
-      "fractions": "fractions, 0–1 (× 100)",
-      "percents": "percent, 0–100",
+      "fractions": "0–1",
+      "percents": "0–100",
       "found": "found: every value is between {lo} and {hi}",
       "newerBetter": "✓ Loaded this way, newer buildings come out in better condition",
       "olderBetter": "Loaded this way, older buildings come out in better condition: is it the other way round?",
@@ -1062,17 +1091,16 @@
       "asWritten": "In the file (median)",
       "asRead": "Loaded as (median)",
       "asReadBand": "Loaded as",
+      "originalValue": "Original value",
       "sales": "Sales",
       "medianOf": "Median {basis}",
       "writtenText": "Text beside it",
-      "samplesLine": "In the file → loaded as:",
       "medianPrice": "Median price",
       "typeOnly": "{type} sales",
       "byPriceLede": {
         "within": "Better should sell for more. Compare within {type} alone (its {field}): a grade is often tied to a kind and size of building, and price per area falls as buildings get bigger, so across every sale it can run the wrong way.",
         "all": "Better should sell for more. Price per area falls as buildings get bigger, so if better buildings are bigger it can run the wrong way: go by the median price too."
       },
-      "writes": "What this writes to the settings",
       "nothingYet": "Nothing until you say what the numbers mean.",
       "tiersTitle": "Rank {column}''s tiers",
       "tiersLede": "Each tier of {column} gets a number for modelling. Put them in order from worst to best: moving one renumbers them in equal steps (1, 2, 3…), and you can type any number instead.",
@@ -1094,7 +1122,26 @@
       "evidenceOnly": "shown to check the order, not used to set the numbers",
       "basedOn": "Based on {notes}.",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "writtenAsLabel": "It''s written as",
+      "asKinds": {
+        "num": "Numbers",
+        "cat": "Categories"
+      },
+      "notNumbers": "{column} isn''t numbers: choose a column of numbers, or Categories",
+      "evidenceHead": "What it sold for, as it''s read now",
+      "risesPrice": "✓ Better sells for more: each step up sells for more.",
+      "fallsPrice": "{n} step{n, plural, =1 {} other {s}} up sell{n, plural, =1 {s} other {}} for less: does it run the other way?",
+      "tiersHead": "Rank its tiers, best at the top",
+      "tiersHint": "Move a tier with its arrows: each gets the number beside it, the best the highest, and that''s what the models use. Its text is kept for reports too.",
+      "useOrder": "Use this order",
+      "suggested": "Suggested, not used yet",
+      "best": "Best",
+      "worst": "Worst",
+      "placeIt": "not recognised: place it",
+      "notRanked": "not ranked: read as missing",
+      "whichWayLabel": "Which way is better",
+      "meansLabel": "What its numbers mean"
     },
     "hints": {
       "bldg_year_built": "e.g. 1987",
@@ -1143,7 +1190,30 @@
     },
     "change": "Change",
     "nothing": "—",
-    "from": "{column} · {file}"
+    "from": "{column} · {file}",
+    "histogram": {
+      "title": "{name}: how they spread",
+      "median": "median {m}",
+      "below": "{n, number} under {v}",
+      "above": "{n, number} over {v}",
+      "empty": "{n, number} blank or none"
+    },
+    "salesParts": {
+      "noFile": "Add the sales file first, on Sales.",
+      "asRead": "As it''s read",
+      "writtenAs": "Written as",
+      "byYear": "Sales by year",
+      "ruleIf": "A sale is {word} if",
+      "allOf": "All of these",
+      "anyOf": "Any of these",
+      "areTrue": "are true",
+      "addCondition": "Add condition",
+      "removeCondition": "Remove this condition",
+      "picks": "Which sales it picks",
+      "matchHead": "Do the sales find their parcels?",
+      "matchParcels": "Do its rows find their parcels?",
+      "matchSales": "Do its rows find their sales?"
+    }
   },
   "tabs": {
     "scrollLeft": "Tabs to the left",
@@ -1170,7 +1240,6 @@
     "bringChanged": "What changed: {what}."
   },
   "report": {
-    "kicker": "Step 7 of 7",
     "steps": {
       "export": "Export",
       "report": "Report"
@@ -1213,7 +1282,6 @@
     "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"
   },
   "bringIn": {
-    "kicker": "Step 1 of 7 · after Data",
     "steps": {
       "plan": "What runs",
       "run": "Bring in data",
@@ -1305,11 +1373,17 @@
       "year": "Year",
       "summary": "{kind, select, number {Numbers} date {Dates} yesno {Yes/no} other {Categories}} · {rows, number} rows{blank, plural, =0 {} other {, {blank, number} blank}} · {distinct, number} different {distinct, plural, =1 {value} other {values}}"
     },
-    "close": "Close"
+    "close": "Close",
+    "memory": "This county may need more memory than this computer has: about {need} GB for {parcels, number} parcels, with about {have} GB free for OAK box.",
+    "memoryMore": "That's an estimate from test runs; real files with many columns need more. Steps may be very slow or stop with an out-of-memory message. Closing other programs helps, and Settings › Performance can train one fold at a time."
   },
   "map": {
     "basemap": "Street map",
-    "basemapTip": "The street map comes from OpenFreeMap (openfreemap.org), over the internet. It''s sent which part of the map you''re looking at, and your computer''s internet address; nothing about your parcels. Untick it to draw without it; offline, the map is drawn without it."
+    "basemapTip": "The street map comes from OpenFreeMap (openfreemap.org), over the internet. It''s sent which part of the map you''re looking at, and your computer''s internet address; nothing about your parcels. Untick it to draw without it; offline, the map is drawn without it.",
+    "waitTitle": "{label}",
+    "show": "Show map",
+    "waitNote": "Maps wait for a click on this computer.",
+    "waitSettings": "Settings"
   },
   "multiPick": {
     "plusOthers": "{first} + {n} other field{n, plural, =1 {} other {s}}",
@@ -1327,7 +1401,6 @@
     "counts": "Counts are {noun}."
   },
   "groups": {
-    "kicker": "Step 2 of 7",
     "title": "Model groups",
     "lede": "Parcels valued together: each group gets its own models. A parcel joins the first group whose rule it meets, so order matters. Vacant parcels stay in their group.",
     "notReady": "Bring in data first: model groups are made from its parcel universe.",
@@ -1480,7 +1553,6 @@
     "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone."
   },
   "sales": {
-    "kicker": "Step 3 of 7",
     "steps": {
       "window": "Sales window",
       "time": "Time adjustment",
@@ -1902,7 +1974,6 @@
     }
   },
   "ratio": {
-    "kicker": "Step 4 of 7",
     "what": {
       "title": "Check your existing values?",
       "lede": "See how the values you have (the roll, a vendor''s AVM) do against the sales, before modelling: OpenAVMKit''s ratio and equity studies, per model group and overall. Or skip to Model values: they''re compared with the models there either way.",
@@ -2181,7 +2252,6 @@
     "toValues": "Models ›"
   },
   "values": {
-    "kicker": "Step 5 of 7",
     "modelsKicker": "Step 6 of 7",
     "steps": {
       "fill": "Fill blanks",
@@ -2663,7 +2733,6 @@
     }
   },
   "metadata": {
-    "kicker": "The project",
     "details": "Project details",
     "jurisdiction": "Jurisdiction",
     "region": "Region",
@@ -2676,186 +2745,55 @@
   },
   "landing": {
     "overview": "Overview",
-    "happens": "What happens",
-    "decide": "What you decide",
-    "end": "What you end with",
-    "needs": "Needs:",
     "start": "Start: {step} ›",
     "pages": {
       "fields": {
-        "kicker": "Before step 1",
         "title": "Welcome to OAK box",
         "lede": "OAK box helps you build models. It needs two datasets for that: a **sales record** and a **parcel universe**\n\nThe **sales record** is what every parcel sold for and when (and ideally, what each parcel was like when it sold)\n\nThe **parcel universe** is every parcel, sold and unsold, as it is now.\nBoth are needed to build a model. We''ll start with the parcel universe."
       },
       "details": {
-        "kicker": "",
         "title": "More details",
-        "lede": "A parcel file can have hundreds of columns; a handful matter most. In five short parts you point OAK box at them: what the models lean on, where each parcel is, what kind of property it is, the values it has now, and any map layers.",
-        "happens": [
-          "Five parts, one screen each: Big five, Location, Land use & building type, Existing values, Shapefiles.",
-          "OAK box guesses each from the columns'' names and values; you confirm, or pick another.",
-          "Each pick is checked against the file as you make it: units, ranges, how many parcels have it."
-        ],
-        "decide": [
-          "Which columns hold building size, land size, age, quality and condition, with their units and which way is better.",
-          "The address, and the areas parcels belong to (neighbourhoods, districts).",
-          "Which columns say what each parcel is: land use, building type.",
-          "Which existing values to compare the models with: the roll, and any others.",
-          "Which map layers to add, and whether each stamps its areas on parcels or measures distance to them."
-        ],
-        "end": [
-          "The fields every later step names: the models'' main variables, the rules model groups are made from, and the values the models are judged beside."
-        ],
-        "needs": "Parcel universe and Sales. A part you don''t have can be left: I don''t have these."
+        "lede": "Where each parcel is, what kind of property it is, any other columns you want, the values it has now, and map layers. A short part each; one you don''t have can be left."
       },
       "condos": {
-        "kicker": "",
         "title": "Condo units",
-        "lede": "Condos, and anything else on the roll that isn''t on the map: units with a parcel ID of their own but no shape, because they share a parcel. Here OAK box learns how to find each unit''s parcel, so the unit is placed, measured and valued like any other parcel.",
-        "happens": [
-          "One question first: do you have them? If not, that''s the whole step.",
-          "If you do, a part for each decision: the file, which rows, how each finds its parcel, its land, its fields, and whether its parcel is a location.",
-          "A summary shows, in order, what Bring in data will do to the units."
-        ],
-        "decide": [
-          "Which file holds the units, and which of its rows are units.",
-          "How each unit finds its parcel: its ID starts with the parcel''s, or a column names it.",
-          "How the parcel''s land is split among its units, or whether they have none.",
-          "What each unit takes from its parcel, and whether being on that parcel is a location the models can learn from."
-        ],
-        "end": [
-          "Every unit with a place, land and fields of its own, ready to be grouped, modeled and mapped like the parcels."
-        ],
-        "needs": "Parcel universe, and the units file added on More files."
+        "lede": "Condos, and anything else on the roll that isn''t on the map: units with a parcel ID of their own but no shape, because they share a parcel. Here OAK box learns how to find each unit''s parcel, so the unit is placed, measured and valued like any other parcel."
       },
       "bring": {
-        "kicker": "Step 1 of 7",
         "title": "Inputs",
-        "lede": "OpenAVMKit reads the files as Data describes them and joins them into one table of every parcel (the parcel universe) and one of every sale. It also works out what it can on its own: coordinates, building ages, land areas, and the public data you asked for.",
-        "happens": [
-          "A run, a few minutes for a county, on its own in the background. You can stop it, and leave this tab while it runs.",
-          "Files are joined on the parcel ID; each sale is matched to its parcel.",
-          "Distances, elevation and other public data are fetched. One that can''t be reached is skipped, never fatal."
-        ],
-        "decide": [
-          "Nothing before it runs. After, you check what came out: parcel and sale counts against what Data said, the fields that came through, anything skipped."
-        ],
-        "end": [
-          "The parcel universe and the sales record every later step starts from. Press Looks right when the counts make sense."
-        ],
-        "needs": "Data, once Review shows nothing blocking."
+        "lede": "OpenAVMKit reads the files as Data describes them and joins them into one table of every parcel (the parcel universe) and one of every sale. It also works out what it can on its own: coordinates, building ages, land areas, and the public data you asked for."
       },
       "groups": {
-        "kicker": "Step 2 of 7",
         "title": "Model groups",
-        "lede": "Not every parcel sells the same way: a condo isn''t valued like a farm. Model groups split the parcels into kinds that sell alike, so each kind gets its own models, and its own ratio study.",
-        "happens": [
-          "You build the groups from rules on the parcels'' fields (land use is one of these codes, say). A parcel joins the first group whose rule it meets.",
-          "A map shows every parcel coloured by group as you go, with the sales each group has.",
-          "A short run tags every parcel with its group."
-        ],
-        "decide": [
-          "Start from OAK box''s suggestion, or from scratch.",
-          "Each group''s rule, and their order.",
-          "Which groups to model: one with too few sales can be left out and kept at its existing value."
-        ],
-        "end": [
-          "Every parcel tagged with a model group, and checks that each group has the sales to model."
-        ],
-        "needs": "Inputs, once you''ve pressed Looks right."
+        "lede": "Not every parcel sells the same way: a condo isn''t valued like a farm. Model groups split the parcels into kinds that sell alike, so each kind gets its own models, and its own ratio study."
       },
       "sales": {
-        "kicker": "Step 3 of 7",
         "title": "Sales",
-        "lede": "Only fair, open-market sales are evidence of what parcels are worth. This step decides which sales count, and brings their prices to the valuation date.",
-        "happens": [
-          "OpenAVMKit''s checks set aside sales that aren''t fair evidence: nominal deeds, one sale of several parcels, sales between family, prices far out of line with similar parcels.",
-          "Time adjustment works out how prices moved in each group, so a sale from three years ago speaks for today.",
-          "You look at what was set aside, with the reason and the parcel''s details beside it."
-        ],
-        "decide": [
-          "Which years of sales to use.",
-          "Time adjustment, per group: worked out from its own sales, or borrowed from another group.",
-          "For each sale set aside: leave it out, or put it back with a note why it''s a market sale."
-        ],
-        "end": [
-          "The sales the models learn from and are judged by. Nothing is deleted: a sale left out stays on file with its reason."
-        ],
-        "needs": "Model groups, once you''ve pressed Looks right."
+        "lede": "Only fair, open-market sales are evidence of what parcels are worth. This step decides which sales count, and brings their prices to the valuation date."
       },
       "check": {
-        "kicker": "Step 4 of 7",
         "title": "Evaluate",
-        "lede": "Before modeling anything, how good are the values you have now? This step checks the existing roll, and any other values you loaded, against what parcels actually sold for: the IAAO ratio study.",
-        "happens": [
-          "Each sale''s value ÷ its price, studied per model group: the level (median ratio), uniformity (COD), and whether dearer and cheaper parcels are valued alike (PRD, PRB, VEI).",
-          "Each is judged against a standard: the IAAO''s, or your own.",
-          "A map and charts show where values sit high or low."
-        ],
-        "decide": [
-          "Which values to check.",
-          "Which sales, and whether prices are as sold or time-adjusted.",
-          "Whose standards, and which standard judges each group."
-        ],
-        "end": [
-          "A baseline: how the roll does today. The model values are judged the same way later, side by side with it."
-        ],
-        "needs": "Sales, once you''ve pressed Looks right. Skipped if you have no existing values."
+        "lede": "Before modeling anything, how good are the values you have now? This step checks the existing roll, and any other values you loaded, against what parcels actually sold for: the IAAO ratio study."
       },
       "variables": {
-        "kicker": "Step 5 of 7",
         "title": "Variables",
-        "lede": "Models learn from the parcels'' characteristics: size, age, quality, location. This step gets those fields ready, finds which ones carry information about price, and puts them into the lists the models use.",
-        "happens": [
-          "Blanks are filled where a model can''t take them, and rare categories folded together.",
-          "Nearby averages are worked out: each parcel gets the average price and characteristics of its neighbours.",
-          "Each variable is tested: is it there for enough parcels, does it move with price, does it repeat another."
-        ],
-        "decide": [
-          "How blanks are filled, field by field.",
-          "Which nearby averages to work out.",
-          "The variable lists: which variables, for regression or machine-learning models, for which groups."
-        ],
-        "end": [
-          "Variable lists, each with the evidence for every variable in it. Models are built from them next."
-        ],
-        "needs": "Sales (and Evaluate, if you have values), each with Looks right pressed."
+        "lede": "Models learn from the parcels'' characteristics: size, age, quality, location. This step gets those fields ready, finds which ones carry information about price, and puts them into the lists the models use."
       },
       "values": {
-        "kicker": "Step 6 of 7",
         "title": "Models",
-        "lede": "This is where the values are made. Each model group gets its models; they''re tried, judged as Evaluate judges the roll, and the best are combined into one value for every parcel.",
-        "happens": [
-          "You choose each group''s models (LightGBM, regression, comparable sales…) and the variable list each one uses.",
-          "A try trains them with cross-validation: each sale is valued by a model that never saw it, so the figures are honest.",
-          "Finalize trains them once more on every sale and values every parcel; the values are checked against the sales, beside the roll''s."
-        ],
-        "decide": [
-          "The models for each group, and their settings.",
-          "What to do with groups the models can''t be trusted on: leave them unvalued, or model them anyway.",
-          "Whether the values look right."
-        ],
-        "end": [
-          "A model value for every parcel in the groups modeled, checked against the sales and compared with the roll."
-        ],
-        "needs": "Variables, once What changed has Looks right."
+        "lede": "This is where the values are made. Each model group gets its models; they''re tried, judged as Evaluate judges the roll, and the best are combined into one value for every parcel."
       },
       "report": {
-        "kicker": "Step 7 of 7",
         "title": "Report",
-        "lede": "The values out of OAK box: as a file for your CAMA system or GIS, and as a report that says plainly how good they are.",
-        "happens": [
-          "Export writes every parcel''s model value beside the roll''s, with the change and, where it sold, its sale and ratio.",
-          "The report is one page to print or save as PDF: a first page a board member can read, the ratio study, charts, a map, and how the values were made."
-        ],
-        "decide": [
-          "The file format: CSV, GeoPackage, Excel, Shapefile or GeoParquet.",
-          "The report''s title, and which sales it judges the values on."
-        ],
-        "end": [
-          "The files and report in the project''s folder, ready to hand on."
-        ],
-        "needs": "Models › Model values, once you''ve pressed Looks right."
+        "lede": "The values out of OAK box: as a file for your CAMA system or GIS, and as a report that says plainly how good they are."
+      },
+      "more_files": {
+        "title": "More files",
+        "lede": "Files with more about each parcel or each sale (building details, deeds…), or more of them (older sales, a second parcel file). First add them all; then each gets a part of its own, to say what it''s about, how it joins, and to check its rows find theirs."
+      },
+      "big_five": {
+        "title": "Big five",
+        "lede": "The five things a model leans on most: how big the building is, how big its land is, how old it is, how well it''s built and what condition it''s in. Building size is required; land size is worked out from the shapes if you leave it out; the other three are strongly recommended. One short part each."
       }
     }
   },
@@ -2879,7 +2817,8 @@
     "projectsFoot": "Each opens where you last were in it. Nothing in this one stops or is lost.",
     "tabsFoot": "Each tab opens on the step you last had open in it.",
     "projectsSettings": "settings",
-    "whereKept": "Where projects are kept…"
+    "whereKept": "Where projects are kept…",
+    "settings": "Settings"
   },
   "project": {
     "title": "{name} – OAK box",
@@ -2944,5 +2883,83 @@
   "format": {
     "todayAt": "today at {time}",
     "dayAt": "{date} at {time}"
+  },
+  "machine": {
+    "title": "This computer",
+    "lede": "OAK box checks the computer it runs on once, to choose settings that suit it. It takes about 15 seconds.",
+    "changed": "This computer's memory or processor changed since OAK box last checked it, so it's checking again.",
+    "memory": "Memory",
+    "processor": "Processor",
+    "speed": "Speed",
+    "disk": "Disk",
+    "graphics": "Graphics",
+    "checking": "checking…",
+    "memoryValue": "{gb} GB",
+    "memoryFree": "{gb} GB free right now",
+    "remote": "a remote session",
+    "processorValue": "{cores, plural, =1 {# core} other {# cores}}",
+    "speedNote": "on OAK box's own work; 100 is the reference machine",
+    "diskValue": "{mbs} MB/s",
+    "diskNote": "writing in the projects folder",
+    "diskNone": "couldn't write in the projects folder",
+    "graphicsDrew": "drew 20,000 parcels in {s} s",
+    "graphicsSoftware": "maps are drawn by the processor here",
+    "graphicsNone": "no WebGL: maps can't be drawn here",
+    "tier": "{tier, select, light {Light} standard {Standard} other {Strong}}",
+    "whyMemory": "{gb} GB of memory is the limit here: OAK box has about {have} GB to work in once Windows, Outlook and the rest have theirs.",
+    "whyCores": "Two processor cores: OAK box keeps to one thing at a time.",
+    "whySpeed": "The processor is slow on OAK box's work, so it keeps to one thing at a time.",
+    "whyCancelled": "The check was cancelled, so OAK box chose the safest settings. Check again in Settings any time.",
+    "whyStandard": "Enough memory to train two models' folds at once.",
+    "whyStrong": "Plenty of memory and cores: models train as many folds at once as the cores allow.",
+    "whySoftware": "Maps are drawn by the processor here, not graphics hardware, so they're drawn simply.",
+    "use": "Use these settings",
+    "change": "Change them…",
+    "cancel": "Cancel",
+    "again": "Check again",
+    "checked": "checked {date}",
+    "failed": "The check stopped: {error}"
+  },
+  "settings": {
+    "title": "Settings",
+    "open": "Settings",
+    "sections": "Sections",
+    "performance": "Performance",
+    "display": "Display",
+    "projects": "Projects",
+    "keys": "Data keys",
+    "thisComputer": "This computer",
+    "notChecked": "Not checked yet.",
+    "specs": "{gb} GB memory · {processor} · speed {speed} · disk {disk} · {graphics}",
+    "noValue": "—",
+    "folds": "Model training",
+    "foldsOne": "One fold at a time",
+    "foldsTwo": "Two at a time",
+    "foldsCores": "{n} at a time (as many as the cores allow)",
+    "foldsHint": "Same values either way. More at once is faster when models are tuned from scratch, and each extra one needs about 0.6 GB more memory per 50,000 parcels.",
+    "maps": "Maps",
+    "mapsNow": "Show right away",
+    "mapsClick": "When I click Show map",
+    "mapsHint": "Right away, or wait for Show map on each one.",
+    "detail": "Map detail",
+    "detailShapes": "Parcel shapes",
+    "detailDots": "Dots at each parcel's centre",
+    "detailAuto": "Dots above 20,000 parcels, shapes below",
+    "detailHint": "Dots draw much faster. Zoomed in far enough, the shapes are drawn.",
+    "street": "Street map",
+    "streetOn": "On",
+    "streetOff": "Off",
+    "streetHint": "The street map under every map. The box on each map still turns it on or off there.",
+    "recommended": "Recommended ({choice})",
+    "density": "Density",
+    "densityDefault": "Default",
+    "densityCompact": "Compact",
+    "zoom": "Zoom",
+    "zoomLevel": "{percent}%",
+    "displayHint": "Also in the View menu, with Ctrl+= and Ctrl+- for zoom.",
+    "where": "Where projects are kept",
+    "census": "Census API key",
+    "censusHint": "For census figures in Enrichments. Kept on this computer, never in a project.",
+    "close": "Close"
   }
 }

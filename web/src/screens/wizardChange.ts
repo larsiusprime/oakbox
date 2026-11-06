@@ -38,6 +38,8 @@ export type Change =
       blank_ok?: boolean;
       extra_field?: "key2" | "key3";
       extra_column?: string | null;
+      /** Added on More files: one of its files, not said yet what it holds. */
+      added?: boolean;
     }
   | { kind: "saleId"; column: string | null; make: boolean }
   | { kind: "reconcile"; name: string; file_steps: CleanStep[]; base_steps: CleanStep[] }
@@ -87,6 +89,7 @@ export function useChange(projectId: string) {
               dupes_sort: null,
               dupes_desc: false,
               blank_ok: null,
+              added: false,
               ...body,
             },
           }),

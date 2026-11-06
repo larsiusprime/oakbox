@@ -935,6 +935,32 @@ class Plan(BaseModel):
     layers: list[str]
     enrichments: list[str] = Field(description="Public data downloaded as it runs (F3e).")
     fields: int
+    memory: MemoryNote | None = Field(
+        default=None, description="This county may need more memory than this computer has for OAK box (SPEC §5)."
+    )
+
+
+class MemoryNote(BaseModel):
+    parcels: int
+    need_gb: float = Field(description="About what the heaviest step needs, from the test runs' figures.")
+    have_gb: float = Field(description="This computer's memory, less what Windows and the usual programs take.")
+    memory_gb: float = Field(description="This computer's memory.")
+
+
+def memory_note(parcels: int | None) -> MemoryNote | None:
+    """When the county looks too big for this computer's memory, with the folds it runs at once: say so before the
+    long steps (a warning, never a block)."""
+    from oakbox import appsettings, machine
+
+    s = appsettings.load()
+    m = s.machine
+    if not parcels or m is None:
+        return None
+    need = machine.memory_need_gb(parcels, machine.resolve(s.performance, m).folds_at_once)
+    have = machine.memory_for_oakbox_gb(m)
+    if need <= have:
+        return None
+    return MemoryNote(parcels=parcels, need_gb=round(need, 1), have_gb=round(have, 1), memory_gb=m.memory_gb)
 
 
 class View(steps.RunView):
@@ -977,7 +1003,13 @@ def plan(project: Project, in_dir: Path) -> Plan:
             *(["census figures"] if e.census and e.fips else []),
             *(["elevation (USGS)"] if e.elevation else []),
         ]
-    return Plan(files=out, layers=layers, enrichments=public, fields=len(loaded) + len(project.wizard.locations))
+    return Plan(
+        files=out,
+        layers=layers,
+        enrichments=public,
+        fields=len(loaded) + len(project.wizard.locations),
+        memory=memory_note(out[0].rows if out and base is not None else None),
+    )
 
 
 # The run keeps the whole settings it ran with (settings.json), to say what changed since.

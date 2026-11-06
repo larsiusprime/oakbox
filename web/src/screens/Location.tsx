@@ -1,10 +1,9 @@
 import { ScatterplotLayer } from "@deck.gl/layers";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, Map as MapIcon } from "lucide-react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
-import { api, type Project, unwrap, type Wizard } from "../api/client";
+import { api, unwrap, type Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
@@ -13,32 +12,14 @@ import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
 
 const l = t.wizard.location;
-const MAP_KEY = "oakbox.locationMap";
 type MapView = {
   points: [number, number][];
   middle: [number, number] | null;
   center: [number, number] | null;
 };
 
-/** F3d, on the Location step: coordinates OpenAVMKit works out, and the user's own location fields. */
-export function LocationExtras({
-  project,
-  data,
-  change,
-}: {
-  project: Project;
-  data: Wizard;
-  change: (c: { kind: "location"; name: string; file: string | null; column: string | null }) => void;
-}) {
-  return (
-    <>
-      <Coordinates projectId={project.id} hasShapes={data.files.some((f) => f.base && f.geometry)} />
-      <LocationFields projectId={project.id} data={data} change={change} />
-    </>
-  );
-}
-
-function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
+/** F3d, More details › Coordinates: where each parcel is, worked out by OpenAVMKit, and the centre it measures from. */
+export function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
   const queryClient = useQueryClient();
   const view = useQuery({
     queryKey: ["map", projectId],
@@ -61,27 +42,8 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
     onSuccess: (data) => queryClient.setQueryData(["map", projectId], data),
   });
   const v = view.data as MapView | undefined;
-  // Hidden until asked for (it's big), and remembered on this computer.
-  const [shown, setShown] = useState(() => {
-    try {
-      return localStorage.getItem(MAP_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const toggle = () => {
-    setShown((on) => {
-      try {
-        localStorage.setItem(MAP_KEY, on ? "0" : "1");
-      } catch {
-        // no storage (a private window): the choice lasts until the page closes
-      }
-      return !on;
-    });
-  };
   return (
-    <section className="wiz-section">
-      <h3 className="wiz-group">{l.coordinates}</h3>
+    <section className="wiz-section wiz-fill">
       <ul className="wiz-auto">
         <li>
           <span className="wiz-ok">✓ {l.latlon}</span> <span className="wiz-from">{l.latlonHow}</span>
@@ -94,25 +56,16 @@ function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: b
         <p className="wiz-note">{l.noShapes}</p>
       ) : v && v.points.length > 0 ? (
         <>
-          <Button className="button wiz-map-toggle" aria-expanded={shown} onPress={toggle}>
-            {shown ? <ChevronUp aria-hidden="true" size="1em" /> : <MapIcon aria-hidden="true" size="1em" />}
-            {shown ? l.hideMap : l.showMap}
-          </Button>
-          {shown && (
-            <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
-          )}
+          {/* The centre, and the way back to the middle, above the map: always shown, it's the step's point. */}
           <p className="wiz-note">
-            {v.center
-              ? say.wizard.location.centerSet(v.center[0], v.center[1])
-              : shown
-                ? l.centerMiddle
-                : l.centerMiddleHidden}{" "}
+            {v.center ? say.wizard.location.centerSet(v.center[0], v.center[1]) : l.centerMiddle}{" "}
             {v.center && (
               <Button className="button button-small" onPress={() => move.mutate(null)}>
                 {l.useMiddle}
               </Button>
             )}
           </p>
+          <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
         </>
       ) : view.isPending ? (
         <p className="wiz-note">{l.loading}</p>
@@ -189,12 +142,12 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
 
   return (
     <MapBox
-      className="wiz-map"
+      className="wiz-map wiz-map-fill"
       label={l.mapLabel}
       layers={layers}
       bounds={boundsOf(points)}
       fitKey={String(points.length)}
-      scrollZoom={false}
+      scrollZoom="focus"
       onMap={setM}
     />
   );
@@ -209,7 +162,7 @@ function nameFor(column: string): string {
   return /^[a-z]/.test(n) ? n : `loc_${n}`;
 }
 
-function LocationFields({
+export function LocationFields({
   projectId,
   data,
   change,
@@ -232,65 +185,141 @@ function LocationFields({
   );
   const [file, column] = picked ? picked.split("\u0000") : [null, null];
   return (
-    <section className="wiz-section">
-      <h3 className="wiz-group">{l.fields}</h3>
-      <p className="wiz-lede">{l.fieldsLede}</p>
-      {data.locations.length > 0 && (
-        <div className="entry-list">
-          {data.locations.map((x) => (
-            <div key={x.name} className="wiz-loc">
-              <span className="mono">{x.name}</span>
-              <span className="wiz-from">
-                {x.column} · <span className="file-label">{x.file}</span>
-              </span>
-              <span className={x.check.warn ? "wiz-warn" : x.check.ok ? "wiz-ok" : "wiz-warn"}>
-                {x.check.text}
-              </span>
-              <ValuesButton
-                projectId={projectId}
-                file={x.file}
-                column={x.column}
-                distinct={x.distinct}
-                noun={l.areas({ n: x.distinct ?? 0 })}
-              />
-              <RemoveButton
-                what={x.name}
-                onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
-                undo={() => change({ kind: "location", name: x.name, file: x.file, column: x.column })}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-      <form
-        className="wiz-loc-add"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (file && column && name) {
-            change({ kind: "location", name, file, column });
-            setPicked(null);
-            setName("");
-          }
-        }}
-      >
-        <Choice
-          label={l.column}
-          hideLabel
-          value={picked}
-          placeholder={l.pickColumn}
-          options={options}
-          onChange={(v) => {
-            setPicked(v);
-            setName(nameFor(v.split("\u0000")[1] ?? ""));
+    // The fields on the left, as wide as they are; once there's one, its map on the right, filling the page.
+    <section className="wiz-section wiz-fill loc-page">
+      <div className="loc-side">
+        {data.locations.length > 0 && (
+          <div className="entry-list">
+            {data.locations.map((x) => (
+              <div key={x.name} className="wiz-loc">
+                <span className="mono">{x.name}</span>
+                <span className="wiz-from">
+                  {x.column} · <span className="file-label">{x.file}</span>
+                </span>
+                <span className={x.check.warn ? "wiz-warn" : x.check.ok ? "wiz-ok" : "wiz-warn"}>
+                  {x.check.text}
+                </span>
+                <ValuesButton
+                  projectId={projectId}
+                  file={x.file}
+                  column={x.column}
+                  distinct={x.distinct}
+                  noun={l.areas({ n: x.distinct ?? 0 })}
+                />
+                <RemoveButton
+                  what={x.name}
+                  onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
+                  undo={() => change({ kind: "location", name: x.name, file: x.file, column: x.column })}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <form
+          className="wiz-loc-add"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (file && column && name) {
+              change({ kind: "location", name, file, column });
+              setPicked(null);
+              setName("");
+            }
           }}
-        />
-        <TextField aria-label={l.name} value={name} onChange={setName} className="rl-mini">
-          <Input className="input rl-input" placeholder={l.namePlaceholder} />
-        </TextField>
-        <AddButton type="submit" isDisabled={!file || !name}>
-          {l.add}
-        </AddButton>
-      </form>
+        >
+          <Choice
+            label={l.column}
+            hideLabel
+            value={picked}
+            placeholder={l.pickColumn}
+            options={options}
+            onChange={(v) => {
+              setPicked(v);
+              setName(nameFor(v.split("\u0000")[1] ?? ""));
+            }}
+          />
+          <TextField aria-label={l.name} value={name} onChange={setName} className="rl-mini">
+            <Input className="input rl-input" placeholder={l.namePlaceholder} />
+          </TextField>
+          <AddButton type="submit" isDisabled={!file || !name}>
+            {l.add}
+          </AddButton>
+        </form>
+      </div>
+      {data.locations.length > 0 && (
+        <LocationMap projectId={projectId} names={data.locations.map((x) => x.name)} />
+      )}
     </section>
+  );
+}
+
+/** A colour for each area, spread round the colour wheel (the golden angle), so neighbours rarely look alike. */
+function areaColour(i: number): [number, number, number, number] {
+  if (i < 0) return [150, 150, 150, 110];
+  const hue = (i * 137.508) % 360;
+  const [s, l] = [0.68, 0.5];
+  const f = (n: number) => {
+    const k = (n + hue / 30) % 12;
+    return Math.round(255 * (l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+  };
+  return [f(0), f(8), f(4), 200];
+}
+
+/** Location fields on the map: pick one, and each parcel is a dot coloured by its area. */
+function LocationMap({ projectId, names }: { projectId: string; names: string[] }) {
+  const [chosen, setChosen] = useState<string | null>(null);
+  const name = chosen && names.includes(chosen) ? chosen : (names[names.length - 1] ?? "");
+  const view = useQuery({
+    queryKey: ["location-map", projectId, name],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/wizard/locations/{name}/map", {
+          params: { path: { project_id: projectId, name } },
+        }),
+      ),
+    enabled: !!name,
+    placeholderData: keepPreviousData,
+  });
+  const v = view.data;
+  const points = useMemo(() => (v?.points ?? []).map(([lat, lon, i]) => [lon, lat, i] as const), [v]);
+  const layers = useMemo(
+    () => [
+      new ScatterplotLayer({
+        id: "areas",
+        data: points,
+        getPosition: (p) => [p[0], p[1]],
+        getRadius: 3,
+        radiusUnits: "pixels",
+        getFillColor: (p) => areaColour(p[2]),
+        pickable: true,
+      }),
+    ],
+    [points],
+  );
+  return (
+    <div className="loc-map">
+      <div className="loc-map-head">
+        <span className="wiz-label">{l.mapOf}</span>
+        <Choice
+          label={l.mapOf}
+          hideLabel
+          value={name}
+          options={names.map((x) => [x, x] as const)}
+          onChange={setChosen}
+        />
+        {v && <span className="wiz-from">{l.mapAreas({ n: v.values.length })}</span>}
+      </div>
+      <MapBox
+        className="wiz-map wiz-map-fill"
+        label={l.mapOf}
+        layers={layers}
+        bounds={boundsOf(points.map((p) => [p[0], p[1]] as [number, number]))}
+        fitKey={`${name}:${points.length}`}
+        scrollZoom="focus"
+        tooltip={(info) => {
+          const p = info.object as readonly [number, number, number] | undefined;
+          return p && v ? (p[2] >= 0 ? (v.values[p[2]] ?? null) : l.mapNone) : null;
+        }}
+      />
+    </div>
   );
 }

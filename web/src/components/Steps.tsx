@@ -117,52 +117,24 @@ export function StepFrame({
 /** How a landing page is marked in a step list: an introduction, never done or to look at. */
 export const LANDING_MARK = "◆";
 
-/** A major step's landing page (SPEC D21): what it's for, what happens in it, what you'll decide and end with, what
- * it needs; Start goes on to its first step. */
+/** A major step's landing page (SPEC D21): what it's for, in a few lines; Start goes on to its first step. */
 export function LandingPage({
   page,
-  kicker,
   start,
   onStart,
   back,
 }: {
   page: Landing;
-  kicker?: string;
   start: string;
   onStart: () => void;
   back?: (() => void) | null;
 }) {
   const l = t.landing;
-  const list = (title: string, items: React.ReactNode[] | undefined) =>
-    items?.length ? (
-      <section className="land-sec">
-        <h3>{title}</h3>
-        <ul>
-          {items.map((x, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list from the wording, never reordered
-            <li key={i}>{x}</li>
-          ))}
-        </ul>
-      </section>
-    ) : null;
   return (
     <>
       <div className="wiz-body land">
-        <p className="wiz-kicker">{kicker ?? page.kicker}</p>
         <h2 className="wiz-q">{page.title}</h2>
         <p className="wiz-lede">{page.lede}</p>
-        {Boolean(page.happens?.length || page.decide?.length || page.end?.length) && (
-          <div className="land-cols">
-            {list(l.happens, page.happens)}
-            {list(l.decide, page.decide)}
-            {list(l.end, page.end)}
-          </div>
-        )}
-        {page.needs && (
-          <p className="land-needs">
-            <b>{l.needs}</b> {page.needs}
-          </p>
-        )}
       </div>
       <StepFoot back={back ?? null} next={{ label: l.start({ step: start }), onPress: onStart }} />
     </>
@@ -171,13 +143,11 @@ export function LandingPage({
 
 /** One step's page: its question or title, then what it asks. flush: no padding, for a builder that fills it. */
 export function StepBody({
-  kicker,
   title,
   lede,
   flush = false,
   children,
 }: {
-  kicker?: string;
   title?: string;
   // Shown, never used as text: may be formatted (**bold**, *italic*).
   lede?: React.ReactNode;
@@ -186,7 +156,6 @@ export function StepBody({
 }) {
   return (
     <div className={flush ? "wiz-body wiz-flush" : "wiz-body"}>
-      {kicker && <p className="wiz-kicker">{kicker}</p>}
       {title && <h2 className="wiz-q">{title}</h2>}
       {lede && <p className="wiz-lede">{lede}</p>}
       {children}

@@ -13,6 +13,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -158,13 +159,35 @@ def start(project_id: str, project_dir: Path, module: str) -> Job:
                 job.status = "done"
             else:
                 job.status = "failed"
-                tail = (
-                    log.read_text(errors="replace", encoding="utf-8").strip().splitlines()[-1:] if log.is_file() else []
-                )
-                job.error = tail[0] if tail else f"stopped with code {code}"
+                lines = log.read_text(errors="replace", encoding="utf-8").strip().splitlines() if log.is_file() else []
+                job.error = failure(code, lines)
 
     threading.Thread(target=follow, daemon=True).start()
     return job
+
+
+OUT_OF_MEMORY = "It ran out of memory. Close other programs and run it again, or try fewer variables or models."
+_KILLED = (-9, 137, 0xC0000017, 3221225495)  # SIGKILL (the out-of-memory killer), as a code or a shell's 128 + 9;
+# Windows' STATUS_NO_MEMORY and STATUS_COMMITMENT_LIMIT
+_ERROR_LINE = re.compile(r"^[A-Za-z_][\w.]*(Error|Exception)\b")
+
+
+def failure(code: int, lines: list[str]) -> str:
+    """What to tell the user when a run stops with `code`, from the end of its log: running out of memory said as
+    that (the process killed, a MemoryError, or a worker of its killed), else the exception the log ends with, not
+    whatever it printed last (a warning's second line, say)."""
+    tail = lines[-200:]
+    if code in _KILLED or any(
+        x.startswith(("MemoryError", "numpy.core._exceptions._ArrayMemoryError", "numpy._core._exceptions"))
+        or "TerminatedWorkerError" in x
+        or "Unable to allocate" in x
+        for x in tail
+    ):
+        return OUT_OF_MEMORY
+    for x in reversed(tail):
+        if _ERROR_LINE.match(x):
+            return x
+    return tail[-1] if tail else f"stopped with code {code}"
 
 
 def child_env() -> dict[str, str]:

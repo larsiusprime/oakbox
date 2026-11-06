@@ -334,7 +334,7 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
         {others.length > 0 && (
           <MenuTrigger>
             <Button className="button button-small">{m.copy}</Button>
-            <Popover className="popover rc-menu" placement="bottom start">
+            <Popover className="popover rc-menu" placement="bottom start" offset={0}>
               <Menu
                 className="choice-list"
                 onAction={(key) => {

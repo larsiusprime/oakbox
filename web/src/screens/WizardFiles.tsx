@@ -25,17 +25,18 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
-import { CloseButton } from "../components/Buttons";
-import { Callout, firstSentence } from "../components/Callout";
+import { firstSentence } from "../components/Callout";
 import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
+import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
+import { WarnChip } from "../components/WarnChip";
 import { desktop, useCanPickFile } from "../desktop";
 import { band } from "../lib/format";
 import { t } from "../wording";
 import { AddFile } from "./AddFile";
-import { describeSteps, ReconcileDialog } from "./Reconcile";
+import { describeSteps, ReconcileDialog, ReconcilePanel } from "./Reconcile";
 import { CondosLink } from "./Units";
 import type { Mutate } from "./wizardChange";
 
@@ -88,11 +89,14 @@ export function IdCheck({
   data,
   file,
   change,
+  inline = false,
 }: {
   projectId: string;
   data: Wizard;
   file: WizardFile;
   change: Mutate;
+  /** The Sales file part: matching is laid out under the file (MatchPanel), so no Reconcile button or ⚠ here. */
+  inline?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [reconciling, setReconciling] = useState(false);
@@ -117,46 +121,36 @@ export function IdCheck({
     (share < 1 || steps.length > 0 || (base.clean[field] ?? []).length > 0);
   // Rows for parcels missing from the parcel universe: cleaning won't help, so it's a note and a look at them.
   const missing = file.not_in_universe;
-  const reconcile = reconcilable && (
+  const reconcile = reconcilable && !inline && (
     <Button className="button button-small" onPress={() => setReconciling(true)}>
       {missing ? w.reconcile.seeThem : w.reconcile.open}
     </Button>
   );
   return (
-    <div className="wiz-samples wiz-check-lines">
-      <span>
-        <CheckText check={file.id_check} />
-        {(file.id_check?.issues ?? []).length === 0 && reconcile}
-      </span>
+    // One line, as every row of settings: the check, its button, each issue, a warning as ⚠ and a few words.
+    <div className="wiz-samples id-line">
+      <CheckText check={file.id_check} />
+      {reconcile}
       <Issues
         issues={file.id_check?.issues ?? []}
         action={
-          <>
-            {resolvable && (
-              <Button className="button button-small" onPress={() => setOpen(true)}>
-                {w.dupes.resolve}
-              </Button>
-            )}
-            {(file.id_check?.issues ?? []).length > 0 && reconcile}
-          </>
+          resolvable && (
+            <Button className="button button-small" onPress={() => setOpen(true)}>
+              {w.dupes.resolve}
+            </Button>
+          )
         }
       />
       {steps.length > 0 && (
         <span className="wiz-cleaned">{w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
       )}
-      {missing && (
-        <Callout summary={firstSentence(missing.lines[0] ?? "")}>
-          {/* The first sentence is the summary line; the rest follows it. */}
-          {[
-            (missing.lines[0] ?? "").slice(firstSentence(missing.lines[0] ?? "").length).trim(),
-            ...missing.lines.slice(1),
-          ]
-            .filter(Boolean)
-            .map((line) => (
-              <p key={line}>{line}</p>
-            ))}
+      {missing && !inline && (
+        <WarnChip title={missing.title || firstSentence(missing.lines[0] ?? "")}>
+          {missing.lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
           {missing.units && <CondosLink projectId={projectId} />}
-        </Callout>
+        </WarnChip>
       )}
       {reconciling && base && (
         <ReconcileDialog
@@ -408,7 +402,7 @@ export function FilePicker({
       )}
       {onCancel && (
         <span className="entry-acts">
-          <CloseButton label={w.cancel} onPress={onCancel} />
+          <RemoveButton what={w.cancel} label={w.cancel} onPress={onCancel} />
         </span>
       )}
     </FileSlot>
@@ -462,12 +456,14 @@ export function IdRow({
   file,
   base,
   change,
+  inline = false,
 }: {
   projectId: string;
   data: Wizard;
   file: WizardFile;
   base: WizardFile | undefined;
   change: Mutate;
+  inline?: boolean;
 }) {
   const options = matchOptions(base);
   // More sales details join on the sale ID (made from their parcel ID and date, if the sales record's is); rows
@@ -499,7 +495,7 @@ export function IdRow({
           onChange={(id_column) => change({ kind: "file", name: file.name, id_column })}
         />
       </div>
-      <IdCheck projectId={projectId} data={data} file={file} change={change} />
+      <IdCheck projectId={projectId} data={data} file={file} change={change} inline={inline} />
       {made && (
         <>
           <div className="wiz-label">{w.extraFiles.saleDate}</div>
@@ -516,6 +512,52 @@ export function IdRow({
           <div className="wiz-samples wiz-from">{w.extraFiles.madeId}</div>
         </>
       )}
+    </div>
+  );
+}
+
+/** The Sales file part, under the file: do its sales find their parcels? Why some don't, and their IDs cleaned
+ * up live until they do (what "See them…", "Reconcile…" and the ⚠ held, laid out; saved as it's changed). */
+export function MatchPanel({
+  projectId,
+  data,
+  file,
+  change,
+}: {
+  projectId: string;
+  data: Wizard;
+  file: WizardFile;
+  change: Mutate;
+}) {
+  // What it joins to: the main sales file for more sales details, else the parcel universe.
+  const base =
+    file.match === "key_sale" ? data.files.find((f) => isMainSales(f)) : data.files.find((f) => f.base);
+  const missing = file.not_in_universe;
+  if (!base || file.id_column === null || file.id_check?.share == null) return null;
+  const head = isMainSales(file)
+    ? w.salesParts.matchHead
+    : file.match === "key_sale"
+      ? w.salesParts.matchSales
+      : w.salesParts.matchParcels;
+  return (
+    <div className="frame qc-panel match-panel">
+      <h3 className="wiz-group">{head}</h3>
+      {missing && (
+        <div className="rc-sub">
+          {missing.lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+          {missing.units && <CondosLink projectId={projectId} />}
+        </div>
+      )}
+      <ReconcilePanel
+        projectId={projectId}
+        file={file}
+        base={base}
+        save={(file_steps, base_steps) =>
+          change({ kind: "reconcile", name: file.name, file_steps, base_steps })
+        }
+      />
     </div>
   );
 }

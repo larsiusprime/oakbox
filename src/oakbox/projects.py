@@ -102,6 +102,12 @@ class CustomField(BaseModel):
     type: Literal["category", "number"]
 
 
+# Big five's parts (revised 2026-11-04): a project saved when Big five was one step has it seen, skipped or moved on
+# from as a whole; each part counts as the same.
+BIG_FIVE_PARTS = ("building_size", "land_size", "age", "quality", "condition")
+SALES_PARTS = ("sale_date", "sales_ids", "sale_price", "valid_sale", "vacant_sale")
+
+
 class WizardState(BaseModel):
     """The Fields wizard's own state (SPEC §3.0 F3d). Everything it chooses is in the files' entries."""
 
@@ -126,6 +132,30 @@ class WizardState(BaseModel):
     value_sets: list[ValueSet] | None = Field(
         default=None, description="Existing values (Data › Existing values); None: the roll, as first proposed."
     )
+
+    @model_validator(mode="after")
+    def _big_five_parts(self) -> WizardState:
+        for done in (self.visited, self.skipped, self.confirmed):
+            if "big_five" in done:
+                done.extend(p for p in BIG_FIVE_PARTS if p not in done)
+            # Sales was one step (the file and its four fields); now five parts.
+            if "sales" in done:
+                done.extend(p for p in SALES_PARTS if p not in done)
+            # The sales file's part (its IDs) was "sales_file", before the file moved to Sales itself.
+            if "sales_file" in done:
+                done.remove("sales_file")
+                if "sales_ids" not in done:
+                    done.append("sales_ids")
+            # More files was one step; now its files are added on a part of their own, then a part each.
+            if "more_files" in done and "more_add" not in done:
+                done.append("more_add")
+            # Location was one step (the address, the coordinates, the location fields); now three parts.
+            if "location" in done:
+                done.extend(p for p in ("address", "coordinates") if p not in done)
+            # Your own fields were on Land use & building type.
+            if "property_type" in done and "custom" not in done:
+                done.append("custom")
+        return self
 
 
 class ModelGroup(BaseModel):

@@ -29,7 +29,8 @@ export function StorageLocationDialog({ isOpen, onClose }: { isOpen: boolean; on
   );
 }
 
-function StorageLocation({ onDone }: { onDone: () => void }) {
+/** The folder, and changing it: in its own dialog (with Close) or in Settings › Projects (without). */
+export function StorageLocation({ onDone }: { onDone?: () => void }) {
   const queryClient = useQueryClient();
   const settings = useAppSettings();
   const [editing, setEditing] = useState<string | null>(null);
@@ -88,11 +89,13 @@ function StorageLocation({ onDone }: { onDone: () => void }) {
           {save.error.message}
         </p>
       )}
-      <div className="form-actions">
-        <Button className="button" onPress={onDone}>
-          {t.about.close}
-        </Button>
-      </div>
+      {onDone && (
+        <div className="form-actions">
+          <Button className="button" onPress={onDone}>
+            {t.about.close}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -290,6 +290,10 @@ def _analysis_key(settings: dict) -> dict:
     out = {k: v for k, v in settings.get("analysis", {}).items() if k != "report"}
     if isinstance(out.get("ratio_study"), dict):
         out["ratio_study"] = {k: v for k, v in out["ratio_study"].items() if k not in MODEL_ONLY}
+        # Nothing of Check sales' own left: as if there were none. The models' settings add the section later (when
+        # the prepared fields are there), and an empty one left Check sales out of date, so Prepare wouldn't run.
+        if not out["ratio_study"]:
+            del out["ratio_study"]
     return out
 
 
@@ -500,9 +504,11 @@ def propose(field: str) -> tuple[Fill, str]:
     if field.startswith("days_to_"):
         return Fill(method="leave"), "Blank means no permit: there's no date to count from, so it stays blank."
     if field in CENSUS:
-        return Fill(method="median"), "Blank where a parcel's census block group wasn't matched: its group's median."
+        return Fill(method="median"), (
+            "Blank where the census gives no figure for the parcel's block group or its tract: its group's median."
+        )
     if field.startswith(("elevation_", "slope_")):
-        return Fill(method="median"), "Blank where the elevation tiles didn't cover the parcel: its group's median."
+        return Fill(method="median"), "Blank where the elevation tiles had no cells for the parcel: its group's median."
     return Fill(method="median"), "Blank where the data didn't say: its group's median, as a stand-in."
 
 

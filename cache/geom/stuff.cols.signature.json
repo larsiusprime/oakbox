@@ -1,0 +1,1 @@
+{"num_rows": 2, "num_columns": 10, "columns": ["bldg_year_built", "geometry", "key", "land_area_gis_sqft", "land_area_sqft", "land_area_sqft_log", "latitude", "latitude_norm", "longitude", "longitude_norm"], "model_groups": {}, "lib_version": "0.7.0.post1.dev69+g3125b3423"}

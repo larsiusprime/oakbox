@@ -3,13 +3,11 @@ import { ChevronDown, Globe } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } from "react-aria-components";
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
-import { DeleteButton } from "../components/Buttons";
-import { ExternalLink } from "../components/ExternalLink";
+import { CensusKey } from "../components/CensusKey";
 import { Choice, Tick } from "../components/Form";
 import { say, t } from "../wording";
 
 const e = t.wizard.enrich;
-const KEY_URL = "https://api.census.gov/data/key_signup.html";
 
 /** F3e, Enrichments: public data about each parcel, downloaded as Bring in data runs. One card each: on or off,
  * where it comes from and what it sends, its options, and the fields it adds. */
@@ -85,7 +83,7 @@ export function EnrichStep({ projectId }: { projectId: string }) {
         onChange={(census) => set({ census })}
         off={v.key_saved ? undefined : e.censusOff}
       >
-        <CensusKey view={v} />
+        <CensusKey saved={v.key_saved ? v.key_end : null} />
         <div className="en-row">
           <span className="en-lab">{e.county}</span>
           <Choice
@@ -213,7 +211,7 @@ function Picks({
           {say.wizard.enrich.fieldsOf(on.length, fields.length)}
           <ChevronDown aria-hidden="true" size="0.85em" />
         </Button>
-        <Popover className="popover" placement="bottom start">
+        <Popover className="popover" placement="bottom start" offset={0}>
           <Dialog className="popover-body en-fields" aria-label={e.fieldsTitle({ name: title })}>
             <Heading slot="title" className="vals-title">
               {e.fieldsTitle({ name: title })}
@@ -332,45 +330,5 @@ function Num({ label, value, onChange }: { label: string; value: number; onChang
         }}
       />
     </TextField>
-  );
-}
-
-/** The Census API key: kept in OAK box's settings on this computer, never in the project. */
-function CensusKey({ view }: { view: EnrichView }) {
-  const queryClient = useQueryClient();
-  const [key, setKey] = useState("");
-  const put = useMutation({
-    mutationFn: async (k: string) => unwrap(await api.PUT("/api/census-key", { body: { key: k } })),
-    onSuccess: async () => {
-      setKey("");
-      // The key is this computer's, not a project's: every project's census card and marks change.
-      await queryClient.invalidateQueries({ queryKey: ["enrich"] });
-      await queryClient.invalidateQueries({ queryKey: ["wizard"] });
-    },
-  });
-  return (
-    <div className="en-row">
-      <span className="en-lab">{e.key}</span>
-      {view.key_saved && view.key_end ? (
-        <>
-          <span className="wiz-ok">✓ {e.keySaved({ end: view.key_end })}</span>
-          <DeleteButton confirm={e.keyForgetConfirm} onDelete={() => put.mutate("")}>
-            {e.keyForget}
-          </DeleteButton>
-        </>
-      ) : (
-        <>
-          <TextField aria-label={e.key} value={key} onChange={setKey} type="password" className="en-key">
-            <Input className="input en-key-input" placeholder={e.keyPlaceholder} />
-          </TextField>
-          <Button className="button" isDisabled={!key.trim()} onPress={() => put.mutate(key)}>
-            {e.keySave}
-          </Button>
-          <ExternalLink className="en-link" href={KEY_URL}>
-            {e.keyGet}
-          </ExternalLink>
-        </>
-      )}
-    </div>
   );
 }

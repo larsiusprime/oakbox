@@ -12,6 +12,7 @@ from pathlib import Path
 from pydantic import Field
 
 from oakbox.datafiles import (
+    AREA_FIELDS,
     SQFT_PER,
     BaseModel,
     DataFile,
@@ -69,6 +70,96 @@ def _area_check(files: Files, entry: DataFile, key: str, column: str, unit: str,
     if median_sqft > high:
         return Check(ok=True, warn=True, text=f"{text} · very large: is it in a smaller unit?")
     return Check(ok=True, text=f"✓ {text}")
+
+
+class Bin(BaseModel):
+    low: float
+    high: float
+    count: int
+
+
+class FieldSpread(BaseModel):
+    """A number field's values as loaded (sizes in the project's unit, years as years): bins across the middle 98%,
+    and what's outside."""
+
+    unit: str = Field(description='The unit, as words (sq ft, m²); "" for years.')
+    year: bool = Field(default=False, description="Years: bins labelled as years, never in decimals.")
+    bins: list[Bin]
+    below: int = Field(description="Sizes under the first bin (the smallest 1%).")
+    above: int = Field(description="Sizes over the last bin (the largest 1%).")
+    empty: int = Field(description="Rows with no value: blank, zero (none), or not a number.")
+    median: float | None
+    total: int
+
+
+def _step(span: float, bins: int, whole: bool = False) -> float:
+    """A round bin width (1, 2, 2.5 or 5 × a power of ten) giving about this many bins across the span; at least 1,
+    and never 2.5, for whole numbers (years)."""
+    raw = span / bins if span > 0 else 1.0
+    if whole:
+        raw = max(raw, 1.0)
+        power = 10 ** math.floor(math.log10(raw))
+        return next(m * power for m in (1, 2, 5, 10) if m * power >= raw)
+    power = 10 ** math.floor(math.log10(raw))
+    return next(m * power for m in (1, 2, 2.5, 5, 10) if m * power >= raw)
+
+
+def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) -> FieldSpread:
+    """How a number field's values spread, read as it's loaded: an area in its unit, converted to the project's; a
+    year as a year (0, written for none, left out)."""
+    import statistics
+
+    files = Files(project, in_dir)
+    entry = next(
+        (f for f in project.files if key in f.load and f.holds not in ("sales", "overlay", "unused")),
+        None,
+    )
+    target = small_unit(project.units)
+    if entry is None:
+        raise NotFound(key)
+    column = entry.load[key][0]
+    year = "year" in key
+    area = key in AREA_FIELDS
+    factor = SQFT_PER[entry.area_units.get(key, target)] / SQFT_PER[target] if area else 1.0
+    raw = values_of(file_stamp(files.in_dir / entry.filename), entry.layer, column)
+    nums = []
+    for v in raw:
+        try:
+            n = float(v) * factor
+        except ValueError:
+            continue
+        if n == n and (1700 <= n <= 2100 if year else n > 0):
+            nums.append(n)
+    out = FieldSpread(
+        unit=UNIT_WORDS[target] if area else "",
+        year=year,
+        bins=[],
+        below=0,
+        above=0,
+        empty=len(raw) - len(nums),
+        median=None,
+        total=len(raw),
+    )
+    if not nums:
+        return out
+    ordered = sorted(nums)
+    low = ordered[int(0.01 * (len(ordered) - 1))]
+    high = ordered[int(0.99 * (len(ordered) - 1))]
+    width = _step(high - low, bins, whole=year)
+    start = math.floor(low / width) * width
+    count = max(1, math.ceil((high - start) / width + 1e-9))
+    counts = [0] * count
+    for n in nums:
+        i = math.floor((n - start) / width)
+        if n < start:
+            out.below += 1
+        elif i >= count:
+            out.above += 1
+        else:
+            counts[i] += 1
+    out.bins = [Bin(low=start + i * width, high=start + (i + 1) * width, count=c) for i, c in enumerate(counts)]
+    out.median = statistics.median(nums)
+    return out
 
 
 # ---------- Money: reading it when it's written as text, and whether the amounts look right (F3d) ----------

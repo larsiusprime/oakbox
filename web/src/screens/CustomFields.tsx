@@ -85,8 +85,6 @@ export function CustomFields({
   };
   return (
     <section className="wiz-section">
-      <h3 className="wiz-group">{c.title}</h3>
-      <p className="wiz-lede">{c.lede}</p>
       <table className="cf-tbl">
         <thead>
           <tr>

@@ -21,7 +21,7 @@ OpenAVMKit: creating a locality folder (`in/`, `out/`) and the `locality` block 
 - **Tax year.** OpenAVMKit has no tax-year setting; it is OAK box's project identity (one project per jurisdiction per
   year, D24) and sets the valuation date's default.
 - **Valuation date**: defaults to 1 January of the tax year. A one-line note: it should match the roll being checked.
-- **Units**: imperial or metric, defaulting from the country. Becomes `locality.units`.
+- **Units**: imperial or metric, defaulting from the country: a dropdown (revised 2026-11-05), so other local units of area can join it later. Becomes `locality.units`.
 
 **OAK box creates:**
 - The project folder `<storage location>/<project name>/`, with OpenAVMKit's `in/` and `out/`.
@@ -350,9 +350,17 @@ the field steps, checks, guesses, assumptions and Review carry over.
   2. **Sales:** add one file. It matches the universe by parcel ID, or by one of its extra IDs (OpenAVMKit then looks up
      `key` from `geo_parcels` by `key2`: `data.process.enrich.ref_tables.sales`). Sale ID (a column, or made from the ID +
      sale date), sale price, sale date, valid and vacant sale (or assumed, after a warning).
-  3. **More details:** Big five (building size, required; land size, filled from the shapes if missing; year built /
-     effective year built, quality, condition, recommended), Location, Land, Building, Rooms & features, Assessed
-     values, Other details.
+  3. **Big five** (revised 2026-11-04: a step of its own, a part each): **Building size** (required), **Land size**
+     (filled from the shapes if missing), **Age** (year built / effective year built), **Quality**, **Condition**
+     (recommended). Quality's "which way is better" (Higher is better | Lower is better) and Condition's "what its
+     numbers mean" (radio cards: % good, % depreciation, higher, lower, years of life left) are on the part's page, a
+     row of their own under the number. A project saved when Big five was one step has each part seen, skipped or
+     moved on from as it was.
+  4. **More details:** Location, Land, Building, Rooms & features, Assessed values, Other details. Location is three
+     parts (revised 2026-11-04): **Address**, **Coordinates** (worked out by OpenAVMKit, and the centre they're
+     measured from) and **Location fields**; **Your own fields** is a part of its own after Land use & building type.
+     A project saved before has those parts seen, skipped or moved on from as Location (and Land use & building type)
+     were.
   4. **Review:** what blocks a run, then what's recommended, then every source. Its button is **Bring in data ›**, to
      the next tab; greyed while something blocks a run, and a click lists what (**Go to Bring in data anyway** / **Fix
      them first**).
@@ -427,17 +435,41 @@ the field steps, checks, guesses, assumptions and Review carry over.
     differently, but no common clean-up removes it: Reconcile's "text after" does, by hand.
   - **Engine** (`engine/enrich-fixes`): the `upper` calc, for the capitals clean-up.
 
+- **Sales, in five parts (revised 2026-11-05),** as Big five is: **Sales** itself is where the file is picked (nothing
+  else is asked there; Start goes on), then **Sale date** (first: a sale ID can be made from it), **IDs**, **Sale
+  price**, **Valid sale** and **Vacant sale**, each a page of its own; Sales takes the worst of its parts. Nothing on
+  them is in a popup, and every change is saved as it settles (no Save or Cancel). Projects saved with Sales as one
+  step count each part as seen, skipped or moved on from as Sales was; the file's part (`sales_file`, briefly) became
+  the IDs' part (`sales_ids`).
+  - **IDs:** the parcel ID and the sale ID (a column, or made from the parcel ID and the sale date), on one grid, then
+    **Do the sales find their parcels?**: why some don't (what the ⚠ chip held), and the reconcile layout (the match
+    meter, the clean-up steps on each side, samples, random or unmatched) right there; no **See them…** or
+    **Reconcile…**.
+  - **Sale price:** the column and its values; **Decimal mark** and **Amounts are** as dropdowns (as written, in
+    thousands, millions, cents…), K and M as a tick; under it **As it's read**: the median and spread, how many read,
+    blank or don't, the scale check against assessed values (with a one-press fix when it looks wrong), Excel's
+    rounding, and "As written → Read as" samples.
+  - **Sale date:** the column and **Written as**, every format in one dropdown (and Custom…); under it how many read
+    and their range, other formats that also read (use that), samples, and **Sales by year**, a bar chart, the most
+    recent year first.
+  - **Valid sale, vacant sale:** the column, then the logic in a box of its own: "A sale is valid if [All of these ▾]
+    are true", each condition a white row with its red −, **+ Add condition** (and, for valid sale, **+ Sale price is
+    at least $1,000**) at its bottom right; under it **Which sales it picks**: how many, the price counts, and sample
+    rows with their result. They can't be skipped (each can still be assumed, with a warning).
 - **Dates: the format is a choice, previewed.** A date column gets the first common format that reads its first rows;
   **Change format…** (or **Check format…** when unsure) picks another, or a custom strftime pattern, and previews it on
   every row exactly as OpenAVMKit parses it (`pd.to_datetime(format=)`): how many read, the range, samples, and which
   don't read. "Unsure" means some rows don't read, or another format also reads every row but gives different dates
   (month/day against day/month). The chosen format is the load's third item.
-- **Valid and vacant sale from any column: a rule.** A column that isn't yes/no (Q/U, a deed code) opens **Which sales
-  are valid?**: its values with counts, ticked for yes (an `isin`), plus more tests on any sales column (is one of, is
-  not one of, equals, contains, is blank, more/less than…) joined by all or any. The count and sample rows come from
-  OpenAVMKit's own filter code on every row. Saved, it's a `["?", filter]` calc on the field (as in Baltimore's
-  `vacant_sale`), and each column it tests is loaded (under its own lowercased name, or as the field it's already loaded
-  as). A yes/no column still loads directly; **Use a rule…** turns it into one.
+- **Valid and vacant sale from any column: a rule** (revised 2026-11-04: a yes/no column too: which of its values mean
+  a valid or vacant sale is the user's to say, never "true = yes" on its own; picking or guessing the column starts
+  the rule with nothing chosen, the row asking "Choose values…"; a rule cleared and saved is kept so, asking again). A
+  column that isn't yes/no (Q/U, a deed code) opens **Which sales are valid?**: its values with counts, ticked for yes
+  (an `isin`), plus more tests on any sales column (is one of, is not one of, equals, contains, is blank, more/less
+  than…) joined by all or any. The count and sample rows come from OpenAVMKit's own filter code on every row. Saved,
+  it's a `["?", filter]` calc on the field (as in Baltimore's `vacant_sale`), and each column it tests is loaded
+  (under its own lowercased name, or as the field it's already loaded as). A yes/no column still loads directly; **Use
+  a rule…** turns it into one.
 - **Money and measures (F1):** a project has units (imperial/metric), a currency (ISO 4217) and a number style (how the
   files write 1234.56: `1,234.56`, `1.234,56`, `1 234,56`, `1'234.56`, `1 234.56`). All three follow the country on the
   new-project form (from Unicode CLDR, generated into `locales.json` by `packaging/make_locales.py`) and can be changed
@@ -450,8 +482,39 @@ the field steps, checks, guesses, assumptions and Review carry over.
   `land_area_sqft` (imperial) or `land_area_sqm` (metric). A column in another unit is loaded under its own name and
   converted by a calc (`land_area_sqft = land_area_sqft_in_acres × 43,560`). The wizard names the fields in square
   metres in a metric project.
+- **Location fields on a map (revised 2026-11-05):** the fields on the left, the add form no wider than they are; once
+  there's one, a map on the right filling the page: **On the map** picks a location field, and each parcel of the
+  universe is a dot coloured by its area (a colour each, spread round the colour wheel; grey for none), its area's
+  name on hover (`GET …/wizard/locations/{name}/map`: up to 20,000 parcel centres with their area).
+- **Land use & building type (revised 2026-11-05)** asks land use, building type and stories; building description,
+  class and units are under More, never guessed, only picked.
+- **Census and elevation, fixed in the engine (2026-11-05, OpenAVMKit `30c98a2`, larsiusprime/openavmkit#422):** every
+  code the ACS writes for a figure it doesn't give is missing (only −666,666,666 was; the others went in as hugely
+  negative values); a block group the ACS gives no figure for takes its tract's (`census.tract_fallback: true`, which
+  OAK box sets: median rent is withheld where few rent), and a parcel whose centre is in no block group takes the
+  nearest within 250 m (`census.nearest_m`). The elevation is fetched with a margin round the parcels, so those on the
+  locality's edge get a slope (reprojecting left empty edge cells, and slope needs a cell's neighbours).
+- **Maps and the mouse wheel (revised 2026-11-05):** a map that is a tab's page zooms with the wheel; a map inside a
+  step's page (Coordinates, a map layer) zooms with it once it's clicked or tabbed into, and the wheel scrolls the
+  page again once something else is.
+- **Big five's spreads (revised 2026-11-05):** under a size (building, land) or a year (year built, effective year
+  built) that's loaded, a histogram of its values as loaded: sizes in the project's unit, years as years (0, written
+  for none, left out); about 24 round-width bins across the middle 98%, the counts under and over them, blanks, and
+  the median said under it (`GET …/wizard/fields/{key}/histogram`).
+- **Quality and condition, laid out (revised 2026-11-05):** the column first, in a box of its own (it's often picked
+  for you), with a category from a column of its own under it; then the choices in a second box: **It's written as**,
+  **Which way is better** (or what its numbers mean, and 0–1 or 0–100), the switches as wide as the dropdown. No to-do
+  text beside the column ("say which way is better"): the second box is the to-do.
 - **Big five, with only the universe loaded,** says building details often come in a separate file, and that **In
   another file…** adds it once for every field.
+- **More files, a part per file (revised 2026-11-05):** a landing page, then **Add files**, where the files are added
+  one by one and nothing else is asked ("just add all the extra files you'll be using: you'll configure them one by
+  one in the next steps"; each with **Set it up ›** and its red −), then a part for each file, titled by its name
+  (`more:<name>`, made from the project's files, not a fixed list). A file's part is the file entry below, then
+  whether its rows find their parcels (or sales), why some don't and the ID clean-up with samples, laid out under it
+  as on Sales file (no **See them…**, **Reconcile…** or ⚠ chip). A file's part shows its mark once Add files has been
+  seen; setting the file aside there goes back to Add files. A file added there that was set aside before goes back to
+  not said what it holds (`added`). Projects saved with More files as one step count Add files as seen.
 - **More files (step 4, after Sales):** the universe and sales steps take one main file each ("more files come later");
   this step adds the rest one by one. For each: what it holds, **More about each parcel** (joins the universe on its
   parcel ID or an extra ID) or **More about each sale** (joins the main sales file on the sale ID, so that file needs a
@@ -482,18 +545,21 @@ the field steps, checks, guesses, assumptions and Review carry over.
   (158, 28 already in the sales record).
 - **Location (More details):** asks only for the **situs address** (the property's physical address, not the owner's
   mailing address; a column named for mail or owner is never guessed for it). Then:
-  - **Coordinates:** latitude/longitude and polar coordinates are shown as worked out by OpenAVMKit (from each parcel's
-    shape), nothing to load. **Show map** / **Hide map** (hidden at first; the choice is remembered on the computer). A
-    map (the app's one map, `MapView`: OpenStreetMap tiles; the parcels drawn as dots from a sample of up to 3,000
-    centres, so it reads without tiles too) shows the centre polar coordinates are measured from: the middle of the
-    parcels, or a point the user drags the pin to (`locality.center`, in degrees). **Use the middle of the parcels**
-    clears it. OpenAVMKit reads the centre in degrees for projected parcel files too (`engine/polar-center`, merged).
+  - **Coordinates:** latitude/longitude and polar coordinates are shown as worked out by OpenAVMKit (from each
+    parcel's shape), nothing to load. The map is always shown (revised 2026-11-04: the step is its own page), taking
+    the rest of the page down to the buttons (never under 18rem; revised 2026-11-05), with the centre and **Use the
+    middle of the parcels** above it. A map (the app's one map, `MapView`: OpenStreetMap tiles; the parcels drawn as
+    dots from a sample of up to 3,000 centres, so it reads without tiles too) shows the centre polar coordinates are
+    measured from: the middle of the parcels, or a point the user drags the pin to (`locality.center`, in degrees).
+    **Use the middle of the parcels** clears it. OpenAVMKit reads the centre in degrees for projected parcel files too
+    (`engine/polar-center`, merged).
   - **Location fields:** the user adds the areas parcels belong to one at a time: a column of a parcel file and a name
     for it (lowercase, digits, underscores; not a name OpenAVMKit computes). Loaded as text, listed in
     `field_classification.important.locations` and `other.categorical`. Each shows how many areas it has, and warns when
     it's one value for all or nearly one per parcel (an ID, not an area).
-- **More details, for now:** Big five, Location, Assessed values, Shapefiles. Land, Building, Rooms & features and Other
-  details are left out; their fields are still in the advanced view.
+- **More details, for now:** Address, Coordinates, Location fields, Land use & building type, Your own fields,
+  Assessed values, Shapefiles (Big five is its own step). Land, Building, Rooms & features and Other details are left
+  out; their fields are still in the advanced view.
 - **Shapefiles (More details):** map layers, added one by one (Shapefile, GeoPackage, GeoJSON, GeoParquet). Each says
   its kinds of geometry and needs a coordinate system. The user decides its use, with the controls OpenAVMKit's settings
   give:
@@ -619,10 +685,18 @@ the field steps, checks, guesses, assumptions and Review carry over.
   changed. **+ Sale price is at least $1,000** is always offered once a sale price is chosen. It adds an ordinary test
   on the price column (at least 1,000, editable or removable like any test), read as the price dialog reads it. Below it
   are the zero, under-1,000 and negative counts, for information. The sample rows show that column as read.
-- **Quality and condition (Big five 4 and 5):** each has two rows, **Number** (used for modelling) and **Category**
-  (kept as text, for reports). Where both exist, only the number is guessed and loaded; the category is loaded only if
-  the user picks it. OpenAVMKit gets a number where higher is better. Nothing is written for a number until its meaning
-  is said, so a guess never writes a wrong direction. Columns are converted as they load, by OpenAVMKit calcs
+- **Quality and condition (Big five 4 and 5):** one column the models use, and the user says first whether it's
+  written as **Numbers** or **Categories** (a segmented control; revised 2026-11-04). The column is then one or the
+  other: numbers (1–6) can be codes ranked as tiers too, and a column of text can't be read as numbers (the page says
+  so). Numbers: which way is better (quality) or what they mean (condition), right on the page, with a live table
+  under it of what each value sold for as read, best at the top: sales, median price and median price per sq ft as
+  bars, and a verdict ("✓ Better sells for more", or "⚠ 2 steps up sell for less: does it run the other way?").
+  Categories: its tiers ranked on the page, best at the top, each with its number (best the highest), buildings,
+  sales, median price and median price per sq ft as bars; ↑↓ move a tier and every move is saved; a suggested order
+  says so and waits for **Use this order**. A category's text (kept for reports) follows the ranked column; a text
+  column loaded from a column of its own still shows as a Category row. Where both a number and a category exist, only
+  the number is guessed. OpenAVMKit gets a number where higher is better. Nothing is written for a number until its
+  meaning is said, so a guess never writes a wrong direction. Columns are converted as they load, by OpenAVMKit calcs
   (`<field>_src` plus a calc):
   - **Quality number:** higher is better (as written) or lower is better (flipped within the column's range: low + high
     − x).
@@ -630,26 +704,29 @@ the field steps, checks, guesses, assumptions and Review carry over.
     tiers lower-better (flipped), or remaining economic life (years, as written). Whether it's a 0–1 fraction or 0–100
     is found from the values and can be changed. **No condition: effective age carries it** is an explicit answer, not a
     blank.
-  - **A category as the number:** **Rank the tiers…** puts each value worst to best, in equal steps (1, 2, 3…; one
-    number for names meaning the same, VG and Very Good), and any number can be typed instead. A starting order comes
-    from tier names it knows: letter grades (AA best, with + and −), Excellent…Poor and their codes (EX, VG, GD, AV, FR,
-    PR), Q1–Q6 and C1–C6 (1 best), and numbered codes. Unknown names go last, labelled to be placed. It's written as a
-    `map` calc; a value not ranked reads as missing. The same column can be both the category and, ranked, the number.
-  - **Compare columns…** (on each Category row): every parcel-file column that looks like quality (qual, grade) or
-    condition (cond, depr, good, CDU; not air conditioning), checked over every row. It shows numbers or text, how full,
-    how many values, samples and notes: one value only, mostly blank, fractions, a code with a percent (`A  12%`,
-    `B+5  130%`: the percent may be the better number), whether the tier names are known, and for condition numbers
-    whether they rise or fall with age. The number and the category are picked there.
+  - **A category as the number:** its tiers are ranked on the page, in equal steps (1, 2, 3…, the best the highest;
+    one number for names meaning the same, VG and Very Good). A starting order comes from tier names it knows: letter
+    grades (AA best, with + and −), Excellent…Poor and their codes (EX, VG, GD, AV, FR, PR), Q1–Q6 and C1–C6 (1 best),
+    and numbered codes. Unknown names go last, labelled to be placed. It's written as a `map` calc; a value not ranked
+    reads as missing. The same column can be both the category and, ranked, the number.
+  - **No popups (revised 2026-11-04):** the Column row has the column only, and what's still to do ("rank its 8
+    tiers"). Which way is better, what the numbers mean, whether % are 0–1 or 0–100, the tiers and the evidence are
+    all on the page; no reading button, values list or Compare columns, and no notes beside the segmented controls,
+    which are as wide as the dropdowns. What condition numbers mean is a compact list of radios; what the chosen one
+    means is under the row's label. Big five's parts (revised 2026-11-04): each field is a capsule of its own, their
+    columns lined up; no grey line under a label ("Required", "Used for modelling"); an area's reading is left out
+    unless it needs a look (the unit is chosen beside it); a year's reading is the range alone ("1945–2017"). The
+    candidates endpoint stays, unused by the page.
   - **One column, two fields:** a category can be both the text and, ranked, the number. Such a column is loaded once,
     as text (`<column>_raw`), and each field is worked out from it by a calc.
   - **Combined codes** (`Q4C3`, `B+5  130%`, CDU) are not split by the wizard: guessing the parts was too much magic.
     The plan is a custom expression builder the user writes the split in. Until then such a column can still be ranked
     whole. Compare columns notes a code with a percent in one value, and that CDU measures more than condition.
-  - **Evidence**, shown and never applied, worked out each time a dialog opens from what's chosen then. Each part says
-    what it's based on and is left out, with a note, when its inputs aren't there:
+  - **Evidence**, shown and never applied, worked out live from what's chosen. The Numbers table's first column is the
+    original value as the file writes it (or its range), then the value as loaded. Each part says what it's based on
+    and is left out, with a note, when its inputs aren't there:
     - **Words:** "In the file" is the number as the file writes it; "Loaded as" is what OpenAVMKit gets, higher always
-      better. Said once above the tables, and the sample line reads "In the file → loaded as: 8 → 10 · …" (revised
-      2026-10-31).
+      better. Said once above the tables; no sample line (revised 2026-11-04).
     - **Against age:** condition's median, in the file and loaded as, by effective age band (year built if there's no
       effective year; the project's valuation date). A meaning that makes newer buildings come out better is marked as
       fitting, and the verdict ("✓ Loaded this way, newer buildings come out in better condition", or older: "is it the
@@ -701,7 +778,7 @@ at the first step that isn't done, or at Review when all are.
 
 ```
 ┌─────────────────────┬───────────────────────────────────────────────────────────────┐
-│ 1 Your files        │ STEP 5 OF 9 · BUILDING › AGE                                  │
+│ 1 Your files        │                                                               │
 │ ✓ Shapes            │ When were the buildings built?                                │
 │ ✓ Location          │ Age drives depreciation. If you only have one of these, fine. │
 │ ✓ Land              │                                                               │

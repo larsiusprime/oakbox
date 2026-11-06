@@ -122,7 +122,10 @@ from a bug stays a 500 with its traceback.
     step, never off disk.
   - **Deleting for good is `DeleteButton`** (`components/Buttons.tsx`): a danger button with a trash can and its
     words ("Delete set", "Delete project"), which asks first. Never a trash can on something that can be undone.
-  - **Closing is `CloseButton`:** a grey ✕, only at the top right of a popup, panel, dialog or unsaved form.
+  - **Closing is `CloseButton`:** a grey ✕, only at the top right of a popup, panel or dialog. Taking away a row or
+    an entry that isn't saved yet (a new ID row, the import form, an "add a file" slot) is the red −, like any item.
+  - **Boxes inside the same file stack flush** (`SubEntry`): no space between them, one border line where they
+    meet.
     Nothing is lost; never for removing. Close and remove never share a look.
   - **The button family** (style guide, section 1): `.button`, `.button-primary` (one per view), `DeleteButton`,
     `AddButton`, `SmallButton` (an action beside a line of text: "Reconcile…", "Options ˅", "4 values ˅"),
@@ -139,9 +142,16 @@ from a bug stays a 500 with its traceback.
     list rows, sortable headers, disclosures, swatches), each with its reason. Flat is a deliberate choice, never
     the default: a new flat control is added there with its reason, or made a button. A pressable table row or chart
     is only a shortcut to a link or button in it (the chart shows its enlarge icon).
-  - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line.
+  - **A file entry's first line is a faint warm band** (`--entry-head`), its body below a `--frame` line, tinted a
+    third of the way from white to that band (`--entry-body`); the rows inside it (`SubEntry`) stay white.
   - **A short choice (two or three options) inside an item** is a segmented control (`components/Seg.tsx`), not
-    radio buttons; a reason an option can't be chosen is its title.
+    radio buttons; a reason an option can't be chosen is its title. What the chosen option does, when it needs saying, is one
+    line under it in the same column (`.set-note`, the control level with its label), not words in brackets on each
+    option.
+  - **A form in an entry has a fixed width** (`FileEntry form`, the import form): it grows downward as text wraps,
+    never sideways as what's typed or chosen changes.
+  - **The buttons that do what a form, dialog or step is for** (Import, Save, Start, Delete…) sit at its right
+    edge, the main one first (`.form-actions`).
 - **Loose rows get a frame:** rows of fields or widgets lying straight on the page (a step's fields) sit in a thin
   `.frame`; what belongs together shares one. Not inside a card or an entry, which is a frame already.
 - **Picking fields or values from a list** is always `components/MultiPick.tsx`: a button listing what's chosen
@@ -151,6 +161,14 @@ from a bug stays a 500 with its traceback.
 - **Long explanations fold away:** a callout of more than a sentence or two (why rows don't match, what to do about
   it) is `components/Callout.tsx`: folded, one line (⚠ or ⓘ, its first sentence, "more"); open, the whole of it.
   The reader shows and hides it. A short status line stays plain text.
+- **A warning inside a row of settings keeps the row one line high:** `components/WarnChip.tsx`, ⚠ and a title of a
+  few words ("777 sales off the map", from the backend's `title`), a button; the whole explanation and what to do
+  open in a popup beside it. A check's own words are short too ("93% match"). Callout is for explanations on a
+  line of their own.
+- **A field's reading is its button** (style guide, 2B): "$270K median ▾", "year-month-day ▾", "true = yes ▾" opens
+  how the column is read, in a column of one width on every row (`.field-tools`), the values button after it. No
+  ✓ on a reading; one that needs a look is amber with ⚠. A reading with nothing to change is plain words in the
+  same column.
 - **Short labels, the rest on demand:** a table cell says a short phrase; the fuller explanation goes in a tooltip
   (`components/Tip.tsx`: `InfoTip` shows an ⓘ beside the phrase), not in the cell. A column's header isn't repeated
   in its cells ("Pattern" over "Low price", not "Pattern 2: low price").

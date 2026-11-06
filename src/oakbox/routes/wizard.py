@@ -33,6 +33,9 @@ class WizardFileChoice(BaseModel):
     dupes_sort: str | None = Field(default=None, description="With first: the field to sort by before keeping.")
     dupes_desc: bool = False
     blank_ok: bool | None = Field(default=None, description="Acknowledge the rows with no ID (they're dropped).")
+    added: bool = Field(
+        default=False, description="Added on More files: one of its files, not said yet what it holds (nothing else)."
+    )
 
 
 class WizardReconcile(BaseModel):
@@ -205,6 +208,7 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
             body.dupes_sort,
             body.dupes_desc,
             body.blank_ok,
+            body.added,
         ),
     )
 
@@ -444,6 +448,15 @@ def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:
         raise HTTPException(422, str(e)) from e
 
 
+@router.get("/api/projects/{project_id}/wizard/locations/{name}/map")
+def wizard_location_map(project_id: str, name: str) -> wizard.LocationMap:
+    """A location field on the map: each parcel's centre, coloured by its area (F3d: Location fields)."""
+    try:
+        return wizard.location_map(load_project(project_id), projects.project_dir(project_id) / "in", name)
+    except NotFound as e:
+        raise HTTPException(404, f"No such location field: {e}") from e
+
+
 @router.get("/api/projects/{project_id}/wizard/map")
 def wizard_map(project_id: str) -> wizard.MapView:
     """Where the parcels are, and the centre polar coordinates are measured from (F3d)."""
@@ -491,6 +504,15 @@ def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
         return wizard.candidates(load_project(project_id), projects.project_dir(project_id) / "in", key)
     except NotFound as e:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
+
+
+@router.get("/api/projects/{project_id}/wizard/fields/{key}/histogram")
+def wizard_field_histogram(project_id: str, key: str) -> wizard.FieldSpread:
+    """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five)."""
+    try:
+        return wizard.field_histogram(load_project(project_id), projects.project_dir(project_id) / "in", key)
+    except NotFound as e:
+        raise HTTPException(404, f"{key} isn't loaded.") from e
 
 
 @router.post("/api/projects/{project_id}/wizard/fields/{key}/scale")

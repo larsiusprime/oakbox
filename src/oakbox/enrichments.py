@@ -155,7 +155,15 @@ def settings(e: Enrichments | None, units: str, taken: set[str]) -> tuple[dict, 
             "height": {"units": length, "field": f"bldg_height_{length}"},
         }
     if e.census and e.fips and wanted["census"]:
-        out["census"] = {"enabled": True, "fips": e.fips, "year": e.census_year}
+        # A block group the ACS gives no figure for takes its tract's; a parcel in a gap between block groups,
+        # the nearest within 250 m (OpenAVMKit's census tract_fallback and nearest_m).
+        out["census"] = {
+            "enabled": True,
+            "fips": e.fips,
+            "year": e.census_year,
+            "tract_fallback": True,
+            "nearest_m": 250,
+        }
     if e.elevation and wanted["elevation"]:
         out["dem"] = {"enabled": True, "resolution_m": e.resolution_m}
     dists: dict = {}

@@ -73,6 +73,8 @@ export type Wording = {
     newName: (a: { name: string | number }) => string;
     save: string;
     remove: string;
+    copyNote: string;
+    moveNote: string;
   };
   about: {
     version: string;
@@ -111,7 +113,6 @@ export type Wording = {
       outside: string;
     };
     loading: string;
-    stepOf: (a: { n: string | number; of: string | number }) => string;
     back: string;
     toBringIn: string;
     left: {
@@ -195,7 +196,6 @@ export type Wording = {
       result: string;
       yes: string;
       no: string;
-      writes: string;
       cancel: string;
       save: string;
     };
@@ -477,8 +477,6 @@ export type Wording = {
       toFile: string;
     };
     custom: {
-      title: string;
-      lede: string;
       column: string;
       pickColumn: string;
       name: string;
@@ -495,7 +493,6 @@ export type Wording = {
     };
     location: {
       areas: (a: { n: number }) => string;
-      coordinates: string;
       latlon: string;
       latlonHow: string;
       polar: string;
@@ -505,14 +502,12 @@ export type Wording = {
       loading: string;
       mapLabel: string;
       pinTitle: string;
+      mapOf: string;
+      mapAreas: (a: { n: number }) => string;
+      mapNone: string;
       centerMiddle: string;
-      centerMiddleHidden: string;
-      showMap: string;
-      hideMap: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;
-      fields: string;
-      fieldsLede: string;
       column: string;
       pickColumn: string;
       name: string;
@@ -521,6 +516,8 @@ export type Wording = {
       remove: (a: { name: string | number }) => string;
     };
     extraFiles: {
+      configure: string;
+      stepLede: string;
       first: string;
       another: string;
       what: string;
@@ -638,7 +635,6 @@ export type Wording = {
       matches: string;
       noMatch: string;
       noUnmatched: string;
-      writes: string;
       nothing: string;
       cancel: string;
       save: string;
@@ -691,7 +687,6 @@ export type Wording = {
       all: string;
       result: (a: { rows: number; kept: number }) => string;
     };
-    bigFive: [[string, [string]], [string, [string]], [string, [string, string, string, string]], [string, [string, string]], [string, [string, string]]];
     rowNames: Record<string, string>;
     numberUsed: string;
     quality: {
@@ -746,17 +741,16 @@ export type Wording = {
       asWritten: string;
       asRead: string;
       asReadBand: string;
+      originalValue: string;
       sales: string;
       medianOf: (a: { basis: string | number }) => string;
       writtenText: string;
-      samplesLine: string;
       medianPrice: string;
       typeOnly: (a: { type: string | number }) => string;
       byPriceLede: {
         within: (a: { type: string | number; field: string | number }) => string;
         all: string;
       };
-      writes: string;
       nothingYet: string;
       tiersTitle: (a: { column: string | number }) => string;
       tiersLede: (a: { column: string | number }) => string;
@@ -779,6 +773,25 @@ export type Wording = {
       basedOn: (a: { notes: string | number }) => string;
       cancel: string;
       save: string;
+      writtenAsLabel: string;
+      asKinds: {
+        num: string;
+        cat: string;
+      };
+      notNumbers: (a: { column: string | number }) => string;
+      evidenceHead: string;
+      risesPrice: string;
+      fallsPrice: (a: { n: number }) => string;
+      tiersHead: string;
+      tiersHint: string;
+      useOrder: string;
+      suggested: string;
+      best: string;
+      worst: string;
+      placeIt: string;
+      notRanked: string;
+      whichWayLabel: string;
+      meansLabel: string;
     };
     hints: Record<string, string>;
     file: string;
@@ -803,6 +816,29 @@ export type Wording = {
     change: string;
     nothing: string;
     from: (a: { column: string | number; file: string | number }) => string;
+    histogram: {
+      title: (a: { name: string | number }) => string;
+      median: (a: { m: string | number }) => string;
+      below: (a: { n: number; v: string | number }) => string;
+      above: (a: { n: number; v: string | number }) => string;
+      empty: (a: { n: number }) => string;
+    };
+    salesParts: {
+      noFile: string;
+      asRead: string;
+      writtenAs: string;
+      byYear: string;
+      ruleIf: (a: { word: string | number }) => string;
+      allOf: string;
+      anyOf: string;
+      areTrue: string;
+      addCondition: string;
+      removeCondition: string;
+      picks: string;
+      matchHead: string;
+      matchParcels: string;
+      matchSales: string;
+    };
   };
   tabs: {
     scrollLeft: string;
@@ -829,7 +865,6 @@ export type Wording = {
     bringChanged: (a: { what: string | number }) => string;
   };
   report: {
-    kicker: string;
     steps: {
       export: string;
       report: string;
@@ -868,7 +903,6 @@ export type Wording = {
     ran: (a: { when: string | number; seconds: number; engine: string | number }) => string;
   };
   bringIn: {
-    kicker: string;
     steps: {
       plan: string;
       run: string;
@@ -951,10 +985,16 @@ export type Wording = {
       summary: (a: { kind: string | number; rows: number; blank: number; distinct: number }) => string;
     };
     close: string;
+    memory: (a: { need: string | number; parcels: number; have: string | number }) => string;
+    memoryMore: string;
   };
   map: {
     basemap: string;
     basemapTip: string;
+    waitTitle: (a: { label: string | number }) => string;
+    show: string;
+    waitNote: string;
+    waitSettings: string;
   };
   multiPick: {
     plusOthers: (a: { first: string | number; n: number }) => string;
@@ -972,7 +1012,6 @@ export type Wording = {
     counts: (a: { noun: string | number }) => string;
   };
   groups: {
-    kicker: string;
     title: string;
     lede: string;
     notReady: string;
@@ -1121,7 +1160,6 @@ export type Wording = {
     undoConfirm: string;
   };
   sales: {
-    kicker: string;
     steps: {
       window: string;
       time: string;
@@ -1466,7 +1504,6 @@ export type Wording = {
     };
   };
   ratio: {
-    kicker: string;
     what: {
       title: string;
       lede: string;
@@ -1706,7 +1743,6 @@ export type Wording = {
     toValues: string;
   };
   values: {
-    kicker: string;
     modelsKicker: string;
     steps: {
       fill: string;
@@ -2106,7 +2142,6 @@ export type Wording = {
     };
   };
   metadata: {
-    kicker: string;
     details: string;
     jurisdiction: string;
     region: string;
@@ -2119,55 +2154,13 @@ export type Wording = {
   };
   landing: {
     overview: string;
-    happens: string;
-    decide: string;
-    end: string;
-    needs: string;
     start: (a: { step: string | number }) => string;
     pages: Record<string, ({
-      kicker: string;
       title: string;
       lede: ReactNode;
     }) | ({
-      kicker: string;
       title: string;
       lede: string;
-      happens: [string, string, string];
-      decide: [string, string, string, string, string];
-      end: [string];
-      needs: string;
-    }) | ({
-      kicker: string;
-      title: string;
-      lede: string;
-      happens: [string, string, string];
-      decide: [string, string, string, string];
-      end: [string];
-      needs: string;
-    }) | ({
-      kicker: string;
-      title: string;
-      lede: string;
-      happens: [string, string, string];
-      decide: [string];
-      end: [string];
-      needs: string;
-    }) | ({
-      kicker: string;
-      title: string;
-      lede: string;
-      happens: [string, string, string];
-      decide: [string, string, string];
-      end: [string];
-      needs: string;
-    }) | ({
-      kicker: string;
-      title: string;
-      lede: string;
-      happens: [string, string];
-      decide: [string, string];
-      end: [string];
-      needs: string;
     })>;
   };
   combo: {
@@ -2191,6 +2184,7 @@ export type Wording = {
     tabsFoot: string;
     projectsSettings: string;
     whereKept: string;
+    settings: string;
   };
   project: {
     title: (a: { name: string | number }) => string;
@@ -2255,5 +2249,83 @@ export type Wording = {
   format: {
     todayAt: (a: { time: string | number }) => string;
     dayAt: (a: { date: string | number; time: string | number }) => string;
+  };
+  machine: {
+    title: string;
+    lede: string;
+    changed: string;
+    memory: string;
+    processor: string;
+    speed: string;
+    disk: string;
+    graphics: string;
+    checking: string;
+    memoryValue: (a: { gb: string | number }) => string;
+    memoryFree: (a: { gb: string | number }) => string;
+    remote: string;
+    processorValue: (a: { cores: number }) => string;
+    speedNote: string;
+    diskValue: (a: { mbs: string | number }) => string;
+    diskNote: string;
+    diskNone: string;
+    graphicsDrew: (a: { s: string | number }) => string;
+    graphicsSoftware: string;
+    graphicsNone: string;
+    tier: (a: { tier: string | number }) => string;
+    whyMemory: (a: { gb: string | number; have: string | number }) => string;
+    whyCores: string;
+    whySpeed: string;
+    whyCancelled: string;
+    whyStandard: string;
+    whyStrong: string;
+    whySoftware: string;
+    use: string;
+    change: string;
+    cancel: string;
+    again: string;
+    checked: (a: { date: string | number }) => string;
+    failed: (a: { error: string | number }) => string;
+  };
+  settings: {
+    title: string;
+    open: string;
+    sections: string;
+    performance: string;
+    display: string;
+    projects: string;
+    keys: string;
+    thisComputer: string;
+    notChecked: string;
+    specs: (a: { gb: string | number; processor: string | number; speed: string | number; disk: string | number; graphics: string | number }) => string;
+    noValue: string;
+    folds: string;
+    foldsOne: string;
+    foldsTwo: string;
+    foldsCores: (a: { n: string | number }) => string;
+    foldsHint: string;
+    maps: string;
+    mapsNow: string;
+    mapsClick: string;
+    mapsHint: string;
+    detail: string;
+    detailShapes: string;
+    detailDots: string;
+    detailAuto: string;
+    detailHint: string;
+    street: string;
+    streetOn: string;
+    streetOff: string;
+    streetHint: string;
+    recommended: (a: { choice: string | number }) => string;
+    density: string;
+    densityDefault: string;
+    densityCompact: string;
+    zoom: string;
+    zoomLevel: (a: { percent: string | number }) => string;
+    displayHint: string;
+    where: string;
+    census: string;
+    censusHint: string;
+    close: string;
   };
 };

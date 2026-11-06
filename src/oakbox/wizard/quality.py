@@ -119,7 +119,7 @@ def _new_scale(files: Files, entry: DataFile, key: str, column: str, given: Scal
     """A scale for a column: the user's, with the column's range filled in; or a first one that says nothing yet
     (a category: tiers to rank; numbers: which way they run, and for condition whether they're 0-1 fractions)."""
     values = _qc_values(files, entry, column)
-    if not _plain(values):
+    if not _plain(values) or (given is not None and given.kind == "tiers"):
         return Scale(kind="tiers", tiers=dict(given.tiers) if given and given.kind == "tiers" else {})
     nums = [float(v) for v in values if v]
     s = given.model_copy(update={"tiers": {}}) if given is not None else Scale()
@@ -271,6 +271,7 @@ def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tu
 class PriceGroup(BaseModel):
     sales: int
     median: float | None
+    price: float | None = None
 
 
 def _price_by(
@@ -288,6 +289,7 @@ def _price_by(
     if not size:
         notes.append("no building size: choose it on this step for a fairer comparison")
     by: dict[str, list[float]] = {}
+    whole: dict[str, list[float]] = {}
     for i, price in rows:
         g = group.get(i)
         if g is None:
@@ -296,9 +298,17 @@ def _price_by(
             area = size.get(i, 0)
             if area <= 0:
                 continue
+            whole.setdefault(g, []).append(price)
             price = price / area
         by.setdefault(g, []).append(price)
-    out = {g: PriceGroup(sales=len(v), median=statistics.median(v)) for g, v in by.items()}
+    out = {
+        g: PriceGroup(
+            sales=len(v),
+            median=statistics.median(v),
+            price=statistics.median(whole[g]) if size else statistics.median(v),
+        )
+        for g, v in by.items()
+    }
     if not out:
         notes.append("no sales found these parcels")
     return out, basis, notes
@@ -335,6 +345,7 @@ class Tier(BaseModel):
     number: float | None = Field(description="Its number: the saved one, or the suggested one. None: not ranked.")
     sales: int
     median: float | None = Field(description="Median price per sq ft (or sale price) of its sales.")
+    price: float | None = Field(default=None, description="Median sale price of its sales.")
 
 
 class TiersPreview(BaseModel):
@@ -379,6 +390,7 @@ def tiers_preview(project: Project, in_dir: Path, key: str, file: str, column: s
                 number=n,
                 sales=prices[v].sales if v in prices else 0,
                 median=prices[v].median if v in prices else None,
+                price=prices[v].price if v in prices else None,
             )
             for v, n in ranked
         ],
@@ -402,6 +414,7 @@ class ValueBand(BaseModel):
     """Sales of parcels whose value, as read, falls in a band: one row per value when there are few."""
 
     label: str = Field(description='The value as read ("7"), or a range ("under 40", "40–55", "85 and up").')
+    original: str = Field(default="", description='The value as the file writes it ("2"), or its range ("0.1–0.4").')
     text: str = Field(description='The text the parcels carry beside it ("C-"), most common first; "" none.')
     sales: int
     price: float | None = Field(description="Median sale price.")
@@ -496,7 +509,9 @@ def scale_preview(
     by_type = type_field = ""
     if read and values:
         as_read = dict(zip(values, convert(list(values.values())), strict=True))
-        by_value, price_basis, by_type, type_field, price_notes = _value_bands(project, files, entry, key, as_read, s)
+        by_value, price_basis, by_type, type_field, price_notes = _value_bands(
+            project, files, entry, key, as_read, s, values
+        )
         notes += price_notes
     seen: list[str] = []
     for v in raw:
@@ -579,7 +594,13 @@ def _value_cuts(as_read: dict[str, float], kind: str | None) -> list[tuple[float
 
 
 def _value_bands(
-    project: Project, files: Files, entry: DataFile, key: str, as_read: dict[str, float], s: Scale
+    project: Project,
+    files: Files,
+    entry: DataFile,
+    key: str,
+    as_read: dict[str, float],
+    s: Scale,
+    raw: dict[str, float] | None = None,
 ) -> tuple[list[ValueBand], str | None, str, str, list[str]]:
     """Each band's sales: median price, price per area, and the price among the most common type alone. A grade's
     price per area mostly says how big its buildings are and what kind they are, so on its own it can run the
@@ -595,6 +616,10 @@ def _value_bands(
         return None
 
     label_of = {i: b for i, v in as_read.items() if (b := band_of(v)) is not None}
+    by_band: dict[str, set[float]] = {}
+    for i, b in label_of.items():
+        if raw and i in raw:
+            by_band.setdefault(b, set()).add(raw[i])
     rows, notes = _sales_evidence(project, files, entry.match)
     notes = [n for n in notes if n != "valid sales"]
     if not rows:
@@ -625,9 +650,19 @@ def _value_bands(
         areas = [p / size[i] for i, p in mine if size.get(i, 0) > 0]
         same = [p for i, p in mine if main and types.get(i) == main]
         said = Counter(texts[i] for i, _ in mine if texts.get(i)).most_common(3)
+        # As the file writes it: one value, or the range of the band's parcels (a flipped band runs the other way).
+        written = sorted(by_band.get(label, ()))
+        original = (
+            ""
+            if not written
+            else short_number(written[0])
+            if len(written) == 1
+            else f"{short_number(written[0])}–{short_number(written[-1])}"
+        )
         out.append(
             ValueBand(
                 label=label,
+                original=original,
                 text=" / ".join(t for t, _ in said),
                 sales=len(mine),
                 price=statistics.median(p for _, p in mine),

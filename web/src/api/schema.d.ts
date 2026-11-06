@@ -118,6 +118,104 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/machine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Machine */
+        get: operations["get_machine_api_machine_get"];
+        /**
+         * Put Machine
+         * @description Keep what the check found; its tier then decides every setting left at Recommended.
+         */
+        put: operations["put_machine_api_machine_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/machine/basics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Basics
+         * @description Memory, processor, cores, remote session (instant).
+         */
+        post: operations["check_basics_api_machine_basics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/machine/speed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Speed
+         * @description OAK box's speed work, timed (a few seconds).
+         */
+        post: operations["check_speed_api_machine_speed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/machine/disk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Disk
+         * @description Writing in the projects folder (a second or two).
+         */
+        post: operations["check_disk_api_machine_disk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/performance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Performance */
+        put: operations["put_performance_api_performance_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regions": {
         parameters: {
             query?: never;
@@ -830,6 +928,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/locations/{name}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Location Map
+         * @description A location field on the map: each parcel's centre, coloured by its area (F3d: Location fields).
+         */
+        get: operations["wizard_location_map_api_projects__project_id__wizard_locations__name__map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/map": {
         parameters: {
             query?: never;
@@ -922,6 +1040,26 @@ export interface paths {
          * @description Columns that look like quality or condition, checked over every row, side by side (F3d).
          */
         get: operations["wizard_candidates_api_projects__project_id__wizard_fields__key__candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/fields/{key}/histogram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Field Histogram
+         * @description How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five).
+         */
+        get: operations["wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1728,6 +1866,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/groups/centres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Groups Centres
+         * @description Each parcel's centre, [longitude, latitude] or null, in the parcel universe's order (a map drawn as dots).
+         */
+        get: operations["groups_centres_api_projects__project_id__groups_centres_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/assemble/exports": {
         parameters: {
             query?: never;
@@ -2451,6 +2609,11 @@ export interface components {
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
             /**
+             * Census Key End
+             * @description The saved Census API key's last four characters; None: none.
+             */
+            census_key_end: string | null;
+            /**
              * Map Style
              * @description The street map's MapLibre style address (appsettings.map_style).
              */
@@ -2542,6 +2705,30 @@ export interface components {
              */
             value: number | null;
         };
+        /** Basics */
+        Basics: {
+            /** Memory Gb */
+            memory_gb: number;
+            /** Memory Free Gb */
+            memory_free_gb: number;
+            /** Cores */
+            cores: number;
+            /** Threads */
+            threads: number;
+            /** Processor */
+            processor: string;
+            /** Remote */
+            remote: boolean;
+        };
+        /** Bin */
+        Bin: {
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+            /** Count */
+            count: number;
+        };
         /** BorrowBody */
         BorrowBody: {
             /** Group */
@@ -2604,7 +2791,7 @@ export interface components {
             ok: boolean;
             /**
              * Text
-             * @description Short: '✓ years 1890–2025', 'several rows per parcel'.
+             * @description Short: '✓ 1890–2025', 'several rows per parcel'.
              */
             text: string;
             /**
@@ -2707,7 +2894,7 @@ export interface components {
             /** Sales From */
             sales_from: number;
             /** Years */
-            years: components["schemas"]["YearCount"][];
+            years: components["schemas"]["oakbox__clean__YearCount"][];
             /**
              * Total
              * @description Valid sales from Data.
@@ -3354,6 +3541,11 @@ export interface components {
             also: components["schemas"]["DateFormat"][];
             /** Formats */
             formats: components["schemas"]["DateFormat"][];
+            /**
+             * By Year
+             * @description How many read in each year, oldest first.
+             */
+            by_year: components["schemas"]["oakbox__wizard__rules__YearCount"][];
         };
         /** DateSample */
         DateSample: {
@@ -3386,6 +3578,14 @@ export interface components {
              * @description Sales without a deed ID: never counted as one deed.
              */
             blank: number;
+        };
+        /** Disk */
+        Disk: {
+            /**
+             * Disk Mb S
+             * @description None: the projects folder couldn't be written.
+             */
+            disk_mb_s: number | null;
         };
         /** DiskUsage */
         DiskUsage: {
@@ -3903,6 +4103,45 @@ export interface components {
             /** Note */
             note: string | null;
         };
+        /**
+         * FieldSpread
+         * @description A number field's values as loaded (sizes in the project's unit, years as years): bins across the middle 98%,
+         *     and what's outside.
+         */
+        FieldSpread: {
+            /**
+             * Unit
+             * @description The unit, as words (sq ft, m²); "" for years.
+             */
+            unit: string;
+            /**
+             * Year
+             * @description Years: bins labelled as years, never in decimals.
+             * @default false
+             */
+            year: boolean;
+            /** Bins */
+            bins: components["schemas"]["Bin"][];
+            /**
+             * Below
+             * @description Sizes under the first bin (the smallest 1%).
+             */
+            below: number;
+            /**
+             * Above
+             * @description Sizes over the last bin (the largest 1%).
+             */
+            above: number;
+            /**
+             * Empty
+             * @description Rows with no value: blank, zero (none), or not a number.
+             */
+            empty: number;
+            /** Median */
+            median: number | null;
+            /** Total */
+            total: number;
+        };
         /** Fifth */
         Fifth: {
             /** Low */
@@ -4165,6 +4404,43 @@ export interface components {
             id: "csv" | "gpkg" | "xlsx" | "shp" | "parquet";
             /** Label */
             label: string;
+        };
+        /**
+         * Found
+         * @description Everything the check found, the page's graphics test included.
+         */
+        Found: {
+            /** Memory Gb */
+            memory_gb: number;
+            /** Memory Free Gb */
+            memory_free_gb?: number | null;
+            /** Cores */
+            cores: number;
+            /** Threads */
+            threads: number;
+            /**
+             * Processor
+             * @default
+             */
+            processor: string;
+            /**
+             * Remote
+             * @default false
+             */
+            remote: boolean;
+            /** Speed */
+            speed?: number | null;
+            /** Disk Mb S */
+            disk_mb_s?: number | null;
+            /** Graphics */
+            graphics?: string | null;
+            /** Draw Ms */
+            draw_ms?: number | null;
+            /**
+             * Cancelled
+             * @default false
+             */
+            cancelled: boolean;
         };
         /** Funnel */
         Funnel: {
@@ -4987,6 +5263,142 @@ export interface components {
             /** Numbers */
             numbers?: ("1,234.56" | "1.234,56" | "1 234,56" | "1'234.56" | "1 234.56") | null;
         };
+        /**
+         * LocationMap
+         * @description A location field on the map: each parcel's centre and which of its areas it's in.
+         */
+        LocationMap: {
+            /** Name */
+            name: string;
+            /**
+             * Values
+             * @description Its areas, most parcels first.
+             */
+            values: string[];
+            /**
+             * Counts
+             * @description Parcels in each area, as values.
+             */
+            counts: number[];
+            /**
+             * Points
+             * @description [latitude, longitude, area] of up to 20,000 parcel centres; area: its index in values, -1 none.
+             */
+            points: [
+                number,
+                number,
+                number
+            ][];
+            /** Parcels */
+            parcels: number;
+        };
+        /**
+         * Machine
+         * @description What the check found.
+         */
+        Machine: {
+            /**
+             * Checked At
+             * @description When, local time, ISO 8601.
+             */
+            checked_at: string;
+            /**
+             * Memory Gb
+             * @description Installed memory, GB.
+             */
+            memory_gb: number;
+            /**
+             * Memory Free Gb
+             * @description Free when it was checked, GB.
+             */
+            memory_free_gb?: number | null;
+            /**
+             * Cores
+             * @description Physical processor cores.
+             */
+            cores: number;
+            /**
+             * Threads
+             * @description Logical processors.
+             */
+            threads: number;
+            /**
+             * Processor
+             * @description The processor's name.
+             * @default
+             */
+            processor: string;
+            /**
+             * Remote
+             * @description A remote session (Remote Desktop, Citrix).
+             * @default false
+             */
+            remote: boolean;
+            /**
+             * Speed
+             * @description OAK box's speed work, the reference machine = 100.
+             */
+            speed?: number | null;
+            /**
+             * Disk Mb S
+             * @description Writing in the projects folder, MB/s.
+             */
+            disk_mb_s?: number | null;
+            /**
+             * Graphics
+             * @description The renderer WebGL named; None: no WebGL.
+             */
+            graphics?: string | null;
+            /**
+             * Graphics Software
+             * @description Maps are drawn by the processor, not graphics.
+             * @default false
+             */
+            graphics_software: boolean;
+            /**
+             * Draw Ms
+             * @description Drawing 20,000 parcels on a map, ms.
+             */
+            draw_ms?: number | null;
+            /**
+             * Cancelled
+             * @description The check was cancelled: the safest settings (Light).
+             * @default false
+             */
+            cancelled: boolean;
+            /**
+             * Tier
+             * @default light
+             * @enum {string}
+             */
+            tier: "light" | "standard" | "strong";
+        };
+        /**
+         * MachineView
+         * @description What the check found, and the performance settings: as set, as recommended, and what they come to.
+         */
+        MachineView: {
+            /** @description None: not checked yet (first run). */
+            machine: components["schemas"]["Machine"] | null;
+            /**
+             * Changed
+             * @description Its memory or cores changed since the check: check again.
+             */
+            changed: boolean;
+            performance: components["schemas"]["Performance"];
+            recommended: components["schemas"]["Resolved"];
+            resolved: components["schemas"]["Resolved"];
+            /**
+             * Cores Workers
+             * @description How many folds 'as many as the cores allow' runs at once.
+             */
+            cores_workers: number;
+            /**
+             * Memory For Oakbox Gb
+             * @description Memory left for OAK box once the rest have theirs.
+             */
+            memory_for_oakbox_gb: number | null;
+        };
         /** MapPoint */
         MapPoint: {
             /** Lat */
@@ -5066,6 +5478,26 @@ export interface components {
             /** Longitude */
             longitude: number | null;
         };
+        /** MemoryNote */
+        MemoryNote: {
+            /** Parcels */
+            parcels: number;
+            /**
+             * Need Gb
+             * @description About what the heaviest step needs, from the test runs' figures.
+             */
+            need_gb: number;
+            /**
+             * Have Gb
+             * @description This computer's memory, less what Windows and the usual programs take.
+             */
+            have_gb: number;
+            /**
+             * Memory Gb
+             * @description This computer's memory.
+             */
+            memory_gb: number;
+        };
         /** MissingParcels */
         MissingParcels: {
             /**
@@ -5090,6 +5522,12 @@ export interface components {
              * @description What it means and what to do, a sentence each.
              */
             lines: string[];
+            /**
+             * Title
+             * @description A few words for the row it's on: '777 sales off the map'.
+             * @default
+             */
+            title: string;
             /**
              * Units
              * @description They look like units without a shape of their own: the Condo units step's.
@@ -6028,6 +6466,40 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /**
+         * Performance
+         * @description The performance settings: each "recommended" (follow the check) or the user's own choice.
+         */
+        Performance: {
+            /**
+             * Fold Workers
+             * @description Model training: folds at once.
+             * @default recommended
+             * @enum {string}
+             */
+            fold_workers: "recommended" | "one" | "two" | "cores";
+            /**
+             * Maps
+             * @description Maps right away, or when Show map is clicked.
+             * @default recommended
+             * @enum {string}
+             */
+            maps: "recommended" | "now" | "click";
+            /**
+             * Map Detail
+             * @description Parcel shapes, dots, or dots above 20,000.
+             * @default recommended
+             * @enum {string}
+             */
+            map_detail: "recommended" | "shapes" | "dots" | "auto";
+            /**
+             * Street Map
+             * @description The street map under every map.
+             * @default recommended
+             * @enum {string}
+             */
+            street_map: "recommended" | "on" | "off";
+        };
         /** PermitKind */
         PermitKind: {
             /** Value */
@@ -6172,6 +6644,8 @@ export interface components {
             enrichments: string[];
             /** Fields */
             fields: number;
+            /** @description This county may need more memory than this computer has for OAK box (SPEC §5). */
+            memory: components["schemas"]["MemoryNote"] | null;
         };
         /** PlanFile */
         PlanFile: {
@@ -6938,6 +7412,37 @@ export interface components {
             /** Ran At */
             ran_at: string | null;
         };
+        /**
+         * Resolved
+         * @description What the settings come to on this computer.
+         */
+        Resolved: {
+            /**
+             * Fold Workers
+             * @enum {string}
+             */
+            fold_workers: "one" | "two" | "cores";
+            /**
+             * Folds At Once
+             * @description How many cross-validation folds run at once.
+             */
+            folds_at_once: number;
+            /**
+             * Maps
+             * @enum {string}
+             */
+            maps: "now" | "click";
+            /**
+             * Map Detail
+             * @enum {string}
+             */
+            map_detail: "shapes" | "dots" | "auto";
+            /**
+             * Street Map
+             * @enum {string}
+             */
+            street_map: "on" | "off";
+        };
         /** ReviewItem */
         ReviewItem: {
             /** Key Sale */
@@ -7681,6 +8186,14 @@ export interface components {
             /** Column */
             column: string;
         };
+        /** Speed */
+        Speed: {
+            /**
+             * Speed
+             * @description The reference machine = 100.
+             */
+            speed: number;
+        };
         /** StackPreview */
         StackPreview: {
             /** Group */
@@ -7870,6 +8383,11 @@ export interface components {
             key: string;
             /** Parent */
             parent: string | null;
+            /**
+             * Title
+             * @description A part made from a file (More files): its file's name.
+             */
+            title: string | null;
             /**
              * Status
              * @description blank: not visited (or an optional step not confirmed yet); blocked: something here stops a run; attention: something to decide, or recommended and missing; done: complete.
@@ -8106,6 +8624,11 @@ export interface components {
              * @description Median price per sq ft (or sale price) of its sales.
              */
             median: number | null;
+            /**
+             * Price
+             * @description Median sale price of its sales.
+             */
+            price: number | null;
         };
         /** TiersPreview */
         TiersPreview: {
@@ -8601,6 +9124,12 @@ export interface components {
              * @description The value as read ("7"), or a range ("under 40", "40–55", "85 and up").
              */
             label: string;
+            /**
+             * Original
+             * @description The value as the file writes it ("2"), or its range ("0.1–0.4").
+             * @default
+             */
+            original: string;
             /**
              * Text
              * @description The text the parcels carry beside it ("C-"), most common first; "" none.
@@ -9124,6 +9653,11 @@ export interface components {
              * @description How many different values its column has (not blank).
              */
             distinct: number | null;
+            /**
+             * Numbers
+             * @description Quality/condition: its column is all numbers, so it can be read as numbers.
+             */
+            numbers: boolean | null;
         };
         /** WizardFieldChoice */
         WizardFieldChoice: {
@@ -9280,6 +9814,12 @@ export interface components {
              * @description Acknowledge the rows with no ID (they're dropped).
              */
             blank_ok?: boolean | null;
+            /**
+             * Added
+             * @description Added on More files: one of its files, not said yet what it holds (nothing else).
+             * @default false
+             */
+            added: boolean;
         };
         /** WizardLocation */
         WizardLocation: {
@@ -9423,15 +9963,6 @@ export interface components {
             /** Bytes */
             bytes: number;
         };
-        /** YearCount */
-        YearCount: {
-            /** Year */
-            year: number;
-            /** Improved */
-            improved: number;
-            /** Vacant */
-            vacant: number;
-        };
         /** ZoomStep */
         ZoomStep: {
             /**
@@ -9477,6 +10008,15 @@ export interface components {
              * @description What its index is of, as chosen; None: automatic.
              */
             per: ("impr" | "land") | null;
+        };
+        /** YearCount */
+        oakbox__clean__YearCount: {
+            /** Year */
+            year: number;
+            /** Improved */
+            improved: number;
+            /** Vacant */
+            vacant: number;
         };
         /** GroupValues */
         oakbox__final__GroupValues: {
@@ -9583,6 +10123,13 @@ export interface components {
             check: components["schemas"]["Check"];
             /** Distinct */
             distinct: number | null;
+        };
+        /** YearCount */
+        oakbox__wizard__rules__YearCount: {
+            /** Year */
+            year: number;
+            /** Count */
+            count: number;
         };
     };
     responses: never;
@@ -9752,6 +10299,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_machine_api_machine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineView"];
+                };
+            };
+        };
+    };
+    put_machine_api_machine_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Found"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_basics_api_machine_basics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Basics"];
+                };
+            };
+        };
+    };
+    check_speed_api_machine_speed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Speed"];
+                };
+            };
+        };
+    };
+    check_disk_api_machine_disk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Disk"];
+                };
+            };
+        };
+    };
+    put_performance_api_performance_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Performance"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineView"];
                 };
             };
             /** @description Validation Error */
@@ -11160,6 +11853,38 @@ export interface operations {
             };
         };
     };
+    wizard_location_map_api_projects__project_id__wizard_locations__name__map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationMap"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     wizard_map_api_projects__project_id__wizard_map_get: {
         parameters: {
             query?: never;
@@ -11317,6 +12042,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Candidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldSpread"];
                 };
             };
             /** @description Validation Error */
@@ -12703,6 +13460,37 @@ export interface operations {
         };
     };
     groups_shapes_api_projects__project_id__groups_shapes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_centres_api_projects__project_id__groups_centres_get: {
         parameters: {
             query?: never;
             header?: never;

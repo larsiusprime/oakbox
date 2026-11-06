@@ -209,7 +209,7 @@ function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overla
                 {s.kindsShort[f.kind]}
                 <ChevronDown aria-hidden="true" size="0.8em" />
               </Button>
-              <Popover className="popover" placement="bottom start">
+              <Popover className="popover" placement="bottom start" offset={0}>
                 <Menu
                   className="choice-list"
                   onAction={(k) =>
@@ -250,7 +250,7 @@ function AddStamp({ layer, add }: { layer: LayerView; add: (f: Overlay["fields"]
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
       <AddButton end>{s.addField}</AddButton>
-      <Popover className="popover" placement="bottom end">
+      <Popover className="popover" placement="bottom end" offset={0}>
         <Dialog className="popover-body ly-pop" aria-label={s.addField}>
           <form
             className="ly-form"
@@ -363,7 +363,7 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
             {options && <span className="wiz-from"> · {options}</span>}
             <ChevronDown aria-hidden="true" size="0.8em" />
           </Button>
-          <Popover className="popover" placement="bottom start">
+          <Popover className="popover" placement="bottom start" offset={0}>
             <Dialog className="popover-body ly-pop" aria-label={s.options}>
               <div className="ly-form">
                 <p className="wiz-from ly-help">
@@ -470,7 +470,7 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
       layers={layers}
       bounds={boundsOf(points, [boundsOfGeoJson(shapes)])}
       fitKey={v ? name : ""}
-      scrollZoom={false}
+      scrollZoom="focus"
     />
   );
 }

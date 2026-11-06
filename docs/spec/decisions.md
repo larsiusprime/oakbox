@@ -46,43 +46,45 @@ Every product decision, numbered (D1, D2…). Code and the rest of the spec cite
   inside is dark, low-contrast oak boards (`assets/oak-planks.svg`); a frame of light oak runs round the window
   (`OakFrame`): its top piece is the lid, the sides run grain down (`oak-v.svg`), the bottom rail grain across
   (`oak-h.svg`), mitred at 45° at the bottom corners, flat against the lid at the top. Every piece is pinned to the
-  window's edges and its grain tiles seamlessly (stitched noise), so the frame stretches with any window, no script; it
-  never takes a click. The lid (`OakBand`) is polished oak, staying at the top as the page scrolls, with the brass plate
-  on it: **no text sits on the bare wood: what's said is on the plate**, and **the plate is the main navigation**
-  (revised 2026-11-02, `OakBand`, `lib/place.ts`): "OAK box" is the name, not a link; then a trail of where you are,
-  Projects › project › tab › step ("Projects › G2 · 2026 › 6 Model values › **Finalize**"), each crumb above you a link,
-  the one you're on in bold. Each crumb in a project opens a list of the others at its level, each saying where it will
-  open: the projects (each with its last place, "3 Check sales › Sales set aside", "running" when a run is going,
-  "here"), the tabs (each with the step it opens on, ✓ when done, "waits" when locked), the steps (✓, "here"). Choosing
-  an earlier crumb replaces the trail after it with that choice's own: **every project and every tab remembers where you
-  last were** (kept on this computer), so going back opens there; nothing stops or is lost (work saves as it's made,
-  runs keep going). **Back** (Alt+←, or the mouse's back button) retraces the path you took, steps included. No "Next"
-  on the plate: moving on is each step's own Next. The folder tabs and step lists stay. Inside: **a container with a
-  heading, lying on the wood or in a folder, is a Manila folder** (creamy but still Manila, `--manila`), its heading the
-  folder's tab, one piece with it (no line between), the heading larger; what it holds is **crisp white paper**
-  (`--paper`). **On paper already, a container with a heading is a titled section** of the document (its heading over a
-  hairline), never a folder inside a document. The project is one folder lying in the box, its tabs along its top edge
-  on the wood; a step's list of steps lies on the Manila, the step itself is a sheet. **Pop-ups (revised 2026-11-01):
-  anything that blocks the screen is part of the box**: a dialog over a dimmed screen has a light oak frame, its title
-  on a brass plate on the frame, what it says on one white sheet inside. **Anything attached to something on the page
-  belongs to the papers**: a value list, a picker, the parcel inspector on the map are Manila, their heading on the
-  Manila with no line under it, their list or table on white paper. Plain dropdown lists are controls, unchanged.
-  Tables' alternate and highlighted rows are very light blue (`--zebra`, `--head`), not grey. Buttons and controls are
-  unchanged. Print: no wood, no lid, no frame. | Projects" at home, "OAK box | New project", "OAK box | G2 · Tax year
-  2026" in a project; it takes you home (there is no separate back link). Inside a project the folder tabs stand on the
-  band's bottom edge, paper on wood, and the open one runs into the page; they're always one row (revised 2026-11-03):
-  wider than the window (a narrow window, a high zoom), the row scrolls, with ‹ › at its ends as sheet tabs and browser
-  tab strips have (each greyed when its end is showing), the wheel over the row scrolls it, and the open tab is kept in
-  view (`components/TabStrip.tsx`); a tab that waits on an earlier step says so at the top of the page, under the tabs.
-  Print leaves the band out. Type is IBM Plex Sans and Plex Mono (OFL), bundled, with Noto Sans as the fallback for
-  other scripts. **Landing pages** (settled 2026-11-02): every tab, and every major step with parts (Data › More
-  details, Data › Condo units), opens on a landing page before its first step: the step's number and name, why it
-  exists, then *What happens*, *What you decide* and *What you end with*, a *Needs* line (what must be done first), and
-  **Start: ‹first step› ›**. A tab's is **Overview** (◆, never ✓ or !) at the top of its step list and in the plate's;
-  it opens on its own only the first time the tab is opened in the project (kept on the computer), after that the tab
-  opens where it was left, and Overview is always one click away. A major step's parts are reached through its landing
-  page: its row opens it, and Back and Next pass through it. Metadata is a step list too, with no Overview (revised
-  2026-11-04): just Project details, whose Next opens Data. The text is `landing` in `wording/en.json`.
+  window's edges and its grain tiles seamlessly (stitched noise), so the frame stretches with any window, no script;
+  it never takes a click. The lid (`OakBand`) is polished oak, staying at the top as the page scrolls, with the brass
+  plate on it: **no text sits on the bare wood: what's said is on the plate**, and **the plate is the main
+  navigation** (revised 2026-11-02, `OakBand`, `lib/place.ts`): "OAK box" is the name, not a link; then a trail of
+  where you are, Projects › project › tab › step ("Projects › G2 · 2026 › 6 Model values › **Finalize**"), each crumb
+  above you a link, the one you're on in bold. Each crumb in a project opens a list of the others at its level, each
+  saying where it will open: the projects (each with its last place, "3 Check sales › Sales set aside", "running" when
+  a run is going, "here"), the tabs (each with the step it opens on, ✓ when done, "waits" when locked), the steps (✓,
+  "here"). Choosing an earlier crumb replaces the trail after it with that choice's own: **every project and every tab
+  remembers where you last were** (kept on this computer), so going back opens there; nothing stops or is lost (work
+  saves as it's made, runs keep going). **Back** (Alt+←, or the mouse's back button) retraces the path you took, steps
+  included. No "Next" on the plate: moving on is each step's own Next. The folder tabs and step lists stay. Inside:
+  **a container with a heading, lying on the wood or in a folder, is a Manila folder** (creamy but still Manila,
+  `--manila`), its heading the folder's tab, one piece with it (no line between), the heading larger; what it holds is
+  **crisp white paper** (`--paper`). **On paper already, a container with a heading is a titled section** of the
+  document (its heading over a hairline), never a folder inside a document. The project is one folder lying in the
+  box, its tabs along its top edge on the wood; a step's list of steps lies on the Manila, the step itself is a sheet.
+  **Pop-ups (revised 2026-11-01): anything that blocks the screen is part of the box**: a dialog over a dimmed screen
+  has a light oak frame, its title on a brass plate on the frame, what it says on one white sheet inside. **Anything
+  attached to something on the page belongs to the papers**: a value list, a picker, the parcel inspector on the map
+  are Manila, their heading on the Manila with no line under it, their list or table on white paper. Plain dropdown
+  lists are controls, unchanged. Tables' alternate and highlighted rows are very light blue (`--zebra`, `--head`), not
+  grey. Buttons and controls are unchanged. Print: no wood, no lid, no frame. | Projects" at home, "OAK box | New
+  project", "OAK box | G2 · Tax year 2026" in a project; it takes you home (there is no separate back link). Inside a
+  project the folder tabs stand on the band's bottom edge, paper on wood, and the open one runs into the page; they're
+  always one row (revised 2026-11-03): wider than the window (a narrow window, a high zoom), the row scrolls, with ‹ ›
+  at its ends as sheet tabs and browser tab strips have (each greyed when its end is showing), the wheel over the row
+  scrolls it, and the open tab is kept in view (`components/TabStrip.tsx`); a tab that waits on an earlier step says
+  so at the top of the page, under the tabs. Print leaves the band out. Type is IBM Plex Sans and Plex Mono (OFL),
+  bundled, with Noto Sans as the fallback for other scripts. **Landing pages** (settled 2026-11-02): every tab, and
+  every major step with parts (Data › More details, Data › Condo units), opens on a landing page before its first
+  step: the step's number and name and, in a few lines, why it exists, then **Start: ‹first step› ›** (revised
+  2026-11-04: no *What happens* / *What you decide* / *What you end with* columns, no *Needs* line; a step that waits
+  on another says so at the top of the page, as before). A tab's is **Overview** (◆, never ✓ or !) at the top of its
+  step list and in the plate's; it opens on its own only the first time the tab is opened in the project (kept on the
+  computer), after that the tab opens where it was left, and Overview is always one click away. A major step's parts
+  are reached through its landing page: its row opens it, and Back and Next pass through it. Metadata is a step list
+  too, with no Overview (revised 2026-11-04): just Project details, whose Next opens Data. The text is `landing` in
+  `wording/en.json`.
 - **D22 · Model groups.** A dedicated builder with live map feedback (§3.5).
 - **D23 · Sale validity.** Office codes and OpenAVMKit scrutiny together. The assessor can overrule any sale. **A sale
   flagged invalid never enters the modeling pipeline.** Review happens in Oakbox's separate sales register (§3.6).
@@ -98,8 +100,9 @@ Every product decision, numbered (D1, D2…). Code and the rest of the spec cite
   estimation. The street network is deferred.
 - **D30 · Variables.** "Plow forward" or "Test variables first" (§3.10).
 - **D31 · Map background.** Offline: parcels only. Online: an OpenStreetMap-based background. Every map has a **Street
-  map** box in its corner to take the background away (a plain one, to see only the colours); the choice carries to
-  every map and is remembered on the computer. The user's own imagery comes later (§3.11).
+  map** box in its corner to take the background away (a plain one, to see only the colours). Each map starts as
+  Settings › Performance › Street map says (revised 2026-11-06, §5); the box changes that map. The user's own imagery
+  comes later (§3.11).
 - **D32 · Custom reports.** Sections and branding for everyone; editable templates for power users (§4.3; their format
   is open now that reports are HTML, F10).
 - **D33 · Staleness.** Oakbox tracks which settings feed which step and re-runs exactly what changed. OpenAVMKit's
@@ -166,20 +169,22 @@ Every product decision, numbered (D1, D2…). Code and the rest of the spec cite
 - **D47 · Files and items look one way.** Settled 2026-11-04, the style guide `docs/style-guide.html`. **A file**,
   wherever it's added, picked or used, is one thin outline: its first line a faint warm band (revised 2026-11-04), its
   name in OAK box (mono, bold), its file name (set off like code: mono on a faint box), its facts ("4,712 rows ·
-  shapes"), a short check, other actions as icons, then a **red −** at the right edge (centred on a one-line entry, top
-  right on a tall one). What's set on the file (its IDs, what it's about, how it's used) is inside the same outline,
-  labels in one column and controls in the next. − takes the file off that step (the file stays in the project and can
-  be picked again; Undo puts it back). A step with no file yet shows a dashed outline: [Add a file…] or use existing:
-  [Choose…]. The import form is an entry too (its path, its format and size; a grey ✕ closes it, instead of Cancel).
-  Lists and choices that only show files (what Bring in data runs, the Condo units file) use the same first line without
-  outline or −. **Anything removable on its own** (an ID inside a file, a test, a condition, a copied field, a location
-  field) has its own outline, siblings too, and the same red − (a real button, raised like every button, a white − on
-  it: the pair of Add's +; revised 2026-11-04), its label on hover, and **Undo** for a few seconds after it; every
-  "Remove" link, "(remove)", "drop" and grey X is gone. **Deleting for good** is a danger button with a trash can and
-  its words, and asks first; **closing** a popup or an unsaved form is a grey ✕ at its top right; the three never share
-  a look. Adding to an item (another ID) is inside it, at its bottom right; adding another item is after the list. A
-  short choice inside an item is a segmented control, not radio buttons. Every item's outline is the same colour
+  shapes"), a short check, other actions as icons, then a **red −** at the right edge (centred on a one-line entry,
+  top right on a tall one). What's set on the file (its IDs, what it's about, how it's used) is inside the same
+  outline, labels in one column and controls in the next. − takes the file off that step (the file stays in the
+  project and can be picked again; Undo puts it back). A step with no file yet shows a dashed outline: [Add a file…]
+  or use existing: [Choose…]. The import form is an entry too (its path, its format and size; its red − takes it away,
+  instead of Cancel). Lists and choices that only show files (what Bring in data runs, the Condo units file) use the
+  same first line without outline or −. **Anything removable on its own** (an ID inside a file, a test, a condition, a
+  copied field, a location field) has its own outline, siblings too, and the same red − (a real button, raised like
+  every button, a white − on it: the pair of Add's +; revised 2026-11-04), its label on hover, and **Undo** for a few
+  seconds after it; every "Remove" link, "(remove)", "drop" and grey X is gone. **Deleting for good** is a danger
+  button with a trash can and its words, and asks first; **closing** a popup, panel or dialog is a grey ✕ at its top
+  right (a row or entry not saved yet is taken away with the red −, like any item); the three never share a look.
+  Adding to an item (another ID) is inside it, at its bottom right; adding another item is after the list. A short
+  choice inside an item is a segmented control, not radio buttons. Every item's outline is the same colour
   (`--frame`). **Anything pressed is a raised button** (the family: button, primary, delete, add, small, tool, close,
   remove) unless the style guide keeps it flat, with its reason (navigation, list rows, sortable headers, disclosures
   with a chevron, swatches); flat is never the default. Text links that did something are small buttons; links that go
-  somewhere stay links, and ones that leave the app carry ↗.
+  somewhere stay links, and ones that leave the app carry ↗. No page opens with a "Step 5 of 10 · …" line over its
+  title: the step list and the plate's trail say where you are (revised 2026-11-04).

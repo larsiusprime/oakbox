@@ -3,11 +3,12 @@
  * the one you're on in bold; each crumb in a project opens a list of the others at its level (projects, tabs,
  * steps), each saying where it will open. No text sits on the bare wood: what's said is on the plate. */
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import { useState } from "react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
+import { openSettings } from "../lib/machine";
 import { lastStep, lastTab, usePlace } from "../lib/place";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
@@ -17,6 +18,7 @@ const n = t.nav;
 
 export type Page =
   | { kind: "projects" }
+  | { kind: "check" }
   | { kind: "new" }
   | { kind: "project"; id: string; name: string; year: number };
 
@@ -30,7 +32,7 @@ export function OakBand({ page }: { page: Page }) {
         </span>
         <span className="plate-rule" aria-hidden="true" />
         <ol className="crumbs">
-          {page.kind === "projects" ? (
+          {page.kind === "check" ? null : page.kind === "projects" ? (
             <ProjectsHere />
           ) : (
             <Crumb>
@@ -40,8 +42,14 @@ export function OakBand({ page }: { page: Page }) {
             </Crumb>
           )}
           {page.kind === "new" && <Here>{n.newProject}</Here>}
+          {page.kind === "check" && <Here>{t.machine.title}</Here>}
           {page.kind === "project" && <ProjectCrumbs page={page} />}
         </ol>
+        {page.kind !== "check" && (
+          <Button className="plate-gear" aria-label={n.settings} onPress={() => openSettings()}>
+            <Settings aria-hidden="true" size="1em" />
+          </Button>
+        )}
       </nav>
     </header>
   );
@@ -232,7 +240,7 @@ function Jump({
         {label}
         <ChevronDown aria-hidden="true" size="0.75em" />
       </Button>
-      <Popover className="popover crumb-pop" placement="bottom start">
+      <Popover className="popover crumb-pop" placement="bottom start" offset={0}>
         {children}
       </Popover>
     </MenuTrigger>

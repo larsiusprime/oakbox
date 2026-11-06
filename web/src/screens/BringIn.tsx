@@ -1,8 +1,17 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { api, type EnrichResult, type Funnel, type Receipt, type ReceiptField, unwrap } from "../api/client";
+import {
+  api,
+  type EnrichResult,
+  type Funnel,
+  type MemoryNote,
+  type Receipt,
+  type ReceiptField,
+  unwrap,
+} from "../api/client";
 import { stepKey, useStep, useStepAct, useStepNav } from "../api/steps";
+import { Callout } from "../components/Callout";
 import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
@@ -14,6 +23,15 @@ import { navigate } from "../lib/route";
 import { t } from "../wording";
 
 const b = t.bringIn;
+
+/** A county that may need more memory than this computer has (SPEC §5): said before the long steps, never a block. */
+function TooBig({ note }: { note: MemoryNote }) {
+  return (
+    <Callout summary={b.memory({ need: note.need_gb, parcels: note.parcels, have: note.have_gb })}>
+      <p>{b.memoryMore}</p>
+    </Callout>
+  );
+}
 
 /** Whether Looks right was pressed on an up-to-date receipt: model groups can start. */
 export function useAccepted(projectId: string): boolean {
@@ -82,7 +100,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
     <StepFrame steps={steps} current={current} go={go} landing="bring">
       {current === "plan" && (
         <>
-          <StepBody kicker={b.kicker} title={b.title} lede={b.lede}>
+          <StepBody title={b.title} lede={b.lede}>
             {v.blocked.length > 0 && (
               <div className="bi-warn">
                 <b>{b.blocked({ n: v.blocked.length })}</b> {v.blocked[0]}{" "}
@@ -99,6 +117,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
                 <b>{b.stale}</b> {v.changed.join(", ")}.
               </div>
             )}
+            {v.plan.memory && <TooBig note={v.plan.memory} />}
             <h3 className="wiz-group">{b.whatRuns}</h3>
             <ul className="bi-plan">
               {v.plan.files.map((f) => (
@@ -127,11 +146,12 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "run" && (
         <>
-          <StepBody kicker={b.kicker} title={b.runTitle} lede={b.runLede}>
+          <StepBody title={b.runTitle} lede={b.runLede}>
             {running ? (
               <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} skip={(part) => skip.mutate(part)} />
             ) : (
               <>
+                {v.plan.memory && <TooBig note={v.plan.memory} />}
                 {v.status === "failed" && v.job?.error && (
                   <div className="bi-warn" role="alert">
                     <b>{t.step.failed}</b> <span className="mono">{v.job.error}</span>
@@ -185,7 +205,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "universe" && r && (
         <>
-          <StepBody kicker={b.kicker} title={b.universe}>
+          <StepBody title={b.universe}>
             {staleNote}
             <Section
               title={b.universe}
@@ -202,7 +222,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "sales" && r && (
         <>
-          <StepBody kicker={b.kicker} title={b.sales}>
+          <StepBody title={b.sales}>
             {staleNote}
             <Section
               title={b.sales}
@@ -219,7 +239,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
       )}
       {current === "more" && r && (
         <>
-          <StepBody kicker={b.kicker} title={b.steps.more}>
+          <StepBody title={b.steps.more}>
             {staleNote}
             <MoreView receipt={r} rerun={running || v.blocked.length > 0 ? null : runIt} />
           </StepBody>

@@ -104,7 +104,6 @@ export function SalesTab({
   const back = prev ? () => go(prev) : null;
   const onward = { label: t.step.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
   const toValues = () => navigate({ name: "project", id: projectId, tab: "check" });
-  const kicker = s.kicker;
   const loading = <p className="empty">{setup.error?.message ?? t.project.loading}</p>;
   const errors = (
     <>
@@ -127,7 +126,6 @@ export function SalesTab({
   ) => (
     <>
       <StepBody
-        kicker={kicker}
         title={s.steps[current]}
         {...(lede ? { lede: lede.charAt(0).toUpperCase() + lede.slice(1) } : {})}
       >
@@ -165,7 +163,7 @@ export function SalesTab({
         callStep(u && <ScrutinyCard v={u} set={set} projectId={projectId} />, s.scrutiny.sub)}
       {current === "run" && (
         <>
-          <StepBody kicker={kicker} title={s.steps.run} lede={s.runNote}>
+          <StepBody title={s.steps.run} lede={s.runNote}>
             {running ? (
               <>
                 <RunProgress job={v.job} lastSeconds={r?.seconds ?? null} />
@@ -209,7 +207,7 @@ export function SalesTab({
       )}
       {current === "sales" && r && (
         <>
-          <StepBody kicker={kicker} title={s.steps.sales}>
+          <StepBody title={s.steps.sales}>
             <SalesResult projectId={projectId} view={v} receipt={r} look={look} />
           </StepBody>
           <StepFoot back={back} next={onward} note={v.stale ? s.stale : null} />
@@ -217,7 +215,7 @@ export function SalesTab({
       )}
       {current === "aside" && r && (
         <>
-          <StepBody kicker={kicker} title={s.steps.aside} lede={s.review.lede}>
+          <StepBody title={s.steps.aside} lede={s.review.lede}>
             <Review
               projectId={projectId}
               currency={currency}

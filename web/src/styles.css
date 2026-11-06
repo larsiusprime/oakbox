@@ -24,6 +24,7 @@
   --frame: #c9c2b0; /* every item's outline: a file, an ID, a test, a loose group of rows */
   --code-bg: #f3f0e8; /* a file name, set off like code */
   --code-edge: #e0dacb;
+  --entry-body: #fcfaf6; /* a file entry's body: a third of the way from white to its first line, under white rows */
   --entry-head: #f6f2e6; /* a file entry's first line: a faint warm band, so the file reads as the box's title */
   --cell-line: #e2e4e6; /* every table's cell lines */
   --zebra: #f0f5fc; /* every table's alternate rows: very light blue */
@@ -552,6 +553,17 @@ a.row-title:hover {
   grid-column: 2;
 }
 
+/* In a settings grid: a control in its cell as wide as itself; under it, in the second column, one line on what the
+   chosen option does, close under the control (the row gap taken back). */
+.set-grid > .set-cell {
+  display: flex;
+}
+.set-grid > .set-note {
+  grid-column: 2;
+  margin-top: calc(-0.25 * var(--sp));
+  font-size: 0.9rem;
+}
+
 /* Cards and groups are as wide as what's in them, not the page (style guide: only tables take the page's width).
    One that holds a table, a map or a chart takes the width, for them. */
 .bi-card,
@@ -602,7 +614,9 @@ a.row-title:hover {
   display: grid;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   padding: calc(0.6 * var(--sp));
+  background: var(--entry-body);
   border-top: 1px solid var(--frame);
+  border-radius: 0 0 2px 2px;
 }
 /* Adding to the file (an ID, a field) is inside it, below its rows, at its right edge. */
 .entry-body > .add-button.add-end {
@@ -652,6 +666,23 @@ a.row-title:hover {
   padding: calc(0.3 * var(--sp)) calc(0.3 * var(--sp)) calc(0.3 * var(--sp)) calc(0.6 * var(--sp));
   border: 1px solid var(--frame);
   border-radius: 3px;
+  background: var(--paper);
+}
+/* Boxes inside the same file stack flush: no space between them, one border line where they meet, rounded only at
+   the stack's top and bottom. */
+.wiz-grid:has(> .entry-sub) {
+  row-gap: 0;
+}
+.entry-sub + .entry-sub {
+  margin-top: -1px;
+}
+.entry-sub:has(+ .entry-sub) {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.entry-sub + .entry-sub {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 .entry-sub-end {
   display: flex;
@@ -829,6 +860,54 @@ a.row-title:hover {
   gap: calc(0.5 * var(--sp));
   max-width: 22rem;
   padding: calc(0.6 * var(--sp)) calc(0.7 * var(--sp));
+}
+/* A row's check on one line: the check, its buttons, its issues, a warning (style guide: rows stay one line high). */
+.id-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.25 * var(--sp)), min(0.25rem, var(--gap-min)))
+    max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+}
+/* A warning in a row (components/WarnChip.tsx): ⚠ and a few words, amber, a button; the whole of it opens beside. */
+.warn-chip {
+  display: inline-flex;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)));
+  align-items: center;
+  padding: 0 calc(0.45 * var(--sp));
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-edge);
+  border-radius: 3px;
+}
+.warn-chip[data-hovered],
+.warn-chip[data-pressed] {
+  border-color: var(--warn);
+}
+.warn-chip[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.warn-pop {
+  max-width: min(28rem, 92vw);
+}
+.warn-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  align-items: start;
+  font-size: 0.9rem;
+}
+.warn-text {
+  display: grid;
+  gap: calc(0.4 * var(--sp));
+}
+.warn-text p {
+  margin: 0;
 }
 /* Undo, after a remove (components/UndoToast.tsx). */
 .undo-toast {
@@ -1140,6 +1219,20 @@ a.row-title:hover {
   max-height: 20rem;
   overflow: auto;
 }
+/* A dropdown's list hangs from its box: no gap, the box's own bottom edge is the line between them (the list has no
+   top edge), the same edge colour, square corners where they meet. Above the box when there's no room below, the
+   same the other way up. */
+.choice-popover {
+  border-color: var(--well-edge);
+}
+.choice-popover[data-placement="bottom"] {
+  border-top-width: 0;
+  border-radius: 0 0 2px 2px;
+}
+.choice-popover[data-placement="top"] {
+  border-bottom-width: 0;
+  border-radius: 2px 2px 0 0;
+}
 
 .choice-list {
   outline: none;
@@ -1279,10 +1372,16 @@ a.row-title:hover {
     max(calc(1.5 * var(--sp)), min(1.5rem, var(--gap-min)));
 }
 
+/* The buttons that do what a form, a dialog or a step is for (Import, Save, Start, Delete…) sit at its right edge,
+   the main one first, as in a Windows dialog (style guide). */
 .form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: max(calc(0.75 * var(--sp)), min(0.75rem, var(--gap-min)));
+  justify-content: flex-end;
+  /* The whole width of what it's in, even where that lines its children up at the start. */
+  align-self: stretch;
+  justify-self: stretch;
 }
 
 .button-danger {
@@ -1760,14 +1859,6 @@ a.row-title:hover {
   padding: calc(0.8 * var(--sp)) calc(1.1 * var(--sp));
 }
 
-.wiz-kicker {
-  margin: 0 0 calc(0.15 * var(--sp));
-  font-size: 0.8rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .wiz-q {
   margin: 0 0 calc(0.25 * var(--sp));
   font-size: 1.15rem;
@@ -1784,9 +1875,11 @@ a.row-title:hover {
   font-size: 1rem;
 }
 
+/* A settings grid: labels in a column only as wide as they need (up to 14rem, then they wrap), the controls, then
+   their checks. */
 .wiz-grid {
   display: grid;
-  grid-template-columns: 12rem 16rem minmax(0, 1fr);
+  grid-template-columns: fit-content(14rem) 16rem minmax(0, 1fr);
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
     max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
@@ -1878,10 +1971,6 @@ a.row-title:hover {
 .wiz-left-list {
   margin: 0;
   padding-left: calc(1.2 * var(--sp));
-}
-
-.wiz-unfinished-actions {
-  justify-content: flex-end;
 }
 
 .wiz-foot {
@@ -2008,7 +2097,7 @@ a.row-title:hover {
 }
 
 .wiz-grid-dialog {
-  grid-template-columns: 9rem 16rem minmax(0, 1fr);
+  grid-template-columns: fit-content(9rem) 16rem minmax(0, 1fr);
 }
 
 .wiz-group {
@@ -2320,10 +2409,6 @@ like the wizard's Next {
   border-radius: var(--radius);
 }
 
-.rc-actions {
-  justify-content: flex-end;
-}
-
 /* ---------- Yes/no rules and date formats (F3d) ---------- */
 
 .rl {
@@ -2426,11 +2511,6 @@ like the wizard's Next {
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   margin-top: calc(0.4 * var(--sp));
-}
-
-.wiz-map-toggle {
-  justify-self: start;
-  margin: 0 0 calc(0.5 * var(--sp));
 }
 
 .wiz-num {
@@ -5248,8 +5328,12 @@ under what it's about; a file appended as rows {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
-/* The sheet: everything after the title, one continuous piece of paper set into the frame. */
+/* The sheet: everything after the title, one continuous piece of paper set into the frame. Each part is the sheet's
+   whole width, even one that's as wide as its content elsewhere (a settings grid, radio cards), so no wood shows
+   beside it. */
 .modal-body > :not(.modal-title) {
+  width: auto;
+  max-width: none;
   margin: 0;
   padding: calc(0.3 * var(--sp)) calc(0.9 * var(--sp));
   background: var(--paper);
@@ -5475,42 +5559,6 @@ under what it's about; a file appended as rows {
   font-size: 1.08rem;
   line-height: 1.55;
   max-width: 44rem;
-}
-
-.land-cols {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: max(calc(1.6 * var(--sp)), min(1.6rem, var(--gap-min)));
-  margin: calc(1.4 * var(--sp)) 0 calc(1 * var(--sp));
-}
-
-.land-sec h3 {
-  font-size: 0.95rem;
-  margin: 0 0 calc(0.45 * var(--sp));
-  padding-bottom: calc(0.3 * var(--sp));
-  border-bottom: 1px solid var(--paper-rule);
-}
-
-.land-sec ul {
-  margin: 0;
-  padding-left: max(calc(1.1 * var(--sp)), min(1.1rem, var(--indent-min)));
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
-.land-sec li {
-  margin: calc(0.3 * var(--sp)) 0;
-}
-
-.land-needs {
-  margin: calc(0.6 * var(--sp)) 0 0;
-  font-size: 0.88rem;
-}
-
-@media (max-width: 900px) {
-  .land-cols {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ---------- D43: a dropdown you can type in (Combo) ---------- */
@@ -5766,7 +5814,7 @@ under what it's about; a file appended as rows {
 }
 
 /* New project (SPEC F1): two columns with matching edges. Name and jurisdiction take the full width; country and
-   state, tax year and valuation date, currency and number style pair up; units is a full-width choice. */
+   state, tax year and valuation date, currency and number style pair up, then units. */
 .np-form {
   grid-template-columns: 1fr 1fr;
   column-gap: max(calc(1 * var(--sp)), min(1rem, var(--gap-min)));
@@ -5777,7 +5825,6 @@ under what it's about; a file appended as rows {
   display: contents;
 }
 .np-form > .field,
-.np-form > .units-field,
 .np-form > .form-actions,
 .np-form > .error {
   grid-column: 1 / -1;
@@ -5792,11 +5839,632 @@ under what it's about; a file appended as rows {
   max-width: none;
   box-sizing: border-box;
 }
-.units-field :is(.seg) {
-  display: flex;
+
+/* A form in an entry (the import form) has a fixed width: it grows downward as its text wraps, never sideways as
+   what's typed changes. Its fields fill their column. */
+.entry.entry-form {
+  width: min(100%, 34rem);
 }
-.units-field :is(.seg-b) {
-  flex: 1 1 0;
+.entry-form .set-grid {
+  width: 100%;
+}
+.entry-form .set-grid input[type="text"] {
+  width: 100%;
+}
+
+/* A field's row (style guide, 2B): the reading is the button, in a column of one width on every row, then the
+   values. A reading that needs a look is amber, with its ⚠. */
+.field-tools {
+  display: inline-grid;
+  grid-template-columns: 11rem max-content;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  vertical-align: middle;
+}
+.field-tools > .button.button-small {
+  margin-left: 0;
+}
+/* A reading with nothing to change, in the same column: plain words, no ✓; amber when it needs a look. */
+.reading-plain {
+  overflow: hidden;
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  padding: calc(0.25 * var(--sp)) calc(0.8 * var(--sp));
+}
+.reading-plain.attention {
+  color: var(--warn);
+}
+.button.reading {
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  font-weight: 400;
+}
+.reading-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+.button.reading.attention {
+  background: var(--warn-tint);
+  border-color: var(--warn);
+}
+
+/* In a file's body every settings grid shares one label column, as wide as its longest label (up to 16rem):
+   the body is the grid, and each settings grid in it sits on the body's columns, so they still line up. */
+.entry-body {
+  grid-template-columns: fit-content(16rem) 16rem minmax(0, 1fr);
+  column-gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+}
+.entry > .entry-body > * {
+  grid-column: 1 / -1;
+}
+.entry-body > .wiz-grid {
+  grid-template-columns: subgrid;
+}
+
+/* Which way a quality or condition number runs, on its own row (ScaleChoice): the segmented control, then a line
+   on what the chosen way means; or radio cards, a line each. */
+.seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(calc(0.3 * var(--sp)), min(0.3rem, var(--gap-min)))
+    max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  align-items: center;
+  font-size: 0.9rem;
+}
+/* What a condition number means: a compact list of radios, one line each; what the chosen one means is under
+   the row's label. */
+.scale-list {
+  display: grid;
+  gap: 2px;
+  margin-block: 2px;
+}
+.radio.scale-item {
+  align-items: start;
+}
+.radio.scale-item[data-selected] {
+  font-weight: 600;
+}
+.wiz-label > .scale-hint {
+  display: block;
+  /* As wide as the label, never wider: choosing another meaning never resizes the box. */
+  width: 0;
+  min-width: 100%;
+  margin-top: 2px;
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Every popup that drops from a button (a list, a menu, a picker, a warning, Options, a confirmation, the plate's
+   trail) hangs flush from it, as a dropdown's list does: no gap (offset 0 on each Popover) and square corners where
+   they meet; the other way up when it opens above. */
+.popover[data-placement="bottom"] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.popover[data-placement="top"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* A label beside a tall control (radio cards): level with its top, not its middle. */
+.wiz-label.wiz-label-top {
+  align-self: start;
+  padding-top: calc(0.5 * var(--sp) + 2px);
+}
+
+/* Quality and condition on their page (QualityStep): what it sold for as read, or its tiers ranked best first. */
+.qc-panel {
+  display: grid;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  justify-items: start;
+}
+.qc-panel > .form-actions {
+  justify-self: stretch;
+}
+.tbl.qc-tiers tbody tr.qc-end > td {
+  padding-block: 1px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+}
+.qc-rank {
+  font-weight: 700;
+}
+.qc-panel > .tbl {
+  width: auto;
+}
+.qc-panel > .tbl td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A segmented control in a settings row is as wide as the dropdowns under it, its options sharing it. */
+.wiz-grid > .seg-row > .seg {
+  display: flex;
+  width: 16rem;
+  max-width: 100%;
+}
+.wiz-grid > .seg-row > .seg > .seg-b {
+  flex: 1;
+}
+.radio.scale-item > .radio-dot {
+  margin-top: 0.2rem;
+}
+
+/* Big five's parts: a capsule per field, as wide as its row needs, the columns lined up across capsules. */
+.wiz-grid.wiz-capsules {
+  width: fit-content;
+  max-width: 100%;
+  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+}
+/* A column and its unit: room for the column's name beside the unit. */
+.wiz-capsules .wiz-pair {
+  width: 23rem;
+  max-width: 100%;
+}
+.wiz-capsules > .wiz-capsule {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  row-gap: inherit;
+  margin: 0;
+}
+/* Level with the first meaning's words (the list's items sit at their tops). */
+.wiz-label.wiz-label-top.scale-label {
+  padding-top: 2px;
+}
+
+/* Under Metadata: currency, number style and units in one stack, one width. */
+.facts-locale > .form-row {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 20rem;
+  max-width: 100%;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+}
+.facts-locale > .form-row > .choice {
+  width: 100%;
+}
+
+/* Valid and vacant sale on their pages: the logic in a box of its own (an entry: tinted head and body), each
+   condition a white row, the rows stacked flush, the add buttons at its bottom right. */
+.entry.rl-env {
+  margin: calc(0.35 * var(--sp)) 0;
+}
+.rl-env-head {
+  font-weight: 600;
+}
+.entry.rl-env > .rl-env-head > .choice {
+  width: 10rem;
+  font-weight: 400;
+}
+.rl-conds {
+  display: grid;
+  grid-template-columns: 12rem 10rem 16rem max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rl-cond {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  align-items: center;
+  padding: calc(0.3 * var(--sp)) calc(0.4 * var(--sp));
+  background: var(--paper);
+  border: 1px solid var(--frame);
+}
+.rl-cond + .rl-cond {
+  margin-top: -1px;
+}
+.rl-cond > :is(.choice, .rl-mini) {
+  min-width: 0;
+}
+.rl-cond .input.rl-input {
+  width: 100%;
+}
+@media (max-width: 760px) {
+  .rl-conds {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content;
+  }
+}
+
+/* Sale date: sales by year, a bar each, its count on top. */
+.yr-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--muted);
+  max-width: 100%;
+  overflow-x: auto;
+}
+.yr-col {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 2px;
+  min-width: 2.6rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.yr-n {
+  color: var(--muted);
+}
+.yr-bar {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  background: #9db7df;
+  border-radius: 1px 1px 0 0;
+}
+.yr-x {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+/* The Sales file's match panel: the reconcile layout, on the page. */
+.match-panel > .rc-inline {
+  width: 100%;
+}
+.frame.qc-panel.match-panel {
+  width: min(100%, 64rem);
+}
+
+/* Sales' IDs: the parcel ID and the sale ID rows on one grid. */
+.wiz-grid.frame.ids-box {
+  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+}
+.ids-box > .wiz-grid {
+  display: contents;
+}
+
+/* Big five: a size's or a year's spread, under the fields, a bar per bin. */
+.wiz-capsules > .wiz-capsule-wide {
+  grid-column: 1 / -1;
+}
+.fh-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: min(100%, 36rem);
+  height: 8rem;
+  border-bottom: 1px solid var(--muted);
+}
+.fh-bar {
+  flex: 1;
+  min-height: 1px;
+  background: #9db7df;
+  border-radius: 1px 1px 0 0;
+}
+.fh-bar:hover {
+  background: #6f95cf;
+}
+.fh-axis {
+  display: grid;
+  gap: 2px;
+  width: min(100%, 36rem);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* A row's control spanning the rest of a capsule (Quality's choices), as it does in a .wiz-grid. */
+.wiz-capsules > .wiz-capsule > .wiz-span {
+  grid-column: 2 / -1;
+}
+/* Quality's choices box: a switch as wide as the column's dropdown above it, its options sharing it. */
+.wiz-capsules > .wiz-capsule.qc-ask > .seg-row {
+  display: grid;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+}
+.wiz-capsules > .wiz-capsule.qc-ask > .seg-row > .seg {
+  display: flex;
+  width: 100%;
+}
+.wiz-capsules > .wiz-capsule.qc-ask > .seg-row > .seg > .seg-b {
+  flex: 1;
+}
+
+/* A map that is the step (Coordinates): it takes the rest of the page, down to the buttons, never under 18rem. */
+.wiz-body:has(> .wiz-fill) {
+  display: flex;
+  flex-direction: column;
+}
+.wiz-body > .wiz-fill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.wiz-fill > .map-view.wiz-map-fill {
+  flex: 1;
+  min-height: 18rem;
+}
+
+/* Location fields: the fields on the left, as wide as they are (the add form no wider), and a map of one of them on
+   the right, filling the page. */
+.wiz-body > .wiz-fill.loc-page {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: stretch;
+}
+.loc-side {
+  display: grid;
+  flex: none;
+  align-content: start;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  width: fit-content;
+  max-width: 100%;
+}
+.loc-side > .entry-list {
+  margin: 0;
+}
+.loc-side > .wiz-loc-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  margin-top: 0;
+}
+.wiz-fill > .loc-side > .wiz-loc-add > .choice {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 14rem;
+}
+.loc-side > .wiz-loc-add .input.rl-input {
+  width: 100%;
+}
+.loc-map {
+  display: flex;
+  flex: 1 1 22rem;
+  flex-direction: column;
+  gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
+  min-width: 0;
+}
+.loc-map-head {
+  display: flex;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+}
+.wiz-fill > .loc-map > .loc-map-head > .choice {
+  width: 14rem;
+}
+.loc-map > .map-view.wiz-map-fill {
+  flex: 1;
+  min-height: 18rem;
+}
+
+/* ---------- This computer and Settings (SPEC §5) ---------- */
+
+/* Settings on the plate: a small raised brass button at its right end, before the screw. */
+.plate-gear {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.35rem;
+  padding: 0;
+  margin-left: calc(0.2 * var(--sp));
+  color: var(--plate-text);
+  border: 1px solid var(--plate-edge);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--plate-hi), var(--plate-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 1px rgba(30, 15, 0, 0.35);
+  cursor: pointer;
+}
+.plate-gear[data-hovered] {
+  background: linear-gradient(to bottom, #fff2c8, var(--plate-mid));
+}
+.plate-gear[data-pressed] {
+  box-shadow: inset 0 1px 2px rgba(30, 15, 0, 0.45);
+}
+.plate-gear[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* The check: one sheet, as wide as what's on it. */
+.panel.mc {
+  display: grid;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  width: fit-content;
+  max-width: 100%;
+  margin: calc(1 * var(--sp)) auto 0;
+  padding: calc(1 * var(--sp)) calc(1.2 * var(--sp));
+  justify-items: start;
+}
+.mc-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.mc-lede,
+.mc-tier p,
+.mc-note {
+  margin: 0;
+  max-width: 64ch;
+}
+.mc-note {
+  color: var(--muted);
+}
+.mc-checks {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1.2rem max-content minmax(0, 26rem);
+  column-gap: max(calc(0.6 * var(--sp)), var(--gap-min));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  max-width: 100%;
+}
+.mc-line {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: calc(0.35 * var(--sp)) calc(0.7 * var(--sp));
+}
+.mc-line + .mc-line {
+  border-top: 1px solid var(--rule);
+}
+.mc-line dt {
+  font-weight: 600;
+}
+.mc-line dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.mc-line dd small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.mc-tick {
+  color: var(--ok);
+  font-weight: 700;
+}
+.mc-tick.mc-wait,
+.mc-checking {
+  color: var(--muted);
+}
+.mc-tier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: max(calc(0.6 * var(--sp)), var(--gap-min));
+}
+.pill.mc-tier-pill {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.15rem 0.7rem;
+}
+.mc-recs {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: calc(0.25 * var(--sp)) max(calc(1 * var(--sp)), var(--gap-min));
+  padding: calc(0.5 * var(--sp)) calc(0.8 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  background: var(--entry-body);
+  max-width: 100%;
+}
+.mc-recs dt {
+  font-weight: 600;
+}
+.mc-recs dd {
+  margin: 0;
+}
+.panel.mc > .mc-actions {
+  justify-self: stretch;
+}
+
+/* Settings: wider than the usual dialog, its sections down the left. */
+.modal.settings-modal {
+  width: min(100%, 52rem);
+}
+.st-tabs {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  min-height: 20rem;
+  align-items: start;
+}
+.modal-body > .st-tabs {
+  padding: 0;
+}
+.st-list {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  align-self: stretch;
+  padding: calc(0.5 * var(--sp)) calc(0.4 * var(--sp));
+  background: var(--manila);
+  border-right: 1px solid var(--frame);
+}
+.st-tab {
+  padding: calc(0.25 * var(--sp)) calc(0.6 * var(--sp));
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+}
+.st-tab[data-hovered] {
+  background: var(--select);
+}
+.st-tab[data-selected] {
+  background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
+  color: #ffffff;
+  font-weight: 600;
+}
+.st-tab[data-focus-visible] {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.st-panel {
+  display: grid;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-content: start;
+  min-width: 0;
+  padding: calc(0.8 * var(--sp)) calc(1 * var(--sp));
+  outline: none;
+}
+.st-h {
+  margin: 0;
+  font-size: 1rem;
+}
+.st-machine {
+  display: grid;
+  gap: calc(0.3 * var(--sp));
+  padding: calc(0.5 * var(--sp)) calc(0.8 * var(--sp));
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  background: var(--entry-body);
+}
+.st-machine-head {
+  display: flex;
+  align-items: center;
+  gap: max(calc(0.6 * var(--sp)), var(--gap-min));
+}
+div.st-machine-head > .button {
+  margin-left: auto;
+}
+.st-grid .set-note {
+  max-width: 46ch;
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .st-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .st-list {
+    grid-auto-flow: column;
+    border-right: 0;
+    border-bottom: 1px solid var(--frame);
+  }
+}
+
+/* A map waiting for a click (Settings › Performance): the map's own box, a plain panel in it. */
+.map-view.map-wait {
+  display: grid;
+  place-items: center;
+  background: var(--zebra);
+  border: 1px solid var(--rule);
+}
+.map-wait-ask {
+  display: grid;
+  justify-items: center;
+  gap: max(calc(0.5 * var(--sp)), var(--gap-min));
+  padding: calc(1 * var(--sp));
+  text-align: center;
+}
+div.map-wait-ask small {
+  max-width: 34ch;
+  color: var(--muted);
 }

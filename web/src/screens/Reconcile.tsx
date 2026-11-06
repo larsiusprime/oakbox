@@ -20,7 +20,7 @@ import { Tick } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { pct } from "../lib/format";
-import { useSettled } from "../lib/hooks";
+import { useOnSettled, useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
 
 const r = t.wizard.reconcile;
@@ -68,7 +68,7 @@ export function describeSteps(steps: Step[]): string {
     .join(", then ");
 }
 
-/** F3d: clean up the IDs on both sides of the sales join, live, until they match. */
+/** F3d: clean up the IDs on both sides of the sales join, live, until they match: in a dialog (Save, Cancel). */
 export function ReconcileDialog({
   projectId,
   file,
@@ -82,6 +82,39 @@ export function ReconcileDialog({
   close: () => void;
   save: (fileSteps: Step[], baseSteps: Step[]) => void;
 }) {
+  return <Reconcile projectId={projectId} file={file} base={base} close={close} save={save} />;
+}
+
+/** The same on the page (the Sales file part): every change is saved once it settles; no Save or Cancel. */
+export function ReconcilePanel({
+  projectId,
+  file,
+  base,
+  save,
+}: {
+  projectId: string;
+  file: WizardFile;
+  base: WizardFile;
+  save: (fileSteps: Step[], baseSteps: Step[]) => void;
+}) {
+  return <Reconcile projectId={projectId} file={file} base={base} save={save} />;
+}
+
+function Reconcile({
+  projectId,
+  file,
+  base,
+  close,
+  save,
+}: {
+  projectId: string;
+  file: WizardFile;
+  base: WizardFile;
+  /** In a dialog; without it, on the page. */
+  close?: () => void;
+  save: (fileSteps: Step[], baseSteps: Step[]) => void;
+}) {
+  const inline = close === undefined;
   const field = file.match;
   // What joins to what: the wording follows it.
   const k =
@@ -123,7 +156,108 @@ export function ReconcileDialog({
   const [tried, setTried] = useState(false);
   const suggestion = tried ? null : hint.data?.suggestion;
   const good = v ? v.share >= 0.95 : false;
+  // On the page, the steps are saved as soon as they settle (and differ from what's saved).
+  const savedNow = JSON.stringify({
+    file_steps: file.clean[field] ?? [],
+    base_steps: base.clean[field] ?? [],
+  });
+  useOnSettled({ file_steps: salesSteps, base_steps: baseSteps }, (x) => {
+    if (inline && JSON.stringify(x) !== savedNow) save(x.file_steps, x.base_steps);
+  });
 
+  const body = (
+    <>
+      <div className={`rc-meter ${good ? "ok" : "bad"}`} aria-live="polite">
+        {v ? (
+          <>
+            <b>
+              {good && "✓ "}
+              {k.meter(pct(v.share))}
+            </b>
+            <span className="rc-was">
+              {r.counts({ matched: v.matched, total: v.total })}
+              {Math.abs(v.share - v.saved_share) > 1e-9 && ` · ${r.was({ pct: pct(v.saved_share) })}`}
+            </span>
+          </>
+        ) : (
+          <span className="rc-was">…</span>
+        )}
+      </div>
+      {suggestion && (
+        <p className="rc-suggest">
+          <b>{r.suggest}</b> {suggestion.text}.{" "}
+          <Button
+            className="button button-small"
+            onPress={() => {
+              setBaseSteps(suggestion.base_steps);
+              setFileSteps(suggestion.file_steps);
+              setSame(false);
+              setTried(true);
+            }}
+          >
+            {r.tryIt({ pct: pct(suggestion.share) })}
+          </Button>
+        </p>
+      )}
+      <div className="rc-samplebar">
+        <span>{r.samples}</span>
+        <Seg
+          label={r.samples}
+          value={view}
+          options={[
+            ["random", r.random],
+            ["unmatched", r.unmatched],
+          ]}
+          onChange={setView}
+        />
+        <Button className="button" onPress={() => setSeed((s) => s + 1)}>
+          {r.newSamples}
+        </Button>
+        <span className="wiz-grow" />
+        <Tick
+          isSelected={same}
+          onChange={(on) => {
+            setSame(on);
+            if (!on) setFileSteps(baseSteps);
+          }}
+        >
+          {r.same}
+        </Tick>
+      </div>
+      <div className="rc-cols">
+        <section className="rc-card">
+          <h3>{k.target}</h3>
+          <CleanSteps steps={baseSteps} onChange={setBaseSteps} />
+          {v && <p className="rc-caption">{k.targetShown(v.base_samples.length, v.parcels)}</p>}
+          <Samples rows={v?.base_samples ?? []} labels={k} target />
+        </section>
+        <section className="rc-card">
+          <h3>
+            <NamesFile text={k.mine} name={file.name} />
+          </h3>
+          {same ? (
+            <p className="rc-same">{r.sameAsParcels}</p>
+          ) : (
+            <CleanSteps steps={fileSteps} onChange={setFileSteps} />
+          )}
+          {v && v.file_samples.length > 0 && (
+            <p className="rc-caption">
+              {view === "unmatched"
+                ? k.unmatched(v.file_samples.length, v.total - v.matched)
+                : k.mineShown(v.file_samples.length, v.total)}
+            </p>
+          )}
+          <Samples rows={v?.file_samples ?? []} labels={k} target={false} empty={view === "unmatched"} />
+        </section>
+      </div>
+      {live.error && (
+        <p className="error" role="alert">
+          {live.error.message}
+        </p>
+      )}
+    </>
+  );
+  if (inline) return <div className="rc-body rc-inline">{body}</div>;
   return (
     <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(open) => !open && close()}>
       <Modal className="modal rc">
@@ -134,104 +268,7 @@ export function ReconcileDialog({
           <p className="rc-sub">
             <NamesFile text={k.lede} name={file.name} />
           </p>
-          <div className={`rc-meter ${good ? "ok" : "bad"}`} aria-live="polite">
-            {v ? (
-              <>
-                <b>
-                  {good && "✓ "}
-                  {k.meter(pct(v.share))}
-                </b>
-                <span className="rc-was">
-                  {r.counts({ matched: v.matched, total: v.total })}
-                  {Math.abs(v.share - v.saved_share) > 1e-9 && ` · ${r.was({ pct: pct(v.saved_share) })}`}
-                </span>
-              </>
-            ) : (
-              <span className="rc-was">…</span>
-            )}
-          </div>
-          {suggestion && (
-            <p className="rc-suggest">
-              <b>{r.suggest}</b> {suggestion.text}.{" "}
-              <Button
-                className="button button-small"
-                onPress={() => {
-                  setBaseSteps(suggestion.base_steps);
-                  setFileSteps(suggestion.file_steps);
-                  setSame(false);
-                  setTried(true);
-                }}
-              >
-                {r.tryIt({ pct: pct(suggestion.share) })}
-              </Button>
-            </p>
-          )}
-          <div className="rc-samplebar">
-            <span>{r.samples}</span>
-            <Seg
-              label={r.samples}
-              value={view}
-              options={[
-                ["random", r.random],
-                ["unmatched", r.unmatched],
-              ]}
-              onChange={setView}
-            />
-            <Button className="button" onPress={() => setSeed((s) => s + 1)}>
-              {r.newSamples}
-            </Button>
-            <span className="wiz-grow" />
-            <Tick
-              isSelected={same}
-              onChange={(on) => {
-                setSame(on);
-                if (!on) setFileSteps(baseSteps);
-              }}
-            >
-              {r.same}
-            </Tick>
-          </div>
-          <div className="rc-cols">
-            <section className="rc-card">
-              <h3>{k.target}</h3>
-              <CleanSteps steps={baseSteps} onChange={setBaseSteps} />
-              {v && <p className="rc-caption">{k.targetShown(v.base_samples.length, v.parcels)}</p>}
-              <Samples rows={v?.base_samples ?? []} labels={k} target />
-            </section>
-            <section className="rc-card">
-              <h3>
-                <NamesFile text={k.mine} name={file.name} />
-              </h3>
-              {same ? (
-                <p className="rc-same">{r.sameAsParcels}</p>
-              ) : (
-                <CleanSteps steps={fileSteps} onChange={setFileSteps} />
-              )}
-              {v && v.file_samples.length > 0 && (
-                <p className="rc-caption">
-                  {view === "unmatched"
-                    ? k.unmatched(v.file_samples.length, v.total - v.matched)
-                    : k.mineShown(v.file_samples.length, v.total)}
-                </p>
-              )}
-              <Samples rows={v?.file_samples ?? []} labels={k} target={false} empty={view === "unmatched"} />
-            </section>
-          </div>
-          <details className="rc-writes">
-            <summary>{r.writes}</summary>
-            <pre>
-              {v && Object.keys(v.writes).length > 0
-                ? Object.entries(v.writes)
-                    .map(([name, calc]) => `"${name}": { "calc": { "${field}": ${JSON.stringify(calc)} } }`)
-                    .join("\n")
-                : r.nothing}
-            </pre>
-          </details>
-          {live.error && (
-            <p className="error" role="alert">
-              {live.error.message}
-            </p>
-          )}
+          {body}
           <div className="form-actions rc-actions">
             <Button className="button" onPress={close}>
               {r.cancel}
@@ -271,7 +308,7 @@ function CleanSteps({ steps, onChange }: { steps: Step[]; onChange: (s: Step[]) 
       </ol>
       <MenuTrigger>
         <AddButton end>{r.add}</AddButton>
-        <Popover className="popover rc-menu" placement="bottom end">
+        <Popover className="popover rc-menu" placement="bottom end" offset={0}>
           <Menu
             className="choice-list"
             onAction={(key) => onChange([...steps, { ...PRESETS[String(key)] } as Step])}

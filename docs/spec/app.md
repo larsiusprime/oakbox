@@ -264,7 +264,7 @@ the bare wood), the folder tabs standing on its edge, and the open one (here Mod
 ├──┴──────────┴──────┴────────────┘                └─────────┴──────────────┴──┤
 │  Model groups waits for Bring in data… (only when the tab asked for waits)   │
 │ ┌────────────────┬─────────────────────────────────────────────────────────┐ │
-│ │ ✓ How to start │ STEP 2 OF 7                                             │ │
+│ │ ✓ How to start │                                                         │ │
 │ │ ▸ Build them   │ Model groups                                            │ │
 │ │   …            │ …                                                       │ │
 ```
@@ -284,8 +284,8 @@ On Projects and New project the band carries the plate alone, the page below it:
 │ │ Travis County 2026 · Tax year 2026  [Open] [Show in folder] [Delete]│ │
 ```
 
-- **File:** New project… (Ctrl+N), Open recent ▸ (the last projects opened), Show project folder, Close project (back to
-  Projects), Exit.
+- **File:** New project… (Ctrl+N), Open recent ▸ (the last projects opened), Show project folder, Close project (back
+  to Projects), Settings… (Ctrl+,; also the gear on the plate, §5), Exit.
 - **View:** Density ▸ Default · Compact; Zoom in, Zoom out, Actual size.
 - **Project:** Metadata (Ctrl+1), Data (Ctrl+2), Add a file…. Greyed out on the home screen.
 - **Help:** OpenAVMKit documentation (opens in the browser), About OAK box (version, OpenAVMKit version, licences).
@@ -299,8 +299,8 @@ On Projects and New project the band carries the plate alone, the page below it:
   - Windows: the Win32 menu bar on pywebview's window, using .NET's classic `MainMenu` (`oakbox/winmenu.py`).
   - Linux: pywebview runs on Qt (PySide6, LGPL), and the menus are Qt's own menu bar on its window (`oakbox/qtmenu.py`).
     See §6.1 for the window.
-  - Shortcut labels (Ctrl+N, Ctrl+1, Ctrl+2, Ctrl+=, Ctrl+-, Ctrl+0), Alt-key letters, radio items (Density), and
-    Project items greyed out on the home screen.
+  - Shortcut labels (Ctrl+N, Ctrl+1, Ctrl+2, Ctrl+=, Ctrl+-, Ctrl+0, Ctrl+,), Alt-key letters, radio items (Density),
+    and Project items greyed out on the home screen.
   - Each menu is brought up to date as it opens. That includes **Open recent**: the last 8 projects opened, kept in OAK
     box's settings.
   - The web view keeps the keyboard, so the page handles the shortcuts and passes Alt (+ a letter) on to the menu bar.

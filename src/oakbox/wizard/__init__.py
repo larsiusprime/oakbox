@@ -28,9 +28,20 @@ from oakbox.wizard.core import (
 from oakbox.wizard.deeds_permits import deed_names, set_permits
 from oakbox.wizard.files import Files, file_stamp, sales_file, values_of
 from oakbox.wizard.ids import Reconcile, SampleView, reconcile, set_reconcile
-from oakbox.wizard.maps import LayerMap, MapView, coverage, enrich_view, layer_map, layers, map_view, set_overlay
+from oakbox.wizard.maps import (
+    LayerMap,
+    LocationMap,
+    MapView,
+    coverage,
+    enrich_view,
+    layer_map,
+    layers,
+    location_map,
+    map_view,
+    set_overlay,
+)
 from oakbox.wizard.models import LocationField, RepeatRows, Wizard
-from oakbox.wizard.money import NumberPreview, number_preview
+from oakbox.wizard.money import FieldSpread, NumberPreview, field_histogram, number_preview
 from oakbox.wizard.quality import (
     Candidate,
     ScalePreview,
@@ -76,8 +87,12 @@ __all__ = [
     "LocationField",
     "locations",
     "map_view",
+    "location_map",
+    "LocationMap",
     "MapView",
     "number_preview",
+    "field_histogram",
+    "FieldSpread",
     "NumberPreview",
     "Reconcile",
     "reconcile",

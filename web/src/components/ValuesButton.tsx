@@ -35,7 +35,7 @@ export function ValuesButton({
         {say.wizard.values.button(distinct, noun)}
         <ChevronDown aria-hidden="true" size="0.85em" />
       </Button>
-      <Popover className="popover vals-popover" placement="bottom start">
+      <Popover className="popover vals-popover" placement="bottom start" offset={0}>
         <Dialog className="vals-body" aria-label={v.title({ column, file })}>
           {open && <ValuesList projectId={projectId} file={file} column={column} />}
         </Dialog>
