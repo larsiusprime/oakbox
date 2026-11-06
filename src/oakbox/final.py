@@ -205,6 +205,7 @@ def run(project_id: str) -> None:
             )
         except Exception as e:
             raise model._crashed(e, project, pdir, {}, sup, settings, gnames, own) from e
+        model.release_workers()
 
         steps.emit(step="values", fraction=0.86, message="Collecting the values")
         universe = sup.universe.copy()

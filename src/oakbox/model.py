@@ -28,7 +28,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from oakbox import cells, fields, locstack, prepare, ratio, steps, valuesets
+from oakbox import cells, fields, locstack, machine, prepare, ratio, steps, valuesets
 from oakbox.datafiles import BaseModel
 from oakbox.fields import VALUE_SLOTS
 from oakbox.valuesets import ROLL, value_field
@@ -1308,6 +1308,19 @@ def _crashed(
     return type(type(e).__name__, (Exception,), {})(" ".join(said))
 
 
+def release_workers() -> None:
+    """Shut the fold workers down once the models are trained. joblib keeps them for the next task, each holding its
+    own copy of the sales and parcels (about 0.6 GB per 50,000 parcels), which only adds to what comes next."""
+    try:
+        from joblib.externals.loky import reusable_executor
+
+        running = reusable_executor._executor  # None when no folds ran in workers (one at a time)
+        if running is not None:
+            running.shutdown(wait=True)
+    except Exception:  # noqa: BLE001 - only memory: never stop a run over it
+        pass
+
+
 def for_models(project, modeled, own: dict[str, dict[str, str]]):
     """The prepared hand-off as the models take it (in the project's folder, inside a run): the settings, the sales
     split into folds, and the nearby averages worked out. (sup, settings, the notes on averages left out, the
@@ -1317,6 +1330,9 @@ def for_models(project, modeled, own: dict[str, dict[str, str]]):
     dropped: list[str] = []
     steps.emit(step="load", fraction=0.0, message="Reading the prepared fields")
     settings = pl.load_settings()
+    # Folds at once, from this computer's performance settings (SPEC §5): only here, never in the settings file, so
+    # it's no part of any step's key (the values are the same either way; it changes the time and memory).
+    settings.setdefault("modeling", {}).setdefault("instructions", {})["cv_max_workers"] = machine.folds_at_once()
     sup = pl.load_cleaned_data_for_modeling(settings)
     # A variable with infinite values stops every model with an error that names none: say which, before.
     gnames = {g.id: g.name for g in project.groups if g.id in modeled}
@@ -1399,6 +1415,7 @@ def run(project_id: str) -> None:
             )
         except Exception as e:
             raise _crashed(e, project, pdir, at, sup, settings, gnames, own) from e
+    release_workers()
     steps.emit(step="receipt", fraction=0.97, message="Counting")
     from openavmkit.model_runner import _get_max_ratio_study_trim, academic_metrics
 

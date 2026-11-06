@@ -118,6 +118,104 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/machine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Machine */
+        get: operations["get_machine_api_machine_get"];
+        /**
+         * Put Machine
+         * @description Keep what the check found; its tier then decides every setting left at Recommended.
+         */
+        put: operations["put_machine_api_machine_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/machine/basics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Basics
+         * @description Memory, processor, cores, remote session (instant).
+         */
+        post: operations["check_basics_api_machine_basics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/machine/speed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Speed
+         * @description OAK box's speed work, timed (a few seconds).
+         */
+        post: operations["check_speed_api_machine_speed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/machine/disk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Disk
+         * @description Writing in the projects folder (a second or two).
+         */
+        post: operations["check_disk_api_machine_disk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/performance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Performance */
+        put: operations["put_performance_api_performance_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regions": {
         parameters: {
             query?: never;
@@ -1768,6 +1866,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/groups/centres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Groups Centres
+         * @description Each parcel's centre, [longitude, latitude] or null, in the parcel universe's order (a map drawn as dots).
+         */
+        get: operations["groups_centres_api_projects__project_id__groups_centres_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/assemble/exports": {
         parameters: {
             query?: never;
@@ -2576,6 +2694,21 @@ export interface components {
              * @description The median as read (higher is better).
              */
             value: number | null;
+        };
+        /** Basics */
+        Basics: {
+            /** Memory Gb */
+            memory_gb: number;
+            /** Memory Free Gb */
+            memory_free_gb: number;
+            /** Cores */
+            cores: number;
+            /** Threads */
+            threads: number;
+            /** Processor */
+            processor: string;
+            /** Remote */
+            remote: boolean;
         };
         /** Bin */
         Bin: {
@@ -3436,6 +3569,14 @@ export interface components {
              */
             blank: number;
         };
+        /** Disk */
+        Disk: {
+            /**
+             * Disk Mb S
+             * @description None: the projects folder couldn't be written.
+             */
+            disk_mb_s: number | null;
+        };
         /** DiskUsage */
         DiskUsage: {
             /** Bytes */
@@ -4253,6 +4394,43 @@ export interface components {
             id: "csv" | "gpkg" | "xlsx" | "shp" | "parquet";
             /** Label */
             label: string;
+        };
+        /**
+         * Found
+         * @description Everything the check found, the page's graphics test included.
+         */
+        Found: {
+            /** Memory Gb */
+            memory_gb: number;
+            /** Memory Free Gb */
+            memory_free_gb?: number | null;
+            /** Cores */
+            cores: number;
+            /** Threads */
+            threads: number;
+            /**
+             * Processor
+             * @default
+             */
+            processor: string;
+            /**
+             * Remote
+             * @default false
+             */
+            remote: boolean;
+            /** Speed */
+            speed?: number | null;
+            /** Disk Mb S */
+            disk_mb_s?: number | null;
+            /** Graphics */
+            graphics?: string | null;
+            /** Draw Ms */
+            draw_ms?: number | null;
+            /**
+             * Cancelled
+             * @default false
+             */
+            cancelled: boolean;
         };
         /** Funnel */
         Funnel: {
@@ -5104,6 +5282,113 @@ export interface components {
             /** Parcels */
             parcels: number;
         };
+        /**
+         * Machine
+         * @description What the check found.
+         */
+        Machine: {
+            /**
+             * Checked At
+             * @description When, local time, ISO 8601.
+             */
+            checked_at: string;
+            /**
+             * Memory Gb
+             * @description Installed memory, GB.
+             */
+            memory_gb: number;
+            /**
+             * Memory Free Gb
+             * @description Free when it was checked, GB.
+             */
+            memory_free_gb?: number | null;
+            /**
+             * Cores
+             * @description Physical processor cores.
+             */
+            cores: number;
+            /**
+             * Threads
+             * @description Logical processors.
+             */
+            threads: number;
+            /**
+             * Processor
+             * @description The processor's name.
+             * @default
+             */
+            processor: string;
+            /**
+             * Remote
+             * @description A remote session (Remote Desktop, Citrix).
+             * @default false
+             */
+            remote: boolean;
+            /**
+             * Speed
+             * @description OAK box's speed work, the reference machine = 100.
+             */
+            speed?: number | null;
+            /**
+             * Disk Mb S
+             * @description Writing in the projects folder, MB/s.
+             */
+            disk_mb_s?: number | null;
+            /**
+             * Graphics
+             * @description The renderer WebGL named; None: no WebGL.
+             */
+            graphics?: string | null;
+            /**
+             * Graphics Software
+             * @description Maps are drawn by the processor, not graphics.
+             * @default false
+             */
+            graphics_software: boolean;
+            /**
+             * Draw Ms
+             * @description Drawing 20,000 parcels on a map, ms.
+             */
+            draw_ms?: number | null;
+            /**
+             * Cancelled
+             * @description The check was cancelled: the safest settings (Light).
+             * @default false
+             */
+            cancelled: boolean;
+            /**
+             * Tier
+             * @default light
+             * @enum {string}
+             */
+            tier: "light" | "standard" | "strong";
+        };
+        /**
+         * MachineView
+         * @description What the check found, and the performance settings: as set, as recommended, and what they come to.
+         */
+        MachineView: {
+            /** @description None: not checked yet (first run). */
+            machine: components["schemas"]["Machine"] | null;
+            /**
+             * Changed
+             * @description Its memory or cores changed since the check: check again.
+             */
+            changed: boolean;
+            performance: components["schemas"]["Performance"];
+            recommended: components["schemas"]["Resolved"];
+            resolved: components["schemas"]["Resolved"];
+            /**
+             * Cores Workers
+             * @description How many folds 'as many as the cores allow' runs at once.
+             */
+            cores_workers: number;
+            /**
+             * Memory For Oakbox Gb
+             * @description Memory left for OAK box once the rest have theirs.
+             */
+            memory_for_oakbox_gb: number | null;
+        };
         /** MapPoint */
         MapPoint: {
             /** Lat */
@@ -5182,6 +5467,26 @@ export interface components {
             latitude: number | null;
             /** Longitude */
             longitude: number | null;
+        };
+        /** MemoryNote */
+        MemoryNote: {
+            /** Parcels */
+            parcels: number;
+            /**
+             * Need Gb
+             * @description About what the heaviest step needs, from the test runs' figures.
+             */
+            need_gb: number;
+            /**
+             * Have Gb
+             * @description This computer's memory, less what Windows and the usual programs take.
+             */
+            have_gb: number;
+            /**
+             * Memory Gb
+             * @description This computer's memory.
+             */
+            memory_gb: number;
         };
         /** MissingParcels */
         MissingParcels: {
@@ -6151,6 +6456,40 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /**
+         * Performance
+         * @description The performance settings: each "recommended" (follow the check) or the user's own choice.
+         */
+        Performance: {
+            /**
+             * Fold Workers
+             * @description Model training: folds at once.
+             * @default recommended
+             * @enum {string}
+             */
+            fold_workers: "recommended" | "one" | "two" | "cores";
+            /**
+             * Maps
+             * @description Maps right away, or when Show map is clicked.
+             * @default recommended
+             * @enum {string}
+             */
+            maps: "recommended" | "now" | "click";
+            /**
+             * Map Detail
+             * @description Parcel shapes, dots, or dots above 20,000.
+             * @default recommended
+             * @enum {string}
+             */
+            map_detail: "recommended" | "shapes" | "dots" | "auto";
+            /**
+             * Street Map
+             * @description The street map under every map.
+             * @default recommended
+             * @enum {string}
+             */
+            street_map: "recommended" | "on" | "off";
+        };
         /** PermitKind */
         PermitKind: {
             /** Value */
@@ -6295,6 +6634,8 @@ export interface components {
             enrichments: string[];
             /** Fields */
             fields: number;
+            /** @description This county may need more memory than this computer has for OAK box (SPEC §5). */
+            memory: components["schemas"]["MemoryNote"] | null;
         };
         /** PlanFile */
         PlanFile: {
@@ -7061,6 +7402,37 @@ export interface components {
             /** Ran At */
             ran_at: string | null;
         };
+        /**
+         * Resolved
+         * @description What the settings come to on this computer.
+         */
+        Resolved: {
+            /**
+             * Fold Workers
+             * @enum {string}
+             */
+            fold_workers: "one" | "two" | "cores";
+            /**
+             * Folds At Once
+             * @description How many cross-validation folds run at once.
+             */
+            folds_at_once: number;
+            /**
+             * Maps
+             * @enum {string}
+             */
+            maps: "now" | "click";
+            /**
+             * Map Detail
+             * @enum {string}
+             */
+            map_detail: "shapes" | "dots" | "auto";
+            /**
+             * Street Map
+             * @enum {string}
+             */
+            street_map: "on" | "off";
+        };
         /** ReviewItem */
         ReviewItem: {
             /** Key Sale */
@@ -7803,6 +8175,14 @@ export interface components {
             file: string;
             /** Column */
             column: string;
+        };
+        /** Speed */
+        Speed: {
+            /**
+             * Speed
+             * @description The reference machine = 100.
+             */
+            speed: number;
         };
         /** StackPreview */
         StackPreview: {
@@ -9904,6 +10284,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_machine_api_machine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineView"];
+                };
+            };
+        };
+    };
+    put_machine_api_machine_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Found"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_basics_api_machine_basics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Basics"];
+                };
+            };
+        };
+    };
+    check_speed_api_machine_speed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Speed"];
+                };
+            };
+        };
+    };
+    check_disk_api_machine_disk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Disk"];
+                };
+            };
+        };
+    };
+    put_performance_api_performance_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Performance"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineView"];
                 };
             };
             /** @description Validation Error */
@@ -12919,6 +13445,37 @@ export interface operations {
         };
     };
     groups_shapes_api_projects__project_id__groups_shapes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    groups_centres_api_projects__project_id__groups_centres_get: {
         parameters: {
             query?: never;
             header?: never;

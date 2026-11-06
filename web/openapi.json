@@ -195,6 +195,156 @@
     }
    }
   },
+  "/api/machine": {
+   "get": {
+    "summary": "Get Machine",
+    "operationId": "get_machine_api_machine_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MachineView"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "summary": "Put Machine",
+    "description": "Keep what the check found; its tier then decides every setting left at Recommended.",
+    "operationId": "put_machine_api_machine_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Found"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MachineView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/machine/basics": {
+   "post": {
+    "summary": "Check Basics",
+    "description": "Memory, processor, cores, remote session (instant).",
+    "operationId": "check_basics_api_machine_basics_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Basics"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/machine/speed": {
+   "post": {
+    "summary": "Check Speed",
+    "description": "OAK box's speed work, timed (a few seconds).",
+    "operationId": "check_speed_api_machine_speed_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Speed"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/machine/disk": {
+   "post": {
+    "summary": "Check Disk",
+    "description": "Writing in the projects folder (a second or two).",
+    "operationId": "check_disk_api_machine_disk_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Disk"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/performance": {
+   "put": {
+    "summary": "Put Performance",
+    "operationId": "put_performance_api_performance_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Performance"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MachineView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/regions": {
    "get": {
     "summary": "Regions",
@@ -4627,6 +4777,44 @@
     }
    }
   },
+  "/api/projects/{project_id}/groups/centres": {
+   "get": {
+    "summary": "Groups Centres",
+    "description": "Each parcel's centre, [longitude, latitude] or null, in the parcel universe's order (a map drawn as dots).",
+    "operationId": "groups_centres_api_projects__project_id__groups_centres_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/assemble/exports": {
    "put": {
     "summary": "Assemble Exports",
@@ -6896,6 +7084,44 @@
     ],
     "title": "Band"
    },
+   "Basics": {
+    "properties": {
+     "memory_gb": {
+      "type": "number",
+      "title": "Memory Gb"
+     },
+     "memory_free_gb": {
+      "type": "number",
+      "title": "Memory Free Gb"
+     },
+     "cores": {
+      "type": "integer",
+      "title": "Cores"
+     },
+     "threads": {
+      "type": "integer",
+      "title": "Threads"
+     },
+     "processor": {
+      "type": "string",
+      "title": "Processor"
+     },
+     "remote": {
+      "type": "boolean",
+      "title": "Remote"
+     }
+    },
+    "type": "object",
+    "required": [
+     "memory_gb",
+     "memory_free_gb",
+     "cores",
+     "threads",
+     "processor",
+     "remote"
+    ],
+    "title": "Basics"
+   },
    "Bin": {
     "properties": {
      "low": {
@@ -8820,6 +9046,27 @@
     ],
     "title": "DeedsCheck"
    },
+   "Disk": {
+    "properties": {
+     "disk_mb_s": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disk Mb S",
+      "description": "None: the projects folder couldn't be written."
+     }
+    },
+    "type": "object",
+    "required": [
+     "disk_mb_s"
+    ],
+    "title": "Disk"
+   },
    "DiskUsage": {
     "properties": {
      "bytes": {
@@ -10613,6 +10860,100 @@
      "label"
     ],
     "title": "FormatChoice"
+   },
+   "Found": {
+    "properties": {
+     "memory_gb": {
+      "type": "number",
+      "title": "Memory Gb"
+     },
+     "memory_free_gb": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Memory Free Gb"
+     },
+     "cores": {
+      "type": "integer",
+      "title": "Cores"
+     },
+     "threads": {
+      "type": "integer",
+      "title": "Threads"
+     },
+     "processor": {
+      "type": "string",
+      "title": "Processor",
+      "default": ""
+     },
+     "remote": {
+      "type": "boolean",
+      "title": "Remote",
+      "default": false
+     },
+     "speed": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Speed"
+     },
+     "disk_mb_s": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disk Mb S"
+     },
+     "graphics": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Graphics"
+     },
+     "draw_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Draw Ms"
+     },
+     "cancelled": {
+      "type": "boolean",
+      "title": "Cancelled",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "memory_gb",
+     "cores",
+     "threads"
+    ],
+    "title": "Found",
+    "description": "Everything the check found, the page's graphics test included."
    },
    "Funnel": {
     "properties": {
@@ -12419,6 +12760,191 @@
     "title": "LocationMap",
     "description": "A location field on the map: each parcel's centre and which of its areas it's in."
    },
+   "Machine": {
+    "properties": {
+     "checked_at": {
+      "type": "string",
+      "title": "Checked At",
+      "description": "When, local time, ISO 8601."
+     },
+     "memory_gb": {
+      "type": "number",
+      "title": "Memory Gb",
+      "description": "Installed memory, GB."
+     },
+     "memory_free_gb": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Memory Free Gb",
+      "description": "Free when it was checked, GB."
+     },
+     "cores": {
+      "type": "integer",
+      "title": "Cores",
+      "description": "Physical processor cores."
+     },
+     "threads": {
+      "type": "integer",
+      "title": "Threads",
+      "description": "Logical processors."
+     },
+     "processor": {
+      "type": "string",
+      "title": "Processor",
+      "description": "The processor's name.",
+      "default": ""
+     },
+     "remote": {
+      "type": "boolean",
+      "title": "Remote",
+      "description": "A remote session (Remote Desktop, Citrix).",
+      "default": false
+     },
+     "speed": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Speed",
+      "description": "OAK box's speed work, the reference machine = 100."
+     },
+     "disk_mb_s": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Disk Mb S",
+      "description": "Writing in the projects folder, MB/s."
+     },
+     "graphics": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Graphics",
+      "description": "The renderer WebGL named; None: no WebGL."
+     },
+     "graphics_software": {
+      "type": "boolean",
+      "title": "Graphics Software",
+      "description": "Maps are drawn by the processor, not graphics.",
+      "default": false
+     },
+     "draw_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Draw Ms",
+      "description": "Drawing 20,000 parcels on a map, ms."
+     },
+     "cancelled": {
+      "type": "boolean",
+      "title": "Cancelled",
+      "description": "The check was cancelled: the safest settings (Light).",
+      "default": false
+     },
+     "tier": {
+      "type": "string",
+      "enum": [
+       "light",
+       "standard",
+       "strong"
+      ],
+      "title": "Tier",
+      "default": "light"
+     }
+    },
+    "type": "object",
+    "required": [
+     "checked_at",
+     "memory_gb",
+     "cores",
+     "threads"
+    ],
+    "title": "Machine",
+    "description": "What the check found."
+   },
+   "MachineView": {
+    "properties": {
+     "machine": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Machine"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "None: not checked yet (first run)."
+     },
+     "changed": {
+      "type": "boolean",
+      "title": "Changed",
+      "description": "Its memory or cores changed since the check: check again."
+     },
+     "performance": {
+      "$ref": "#/components/schemas/Performance"
+     },
+     "recommended": {
+      "$ref": "#/components/schemas/Resolved"
+     },
+     "resolved": {
+      "$ref": "#/components/schemas/Resolved"
+     },
+     "cores_workers": {
+      "type": "integer",
+      "title": "Cores Workers",
+      "description": "How many folds 'as many as the cores allow' runs at once."
+     },
+     "memory_for_oakbox_gb": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Memory For Oakbox Gb",
+      "description": "Memory left for OAK box once the rest have theirs."
+     }
+    },
+    "type": "object",
+    "required": [
+     "machine",
+     "changed",
+     "performance",
+     "recommended",
+     "resolved",
+     "cores_workers",
+     "memory_for_oakbox_gb"
+    ],
+    "title": "MachineView",
+    "description": "What the check found, and the performance settings: as set, as recommended, and what they come to."
+   },
    "MapPoint": {
     "properties": {
      "lat": {
@@ -12655,6 +13181,37 @@
      "longitude"
     ],
     "title": "Member"
+   },
+   "MemoryNote": {
+    "properties": {
+     "parcels": {
+      "type": "integer",
+      "title": "Parcels"
+     },
+     "need_gb": {
+      "type": "number",
+      "title": "Need Gb",
+      "description": "About what the heaviest step needs, from the test runs' figures."
+     },
+     "have_gb": {
+      "type": "number",
+      "title": "Have Gb",
+      "description": "This computer's memory, less what Windows and the usual programs take."
+     },
+     "memory_gb": {
+      "type": "number",
+      "title": "Memory Gb",
+      "description": "This computer's memory."
+     }
+    },
+    "type": "object",
+    "required": [
+     "parcels",
+     "need_gb",
+     "have_gb",
+     "memory_gb"
+    ],
+    "title": "MemoryNote"
    },
    "MissingParcels": {
     "properties": {
@@ -14753,6 +15310,59 @@
     "title": "PatternTable",
     "description": "The sales scrutiny flagged far from their group, by pattern: the five-pattern table, for one model group or\nall (\"\")."
    },
+   "Performance": {
+    "properties": {
+     "fold_workers": {
+      "type": "string",
+      "enum": [
+       "recommended",
+       "one",
+       "two",
+       "cores"
+      ],
+      "title": "Fold Workers",
+      "description": "Model training: folds at once.",
+      "default": "recommended"
+     },
+     "maps": {
+      "type": "string",
+      "enum": [
+       "recommended",
+       "now",
+       "click"
+      ],
+      "title": "Maps",
+      "description": "Maps right away, or when Show map is clicked.",
+      "default": "recommended"
+     },
+     "map_detail": {
+      "type": "string",
+      "enum": [
+       "recommended",
+       "shapes",
+       "dots",
+       "auto"
+      ],
+      "title": "Map Detail",
+      "description": "Parcel shapes, dots, or dots above 20,000.",
+      "default": "recommended"
+     },
+     "street_map": {
+      "type": "string",
+      "enum": [
+       "recommended",
+       "on",
+       "off"
+      ],
+      "title": "Street Map",
+      "description": "The street map under every map.",
+      "default": "recommended"
+     }
+    },
+    "type": "object",
+    "title": "Performance",
+    "description": "The performance settings: each \"recommended\" (follow the check) or the user's own choice."
+   },
    "PermitKind": {
     "properties": {
      "value": {
@@ -15056,6 +15666,17 @@
      "fields": {
       "type": "integer",
       "title": "Fields"
+     },
+     "memory": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MemoryNote"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "This county may need more memory than this computer has for OAK box (SPEC \u00a75)."
      }
     },
     "type": "object",
@@ -15063,7 +15684,8 @@
      "files",
      "layers",
      "enrichments",
-     "fields"
+     "fields",
+     "memory"
     ],
     "title": "Plan"
    },
@@ -16948,6 +17570,59 @@
     ],
     "title": "ReportView"
    },
+   "Resolved": {
+    "properties": {
+     "fold_workers": {
+      "type": "string",
+      "enum": [
+       "one",
+       "two",
+       "cores"
+      ],
+      "title": "Fold Workers"
+     },
+     "folds_at_once": {
+      "type": "integer",
+      "title": "Folds At Once",
+      "description": "How many cross-validation folds run at once."
+     },
+     "maps": {
+      "type": "string",
+      "enum": [
+       "now",
+       "click"
+      ],
+      "title": "Maps"
+     },
+     "map_detail": {
+      "type": "string",
+      "enum": [
+       "shapes",
+       "dots",
+       "auto"
+      ],
+      "title": "Map Detail"
+     },
+     "street_map": {
+      "type": "string",
+      "enum": [
+       "on",
+       "off"
+      ],
+      "title": "Street Map"
+     }
+    },
+    "type": "object",
+    "required": [
+     "fold_workers",
+     "folds_at_once",
+     "maps",
+     "map_detail",
+     "street_map"
+    ],
+    "title": "Resolved",
+    "description": "What the settings come to on this computer."
+   },
    "ReviewItem": {
     "properties": {
      "key_sale": {
@@ -18704,6 +19379,20 @@
      "column"
     ],
     "title": "Source"
+   },
+   "Speed": {
+    "properties": {
+     "speed": {
+      "type": "integer",
+      "title": "Speed",
+      "description": "The reference machine = 100."
+     }
+    },
+    "type": "object",
+    "required": [
+     "speed"
+    ],
+    "title": "Speed"
    },
    "StackPreview": {
     "properties": {

@@ -532,15 +532,32 @@ def shapes_path(project_dir: Path) -> Path:
         # Simplify in the shapes' own units (about half a metre), then turn into degrees.
         feet = "foot" in str(gdf.crs.axis_info[0].unit_name).lower() if gdf.crs.axis_info else False
         gdf["geometry"] = gdf.geometry.simplify(1.5 if feet else 0.5)
+    # Each parcel's centre too, for a map drawn as dots (SPEC §5): worked out in the shapes' own units when they have
+    # them, which a centre in degrees only approximates.
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # a centre in degrees is near enough for a dot on the map
+        centres = gdf.geometry.centroid
+    if gdf.crs is not None and not gdf.crs.is_geographic:
+        centres = centres.to_crs(4326)
     gdf = gdf.set_crs(gdf.crs or 4326).to_crs(4326) if gdf.crs else gdf
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(_features(gdf.geometry.to_numpy()), encoding="utf-8")
+    pts = [None if p is None or p.is_empty else [round(p.x, 6), round(p.y, 6)] for p in centres]
+    out.with_name("centres.json").write_text(json.dumps(pts, separators=(",", ":")), encoding="utf-8")
     meta.write_text(json.dumps({"from": list(stamp), "v": SHAPES_VERSION}), encoding="utf-8")
     return out
 
 
-# The shapes file's make: a new one is made when it changes (2: flat, no heights).
-SHAPES_VERSION = 2
+# The shapes file's make: a new one is made when it changes (2: flat, no heights; 3: with centres.json).
+SHAPES_VERSION = 3
+
+
+def centres_path(project_dir: Path) -> Path:
+    """[longitude, latitude] of each parcel's centre (None without a shape), in the parcel universe's order: the
+    Model groups map drawn as dots. Made with the shapes."""
+    return shapes_path(project_dir).with_name("centres.json")
 
 
 def _features(geoms) -> str:

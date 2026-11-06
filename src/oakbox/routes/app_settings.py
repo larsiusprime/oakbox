@@ -1,4 +1,5 @@
-"""OAK box's own settings on this computer: the display, where projects are kept, the Census API key."""
+"""OAK box's own settings on this computer: the display, where projects are kept, the Census API key, and the
+computer check with its performance settings."""
 
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
 from oakbox import appsettings
+from oakbox import machine as computer
 from oakbox.datafiles import BaseModel
 
 router = APIRouter()
@@ -97,3 +99,107 @@ def put_census_key(body: CensusKey) -> None:
     s = appsettings.load()
     s.census_api_key = body.key.strip() or None
     appsettings.save(s)
+
+
+# ---------- This computer: the check and the performance settings (SPEC §5) ----------
+
+
+class MachineView(BaseModel):
+    """What the check found, and the performance settings: as set, as recommended, and what they come to."""
+
+    machine: computer.Machine | None = Field(description="None: not checked yet (first run).")
+    changed: bool = Field(description="Its memory or cores changed since the check: check again.")
+    performance: computer.Performance
+    recommended: computer.Resolved
+    resolved: computer.Resolved
+    cores_workers: int = Field(description="How many folds 'as many as the cores allow' runs at once.")
+    memory_for_oakbox_gb: float | None = Field(description="Memory left for OAK box once the rest have theirs.")
+
+
+class Basics(BaseModel):
+    memory_gb: float
+    memory_free_gb: float
+    cores: int
+    threads: int
+    processor: str
+    remote: bool
+
+
+class Speed(BaseModel):
+    speed: int = Field(description="The reference machine = 100.")
+
+
+class Disk(BaseModel):
+    disk_mb_s: int | None = Field(description="None: the projects folder couldn't be written.")
+
+
+class Found(BaseModel):
+    """Everything the check found, the page's graphics test included."""
+
+    memory_gb: float
+    memory_free_gb: float | None = None
+    cores: int
+    threads: int
+    processor: str = ""
+    remote: bool = False
+    speed: int | None = None
+    disk_mb_s: int | None = None
+    graphics: str | None = None
+    draw_ms: int | None = None
+    cancelled: bool = False
+
+
+def _machine_view() -> MachineView:
+    s = appsettings.load()
+    m = s.machine
+    return MachineView(
+        machine=m,
+        changed=bool(m and not m.cancelled and computer.changed(m)),
+        performance=s.performance,
+        recommended=computer.recommended(m),
+        resolved=computer.resolve(s.performance, m),
+        cores_workers=computer.cores_workers(m.threads if m else None),
+        memory_for_oakbox_gb=round(computer.memory_for_oakbox_gb(m), 1) if m else None,
+    )
+
+
+@router.get("/api/machine")
+def get_machine() -> MachineView:
+    return _machine_view()
+
+
+@router.post("/api/machine/basics")
+def check_basics() -> Basics:
+    """Memory, processor, cores, remote session (instant)."""
+    return Basics(**computer.basics())
+
+
+@router.post("/api/machine/speed")
+def check_speed() -> Speed:
+    """OAK box's speed work, timed (a few seconds)."""
+    return Speed(speed=computer.speed())
+
+
+@router.post("/api/machine/disk")
+def check_disk() -> Disk:
+    """Writing in the projects folder (a second or two)."""
+    return Disk(disk_mb_s=computer.disk(appsettings.storage_location()))
+
+
+@router.put("/api/machine")
+def put_machine(body: Found) -> MachineView:
+    """Keep what the check found; its tier then decides every setting left at Recommended."""
+    with appsettings.LOCK:
+        s = appsettings.load()
+        s.machine = computer.finish(body.model_dump())
+        appsettings.save(s)
+    return _machine_view()
+
+
+@router.put("/api/performance")
+def put_performance(body: computer.Performance) -> MachineView:
+    with appsettings.LOCK:
+        s = appsettings.load()
+        s.performance = body
+        appsettings.save(s)
+    return _machine_view()

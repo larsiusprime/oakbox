@@ -1,4 +1,4 @@
-"""OAK box's own settings: where projects are kept, which projects it knows about, and display.
+"""OAK box's own settings: where projects are kept, which projects it knows about, display, and this computer.
 
 Stored as JSON in the per-user config folder (``%APPDATA%\\OAK box`` on Windows,
 ``~/.config/oakbox`` on Linux). Projects can live anywhere, so OAK box keeps a list
@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+from oakbox.machine import Machine, Performance
 
 # One change to the settings at a time (the menus' thread and the app's requests both write them).
 LOCK = threading.Lock()
@@ -65,6 +67,8 @@ class AppSettings(BaseModel):
 
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
     census_api_key: str | None = Field(default=None, description="The user's own, for the Census enrichment (F3e).")
+    machine: Machine | None = Field(default=None, description="What the computer check found (SPEC §5); None: not yet.")
+    performance: Performance = Field(default_factory=Performance, description="The performance settings (SPEC §5).")
 
 
 def _override() -> Path | None:

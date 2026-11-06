@@ -111,6 +111,16 @@ def groups_shapes(project_id: str) -> FileResponse:
         raise HTTPException(409, str(e)) from e
 
 
+@router.get("/api/projects/{project_id}/groups/centres")
+def groups_centres(project_id: str) -> FileResponse:
+    """Each parcel's centre, [longitude, latitude] or null, in the parcel universe's order (a map drawn as dots)."""
+    load_project(project_id)
+    try:
+        return FileResponse(groups.centres_path(projects.project_dir(project_id)), media_type="application/json")
+    except LookupError as e:
+        raise HTTPException(409, str(e)) from e
+
+
 # ---------- The end of notebook 1: tag model groups and write its output ----------
 
 
