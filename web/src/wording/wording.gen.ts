@@ -2229,7 +2229,7 @@ export type Wording = {
     installAsk: string;
   };
   files: {
-    facts: (a: { rows: number; shapes: string | number }) => string;
+    facts: (a: { rows: number; shapes: string | number; text: string | number }) => string;
     shapesOnly: string;
     useExisting: string;
     dontImport: (a: { filename: string | number }) => string;

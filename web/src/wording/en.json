@@ -2918,7 +2918,7 @@
     "installAsk": "Install…"
   },
   "files": {
-    "facts": "{rows, plural, one {# row} other {# rows}}{shapes, select, yes { · shapes} other {}}",
+    "facts": "{rows, plural, one {# row} other {# rows}}{shapes, select, yes { · shapes} other {}}{text, select, windows { · Windows text} utf16 { · UTF-16 text} other {}}",
     "shapesOnly": "shapes",
     "useExisting": "or use existing:",
     "dontImport": "Don't import {filename}",

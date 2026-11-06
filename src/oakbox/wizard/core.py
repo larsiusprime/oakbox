@@ -23,6 +23,7 @@ from oakbox.datafiles import (
     NumberFormat,
     Rule,
     Scale,
+    csv_encoding,
     guess_area_unit,
     small_unit,
 )
@@ -160,6 +161,7 @@ def view(project: Project, in_dir: Path) -> Wizard:
                 problem=files.problem.get(f.name),
                 rows=len(files.values(f.name, key[0])) if key and f.name in files.preview else _rows(files, f.name),
                 geometry=files.geometry(f.name),
+                encoding=csv_encoding(in_dir / f.filename),
                 holds=f.holds,
                 match=match,
                 id_column=key[0] if key else None,

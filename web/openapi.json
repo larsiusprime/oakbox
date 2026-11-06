@@ -21855,6 +21855,18 @@
       "type": "boolean",
       "title": "Geometry"
      },
+     "encoding": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Encoding",
+      "description": "A CSV's text encoding, as it's read (worked out from the file); None: not a CSV."
+     },
      "holds": {
       "anyOf": [
        {
@@ -22009,6 +22021,7 @@
      "problem",
      "rows",
      "geometry",
+     "encoding",
      "holds",
      "match",
      "id_column",
