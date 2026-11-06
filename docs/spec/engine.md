@@ -4,10 +4,10 @@
 
 **Where the work lives (updated 2026-11-03).** OpenAVMKit's own `master`. OAK box's engine changes went upstream in
 six PRs, #409 to #414 (merged 2026-11-03), and OAK box pins `master` by commit (`pyproject.toml`, `[tool.uv.sources]`:
-`openavmkit @ git+https://github.com/larsiusprime/openavmkit@<commit>`, now `7c3441e`, #424's merge (each cluster
-reads one column; before it #423, sales clustering on NumPy and the area-weighted middle; before it #422, census and
-elevation; #419, cloud SDKs and NGBoost as extras OAK box doesn't install)). There are no submodules and no runtime
-patches.
+`openavmkit @ git+https://github.com/larsiusprime/openavmkit@<commit>`, now `62e85b9`, #425's merge (CSV text
+encodings worked out, OpenAVMKit's own text files UTF-8; before it #424, each sales cluster reads one column; #423,
+sales clustering on NumPy and the area-weighted middle; #422, census and elevation; #419, cloud SDKs and NGBoost as
+extras OAK box doesn't install)). There are no submodules and no runtime patches.
 
 **Before that**, the work was on the branch `openavmkit-oakbox` in the Oakbox repo (OpenAVMKit's history from `master`
 at `f35b089`, after v0.7.0), latterly `engine/enrich-fixes`, with topic branches merged into it. The branch names

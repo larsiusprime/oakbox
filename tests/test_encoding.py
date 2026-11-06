@@ -11,7 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 # Methods and functions that read or write text in the default encoding unless given one.
-TEXT_CALLS = {"open", "read_text", "write_text", "TextIOWrapper", "NamedTemporaryFile", "TemporaryFile"}
+TEXT_CALLS = {"open", "read_text", "write_text", "TextIOWrapper", "NamedTemporaryFile", "TemporaryFile", "fdopen"}
+# Starting a program: its output is text in the computer's code page when text=True (or universal_newlines) without
+# an encoding.
+PROCESS_CALLS = {"run", "Popen", "check_output", "call", "check_call"}
 
 
 def _binary(call: ast.Call) -> bool:
@@ -28,6 +31,12 @@ def _missing(path: Path) -> list[str]:
             continue
         f = node.func
         name = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else None
+        keywords = {k.arg: k.value for k in node.keywords}
+        if name in PROCESS_CALLS and "encoding" not in keywords:
+            text = [keywords.get(k) for k in ("text", "universal_newlines")]
+            if any(isinstance(v, ast.Constant) and v.value is True for v in text):
+                out.append(f"{path.relative_to(ROOT)}:{node.lineno}: {ast.unparse(node)[:90]}")
+            continue
         if name not in TEXT_CALLS or _binary(node) or any(k.arg == "encoding" for k in node.keywords):
             continue
         # Things called open that aren't files: a web page, a URL.

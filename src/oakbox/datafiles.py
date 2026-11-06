@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import shutil
 from collections import Counter
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -629,8 +630,11 @@ def add(
     return DataFile(name=name, filename=moves[0][1].name, layer=layer)
 
 
-def data_load(files: list[DataFile], units: str = "imperial") -> dict:
+def data_load(files: list[DataFile], units: str = "imperial", in_dir: Path | None = None) -> dict:
     """The data.load block: per entry, the file (and layer) and the columns it loads.
+
+    A CSV that isn't UTF-8 says what it is (`encoding`, worked out from the file in `in_dir`), so OpenAVMKit reads it
+    as OAK box's previews do.
 
     Area fields are written in the project's small unit (sqft or sqm). A column in another unit is
     loaded under a name of its own and converted by a calc (land_area_sqft = land_area_sqft_in_acres × 43,560).
@@ -640,6 +644,9 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
         entry: dict = {"filename": f.filename}
         if f.layer:
             entry["layer"] = f.layer
+        encoding = csv_encoding(in_dir / f.filename) if in_dir is not None else None
+        if not plain_utf8(encoding):
+            entry["encoding"] = encoding
         load: dict[str, list[str]] = overlay_load(f.overlay) if f.holds == "overlay" and f.overlay else {}
         areas: dict[str, list] = {}
         numbers: dict[str, list] = {}
@@ -743,12 +750,33 @@ def data_load(files: list[DataFile], units: str = "imperial") -> dict:
     return out
 
 
+def csv_encoding(path: Path) -> str | None:
+    """A CSV's text encoding, worked out from the file as OpenAVMKit does it ("encoding": "auto": UTF-8, UTF-16 or
+    Windows' cp1252), and kept while the file doesn't change; None for any other file, or one that isn't there."""
+    if file_ext(path) != "csv" or not path.is_file():
+        return None
+    stat = path.stat()
+    return _detected(str(path), stat.st_size, stat.st_mtime_ns)
+
+
+@lru_cache(maxsize=256)
+def _detected(path: str, _size: int, _mtime_ns: int) -> str:
+    from openavmkit.utilities.text import detect_encoding
+
+    return detect_encoding(path)
+
+
+def plain_utf8(encoding: str | None) -> bool:
+    """Read as UTF-8, OpenAVMKit's default (with or without a byte-order mark): nothing to say in data.load."""
+    return encoding is None or encoding.startswith("utf-8")
+
+
 def column_names(path: Path, layer: str | None) -> list[str] | None:
     """The file's columns as OpenAVMKit sees them (geometry included), reading names only. None if unreadable."""
     from openavmkit.data import _snoop_column_names
 
     try:
-        return [str(c) for c in _snoop_column_names(str(path), layer)]
+        return [str(c) for c in _snoop_column_names(str(path), layer, csv_encoding(path))]
     except Exception:  # noqa: BLE001 - a damaged file shows as unknown, not an error page
         return None
 

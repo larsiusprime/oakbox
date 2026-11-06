@@ -9709,6 +9709,11 @@ export interface components {
             rows: number | null;
             /** Geometry */
             geometry: boolean;
+            /**
+             * Encoding
+             * @description A CSV's text encoding, as it's read (worked out from the file); None: not a CSV.
+             */
+            encoding: string | null;
             /** Holds */
             holds: ("parcels" | "sales" | "sale_rows" | "parcel_rows" | "unused" | "overlay" | "permits") | null;
             /**

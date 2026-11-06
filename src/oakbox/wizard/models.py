@@ -153,6 +153,9 @@ class WizardFile(BaseModel):
     problem: str | None = Field(default=None, description="Why it can't be read.")
     rows: int | None
     geometry: bool
+    encoding: str | None = Field(
+        default=None, description="A CSV's text encoding, as it's read (worked out from the file); None: not a CSV."
+    )
     holds: Holds | None
     match: Match = Field(description="Which ID it joins to the parcel universe on: key, or an extra ID (key2, key3).")
     id_column: str | None = Field(description="Loaded as the ID it joins on (match).")

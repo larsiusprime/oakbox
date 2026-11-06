@@ -17,7 +17,9 @@ encode character…`). Every time you touch I/O:
   (also give `errors="replace"` when reading another program's output). Never rely on the default.
   `tests/test_encoding.py` fails on any that doesn't.
 - **CSVs and other files the user brings** may not be UTF-8 (Excel writes cp1252, sometimes with a BOM). Read them
-  as their files are, never as the computer's default; `utf-8-sig` drops a BOM.
+  as their files are, never as the computer's default; `utf-8-sig` drops a BOM. A CSV goes through
+  `datafiles.csv_encoding(path)` (OpenAVMKit's `detect_encoding`: UTF-8, UTF-16 or cp1252), which `data.load` names too,
+  so the run reads it as the previews do.
 - **Every Python process OAK box starts runs in UTF-8 mode** (`-X utf8`, `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`:
   `steps.child_env()`), so OpenAVMKit's own reads, writes and prints are UTF-8 too. The launchers
   (`Oakbox.cmd`, `oakbox.sh`, `run.bat`) start it with `-X utf8`. A new launcher or subprocess does the same.
