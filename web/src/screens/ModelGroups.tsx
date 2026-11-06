@@ -1,31 +1,24 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button, Dialog, Heading, Modal, ModalOverlay, Radio, RadioGroup } from "react-aria-components";
-import {
-  api,
-  type GroupField,
-  type GroupsPreview,
-  type GroupsView,
-  type ModelGroup,
-  type Move,
-  unwrap,
-} from "../api/client";
+import { Button, Radio, RadioGroup } from "react-aria-components";
+import { api, type GroupsPreview, type GroupsView, type ModelGroup, type Move, unwrap } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { DeleteButton, ToolButton } from "../components/Buttons";
-import { Choice, Tick } from "../components/Form";
+import { Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
-import { InfoTip } from "../components/Tip";
-import { Val } from "../components/Val";
 import { when } from "../lib/format";
+import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
 import { navigate } from "../lib/route";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
 import { AssembleResults, Formats } from "./Assemble";
-import { GroupEditor, useValues } from "./GroupEditor";
+import { GroupChecks } from "./GroupChecks";
+import { GroupEditor } from "./GroupEditor";
+import { GroupFromField } from "./GroupFromField";
 import { CHANGE_GREY, type ColourBy, Inspector, type MapMode, ParcelMap, SAME } from "./GroupMap";
 
 const g = t.groups;
@@ -235,7 +228,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "check" && (
         <>
           <StepBody title={g.checkTitle} lede={g.checkLede}>
-            <Checks
+            <GroupChecks
               groups={saved}
               preview={p}
               unassignedColor={v.unassigned_color}
@@ -331,103 +324,8 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   );
 }
 
-/** Each saved group's parcels and sales, with what needs a look; Unassigned last. */
-function Checks({
-  groups,
-  preview: p,
-  unassignedColor,
-  edit,
-  setModeled,
-}: {
-  groups: ModelGroup[];
-  preview: GroupsPreview | undefined;
-  unassignedColor: string;
-  edit: () => void;
-  setModeled: (id: string, modeled: boolean) => void;
-}) {
-  if (!p) return <p className="empty">{t.project.loading}</p>;
-  const rows = [
-    ...groups.map((x) => [x.id, x.name, x.color] as const),
-    ["", g.unassigned, unassignedColor] as const,
-  ];
-  return (
-    <>
-      <table className="tbl mg-checks">
-        <thead>
-          <tr>
-            <th className="mg-model">
-              <InfoTip label={g.modelIt} text={g.modelItTip} />
-            </th>
-            <th>{g.run.group}</th>
-            <th className="cs-n">{g.run.parcels}</th>
-            <th className="cs-n">{g.run.sales}</th>
-            <th className="cs-n">{g.run.vacantSales}</th>
-            <th>{g.checksCol}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([id, name, color]) => {
-            const x = p.stats.find((s) => s.id === id);
-            if (!x) return null;
-            const look = x.checks.filter((c) => c.level !== "ok");
-            const off = id !== "" && !x.modeled;
-            return (
-              <tr key={id || "unassigned"} className={off ? "not-modeled" : undefined}>
-                <td className="mg-model">
-                  {id !== "" && (
-                    <Tick isSelected={x.modeled} onChange={(on) => setModeled(id, on)}>
-                      <span className="sr-only">{`${g.modelIt}: ${name}`}</span>
-                    </Tick>
-                  )}
-                </td>
-                <td>
-                  <span className="mg-sw ab-sw" style={{ background: color }} />
-                  {name}
-                </td>
-                <td className="cs-n">{x.parcels.toLocaleString()}</td>
-                <td className="cs-n">{x.sales.toLocaleString()}</td>
-                <td className="cs-n">{x.vacant_sales.toLocaleString()}</td>
-                <td>
-                  {off ? (
-                    g.notModeled
-                  ) : look.length === 0 ? (
-                    <span className="wiz-ok">✓</span>
-                  ) : (
-                    look.map((c) => (
-                      <div key={c.text} className={`mg-check ${c.level}`}>
-                        {c.text}
-                      </div>
-                    ))
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <p className="wiz-from">
-        {g.checkFix}{" "}
-        <Button className="button button-small" onPress={edit}>
-          {g.backToBuild}
-        </Button>
-      </p>
-    </>
-  );
-}
-
 function same(a: ModelGroup[], b: ModelGroup[]): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function newId(name: string, groups: ModelGroup[]): string {
-  const base =
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "") || "group";
-  let id = base;
-  for (let n = 2; groups.some((x) => x.id === id); n++) id = `${base}_${n}`;
-  return id;
 }
 
 function Builder({
@@ -508,19 +406,10 @@ function Builder({
     setDraft(next);
   };
   const add = () => {
-    const nm = g.newName({ n: draft.length + 1 });
-    const used = new Set(draft.map((x) => x.color));
-    const color =
-      view.colors.find((c) => !used.has(c)) ?? view.colors[draft.length % view.colors.length] ?? "#888";
     const first = view.fields[0]?.name ?? "";
-    const x: ModelGroup = {
-      id: newId(nm, draft),
-      name: nm,
-      modeled: null,
-      color,
-      rule: { join: "any", conditions: [{ column: first, op: "isin", values: [] }] },
-      numeric: [],
-    };
+    const x = newGroup(g.newName({ n: draft.length + 1 }), draft, view.colors, [
+      { column: first, op: "isin", values: [] },
+    ]);
     setDraft([...draft, x]);
     setSelected(x.id);
   };
@@ -710,7 +599,7 @@ function Builder({
           </div>
         )}
         {fromField && (
-          <FromField
+          <GroupFromField
             projectId={projectId}
             fields={view.fields}
             groups={draft}
@@ -834,143 +723,5 @@ function GroupItem({
         </span>
       )}
     </li>
-  );
-}
-
-const NONE = "__none";
-const NEW = "__new";
-
-/** Send each value of one field to a group: each group gets (or has replaced) its condition on that field. */
-function FromField({
-  projectId,
-  fields,
-  groups,
-  colors,
-  close,
-  apply,
-}: {
-  projectId: string;
-  fields: GroupField[];
-  groups: ModelGroup[];
-  colors: string[];
-  close: () => void;
-  apply: (groups: ModelGroup[]) => void;
-}) {
-  const cats = fields.filter((f) => f.kind === "category");
-  const [field, setField] = useState(cats[0]?.name ?? "");
-  const [list, setList] = useState<ModelGroup[]>(groups);
-  // Where each value goes: what the groups already say about this field, until changed here (for this field).
-  const said = useMemo(() => {
-    const out: Record<string, string> = {};
-    for (const x of groups)
-      for (const c of x.rule.conditions)
-        if (c.column === field && c.op === "isin") for (const v of c.values) out[v] = out[v] ?? x.id;
-    return out;
-  }, [field, groups]);
-  const [edited, setEdited] = useState<{ field: string; sent: Record<string, string> } | null>(null);
-  const sent = edited?.field === field ? edited.sent : said;
-  const setSent = (next: Record<string, string>) => setEdited({ field, sent: next });
-  const vals = useValues(projectId, field);
-  const addGroup = (value: string) => {
-    const nm = value || g.newName({ n: list.length + 1 });
-    const used = new Set(list.map((x) => x.color));
-    const x: ModelGroup = {
-      id: newId(nm, list),
-      name: nm,
-      modeled: null,
-      color: colors.find((c) => !used.has(c)) ?? colors[list.length % colors.length] ?? "#888",
-      rule: { join: "any", conditions: [] },
-      numeric: [],
-    };
-    setList([...list, x]);
-    return x.id;
-  };
-  const done = () => {
-    const out = list.map((x) => {
-      const values = Object.entries(sent)
-        .filter(([, id]) => id === x.id)
-        .map(([v]) => v);
-      const others = x.rule.conditions.filter((c) => !(c.column === field && c.op === "isin"));
-      const conditions = values.length ? [...others, { column: field, op: "isin" as const, values }] : others;
-      return { ...x, rule: { ...x.rule, conditions } };
-    });
-    apply(out.filter((x) => x.rule.conditions.length > 0 || groups.some((y) => y.id === x.id)));
-  };
-  const groupOptions = [
-    [NONE, g.ffNone] as const,
-    ...list.map((x) => [x.id, x.name] as const),
-    [NEW, g.ffNew] as const,
-  ];
-  return (
-    <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(open) => !open && close()}>
-      <Modal className="modal mg-ff">
-        <Dialog className="modal-body rc-body">
-          <Heading slot="title" className="modal-title">
-            {g.ffTitle}
-          </Heading>
-          <p className="rc-sub">{g.ffLede}</p>
-          <Choice
-            label={g.ffField}
-            value={field}
-            options={cats.map((f) => [f.name, `${f.label} · ${f.distinct.toLocaleString()}`] as const)}
-            onChange={setField}
-          />
-          <div className="mg-ff-scroll">
-            <table className="rc-tbl mg-ff-tbl">
-              <thead>
-                <tr>
-                  <th className="rc-th">{g.ffValue}</th>
-                  <th className="rc-th mg-num">{g.ffParcels}</th>
-                  <th className="rc-th mg-num">{g.ffVacant}</th>
-                  <th className="rc-th mg-num">{g.ffSales}</th>
-                  <th className="rc-th">{g.ffGroup}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(vals.data?.rows ?? []).map((r) => (
-                  <tr key={r.value}>
-                    <td className="rc-td mono">{r.value ? <Val v={r.value} /> : g.blank}</td>
-                    <td className="rc-td mg-num">{r.parcels.toLocaleString()}</td>
-                    <td className="rc-td mg-num">{r.vacant.toLocaleString()}</td>
-                    <td className="rc-td mg-num">{r.sales.toLocaleString()}</td>
-                    <td className="rc-td">
-                      <span className="mg-ff-pick">
-                        <i
-                          style={{
-                            background: list.find((x) => x.id === sent[r.value])?.color ?? "transparent",
-                          }}
-                        />
-                        <Choice
-                          label={`${g.ffGroup}: ${r.value ? <Val v={r.value} /> : g.blank}`}
-                          hideLabel
-                          value={sent[r.value] ?? NONE}
-                          options={groupOptions}
-                          onChange={(id) => {
-                            const to = id === NEW ? addGroup(r.value) : id;
-                            const next = { ...sent };
-                            if (to === NONE) delete next[r.value];
-                            else next[r.value] = to;
-                            setSent(next);
-                          }}
-                        />
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {(vals.data?.more ?? 0) > 0 && <p className="rc-sub">{g.ffMore({ n: vals.data?.more ?? 0 })}</p>}
-          <div className="form-actions rc-actions">
-            <Button className="button" onPress={close}>
-              {g.cancel}
-            </Button>
-            <Button className="button button-primary" onPress={done}>
-              {g.ffApply}
-            </Button>
-          </div>
-        </Dialog>
-      </Modal>
-    </ModalOverlay>
   );
 }
