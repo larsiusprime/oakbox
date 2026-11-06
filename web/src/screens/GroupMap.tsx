@@ -24,7 +24,48 @@ export const SAME = "__same";
 // the shapes in view are drawn instead of their dots.
 const DOTS_ABOVE = 20_000;
 const SHAPES_IN_VIEW = 5_000;
+// Shapes smaller than this on screen, and scattered (covering under a tenth of the ground they're spread over), are
+// drawn as dots: a speck of a polygon fills no pixel. Some parcel files hold a small square at each parcel's point.
+const SHAPE_MIN_PX = 3;
+const SCATTERED = 0.1;
 type Centre = [number, number] | null;
+
+/** The shapes' typical size (the median longer side, in metres), and whether they're scattered specks. */
+export function shapeSize(fc: GeoJSON.FeatureCollection): { metres: number; scattered: boolean } | null {
+  const sides: number[] = [];
+  let cover = 0;
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+  const step = Math.max(1, Math.floor(fc.features.length / 4000));
+  for (let i = 0; i < fc.features.length; i += step) {
+    const g = fc.features[i]?.geometry;
+    if (!g || (g.type !== "Polygon" && g.type !== "MultiPolygon")) continue;
+    const rings = g.type === "Polygon" ? [g.coordinates[0]] : g.coordinates.map((p) => p[0]);
+    let [a, b, c, d] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const ring of rings)
+      for (const pt of ring ?? []) {
+        const [x, y] = pt as [number, number];
+        a = Math.min(a, x);
+        b = Math.min(b, y);
+        c = Math.max(c, x);
+        d = Math.max(d, y);
+      }
+    if (!Number.isFinite(a)) continue;
+    const k = 111_320 * Math.cos((((b + d) / 2) * Math.PI) / 180);
+    const w = (c - a) * k;
+    const h = (d - b) * 110_540;
+    sides.push(Math.max(w, h));
+    cover += w * h;
+    [x0, y0, x1, y1] = [Math.min(x0, a), Math.min(y0, b), Math.max(x1, c), Math.max(y1, d)];
+  }
+  if (!sides.length) return null;
+  sides.sort((p, q) => p - q);
+  const k = 111_320 * Math.cos((((y0 + y1) / 2) * Math.PI) / 180);
+  const ground = (x1 - x0) * k * ((y1 - y0) * 110_540);
+  return {
+    metres: sides[Math.floor(sides.length / 2)] ?? 0,
+    scattered: ground > 0 && cover / ground < SCATTERED,
+  };
+}
 
 /** The parcel shapes on OpenStreetMap (when online), coloured by group or by what moved. */
 export function ParcelMap({
@@ -61,7 +102,6 @@ export function ParcelMap({
       return (await r.json()) as Centre[];
     },
     staleTime: Number.POSITIVE_INFINITY,
-    enabled: detail !== "shapes",
   });
   const n = centres.data?.length ?? 0;
   const dots = detail === "dots" || (detail === "auto" && n > DOTS_ABOVE);
@@ -84,6 +124,11 @@ export function ParcelMap({
     [dots, centres.data, fc],
   );
 
+  const size = useMemo(() => (fc ? shapeSize(fc) : null), [fc]);
+  // Metres a pixel covers now (MapLibre's 512-pixel tiles), for whether the shapes would show.
+  const [perPixel, setPerPixel] = useState<number | null>(null);
+  const specks = !!size?.scattered && perPixel != null && size.metres / perPixel < SHAPE_MIN_PX;
+
   // Which parcels are in view, when few enough to draw as shapes.
   const centresNow = useRef<Centre[] | undefined>(undefined);
   useEffect(() => {
@@ -92,6 +137,8 @@ export function ParcelMap({
   const watch = useCallback((m: maplibregl.Map | null) => {
     if (!m) return;
     const look = () => {
+      const lat = (m.getCenter().lat * Math.PI) / 180;
+      setPerPixel((40_075_016.686 * Math.cos(lat)) / (512 * 2 ** m.getZoom()));
       const all = centresNow.current;
       if (!all) return;
       const b = m.getBounds();
@@ -106,6 +153,7 @@ export function ParcelMap({
       setInView(seen);
     };
     m.on("moveend", look);
+    m.once("load", look);
   }, []);
 
   // Each parcel's look: its group's colour (grey when it didn't move), dimmed off the highlight, hidden when its
@@ -130,6 +178,8 @@ export function ParcelMap({
     };
   }, [preview, colours, ids, hidden, unassigned, colourBy, highlight]);
 
+  // Followed only when drawn as dots: shapes drawn whole needn't be made again on every move.
+  const seen = dots ? inView : null;
   const layers = useMemo(() => {
     const idOf = (f: GeoJSON.Feature) => Number(f.id ?? -1);
     const shapesLayer = (features: GeoJSON.Feature[]) =>
@@ -151,9 +201,15 @@ export function ParcelMap({
       });
     const out: Layer[] = [];
     const all = centres.data;
-    if (dots && all) {
+    if ((dots || specks) && all) {
       const few =
-        inView && fc ? inView.map((i) => fc.features[i]).filter((f): f is GeoJSON.Feature => !!f) : null;
+        specks || !fc
+          ? null
+          : !dots
+            ? fc.features
+            : seen
+              ? seen.map((i) => fc.features[i]).filter((f): f is GeoJSON.Feature => !!f)
+              : null;
       if (few) out.push(shapesLayer(few));
       else {
         const idx = all.flatMap((c, i) => (c ? [i] : []));
@@ -174,7 +230,7 @@ export function ParcelMap({
         );
       }
     } else if (!dots && fc) out.push(shapesLayer(fc.features));
-    const f = picked == null ? undefined : fc?.features[picked];
+    const f = picked == null || specks ? undefined : fc?.features[picked];
     if (f?.geometry)
       out.push(
         new GeoJsonLayer({
@@ -203,7 +259,7 @@ export function ParcelMap({
         }),
       );
     return out;
-  }, [dots, centres.data, inView, fc, look, picked, onPick]);
+  }, [dots, specks, centres.data, seen, fc, look, picked, onPick]);
 
   const ready = dots ? !!centres.data : !!fc;
   const failed = (dots ? centres.error : shapes.error)?.message;
@@ -217,7 +273,7 @@ export function ParcelMap({
           bounds={bounds}
           fitKey={dots ? "centres" : "shapes"}
           resizeKey={mode}
-          {...(dots ? { onMap: watch } : {})}
+          onMap={watch}
         />
       )}
       {!ready && <p className="mg-map-msg">{failed ?? g.loadingMap}</p>}

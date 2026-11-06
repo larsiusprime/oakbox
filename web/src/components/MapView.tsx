@@ -240,7 +240,9 @@ function MapCanvas({
 
   useEffect(() => {
     overlay.current?.setProps({
-      layers,
+      // Copies, every time: deck.gl sets a layer up once and won't take it back after it's dropped, and the React
+      // Compiler can hand back a layer made earlier (shapes, then dots, then those same shapes again).
+      layers: layers.map((l) => l.clone({})),
       getTooltip: tooltip
         ? (info: PickingInfo) => {
             const text = info.object != null || info.index >= 0 ? tooltip(info) : null;

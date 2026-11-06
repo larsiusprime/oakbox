@@ -58,7 +58,7 @@ the same time).
 
 **Maps.** Where maps wait, each starts as a panel the map's size (its name, Show map, and a link to Settings). Drawn
 as dots, the Model groups map shows each parcel's centre in its group's colour, clickable; zoomed in to 5,000 parcels
-or fewer in view, their shapes are drawn instead. Every other parcel map already draws points. A street map that's
+or fewer in view, their shapes are drawn instead. Whatever the setting, shapes that are scattered specks (covering under a tenth of the ground they're spread over) and smaller than 3 pixels on screen are drawn as dots: some parcel files hold only a small square at each parcel's point, which a whole-county view can't show. Every other parcel map already draws points. A street map that's
 off isn't fetched.
 
 **A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
