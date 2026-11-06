@@ -22,6 +22,7 @@ import json
 import os
 import re
 import time
+import traceback
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -1041,8 +1042,6 @@ def far_out(sales, universe, group: str, variables: list[str], keep: int = 4) ->
 def _stack(e: BaseException, keep: int = 2) -> str:
     """Where it stopped: the last frame in OpenAVMKit (what it was doing) and the last few below it, in a library
     ("model_runner.py:1365 run_one_model › validation.py:133 _assert_all_finite")."""
-    import traceback
-
     frames = traceback.extract_tb(e.__traceback__)
 
     def at(f: traceback.FrameSummary) -> str:
@@ -1087,7 +1086,6 @@ def explain_crash(
         engine = own.get(g, {}).get(key or "") or ENGINES.get(key or "", (key,))[0]
         lst = next((x for x in varlists.lists(project, pdir) if entry and x.id == entry.list_id), None)
         listed = f', variable list "{lst.name}" ({len(lst.variables)} variables)' if lst else ""
-        import traceback
 
         if any("ensemble" in f.name for f in traceback.extract_tb(e.__traceback__)):
             said.append(f"While combining {gnames.get(g, g)}'s models into the ensemble, after {engine}.")
@@ -1115,7 +1113,6 @@ def explain_crash(
                 )
     said.append(f"Stopped in {_stack(e)}.")
     # The whole traceback, for anyone who needs more than the message.
-    import traceback
 
     log = pdir / "out" / "oakbox" / "model_error.txt"
     log.parent.mkdir(parents=True, exist_ok=True)

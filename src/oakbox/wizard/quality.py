@@ -6,6 +6,7 @@ and age for a condition. Also the candidate columns for these fields.
 from __future__ import annotations
 
 import re
+import statistics
 from collections import Counter
 from pathlib import Path
 from typing import Literal
@@ -146,8 +147,6 @@ def short_number(v: float) -> str:
 
 def scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale) -> Check:
     """'✓ 0.15–4.5 · 47 values', '✓ as % good: 0.12 → 88 · median 84', or what's still to say."""
-    import statistics
-
     raw = _qc_values(files, entry, column)
     if s.kind == "tiers":
         distinct = {v for v in raw if v}
@@ -276,8 +275,6 @@ def _price_by(
     project: Project, files: Files, match: str, group: dict[str, str]
 ) -> tuple[dict[str, PriceGroup], str | None, list[str]]:
     """Median price per sq ft (or sale price, without a building size) for each group of parcels."""
-    import statistics
-
     rows, notes = _sales_evidence(project, files, match)
     if not rows:
         return {}, None, notes
@@ -466,8 +463,6 @@ def scale_preview(
     project: Project, in_dir: Path, key: str, file: str, column: str, scale: Scale | None
 ) -> ScalePreview:
     """A numbers column read with a meaning: against age (newer should be better) and what it sells for."""
-    import statistics
-
     if key not in SCALED:
         raise NotFound(key)
     files = Files(project, in_dir)
@@ -603,8 +598,6 @@ def _value_bands(
     """Each band's sales: median price, price per area, and the price among the most common type alone. A grade's
     price per area mostly says how big its buildings are and what kind they are, so on its own it can run the
     wrong way; the price within one type is the fairer read."""
-    import statistics
-
     bands = _value_cuts(as_read, s.kind)
 
     def band_of(v: float) -> str | None:

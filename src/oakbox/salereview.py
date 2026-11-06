@@ -7,6 +7,7 @@ a mark is saved in the project and applies on the next Check sales.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -329,8 +330,6 @@ def _together(project: Project, project_dir: Path, key_sale: str, item, aside: s
 
 
 def _buyer(v) -> str:
-    import re
-
     text = cells.text(v) or ""
     return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9& ]", " ", text.upper())).strip()
 

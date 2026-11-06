@@ -11,10 +11,12 @@ and handed to OpenAVMKit as CENSUS_API_KEY when it runs.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import json
 import math
 import re
+import time
 from functools import cache, lru_cache
 from importlib import resources
 from pathlib import Path
@@ -402,7 +404,7 @@ def left(project: Project) -> list[str]:
     if e is not None and e.census:
         from oakbox import projects
 
-        if off := county_check(e.fips, area(project, projects.project_dir(project.id) / "in")):
+        if off := county_check(e.fips, area(project, projects.inputs_dir(project.id))):
             out.append(off)
         if not e.fips:
             out.append("Census: pick the county")
@@ -500,8 +502,6 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
 
     OpenAVMKit saves the distances it measured even when a feature's download failed; that's cleared, so running
     again downloads the feature rather than reusing its absence."""
-    import contextlib
-    import time
     import warnings
 
     import osmnx as ox
@@ -593,8 +593,6 @@ def instrument(settings: dict, emit) -> list[EnrichResult]:
 
 
 def _skipped(key, t0: float) -> EnrichResult:
-    import time
-
     return EnrichResult(
         key=key,
         status="skipped",
@@ -614,8 +612,6 @@ class _Said(io.StringIO):
         self._emit, self._part, self._last, self._line = emit, part, 0.0, ""
 
     def write(self, s: str) -> int:
-        import time
-
         n = super().write(s)
         self._line += s
         if "\n" in self._line:

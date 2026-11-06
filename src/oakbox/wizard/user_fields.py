@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Literal
 
 from oakbox.projects import Project
-from oakbox.wizard.base import RENAMED
+from oakbox.wizard.base import RENAMED, STEPS
 from oakbox.wizard.files import Files, dictionary_by_key, field_files
 from oakbox.wizard.models import Check, CustomFieldView, LocationField, Source
 from oakbox.wizard.rules import distinct_count
@@ -31,8 +31,6 @@ MADE_PREFIXES = ("census_", "dist_to_", "true_")
 def own_name_problem(name: str) -> str | None:
     """Why a user's own field can't take this name, or None. One of OpenAVMKit's own fields is fine when nothing else
     sets it: it's loaded under OpenAVMKit's name, so OpenAVMKit treats it as it would (zoning, bldg_rooms_bed…)."""
-    from oakbox.wizard.base import STEPS
-
     d = dictionary_by_key().get(name)
     if name in TAKEN or name.startswith("polar_") or (d is not None and d.source in ("derived", "reserved")):
         return f"OpenAVMKit works out {name} itself: choose another name."

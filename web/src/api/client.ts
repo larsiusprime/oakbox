@@ -1,4 +1,5 @@
 import createClient from "openapi-fetch";
+import { t } from "../wording";
 import type { components, paths } from "./schema";
 
 export const api = createClient<paths>({ baseUrl: "" });
@@ -36,7 +37,7 @@ export type FileCheck = components["schemas"]["FileCheck"];
 export function unwrap<T>(result: { data?: T; error?: unknown }): T {
   if (result.error !== undefined || result.data === undefined) {
     const detail = (result.error as { detail?: unknown } | undefined)?.detail;
-    throw new Error(typeof detail === "string" ? detail : "Something went wrong talking to OAK box.");
+    throw new Error(typeof detail === "string" ? detail : t.project.serverError);
   }
   return result.data;
 }

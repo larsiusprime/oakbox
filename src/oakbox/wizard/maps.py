@@ -4,7 +4,10 @@ measured to, how many parcels each covers, and its shapes for the map. Also the 
 
 from __future__ import annotations
 
+import json
+import random
 import re
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
@@ -92,9 +95,6 @@ def _centres(stamp: tuple[str, float, int], layer: str | None) -> tuple[tuple[fl
 
 def location_map(project: Project, in_dir: Path, name: str) -> LocationMap:
     """Where each of a location field's areas is: the parcel universe's centres, each with its area."""
-    import random
-    from collections import Counter
-
     if name not in project.wizard.locations:
         raise NotFound(name)
     entry = next((f for f in project.files if name in f.load and f.holds not in ("sales", "overlay", "unused")), None)
@@ -304,8 +304,6 @@ class LayerMap(BaseModel):
 
 
 def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
-    import json as _json
-
     import geopandas as gpd
 
     entry = next((f for f in project.files if f.name == name and f.holds == "overlay"), None)
@@ -319,7 +317,7 @@ def layer_map(project: Project, in_dir: Path, name: str) -> LayerMap:
     import shapely
 
     shapes["geometry"] = shapely.force_2d(shapes.geometry.to_numpy())  # flat: a height draws it out of sight
-    return LayerMap(shapes=_json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
+    return LayerMap(shapes=json.loads(shapes.to_json()), points=map_view(project, in_dir).points)
 
 
 # ---------- Enrichments (F3e) ----------

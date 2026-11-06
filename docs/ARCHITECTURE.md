@@ -124,7 +124,8 @@ out of date (their key holds its `ran_at`).
 ```
 
 Code finds these through `steps.py`: `out_dir(pdir, module)`, `settings_path`, `handoff(pdir, "2-clean")`,
-`look_dir` and `look(pdir, "2-clean-universe")`; never by spelling the path out.
+`look_dir` and `look(pdir, "2-clean-universe")`, and `in/` through `projects.inputs_dir(project_id)`; never by
+spelling the path out.
 
 OAK box's own settings (`appsettings.py`): `%APPDATA%\OAK box\settings.json` on Windows, `~/.config/oakbox/` on
 Linux; downloaded engines: `%LOCALAPPDATA%\OAK box\engines\`, `~/.local/share/oakbox/engines/`. `OAKBOX_HOME` (tests,

@@ -23,6 +23,7 @@ from oakbox.datafiles import (
     csv_encoding,
     guess_area_unit,
     small_unit,
+    suggest_name,
 )
 from oakbox.errors import NotFound
 from oakbox.fields import VALUE_PARTS
@@ -123,8 +124,6 @@ def update_base(project: Project, in_dir: Path, rename: bool = False) -> None:
     shaped = [f for f in project.files if f.holds == "parcels" and files.geometry(f.name)]
     base = next((f for f in shaped if f.name == BASE_NAME), shaped[0] if shaped else None)
     if base is not None and rename and base.name != BASE_NAME:
-        from oakbox.datafiles import suggest_name
-
         holder = project.file(BASE_NAME)
         if holder is not None:
             holder.name = suggest_name(holder.filename, {f.name for f in project.files} | {BASE_NAME})
@@ -771,6 +770,7 @@ def set_file(
     project: Project,
     in_dir: Path,
     name: str,
+    *,
     holds: Holds | None,
     id_column: str | None,
     extra_field: str | None = None,

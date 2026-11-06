@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from oakbox.datafiles import Condition, DataFile, Rule
+from oakbox.errors import NotFound
 from oakbox.wizard.base import ROWS
 from oakbox.wizard.files import Files, dictionary_by_key, sales_file
 from oakbox.wizard.models import RowField, RowsView
@@ -67,8 +68,6 @@ def _find(files: Files, main: DataFile, entry: DataFile, key: str) -> str | None
 
 def propose(project: Project, in_dir: Path, entry: DataFile) -> None:
     """Match an appended file's columns to the main file's fields, never over one already chosen."""
-    from oakbox.errors import NotFound
-
     main = main_of(project, entry.holds or "")
     if main is None:
         return

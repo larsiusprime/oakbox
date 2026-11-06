@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import math
 import re
+import statistics
 from functools import lru_cache
 from pathlib import Path
 
@@ -45,8 +46,6 @@ PLAUSIBLE_SQFT["bldg_area_footprint_sqft"] = PLAUSIBLE_SQFT["bldg_area_finished_
 
 def area_check(files: Files, entry: DataFile, key: str, column: str, unit: str, units: str) -> Check:
     """'✓ 0.114 acres → 4,966 sq ft', and a warning when the typical size says the unit is wrong."""
-    import statistics
-
     target = small_unit(units)
     factor = SQFT_PER[unit] / SQFT_PER[target]
     nums = []
@@ -107,8 +106,6 @@ def _step(span: float, bins: int, whole: bool = False) -> float:
 def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) -> FieldSpread:
     """How a number field's values spread, read as it's loaded: an area in its unit, converted to the project's; a
     year as a year (0, written for none, left out)."""
-    import statistics
-
     files = Files(project, in_dir)
     entry = next(
         (f for f in project.files if key in f.load and f.holds not in ("sales", "overlay", "unused")),
@@ -272,8 +269,6 @@ def _assessed_ratio(
     project: Project, files: Files, entry: DataFile, prices: list[float]
 ) -> tuple[float | None, str | None]:
     """Sale prices: the median of price ÷ the parcel's assessed value, over sales that find one."""
-    import statistics
-
     if entry.holds != "sales" or entry.match not in entry.load:
         return None, None
     for key in ("assr_market_value", "assr_land_value"):
@@ -299,8 +294,6 @@ def _assessed_ratio(
 
 
 def _number_stats(project: Project, files: Files, entry: DataFile, key: str, column: str, fmt: NumberFormat) -> dict:
-    import statistics
-
     stamp = file_stamp(files.in_dir / entry.filename)
     raw = values_of(stamp, entry.layer, column, raw=True)
     read = read_numbers(stamp, entry.layer, column, fmt.model_dump_json())

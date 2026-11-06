@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -326,6 +327,11 @@ _locks: dict[str, threading.RLock] = {}
 _locks_guard = threading.Lock()
 
 
+def inputs_dir(project_id: str) -> Path:
+    """The project's in/ folder: the files the user brought, and the settings OpenAVMKit reads."""
+    return project_dir(project_id) / "in"
+
+
 def lock(project_id: str) -> threading.RLock:
     """The project's lock. Re-entrant, so code holding it can call code that takes it again."""
     with _locks_guard:
@@ -475,7 +481,7 @@ def _data(project: Project) -> dict:
     A parcel file joined on an extra ID merges on it (key2, key3). Sales joined on an extra ID get
     the parcel ID (key) from the base by a reference-table lookup on that ID.
     """
-    out: dict = {"load": data_load(project.files, project.units, project_dir(project.id) / "in")}
+    out: dict = {"load": data_load(project.files, project.units, inputs_dir(project.id))}
     base = project.wizard.base
     parcels: list = [f for f in project.files if f.holds == "parcels"]
     # The main sales file first; more sales details (joined on the sale ID) after it.
@@ -742,8 +748,6 @@ def show_file(path: Path) -> None:
 
 def _open_in_file_manager(folder: Path) -> None:
     if sys.platform == "win32":
-        import os
-
         os.startfile(folder)  # type: ignore[attr-defined]  # noqa: S606
     elif sys.platform == "darwin":
         subprocess.Popen(["open", str(folder)])

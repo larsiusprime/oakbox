@@ -20,6 +20,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from oakbox import atomic
 from oakbox.machine import Machine, Performance
 
 # One change to the settings at a time (the menus' thread and the app's requests both write them).
@@ -203,8 +204,6 @@ def _salvage(data: bytes) -> AppSettings:
 
 
 def save(s: AppSettings) -> None:
-    from oakbox import atomic
-
     atomic.save_text(_path(), s.model_dump_json(indent=2))
 
 

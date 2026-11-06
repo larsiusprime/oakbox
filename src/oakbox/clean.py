@@ -12,8 +12,11 @@ and the sales set aside with their groups for the review, are in out/oakbox/clea
 
 from __future__ import annotations
 
+import copy
+import csv
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -23,7 +26,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast, get_args
 
 from pydantic import Field, field_validator
 
-from oakbox import assemble, bring_in, cells, fields, names, steps
+from oakbox import assemble, atomic, bring_in, cells, fields, names, steps
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound
 
@@ -264,11 +267,6 @@ def merge(base: dict, more: dict) -> dict:
 
 def write_marks(project: Project, project_dir: Path) -> None:
     """The user's keeps and exclusions, as OpenAVMKit reads them (a key_sale column), with their notes."""
-    import csv
-    import io
-
-    from oakbox import atomic
-
     c: CleanState = project.clean
     if c.location is None:
         return  # the step wasn't used yet: nothing to write
@@ -317,8 +315,6 @@ FIELD_PROCESS = ("fill", "collapse_sparse_categories")
 
 def without_fields(settings: dict, project: Project) -> dict:
     """The settings Check sales runs with: OpenAVMKit's own fills, but not the user's, and no folding."""
-    import copy
-
     out = copy.deepcopy(settings)
     process = out.get("data", {}).get("process", {})
     mine = set(project.clean.fills)

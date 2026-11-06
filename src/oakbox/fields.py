@@ -22,7 +22,6 @@ SAMPLE_ROWS = 1000
 SAMPLES = 5
 # Types OpenAVMKit casts to in data.load, and the third item each needs (SPEC F3c).
 TYPES = ("string", "float", "int", "bool", "datetime")
-BLANKS = ("na_false", "na_true")
 DATE_FORMATS = (
     "%Y-%m-%d",
     "%m/%d/%Y",

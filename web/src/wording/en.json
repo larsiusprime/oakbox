@@ -2823,7 +2823,8 @@
   "project": {
     "title": "{name} – OAK box",
     "taxYear": "Tax year {year}",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "serverError": "Something went wrong talking to OAK box."
   },
   "callout": {
     "show": "more",

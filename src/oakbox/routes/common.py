@@ -39,7 +39,7 @@ def file_entry(project: projects.Project, name: str) -> datafiles.DataFile:
 
 
 def wizard_view(project: projects.Project) -> wizard.Wizard:
-    return wizard.view(project, projects.project_dir(project.id) / "in")
+    return wizard.view(project, projects.inputs_dir(project.id))
 
 
 def bring_in_view(project: projects.Project) -> bring_in.View:

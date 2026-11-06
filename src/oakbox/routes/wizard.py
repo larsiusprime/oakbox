@@ -132,7 +132,7 @@ class PermitsBody(BaseModel):
 def get_names(project_id: str, format: names.FormatId | None = None, pattern: str | None = None) -> names.NamesView:
     """The deed names read with the saved format, or with one being tried (a live preview: nothing is saved)."""
     project = load_project(project_id)
-    return names.view(project, projects.project_dir(project_id) / "in", format, pattern)
+    return names.view(project, projects.inputs_dir(project_id), format, pattern)
 
 
 @router.put("/api/projects/{project_id}/names")
@@ -143,7 +143,7 @@ def set_names(project_id: str, body: NamesBody) -> names.NamesView:
             names.save(project, body.format, body.pattern)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
-    return names.view(project, projects.project_dir(project_id) / "in")
+    return names.view(project, projects.inputs_dir(project_id))
 
 
 def _apply(project_id: str, change) -> projects.Project:
@@ -151,7 +151,7 @@ def _apply(project_id: str, change) -> projects.Project:
     field, 422 for a change that can't be made."""
     with editing(project_id, settings=True) as project:
         try:
-            change(project, projects.project_dir(project_id) / "in")
+            change(project, projects.inputs_dir(project_id))
         except NotFound as e:
             raise HTTPException(404, f"No such step or field: {e}") from e
         except ValueError as e:
@@ -198,17 +198,17 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
             p,
             d,
             name,
-            body.holds,
-            body.id_column,
-            body.extra_field,
-            body.extra_column,
-            body.match,
-            body.universe,
-            body.dupes,
-            body.dupes_sort,
-            body.dupes_desc,
-            body.blank_ok,
-            body.added,
+            holds=body.holds,
+            id_column=body.id_column,
+            extra_field=body.extra_field,
+            extra_column=body.extra_column,
+            match=body.match,
+            universe=body.universe,
+            dupes=body.dupes,
+            dupes_sort=body.dupes_sort,
+            dupes_desc=body.dupes_desc,
+            blank_ok=body.blank_ok,
+            added=body.added,
         ),
     )
 
@@ -219,7 +219,7 @@ def wizard_repeats(project_id: str, name: str) -> wizard.RepeatRows:
     project = load_project(project_id)
     file_entry(project, name)
     try:
-        return wizard.repeat_rows(project, projects.project_dir(project_id) / "in", name)
+        return wizard.repeat_rows(project, projects.inputs_dir(project_id), name)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
 
@@ -232,7 +232,7 @@ def wizard_reconcile_preview(project_id: str, name: str, body: WizardReconcilePr
     try:
         return wizard.reconcile(
             project,
-            projects.project_dir(project_id) / "in",
+            projects.inputs_dir(project_id),
             name,
             body.file_steps,
             body.base_steps,
@@ -294,7 +294,7 @@ def wizard_rule_preview(project_id: str, key: str, body: datafiles.Rule) -> wiza
     """What a yes/no rule makes of the sales file, without saving it (F3d)."""
     project = load_project(project_id)
     try:
-        return wizard.rule_preview(project, projects.project_dir(project_id) / "in", key, body)
+        return wizard.rule_preview(project, projects.inputs_dir(project_id), key, body)
     except NotFound as e:
         raise HTTPException(404, f"No such field: {e}") from e
     except ValueError as e:
@@ -310,7 +310,7 @@ def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizar
 @router.get("/api/projects/{project_id}/wizard/locations")
 def wizard_locations(project_id: str) -> list[wizard.LocationField]:
     """The location fields the user named (F3d)."""
-    return wizard.locations(load_project(project_id), projects.project_dir(project_id) / "in")
+    return wizard.locations(load_project(project_id), projects.inputs_dir(project_id))
 
 
 @router.put("/api/projects/{project_id}/wizard/locations/{name}")
@@ -333,7 +333,7 @@ def wizard_column_values(
     try:
         return wizard.column_values(
             load_project(project_id),
-            projects.project_dir(project_id) / "in",
+            projects.inputs_dir(project_id),
             name,
             column,
             search,
@@ -426,14 +426,14 @@ def wizard_permits(project_id: str, name: str, body: PermitsBody) -> wizard.Wiza
 @router.get("/api/projects/{project_id}/wizard/enrich")
 def wizard_enrich(project_id: str) -> enrichments.EnrichView:
     """The Enrichments step (F3e): what's chosen, the counties, the area the downloads cover."""
-    return wizard.enrich_view(load_project(project_id), projects.project_dir(project_id) / "in")
+    return wizard.enrich_view(load_project(project_id), projects.inputs_dir(project_id))
 
 
 @router.put("/api/projects/{project_id}/wizard/enrich")
 def set_wizard_enrich(project_id: str, body: enrichments.Enrichments) -> enrichments.EnrichView:
     """Choose the enrichments and their options (F3e)."""
     project = _apply(project_id, lambda p, _d: enrichments.set_enrichments(p, body))
-    return wizard.enrich_view(project, projects.project_dir(project_id) / "in")
+    return wizard.enrich_view(project, projects.inputs_dir(project_id))
 
 
 @router.get("/api/projects/{project_id}/wizard/layers/{name}/map")
@@ -441,7 +441,7 @@ def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:
     """A map layer's shapes in degrees, and the parcel centres, for its map (F3d)."""
     project = load_project(project_id)
     try:
-        return wizard.layer_map(project, projects.project_dir(project_id) / "in", name)
+        return wizard.layer_map(project, projects.inputs_dir(project_id), name)
     except NotFound as e:
         raise HTTPException(404, f"No such layer: {e}") from e
     except ValueError as e:
@@ -452,7 +452,7 @@ def wizard_layer_map(project_id: str, name: str) -> wizard.LayerMap:
 def wizard_location_map(project_id: str, name: str) -> wizard.LocationMap:
     """A location field on the map: each parcel's centre, coloured by its area (F3d: Location fields)."""
     try:
-        return wizard.location_map(load_project(project_id), projects.project_dir(project_id) / "in", name)
+        return wizard.location_map(load_project(project_id), projects.inputs_dir(project_id), name)
     except NotFound as e:
         raise HTTPException(404, f"No such location field: {e}") from e
 
@@ -460,7 +460,7 @@ def wizard_location_map(project_id: str, name: str) -> wizard.LocationMap:
 @router.get("/api/projects/{project_id}/wizard/map")
 def wizard_map(project_id: str) -> wizard.MapView:
     """Where the parcels are, and the centre polar coordinates are measured from (F3d)."""
-    return wizard.map_view(load_project(project_id), projects.project_dir(project_id) / "in")
+    return wizard.map_view(load_project(project_id), projects.inputs_dir(project_id))
 
 
 @router.put("/api/projects/{project_id}/center")
@@ -468,7 +468,7 @@ def set_center(project_id: str, body: projects.Center | None = None) -> wizard.M
     """Set the centre polar coordinates are measured from; none: the middle of the parcels (F3d)."""
     with editing(project_id, settings=True) as project:
         project.center = body
-    return wizard.map_view(project, projects.project_dir(project_id) / "in")
+    return wizard.map_view(project, projects.inputs_dir(project_id))
 
 
 @router.post("/api/projects/{project_id}/wizard/files/{name}/dates")
@@ -477,7 +477,7 @@ def wizard_dates(project_id: str, name: str, body: WizardDates) -> wizard.DatePr
     project = load_project(project_id)
     file_entry(project, name)
     try:
-        return wizard.date_preview(project, projects.project_dir(project_id) / "in", name, body.column, body.format)
+        return wizard.date_preview(project, projects.inputs_dir(project_id), name, body.column, body.format)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
 
@@ -488,9 +488,7 @@ def wizard_numbers(project_id: str, name: str, body: WizardNumbers) -> wizard.Nu
     project = load_project(project_id)
     file_entry(project, name)
     try:
-        return wizard.number_preview(
-            project, projects.project_dir(project_id) / "in", name, body.key, body.column, body.format
-        )
+        return wizard.number_preview(project, projects.inputs_dir(project_id), name, body.key, body.column, body.format)
     except NotFound as e:
         raise HTTPException(404, f"{body.key} isn't an amount of money.") from e
     except ValueError as e:
@@ -501,7 +499,7 @@ def wizard_numbers(project_id: str, name: str, body: WizardNumbers) -> wizard.Nu
 def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
     """Columns that look like quality or condition, checked over every row, side by side (F3d)."""
     try:
-        return wizard.candidates(load_project(project_id), projects.project_dir(project_id) / "in", key)
+        return wizard.candidates(load_project(project_id), projects.inputs_dir(project_id), key)
     except NotFound as e:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
 
@@ -510,7 +508,7 @@ def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
 def wizard_field_histogram(project_id: str, key: str) -> wizard.FieldSpread:
     """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five)."""
     try:
-        return wizard.field_histogram(load_project(project_id), projects.project_dir(project_id) / "in", key)
+        return wizard.field_histogram(load_project(project_id), projects.inputs_dir(project_id), key)
     except NotFound as e:
         raise HTTPException(404, f"{key} isn't loaded.") from e
 
@@ -521,7 +519,7 @@ def wizard_scale(project_id: str, key: str, body: WizardColumnRef) -> wizard.Sca
     try:
         return wizard.scale_preview(
             load_project(project_id),
-            projects.project_dir(project_id) / "in",
+            projects.inputs_dir(project_id),
             key,
             body.file,
             body.column,
@@ -538,7 +536,7 @@ def wizard_tiers(project_id: str, key: str, body: WizardColumnRef) -> wizard.Tie
     """A category's tiers, worst to best, each with a number and what it sells for (F3d)."""
     try:
         return wizard.tiers_preview(
-            load_project(project_id), projects.project_dir(project_id) / "in", key, body.file, body.column
+            load_project(project_id), projects.inputs_dir(project_id), key, body.file, body.column
         )
     except NotFound as e:
         raise HTTPException(404, f"{key} isn't quality or condition.") from e
