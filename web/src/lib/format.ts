@@ -1,4 +1,5 @@
 /** How OAK box writes numbers, money, dates and sizes on screen: one way each, everywhere. */
+import { t } from "../wording";
 
 /** A number, its decimals fixed; "—" for none. */
 export function num(v: number | null | undefined, digits = 0): string {
@@ -70,8 +71,8 @@ export function when(iso: string): string {
   const d = new Date(iso);
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   return new Date().toDateString() === d.toDateString()
-    ? `today at ${time}`
-    : `${d.toLocaleDateString()} at ${time}`;
+    ? t.format.todayAt({ time })
+    : t.format.dayAt({ date: d.toLocaleDateString(), time });
 }
 
 /** A duration on a clock: "3:07". */

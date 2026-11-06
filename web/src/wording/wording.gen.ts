@@ -2252,4 +2252,8 @@ export type Wording = {
     cancel: string;
     cleared: (a: { what: string | number }) => string;
   };
+  format: {
+    todayAt: (a: { time: string | number }) => string;
+    dayAt: (a: { date: string | number; time: string | number }) => string;
+  };
 };
