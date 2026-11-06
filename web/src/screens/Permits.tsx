@@ -3,6 +3,7 @@ import { Input, TextField } from "react-aria-components";
 import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
+import { num } from "../lib/format";
 import { t } from "../wording";
 import { FilePicker, IdRow, StepFile } from "./WizardFiles";
 import type { Mutate } from "./wizardChange";
@@ -104,7 +105,7 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
                 <td className="pm-cell mono">
                   <Val v={k.value} />
                 </td>
-                <td className="pm-cell pm-n">{k.count.toLocaleString()}</td>
+                <td className="pm-cell pm-n">{num(k.count)}</td>
                 <td className="pm-cell">
                   <Choice
                     label={`${p.means}: ${k.value}`}

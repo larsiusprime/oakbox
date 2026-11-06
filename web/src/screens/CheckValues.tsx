@@ -59,11 +59,6 @@ const STEPS: RStep[] = [
 ];
 const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
 
-/** Whether Looks right was pressed on an up-to-date Check my values. */
-export function useValuesChecked(projectId: string): boolean {
-  return useStep("ratio", projectId).data?.accepted ?? false;
-}
-
 const pct = (v: number) => Math.round(100 * v);
 
 /** Step 4, Check my values (SPEC F8): the values on the roll against what parcels sold for, judged against the

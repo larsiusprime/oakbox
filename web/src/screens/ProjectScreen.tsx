@@ -3,7 +3,7 @@ import { FolderOpen } from "lucide-react";
 import { useEffect } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { api, type ProjectDetail, unwrap } from "../api/client";
-import { useStep } from "../api/steps";
+import { useAccepted, useStep } from "../api/steps";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
 import { StepBody, StepFoot, StepFrame } from "../components/Steps";
@@ -13,8 +13,8 @@ import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { navigate, TABS, type TabId } from "../lib/route";
 import { lockedTabs } from "../lib/tabs";
 import { say, t } from "../wording";
-import { BringInTab, useAccepted } from "./BringIn";
-import { SalesTab, useSalesAccepted } from "./CheckSales";
+import { BringInTab } from "./BringIn";
+import { SalesTab } from "./CheckSales";
 import { CheckValuesTab } from "./CheckValues";
 import { FieldsTab } from "./FieldsWizard";
 import { ModelGroupsTab } from "./ModelGroups";
@@ -59,15 +59,15 @@ function ProjectView({
     () => desktop.setContext(t.project.title({ name: project.name }), project.id),
     [project.name, project.id],
   );
-  const accepted = useAccepted(projectId);
-  const grouped = useStep("assemble", projectId).data?.accepted ?? false;
-  const checked = useSalesAccepted(projectId);
+  const accepted = useAccepted("bring-in", projectId);
+  const grouped = useAccepted("assemble", projectId);
+  const checked = useAccepted("clean", projectId);
   // Check my values only with existing values to check (the roll, a vendor's AVM: Data › Existing values).
   const hasValues = useStep("ratio", projectId).data?.has_values ?? true;
   // Model values once the fields are prepared and Looks right pressed (Variables › What changed).
-  const prepared = useStep("prepare", projectId).data?.accepted ?? false;
+  const prepared = useAccepted("prepare", projectId);
   // Report once the model values have had Looks right (Model values › Model values).
-  const finalized = useStep("final", projectId).data?.accepted ?? false;
+  const finalized = useAccepted("final", projectId);
   // Asked for a tab that waits on an earlier step: shown that step's tab instead, and why, never silently.
   const views = {
     bring: useStep("bring-in", projectId).data,

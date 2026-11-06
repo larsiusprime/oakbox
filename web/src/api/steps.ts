@@ -96,6 +96,14 @@ export function useStep<K extends StepId>(id: K, projectId: string) {
   });
 }
 
+/** The steps with a Looks right (a preview or a test run has none). */
+type Accepting = { [K in StepId]: StepViews[K] extends { accepted: boolean } ? K : never }[StepId];
+
+/** Whether Looks right was pressed on the step's up-to-date run (false until its state comes in). */
+export function useAccepted(id: Accepting, projectId: string): boolean {
+  return useStep(id, projectId).data?.accepted ?? false;
+}
+
 /** Run, stop, or Looks right: the answer is the step's new state, and the steps after it are asked again. */
 export function useStepAct<K extends StepId>(id: K, projectId: string) {
   const queryClient = useQueryClient();

@@ -18,7 +18,7 @@ import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
-import { band, pct, when } from "../lib/format";
+import { band, num, pct, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 
@@ -31,11 +31,6 @@ function TooBig({ note }: { note: MemoryNote }) {
       <p>{b.memoryMore}</p>
     </Callout>
   );
-}
-
-/** Whether Looks right was pressed on an up-to-date receipt: model groups can start. */
-export function useAccepted(projectId: string): boolean {
-  return useStep("bring-in", projectId).data?.accepted ?? false;
 }
 
 type BiStep = "plan" | "run" | "universe" | "sales" | "more";
@@ -430,7 +425,7 @@ function Section({
                 className={`bi-line${l.op === "=" ? " bi-tot" : ""}${l.op === "=" && i > 0 ? " bi-rule" : ""}`}
               >
                 <span className="bi-op">{l.op}</span>
-                <span className="bi-n">{l.n.toLocaleString()}</span>
+                <span className="bi-n">{num(l.n)}</span>
                 <span>{l.text}</span>
                 <span>
                   {l.rows && (
@@ -481,7 +476,7 @@ function Section({
                     <span className="bi-bar">
                       <i style={{ width: `${Math.round(100 * f.share)}%` }} />
                     </span>
-                    {f.filled.toLocaleString()} · {pct(f.share)}
+                    {num(f.filled)} · {pct(f.share)}
                   </td>
                   <td>{f.summary}</td>
                   <td className="mono bi-src">{f.source}</td>

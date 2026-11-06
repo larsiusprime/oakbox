@@ -3,6 +3,7 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-compone
 import type { GroupField, ModelGroup } from "../api/client";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
+import { num } from "../lib/format";
 import { newGroup } from "../lib/groups";
 import { t } from "../wording";
 import { useValues } from "./GroupEditor";
@@ -75,7 +76,7 @@ export function GroupFromField({
           <Choice
             label={g.ffField}
             value={field}
-            options={cats.map((f) => [f.name, `${f.label} · ${f.distinct.toLocaleString()}`] as const)}
+            options={cats.map((f) => [f.name, `${f.label} · ${num(f.distinct)}`] as const)}
             onChange={setField}
           />
           <div className="mg-ff-scroll">
@@ -93,9 +94,9 @@ export function GroupFromField({
                 {(vals.data?.rows ?? []).map((r) => (
                   <tr key={r.value}>
                     <td className="rc-td mono">{r.value ? <Val v={r.value} /> : g.blank}</td>
-                    <td className="rc-td mg-num">{r.parcels.toLocaleString()}</td>
-                    <td className="rc-td mg-num">{r.vacant.toLocaleString()}</td>
-                    <td className="rc-td mg-num">{r.sales.toLocaleString()}</td>
+                    <td className="rc-td mg-num">{num(r.parcels)}</td>
+                    <td className="rc-td mg-num">{num(r.vacant)}</td>
+                    <td className="rc-td mg-num">{num(r.sales)}</td>
                     <td className="rc-td">
                       <span className="mg-ff-pick">
                         <i

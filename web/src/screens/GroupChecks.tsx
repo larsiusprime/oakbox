@@ -2,6 +2,7 @@ import { Button } from "react-aria-components";
 import type { GroupsPreview, ModelGroup } from "../api/client";
 import { Tick } from "../components/Form";
 import { InfoTip } from "../components/Tip";
+import { num } from "../lib/format";
 import { t } from "../wording";
 
 const g = t.groups;
@@ -59,9 +60,9 @@ export function GroupChecks({
                   <span className="mg-sw ab-sw" style={{ background: color }} />
                   {name}
                 </td>
-                <td className="cs-n">{x.parcels.toLocaleString()}</td>
-                <td className="cs-n">{x.sales.toLocaleString()}</td>
-                <td className="cs-n">{x.vacant_sales.toLocaleString()}</td>
+                <td className="cs-n">{num(x.parcels)}</td>
+                <td className="cs-n">{num(x.sales)}</td>
+                <td className="cs-n">{num(x.vacant_sales)}</td>
                 <td>
                   {off ? (
                     g.notModeled

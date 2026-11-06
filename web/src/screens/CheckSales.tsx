@@ -17,11 +17,6 @@ import { SalesResult, TimePreviewPanel, useTimePreview } from "./SalesResults";
 const s = t.sales;
 type Patch = CleanPatch;
 
-/** Whether Looks right was pressed on an up-to-date Check sales: step 4 can start. */
-export function useSalesAccepted(projectId: string): boolean {
-  return useStep("clean", projectId).data?.accepted ?? false;
-}
-
 type CsStep = "window" | "time" | "scrutiny" | "run" | "sales" | "aside";
 const CS_STEPS: CsStep[] = ["window", "time", "scrutiny", "run", "sales", "aside"];
 

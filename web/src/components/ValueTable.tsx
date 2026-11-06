@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { num } from "../lib/format";
 import { t } from "../wording";
 import { Val } from "./Val";
 
@@ -63,7 +64,7 @@ export function ValueTable({
               </td>
               <td className="vals-td vals-n">
                 <span className="vals-bar" style={{ width: `${Math.max(2, (100 * x.count) / top)}%` }} />
-                {x.count.toLocaleString()}
+                {num(x.count)}
               </td>
             </tr>
           ))}

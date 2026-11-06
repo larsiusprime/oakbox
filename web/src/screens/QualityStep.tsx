@@ -15,7 +15,7 @@ import {
 import { ToolButton } from "../components/Buttons";
 import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
-import { amount } from "../lib/format";
+import { amount, num } from "../lib/format";
 import { say, t } from "../wording";
 import { FieldRow } from "./FieldRow";
 import { PAIRS, SCALED, ScaleChoice } from "./Quality";
@@ -206,7 +206,7 @@ function Evidence({ projectId, field, source }: { projectId: string; field: Wiza
                   <td className="mono">{b.original}</td>
                   <td className="mono">{b.label}</td>
                   {texts && <td className="mono">{b.text}</td>}
-                  <td className="num">{b.sales.toLocaleString()}</td>
+                  <td className="num">{num(b.sales)}</td>
                   <td>
                     <Bar v={b.price} top={topPrice} symbol={v.symbol} />
                   </td>
@@ -339,9 +339,9 @@ function TiersPanel({
                 <td className="mono">
                   <Val v={r.value} />
                 </td>
-                <td className="num qc-rank">{r.number == null ? "–" : r.number.toLocaleString()}</td>
-                <td className="num">{r.count.toLocaleString()}</td>
-                {priced && <td className="num">{r.sales.toLocaleString()}</td>}
+                <td className="num qc-rank">{r.number == null ? "–" : num(r.number)}</td>
+                <td className="num">{num(r.count)}</td>
+                {priced && <td className="num">{num(r.sales)}</td>}
                 {priced && (
                   <td>
                     <Bar v={r.price} top={topPrice} symbol={v.symbol} />

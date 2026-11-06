@@ -569,6 +569,7 @@ function Builder({
                 colour={(id) =>
                   id === "" ? view.unassigned_color : (asked.find((x) => x.id === id)?.color ?? NO_COLOUR)
                 }
+                currency={currency}
                 onShow={(n) => setHighlight(n)}
                 onClose={() => setPicked(null)}
               />

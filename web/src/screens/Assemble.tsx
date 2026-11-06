@@ -5,7 +5,7 @@ import { type AssembleView, api, type ModelGroup, unwrap } from "../api/client";
 import { stepChanged, stepKey } from "../api/steps";
 import { Tick } from "../components/Form";
 import { NO_COLOUR } from "../lib/colours";
-import { size, when } from "../lib/format";
+import { num, size, when } from "../lib/format";
 import { t } from "../wording";
 
 const r = t.groups.run;
@@ -97,13 +97,13 @@ export function AssembleResults({
                 <span className="mg-sw ab-sw" style={{ background: colour(x.id) }} />
                 {x.id === "UNKNOWN" ? r.unassigned : x.name}
               </td>
-              <td className="rc-td ab-n">{x.parcels.toLocaleString()}</td>
-              <td className="rc-td ab-n">{x.vacant.toLocaleString()}</td>
-              <td className="rc-td ab-n">{x.sales.toLocaleString()}</td>
-              <td className="rc-td ab-n">{x.vacant_sales.toLocaleString()}</td>
+              <td className="rc-td ab-n">{num(x.parcels)}</td>
+              <td className="rc-td ab-n">{num(x.vacant)}</td>
+              <td className="rc-td ab-n">{num(x.sales)}</td>
+              <td className="rc-td ab-n">{num(x.vacant_sales)}</td>
               {!rc.matches_preview && (
                 <td className={`rc-td ab-n ${x.preview !== x.parcels ? "wiz-warn" : ""}`}>
-                  {x.preview?.toLocaleString() ?? "—"}
+                  {num(x.preview)}
                 </td>
               )}
             </tr>
