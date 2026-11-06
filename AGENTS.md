@@ -55,7 +55,8 @@ again (`NEXT`: the one table of which step starts from which).
 ## Shared helpers
 
 A helper two modules or screens need lives in a shared place, never in one of them for the other to import:
-`web/src/lib/format.ts` (numbers, money, dates, sizes, percentages), `web/src/lib/hooks.ts`, `web/src/components/`;
+`web/src/lib/format.ts` (numbers, money, dates, sizes, percentages), `web/src/lib/hooks.ts`, `web/src/lib/route.ts`
+(the address: `navigate`, the tabs), `web/src/lib/colours.ts`, `web/src/components/`;
 `cells.py` (a value read out of OpenAVMKit's tables), `steps.py` (the settings file, what a run wrote, and where
 each is: `out_dir`, `settings_path`, `handoff`, `look`),
 `fields.names()`. A step module's `_private` names are its own: what another module needs is made public, under a

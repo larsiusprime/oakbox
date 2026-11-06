@@ -3,33 +3,10 @@ import { AppMenus } from "./AppMenus";
 import { OakFrame } from "./components/OakFrame";
 import { UndoToast } from "./components/UndoToast";
 import { back, record } from "./lib/place";
+import { parseHash, type Route } from "./lib/route";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewProjectScreen } from "./screens/NewProjectScreen";
-import { ProjectScreen, TABS, type TabId } from "./screens/ProjectScreen";
-
-export type Route =
-  | { name: "home" }
-  | { name: "new" }
-  | { name: "project"; id: string; tab?: TabId | null; step?: string | null };
-
-function parseHash(hash: string): Route {
-  if (hash === "#/new") return { name: "new" };
-  const match = /^#\/projects\/([a-z0-9-]+)(?:\/([a-z]+)(?:\/([a-z0-9_]+))?)?$/.exec(hash);
-  if (!match?.[1]) return { name: "home" };
-  const wanted = match[2];
-  const tab = TABS.find((x) => x === wanted) ?? null;
-  // #/projects/<id>/fields/<step>: a step of the Data wizard (F3d).
-  return { name: "project", id: match[1], tab, step: tab === "fields" ? (match[3] ?? null) : null };
-}
-
-export function navigate(route: Route): void {
-  if (route.name === "project") {
-    const step = route.tab === "fields" && route.step ? `/${route.step}` : "";
-    window.location.hash = `#/projects/${route.id}${route.tab ? `/${route.tab}` : ""}${step}`;
-  } else {
-    window.location.hash = route.name === "new" ? "#/new" : "#/";
-  }
-}
+import { ProjectScreen } from "./screens/ProjectScreen";
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));

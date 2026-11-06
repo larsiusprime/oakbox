@@ -6,26 +6,12 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
+import { ratioColor, ratioStroke } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
 import { BandChart } from "./ValueCharts";
 
 const r = t.ratio;
-
-/** openratiostudy.com's colours: blue below 1 (deepest at 0.5), white at 1, red above (deepest at 2). */
-export function ratioColor(q: number): string {
-  if (!Number.isFinite(q)) return "#94a3b8";
-  if (q <= 1) {
-    const c = Math.round(255 * Math.max(0, Math.min(1, (q - 0.5) / 0.5)));
-    return `rgb(${c}, ${c}, 255)`;
-  }
-  const c = Math.round(255 * (1 - Math.max(0, Math.min(1, q - 1))));
-  return `rgb(255, ${c}, ${c})`;
-}
-
-export function ratioStroke(q: number): string {
-  return q < 0.9 ? "#1d4ed8" : q > 1.1 ? "#b91c1c" : "#475569";
-}
 
 /** Each sale on the map, coloured by its ratio: clusters of high or low ratios show where values are off. */
 export function RatioMap({

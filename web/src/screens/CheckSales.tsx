@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
-import { navigate } from "../App";
 import { api, type CleanPatch, unwrap } from "../api/client";
 import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { Choice, Tick } from "../components/Form";
@@ -9,6 +8,7 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { InfoTip } from "../components/Tip";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { Card, type CardProps, NumberBox } from "./CleanCards";
 import { Review, useReviewCounts } from "./SaleReview";

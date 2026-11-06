@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen } from "lucide-react";
 import { useEffect } from "react";
 import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
-import { navigate } from "../App";
 import { api, type ProjectDetail, unwrap } from "../api/client";
 import { useStep } from "../api/steps";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
@@ -11,6 +10,7 @@ import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
+import { navigate, TABS, type TabId } from "../lib/route";
 import { say, t } from "../wording";
 import { BringInTab, useAccepted } from "./BringIn";
 import { SalesTab, useSalesAccepted } from "./CheckSales";
@@ -20,19 +20,6 @@ import { ModelGroupsTab } from "./ModelGroups";
 import { ValuesTab } from "./ModelValues";
 import { ReportTab } from "./ReportTab";
 import { VariablesTab } from "./Variables";
-
-export const TABS = [
-  "metadata",
-  "fields",
-  "bring",
-  "groups",
-  "sales",
-  "check",
-  "variables",
-  "values",
-  "report",
-] as const;
-export type TabId = (typeof TABS)[number];
 
 /** F3: the project view, one tabbed panel (SPEC §3.0). */
 export function ProjectScreen({

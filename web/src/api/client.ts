@@ -71,6 +71,8 @@ export type Rows = components["schemas"]["Rows"];
 export type ModelGroup = components["schemas"]["ModelGroup-Output"];
 export type GroupsView = components["schemas"]["GroupsView"];
 export type GroupsPreview = components["schemas"]["GroupsPreview"];
+/** Parcels that change group under the groups being edited. */
+export type Move = GroupsPreview["moves"][number];
 export type GroupField = components["schemas"]["GroupField"];
 export type ParcelInspect = components["schemas"]["ParcelInspect"];
 export type AssembleView = components["schemas"]["AssembleView"];

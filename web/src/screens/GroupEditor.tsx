@@ -7,6 +7,7 @@ import {
   type GroupField,
   type GroupsPreview,
   type ModelGroup,
+  type Move,
   unwrap,
 } from "../api/client";
 import { AddButton } from "../components/AddButton";
@@ -16,7 +17,6 @@ import { RemoveButton, RemoveTextButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { moneyShort } from "../lib/format";
 import { t } from "../wording";
-import type { Move } from "./ModelGroups";
 
 const g = t.groups;
 

@@ -1,13 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "react-aria-components";
-import { navigate } from "../App";
 import { api, type NewProject, unwrap } from "../api/client";
 import { DateField } from "../components/DateField";
 import { Choice, Field } from "../components/Form";
 import { countryLocale, LocaleFields } from "../components/Locale";
 import { OakBand } from "../components/OakBand";
 import { OVERVIEW } from "../lib/place";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 
 export function NewProjectScreen() {

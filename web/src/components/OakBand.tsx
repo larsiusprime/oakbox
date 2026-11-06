@@ -6,10 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-aria-components";
-import { navigate } from "../App";
 import { useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
 import { lastStep, lastTab, usePlace } from "../lib/place";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { StorageLocationDialog } from "./StorageLocation";
 

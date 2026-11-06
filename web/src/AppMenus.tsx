@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { navigate, type Route } from "./App";
 import { appSettingsKey, useAppSettings } from "./api/app";
 import { api, unwrap } from "./api/client";
 import { ModelEnginesDialog } from "./components/Engines";
 import { desktop } from "./desktop";
+import { navigate, type Route } from "./lib/route";
 import { type MenuCommand, useMenu } from "./menu";
 import { t } from "./wording";
 

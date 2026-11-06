@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Radio, RadioGroup } from "react-aria-components";
-import { navigate } from "../App";
 import { useMarkSale } from "../api/clean";
 import {
   api,
@@ -20,6 +19,7 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
 import { BandChart, Scatter } from "./ValueCharts";

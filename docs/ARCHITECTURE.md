@@ -69,7 +69,7 @@ OpenAVMKit's tables).
 
 **The page** (`web/src/`): `screens/` (one per tab and its panels), `components/` (shared pieces: buttons, file
 entries, tables, maps), `api/` (the typed client and the hooks on it: `steps.ts` for every step's state and runs),
-`lib/` (formatting, hooks, where you are), `wording/` (every word shown, `en.json`).
+`lib/` (formatting, hooks, the address and moving between places: `route.ts`, where you've been: `place.ts`), `wording/` (every word shown, `en.json`).
 
 ## The life of a run
 
