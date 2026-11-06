@@ -35,7 +35,7 @@ def test_a_group_not_modeled_skips_every_model(client, monkeypatch):
             model.Variable(field="x", name="x", kind="building", numeric=True, parcels=3, blanks=0, ml_only=False)
         ],
     )
-    monkeypatch.setattr(model, "_universe_fields", lambda d: [])
+    monkeypatch.setattr(model, "universe_fields", lambda d: [])
     monkeypatch.setattr(model, "_has_roll", lambda d: True)
     pdir = projects.project_dir(pid)
     assert assemble.modeled(project, pdir) == {"sf"}

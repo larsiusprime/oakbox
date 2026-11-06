@@ -229,6 +229,10 @@ def _fill(text: str, jurisdiction: str) -> str:
     return out[:1].upper() + out[1:]
 
 
+# Names for fields OpenAVMKit makes that the data dictionary doesn't name.
+MADE_NAMES = {"polar_radius": "Distance from the centre", "polar_angle": "Direction from the centre"}
+
+
 def names() -> dict[str, str]:
     """Each field of the dictionary's name: "sale_price" -> "Sale price"."""
     return {f.key: f.name for f in dictionary()}

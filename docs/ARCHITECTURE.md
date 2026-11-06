@@ -61,7 +61,7 @@ rows appended, user fields, deeds and permits, existing values), `enrichments.py
 | 3 | Sales (Check sales) | `clean.py`, `salereview.py` (the review of the sales it set aside), `time_preview.py` (the time adjustment alone, a run of its own) | `out/1-assemble-sup.pickle` | `out/oakbox/clean/` (its hand-off, and copies of its sales and universe), `out/2-clean-*` |
 | 4 | Evaluate (Check my values) | `ratio.py` | `out/oakbox/clean/`: Check sales as it ran, never `out/2-clean-*` | its receipt only |
 | 5 | Variables | `prepare.py` (Prepare the fields), `vartest.py` (Test the variables), `varlists.py` | `out/oakbox/clean/sup.pickle` | `out/2-clean-*` again, filled and folded |
-| 6 | Models (Try them, Finalize) | `model.py` (Try them), `smallgroups.py`, `locstack.py`, `final.py` (Finalize) | Prepare the fields | the model values |
+| 6 | Models (Try them, Finalize) | `model.py` (Try them), `spatiallag.py` (nearby sales and buildings), `smallgroups.py`, `locstack.py`, `final.py` (Finalize) | Prepare the fields | the model values |
 | 7 | Report | `report.py` (no run of its own: it reads Finalize's) | Finalize | exports, the printable report |
 
 Shared by the steps: `steps.py` (running, the receipt, out of date, accepted), `cells.py` (values read out of
