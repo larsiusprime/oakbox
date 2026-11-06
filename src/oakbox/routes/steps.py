@@ -14,6 +14,9 @@ from oakbox.routes.common import assemble_view, bring_in_view, clean_view, editi
 
 router = APIRouter()
 
+# Each step's routes, by their path (the page's StepId: "bring-in", "clean"…) and the step they're for.
+STEPS: dict[str, steps.Step] = {}
+
 
 # ---------- The steps: each one's state, run, stop and Looks right, the same way (steps.py) ----------
 
@@ -46,6 +49,7 @@ def _step_routes(
     process of its own; `before` gets the project ready), stop, and accept (Looks right) when it has one."""
     base = f"/api/projects/{{project_id}}/{path}"
     name = step.module
+    STEPS[path] = step
 
     @router.get(base, response_model=view_type, name=f"{name}_state")
     def state(project_id: str) -> Any:

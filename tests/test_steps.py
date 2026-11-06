@@ -132,3 +132,25 @@ def test_opening_a_project_refreshes_its_settings(client):
     path.write_text(json.dumps(s), encoding="utf-8")
     client.get(f"/api/projects/{pid}")
     assert "stale_by_an_older_oak_box" not in json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_the_pages_table_of_steps_follows_the_steps():
+    """The page asks a step's state again when one before it changes (web/src/api/steps.ts, NEXT): every step there
+    is, and every step a step starts from (Step.after), must be in it, or a screen shows a stale state."""
+    import re
+    from pathlib import Path
+
+    from oakbox.routes.steps import STEPS
+
+    source = (Path(__file__).parents[1] / "web" / "src" / "api" / "steps.ts").read_text(encoding="utf-8")
+    block = re.search(r"const NEXT: Record<StepId, StepId\[\]> = \{(.*?)\n\};", source, re.S)
+    assert block, "NEXT not found in steps.ts"
+    nxt = {
+        k.strip('"'): set(re.findall(r'"([a-z-]+)"', v))
+        for k, v in re.findall(r'^\s*("?[a-z-]+"?): \[(.*?)\],', block.group(1), re.M)
+    }
+    assert set(nxt) == set(STEPS)
+    path_of = {s.module: path for path, s in STEPS.items()}
+    for path, s in STEPS.items():
+        if s.after is not None:
+            assert path in nxt[path_of[s.after.module]], f"NEXT[{path_of[s.after.module]!r}] lacks {path!r}"

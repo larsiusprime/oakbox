@@ -22,7 +22,8 @@ export type StepId = keyof StepViews;
 export type StepAct = "run" | "stop" | "accept";
 
 /** The steps that start from each step's output. When a step runs again, is accepted, or one of its calls
- * changes, the steps after it may become out of date or blocked, so they're asked again. */
+ * changes, the steps after it may become out of date or blocked, so they're asked again. It holds every edge of the
+ * backend's Step.after, and more (tests/test_steps.py checks). */
 const NEXT: Record<StepId, StepId[]> = {
   "bring-in": ["assemble"],
   assemble: ["clean"],
