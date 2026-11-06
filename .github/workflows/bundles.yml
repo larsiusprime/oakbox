@@ -84,6 +84,11 @@ jobs:
       - name: Native menus (opens the real window, checks and clicks its Win32 menu bar)
         timeout-minutes: 5
         run: uv run python -m oakbox --selftest-menus
+      # Ending a run's process tree is different code on Windows (no process groups): Stop, the app closing, and the
+      # app killed outright each leave no process behind (the checks job runs these on Linux).
+      - name: Runs end with Stop and with the app, workers included (Windows)
+        timeout-minutes: 5
+        run: uv run pytest -q tests/test_runs_end.py
 
   # The same on Linux: the Qt window and its menu bar, under a virtual display.
   menus-linux:
