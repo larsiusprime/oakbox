@@ -1,5 +1,9 @@
 # Running the M0 spike locally
 
+> **A record of M0, not maintained.** Much of this no longer works: the bundle no longer ships `spikes/`, its
+> `smoke.cmd` now runs `oakbox/smoke.py` (Petersburg's data, online), and artifacts are kept a day, not seven. To run
+> OAK box, see [docs/RUNNING.md](../RUNNING.md).
+
 M0 has **no user interface yet.** It's the headless engine, the benchmark scripts and the portable bundles. The UI starts in M1.
 
 ## Option A: portable bundle (no Python install needed)

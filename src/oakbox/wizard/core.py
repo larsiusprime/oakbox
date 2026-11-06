@@ -26,6 +26,7 @@ from oakbox.datafiles import (
     guess_area_unit,
     small_unit,
 )
+from oakbox.errors import NotFound
 from oakbox.fields import VALUE_PARTS
 from oakbox.projects import Project
 from oakbox.valuesets import ROLL, value_field, value_sets
@@ -62,7 +63,6 @@ from oakbox.wizard.files import (
     _field_files,
     _more_sales,
     _rows,
-    base_file,
     file_stamp,
     sales_file,
     values_of,
@@ -126,7 +126,7 @@ def update_base(project: Project, in_dir: Path, rename: bool = False) -> None:
     if base is not None and rename and base.name != BASE_NAME:
         from oakbox.datafiles import suggest_name
 
-        holder = next((f for f in project.files if f.name == BASE_NAME), None)
+        holder = project.file(BASE_NAME)
         if holder is not None:
             holder.name = suggest_name(holder.filename, {f.name for f in project.files} | {BASE_NAME})
         base.name = BASE_NAME
@@ -464,7 +464,7 @@ def _status(
 def confirm(project: Project, step: str) -> None:
     """Next (or Start) on a step: an optional step counts as complete once it's been moved on from."""
     if step not in STEP_KEYS:
-        raise LookupError(step)
+        raise NotFound(step)
     if step not in project.wizard.confirmed:
         project.wizard.confirmed.append(step)
 
@@ -562,7 +562,7 @@ def _warnings(files: list[WizardFile], flds: list[WizardField]) -> list[str]:
 def visit(project: Project, in_dir: Path, step: str) -> None:
     """Show a step: fill in guesses for whatever on it hasn't been decided (F3d)."""
     if step not in STEP_KEYS:
-        raise LookupError(step)
+        raise NotFound(step)
     _guess(project, in_dir, step)
     if step == "enrich":
         enrichments.start(project, in_dir)
@@ -607,7 +607,7 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
 
 
 def _guess_universe(project: Project, files: Files) -> None:
-    base = base_file(project)
+    base = project.base_file()
     if base is not None and "key" not in base.load and base.name in files.preview:
         column = _guess_id(files, base.name, "parcels", None)
         if column:
@@ -618,7 +618,7 @@ def _guess_sales(project: Project, files: Files) -> None:
     sales = sales_file(project)
     if sales is None or sales.name not in files.preview:
         return
-    base = base_file(project)
+    base = project.base_file()
     names = {c.name for c in files.columns(sales.name)}
     if not any(k in sales.load for k in ("key", *EXTRA_IDS)):
         # The universe's ID column names in the sales file decide: its parcel ID first, then its extra IDs.
@@ -676,7 +676,7 @@ def _guess_join(project: Project, files: Files, entry: DataFile) -> None:
         found = found or (_best_match(files, entry.name, main, "key_sale") if main and column else None)
         found = found or _guess_sale_id(files, entry.name)
     else:
-        base = base_file(project)
+        base = project.base_file()
         column = base.load[entry.match][0] if base and entry.match in base.load else None
         found = column if column in names else None
         found = found or (_best_match(files, entry.name, base, entry.match) if base and column else None)
@@ -891,12 +891,12 @@ def set_field(
     by_key = _by_key()
     step = next((s for s in STEPS if key in s.fields or key in s.more), None)
     if step is None or key not in by_key:
-        raise LookupError(key)
+        raise NotFound(key)
     allowed = _field_files(project, step.sales)
     if only is not None:
         allowed = [f for f in project.files if f.name == only and (f.holds in ROWS or _more_sales(f))]
         if not allowed:
-            raise LookupError(only)
+            raise NotFound(only)
         step = step.model_copy(update={"sales": allowed[0].holds in ("sales", "sale_rows")})
     sales = sales_file(project)
     target: DataFile | None = None
@@ -977,9 +977,9 @@ def set_row_field(
 ) -> None:
     """One field of a file appended as rows (or the date of more sales details on a made sale ID): its own column,
     or none (blank for its rows). A yes/no field takes the main file's rule, on this column."""
-    entry = next((f for f in project.files if f.name == name), None)
+    entry = project.file(name)
     if entry is None or not (entry.holds in ROWS or _more_sales(entry)):
-        raise LookupError(name)
+        raise NotFound(name)
     main = rows_main(project, entry.holds or "")
     if column is None:
         for part in (entry.load, entry.rules, entry.area_units, entry.numbers, entry.scales):
@@ -997,7 +997,7 @@ def skip(project: Project, step: str) -> None:
     """'I don't have these': nothing loaded for the step's fields."""
     spec = next((s for s in STEPS if s.key == step), None)
     if spec is None or not spec.fields:
-        raise LookupError(step)
+        raise NotFound(step)
     for key in [*spec.fields, *spec.more]:
         if key in ASSUMABLE:
             raise ValueError("Sales need a valid sale and a vacant sale field.")

@@ -6,8 +6,8 @@ import type { components } from "./schema";
 
 type S = components["schemas"];
 
-/** Each step that runs the engine, and what its state route answers (app.py's _step_routes: the same routes for
- * every step). */
+/** Each step that runs the engine, and what its state route answers (routes/steps.py's _step_routes: the same routes
+ * for every step). */
 export type StepViews = {
   "bring-in": S["View"];
   assemble: S["AssembleView"];
@@ -22,7 +22,8 @@ export type StepId = keyof StepViews;
 export type StepAct = "run" | "stop" | "accept";
 
 /** The steps that start from each step's output. When a step runs again, is accepted, or one of its calls
- * changes, the steps after it may become out of date or blocked, so they're asked again. */
+ * changes, the steps after it may become out of date or blocked, so they're asked again. It holds every edge of the
+ * backend's Step.after, and more (tests/test_steps.py checks). */
 const NEXT: Record<StepId, StepId[]> = {
   "bring-in": ["assemble"],
   assemble: ["clean"],
@@ -61,9 +62,20 @@ const ALSO: Partial<Record<StepId, string[]>> = {
 };
 
 /** Something about a step changed (a call, a mark, a run): ask it again (unless `self` is false: the caller has
- * its new state), what else its screen shows, and every step after it. */
-export function stepChanged(queryClient: QueryClient, projectId: string, id: StepId, self = true): void {
-  const keys = [...(self ? [id] : []), ...(ALSO[id] ?? []), ...stepsAfter(id)];
+ * its new state), what else its screen shows, and every step after it but those in `leave` (a screen that stays as
+ * it is while the user works through it; the steps after it are still asked). */
+export function stepChanged(
+  queryClient: QueryClient,
+  projectId: string,
+  id: StepId,
+  self = true,
+  leave: readonly StepId[] = [],
+): void {
+  const keys = [
+    ...(self ? [id] : []),
+    ...(ALSO[id] ?? []),
+    ...stepsAfter(id).filter((k) => !leave.includes(k)),
+  ];
   for (const k of keys) void queryClient.invalidateQueries({ queryKey: [k, projectId] });
 }
 

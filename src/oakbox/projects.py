@@ -3,10 +3,14 @@
 Layout (SPEC §3.0 F1, §6)::
 
     <storage location>/<project name>/
-        oakbox.json        OAK box's own state: the project's facts and input files
+        oakbox.json        OAK box's own state: everything the user chose
         in/                the user's data files + settings.json for OpenAVMKit
+        in/oakbox/         OAK box's own inputs to runs (sales kept and excluded, time adjustment files)
         out/               OpenAVMKit outputs
+        out/oakbox/<step>/ each step's last finished run: its receipt, and what it depended on
         cache/             enrichment cache
+
+More in docs/ARCHITECTURE.md ("A project on disk").
 
 The folder is an OpenAVMKit locality, so the engine runs on it directly. Projects
 can live anywhere (the storage location can change), so they are found by id
@@ -22,6 +26,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import uuid
 from functools import cache
 from importlib import resources
@@ -30,7 +35,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from oakbox import appsettings, atomic
+from oakbox import appsettings, atomic, steps
 from oakbox import clean as clean_settings
 from oakbox import model as model_calls
 from oakbox.clean import CleanState
@@ -212,6 +217,14 @@ class Project(BaseModel):
         default_factory=dict, description="Step -> the settings it was run with when Looks right was pressed."
     )
 
+    def file(self, name: str) -> DataFile | None:
+        """An input file by its name in OAK box; None when there's none (callers say what that means)."""
+        return next((f for f in self.files if f.name == name), None)
+
+    def base_file(self) -> DataFile | None:
+        """The parcel universe's file: the one the others join onto (wizard.base)."""
+        return self.file(self.wizard.base) if self.wizard.base else None
+
 
 # ---------- Finding projects ----------
 
@@ -270,10 +283,23 @@ def load(project_id: str) -> Project:
 
 
 def save(project: Project, folder: Path | None = None) -> None:
-    from oakbox import atomic
-
+    """Write oakbox.json whole. A change loads the project, changes it and saves it: hold `lock` from the load to
+    the save (routes/common.editing does), or two changes at once each save what they loaded, the second undoing
+    the first."""
     folder = folder or project_dir(project.id)
     atomic.save_text(folder / "oakbox.json", project.model_dump_json(indent=2))
+
+
+# One lock per project, held by a change from loading the project to saving it: the app answers requests on several
+# threads, and the page can send two changes at once (a step shown while a field is set).
+_locks: dict[str, threading.RLock] = {}
+_locks_guard = threading.Lock()
+
+
+def lock(project_id: str) -> threading.RLock:
+    """The project's lock. Re-entrant, so code holding it can call code that takes it again."""
+    with _locks_guard:
+        return _locks.setdefault(project_id, threading.RLock())
 
 
 # ---------- Creating ----------
@@ -504,7 +530,7 @@ def _condos(project: Project, out: dict) -> None:
     the parcel universe file (prefix), or the parent ID in the units file, cleaned as the parcel ID is (parent).
     """
     u = units_file(project)
-    base = next((f for f in project.files if f.name == project.wizard.base), None)
+    base = project.base_file()
     if u is None or base is None or u.units is None or u.units.column is None:
         return
     units = u.units
@@ -621,7 +647,7 @@ def refresh_settings(project: Project) -> bool:
     """Rewrite settings.json when this OAK box would write it differently (a newer OAK box): on opening the project,
     so what that changes shows at once (Bring in data out of date, say), not at the next unrelated change. True when
     it was rewritten."""
-    path = project_dir(project.id) / "in" / "settings.json"
+    path = steps.settings_path(project_dir(project.id))
     if not path.exists():
         return False
     try:
@@ -635,7 +661,7 @@ def refresh_settings(project: Project) -> bool:
 
 
 def write_settings(project: Project) -> Path:
-    path = project_dir(project.id) / "in" / "settings.json"
+    path = steps.settings_path(project_dir(project.id))
     settings = base_settings(project)
     # In one step: the app reads it while a run is being started.
     atomic.save_text(path, json.dumps(settings, indent=2))

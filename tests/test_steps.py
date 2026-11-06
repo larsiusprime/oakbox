@@ -2,10 +2,12 @@
 out of date or accepted."""
 
 from types import SimpleNamespace
+from typing import cast
 
 from pydantic import BaseModel
 
 from oakbox import steps
+from oakbox.projects import Project
 
 
 class R(BaseModel):
@@ -41,7 +43,7 @@ def test_a_receipt_this_oak_box_cant_read_is_no_receipt(tmp_path):
 def test_out_of_date_and_accepted(tmp_path):
     depends = {"x": 1}
     step = steps.Step("demo", "Demo", R, key=lambda project, pdir: depends)
-    project = SimpleNamespace(id="p1", accepted={})
+    project = cast(Project, SimpleNamespace(id="p1", accepted={}))  # all a step reads of it
     pdir = tmp_path
     out = step.out_dir(pdir)
     out.mkdir(parents=True)
@@ -77,7 +79,7 @@ def test_a_step_follows_the_run_before_and_waits_for_any_step_before_it(tmp_path
     first = steps.Step("first", "First", R, key=lambda project, pdir: dict(calls))
     second = steps.Step("second", "Second", R, key=lambda project, pdir: {"first": first.ran_at(pdir)}, after=first)
     third = steps.Step("third", "Third", R, key=lambda project, pdir: {"second": second.ran_at(pdir)}, after=second)
-    project = SimpleNamespace(id="p2", accepted={})
+    project = cast(Project, SimpleNamespace(id="p2", accepted={}))
     _ran(first, tmp_path, "t1", calls)
     _ran(second, tmp_path, "t2", {"first": "t1"})
     _ran(third, tmp_path, "t3", {"second": "t2"})
@@ -130,3 +132,25 @@ def test_opening_a_project_refreshes_its_settings(client):
     path.write_text(json.dumps(s), encoding="utf-8")
     client.get(f"/api/projects/{pid}")
     assert "stale_by_an_older_oak_box" not in json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_the_pages_table_of_steps_follows_the_steps():
+    """The page asks a step's state again when one before it changes (web/src/api/steps.ts, NEXT): every step there
+    is, and every step a step starts from (Step.after), must be in it, or a screen shows a stale state."""
+    import re
+    from pathlib import Path
+
+    from oakbox.routes.steps import STEPS
+
+    source = (Path(__file__).parents[1] / "web" / "src" / "api" / "steps.ts").read_text(encoding="utf-8")
+    block = re.search(r"const NEXT: Record<StepId, StepId\[\]> = \{(.*?)\n\};", source, re.S)
+    assert block, "NEXT not found in steps.ts"
+    nxt = {
+        k.strip('"'): set(re.findall(r'"([a-z-]+)"', v))
+        for k, v in re.findall(r'^\s*("?[a-z-]+"?): \[(.*?)\],', block.group(1), re.M)
+    }
+    assert set(nxt) == set(STEPS)
+    path_of = {s.module: path for path, s in STEPS.items()}
+    for path, s in STEPS.items():
+        if s.after is not None:
+            assert path in nxt[path_of[s.after.module]], f"NEXT[{path_of[s.after.module]!r}] lacks {path!r}"

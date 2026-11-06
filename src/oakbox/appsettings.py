@@ -10,6 +10,7 @@ it, and these settings in ``<OAKBOX_HOME>/.oakbox``.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -21,6 +22,11 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 # One change to the settings at a time (the menus' thread and the app's requests both write them).
 LOCK = threading.Lock()
+
+# The street map under every map (SPEC §3.11): OpenFreeMap's vector tiles, free, with no key, meant for apps like
+# this one (openfreemap.org), in its light grey style, so what OAK box draws reads on top. Its address can be set
+# (map_style) to a tile server of one's own.
+MAP_STYLE = "https://tiles.openfreemap.org/styles/positron"
 
 # Zoom levels in percent, as browsers step them (View › Zoom in / Zoom out, Ctrl+mouse wheel).
 ZOOMS = (67, 75, 80, 90, 100, 110, 125, 150, 175, 200)
@@ -65,6 +71,9 @@ class AppSettings(BaseModel):
 
     recent: list[str] = Field(default_factory=list, description="Project ids, most recently opened first.")
     census_api_key: str | None = Field(default=None, description="The user's own, for the Census enrichment (F3e).")
+    map_style: str | None = Field(
+        default=None, description="The street map's MapLibre style address; None: OpenFreeMap's (MAP_STYLE)."
+    )
 
 
 def _override() -> Path | None:
@@ -131,9 +140,54 @@ def _path() -> Path:
 
 
 def load() -> AppSettings:
+    """The settings. A file that can't be read whole (edited by hand, damaged, from a newer OAK box) gives what can
+    still be read of it, the rest as default, and a copy is kept beside it before the next save writes over it: the
+    list of where projects are is never lost to one bad setting."""
+    path = _path()
     try:
-        return AppSettings.model_validate_json(_path().read_text(encoding="utf-8"))
-    except (FileNotFoundError, ValueError):
+        data = path.read_bytes()
+    except FileNotFoundError:
+        return AppSettings()
+    try:
+        return AppSettings.model_validate_json(data)
+    except (ValueError, TypeError):  # TypeError: a validator handed a value of the wrong kind (a zoom of null)
+        _keep_damaged(path, data)
+        return _salvage(data)
+
+
+DAMAGED = "settings.damaged.json"
+
+
+def _keep_damaged(path: Path, data: bytes) -> None:
+    """A copy of a settings file that can't be read, beside it, for someone to look at."""
+    copy = path.with_name(DAMAGED)
+    try:
+        if not copy.is_file() or copy.read_bytes() != data:
+            copy.write_bytes(data)
+    except OSError:
+        pass  # the settings still load; only the copy is missing
+
+
+def _salvage(data: bytes) -> AppSettings:
+    """Each setting that reads on its own, and each project folder that's a name and a folder."""
+    try:
+        raw = json.loads(data)
+    except ValueError:
+        return AppSettings()
+    if not isinstance(raw, dict):
+        return AppSettings()
+    kept: dict[str, object] = {}
+    for key, value in raw.items():
+        if key == "projects" and isinstance(value, dict):
+            value = {k: v for k, v in value.items() if isinstance(k, str) and isinstance(v, str)}
+        try:
+            AppSettings.model_validate({key: value})
+        except (ValueError, TypeError):
+            continue
+        kept[key] = value
+    try:
+        return AppSettings.model_validate(kept)
+    except (ValueError, TypeError):
         return AppSettings()
 
 
@@ -141,6 +195,11 @@ def save(s: AppSettings) -> None:
     from oakbox import atomic
 
     atomic.save_text(_path(), s.model_dump_json(indent=2))
+
+
+def map_style() -> str:
+    """The street map's style address: the one set in the settings (a tile server of one's own), else MAP_STYLE."""
+    return load().map_style or MAP_STYLE
 
 
 def storage_location() -> Path:

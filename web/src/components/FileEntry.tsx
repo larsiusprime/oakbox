@@ -67,7 +67,7 @@ export function FileEntry({
   facts?: ReactNode;
   /** A short check on the file itself, after its facts. */
   status?: ReactNode;
-  /** Other actions, as icon buttons, before the ✕. */
+  /** Other actions, as icon buttons, before the red −. */
   actions?: ReactNode;
   /** Takes the file off its step (the red −), and `undo` puts it back. */
   onRemove?: () => void;
@@ -109,7 +109,7 @@ export function FileSlot({ children }: { children: ReactNode }) {
 }
 
 /** Something inside a file's body that can be taken away on its own (an ID): its own small box on the body's
- * columns, the ✕ at its right. Its siblings in the same list get one too, without the ✕. */
+ * columns, the red − at its right. Its siblings in the same list get one too, without the −. */
 export function SubEntry({
   label,
   control,

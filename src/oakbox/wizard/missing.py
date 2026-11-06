@@ -14,7 +14,7 @@ from oakbox.datafiles import (
 from oakbox.projects import Project
 from oakbox.wizard.checks import MATCH_MIN, MATCH_OK, _base_ids, _n
 from oakbox.wizard.condos import _unshaped, unit_ids
-from oakbox.wizard.files import Files, _cleaned, _more_sales, _rows, _steps_key, base_file, file_stamp
+from oakbox.wizard.files import Files, _cleaned, _more_sales, _rows, _steps_key, file_stamp
 from oakbox.wizard.ids import Suggestion, _describe, _suggest
 from oakbox.wizard.models import MissingParcels, WizardFile
 
@@ -71,7 +71,7 @@ def _diagnose_missing(project: Project, files: Files, out: list[WizardFile]) -> 
     """Tell rows whose IDs are written differently (Reconcile cleans those up) from rows for parcels the parcel
     universe doesn't have: condo units on the roll but not the map, newer parcels, a file not added. For the
     second, say so, name a file in the project that has them, and the other files missing the same IDs."""
-    base = base_file(project)
+    base = project.base_file()
     if base is None or base.name not in files.preview:
         return
     gaps: dict[str, tuple[set[str], int]] = {}

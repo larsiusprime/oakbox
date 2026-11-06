@@ -1,4 +1,5 @@
-"""F2 and F3b (SPEC §3.0): put a file in the project's in/, declare it under data.load, rename, remove.
+"""The input files (SPEC §3.0 F2): checking a file and bringing it into the project's in/, the DataFile model of
+each, and the data.load entries written from them for OpenAVMKit.
 
 Mirrors OpenAVMKit: raw files live in the locality's in/, and each is an entry in
 ``data.load`` with its ``filename`` (and ``layer`` for a GeoPackage). Nothing here
@@ -15,6 +16,8 @@ from typing import Any, Literal, cast
 
 from pydantic import BaseModel as _PydanticBase
 from pydantic import ConfigDict, Field
+
+from oakbox.errors import NotFound
 
 # Exactly what OpenAVMKit's data.load reads (by extension, case-insensitively).
 FORMATS = {
@@ -760,4 +763,4 @@ def _entry(files: list[DataFile], name: str) -> DataFile:
     for f in files:
         if f.name == name:
             return f
-    raise LookupError(name)
+    raise NotFound(name)

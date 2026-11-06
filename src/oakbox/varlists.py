@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
@@ -19,6 +19,9 @@ from oakbox import model, steps, vartest
 from oakbox.datafiles import BaseModel
 from oakbox.model import ListKind as Kind
 from oakbox.model import VarList
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 # Why a variable isn't recommended for a list's type, in one group.
 Reason = Literal["blanks", "not_represented", "weak", "overlaps", "many_values"]
@@ -86,7 +89,7 @@ def tested(project_dir: Path) -> vartest.VarTestReceipt | None:
     return _receipt(str(base), receipt.stat().st_mtime) if receipt.is_file() else None
 
 
-def recommendations(project, project_dir: Path) -> dict[str, dict[str, dict[str, Reason | None]]]:
+def recommendations(project: Project, project_dir: Path) -> dict[str, dict[str, dict[str, Reason | None]]]:
     """Group -> type -> variable -> why it isn't recommended (None: it is)."""
     variables = model.variables(project, project_dir)
     r = tested(project_dir)
@@ -109,12 +112,12 @@ def recommendations(project, project_dir: Path) -> dict[str, dict[str, dict[str,
 # ---------- The lists ----------
 
 
-def _sales(project, project_dir: Path) -> dict[str, int]:
+def _sales(project: Project, project_dir: Path) -> dict[str, int]:
     r = tested(project_dir)
     return {g.id: g.sales for g in r.groups} if r else {}
 
 
-def lists(project, project_dir: Path) -> list[VarList]:
+def lists(project: Project, project_dir: Path) -> list[VarList]:
     """The lists the user made (none to start: settled 2026-10-31, so it's plain that a list's ticks are shared by
     every group it's for). Variables no longer offered are left out."""
     chosen: list[VarList] = project.model.lists or []
@@ -122,7 +125,7 @@ def lists(project, project_dir: Path) -> list[VarList]:
     return [x.model_copy(update={"variables": [v for v in x.variables if v in offered]}) for x in chosen]
 
 
-def check(project, new: list[VarList]) -> list[VarList]:
+def check(project: Project, new: list[VarList]) -> list[VarList]:
     """The lists as they'd be saved: names and ids unique, types and groups known."""
     groups = {g.id for g in project.groups}
     ids: set[str] = set()
@@ -212,7 +215,7 @@ def _warnings(x: VarList, variables: dict[str, model.Variable], sales: dict[str,
     return out
 
 
-def view(project, project_dir: Path) -> VarListsView:
+def view(project: Project, project_dir: Path) -> VarListsView:
     from oakbox import assemble
 
     variables = model.variables(project, project_dir)

@@ -11,7 +11,8 @@ python\python.exe -m oakbox.engines remove catboost
 ```
 (On Linux, `python/bin/python3`.) A checkout installs both with `uv sync`.
 
-**Making a release** (maintainers): set the version in `pyproject.toml`, commit, then tag and push it (`git tag v0.1.0 && git push origin v0.1.0`). CI builds the bundle and the installer, installs, starts and uninstalls it on a clean Windows machine, and publishes a pre-release with the installer and the portable zip (`packaging/RELEASE_NOTES.md` heads its notes). Every other push builds an installer too (the `installer-windows` artifact, kept a day).
+**Making a release** (maintainers): set the version in `pyproject.toml`, commit, then tag and push it (`git tag v0.1.0 && git push origin v0.1.0`). CI builds the bundle and the installer, installs, starts and uninstalls it on a clean Windows machine, and publishes a pre-release with the installer and the portable zip (`packaging/RELEASE_NOTES.md` heads its notes). Every pull request, and every push to `main`, builds an installer too (the `installer-windows` artifact, kept a
+day).
 
 ## The portable bundle (no installs needed)
 1. On GitHub, open the latest green run: **Actions → bundles**. Download `bundle-windows` or `bundle-linux` from **Artifacts**. They're kept for a day (the storage quota is small); re-run the workflow for fresh ones.
@@ -25,9 +26,13 @@ python\python.exe -m oakbox.engines remove catboost
    It opens a native window (Qt on Linux). Where Qt can't open one (it needs the desktop's usual display libraries), it opens a browser window instead.
 4. Click **New project**, fill in the jurisdiction and tax year, then add files in the **Data** tab's wizard. To try it on sample data, see [`sample/`](../sample/README.md).
 
+**The street map** under every map comes from [OpenFreeMap](https://openfreemap.org) (free, no key). To use a tile
+server of your own, put its MapLibre style address in OAK box's settings file (`%APPDATA%\OAK box\settings.json`,
+`~/.config/oakbox/settings.json`) as `"map_style": "https://…/style.json"`.
+
 Projects are kept in `Documents/OAK box/` by default; change it under **Where projects are kept** on the home screen. Projects made by earlier builds in `Documents/Oakbox/` still appear. (`OAKBOX_HOME` puts projects and OAK box's own settings in one folder, for testing.)
 
-**Unattended test:** `smoke.cmd` / `smoke.sh` downloads Petersburg's public data and runs OpenAVMKit on it directly (assemble, clean, ratio study), then starts the app service, creates a project and adds a file. It prints `SMOKE OK`. It needs internet.
+**Unattended test:** `smoke.cmd` / `smoke.sh` downloads Petersburg's public data and runs OpenAVMKit on it directly (assemble, clean, value-field studies), then starts the app service, creates a project and adds a file. It prints `SMOKE OK`. It needs internet.
 
 ## From source
 Requires [uv](https://docs.astral.sh/uv/), git and Node 22.
@@ -38,18 +43,20 @@ uv sync                              # every model engine included (the dev grou
 cd web && npm ci && npm run build && cd ..
 uv run python -X utf8 -m oakbox     # window (or --browser)
 ```
-On Windows, `build.bat` builds the UI and `run.bat` starts the app.
+On Windows, `build.bat` builds the UI, `run.bat` starts the app, and `test.bat` does both (it runs no tests).
 
 ## Developing the UI with hot reload
 In two terminals:
 ```
 uv run python -m oakbox --no-window --port 8765
-cd web && npm run dev                # opens http://localhost:5173, proxies /api to 8765
+cd web && npm run dev                # serves http://localhost:5173, proxies /api to 8765
 ```
 In a browser there is no file picker, so **Add a file** is disabled; use the OAK box window to add files.
 
 ## Editing the wording live
-Every word the app shows is in `web/src/wording/en.json`. To edit it in place: `edit-wording.bat` (Windows), or `cd web && npm run dev:wording` with `uv run python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`. Alt+click any text, edit it, and the change is written to `en.json`; review it with `git diff`. See SPEC §6.6.
+Every word the app shows is in `web/src/wording/en.json`. To edit it in place: `edit-wording.bat` (Windows), or `cd web && npm run dev:wording -- --port 5173 --strictPort --host 127.0.0.1` with
+`uv run python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173` (the same as `edit-wording.bat`: plain Vite may
+listen on `localhost` only as IPv6). Alt+click any text, edit it, and the change is written to `en.json`; review it with `git diff`. See SPEC §6.6.
 
 ## Checks (the same ones CI runs)
 See [AGENTS.md](../AGENTS.md#before-pushing-what-ci-runs) for the full list. In short:
@@ -65,4 +72,5 @@ cd web && npm run api
 ```
 
 ## M0 benchmarks
-The M0 spike scripts are still in `spikes/m0/`; see [`docs/m0/RUNNING.md`](m0/RUNNING.md).
+The M0 spike's scripts are in `spikes/m0/` and its report in [`docs/m0/REPORT.md`](m0/REPORT.md). They're a record of
+M0, not maintained: [`docs/m0/RUNNING.md`](m0/RUNNING.md) says what no longer works.

@@ -16,13 +16,17 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
 from oakbox import cells, clean, fields, steps
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotReady
 from oakbox.valuesets import ROLL, ValueSet, loaded_value_sets, value_field
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 MODULE = "ratio"
 # The value checked: the whole parcel's market value (land and improvement values aren't sold on their own).
@@ -51,11 +55,19 @@ NOMINAL = 1_000  # prices under this are nominal deeds, not prices (as Data's sa
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "ratio"
+    return steps.out_dir(project_dir, MODULE)
+
+
+# Check my values starts from Check sales as it ran: the copies it keeps in its own folder, never out/2-clean-*,
+# which Prepare the fields (step 5) writes again, filled and folded.
+
+
+def _hand_off(project_dir: Path) -> Path:
+    return clean.out_dir(project_dir) / "sup.pickle"
 
 
 def _hydrated(project_dir: Path) -> Path:
-    return project_dir / "out" / "look" / "2-clean-sales-hydrated.parquet"
+    return clean.out_dir(project_dir) / clean.SALES_KEPT
 
 
 # ---------- The calls ----------
@@ -172,13 +184,13 @@ class RatioState(BaseModel):
     groups: list[str] | None = Field(default=None, description="The model groups to check (ids); None: every one.")
 
 
-def checked_sets(project) -> list[ValueSet]:
+def checked_sets(project: Project) -> list[ValueSet]:
     """The value sets to check: those with a market value loaded, as chosen."""
     s: RatioState = project.ratio
     return [v for v in loaded_value_sets(project) if s.sets is None or v.id in s.sets]
 
 
-def checked_groups(project, project_dir: Path | None = None) -> list:
+def checked_groups(project: Project, project_dir: Path | None = None) -> list:
     """The groups to check: as chosen; else every one modeled (Model groups › Check them)."""
     s: RatioState = project.ratio
     if s.groups is not None:
@@ -189,7 +201,7 @@ def checked_groups(project, project_dir: Path | None = None) -> list:
     return [g for g in project.groups if g.id in modeled]
 
 
-def _first_field(project) -> str:
+def _first_field(project: Project) -> str:
     sets = checked_sets(project)
     return value_field(sets[0].id) if sets else FIELD
 
@@ -218,12 +230,12 @@ def proposed_class(group_id: str, name: str) -> PropertyClass:
     return "residential"
 
 
-def standards(project) -> list[Standard]:
+def standards(project: Project) -> list[Standard]:
     s: RatioState = project.ratio
     return s.standards if s.standards is not None else iaao_standards(s.targets)
 
 
-def classes(project) -> dict[str, str]:
+def classes(project: Project) -> dict[str, str]:
     """Model group -> the id of the standard that judges it, or "none". Once any standard's groups are chosen, they
     are the whole answer; before, each group's is proposed from its name (an IAAO category that's a standard)."""
     s: RatioState = project.ratio
@@ -239,13 +251,13 @@ def classes(project) -> dict[str, str]:
     return out
 
 
-def standard_of(project) -> dict[str, Standard | None]:
+def standard_of(project: Project) -> dict[str, Standard | None]:
     """Model group -> the standard that judges it (None: not judged)."""
     by_id = {x.id: x for x in standards(project)}
     return {g: by_id.get(c) for g, c in classes(project).items()}
 
 
-def engine_standards(project) -> dict:
+def engine_standards(project: Project) -> dict:
     """The standards as OpenAVMKit's value studies read them: each one a class, with all its own targets."""
     stds = standards(project)
     return {
@@ -282,7 +294,7 @@ class SalesLine(BaseModel):
     text: str
 
 
-def region(project) -> str:
+def region(project: Project) -> str:
     """The location field for neighbourhood price levels: chosen, else where Check sales compares sales."""
     s: RatioState = project.ratio
     return s.region if s.region is not None else (project.clean.location or "")
@@ -353,7 +365,7 @@ def _years_back(day: dt.date, years: int) -> dt.date:
         return day.replace(year=day.year - years, day=28)
 
 
-def window(project, sales=None, project_dir: Path | None = None) -> tuple[dt.date, dt.date, dt.date]:
+def window(project: Project, sales=None, project_dir: Path | None = None) -> tuple[dt.date, dt.date, dt.date]:
     """(start, end, proposed start). The end: the day before the valuation date. The proposed start: the year before
     it (the IAAO's window), reaching back a year at a time (up to five) until there are enough sales."""
     s: RatioState = project.ratio
@@ -373,14 +385,14 @@ def window(project, sales=None, project_dir: Path | None = None) -> tuple[dt.dat
     return s.start or proposed, end, proposed
 
 
-def setup(project, project_dir: Path) -> RatioSetup:
+def setup(project: Project, project_dir: Path) -> RatioSetup:
     import pandas as pd
 
     s: RatioState = project.ratio
     sales = _sales(project_dir)
     if sales is None:
-        raise LookupError("Check sales first: this starts from its hand-off.")
-    universe_path = project_dir / "out" / "look" / "2-clean-universe.parquet"
+        raise NotReady("Check sales first: this starts from its hand-off.")
+    universe_path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
     universe = pd.read_parquet(universe_path, columns=None) if universe_path.is_file() else sales
     start, end, proposed = window(project, sales)
     val = project.valuation_date or dt.date(int(project.tax_year), 1, 1)
@@ -585,21 +597,30 @@ class RatioReceipt(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
-def settings_key(project, project_dir: Path) -> dict:
-    """What a run depends on: the Check sales run it starts from, and the calls."""
+def study_calls(project: Project, project_dir: Path) -> dict:
+    """The calls that decide how values are studied against the sales: the window, the price, the trimming, the
+    standards, the classes and the region. Checking the roll's values and Finalize's study of the model values both
+    depend on them, so a new call goes here, for both."""
     start, end, _ = window(project, project_dir=project_dir)
     s: RatioState = project.ratio
     return {
-        "clean": clean.STEP.ran_at(project_dir),
-        "fields": [value_field(v.id) for v in checked_sets(project)],
         "window": [str(start), str(end)],
         "price": s.price,
         "trim": s.trim,
         "standards": [x.model_dump(exclude={"groups"}) for x in standards(project)],
         "classes": classes(project),
+        "region": region(project),
+    }
+
+
+def settings_key(project: Project, project_dir: Path) -> dict:
+    """What a run depends on: the Check sales run it starts from, the values checked, and the study's calls."""
+    return {
+        "clean": clean.STEP.ran_at(project_dir),
+        "fields": [value_field(v.id) for v in checked_sets(project)],
         "groups": [(g.id, g.name) for g in checked_groups(project)],
         "names": [v.name for v in checked_sets(project)],
-        "region": region(project),
+        **study_calls(project, project_dir),
     }
 
 
@@ -690,7 +711,7 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    src = pdir / "out" / "2-clean-sup.pickle"
+    src = _hand_off(pdir)
     if not src.is_file():
         raise RuntimeError("Check sales first: this starts from its hand-off.")
     s: RatioState = project.ratio
@@ -811,19 +832,20 @@ STEP = steps.Step(
     key=settings_key,
     after=clean.STEP,
     again="Check the values again first: something changed since they were checked.",
+    place="Evaluate",
 )
 
 
-def blocked(project, project_dir: Path) -> list[str]:
+def blocked(project: Project, project_dir: Path) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
-    if not (project_dir / "out" / "2-clean-sup.pickle").is_file() or not _hydrated(project_dir).is_file():
+    if not _hand_off(project_dir).is_file() or not _hydrated(project_dir).is_file():
         return ["Run Check sales again first: this starts from the sales it kept."]
     return []
 
 
-def view(project, project_dir: Path) -> RatioView:
+def view(project: Project, project_dir: Path) -> RatioView:
     stop = blocked(project, project_dir)
     # What a run would depend on can't be worked out until Check sales is done: not out of date, just blocked.
     s = STEP.state(project, project_dir, check=not stop)
@@ -839,7 +861,7 @@ def view(project, project_dir: Path) -> RatioView:
     )
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     stop = blocked(project, project_dir)
     if not stop:
         sales = _sales(project_dir)
@@ -852,7 +874,7 @@ def start(project, project_dir: Path) -> None:
     STEP.start(project.id, project_dir, stop)
 
 
-def accept(project, project_dir: Path) -> None:
+def accept(project: Project, project_dir: Path) -> None:
     if blocked(project, project_dir):
         raise ValueError(STEP.again)
     STEP.accept(project, project_dir)
@@ -876,7 +898,7 @@ class RatioPatch(BaseModel):
     groups: list[str] | None = Field(default=None, description="The model groups to check.")
 
 
-def change(project, body: RatioPatch) -> None:
+def change(project: Project, body: RatioPatch) -> None:
     s: RatioState = project.ratio
     if body.reset_window:
         s.start = s.end = None

@@ -3,6 +3,7 @@
  * Back (Alt+←). The places are kept on this computer (localStorage); losing them only means starting a project or
  * tab at its own pick. */
 import { useSyncExternalStore } from "react";
+import { navigate, type TabId } from "./route";
 
 /** The key of a major step's landing page in its step list (SPEC D21). */
 export const OVERVIEW = "overview";
@@ -148,7 +149,7 @@ export function back(): void {
     goingBack = false;
   }, 400);
   if ("home" in to) {
-    window.location.hash = "#/";
+    navigate({ name: "home" });
     return;
   }
   const w = state.where;
@@ -158,5 +159,5 @@ export function back(): void {
   }
   const title = lastStep(to.projectId, to.tab)?.title ?? "";
   if (to.step !== OVERVIEW) remember(to.projectId, to.tab, to.step, title);
-  window.location.hash = `#/projects/${to.projectId}/${to.tab}${to.tab === "fields" ? `/${to.step}` : ""}`;
+  navigate({ name: "project", id: to.projectId, tab: to.tab as TabId, step: to.step });
 }

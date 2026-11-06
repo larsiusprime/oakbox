@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import { appSettingsKey, useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
 import { desktop } from "../desktop";
 import { t } from "../wording";
@@ -30,16 +31,13 @@ export function StorageLocationDialog({ isOpen, onClose }: { isOpen: boolean; on
 
 function StorageLocation({ onDone }: { onDone: () => void }) {
   const queryClient = useQueryClient();
-  const settings = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => unwrap(await api.GET("/api/app-settings")),
-  });
+  const settings = useAppSettings();
   const [editing, setEditing] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: async (storage_location: string | null) =>
       unwrap(await api.PUT("/api/app-settings/storage-location", { body: { storage_location } })),
     onSuccess: (data) => {
-      queryClient.setQueryData(["app-settings"], data);
+      queryClient.setQueryData(appSettingsKey, data);
       setEditing(null);
     },
   });

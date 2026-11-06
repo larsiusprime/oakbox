@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, type ReactNode, useState } from "react";
 import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
-import { navigate } from "../App";
 import {
   api,
   type Condition,
@@ -18,6 +17,7 @@ import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { short } from "../lib/format";
+import { navigate } from "../lib/route";
 import { say, t } from "../wording";
 
 const u = t.wizard.units;

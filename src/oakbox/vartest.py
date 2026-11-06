@@ -1,7 +1,7 @@
-"""Step 5: test the variables before the models (SPEC F9). OpenAVMKit's own variable tests, per model group, on the
-variables ticked: are they represented, and those the user picked of how they correlate with price and with each
-other, their p-values together, and VIF. The receipt keeps every test's result for every variable, so the step can
-show the tests one at a time and the user can untick what's a waste of time.
+"""Step 5, Variables: test the variables before the models (SPEC F9). OpenAVMKit's own variable tests, per model group,
+on the variables ticked: are they represented, and those the user picked of how they correlate with price and with
+each other, their p-values together, and VIF. The receipt keeps every test's result for every variable, so the step
+can show the tests one at a time and the user can untick what's a waste of time.
 
 It runs in a process of its own (`python -m oakbox.vartest <project id>`): the prepared hand-off, the canonical
 splits, then `get_variable_recommendations(..., return_tests=True)` per model group, main models only.
@@ -14,18 +14,21 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
 from oakbox import cells, model, prepare, steps
 from oakbox.datafiles import BaseModel
 
+if TYPE_CHECKING:
+    from oakbox.projects import Project
+
 MODULE = "vartest"
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / "vartest"
+    return steps.out_dir(project_dir, MODULE)
 
 
 class TestRow(BaseModel):
@@ -177,7 +180,7 @@ def run(project_id: str) -> None:
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
-    if not (pdir / "out" / "2-clean-sup.pickle").is_file():
+    if not (steps.handoff(pdir, "2-clean")).is_file():
         raise RuntimeError("Prepare the fields first: the tests start from what it writes.")
     variables = [v.field for v in model.variables(project, pdir)]  # every variable: lists are built from the results
     to_run = model.tests(project)
@@ -302,7 +305,7 @@ class VarTestView(steps.RunView):
     receipt: VarTestReceipt | None
 
 
-def _lag(project, project_dir: Path) -> dict:
+def _lag(project: Project, project_dir: Path) -> dict:
     """The nearby sales and buildings it tests (spatial lag): what changes their values."""
     from oakbox import assemble
 
@@ -312,7 +315,7 @@ def _lag(project, project_dir: Path) -> dict:
     )
 
 
-def _key(project, project_dir: Path) -> dict:
+def _key(project: Project, project_dir: Path) -> dict:
     from oakbox import assemble
 
     return {
@@ -336,7 +339,7 @@ STEP = steps.Step(
 )
 
 
-def view(project, project_dir: Path) -> VarTestView:
+def view(project: Project, project_dir: Path) -> VarTestView:
     s = STEP.state(project, project_dir)
     r = s.receipt
     every = {v.field for v in model.variables(project, project_dir)}
@@ -347,7 +350,7 @@ def view(project, project_dir: Path) -> VarTestView:
     )
 
 
-def _blocked(project, project_dir: Path, every: set[str]) -> list[str]:
+def _blocked(project: Project, project_dir: Path, every: set[str]) -> list[str]:
     waiting = STEP.waiting(project, project_dir)
     if waiting:
         return [waiting]
@@ -356,7 +359,7 @@ def _blocked(project, project_dir: Path, every: set[str]) -> list[str]:
     return []
 
 
-def start(project, project_dir: Path) -> None:
+def start(project: Project, project_dir: Path) -> None:
     every = {v.field for v in model.variables(project, project_dir)}
     STEP.start(project.id, project_dir, _blocked(project, project_dir, every))
 

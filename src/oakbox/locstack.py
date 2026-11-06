@@ -15,8 +15,9 @@ from typing import TYPE_CHECKING, cast
 
 from pydantic import Field
 
-from oakbox import clean, fields
+from oakbox import clean, fields, steps
 from oakbox.datafiles import BaseModel
+from oakbox.errors import NotReady
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -46,7 +47,7 @@ class StackPreview(BaseModel):
 
 
 def _paths(project_dir: Path) -> tuple[Path, Path]:
-    look = project_dir / "out" / "look"
+    look = steps.look_dir(project_dir)
     return look / "2-clean-universe.parquet", look / "2-clean-sales.parquet"
 
 
@@ -108,7 +109,7 @@ def preview(project_dir: Path, group: str, broadest_first: list[str]) -> StackPr
     names = {x.field: x.name for x in offered(project_dir)}
     df = _group(project_dir, group, list(names))
     if df is None:
-        raise LookupError("Prepare the fields first: the stack is read from what it writes.")
+        raise NotReady("Prepare the fields first: the stack is read from what it writes.")
     levels: list[Level] = []
     above: str | None = None
     for f in broadest_first:

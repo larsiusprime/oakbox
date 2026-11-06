@@ -954,6 +954,7 @@ export type Wording = {
   };
   map: {
     basemap: string;
+    basemapTip: string;
   };
   multiPick: {
     plusOthers: (a: { first: string | number; n: number }) => string;
@@ -2250,5 +2251,9 @@ export type Wording = {
     delete: string;
     cancel: string;
     cleared: (a: { what: string | number }) => string;
+  };
+  format: {
+    todayAt: (a: { time: string | number }) => string;
+    dayAt: (a: { date: string | number; time: string | number }) => string;
   };
 };

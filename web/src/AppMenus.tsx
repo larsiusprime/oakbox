@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { navigate, type Route } from "./App";
+import { appSettingsKey, useAppSettings } from "./api/app";
 import { api, unwrap } from "./api/client";
 import { ModelEnginesDialog } from "./components/Engines";
 import { desktop } from "./desktop";
+import { navigate, type Route } from "./lib/route";
 import { type MenuCommand, useMenu } from "./menu";
 import { t } from "./wording";
 
@@ -14,10 +15,7 @@ export function AppMenus({ route }: { route: Route }) {
   const [about, setAbout] = useState(false);
   const [engines, setEngines] = useState(false);
   const [flash, setFlash] = useState<number | null>(null); // the zoom level, shown for a moment after it changes
-  const settings = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => unwrap(await api.GET("/api/app-settings")),
-  });
+  const settings = useAppSettings();
   const display = settings.data?.display;
 
   // Display settings live on <html>, where the styles read them.
@@ -48,7 +46,7 @@ export function AppMenus({ route }: { route: Route }) {
     (by: -1 | 0 | 1) => {
       zoomQueue.current = zoomQueue.current.then(async () => {
         const view = unwrap(await api.POST("/api/app-settings/zoom", { body: { by } }));
-        queryClient.setQueryData(["app-settings"], view);
+        queryClient.setQueryData(appSettingsKey, view);
       });
     },
     [queryClient],
@@ -78,7 +76,7 @@ export function AppMenus({ route }: { route: Route }) {
         return projectId && showFolder.mutate(projectId);
       // The View items save the setting in OAK box (oakbox/menus.py); restyle to match.
       case "display":
-        return void queryClient.invalidateQueries({ queryKey: ["app-settings"] });
+        return void queryClient.invalidateQueries({ queryKey: appSettingsKey });
       // The menu greys these out outside a project; the shortcuts still arrive here.
       case "tab-metadata":
         return projectId && navigate({ name: "project", id: projectId, tab: "metadata" });

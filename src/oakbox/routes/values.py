@@ -7,7 +7,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from oakbox import final, projects, ratio, report
-from oakbox.routes.common import load_project
+from oakbox.errors import NotReady
+from oakbox.routes.common import editing, load_project
 
 router = APIRouter()
 
@@ -21,21 +22,20 @@ def ratio_setup(project_id: str) -> ratio.RatioSetup:
     project = load_project(project_id)
     try:
         return ratio.setup(project, projects.project_dir(project_id))
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
 @router.patch("/api/projects/{project_id}/ratio/setup")
 def ratio_change(project_id: str, body: ratio.RatioPatch) -> ratio.RatioSetup:
-    project = load_project(project_id)
-    try:
-        ratio.change(project, body)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        try:
+            ratio.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     try:
         return ratio.setup(project, projects.project_dir(project_id))
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -82,12 +82,11 @@ def report_view(project_id: str) -> report.ReportView:
 
 @router.patch("/api/projects/{project_id}/report")
 def report_change(project_id: str, body: report.ReportPatch) -> report.ReportView:
-    project = load_project(project_id)
-    try:
-        report.change(project, body)
-    except ValueError as e:
-        raise HTTPException(422, str(e)) from e
-    projects.save(project)
+    with editing(project_id) as project:
+        try:
+            report.change(project, body)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
     return report.view(project, projects.project_dir(project_id))
 
 
@@ -101,7 +100,7 @@ def report_export(project_id: str, body: ExportBody) -> report.ExportResult:
     project = load_project(project_id)
     try:
         return report.export(project, projects.project_dir(project_id), body.format)
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
 
 
@@ -111,7 +110,7 @@ def report_html(project_id: str) -> HTMLResponse:
     project = load_project(project_id)
     try:
         path = report.write(project, projects.project_dir(project_id))
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
@@ -143,7 +142,7 @@ def report_open(project_id: str) -> str:
     pdir = projects.project_dir(project_id)
     try:
         path = report.write(project, pdir)
-    except LookupError as e:
+    except NotReady as e:
         raise HTTPException(409, str(e)) from e
     webbrowser.open(path.as_uri())
     return str(path.relative_to(pdir))

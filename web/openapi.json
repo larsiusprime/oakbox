@@ -6551,13 +6551,19 @@
      },
      "display": {
       "$ref": "#/components/schemas/Display-Output"
+     },
+     "map_style": {
+      "type": "string",
+      "title": "Map Style",
+      "description": "The street map's MapLibre style address (appsettings.map_style)."
      }
     },
     "type": "object",
     "required": [
      "storage_location",
      "default_storage_location",
-     "display"
+     "display",
+     "map_style"
     ],
     "title": "AppSettingsView"
    },
@@ -7564,7 +7570,13 @@
      "name_format": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "string",
+        "enum": [
+         "first_word",
+         "before_comma",
+         "last_word",
+         "custom"
+        ]
        },
        {
         "type": "null"

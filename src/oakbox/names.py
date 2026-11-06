@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 FormatId = Literal["first_word", "before_comma", "last_word", "custom"]
 
@@ -113,7 +116,7 @@ def check_pattern(pattern: str) -> str | None:
 
 
 def view(
-    project,
+    project: Project,
     in_dir: Path,
     format: FormatId | None = None,
     pattern: str | None = None,
@@ -194,7 +197,7 @@ def view(
     )
 
 
-def save(project, format: FormatId, pattern: str | None) -> None:
+def save(project: Project, format: FormatId, pattern: str | None) -> None:
     if format == "custom":
         problem = check_pattern(pattern or "")
         if problem:
@@ -205,7 +208,7 @@ def save(project, format: FormatId, pattern: str | None) -> None:
     project.clean.name_format = format
 
 
-def pattern(project) -> str | None:
+def pattern(project: Project) -> str | None:
     """The pattern sales scrutiny reads names with: the confirmed one; None: OpenAVMKit's default (surname first)."""
     c = project.clean
     if c.name_format == "custom":

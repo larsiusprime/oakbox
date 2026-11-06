@@ -1,14 +1,22 @@
 name: bundles
 
 # Checks, then build the portable Windows and Linux bundles on Linux and prove each
-# runs on a clean machine of its platform using only the bundled Python: download
-# the sample county and run steps 1-4 through the real app service.
+# runs on a clean machine of its platform using only the bundled Python (oakbox/smoke.py:
+# OpenAVMKit's own stages on Petersburg's public data, then the app service, a project and a file).
 on:
   push:
     branches: [claude/openavmkit-desktop-wrapper-639lvu, main]
     # A version tag (v0.1.0, matching pyproject.toml's version) also publishes a GitHub Release.
     tags: ["v*"]
+  # Every pull request runs all of it, bundles included: a change to the dependencies can break a bundle.
+  pull_request:
   workflow_dispatch:
+
+# A newer push to the same pull request stops its run still going (each bundle is ~550 MB of artifacts); a run for a
+# push to a branch or a tag always finishes.
+concurrency:
+  group: bundles-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:

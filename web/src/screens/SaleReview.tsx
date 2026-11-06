@@ -1,7 +1,8 @@
 /** Check sales' review of the sales set aside: the list, one sale at a time, and why each was set aside. */
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button, TextArea, TextField } from "react-aria-components";
+import { useMarkSale } from "../api/clean";
 import {
   api,
   type CleanView,
@@ -10,7 +11,6 @@ import {
   type SaleDetail,
   unwrap,
 } from "../api/client";
-import { stepChanged, stepKey } from "../api/steps";
 import { Choice } from "../components/Form";
 import { Val } from "../components/Val";
 import { desktop } from "../desktop";
@@ -291,7 +291,6 @@ function SaleView({
   next: () => void;
   pick: (key: string) => void;
 }) {
-  const queryClient = useQueryClient();
   const [note, setNote] = useState(i.note);
   // A new sale opens at its top: scrolled down to Next, the page would otherwise show its middle.
   const top = useRef<HTMLElement>(null);
@@ -308,20 +307,7 @@ function SaleView({
         }),
       ),
   });
-  const mark = useMutation({
-    mutationFn: async (m: { key: string; action: "keep" | "exclude" | null; note: string }) =>
-      unwrap(
-        await api.PUT("/api/projects/{project_id}/clean/marks/{key_sale}", {
-          params: { path: { project_id: projectId, key_sale: m.key } },
-          body: { action: m.action, note: m.note },
-        }),
-      ),
-    // A mark puts Check sales out of date, and so the steps after it.
-    onSuccess: (data) => {
-      queryClient.setQueryData(stepKey("clean", projectId), data);
-      stepChanged(queryClient, projectId, "clean", false);
-    },
-  });
+  const mark = useMarkSale(projectId);
   const d = detail.data;
   const u = s.unit[unit];
   const decide = (action: "keep" | "exclude" | null) =>

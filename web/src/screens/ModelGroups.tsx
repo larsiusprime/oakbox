@@ -2,13 +2,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay, Radio, RadioGroup } from "react-aria-components";
-import { navigate } from "../App";
 import {
   api,
   type GroupField,
   type GroupsPreview,
   type GroupsView,
   type ModelGroup,
+  type Move,
   unwrap,
 } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
@@ -21,6 +21,7 @@ import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { when } from "../lib/format";
 import { useSettled } from "../lib/hooks";
+import { navigate } from "../lib/route";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
 import { AssembleResults, Formats } from "./Assemble";
@@ -736,8 +737,6 @@ function Builder({
     </>
   );
 }
-
-export type Move = GroupsPreview["moves"][number];
 
 /** Parcels in and out of a group since the saved groups. */
 function delta(p: GroupsPreview | undefined, id: string): number {

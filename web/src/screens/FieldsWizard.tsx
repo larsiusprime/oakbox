@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { navigate } from "../App";
 import {
   api,
   type Project,
@@ -23,6 +22,7 @@ import { Seg } from "../components/Seg";
 import { LANDING_MARK, LandingPage, useFrame } from "../components/Steps";
 import { Tip, TipOn } from "../components/Tip";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
+import { navigate } from "../lib/route";
 import { say, t } from "../wording";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";

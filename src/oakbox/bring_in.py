@@ -23,13 +23,17 @@ import re
 import shutil
 import time
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
 from oakbox import steps
 from oakbox.datafiles import BaseModel
 from oakbox.enrichments import SKIPPABLE, SOURCES, EnrichResult, instrument, recount
+from oakbox.errors import NotFound
+
+if TYPE_CHECKING:
+    from oakbox.projects import Project
 
 ROW_GROUP = 1_000
 PAGE = 50
@@ -40,7 +44,7 @@ MODULE = "bring_in"
 
 
 def out_dir(project_dir: Path) -> Path:
-    return project_dir / "out" / "oakbox" / MODULE
+    return steps.out_dir(project_dir, MODULE)
 
 
 # ---------- The receipt ----------
@@ -229,7 +233,7 @@ def _rows_path(project_dir: Path, name: str) -> Path:
     if name in ("universe", "sales"):
         return base / f"{name}.parquet"
     if not name.replace("_", "").isalnum():
-        raise LookupError(name)
+        raise NotFound(name)
     return base / "rows" / f"{name}.parquet"
 
 
@@ -277,7 +281,7 @@ def page(project_dir: Path, name: str, offset: int, limit: int = PAGE) -> Rows:
 
     path = _rows_path(project_dir, name)
     if not path.is_file():
-        raise LookupError(name)
+        raise NotFound(name)
     pf = pq.ParquetFile(path)
     total = pf.metadata.num_rows
     offset = max(0, min(offset, max(0, total - 1)))
@@ -397,10 +401,10 @@ def profile(
     from oakbox.wizard import short_number, sort_counts
 
     if name not in ("universe", "sales"):
-        raise LookupError(name)
+        raise NotFound(name)
     path = _rows_path(project_dir, name)
     if not path.is_file() or field not in pq.ParquetFile(path).schema_arrow.names:
-        raise LookupError(field)
+        raise NotFound(field)
     s = pd.read_parquet(path, columns=[field])[field]
     rows, filled = len(s), s.dropna()
     stats: list[Stat] = []
@@ -462,7 +466,7 @@ def csv_chunks(project_dir: Path, name: str):
 
     path = _rows_path(project_dir, name)
     if not path.is_file():
-        raise LookupError(name)
+        raise NotFound(name)
     pf = pq.ParquetFile(path)
     for g in range(pf.num_row_groups):
         yield pf.read_row_group(g).to_pandas().to_csv(index=False, header=g == 0)
@@ -589,7 +593,7 @@ def run(project_id: str) -> None:
     universe, sales = sup.universe, sup.sales
     recount(enriched, universe)
     files = wizard.Files(project, in_dir)
-    base = wizard.base_file(project)
+    base = project.base_file()
     keys = set(universe["key"].astype(str))
     rows_dir = tmp / "rows"
 
@@ -864,10 +868,10 @@ def run(project_id: str) -> None:
             )
         )
     for lv in wizard.layers(project, in_dir):
-        o = next((f.overlay for f in project.files if f.name == lv.name), None)
-        if o is None or o.use != "stamp" or not o.fields or o.fields[0].name not in universe:
+        entry = project.file(lv.name)
+        o = entry.overlay if entry else None
+        if entry is None or o is None or o.use != "stamp" or not o.fields or o.fields[0].name not in universe:
             continue
-        entry = next(f for f in project.files if f.name == lv.name)
         if base is None or not lv.projected:
             continue
         one, several, none = wizard.coverage(
@@ -940,11 +944,11 @@ class View(steps.RunView):
     plan: Plan
 
 
-def plan(project, in_dir: Path) -> Plan:
+def plan(project: Project, in_dir: Path) -> Plan:
     from oakbox import wizard
 
     files = wizard.Files(project, in_dir)
-    base = wizard.base_file(project)
+    base = project.base_file()
     out: list[PlanFile] = []
     layers: list[str] = []
     for f in project.files:
@@ -984,10 +988,11 @@ STEP = steps.Step(
     key=lambda project, pdir: settings_key(steps.read_settings(pdir)),
     ran_hash=settings_hash,
     again="Bring in data again first: the Data wizard changed since it ran.",
+    place="Inputs",
 )
 
 
-def view(project, project_dir: Path, problems: list[str]) -> View:
+def view(project: Project, project_dir: Path, problems: list[str]) -> View:
     s = STEP.state(project, project_dir)
     return View(
         status=s.status,

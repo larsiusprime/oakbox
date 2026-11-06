@@ -342,6 +342,26 @@ def test_prepare_fills_and_folds_on_what_check_sales_wrote(prepared, brought_in_
     assert not client.get(prep).json()["stale"]  # and back as it was
 
 
+def test_check_my_values_starts_from_check_sales_not_from_what_prepare_wrote(prepared, brought_in_client, brought_in):
+    """Prepare the fields (step 5) writes out/2-clean-* again, filled and folded: Check my values (step 4) reads
+    Check sales' own copies, so it's the same whether step 5 has run or not."""
+    client, pid = brought_in_client, brought_in[1]
+    pdir = projects.project_dir(pid)
+    rv = f"/api/projects/{pid}/ratio"
+    before = client.get(f"{rv}/setup").json()
+    shared = [pdir / "out" / "2-clean-sup.pickle", *(pdir / "out" / "look").glob("2-clean-*")]
+    aside = pdir / "aside"
+    aside.mkdir()
+    try:
+        for f in shared:
+            f.rename(aside / f.name)
+        assert client.get(rv).json()["blocked"] == []
+        assert client.get(f"{rv}/setup").json() == before
+    finally:
+        for f in shared:
+            (aside / f.name).rename(f)
+
+
 def test_the_variable_lists_and_each_groups_models(prepared, brought_in_client, brought_in):
     client, pid = brought_in_client, brought_in[1]
     # Variables › Variable lists (F9): none to start (the user makes them); each variable judged per group and type.
@@ -494,3 +514,9 @@ def test_the_models_study_set_setting_leaves_check_sales_as_it_was(tmp_path):
     assert clean.settings_key(base, project, tmp_path) == clean.settings_key(more, project, tmp_path)
     other = {"analysis": {"ratio_study": {"look_back_years": 2}}}
     assert clean.settings_key(base, project, tmp_path) != clean.settings_key(other, project, tmp_path)
+
+
+def test_a_deed_name_format_this_oak_box_doesnt_know_reads_as_not_decided():
+    """A format renamed since it was saved: the guess is shown again, not an error on Data › Deeds or the project."""
+    assert clean.CleanState(name_format="last_word").name_format == "last_word"
+    assert clean.CleanState.model_validate({"name_format": "surname_first"}).name_format is None

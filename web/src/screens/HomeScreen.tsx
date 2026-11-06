@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderOpen, Trash2 } from "lucide-react";
 import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { navigate } from "../App";
 import { api, type Project, unwrap } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { OakBand } from "../components/OakBand";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 
 export function HomeScreen() {

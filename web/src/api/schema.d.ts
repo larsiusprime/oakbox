@@ -2450,6 +2450,11 @@ export interface components {
             /** Default Storage Location */
             default_storage_location: string;
             display: components["schemas"]["Display-Output"];
+            /**
+             * Map Style
+             * @description The street map's MapLibre style address (appsettings.map_style).
+             */
+            map_style: string;
         };
         /** Area */
         Area: {
@@ -2877,7 +2882,7 @@ export interface components {
              * Name Format
              * @description How deed names are written (names.FORMATS, or custom); None: not decided.
              */
-            name_format: string | null;
+            name_format: ("first_word" | "before_comma" | "last_word" | "custom") | null;
             /**
              * Name Pattern
              * @description The custom format: a regex with a surname group.

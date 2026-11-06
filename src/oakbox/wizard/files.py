@@ -15,6 +15,7 @@ from oakbox.datafiles import (
     DataFile,
     clean_value,
 )
+from oakbox.errors import NotFound
 from oakbox.fields import Column, DictionaryField
 from oakbox.projects import Project
 from oakbox.wizard.models import WizardFile
@@ -82,7 +83,10 @@ class Files:
                 self.problem[f.name] = f"Couldn't read {f.filename}: {e}"
 
     def entry(self, name: str) -> DataFile:
-        return next(f for f in self.project.files if f.name == name)
+        entry = self.project.file(name)
+        if entry is None:
+            raise NotFound(name)
+        return entry
 
     def columns(self, name: str) -> list[Column]:
         p = self.preview.get(name)
@@ -129,10 +133,6 @@ def _more_sales(f: DataFile | WizardFile) -> bool:
 def _field_files(project: Project, sales: bool) -> list[DataFile]:
     holds = "sales" if sales else "parcels"
     return [f for f in project.files if f.holds == holds]
-
-
-def base_file(project: Project) -> DataFile | None:
-    return next((f for f in project.files if f.name == project.wizard.base), None)
 
 
 def _rows(files: Files, name: str) -> int | None:

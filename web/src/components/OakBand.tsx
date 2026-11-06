@@ -6,9 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-aria-components";
-import { navigate } from "../App";
+import { useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
 import { lastStep, lastTab, usePlace } from "../lib/place";
+import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { StorageLocationDialog } from "./StorageLocation";
 
@@ -49,10 +50,7 @@ export function OakBand({ page }: { page: Page }) {
 /** On the projects page, Projects holds the setting for where they're kept. */
 function ProjectsHere() {
   const [open, setOpen] = useState(false);
-  const settings = useQuery({
-    queryKey: ["app-settings"],
-    queryFn: async () => unwrap(await api.GET("/api/app-settings")),
-  });
+  const settings = useAppSettings();
   return (
     <Crumb>
       <Jump label={n.projects} current title={n.projectsSettings}>

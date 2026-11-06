@@ -9,9 +9,9 @@ import type { components } from "../api/schema";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
+import { ratioColor, ratioStroke } from "../lib/colours";
 import { money, num, signed } from "../lib/format";
 import { t } from "../wording";
-import { ratioColor, ratioStroke } from "./ValueMap";
 
 type Receipt = components["schemas"]["FinalReceipt"];
 type SetKey = Receipt["sets"][number]["key"];
