@@ -86,6 +86,7 @@ without admin rights.
 | 6.4 | [platform.md](docs/spec/platform.md) | 6.4 Staleness and re-runs |
 | 6.5 | [platform.md](docs/spec/platform.md) | 6.5 Frontend and build stack |
 | 6.6 | [platform.md](docs/spec/platform.md) | 6.6 Wording: the catalog and live editing |
+| 6.7 | [platform.md](docs/spec/platform.md) | 6.7 Project files across versions (planned) |
 | 7 | [engine.md](docs/spec/engine.md) | 7. Engine: OpenAVMKit changes |
 | A | [engine.md](docs/spec/engine.md) | A. Needed for M1 ("Check my values") |
 | B | [engine.md](docs/spec/engine.md) | B. Needed for M2 (enrichment, model groups, sales) |

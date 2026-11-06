@@ -337,3 +337,42 @@ that mode compiles the editor in (`__WORDING_EDIT__`); every other build has non
   already on the screen.
 - **Not editable here:** OpenAVMKit's own messages (shown as "from OpenAVMKit"), the user's data, and the native menus'
   labels (`menus.py`, few and short).
+
+### 6.7 Project files across versions (planned)
+
+**Not built, on purpose.** While the format changes every week, a project that no longer loads is simply hidden (and
+re-made). This is the plan for when that stops being acceptable: **turn it on before the first release whose users are
+told their projects carry over to the next one** (open item 5, §10). From then on, a project made by one OAK box opens
+in every later one, and nothing a user decided is ever lost silently.
+
+**What's kept, and how each kind is treated:**
+
+| File | Whose | Across versions |
+|---|---|---|
+| `oakbox.json` | the user's: every choice | versioned and upgraded (below) |
+| `in/oakbox/*` (sales kept and excluded, time adjustment files) | the user's | versioned with `oakbox.json`: its schema covers them |
+| `in/settings.json` | derived from `oakbox.json` | not versioned: rewritten on opening (`projects.refresh_settings`, as today) |
+| `out/oakbox/<step>/` (receipts) | derived from runs | not versioned: one this OAK box can't read is no receipt, and the step asks to run again (as today) |
+| OAK box's own `settings.json` | the user's, per computer | versioned the same way; one that doesn't read keeps what does and a copy (as today) |
+
+**`oakbox.json`:**
+- **A version:** `"schema": N`, written on every save, with the OAK box version that saved it (`saved_by`). A file
+  without one is schema 1, the format the first release ships.
+- **Every change to the `Project` model raises it**, an added field too: an older OAK box drops fields it doesn't know
+  when it saves, so it mustn't save a newer project at all. CI enforces this: the model's JSON schema is fingerprinted
+  in the repository per version, and a change without a raised version fails the build.
+- **Upgrades:** one function per step (`2: upgrade_from_1(raw) -> raw`), on the raw JSON before the model reads it,
+  applied in order from the file's version to this one. The first save after an upgrade keeps the file it replaced as
+  `oakbox.json.v<N>.bak` (once per version), so a user can go back by hand.
+- **A newer project** (its schema above this OAK box's) is listed but not opened: "Made by OAK box 1.4: update OAK box
+  to open it". It's never saved by this one, so nothing is dropped.
+- **A damaged project** (it doesn't read, even after upgrading) is listed with why ("Damaged: `groups[2].rule` isn't a
+  rule") and **Show folder**, not hidden, and never written over. Repairing one is for later.
+- **Tests:** a project file of every schema there has been, kept in `tests/data/projects/`, each upgraded to the
+  current one and checked; plus a newer one (listed, untouched) and a damaged one (listed, with its reason).
+- **AGENTS.md** then says: a change to `Project` raises its schema, adds the upgrade, and adds a test file.
+
+**Open questions, for then:**
+- OpenAVMKit's own changes: a step that ran on an older OpenAVMKit (its receipt records which) is up to date by its
+  settings, but might come out differently now. Say so beside its receipt, or put it out of date?
+- Read-only opening of a newer project, if users share project folders between offices on different versions.

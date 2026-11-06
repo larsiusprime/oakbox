@@ -102,3 +102,5 @@ isn't; the milestones are kept as they were planned.
    health testing. The first is a full Travis CAD PACS export (fixed-width text, 391 MB zipped).
 3. **Land-value tool:** how, if at all, should Oakbox hand off to it later (shared project folder, export format)?
 4. **Usability test:** after M1, with assessors the maintainer recruits.
+5. **Project files across versions** (§6.7): when to turn it on. Before the first release whose users are told
+   their projects carry over; until then, a project that no longer loads is hidden and made again.
