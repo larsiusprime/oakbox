@@ -46,8 +46,14 @@ def _map_points(stamp: tuple[str, float, int], layer: str | None):
     gdf = gdf[gdf.geometry.notna()]
     if gdf.crs is None:
         return [], None, len(gdf)
-    # The middle as OpenAVMKit works it out (in the file's own coordinates), then in degrees.
-    middle = gpd.GeoSeries([gdf.geometry.union_all().centroid], crs=gdf.crs).to_crs(4326).iloc[0]
+    # The middle as OpenAVMKit works it out (its own function: the area-weighted mean of the distinct parcels'
+    # centroids, in the file's own coordinates), then in degrees: the point polar coordinates are measured from.
+    from openavmkit.utilities.geometry import area_weighted_center
+
+    found = area_weighted_center(gdf.geometry)
+    if found is None:  # no shapes
+        return [], None, len(gdf)
+    middle = gpd.GeoSeries([found], crs=gdf.crs).to_crs(4326).iloc[0]
     sample = gdf.sample(min(3000, len(gdf)), random_state=0) if len(gdf) else gdf
     centres = sample.geometry.centroid.to_crs(4326)
     points = [(round(p.y, 6), round(p.x, 6)) for p in centres]
