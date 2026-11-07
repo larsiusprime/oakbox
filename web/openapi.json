@@ -3954,6 +3954,55 @@
     }
    }
   },
+  "/api/projects/{project_id}/model/skip/{part}": {
+   "post": {
+    "summary": "Model Skip",
+    "description": "Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is\nleft out, and the run goes on with the rest.",
+    "operationId": "model_skip_api_projects__project_id__model_skip__part__post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "part",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Part"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ModelView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/model/stop": {
    "post": {
     "summary": "Model Stop",
@@ -4084,6 +4133,55 @@
       "schema": {
        "type": "string",
        "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FinalView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/final/skip/{part}": {
+   "post": {
+    "summary": "Final Skip",
+    "description": "Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is\nleft out, and the run goes on with the rest.",
+    "operationId": "final_skip_api_projects__project_id__final_skip__part__post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "part",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Part"
       }
      }
     ],

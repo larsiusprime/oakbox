@@ -544,3 +544,23 @@ def test_per_area_statistics(with_areas):
     assert bring_in.settings_key(bare) == bring_in.settings_key(only_area)
     assert "area" not in model.settings_key(bare, with_areas)
     assert model.settings_key(only_area, with_areas)["area"] == a
+
+
+def test_a_model_skipped_while_it_ran_is_said_in_the_users_words(tmp_path):
+    """Skip on Try them's progress: the skip file names the part; the receipt says which, by the user's names."""
+    p = _project()
+    path = tmp_path / "model.skip"
+    path.write_text("model:sf:catboost\nmodel:sf:catboost\nnot-a-model\n", encoding="utf-8")
+    own = {"sf": {"catboost": "My CatBoost"}}
+    assert model.skipped_notes(p, own, path) == [
+        "Single-family: My CatBoost skipped, as you asked. The rest of its models went on without it."
+    ]
+    assert model.skipped_notes(p, own, tmp_path / "none.skip") == []
+
+
+def test_skip_is_for_a_running_models_model(client):
+    from helpers import NEW
+
+    pid = client.post("/api/projects", json=NEW).json()["id"]
+    assert client.post(f"/api/projects/{pid}/model/skip/model:sf:catboost").status_code == 409  # nothing running
+    assert client.post(f"/api/projects/{pid}/final/skip/distances").status_code == 422  # not a model

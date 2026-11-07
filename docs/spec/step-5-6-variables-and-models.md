@@ -256,6 +256,11 @@ ticked variables is gone: each model takes a variable list.
   it, fewer areas above more. Preview: `GET /model/stack/{group}?fields=…`.
 - **Try them:** `python -m oakbox.model`: the prepared hand-off, `write_canonical_splits`, then `try_models` (no vacant
   models), with progress per group and model and Stop. 28 s on the sample.
+  - **Skip this model** (built 2026-11-07), on the model training now: it stops after its current tuning trial, is
+    left out of that group (the ensemble made of the rest), and the run goes on; the receipt says so ("Single-family:
+    CatBoost skipped, as you asked"). OpenAVMKit's part `model:<group>:<model>` (`progress.in_part`, upstream): OAK box
+    names it in the step's skip file, `OPENAVMKIT_SKIP_FILE`, which the fold worker processes read between trials.
+    Measured: CatBoost skipped 4 s into its tuning, the next model 1.2 s later. Finalize has it too.
 - **How they did:** as above (2026-10-30). The figures are OpenAVMKit's own numbers: the benchmark's frames, read after
   the engine has printed them (printing no longer turns them into text), and `academic_metrics`. On the study set each
   model is judged by its holdout predictions (`analysis.ratio_study.study_set_predictions: "holdout"`, an engine opt-in

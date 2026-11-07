@@ -1283,6 +1283,8 @@
     "starting": "Starting Python and OpenAVMKit (it can take a few seconds)",
     "skip": "Skip this step",
     "skipping": "Skipping…",
+    "skipModel": "Skip this model",
+    "skipModelNote": "Left out of this group's models; the rest carry on. It stops after its current tuning trial.",
     "skipNote": "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
     "failed": "It stopped with an error:",
     "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"

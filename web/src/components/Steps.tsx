@@ -260,6 +260,8 @@ export function RunProgress({
  * still alive (it says so every 2 seconds), and Skip for a step that can be left out. */
 function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
   const skipping = job.part !== null && job.skipping.includes(job.part);
+  // A model in Try them or Finalize ("model:<group>:<model>"), or a part of Bring in data (an enrichment).
+  const model = job.part?.startsWith("model:") ?? false;
   // Two missed heartbeats and more: it may be stuck (a frozen process says nothing at all).
   const silent = job.quiet > 10;
   return (
@@ -277,10 +279,12 @@ function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: stri
       </span>
       {job.part && (
         <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>
-          {skipping ? t.step.skipping : t.step.skip}
+          {skipping ? t.step.skipping : model ? t.step.skipModel : t.step.skip}
         </Button>
       )}
-      {job.part && !skipping && <span className="bi-skip-note">{t.step.skipNote}</span>}
+      {job.part && !skipping && (
+        <span className="bi-skip-note">{model ? t.step.skipModelNote : t.step.skipNote}</span>
+      )}
     </div>
   );
 }

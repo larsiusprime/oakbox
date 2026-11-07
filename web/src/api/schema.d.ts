@@ -1555,6 +1555,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/skip/{part}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Model Skip
+         * @description Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is
+         *     left out, and the run goes on with the rest.
+         */
+        post: operations["model_skip_api_projects__project_id__model_skip__part__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/model/stop": {
         parameters: {
             query?: never;
@@ -1620,6 +1641,27 @@ export interface paths {
          * @description Finalize: OpenAVMKit's finalize_models, the groups Small groups leaves unvalued skipped, then the values checked against the sales (out of fold, held out, as valued) beside the roll's.
          */
         post: operations["final_run_api_projects__project_id__final_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final/skip/{part}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Final Skip
+         * @description Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is
+         *     left out, and the run goes on with the rest.
+         */
+        post: operations["final_skip_api_projects__project_id__final_skip__part__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -13167,6 +13209,38 @@ export interface operations {
             };
         };
     };
+    model_skip_api_projects__project_id__model_skip__part__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                part: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     model_stop_api_projects__project_id__model_stop_post: {
         parameters: {
             query?: never;
@@ -13266,6 +13340,38 @@ export interface operations {
             header?: never;
             path: {
                 project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_skip_api_projects__project_id__final_skip__part__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                part: string;
             };
             cookie?: never;
         };

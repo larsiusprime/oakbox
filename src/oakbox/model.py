@@ -1207,6 +1207,36 @@ def explain_crash(
     return type(type(e).__name__, (Exception,), {})(" ".join(said))
 
 
+# The file a running Try them or Finalize is asked to skip a model in (steps.skip): OpenAVMKit reads it between a
+# model's tuning trials, in its fold worker processes too (progress.check_part).
+SKIP_FILE_ENV = "OPENAVMKIT_SKIP_FILE"
+SKIPPED_BY_ENGINE = "skipped, as asked."
+
+
+def skippable(project_dir: Path, module: str):
+    """Ready a run for its models to be skipped one at a time (Skip on its progress): a fresh skip file, named for
+    OpenAVMKit's workers, and the in-process check for progress.reporting."""
+    path = steps.skip_path(project_dir, module)
+    path.unlink(missing_ok=True)
+    os.environ[SKIP_FILE_ENV] = str(path)
+    return path, steps.skipper(path)
+
+
+def skipped_notes(project: Project, own: dict[str, dict[str, str]], path: Path) -> list[str]:
+    """Each model skipped while the run ran, in the user's words: "Single-family: CatBoost skipped, as you asked"."""
+    if not path.is_file():
+        return []
+    out = []
+    for line in dict.fromkeys(x.strip() for x in path.read_text(encoding="utf-8").splitlines()):
+        parts = line.split(":")
+        if len(parts) != 3 or parts[0] != "model":
+            continue
+        name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
+        engine = own.get(parts[1], {}).get(parts[2]) or ENGINES.get(parts[2], (parts[2],))[0]
+        out.append(f"{name}: {engine} skipped, as you asked. The rest of its models went on without it.")
+    return out
+
+
 def release_workers() -> None:
     """Shut the fold workers down once the models are trained. joblib keeps them for the next task, each holding its
     own copy of the sales and parcels (about 0.6 GB per 50,000 parcels), which only adds to what comes next."""
@@ -1297,11 +1327,17 @@ def run(project_id: str) -> None:
             done = groups.index(parts[1]) / max(len(groups), 1)
             name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
             engine = own.get(parts[1], {}).get(parts[2]) or ENGINES.get(parts[2], (parts[2],))[0]
-            steps.emit(step="models", fraction=0.1 + 0.85 * done, message=f"{name}: training {engine}")
+            # A part the user can skip (Skip on the progress): this model in this group.
+            steps.emit(step="models", fraction=0.1 + 0.85 * done, message=f"{name}: training {engine}", part=e.step)
         else:
             steps.emit(detail=e.message)
 
-    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside), steps.heartbeat():
+    skips, skip_check = skippable(pdir, MODULE)
+    with (
+        warnings.catch_warnings(record=True) as caught,
+        progress.reporting(inside, skip=skip_check),
+        steps.heartbeat(),
+    ):
         warnings.simplefilter("always")
         sup, settings, dropped, gnames = for_models(project, modeled, own)
         steps.emit(step="models", fraction=0.1, message="Training the models")
@@ -1404,7 +1440,11 @@ def run(project_id: str) -> None:
         models=[m for m in run_names if m != "assessor" and m not in outside],
         variables=sorted({v for x in (s.get("variable_lists") or {}).values() for v in x}),
         groups=out,
-        notes=[*dropped, *list(dict.fromkeys(str(w.message) for w in mine))][:20],
+        notes=[
+            *skipped_notes(project, own, skips),
+            *dropped,
+            *list(dict.fromkeys(str(w.message) for w in mine if SKIPPED_BY_ENGINE not in str(w.message))),
+        ][:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")

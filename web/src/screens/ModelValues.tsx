@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
+import { useStep, useStepAct, useStepNav, useStepSetup, useStepSkip } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { when } from "../lib/format";
 import { say, t } from "../wording";
@@ -30,6 +30,8 @@ export function ValuesTab({
   const mv = ms.data;
   const { setup: mSetup } = useStepSetup("model", projectId);
   const mAct = useStepAct("model", projectId);
+  const skipTry = useStepSkip("model", projectId);
+  const skipFinal = useStepSkip("final", projectId);
   const nav = useStepNav<MvStep>();
   // Models: one model group at a time, the footer moving between them.
   const [groupAt, setGroupAt] = useState(0);
@@ -139,7 +141,11 @@ export function ValuesTab({
               </div>
             )}
             {trying ? (
-              <RunProgress job={mv.job} lastSeconds={mr?.seconds ?? null} />
+              <RunProgress
+                job={mv.job}
+                lastSeconds={mr?.seconds ?? null}
+                skip={(part) => skipTry.mutate(part)}
+              />
             ) : (
               <>
                 {mv.status === "failed" && mv.job?.error && (
@@ -203,7 +209,11 @@ export function ValuesTab({
               </div>
             )}
             {finalizing ? (
-              <RunProgress job={fv?.job ?? null} lastSeconds={fr?.seconds ?? null} />
+              <RunProgress
+                job={fv?.job ?? null}
+                lastSeconds={fr?.seconds ?? null}
+                skip={(part) => skipFinal.mutate(part)}
+              />
             ) : (
               <>
                 {fv?.status === "failed" && fv.job?.error && (

@@ -180,11 +180,17 @@ def run(project_id: str) -> None:
             done = groups.index(parts[1]) / max(len(groups), 1)
             name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
             engine = own.get(parts[1], {}).get(parts[2]) or model.ENGINES.get(parts[2], (parts[2],))[0]
-            steps.emit(step="models", fraction=0.1 + 0.75 * done, message=f"{name}: training {engine}")
+            # A part the user can skip (Skip on the progress): this model in this group.
+            steps.emit(step="models", fraction=0.1 + 0.75 * done, message=f"{name}: training {engine}", part=e.step)
         else:
             steps.emit(detail=e.message)
 
-    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside), steps.heartbeat():
+    skips, skip_check = model.skippable(pdir, MODULE)
+    with (
+        warnings.catch_warnings(record=True) as caught,
+        progress.reporting(inside, skip=skip_check),
+        steps.heartbeat(),
+    ):
         warnings.simplefilter("always")
         sup, settings, dropped, gnames = model.for_models(project, modeled, own)
         _skip(settings, leave)
@@ -368,7 +374,11 @@ def run(project_id: str) -> None:
         roll=roll[1] if roll else None,
         sets=sets,
         groups=out,
-        notes=[*dropped, *list(dict.fromkeys(str(w.message) for w in mine_notes))][:20],
+        notes=[
+            *model.skipped_notes(project, own, skips),
+            *dropped,
+            *list(dict.fromkeys(str(w.message) for w in mine_notes if model.SKIPPED_BY_ENGINE not in str(w.message))),
+        ][:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
