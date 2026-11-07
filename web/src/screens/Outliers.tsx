@@ -275,11 +275,11 @@ function OutlierMap({
   projectId: string;
 }) {
   const detail = useSaleDetail(projectId, picked);
-  const comps = detail.data?.comps;
+  const members = detail.data?.members;
   const layers = useMemo(() => {
     const colour = (p: S["OutlierPoint"]) => (p.ratio < low ? LOW : p.ratio > high ? HIGH : WITHIN);
     const me = points.find((p) => p.key_sale === picked);
-    const compPts = (comps ?? []).filter((c) => c.lat !== null && c.lon !== null);
+    const compPts = members ?? [];
     return [
       new ScatterplotLayer<S["OutlierPoint"]>({
         id: "sales",
@@ -293,10 +293,10 @@ function OutlierMap({
           if (object?.out) pick(object.key_sale);
         },
       }),
-      new ScatterplotLayer<S["OutlierComp"]>({
+      new ScatterplotLayer<S["OutlierMember"]>({
         id: "comps",
         data: compPts,
-        getPosition: (c) => [c.lon ?? 0, c.lat ?? 0],
+        getPosition: (c) => [c.lon, c.lat],
         getRadius: 8,
         radiusUnits: "pixels",
         filled: false,
@@ -322,7 +322,7 @@ function OutlierMap({
           ]
         : []),
     ];
-  }, [points, picked, comps, low, high, pick]);
+  }, [points, picked, members, low, high, pick]);
   return (
     <div className="ol-mapbox">
       <MapView
@@ -400,14 +400,28 @@ function SaleCard({
               <dd>{fmt(s.roll)}</dd>
             </>
           )}
-          {d.comps_say !== null && (
+          {d.comps_say !== null && d.basis && (
             <>
               <dt>{o.compsSay}</dt>
-              <dd>{o.compsSayLine({ value: fmt(d.comps_say), ratio: num(d.comps_ratio, 2) })}</dd>
+              <dd>
+                {o.compsSayLine[d.basis]({
+                  value: fmt(d.comps_say),
+                  per: fmt(d.per_area),
+                  ratio: num(d.comps_ratio, 2),
+                })}
+              </dd>
             </>
           )}
         </dl>
         <h4>{o.comps}</h4>
+        {d.basis ? (
+          <p className="wiz-from">
+            {o.compsHow({ n: d.n_comps, depth: d.depth, full: d.full_depth })}{" "}
+            {d.conditions.map((c) => `${c.name} ${c.words}`).join("; ")}
+          </p>
+        ) : (
+          <p className="wiz-from">{o.noComps}</p>
+        )}
         <table className="tbl">
           <thead>
             <tr>

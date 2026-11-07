@@ -238,6 +238,8 @@ def run(project_id: str) -> None:
         sales["oak_oof"] = _look(ks, oof)
         sales["oak_held"] = _look(sales["key"], by_key).where(ks.isin(list(held)))
         _keep_sales(sales, universe, tmp)
+        steps.emit(step="comps", fraction=0.87, message="Finding each sale's comparable sales")
+        _fit_comps(project, pdir, tmp)
         universe[VALUE] = values[VALUE].to_numpy()
         # The studies want each field on the parcels too, blank: a blank on a sale would otherwise be filled with its
         # parcel's (OpenAVMKit's hydration), and every sale would be "held out".
@@ -416,6 +418,19 @@ def _keep_sales(sales, universe, tmp: Path) -> None:
         if t[c].dtype == object:
             t[c] = t[c].map(lambda v: None if v is None or (isinstance(v, float) and v != v) else str(v))
     t.to_parquet(tmp / SALES, index=False)
+
+
+def _fit_comps(project, pdir: Path, tmp: Path) -> None:
+    """Each valued group's comp trees (OpenAVMKit's layered comps), for Outliers: fitted here, while the run is
+    running anyway, so Outliers opens without waiting for them."""
+    import pandas as pd
+
+    from oakbox import outliers
+
+    t = pd.read_parquet(tmp / SALES)
+    t["model_group"] = t["model_group"].astype(str)
+    for g in sorted(set(t["model_group"])):
+        outliers.fit_comps(project, pdir, t, g, tmp / outliers.COMPS_DIR / f"{g}.json")
 
 
 class ParcelPoints(BaseModel):

@@ -6860,11 +6860,61 @@ export interface components {
                 [key: string]: string | null;
             };
         };
+        /** OutlierCondition */
+        OutlierCondition: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Words
+             * @description What its comps share in it: "is N0_2", "over 1,306", "1,306 to 1,950".
+             */
+            words: string;
+        };
         /** OutlierDetail */
         OutlierDetail: {
             sale: components["schemas"]["OutlierSale"];
-            /** Comps */
+            /**
+             * Comps
+             * @description Its comps nearest it on the map (up to 5), for the table.
+             */
             comps: components["schemas"]["OutlierComp"][];
+            /**
+             * Members
+             * @description Every comp's place, for the map.
+             */
+            members: components["schemas"]["OutlierMember"][];
+            /**
+             * Basis
+             * @description What the comps are compared on: price per finished area, per land area, price; None: no comps.
+             */
+            basis: ("impr" | "land" | "price") | null;
+            /**
+             * Conditions
+             * @description What makes them its comps: its comp tree's path.
+             */
+            conditions: components["schemas"]["OutlierCondition"][];
+            /**
+             * Depth
+             * @description The conditions kept (each a split of the comp tree).
+             */
+            depth: number;
+            /**
+             * Full Depth
+             * @description How deep its own path goes: kept fewer when too few other sales were left.
+             */
+            full_depth: number;
+            /**
+             * N Comps
+             * @description Its comps: the sales meeting every condition, it left out.
+             */
+            n_comps: number;
+            /**
+             * Per Area
+             * @description Their mean price per area (basis impr or land).
+             */
+            per_area: number | null;
             /**
              * Compared
              * @description The fields the comps are shown with (OutlierComp.fields), in order.
@@ -6883,7 +6933,7 @@ export interface components {
             };
             /**
              * Comps Say
-             * @description What the comps say it's worth: their price per finished area.
+             * @description What the comps say it's worth: their price per area times its own.
              */
             comps_say: number | null;
             /**
@@ -6922,6 +6972,13 @@ export interface components {
             sales: number;
             /** Outliers */
             outliers: number;
+        };
+        /** OutlierMember */
+        OutlierMember: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
         };
         /** OutlierPatchField */
         OutlierPatchField: {

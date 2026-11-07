@@ -113,6 +113,7 @@ def looked(monkeypatch):
     monkeypatch.setattr(outliers, "_candidates", cands)
     monkeypatch.setattr(outliers, "in_model", lambda *a: {"noise", "bldg_quality_num"})
     monkeypatch.setattr(outliers, "patch_fields", lambda *a: {"bldg_quality_num", "pool"})
+    monkeypatch.setattr(outliers, "comp_features", lambda *a: ["pool", "noise", "bldg_quality_num"])
 
 
 def test_what_the_misses_have_in_common_finds_the_field_and_not_the_noise(tmp_path, looked):
@@ -140,7 +141,15 @@ def test_the_outliers_worst_first_and_one_sales_context(tmp_path, looked):
     assert [s.ratio for s in v.outliers] == sorted(lows) + sorted(highs, reverse=True)
     assert len(v.points) == len(t)
     d = outliers.detail(p, tmp_path, v.outliers[0].key_sale)
+    # Its comps by layered comps: the sale left out, at least 5, the nearest 5 in the table, all on the map.
+    assert d.basis == "price" and d.n_comps >= outliers.COMPS and len(d.members) == d.n_comps
     assert len(d.comps) == outliers.COMPS and all(c.key_sale != d.sale.key_sale for c in d.comps)
+    assert [c.away for c in d.comps] == sorted(c.away or 0 for c in d.comps)
+    # Merged per field: a field split on twice is one condition.
+    assert d.conditions and len(d.conditions) <= d.depth <= d.full_depth
+    # The trees are saved, and read back.
+    assert (final.out_dir(tmp_path) / outliers.COMPS_DIR / "sf.json").is_file()
+    assert outliers.detail(p, tmp_path, v.outliers[0].key_sale).n_comps == d.n_comps
     pool = next(u for u in d.unlike if u.field == "pool")
     assert pool.share is not None and not pool.in_model
     assert {x.field for x in d.patchable} == {"bldg_quality_num", "pool"}

@@ -390,13 +390,23 @@ belongs.
 - **Outliers:** outside a band, 0.75 to 1.25 to start (OpenAVMKit's), per model group: the map (every sale by ratio; the
   outliers marked; one picked, with its comps), the list worst first (valued low, then valued high), filtered by side
   and by open or decided.
-- **One sale:** sold for, and at the valuation date; valued at; the roll's; **what its comps say** (the 5 sales most like
-  it, on the models' numbers in the group's spreads and on the map; their price per finished area times its area, and
-  how the models did on them); the comps side by side. **How it's unlike the others:** each field (in the models or not):
-  this parcel, its comps (median, or most common), where it sits among the group's sales (a bar: the middle half, and
-  it), whether the models use it. A field where it's among the group's extremes (under the 5th percentile or over the
-  95th, a category under 5% of sales) or unlike its comps (more than the group's middle half apart; a category its comps
-  mostly don't share) comes first, marked.
+- **One sale:** sold for, and at the valuation date; valued at; the roll's. **Its comps, by layered comps**
+  (OpenAVMKit's `outliers.find_comps`, as its notebook's `identify_outliers` analyses outliers; settled 2026-11-07, no
+  other method): the group's comp trees (price per finished area for an improved sale, per land area for a vacant
+  one, else price; on the group's layered comps model's variables, else its first machine-learning list's), the sale
+  traced down its tree, itself left out (the trees fit on every sale), to the deepest split with 5 other sales or more.
+  Shown: the conditions they share, merged per field ("Neighborhood is N0_2; finished area over 1,306"), how many of
+  its path's splits were kept (few: few sales are like it), **what they say it's worth** (their mean price per area
+  times its own), the models' median ratio on them, every comp on the map, the 5 nearest in a table. **How it's unlike
+  the others** (`outliers.compare_fields`): each field (in the models or not): this parcel, its comps (median, or most
+  common), where it sits among the group's sales (a bar: the middle half, and it), whether the models use it. A field
+  where it's among the group's extremes (under the 5th percentile or over the 95th, a category under 5% of sales) or
+  unlike its comps (more than the group's middle half apart; a category its comps mostly don't share) comes first.
+- **The comp trees are fitted by Finalize** (2026-11-07), while it runs anyway: `out/oakbox/final/comps/<group>.json`
+  (`CompModels.to_dict`), a few seconds a group (one tree: 0.7 s on 288 sales, 3 s on 8,000). A project finalized
+  before: the page fits the missing ones in the background as it opens (the group shown first), and a sale opened
+  before its group's are ready waits for them. The layered comps engine's own saved model isn't reused: it's a bag
+  of 10 trees on 80% samples each, on price only, there only when the group runs it, and its final fit saw the sale.
 - **Why is it off?** Four calls, as the user framed them (2026-11-07):
   - **The sale isn't a market sale:** a reason from a list (related parties, sold with other parcels, partial interest,
     wrong price, foreclosure or short sale, changed after it sold, not an open-market sale, other: say what) and a note.
@@ -416,7 +426,8 @@ belongs.
   be gone through without Check sales, Model groups or Bring in data going out of date at each (and the Models tab
   locking). Applying does each where it belongs; the steps from the earliest it changed run again. A call is shown "to
   apply" until then; **Take back** undoes it, and what it did if applied.
-- **What the misses have in common** (per group, under the sale): every sale of the group (not only the outliers: chosen
+- **What the misses have in common** (per group, under the sale; OpenAVMKit's `outliers.error_patterns` and
+  `error_clustering`): every sale of the group (not only the outliers: chosen
   for being wrong, they'd mislead), its error `log(value / price)`, and every field: the sales sorted into buckets (a
   category by value, 10 sales at least; a number in fifths), and the share of the error's spread between the buckets (a
   one-way ANOVA's R²: 0 when the models' mistakes are random with respect to the field). Shown only when it beats 300

@@ -16389,6 +16389,30 @@
     ],
     "title": "OutlierComp"
    },
+   "OutlierCondition": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "words": {
+      "type": "string",
+      "title": "Words",
+      "description": "What its comps share in it: \"is N0_2\", \"over 1,306\", \"1,306 to 1,950\"."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "words"
+    ],
+    "title": "OutlierCondition"
+   },
    "OutlierDetail": {
     "properties": {
      "sale": {
@@ -16399,7 +16423,68 @@
        "$ref": "#/components/schemas/OutlierComp"
       },
       "type": "array",
-      "title": "Comps"
+      "title": "Comps",
+      "description": "Its comps nearest it on the map (up to 5), for the table."
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierMember"
+      },
+      "type": "array",
+      "title": "Members",
+      "description": "Every comp's place, for the map."
+     },
+     "basis": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "impr",
+         "land",
+         "price"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Basis",
+      "description": "What the comps are compared on: price per finished area, per land area, price; None: no comps."
+     },
+     "conditions": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierCondition"
+      },
+      "type": "array",
+      "title": "Conditions",
+      "description": "What makes them its comps: its comp tree's path."
+     },
+     "depth": {
+      "type": "integer",
+      "title": "Depth",
+      "description": "The conditions kept (each a split of the comp tree)."
+     },
+     "full_depth": {
+      "type": "integer",
+      "title": "Full Depth",
+      "description": "How deep its own path goes: kept fewer when too few other sales were left."
+     },
+     "n_comps": {
+      "type": "integer",
+      "title": "N Comps",
+      "description": "Its comps: the sales meeting every condition, it left out."
+     },
+     "per_area": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Per Area",
+      "description": "Their mean price per area (basis impr or land)."
      },
      "compared": {
       "items": {
@@ -16441,7 +16526,7 @@
        }
       ],
       "title": "Comps Say",
-      "description": "What the comps say it's worth: their price per finished area."
+      "description": "What the comps say it's worth: their price per area times its own."
      },
      "comps_ratio": {
       "anyOf": [
@@ -16501,6 +16586,13 @@
     "required": [
      "sale",
      "comps",
+     "members",
+     "basis",
+     "conditions",
+     "depth",
+     "full_depth",
+     "n_comps",
+     "per_area",
      "compared",
      "mine",
      "names",
@@ -16540,6 +16632,24 @@
      "outliers"
     ],
     "title": "OutlierGroupCount"
+   },
+   "OutlierMember": {
+    "properties": {
+     "lat": {
+      "type": "number",
+      "title": "Lat"
+     },
+     "lon": {
+      "type": "number",
+      "title": "Lon"
+     }
+    },
+    "type": "object",
+    "required": [
+     "lat",
+     "lon"
+    ],
+    "title": "OutlierMember"
    },
    "OutlierPatchField": {
     "properties": {

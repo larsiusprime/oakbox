@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -29,8 +30,6 @@ from oakbox.projects import OutlierCall, OutlierWhy, Patch, Project
 if TYPE_CHECKING:
     import pandas as pd
 
-MIN_BUCKET = 10  # sales a bucket needs for its average error to be read
-SHUFFLES = 300  # the shuffles chance is judged by
 COMPS = 5
 MAX_UNLIKE = 40
 Reason = Literal[
@@ -147,6 +146,11 @@ def _nums(x) -> pd.Series:
     return cast("pd.Series", pd.to_numeric(x, errors="coerce")).astype(float)
 
 
+def _col(t: pd.DataFrame, c: str) -> list[float | None]:
+    """A column's numbers (None where blank or missing)."""
+    return [_num(v) for v in t[c]] if c in t else [None] * len(t)
+
+
 def _num(v: object) -> float | None:
     try:
         f = float(cast(float, v))
@@ -254,6 +258,7 @@ def view(project: Project, project_dir: Path, group: str | None) -> OutlierView:
     groups.sort(key=lambda g: order.get(g.id, 99))
     if group not in {g.id for g in groups}:
         group = next((g.id for g in groups if g.outliers), groups[0].id if groups else None)
+    fit_missing(project, project_dir, group)  # a run from before the comp trees were saved: made meanwhile
     mine = _frame(t[t["model_group"] == group])
     mine_out = _frame(mine[out[mine.index]])
     low = _frame(mine_out[mine_out["oak_ratio"] < o.low]).sort_values(by="oak_ratio")
@@ -322,13 +327,33 @@ class OutlierPatchField(BaseModel):
     now: str | None
 
 
+class OutlierCondition(BaseModel):
+    field: str
+    name: str
+    words: str = Field(description='What its comps share in it: "is N0_2", "over 1,306", "1,306 to 1,950".')
+
+
+class OutlierMember(BaseModel):
+    lat: float
+    lon: float
+
+
 class OutlierDetail(BaseModel):
     sale: OutlierSale
-    comps: list[OutlierComp]
+    comps: list[OutlierComp] = Field(description="Its comps nearest it on the map (up to 5), for the table.")
+    members: list[OutlierMember] = Field(description="Every comp's place, for the map.")
+    basis: Literal["impr", "land", "price"] | None = Field(
+        description="What the comps are compared on: price per finished area, per land area, price; None: no comps."
+    )
+    conditions: list[OutlierCondition] = Field(description="What makes them its comps: its comp tree's path.")
+    depth: int = Field(description="The conditions kept (each a split of the comp tree).")
+    full_depth: int = Field(description="How deep its own path goes: kept fewer when too few other sales were left.")
+    n_comps: int = Field(description="Its comps: the sales meeting every condition, it left out.")
+    per_area: float | None = Field(description="Their mean price per area (basis impr or land).")
     compared: list[str] = Field(description="The fields the comps are shown with (OutlierComp.fields), in order.")
     mine: dict[str, str | None] = Field(description="The sale's own values of the compared fields, in words.")
     names: dict[str, str]
-    comps_say: float | None = Field(description="What the comps say it's worth: their price per finished area.")
+    comps_say: float | None = Field(description="What the comps say it's worth: their price per area times its own.")
     comps_ratio: float | None = Field(description="The models' median ratio on the comps.")
     unlike: list[OutlierUnlike]
     patchable: list[OutlierPatchField] = Field(description="The parcel's fields a patch can correct, as they are now.")
@@ -348,36 +373,103 @@ def _km(lat1, lon1, lat2, lon2):
     return 12742 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
 
 
-def _comps(t: pd.DataFrame, me, numeric: list[str]) -> pd.DataFrame:
-    """The sales most like it: closest on the models' numbers (in the group's spreads) and on the map."""
-    import numpy as np
+# ---------- The comp trees (OpenAVMKit's layered comps: outliers.fit_comp_models) ----------
 
-    others = _frame(t[t["key_sale"] != me["key_sale"]])
-    if others.empty:
-        return others
-    score = np.zeros(len(others))
-    used = 0
-    for f in numeric:
-        x = _num(me.get(f))
-        col = _nums(others[f])
-        sd = float(col.std())
-        if x is None or not math.isfinite(sd) or sd == 0:
-            continue
-        score += np.nan_to_num(((col - x) / sd).to_numpy(), nan=2.0) ** 2
-        used += 1
-    if _num(me.get("latitude")) is not None and "latitude" in others:
-        km = _km(float(me["latitude"]), float(me["longitude"]), others["latitude"], others["longitude"]).to_numpy()
-        scale = float(np.nanmedian(km)) or 1.0
-        score += 2 * np.nan_to_num(km / scale, nan=3.0) ** 2
-        used += 2
-    score = score / max(used, 1)
-    return others.assign(_score=score).nsmallest(COMPS, "_score")
+COMPS_DIR = "comps"  # out/oakbox/final/comps/<group>.json: each valued group's comp trees, made by Finalize
+_fitting = threading.Lock()
+
+
+def comp_features(project: Project, project_dir: Path, group: str) -> list[str]:
+    """What a group's comps are alike on: its layered comps model's variables if it has one, else its first
+    machine-learning list's (as OpenAVMKit's identify_outliers)."""
+    from oakbox import varlists
+
+    lists = varlists.lists(project, project_dir)
+    by = {x.id: x for x in lists}
+    for e in model.group_models(project, project_dir, group, lists):
+        if e.engine == "lcomp" and e.list_id in by:
+            return list(by[e.list_id].variables)
+    first = varlists.for_group(lists, group, "ml")
+    return list(first.variables) if first else []
+
+
+def _comps_path(project_dir: Path, group: str) -> Path:
+    return final.out_dir(project_dir) / COMPS_DIR / f"{group}.json"
+
+
+def fit_comps(project: Project, project_dir: Path, t: pd.DataFrame, group: str, out: Path) -> None:
+    """Fit a group's comp trees on its sales and save them (Finalize; or Outliers, for a run from before)."""
+    import json
+
+    from openavmkit.outliers import fit_comp_models
+
+    g = _frame(t[t["model_group"] == group])
+    unit = "sqft" if project.units == "imperial" else "sqm"
+    m = fit_comp_models(g, comp_features(project, project_dir, group), unit, price_field="oak_price")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(".tmp")
+    tmp.write_text(json.dumps(m.to_dict()), encoding="utf-8")
+    tmp.replace(out)
+
+
+def comp_models(project: Project, project_dir: Path, group: str):
+    """A group's comp trees: as Finalize saved them, else fitted now (once: a second asker waits for the first)."""
+    import json
+
+    from openavmkit.outliers import CompModels
+
+    path = _comps_path(project_dir, group)
+    sales = final.out_dir(project_dir) / final.SALES
+    with _fitting:
+        if not path.is_file() or path.stat().st_mtime < sales.stat().st_mtime:
+            t = _sales(project_dir)
+            if t is None:
+                return None
+            fit_comps(project, project_dir, t, group, path)
+        return CompModels.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+def fit_missing(project: Project, project_dir: Path, first: str | None) -> None:
+    """In the background: every group's comp trees that aren't there yet (a project finalized before they were made
+    there), the one shown first."""
+    t = _sales(project_dir)
+    if t is None:
+        return
+    groups = sorted(set(t["model_group"]), key=lambda g: g != first)
+    if all(_comps_path(project_dir, g).is_file() for g in groups):
+        return
+
+    def work() -> None:
+        for g in groups:
+            try:
+                comp_models(project, project_dir, g)
+            except Exception:  # noqa: BLE001 - asked again when the sale is opened, and said there
+                pass
+
+    threading.Thread(target=work, daemon=True).start()
+
+
+def _shared(c: dict) -> str:
+    """A field's merged conditions in words (OpenAVMKit's summarize_conditions)."""
+    f = c["field"]
+    if c["is"] is not None:
+        return f"is {_fmt(f, c['is']) or 'blank'}"
+    if c["is_not"]:
+        vals = [_fmt(f, v) or "blank" for v in c["is_not"]]
+        return "isn't " + (vals[0] if len(vals) == 1 else ", ".join(vals[:-1]) + f" or {vals[-1]}")
+    lo, hi = c["over"], c["at_most"]
+    if lo is not None and hi is not None:
+        return f"over {_fmt(f, lo)}, at most {_fmt(f, hi)}"
+    return f"over {_fmt(f, lo)}" if lo is not None else f"at most {_fmt(f, hi)}"
+
+
+# ---------- One sale ----------
 
 
 def detail(project: Project, project_dir: Path, key_sale: str) -> OutlierDetail:
-    import numpy as np
-    import pandas as pd
+    from openavmkit.outliers import compare_fields, find_comps, summarize_conditions
 
+    from oakbox import fields as field_names
     from oakbox.errors import NotFound
 
     t = _sales(project_dir)
@@ -391,26 +483,25 @@ def detail(project: Project, project_dir: Path, key_sale: str) -> OutlierDetail:
     g = _frame(t[t["model_group"] == group])
     cands = _candidates(project, project_dir, t)
     used = in_model(project, project_dir, group)
+    names = (field_names.names() | field_names.MADE_NAMES) | {v.field: v.name for v in cands}
     area = _area_field(project)
-    numeric = [v.field for v in cands if v.numeric and v.field in used] or [
-        f for f in (area, "land_area_sqft", "land_area_sqm", "bldg_age_years", "bldg_quality_num") if f in t
-    ]
-    c = _comps(g, me, numeric)
     imperial = project.units == "imperial"
+    models = comp_models(project, project_dir, group)
+    found = find_comps(models, g, me, min_comps=COMPS) if models is not None else None
+    members = _frame(g[g["key_sale"].isin(found.keys)]) if found else g.iloc[0:0]
+    away = None
+    if _num(me.get("latitude")) is not None and len(members) and "latitude" in members:
+        away = _km(float(me["latitude"]), float(me["longitude"]), members["latitude"], members["longitude"])
+    if away is not None:
+        members = members.assign(_km=away.to_numpy()).sort_values(by="_km")
     compared = [
         f
         for f in (area, "bldg_year_built", "bldg_quality_num", "land_area_sqft" if imperial else "land_area_sqm")
         if f in t.columns
     ]
-    from oakbox import fields as field_names
-
-    names = (field_names.names() | field_names.MADE_NAMES) | {v.field: v.name for v in cands}
     comps = []
-    for _, r in c.iterrows():
-        away = None
-        if _num(me.get("latitude")) is not None and _num(r.get("latitude")) is not None:
-            km = float(_km(float(me["latitude"]), float(me["longitude"]), float(r["latitude"]), float(r["longitude"])))
-            away = round(km / 1.609344 if imperial else km, 2)
+    for _, r in members.head(COMPS).iterrows():
+        km = _num(r.get("_km"))
         comps.append(
             OutlierComp(
                 key_sale=str(r["key_sale"]),
@@ -419,76 +510,29 @@ def detail(project: Project, project_dir: Path, key_sale: str) -> OutlierDetail:
                 date=str(r["sale_date"])[:10],
                 price=float(r["oak_price"]),
                 ratio=float(r["oak_ratio"]),
-                away=away,
+                away=None if km is None else round(km / 1.609344 if imperial else km, 2),
                 lat=_num(r.get("latitude")),
                 lon=_num(r.get("longitude")),
                 fields={f: _fmt(f, r.get(f)) for f in compared},
             )
         )
-    comps_say = None
-    my_area = _num(me.get(area))
-    if not c.empty and my_area and area in c:
-        per = (_nums(c["oak_price"]) / _nums(c[area])).to_numpy()
-        per = per[np.isfinite(per) & (per > 0)]
-        comps_say = float(np.median(per) * my_area) if len(per) else None
-    elif not c.empty:
-        comps_say = float(c["oak_price"].median())
-    comps_ratio = float(c["oak_ratio"].median()) if not c.empty else None
-
-    unlike = []
-    for v in cands:
-        col = cast("pd.Series", g[v.field])
-        x = me.get(v.field)
-        cc = cast("pd.Series", c[v.field]) if v.field in c else pd.Series(dtype=object)
-        if v.numeric:
-            vals = _nums(col).dropna()
-            xn = _num(x)
-            cn = _nums(cc).dropna()
-            cm = float(cn.median()) if len(cn) else None
-            pct = share = None
-            flag = False
-            if xn is not None and len(vals):
-                pct = float(((vals < xn).mean() + 0.5 * (vals == xn).mean()) * 100)
-                iqr = float(vals.quantile(0.75) - vals.quantile(0.25))
-                flag = pct < 5 or pct > 95 or (cm is not None and iqr > 0 and abs(xn - cm) > iqr)
-            elif xn is None:
-                flag = bool(vals.size) and col.isna().mean() < 0.2
-            unlike.append(
-                OutlierUnlike(
-                    field=v.field,
-                    name=v.name,
-                    numeric=True,
-                    this=_fmt(v.field, xn),
-                    comps=_fmt(v.field, cm),
-                    pct=pct,
-                    share=share,
-                    flag=bool(flag),
-                    in_model=v.field in used,
-                )
-            )
-        else:
-            vals = col.dropna().astype(str)
-            xs = _text(x)
-            cs = cc.dropna().astype(str)
-            mode = cs.mode().iloc[0] if len(cs) else None
-            agree = float((cs == mode).mean()) if mode is not None else 0.0
-            share = float((vals == xs).mean()) if xs is not None and len(vals) else None
-            flag = (share is not None and share < 0.05) or (
-                mode is not None and xs is not None and xs != mode and agree >= 0.6
-            )
-            unlike.append(
-                OutlierUnlike(
-                    field=v.field,
-                    name=v.name,
-                    numeric=False,
-                    this=xs,
-                    comps=mode,
-                    pct=None,
-                    share=share,
-                    flag=bool(flag),
-                    in_model=v.field in used,
-                )
-            )
+    rows = compare_fields(
+        me, g, found.keys if found else [], [v.field for v in cands], {v.field for v in cands if v.numeric}
+    )
+    unlike = [
+        OutlierUnlike(
+            field=x["field"],
+            name=names.get(x["field"]) or x["field"],
+            numeric=x["numeric"],
+            this=_fmt(x["field"], x["value"]),
+            comps=_fmt(x["field"], x["comps"]),
+            pct=x["pct"],
+            share=x["share"],
+            flag=x["flag"],
+            in_model=x["field"] in used,
+        )
+        for x in rows
+    ]
     unlike.sort(key=lambda u: (not u.flag, not u.in_model))
     patchable = [
         OutlierPatchField(field=v.field, name=v.name, numeric=v.numeric, now=_fmt(v.field, me.get(v.field)))
@@ -498,11 +542,25 @@ def detail(project: Project, project_dir: Path, key_sale: str) -> OutlierDetail:
     return OutlierDetail(
         sale=_sale(me, project),
         comps=comps,
+        members=[
+            OutlierMember(lat=la, lon=lo)
+            for la, lo in zip(_col(members, "latitude"), _col(members, "longitude"), strict=True)
+            if la is not None and lo is not None
+        ],
+        basis=cast("Literal['impr', 'land', 'price']", found.basis) if found else None,
+        conditions=[
+            OutlierCondition(field=c["field"], name=names.get(c["field"]) or c["field"], words=_shared(c))
+            for c in summarize_conditions(found.conditions if found else [])
+        ],
+        depth=found.depth if found else 0,
+        full_depth=found.full_depth if found else 0,
+        n_comps=len(found.keys) if found else 0,
+        per_area=found.per_area if found else None,
         compared=compared,
         mine={f: _fmt(f, me.get(f)) for f in compared},
         names={f: names.get(f) or f for f in compared},
-        comps_say=comps_say,
-        comps_ratio=comps_ratio,
+        comps_say=found.says if found else None,
+        comps_ratio=float(members["oak_ratio"].median()) if len(members) else None,
         unlike=unlike[:MAX_UNLIKE],
         patchable=patchable,
         groups=[(x.id, x.name) for x in project.groups if x.id != group],
@@ -549,62 +607,23 @@ class OutlierCommon(BaseModel):
     moran: float | None = Field(description="Moran's I of the errors over each sale's 8 nearest (0: none).")
 
 
-def _buckets(col: pd.Series, numeric: bool) -> tuple[list[int], list[str]]:
-    """Each sale's bucket (-1: none read), and the buckets' labels."""
-    import numpy as np
-
-    codes = np.full(len(col), -1, dtype=int)
-    labels: list[str] = []
-    blank = col.isna().to_numpy()
-    x = _nums(col) if numeric else None
-    if numeric and x is not None and x.nunique() > 6:
-        xs = x.to_numpy()
-        edges = sorted(set(np.nanquantile(xs, [0.2, 0.4, 0.6, 0.8]).tolist()))
-        pos = np.searchsorted(edges, xs, side="right")
-        for i in range(len(edges) + 1):
-            if i == 0:
-                labels.append(f"under {_text(edges[0])}")
-            elif i == len(edges):
-                labels.append(f"{_text(edges[-1])} and over")
-            else:
-                labels.append(f"{_text(edges[i - 1])} to {_text(edges[i])}")
-        codes = np.where(blank, -1, pos)
-    else:
-        s = cast("pd.Series", (_nums(col) if numeric else col).map(_text)).where(~col.isna())
-        counts = s.value_counts()
-        for v in counts.index:
-            if counts[v] >= MIN_BUCKET:
-                codes[(s == v).to_numpy()] = len(labels)
-                labels.append(_text(v) or "blank")
-    if blank.sum() >= MIN_BUCKET:
-        codes[blank] = len(labels)
-        labels.append("blank")
-    return codes.tolist(), labels
-
-
-def _eta(codes, n_b: int, r, perms):
-    """The share of the error's spread between the buckets (one-way ANOVA's R²): for r, and for each shuffle."""
-    import numpy as np
-
-    ok = codes >= 0
-    c = codes[ok]
-    if n_b < 2 or len(c) < 2 * MIN_BUCKET:
-        return None, None
-    counts = np.bincount(c, minlength=n_b).astype(float)
-    use = counts > 0
-
-    def one(vals):  # vals: (k, m) rows of errors
-        sums = np.stack([np.bincount(c, weights=row, minlength=n_b) for row in vals])
-        mean = vals.mean(axis=1, keepdims=True)
-        between = ((sums[:, use] / counts[use] - mean) ** 2 * counts[use]).sum(axis=1)
-        total = ((vals - mean) ** 2).sum(axis=1)
-        return between / np.where(total > 0, total, 1)
-
-    return float(one(r[ok][None, :])[0]), one(perms[:, ok])
+def _bucket_words(field: str, name: str, b: list | tuple) -> str:
+    """OpenAVMKit's bucket in words: "Pool: yes", "Lot size: under 6,000", "…: 1,200 to 1,800", "…: blank"."""
+    kind = b[0]
+    if kind == "under":
+        return f"{name}: under {_fmt(field, b[1])}"
+    if kind == "over":
+        return f"{name}: {_fmt(field, b[1])} and over"
+    if kind == "between":
+        return f"{name}: {_fmt(field, b[1])} to {_fmt(field, b[2])}"
+    if kind == "is":
+        return f"{name}: {_fmt(field, b[1]) or 'blank'}"
+    return f"{name}: blank"
 
 
 def common(project: Project, project_dir: Path, group: str) -> OutlierCommon:
-    import numpy as np
+    """What a group's misses have in common (OpenAVMKit's outliers.error_patterns and error_clustering)."""
+    from openavmkit.outliers import error_clustering, error_patterns
 
     from oakbox.errors import NotFound
 
@@ -613,91 +632,40 @@ def common(project: Project, project_dir: Path, group: str) -> OutlierCommon:
         raise NotFound("Finalize first.")
     g = _frame(t[t["model_group"] == group]).reset_index(drop=True)
     out = cast("pd.Series", _outside(g, project)).to_numpy()
-    r = np.log(g["oak_ratio"].to_numpy(dtype=float))
-    rng = np.random.default_rng(0)
-    perms = np.stack([rng.permutation(r) for _ in range(SHUFFLES)]) if len(r) else np.zeros((0, 0))
+    cands = _candidates(project, project_dir, t)
+    names: dict[str, str] = {v.field: v.name for v in cands}
     used = in_model(project, project_dir, group)
-    found: list[tuple[OutlierPattern, set[int]]] = []
-    for v in _candidates(project, project_dir, t) if len(g) >= 2 * MIN_BUCKET else []:
-        codes_l, labels = _buckets(cast("pd.Series", g[v.field]), v.numeric)
-        codes = np.asarray(codes_l)
-        eta, shuffled = _eta(codes, len(labels), r, perms)
-        if eta is None or shuffled is None:
-            continue
-        chance = float((shuffled >= eta).mean())
-        if chance >= 0.05 or eta < 0.02:
-            continue
-        mean = r[codes >= 0].mean()
-        best, pull = -1, -1.0
-        for b in range(len(labels)):
-            m = codes == b
-            if m.sum() >= MIN_BUCKET and (p := m.sum() * (r[m].mean() - mean) ** 2) > pull:
-                best, pull = b, p
-        if best < 0:
-            continue
-        m = codes == best
-        name = v.name
-        bucket = f"{name}: {labels[best]}"
-        found.append(
-            (
-                OutlierPattern(
-                    field=v.field,
-                    name=name,
-                    in_model=v.field in used,
-                    bucket=bucket,
-                    n=int(m.sum()),
-                    misses=int((m & out).sum()),
-                    off=float(math.expm1(r[m].mean())),
-                    rest_off=float(math.expm1(r[~m].mean())) if (~m).any() else 0.0,
-                    share=round(eta, 4),
-                    chance=round(chance, 4),
-                    goes_with=None,
-                ),
-                set(np.flatnonzero(m).tolist()),
-            )
-        )
-    found.sort(key=lambda x: -x[0].share)
-    for i, (p, members) in enumerate(found):
-        for q, theirs in found[:i]:
-            if len(members & theirs) / max(len(members | theirs), 1) >= 0.5:
-                p.goes_with = q.name
-                break
-    clustered, moran = _clustered(g, r, rng)
+    found = error_patterns(
+        g,
+        [v.field for v in cands],
+        ratio_field="oak_ratio",
+        numeric={v.field for v in cands if v.numeric},
+        outliers=out,
+    )
+    clustered, moran = error_clustering(g, ratio_field="oak_ratio")
     return OutlierCommon(
         group=group,
         sales=len(g),
         outliers=int(out.sum()),
-        patterns=[p for p, _ in found[:15]],
+        patterns=[
+            OutlierPattern(
+                field=x["field"],
+                name=names.get(x["field"]) or x["field"],
+                in_model=x["field"] in used,
+                bucket=_bucket_words(x["field"], names.get(x["field"]) or x["field"], x["bucket"]),
+                n=x["n"],
+                misses=x["outliers"],
+                off=x["off"],
+                rest_off=x["rest_off"],
+                share=x["share"],
+                chance=x["chance"],
+                goes_with=names.get(x["goes_with"], x["goes_with"]) if x["goes_with"] else None,
+            )
+            for x in found[:15]
+        ],
         clustered=clustered,
         moran=moran,
     )
-
-
-def _clustered(g: pd.DataFrame, r, rng) -> tuple[bool | None, float | None]:
-    """Moran's I of the errors over each sale's 8 nearest sales, and whether it beats 199 shuffles."""
-    import numpy as np
-
-    if "latitude" not in g or len(g) < 30:
-        return None, None
-    ok = g["latitude"].notna().to_numpy() & g["longitude"].notna().to_numpy()
-    if ok.sum() < 30:
-        return None, None
-    from sklearn.neighbors import NearestNeighbors
-
-    lat = g["latitude"].to_numpy(dtype=float)[ok]
-    lon = g["longitude"].to_numpy(dtype=float)[ok]
-    xy = np.column_stack([lat, lon * np.cos(np.radians(lat.mean()))])
-    k = min(8, len(xy) - 1)
-    nb = NearestNeighbors(n_neighbors=k + 1).fit(xy).kneighbors(xy, return_distance=False)[:, 1:]
-    z = r[ok] - r[ok].mean()
-    denom = float((z**2).sum()) or 1.0
-
-    def moran(zz) -> float:
-        return float((zz * zz[nb].mean(axis=1)).sum() / denom)
-
-    i = moran(z)
-    beats = np.mean([moran(rng.permutation(z)) >= i for _ in range(199)])
-    return bool(beats < 0.05), round(i, 4)
 
 
 # ---------- The calls ----------

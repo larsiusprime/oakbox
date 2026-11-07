@@ -2823,7 +2823,11 @@
       "valuedLine": "{value}, by models that never saw the sale",
       "roll": "On the roll",
       "compsSay": "What its comps say",
-      "compsSayLine": "{value}, at their price per finished area; the models valued them at {ratio} of their price",
+      "compsSayLine": {
+        "impr": "{value}: their price per finished area, {per}, times its own; the models valued them at {ratio} of their price",
+        "land": "{value}: their price per land area, {per}, times its own; the models valued them at {ratio} of their price",
+        "price": "{value}: their price; the models valued them at {ratio} of their price"
+      },
       "comps": "Comparable sales",
       "thisSale": "This sale",
       "away": "Away",
@@ -2924,7 +2928,9 @@
         "group": "Model groups",
         "data": "the data brought in"
       },
-      "apply": "Apply my calls"
+      "apply": "Apply my calls",
+      "compsHow": "Its comps (layered comps): the {n, number} other {n, plural, =1 {sale} other {sales}} where, {depth, number} of the {full, number} splits of its comp tree kept:",
+      "noComps": "No comps: no comp tree for its group (too few sales)."
     }
   },
   "metadata": {

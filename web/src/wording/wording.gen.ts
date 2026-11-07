@@ -2232,7 +2232,11 @@ export type Wording = {
       valuedLine: (a: { value: string | number }) => string;
       roll: string;
       compsSay: string;
-      compsSayLine: (a: { value: string | number; ratio: string | number }) => string;
+      compsSayLine: {
+        impr: (a: { value: string | number; per: string | number; ratio: string | number }) => string;
+        land: (a: { value: string | number; per: string | number; ratio: string | number }) => string;
+        price: (a: { value: string | number; ratio: string | number }) => string;
+      };
       comps: string;
       thisSale: string;
       away: string;
@@ -2334,6 +2338,8 @@ export type Wording = {
         data: string;
       };
       apply: string;
+      compsHow: (a: { n: number; depth: number; full: number }) => string;
+      noComps: string;
     };
   };
   metadata: {
