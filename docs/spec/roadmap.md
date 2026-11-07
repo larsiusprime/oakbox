@@ -2,7 +2,7 @@
 
 ## 8. Milestones
 
-**Where it stands (2026-11-06).** The plan below predates the feature-by-feature redesign (D41, §3.0), and M1–M3 were
+**Where it stands (2026-11-07).** The plan below predates the feature-by-feature redesign (D41, §3.0), and M1–M3 were
 built in a different order from it: the guided build became the Data tab and its wizard (F3), and steps 1–7 run in the
 app (F4–F10), with the Windows installer, the Linux bundle and the optional engines. §3.0 says what's built and what
 isn't; the milestones are kept as they were planned.
@@ -13,9 +13,17 @@ isn't; the milestones are kept as they were planned.
   without the dissolve, LightGBM tuning one trial at a time (a crash on Light computers), census population a land
   field. The Model groups map draws parcel files of small squares, and its shapes are binary arrays. Fill blanks by
   each field's kind, with what each model group gets.
+- **Built 2026-11-07: slow runs, diagnosed and fixed.** Help › Save a performance report (each run's timeline, its
+  processes' CPU and memory, OpenAVMKit's trial log: §5); Skip this model while it runs; each finished progress line
+  shows how long it took. CatBoost takes the cores parallel folds leave idle, its depth is searched up to 8, and on
+  Windows it one-hot encodes categories (its own encoding costs ~20 ms a round there): on an assessor's Windows PC its
+  tuning trials went from 23 s to 4 s on average, and it scored best of the single models in both groups. Upstream as
+  #429, with a fix for SHAP on a category listed twice. Spatial average and per area statistics are their own pages
+  next to each other in Variables.
 - **Left of M3:** slice 3 of the models (outliers back into Check sales, per-group variables and models, why this
   value), CAMA export, the model summary report. Per area statistics (§3.12.3) is built (2026-11-07).
-- **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried).
+- **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried). On
+  the assessor's 12-core Windows PC, 4,600 parcels: Try them 11 minutes for 7 models in 2 groups, CatBoost 60% of it.
 - **Waiting on the maintainer:** real extracts (Travis CAD first), the usability test with three assessors, and timing
   on a real low-end PC.
 
