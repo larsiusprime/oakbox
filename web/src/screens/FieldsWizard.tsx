@@ -19,6 +19,7 @@ import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Ste
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
 import { say, t } from "../wording";
+import { AsSoldLine, AsSoldStep } from "./AsSold";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
@@ -38,6 +39,8 @@ import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 // Quality and condition: numbers or categories, on a page of their own (QualityStep).
 const QUALITY_STEPS = ["quality", "condition"];
+/** The steps whose fields describe the property: each shows what its sales use (Sales as sold). */
+const CHARACTERISTIC_STEPS = ["building_size", "land_size", "age", "quality", "condition", "property_type"];
 // Sales' field parts: each field on a page of its own, read and checked under it (SalesFieldPage).
 const SALES_FIELD_STEPS = ["sale_price", "sale_date", "valid_sale", "vacant_sale"];
 
@@ -218,6 +221,11 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {QUALITY_STEPS.includes(current.key) && (
             <QualityStep project={project} data={data} step={current} change={change.mutateAsync} />
           )}
+          {CHARACTERISTIC_STEPS.includes(current.key) &&
+            current.fields
+              .filter((k) => data.fields.some((f) => f.key === k && f.sources.length > 0))
+              .map((k) => <AsSoldLine key={k} projectId={project.id} field={k} />)}
+          {current.key === "as_sold" && <AsSoldStep projectId={project.id} />}
           {current.key === "coordinates" && (
             <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
           )}

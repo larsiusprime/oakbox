@@ -1614,6 +1614,105 @@
     }
    }
   },
+  "/api/projects/{project_id}/wizard/as-sold": {
+   "get": {
+    "summary": "Wizard As Sold",
+    "description": "Sales as sold: the sales file's columns that mirror a characteristic, each against today's values.",
+    "operationId": "wizard_as_sold_api_projects__project_id__wizard_as_sold_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AsSoldView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/wizard/as-sold/{key}": {
+   "put": {
+    "summary": "Wizard As Sold Choose",
+    "description": "For a characteristic, the sale's value (its column, read as the parcel's) or today's.",
+    "operationId": "wizard_as_sold_choose_api_projects__project_id__wizard_as_sold__key__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AsSoldChoice"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AsSoldView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/wizard/locations": {
    "get": {
     "summary": "Wizard Locations",
@@ -7767,6 +7866,201 @@
     ],
     "title": "AreaView",
     "description": "Per area statistics: shown whether on or off (off, as it would start)."
+   },
+   "AsSoldChoice": {
+    "properties": {
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "The sales file's column the sales use; null: today's (the parcel's)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "column"
+    ],
+    "title": "AsSoldChoice"
+   },
+   "AsSoldRow": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "parcel_file": {
+      "type": "string",
+      "title": "Parcel File",
+      "description": "The parcel file it's loaded from (today's)."
+     },
+     "parcel_column": {
+      "type": "string",
+      "title": "Parcel Column"
+     },
+     "column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Column",
+      "description": "The sales file's column: chosen, else the one that mirrors it."
+     },
+     "found": {
+      "type": "boolean",
+      "title": "Found",
+      "description": "The column was found by its name (not chosen by hand)."
+     },
+     "choice": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "sale",
+         "today"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Choice",
+      "description": "The user's; None: not chosen (today's is used)."
+     },
+     "suggest": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "sale",
+         "today"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Suggest",
+      "description": "What the figures suggest: today's when they're the same; None: written another way."
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales",
+      "description": "Sales on a parcel."
+     },
+     "have": {
+      "type": "integer",
+      "title": "Have",
+      "description": "Of them, with a value in the column."
+     },
+     "compared": {
+      "type": "integer",
+      "title": "Compared",
+      "description": "Of those, on a parcel with today's value too."
+     },
+     "same": {
+      "type": "integer",
+      "title": "Same",
+      "description": "Of those, the same as today's."
+     },
+     "examples": {
+      "items": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "title": "Examples",
+      "description": "[as sold, today] where they differ."
+     },
+     "written_differently": {
+      "type": "boolean",
+      "title": "Written Differently",
+      "description": "Its values aren't written as today's are (another code)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "name",
+     "parcel_file",
+     "parcel_column",
+     "column",
+     "found",
+     "choice",
+     "suggest",
+     "sales",
+     "have",
+     "compared",
+     "same",
+     "examples",
+     "written_differently"
+    ],
+    "title": "AsSoldRow"
+   },
+   "AsSoldView": {
+    "properties": {
+     "sales_file": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sales File"
+     },
+     "filename": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Filename",
+      "description": "The sales file's own name (sale.csv)."
+     },
+     "columns": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Columns",
+      "description": "The sales file's columns, to choose from."
+     },
+     "rows": {
+      "items": {
+       "$ref": "#/components/schemas/AsSoldRow"
+      },
+      "type": "array",
+      "title": "Rows"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sales_file",
+     "filename",
+     "columns",
+     "rows"
+    ],
+    "title": "AsSoldView"
    },
    "AssembleExports": {
     "properties": {
@@ -25895,6 +26189,14 @@
       "title": "Custom",
       "description": "Fields the user named and classified."
      },
+     "as_sold": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "As Sold",
+      "description": "Sales as sold: characteristic -> the sales file's column the sales use; \"\": today's (the parcel's), chosen. Missing: not chosen (today's)."
+     },
      "condos": {
       "anyOf": [
        {
@@ -25933,6 +26235,7 @@
      "locations",
      "absent",
      "custom",
+     "as_sold",
      "condos",
      "value_sets"
     ],

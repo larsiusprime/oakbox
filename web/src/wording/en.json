@@ -283,6 +283,11 @@
         "question": "Any map layers?",
         "lede": "Zoning, school zones, flood zones, parks, schools… Each layer either stamps its areas onto the parcels inside them, or gives each parcel its distance to the nearest feature."
       },
+      "as_sold": {
+        "title": "Sales as sold",
+        "question": "Do your sales describe the property as it was sold?",
+        "lede": "How sales and parcels each get their characteristics: what the models learn from, and what they value."
+      },
       "condos": {
         "title": "Condo units",
         "question": "",
@@ -1219,6 +1224,40 @@
       "matchHead": "Do the sales find their parcels?",
       "matchParcels": "Do its rows find their parcels?",
       "matchSales": "Do its rows find their sales?"
+    },
+    "asSold": {
+      "explainTitle": "How sales describe the property",
+      "point1": "A sale should be described as the property was **when it sold**: it may have changed since (an addition, a new roof, a regrade).",
+      "point2": "Those characteristics are what the models **learn from**: they're what the price paid for.",
+      "point3": "To value a parcel, the models use its characteristics **now**: the parcel files.",
+      "point4": "So it's best practice to **freeze** a parcel's characteristics at the sale, and record them with the sale.",
+      "point5": "Where a sale has no frozen characteristics, OAK box **assumes the parcel hasn't changed** and uses today's. That's called *hydrating* the sales, filling them in from the parcels, and it's a modeling assumption.",
+      "toColumns": "Your sales file's columns that describe the property",
+      "back": "How it works",
+      "noSales": "Add the sales file first, on Sales.",
+      "noneFound": "{file} doesn't describe the property: every sale will use today's characteristics (it's assumed the parcel hasn't changed).",
+      "loading": "Comparing {file} with today's characteristics",
+      "lede": "{file}'s columns that look like a parcel field, each checked against the parcel's value today, on the same parcels. Until you choose, sales use today's.",
+      "cols": {
+        "field": "Parcel field (today, from)",
+        "column": "In {file}",
+        "have": "Sales with a value",
+        "against": "Against today's",
+        "use": "Sales use"
+      },
+      "same": "same for {pct}",
+      "differs": "differs for {pct}",
+      "examples": "as sold → today: {list}",
+      "writtenDifferently": "written differently ({sold} where today's is {today}): export the same codes to use it",
+      "sale": "The sale's",
+      "today": "Today's",
+      "suggested": "suggested",
+      "allSame": "Everything here matches today's: {file} looks like today's characteristics exported with the sales, not the property as it was sold. Using it changes nothing.",
+      "forSales": "For sales",
+      "asSoldOption": "As sold: {column} · {file}",
+      "todayOption": "Today's, as the parcels",
+      "lineNote": "{file} has it for {have} of sales, the same as today's for {same}. As sold, the others take today's.",
+      "lineNotDecided": "Decided on Sales as sold; until then, today's."
     }
   },
   "tabs": {

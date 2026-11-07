@@ -6779,3 +6779,41 @@ div.map-wait-ask small {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- Something taking a moment (components/Waiting.tsx) ---------- */
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  color: var(--muted);
+}
+
+/* ---------- Data › Sales as sold (screens/AsSold.tsx) ---------- */
+.as-explain {
+  max-width: 46rem;
+}
+.as-explain ol {
+  padding-left: 1.3em;
+  display: grid;
+  gap: 0.45em;
+  margin: 0.5em 0 1em;
+}
+.as-sold {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+.as-choice {
+  white-space: nowrap;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+.as-eg {
+  font-size: 0.85em;
+}
+.as-line .as-note {
+  display: block;
+  margin-top: 0.3em;
+}

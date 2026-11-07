@@ -603,7 +603,26 @@ the field steps, checks, guesses, assumptions and Review carry over.
     suggests cents. One click applies it.
   - **Values flagged:** amounts written as Excel writes big numbers (`1.11E+06`, rounded, can't be repaired). The price
     dialog only reads prices; it never changes which sales are valid.
-- **Condo units: a major step of its own (6, after More details), one decision per part.** OpenAVMKit's
+- **Sales as sold: a major step of its own (6, after More details; built 2026-11-07, `wizard/as_sold.py`,
+  `AsSold.tsx`).** After the characteristics are chosen, since it compares with them. First a screen to itself, how it
+  works: a sale described as the property was when it sold (it may have changed since); those are what the models
+  learn from; parcels are valued on what they are now (the parcel files); so it's best practice to freeze the
+  characteristics at the sale; where a sale has none, today's are assumed (the sales are *hydrated* from the parcels):
+  a modeling assumption. Then the main sales file's columns that mirror a characteristic loaded for the parcels (Big
+  five, Land use & building type: the parcel's own column name, or a name the field dictionary knows), each checked
+  against today's value of the sale's parcel: sales with a value, the share the same as today's (a number within
+  0.5%), examples where they differ; **written differently** when today's are numbers and the sale's mostly aren't
+  (Guilford's `GRADE`, "B-5  120%" where today's is 1.2), or text with almost no values in common: then the sale's
+  can't be chosen, and the answer is a cleaner export (the same codes), not a reading in OAK box (settled
+  2026-11-07). Per field, **The sale's** or **Today's** (`wizard.as_sold`); until chosen, today's (nothing changes
+  silently), with a suggestion: today's where 99% or more are the same (a snapshot exported with the sales, not
+  history: Guilford, 99.6-100%), else the sale's. The sale's loads its column into the sales file read as the parcel's
+  is (its unit, number format, scale), so OpenAVMKit's hydration uses it per sale and fills the rest from the parcel;
+  the parcel's reading changing changes it too, and the parcel field gone takes it with it. The same choice on each
+  characteristic's own screen, under its column (**For sales**: "As sold: HEATED_AREA · sale.csv" or "Today's, as the
+  parcels", with the figures). A characteristic only the sales file has isn't offered: a model can't value a parcel
+  on it. 8 s on Guilford's 220,000 sales (the columns read again): shown waiting, with the time and Stop.
+- **Condo units: a major step of its own (7, after Sales as sold), one decision per part.** OpenAVMKit's
   `data.process.condos`, for units on the roll but not on the map: each has a parcel ID of its own and no parcel shape,
   because it sits on a parcel it shares.
   - **What fits the pattern,** listed on the first part so the user recognises theirs: condos of any kind (homes,

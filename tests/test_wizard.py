@@ -4,6 +4,7 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 from helpers import (
+    IDS,
     NEW,
     put_file,
     read_settings,
@@ -206,6 +207,47 @@ def test_previews_find_sales_joined_on_the_second_id(client, pid):
     sold = {t["value"]: t["sales"] for t in tiers["tiers"]}
     assert sold["Good"] == 3 and sum(sold.values()) == 3
     assert tiers["basis"] == "price per sq ft"
+
+
+def test_sales_as_sold(client, pid, tmp_path):
+    """Sales as sold: the sales file's column that mirrors a parcel field is found and checked against today's; the
+    sale's is used only when chosen (read as the parcel's), follows the parcel's reading, and goes with it."""
+
+    # Sales recording the living area as sold: one of the three differs from today's (an addition since).
+    pd.DataFrame(
+        {
+            "PROP_ID": [IDS[0], IDS[2], IDS[3]],
+            "SALE_PRICE": [185000, 92500, 240000],
+            "SALE_DT": ["03/14/2023", "01/09/2024", "06/30/2025"],
+            "LIVING_AREA": [1500, 700, 1750],
+        }
+    ).to_csv(tmp_path / "sales_sold.csv", index=False)
+    body = {"path": str(tmp_path / "sales_sold.csv"), "mode": "copy", "name": "sales_sold"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "shapes", universe=True)
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_sold", holds="sales")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sales_sold", "column": "SALE_PRICE"})
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    v = client.get(f"/api/projects/{pid}/wizard/as-sold").json()
+    row = next(r for r in v["rows"] if r["key"] == "bldg_area_finished_sqft")
+    assert (row["column"], row["have"], row["compared"], row["same"]) == ("LIVING_AREA", 3, 3, 2)
+    assert row["choice"] is None and row["suggest"] == "sale" and row["examples"] == [["700", "980"]]
+    assert "bldg_area_finished_sqft" not in read_settings(pid)["data"]["load"]["sales_sold"]["load"]  # today's
+    # The sale's: loaded into the sales file too, in the parcel's unit; the parcel's still from cama.
+    v = client.put(f"/api/projects/{pid}/wizard/as-sold/bldg_area_finished_sqft", json={"column": "LIVING_AREA"})
+    assert v.status_code == 200 and v.json()["rows"][0]["choice"] == "sale"
+    load = read_settings(pid)["data"]["load"]
+    assert load["sales_sold"]["load"]["bldg_area_finished_sqft"][0] == "LIVING_AREA"
+    assert load["cama"]["load"]["bldg_area_finished_sqft"][0] == "LIVING_AREA"
+    # The parcel field gone: the sales' copy goes with it.
+    client.put(f"{field}/bldg_area_finished_sqft", json={})
+    assert "bldg_area_finished_sqft" not in read_settings(pid)["data"]["load"]["sales_sold"]["load"]
+    # Today's, chosen: nothing loaded into the sales file.
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    v = client.put(f"/api/projects/{pid}/wizard/as-sold/bldg_area_finished_sqft", json={"column": None}).json()
+    assert v["rows"][0]["choice"] == "today"
 
 
 def test_names_say_the_jurisdiction(client, pid):

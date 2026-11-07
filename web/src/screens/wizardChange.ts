@@ -235,6 +235,8 @@ export function useChange(projectId: string) {
     },
     onSuccess: async (data, c) => {
       queryClient.setQueryData(["wizard", projectId], data);
+      // Sales as sold compares the sales file with the parcel fields: either changing asks it again.
+      void queryClient.invalidateQueries({ queryKey: ["as-sold", projectId] });
       // Renaming the base to geo_parcels, and the field counts, show on the other tabs.
       if (c.kind !== "visit" || c.step === "files") {
         await queryClient.invalidateQueries({ queryKey: ["project", projectId] });

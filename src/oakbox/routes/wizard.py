@@ -12,6 +12,7 @@ from oakbox import datafiles, enrichments, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
 from oakbox.errors import NotFound
 from oakbox.routes.common import editing, file_entry, load_project, wizard_view
+from oakbox.wizard import as_sold
 
 router = APIRouter()
 
@@ -305,6 +306,28 @@ def wizard_rule_preview(project_id: str, key: str, body: datafiles.Rule) -> wiza
 def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizard:
     """Work a yes/no field (valid sale, vacant sale) out from the sales file's columns (F3d)."""
     return _change(project_id, lambda p, d: wizard.set_rule(p, d, key, body))
+
+
+class AsSoldChoice(BaseModel):
+    column: str | None = Field(description="The sales file's column the sales use; null: today's (the parcel's).")
+
+
+@router.get("/api/projects/{project_id}/wizard/as-sold")
+def wizard_as_sold(project_id: str) -> as_sold.AsSoldView:
+    """Sales as sold: the sales file's columns that mirror a characteristic, each against today's values."""
+    project = load_project(project_id)
+    return as_sold.view(project, projects.inputs_dir(project_id))
+
+
+@router.put("/api/projects/{project_id}/wizard/as-sold/{key}")
+def wizard_as_sold_choose(project_id: str, key: str, body: AsSoldChoice) -> as_sold.AsSoldView:
+    """For a characteristic, the sale's value (its column, read as the parcel's) or today's."""
+    with editing(project_id, settings=True) as project:
+        try:
+            as_sold.choose(project, projects.inputs_dir(project_id), key, body.column)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+    return as_sold.view(project, projects.inputs_dir(project_id))
 
 
 @router.get("/api/projects/{project_id}/wizard/locations")

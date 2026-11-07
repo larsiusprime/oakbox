@@ -845,6 +845,40 @@ export type Wording = {
       matchParcels: string;
       matchSales: string;
     };
+    asSold: {
+      explainTitle: string;
+      point1: ReactNode;
+      point2: ReactNode;
+      point3: ReactNode;
+      point4: ReactNode;
+      point5: ReactNode;
+      toColumns: string;
+      back: string;
+      noSales: string;
+      noneFound: (a: { file: string | number }) => string;
+      loading: (a: { file: string | number }) => string;
+      lede: (a: { file: string | number }) => string;
+      cols: {
+        field: string;
+        column: (a: { file: string | number }) => string;
+        have: string;
+        against: string;
+        use: string;
+      };
+      same: (a: { pct: string | number }) => string;
+      differs: (a: { pct: string | number }) => string;
+      examples: (a: { list: string | number }) => string;
+      writtenDifferently: (a: { sold: string | number; today: string | number }) => string;
+      sale: string;
+      today: string;
+      suggested: string;
+      allSame: (a: { file: string | number }) => string;
+      forSales: string;
+      asSoldOption: (a: { column: string | number; file: string | number }) => string;
+      todayOption: string;
+      lineNote: (a: { file: string | number; have: string | number; same: string | number }) => string;
+      lineNotDecided: string;
+    };
   };
   tabs: {
     scrollLeft: string;

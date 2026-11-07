@@ -126,6 +126,11 @@ class WizardState(BaseModel):
         default_factory=list, description="Fields said not to exist (no condition: effective age carries it)."
     )
     custom: list[CustomField] = Field(default_factory=list, description="Fields the user named and classified.")
+    as_sold: dict[str, str] = Field(
+        default_factory=dict,
+        description="Sales as sold: characteristic -> the sales file's column the sales use; \"\": today's (the "
+        "parcel's), chosen. Missing: not chosen (today's).",
+    )
     condos: bool | None = Field(
         default=None,
         description="Condo units: whether some parcels are units without a shape of their own; None: not asked yet.",

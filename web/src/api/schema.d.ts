@@ -657,6 +657,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/as-sold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard As Sold
+         * @description Sales as sold: the sales file's columns that mirror a characteristic, each against today's values.
+         */
+        get: operations["wizard_as_sold_api_projects__project_id__wizard_as_sold_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/as-sold/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard As Sold Choose
+         * @description For a characteristic, the sale's value (its column, read as the parcel's) or today's.
+         */
+        put: operations["wizard_as_sold_choose_api_projects__project_id__wizard_as_sold__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/locations": {
         parameters: {
             query?: never;
@@ -2988,6 +3028,95 @@ export interface components {
              * @description The variables it adds (would add, when off).
              */
             adds: number;
+        };
+        /** AsSoldChoice */
+        AsSoldChoice: {
+            /**
+             * Column
+             * @description The sales file's column the sales use; null: today's (the parcel's).
+             */
+            column: string | null;
+        };
+        /** AsSoldRow */
+        AsSoldRow: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /**
+             * Parcel File
+             * @description The parcel file it's loaded from (today's).
+             */
+            parcel_file: string;
+            /** Parcel Column */
+            parcel_column: string;
+            /**
+             * Column
+             * @description The sales file's column: chosen, else the one that mirrors it.
+             */
+            column: string | null;
+            /**
+             * Found
+             * @description The column was found by its name (not chosen by hand).
+             */
+            found: boolean;
+            /**
+             * Choice
+             * @description The user's; None: not chosen (today's is used).
+             */
+            choice: ("sale" | "today") | null;
+            /**
+             * Suggest
+             * @description What the figures suggest: today's when they're the same; None: written another way.
+             */
+            suggest: ("sale" | "today") | null;
+            /**
+             * Sales
+             * @description Sales on a parcel.
+             */
+            sales: number;
+            /**
+             * Have
+             * @description Of them, with a value in the column.
+             */
+            have: number;
+            /**
+             * Compared
+             * @description Of those, on a parcel with today's value too.
+             */
+            compared: number;
+            /**
+             * Same
+             * @description Of those, the same as today's.
+             */
+            same: number;
+            /**
+             * Examples
+             * @description [as sold, today] where they differ.
+             */
+            examples: string[][];
+            /**
+             * Written Differently
+             * @description Its values aren't written as today's are (another code).
+             */
+            written_differently: boolean;
+        };
+        /** AsSoldView */
+        AsSoldView: {
+            /** Sales File */
+            sales_file: string | null;
+            /**
+             * Filename
+             * @description The sales file's own name (sale.csv).
+             */
+            filename: string | null;
+            /**
+             * Columns
+             * @description The sales file's columns, to choose from.
+             */
+            columns: string[];
+            /** Rows */
+            rows: components["schemas"]["AsSoldRow"][];
         };
         /** AssembleExports */
         AssembleExports: {
@@ -10986,6 +11115,13 @@ export interface components {
              */
             custom: components["schemas"]["CustomField"][];
             /**
+             * As Sold
+             * @description Sales as sold: characteristic -> the sales file's column the sales use; "": today's (the parcel's), chosen. Missing: not chosen (today's).
+             */
+            as_sold: {
+                [key: string]: string;
+            };
+            /**
              * Condos
              * @description Condo units: whether some parcels are units without a shape of their own; None: not asked yet.
              */
@@ -12359,6 +12495,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RulePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_as_sold_api_projects__project_id__wizard_as_sold_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsSoldView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_as_sold_choose_api_projects__project_id__wizard_as_sold__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsSoldChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsSoldView"];
                 };
             };
             /** @description Validation Error */
