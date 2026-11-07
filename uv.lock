@@ -915,9 +915,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "openavmkit", git = "https://github.com/larsiusprime/openavmkit?rev=977cbd383464311ce66820c3c3ed9a831d822f51" },
-    { name = "openavmkit", extras = ["catboost"], marker = "extra == 'catboost'", git = "https://github.com/larsiusprime/openavmkit?rev=977cbd383464311ce66820c3c3ed9a831d822f51" },
-    { name = "openavmkit", extras = ["xgboost"], marker = "extra == 'xgboost'", git = "https://github.com/larsiusprime/openavmkit?rev=977cbd383464311ce66820c3c3ed9a831d822f51" },
+    { name = "openavmkit", git = "https://github.com/larsiusprime/openavmkit?rev=645336fe87805a721e87d0aefa171d68e3aa1a02" },
+    { name = "openavmkit", extras = ["catboost"], marker = "extra == 'catboost'", git = "https://github.com/larsiusprime/openavmkit?rev=645336fe87805a721e87d0aefa171d68e3aa1a02" },
+    { name = "openavmkit", extras = ["xgboost"], marker = "extra == 'xgboost'", git = "https://github.com/larsiusprime/openavmkit?rev=645336fe87805a721e87d0aefa171d68e3aa1a02" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "psutil", specifier = ">=6" },
     { name = "pyside6", marker = "sys_platform == 'linux'", specifier = ">=6.12" },
@@ -941,8 +941,8 @@ dev = [
 
 [[package]]
 name = "openavmkit"
-version = "0.7.0.post1.dev82+g977cbd383"
-source = { git = "https://github.com/larsiusprime/openavmkit?rev=977cbd383464311ce66820c3c3ed9a831d822f51#977cbd383464311ce66820c3c3ed9a831d822f51" }
+version = "0.7.0.post1.dev85+g645336fe8"
+source = { git = "https://github.com/larsiusprime/openavmkit?rev=645336fe87805a721e87d0aefa171d68e3aa1a02#645336fe87805a721e87d0aefa171d68e3aa1a02" }
 dependencies = [
     { name = "census" },
     { name = "geopandas" },
