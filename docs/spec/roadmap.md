@@ -20,7 +20,7 @@ isn't; the milestones are kept as they were planned.
   tuning trials went from 23 s to 4 s on average, and it scored best of the single models in both groups. Upstream as
   #429, with a fix for SHAP on a category listed twice. Spatial average and per area statistics are their own pages
   next to each other in Variables.
-- **Left of M3:** slice 3 of the models (outliers back into Check sales, per-group variables and models, why this
+- **Left of M3:** slice 3 of the models (outliers back into Check sales, why this
   value), CAMA export, the model summary report. Per area statistics (§3.12.3) is built (2026-11-07).
 - **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried). On
   the assessor's 12-core Windows PC, 4,600 parcels: Try them 11 minutes for 7 models in 2 groups, CatBoost 60% of it.
@@ -75,7 +75,7 @@ isn't; the milestones are kept as they were planned.
   - Upstream: B1–B10
 - **M3 — "Build model values."**
   - Steps 5 and 6 (§3.0 F9; slices 1 and 2 built, slice 3 in part): slice 1 (variables, models, Try, how they did),
-    slice 2 (small groups, Finalize, model values checked), slice 3 (outliers, testing variables, per-group choices, why
+    slice 2 (small groups, Finalize, model values checked), slice 3 (outliers, testing variables, why
     this value); speed tiers once measured
   - CAMA export
   - Model summary report
