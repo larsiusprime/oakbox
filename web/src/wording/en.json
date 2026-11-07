@@ -79,6 +79,12 @@
     "copyNote": "A new copy is made for the project; the original stays where it is.",
     "moveNote": "The original moves into the project folder."
   },
+  "performanceReport": {
+    "title": "Performance report saved",
+    "saved": "Saved in the project folder:",
+    "what": "It holds how long each step's last run took and where the time went (each model's tuning trials, CPU and memory), the runs' receipts and the end of their logs, and the project's settings for OpenAVMKit: file and field names, no data. Send it along with what was slow.",
+    "close": "Close"
+  },
   "about": {
     "version": "OAK box",
     "openavmkit": "OpenAVMKit",

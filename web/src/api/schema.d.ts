@@ -326,6 +326,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/performance-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Performance Report
+         * @description Zip the project's run records (timing, tuning trials, receipts, the end of the logs; no data) into the project
+         *     folder for a slow run to be diagnosed, and show it in the file manager (Help › Save a performance report).
+         */
+        post: operations["performance_report_api_projects__project_id__performance_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/show-in-folder": {
         parameters: {
             query?: never;
@@ -6702,6 +6723,16 @@ export interface components {
              */
             street_map: "recommended" | "on" | "off";
         };
+        /** PerformanceReport */
+        PerformanceReport: {
+            /**
+             * Path
+             * @description The zip, in the project folder.
+             */
+            path: string;
+            /** Name */
+            name: string;
+        };
         /** PermitKind */
         PermitKind: {
             /** Value */
@@ -10868,6 +10899,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    performance_report_api_projects__project_id__performance_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerformanceReport"];
                 };
             };
             /** @description Validation Error */

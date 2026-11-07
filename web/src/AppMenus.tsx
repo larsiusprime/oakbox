@@ -15,6 +15,7 @@ export function AppMenus({ route }: { route: Route }) {
   const queryClient = useQueryClient();
   const [about, setAbout] = useState(false);
   const [engines, setEngines] = useState(false);
+  const [report, setReport] = useState<{ name: string; path: string } | null>(null);
   const [flash, setFlash] = useState<number | null>(null); // the zoom level, shown for a moment after it changes
   const settings = useAppSettings();
   const display = settings.data?.display;
@@ -66,6 +67,16 @@ export function AppMenus({ route }: { route: Route }) {
       ),
   });
 
+  const saveReport = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/performance-report", {
+          params: { path: { project_id: id } },
+        }),
+      ),
+    onSuccess: (r) => setReport(r),
+  });
+
   const run = (command: MenuCommand) => {
     if (typeof command === "object") return navigate({ name: "project", id: command.open });
     switch (command) {
@@ -89,6 +100,8 @@ export function AppMenus({ route }: { route: Route }) {
         return setAbout(true);
       case "settings":
         return openSettings();
+      case "performance-report":
+        return projectId && saveReport.mutate(projectId);
     }
   };
   useMenu(run);
@@ -164,12 +177,49 @@ export function AppMenus({ route }: { route: Route }) {
     <>
       <About isOpen={about} onClose={() => setAbout(false)} />
       <ModelEnginesDialog isOpen={engines} onClose={() => setEngines(false)} />
+      <ReportSaved report={report} onClose={() => setReport(null)} />
       {flash !== null && (
         <output className="zoom-flash" aria-live="polite">
           {t.zoomLevel({ percent: flash })}
         </output>
       )}
     </>
+  );
+}
+
+/** Help › Save a performance report: where it went, and what's in it. */
+function ReportSaved({
+  report,
+  onClose,
+}: {
+  report: { name: string; path: string } | null;
+  onClose: () => void;
+}) {
+  const r = t.performanceReport;
+  return (
+    <ModalOverlay
+      className="modal-overlay"
+      isDismissable
+      isOpen={report !== null}
+      onOpenChange={(open) => !open && onClose()}
+    >
+      <Modal className="modal">
+        <Dialog className="modal-body">
+          <Heading slot="title" className="modal-title">
+            {r.title}
+          </Heading>
+          <p>
+            {r.saved} <span className="mono">{report?.path}</span>
+          </p>
+          <p className="row-meta">{r.what}</p>
+          <div className="form-actions">
+            <Button className="button" onPress={onClose} autoFocus>
+              {r.close}
+            </Button>
+          </div>
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
   );
 }
 

@@ -64,6 +64,22 @@ they're spread over) and smaller than 3 pixels on screen, a whole-county view ca
 each is drawn at least 3 pixels across, otherwise as a dot. Every other parcel map already draws points. A street map that's
 off isn't fetched.
 
+**Where a run's time goes** (built 2026-11-07, `timing.py`). Every step's run leaves a record in
+`out/oakbox/timing/<step>/`, the last run of each step, kept however it ended (an error, Stop):
+- `timing.json`: OAK box's and OpenAVMKit's versions; this computer (the check's record, logical and physical cores,
+  memory) and the performance settings in force; the run's timeline (each progress line and its seconds from the
+  start); its seconds; the CPU seconds of its process and its workers, the peak memory of them together (sampled every
+  2 s), the most workers at once; how it ended; and a summary of the tuning trials per model (how many, their
+  seconds, the slowest, pruned, the rows, features, categorical features and folds searched on).
+- `trials.jsonl`: OpenAVMKit's trial log (`OPENAVMKIT_TRIAL_LOG`, upstream): each tuning trial as it finishes, the
+  model, its own seconds, state, score and params, the search's size (CatBoost: its threads). Worker processes
+  inherit the variable, so folds tuned in parallel are in it; written as it goes, so a stopped run leaves its trials.
+
+**Help › Save a performance report** (in a project) zips those records with each step's receipt and fingerprint, the
+end of each run's log (400 KB) and the project's settings for OpenAVMKit (file and field names; no data) into
+`performance-report-<date>.zip` in the project folder, shows it in the file manager, and says where it is and what's
+in it.
+
 **A large county is said before the long steps.** Bring in data's plan works out about how much memory the county
 needs (0.5 GB, plus 1 GB per 50,000 parcels, plus 0.6 GB per 50,000 for each extra fold worker: the test runs'
 figures) against what the computer leaves OAK box (its memory less 5.5 GB for Windows and the usual programs), and

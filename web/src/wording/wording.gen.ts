@@ -76,6 +76,12 @@ export type Wording = {
     copyNote: string;
     moveNote: string;
   };
+  performanceReport: {
+    title: string;
+    saved: string;
+    what: string;
+    close: string;
+  };
   about: {
     version: string;
     openavmkit: string;

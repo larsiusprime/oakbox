@@ -607,6 +607,46 @@
     }
    }
   },
+  "/api/projects/{project_id}/performance-report": {
+   "post": {
+    "summary": "Performance Report",
+    "description": "Zip the project's run records (timing, tuning trials, receipts, the end of the logs; no data) into the project\nfolder for a slow run to be diagnosed, and show it in the file manager (Help \u203a Save a performance report).",
+    "operationId": "performance_report_api_projects__project_id__performance_report_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PerformanceReport"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/show-in-folder": {
    "post": {
     "summary": "Show In Folder",
@@ -15908,6 +15948,25 @@
     "type": "object",
     "title": "Performance",
     "description": "The performance settings: each \"recommended\" (follow the check) or the user's own choice."
+   },
+   "PerformanceReport": {
+    "properties": {
+     "path": {
+      "type": "string",
+      "title": "Path",
+      "description": "The zip, in the project folder."
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "path",
+     "name"
+    ],
+    "title": "PerformanceReport"
    },
    "PermitKind": {
     "properties": {

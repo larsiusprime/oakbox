@@ -177,6 +177,26 @@ def delete_project(project_id: str) -> None:
             raise HTTPException(500, f"Couldn't move the project to the Recycle Bin: {e}") from e
 
 
+class PerformanceReport(BaseModel):
+    path: str = Field(description="The zip, in the project folder.")
+    name: str
+
+
+@router.post("/api/projects/{project_id}/performance-report")
+def performance_report(project_id: str) -> PerformanceReport:
+    """Zip the project's run records (timing, tuning trials, receipts, the end of the logs; no data) into the project
+    folder for a slow run to be diagnosed, and show it in the file manager (Help › Save a performance report)."""
+    from oakbox import timing
+
+    load_project(project_id)
+    out = timing.report(projects.project_dir(project_id))
+    try:
+        projects.show_file(out)
+    except OSError:
+        pass  # saved all the same: the page says where
+    return PerformanceReport(path=str(out), name=out.name)
+
+
 @router.post("/api/projects/{project_id}/show-in-folder")
 def show_in_folder(project_id: str) -> None:
     load_project(project_id)

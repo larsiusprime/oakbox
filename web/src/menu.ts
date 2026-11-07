@@ -13,6 +13,7 @@ export const MENU_COMMANDS = [
   "engines",
   "about",
   "settings",
+  "performance-report",
   "display",
 ] as const;
 export type MenuCommand = (typeof MENU_COMMANDS)[number] | { open: string };
