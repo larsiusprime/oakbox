@@ -145,7 +145,8 @@ plain words:
 ### 3.12.3 Modeling-time context (step 5)
 **Spatial lag** (nearby sale prices and characteristics) and **area statistics** (neighbourhood means and medians) run
 in step 6. They depend on model groups and train/test splits.
-- **Spatial lag: built (2026-11-01), as Variables › Nearby sales and buildings**, after What changed (Prepare accepted).
+- **Spatial lag: built (2026-11-01), as Variables › Spatial average statistics** (named Nearby sales and buildings
+  until 2026-11-07), after What changed (Prepare accepted).
   **On by default** (a tick: "Average nearby sales and buildings"; off writes nothing and offers nothing). OpenAVMKit's
   `enrich_sup_spatial_lag`: the k nearest of each, however far, weighted by distance (a Gaussian whose width is their
   mean distance, so it adapts to density). OpenAVMKit's `BANDWIDTH_MILES` (half a mile) only scales the `_confidence`
@@ -188,12 +189,12 @@ in step 6. They depend on model groups and train/test splits.
     IndexError); a group with fewer than 10 parcels, or than twice k, is left out of the lag for the run (nor borrowed
     from), and its models do without, said as above.
   - On the synthetic sample (9,354 parcels, 1,770 sales) it takes 1.6 s.
-- **Area figures: proposed (2026-11-06, mocked up, not built), as Variables › Area figures**, after Nearby sales and
-  buildings. OpenAVMKit's area statistics (`area_stats.enrich_sup_area_stats`, `data.process.enrich.area_stats`): each
-  parcel gets its area's figures (the median sale price of its census tract, the median finished area of its
+- **Per area statistics: proposed (2026-11-06, mocked up, not built), as Variables › Per area statistics**, its own
+  page right after Spatial average statistics (its cousin: both worked out as each run starts, after the split).
+  OpenAVMKit's area statistics (`area_stats.enrich_sup_area_stats`, `data.process.enrich.area_stats`): each parcel gets its area's figures (the median sale price of its census tract, the median finished area of its
   neighbourhood) as variables of their own. Nearby sales is a smooth surface of the nearest; this is the same idea by
   named areas.
-  - **Work out area figures** (a tick; **off** to start). Off writes nothing and offers nothing, but everything under
+  - **Work out per area statistics** (a tick; **off** to start). Off writes nothing and offers nothing, but everything under
     the tick is shown faded and can't be used, set as it would start: turning it on gives what's on show.
   - **Layout** (style guide): the tick; then **Figures** and **Blank under** as settings on two columns (labels, then
     what's set); then the grid, a table.

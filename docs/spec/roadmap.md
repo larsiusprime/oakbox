@@ -14,7 +14,7 @@ isn't; the milestones are kept as they were planned.
   field. The Model groups map draws parcel files of small squares, and its shapes are binary arrays. Fill blanks by
   each field's kind, with what each model group gets.
 - **Left of M3:** slice 3 of the models (outliers back into Check sales, per-group variables and models, why this
-  value), CAMA export, the model summary report. Area figures (§3.12.3) is specified and mocked up, not built.
+  value), CAMA export, the model summary report. Per area statistics (§3.12.3) is specified and mocked up, not built.
 - **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried).
 - **Waiting on the maintainer:** real extracts (Travis CAD first), the usability test with three assessors, and timing
   on a real low-end PC.

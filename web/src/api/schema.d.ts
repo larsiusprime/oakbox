@@ -5838,7 +5838,7 @@ export interface components {
             tests?: string[] | null;
             /**
              * Lag On
-             * @description Nearby sales and buildings, on or off.
+             * @description Spatial average statistics, on or off.
              */
             lag_on?: boolean | null;
             /** @description A group's sales sources besides its own. */

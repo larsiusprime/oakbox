@@ -13976,7 +13976,7 @@
        }
       ],
       "title": "Lag On",
-      "description": "Nearby sales and buildings, on or off."
+      "description": "Spatial average statistics, on or off."
      },
      "lag_borrow": {
       "anyOf": [

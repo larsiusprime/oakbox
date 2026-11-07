@@ -1,4 +1,4 @@
-/** Variables › Nearby sales and buildings (OpenAVMKit's spatial lag, SPEC F9): each parcel gets the distance-weighted
+/** Variables › Spatial average statistics (OpenAVMKit's spatial lag, SPEC F9): each parcel gets the distance-weighted
  * average of its nearest sales' prices and of its nearest parcels' characteristics, as variables. On by default; each
  * model group averages its own sales, and may borrow another group's; fields besides OpenAVMKit's own, none to start. */
 

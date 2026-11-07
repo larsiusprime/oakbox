@@ -699,7 +699,7 @@ class LagBorrow(BaseModel):
 
 class ModelPatch(BaseModel):
     tests: list[str] | None = Field(default=None, description="The variable tests to run, besides Represented.")
-    lag_on: bool | None = Field(default=None, description="Nearby sales and buildings, on or off.")
+    lag_on: bool | None = Field(default=None, description="Spatial average statistics, on or off.")
     lag_borrow: LagBorrow | None = Field(default=None, description="A group's sales sources besides its own.")
     lag_fields: list[str] | None = Field(default=None, description="Fields averaged besides OpenAVMKit's own.")
     lag_k: int | None = Field(default=None, ge=1, le=50, description="How many of the nearest each average is of.")
