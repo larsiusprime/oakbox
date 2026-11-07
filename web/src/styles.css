@@ -2645,6 +2645,11 @@ like the wizard's Next {
 .bi-steps .now {
   font-weight: 600;
 }
+.bi-took {
+  margin-inline-start: 0.6em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
 .bi-receipt {
   display: grid;
   gap: max(calc(0.85 * var(--sp)), min(0.85rem, var(--gap-min)));

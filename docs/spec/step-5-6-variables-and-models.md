@@ -261,6 +261,8 @@ ticked variables is gone: each model takes a variable list.
     CatBoost skipped, as you asked"). OpenAVMKit's part `model:<group>:<model>` (`progress.in_part`, upstream): OAK box
     names it in the step's skip file, `OPENAVMKIT_SKIP_FILE`, which the fold worker processes read between trials.
     Measured: CatBoost skipped 4 s into its tuning, the next model 1.2 s later. Finalize has it too.
+  - Each model's line, once it's done, shows how long it took (setup.md, "While it runs"): a slow one is plain beside
+    the rest, and Skip this model is the way out.
 - **How they did:** as above (2026-10-30). The figures are OpenAVMKit's own numbers: the benchmark's frames, read after
   the engine has printed them (printing no longer turns them into text), and `academic_metrics`. On the study set each
   model is judged by its holdout predictions (`analysis.ratio_study.study_set_predictions: "holdout"`, an engine opt-in

@@ -957,7 +957,9 @@ needs a key).
   10 seconds".
 - **While it runs, it's never a mystery.** The clock is the server's and moves every second. The step that's running
   shows what it's doing inside ("Parks (2 of 4)", "Downloading buildings: 12,400 so far", "Working out slopes"), its own
-  bar when that's known, and "working · 0:42 on this step". The run says it's alive every 2 seconds; with no word for
+  bar when that's known, and "working · 0:42 on this step". Each finished line shows how long it took, muted
+  ("✓ Single-family: training CatBoost 3:31"), so a model much slower than the others shows without a warning of its
+  own (2026-11-07: in place of the slow-model alert mocked earlier). The run says it's alive every 2 seconds; with no word for
   over 10 seconds it says it may be stuck (stop it, or wait). Until the first step, "Starting Python and OpenAVMKit".
   The detail comes from OpenAVMKit's progress events (`progress.report(..., sub=, part=)`) and, between them, the latest
   line it printed.

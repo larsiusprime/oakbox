@@ -214,7 +214,7 @@ export function StepFoot({
   );
 }
 
-/** A run in progress: the parts done, the one it's on (with what it's doing inside it), the clock. */
+/** A run in progress: the parts done and how long each took, the one it's on (with what it's doing inside it), the clock. */
 export function RunProgress({
   job,
   lastSeconds,
@@ -244,9 +244,12 @@ export function RunProgress({
         {steps.map((x, i) => {
           const now = i === steps.length - 1;
           return (
-            <li key={x.step} className={now ? "now" : "done"}>
+            // biome-ignore lint/suspicious/noArrayIndexKey: lines are only ever appended; a step can have many (each model)
+            <li key={i} className={now ? "now" : "done"}>
               {now ? <span className="bi-pulse" aria-hidden="true" /> : "✓ "}
               {x.message}
+              {/* How long it took (to the next line's start): a model much slower than the others shows. */}
+              {!now && <span className="bi-took">{clock((steps[i + 1]?.at ?? x.at) - x.at)}</span>}
               {now && job && <Busy job={job} since={x.at} skip={skip} />}
             </li>
           );
