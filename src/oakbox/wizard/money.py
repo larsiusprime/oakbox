@@ -103,12 +103,16 @@ def _step(span: float, bins: int, whole: bool = False) -> float:
     return next(m * power for m in (1, 2, 2.5, 5, 10) if m * power >= raw)
 
 
-def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) -> FieldSpread:
+def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24, sales: bool = False) -> FieldSpread:
     """How a number field's values spread, read as it's loaded: an area in its unit, converted to the project's; a
-    year as a year (0, written for none, left out)."""
+    year as a year (0, written for none, left out). `sales`: as the sales file has it (At the sale)."""
     files = Files(project, in_dir)
     entry = next(
-        (f for f in project.files if key in f.load and f.holds not in ("sales", "overlay", "unused")),
+        (
+            f
+            for f in project.files
+            if key in f.load and (f.holds == "sales" if sales else f.holds not in ("sales", "overlay", "unused"))
+        ),
         None,
     )
     target = small_unit(project.units)

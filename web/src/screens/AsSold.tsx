@@ -4,15 +4,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "react-aria-components";
-import { api, unwrap } from "../api/client";
+import { api, unwrap, type WizardField } from "../api/client";
 import type { components } from "../api/schema";
 import { stepChanged } from "../api/steps";
-import { Seg } from "../components/Seg";
+import { Disclose } from "../components/Disclose";
+import { Choice } from "../components/Form";
+import { ValuesButton } from "../components/ValuesButton";
 import { Waiting } from "../components/Waiting";
-import { num, pct } from "../lib/format";
+import { pct } from "../lib/format";
 import { t } from "../wording";
+import { FieldHistogram } from "./FieldHistogram";
 
 type Row = components["schemas"]["AsSoldRow"];
+type AreaUnit = components["schemas"]["AsSoldChoice"]["area_unit"] & string;
 const a = t.wizard.asSold;
 
 function useAsSold(projectId: string) {
@@ -32,11 +36,19 @@ function useAsSold(projectId: string) {
 function useChoose(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ key, column }: { key: string; column: string | null }) =>
+    mutationFn: async ({
+      key,
+      column,
+      area_unit,
+    }: {
+      key: string;
+      column: string | null;
+      area_unit?: string;
+    }) =>
       unwrap(
         await api.PUT("/api/projects/{project_id}/wizard/as-sold/{key}", {
           params: { path: { project_id: projectId, key } },
-          body: { column },
+          body: { column, ...(area_unit ? { area_unit: area_unit as AreaUnit } : {}) },
         }),
       ),
     onSuccess: (data) => {
@@ -47,10 +59,13 @@ function useChoose(projectId: string) {
   });
 }
 
+const TODAY = "__today";
 const share = (n: number, of: number) => (of ? pct(n / of) : "—");
 /** A value as read: a number with its thousands separated (a year as a year), else as written. */
 const show = (v: string, key: string) =>
-  v.trim() !== "" && Number.isFinite(Number(v)) && !key.includes("year") ? num(Number(v)) : v;
+  v.trim() !== "" && Number.isFinite(Number(v)) && !key.includes("year")
+    ? Number(v).toLocaleString(undefined, { maximumFractionDigits: Math.abs(Number(v)) < 100 ? 2 : 0 })
+    : v;
 
 /** The step: the explanation first, then the columns. */
 export function AsSoldStep({ projectId }: { projectId: string }) {
@@ -127,11 +142,18 @@ function Columns({ projectId }: { projectId: string }) {
                 <Against r={r} />
               </td>
               <td>
-                <Choice
+                <Picker
                   r={r}
+                  columns={v.columns}
+                  label={`${a.cols.use}: ${r.name}`}
                   disabled={choose.isPending}
                   pick={(column) => choose.mutate({ key: r.key, column })}
                 />
+                {r.suggest && r.suggest !== (r.choice ?? "today") && (
+                  <span className="pill pill-info">
+                    {a.suggested}: {r.suggest === "sale" ? a.sale : a.today}
+                  </span>
+                )}
               </td>
             </tr>
           ))}
@@ -169,58 +191,255 @@ function Against({ r }: { r: Row }) {
   );
 }
 
-function Choice({ r, pick, disabled }: { r: Row; pick: (column: string | null) => void; disabled: boolean }) {
-  const value = r.choice ?? "today";
+/** The sales' column for a field: none (today's), the one found (suggested, not used until picked), or any of the
+ * sales file's columns. The same picker on the step's table, a field's At the sale box, and More details' table. */
+function Picker({
+  r,
+  columns,
+  label,
+  pick,
+  disabled,
+}: {
+  r: Row;
+  columns: string[];
+  label: string;
+  pick: (column: string | null) => void;
+  disabled: boolean;
+}) {
+  const used = r.choice === "sale";
+  const options: [string, string][] = [
+    [TODAY, a.noneToday],
+    ...(r.column && !used ? [[r.column, a.suggestedOption({ column: r.column })] as [string, string]] : []),
+    ...columns.filter((c) => !(c === r.column && !used)).map((c) => [c, c] as [string, string]),
+  ];
   return (
-    <span className="as-choice">
-      <Seg
-        label={`${t.wizard.asSold.cols.use}: ${r.name}`}
-        value={value}
-        options={[
-          ["sale", a.sale],
-          ["today", a.today],
-        ]}
-        disabled={disabled || r.written_differently ? ["sale"] : []}
-        onChange={(c) => pick(c === "sale" ? r.column : null)}
-      />
-      {r.suggest && r.suggest !== value && (
-        <span className="pill pill-info">
-          {a.suggested}: {r.suggest === "sale" ? a.sale : a.today}
-        </span>
-      )}
-    </span>
+    <Choice
+      label={label}
+      hideLabel
+      value={used && r.column ? r.column : TODAY}
+      options={options}
+      onChange={(c: string) => pick(c === TODAY ? null : c)}
+      isDisabled={disabled}
+    />
   );
 }
 
-/** On a characteristic's own screen: what its sales use, the same choice as Sales as sold. */
-export function AsSoldLine({ projectId, field }: { projectId: string; field: string }) {
+/** On a characteristic's own screen, beside the parcels' column (Today's): the sales' (At the sale), the same widget
+ * reading the sales file. Its column (none: today's; the one found suggested), an area's unit, its values and spread,
+ * and against today's: the share the same, the sales that differ, and what that suggests. */
+export function AtSale({ projectId, field }: { projectId: string; field: WizardField }) {
   const q = useAsSold(projectId);
   const choose = useChoose(projectId);
-  const r = q.data?.rows.find((x) => x.key === field);
-  const file = q.data?.filename ?? q.data?.sales_file;
-  if (!q.data) return q.isFetching ? <Waiting doing={a.loading({ file: "the sales file" })} /> : null;
-  if (!r || !file) return null;
-  const value = r.choice ?? "today";
+  const [open, setOpen] = useState(false);
+  const v = q.data;
+  const r = v?.rows.find((x) => x.key === field.key);
+  const file = v?.filename ?? v?.sales_file ?? "";
+  const head = (
+    <div className="as-head">
+      <b>{a.atSale}</b>
+      <span className="wiz-from">{a.atSaleNote}</span>
+    </div>
+  );
+  if (!v)
+    return (
+      <div className="frame as-side">
+        {head}
+        <Waiting doing={a.loading({ file: "the sales file" })} />
+      </div>
+    );
+  if (!r || !v.sales_file) return null;
+  const used = r.choice === "sale";
+  const area = r.today_unit != null;
+  const units = t.wizard.areaUnits as Record<string, string>;
+  const showValue = (x: string, unit: string | null) =>
+    area && unit ? `${show(x, r.key)} ${units[unit] ?? unit}` : show(x, r.key);
+  const pick = (c: string, unit?: string) =>
+    choose.mutate({ key: r.key, column: c === TODAY ? null : c, ...(unit ? { area_unit: unit } : {}) });
+  const same = r.compared ? r.same / r.compared : 1;
+  const differ = r.compared - r.same;
   return (
-    <div className="mo-row as-line">
-      <span className="mo-label">{a.forSales}</span>
-      <span>
-        <Seg
-          label={a.forSales}
-          value={value}
-          options={[
-            ["sale", a.asSoldOption({ column: r.column ?? "", file })],
-            ["today", a.todayOption],
-          ]}
-          disabled={choose.isPending || r.written_differently ? ["sale"] : []}
-          onChange={(c) => choose.mutate({ key: r.key, column: c === "sale" ? r.column : null })}
-        />
-        <span className="wiz-from as-note">
-          {r.written_differently
-            ? a.writtenDifferently({ sold: r.examples[0]?.[0] ?? "", today: r.examples[0]?.[1] ?? "" })
-            : a.lineNote({ file, have: share(r.have, r.sales), same: share(r.same, r.compared) })}
+    <div className="frame as-side">
+      {head}
+      <div className="as-grid">
+        <span className="wiz-label">{a.column}</span>
+        <span className="as-control">
+          <Picker
+            r={r}
+            columns={v.columns}
+            label={`${a.atSale}: ${field.name}`}
+            disabled={choose.isPending}
+            pick={(c) => pick(c ?? TODAY)}
+          />
+          {r.column && r.how && <span className="pill pill-info">{a.how[r.how]}</span>}
         </span>
-      </span>
+        {area && r.column && (
+          <>
+            <span className="wiz-label">{a.unit}</span>
+            <span className="as-control">
+              <Choice
+                label={`${a.unit}: ${r.column}`}
+                hideLabel
+                value={r.unit ?? r.today_unit ?? "sqft"}
+                options={Object.entries(units)}
+                onChange={(u: string) => pick(r.column ?? TODAY, u)}
+                isDisabled={choose.isPending}
+              />
+              {r.unit !== r.today_unit && r.today_unit && (
+                <span className="wiz-from">{a.unitNote({ today: units[r.today_unit] ?? r.today_unit })}</span>
+              )}
+            </span>
+          </>
+        )}
+        {r.column && (
+          <>
+            <span />
+            <span className="as-control">
+              <ValuesButton projectId={projectId} file={v.sales_file} column={r.column} distinct={null} />
+              <span className="wiz-from">{a.onSales({ pct: share(r.have, r.sales) })}</span>
+            </span>
+          </>
+        )}
+      </div>
+      {used && r.column && (area || r.key.includes("year")) && (
+        <FieldHistogram
+          projectId={projectId}
+          field={field}
+          sale={{ column: r.column, unit: r.unit ?? null }}
+        />
+      )}
+      {!r.column ? (
+        <p className="wiz-from as-note">{a.notFound({ file })}</p>
+      ) : r.written_differently ? (
+        <div className="as-against">
+          <p>
+            <span className="pill pill-bad">{a.writtenDifferentlyPill}</span>{" "}
+            {a.writtenDifferentlyWhy({ sold: r.examples[0]?.[0] ?? "", today: r.examples[0]?.[1] ?? "" })}
+          </p>
+        </div>
+      ) : (
+        <div className="as-against">
+          <p>
+            <span className={same >= 0.99 ? "pill pill-ok" : "pill pill-warn"}>
+              {a.sameFor({ pct: pct(same) })}
+            </span>{" "}
+            {differ > 0 && (
+              <>
+                {a.differsFor({ n: differ })}:{" "}
+                {r.examples
+                  .map(
+                    ([s = "", d = ""]) =>
+                      `${showValue(s, r.unit ?? null)} → ${showValue(d, r.today_unit ?? null)}`,
+                  )
+                  .join(", ")}
+                {differ > r.examples.length && " …"}{" "}
+                <Disclose open={open} onPress={() => setOpen(!open)}>
+                  {open ? a.hideThem : a.seeThem}
+                </Disclose>
+              </>
+            )}
+          </p>
+          {open && (
+            <table className="tbl as-diffs">
+              <thead>
+                <tr>
+                  <th>{a.diffCols.parcel}</th>
+                  <th>{a.diffCols.date}</th>
+                  <th className="cs-n">{a.diffCols.sold}</th>
+                  <th className="cs-n">{a.diffCols.today}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.diffs.map((d) => (
+                  <tr key={`${d.parcel}-${d.date}-${d.sold}`}>
+                    <td>
+                      <code>{d.parcel}</code>
+                    </td>
+                    <td>{d.date}</td>
+                    <td className="cs-n">{showValue(d.sold, r.unit ?? null)}</td>
+                    <td className="cs-n">{showValue(d.today, r.today_unit ?? null)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="wiz-from as-note">
+            {!used && `${a.notUsed({ column: r.column })} `}
+            {r.suggest === "today"
+              ? a.suggestToday
+              : r.suggest === "sale"
+                ? a.suggestSale({ pct: pct(1 - same) })
+                : ""}
+          </p>
+        </div>
+      )}
+      {choose.error && (
+        <p className="error" role="alert">
+          {choose.error.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** More details' fields on one step (Land use & building type): each one's At the sale in a table under the step. */
+export function AtSaleTable({ projectId, fields }: { projectId: string; fields: WizardField[] }) {
+  const q = useAsSold(projectId);
+  const choose = useChoose(projectId);
+  const v = q.data;
+  if (!v) return <Waiting doing={a.loading({ file: "the sales file" })} />;
+  const rows = fields.flatMap((f) => {
+    const r = v.rows.find((x) => x.key === f.key);
+    return r ? [[f, r] as const] : [];
+  });
+  if (!v.sales_file || rows.length === 0) return null;
+  const file = v.filename ?? v.sales_file;
+  return (
+    <div className="as-table-wrap">
+      <h3 className="wiz-group">{a.tableTitle}</h3>
+      <p className="wiz-from">{a.tableLede({ file })}</p>
+      <table className="tbl as-table">
+        <thead>
+          <tr>
+            <th>{a.cols.field}</th>
+            <th>{a.todays}</th>
+            <th>{a.atSale}</th>
+            <th>{a.against}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([f, r]) => {
+            const same = r.compared ? r.same / r.compared : 1;
+            return (
+              <tr key={r.key}>
+                <td>{f.name}</td>
+                <td>
+                  <code>{r.parcel_column}</code> <span className="wiz-from">· {r.parcel_file}</span>
+                </td>
+                <td>
+                  <Picker
+                    r={r}
+                    columns={v.columns}
+                    label={`${a.atSale}: ${f.name}`}
+                    disabled={choose.isPending}
+                    pick={(column) => choose.mutate({ key: r.key, column })}
+                  />
+                </td>
+                <td>
+                  {!r.column ? (
+                    <span className="wiz-from">{a.notFound({ file })}</span>
+                  ) : r.written_differently ? (
+                    <span className="pill pill-bad">{a.writtenDifferentlyPill}</span>
+                  ) : (
+                    <span className={same >= 0.99 ? "pill pill-ok" : "pill pill-warn"}>
+                      {a.sameFor({ pct: pct(same) })}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

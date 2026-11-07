@@ -6863,7 +6863,81 @@ div.map-wait-ask small {
 .as-eg {
   font-size: 0.85em;
 }
-.as-line .as-note {
+/* A characteristic: Today's (the parcels') beside At the sale (the sales'), side by side where there's room, else
+   stacked; each as wide as what's in it. */
+.as-pairs {
+  display: grid;
+  gap: calc(1 * var(--sp));
+  justify-items: start;
+}
+.as-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(0.8 * var(--sp));
+  align-items: flex-start;
+  max-width: 100%;
+}
+.as-today {
+  max-width: 100%;
+}
+.as-head {
+  display: flex;
+  gap: 1em;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.wiz-capsule > .as-head-row {
+  grid-column: 1 / -1;
+}
+.as-side {
+  display: grid;
+  gap: calc(0.5 * var(--sp));
+  width: fit-content;
+  max-width: min(100%, 34rem);
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+}
+.as-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
+  align-items: center;
+}
+.as-control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  align-items: center;
+}
+.as-against {
+  display: grid;
+  gap: 0.4em;
+  padding-top: calc(0.5 * var(--sp));
+  border-top: 1px dashed var(--info-edge);
+}
+.as-against > p,
+.as-side > .as-note {
+  margin: 0;
+}
+.as-diffs {
+  width: auto;
+  max-height: 16rem;
+  overflow: auto;
   display: block;
-  margin-top: 0.3em;
+}
+/* Beside At the sale, a spread no wider than Today's row above it (it never widens the box: its notes wrap), so
+   the pair fits side by side sooner. */
+.as-pair .fh-chart {
+  width: min(100%, 28rem);
+}
+.as-today > .wiz-capsule-wide {
+  width: 0;
+  min-width: 100%;
+}
+.fh-in {
+  display: grid;
+  gap: 0.3em;
+}
+.as-table-wrap {
+  margin-top: calc(1 * var(--sp));
 }

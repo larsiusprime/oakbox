@@ -310,6 +310,7 @@ def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizar
 
 class AsSoldChoice(BaseModel):
     column: str | None = Field(description="The sales file's column the sales use; null: today's (the parcel's).")
+    area_unit: datafiles.AreaUnit | None = Field(default=None, description="An area: the unit the column is in.")
 
 
 @router.get("/api/projects/{project_id}/wizard/as-sold")
@@ -324,7 +325,7 @@ def wizard_as_sold_choose(project_id: str, key: str, body: AsSoldChoice) -> as_s
     """For a characteristic, the sale's value (its column, read as the parcel's) or today's."""
     with editing(project_id, settings=True) as project:
         try:
-            as_sold.choose(project, projects.inputs_dir(project_id), key, body.column)
+            as_sold.choose(project, projects.inputs_dir(project_id), key, body.column, body.area_unit)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
     return as_sold.view(project, projects.inputs_dir(project_id))
@@ -528,10 +529,11 @@ def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
 
 
 @router.get("/api/projects/{project_id}/wizard/fields/{key}/histogram")
-def wizard_field_histogram(project_id: str, key: str) -> wizard.FieldSpread:
-    """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five)."""
+def wizard_field_histogram(project_id: str, key: str, sales: bool = False) -> wizard.FieldSpread:
+    """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five). `sales`:
+    as the sales file has it (At the sale)."""
     try:
-        return wizard.field_histogram(load_project(project_id), projects.inputs_dir(project_id), key)
+        return wizard.field_histogram(load_project(project_id), projects.inputs_dir(project_id), key, sales=sales)
     except NotFound as e:
         raise HTTPException(404, f"{key} isn't loaded.") from e
 

@@ -878,6 +878,40 @@ export type Wording = {
       todayOption: string;
       lineNote: (a: { file: string | number; have: string | number; same: string | number }) => string;
       lineNotDecided: string;
+      atSale: string;
+      atSaleNote: string;
+      todays: string;
+      todaysNote: string;
+      column: string;
+      unit: string;
+      noneToday: string;
+      how: {
+        name: string;
+        known: string;
+        values: string;
+      };
+      suggestedOption: (a: { column: string | number }) => string;
+      notFound: (a: { file: string | number }) => string;
+      unitNote: (a: { today: string | number }) => string;
+      notUsed: (a: { column: string | number }) => string;
+      suggestToday: string;
+      suggestSale: (a: { pct: string | number }) => string;
+      differsFor: (a: { n: number }) => string;
+      sameFor: (a: { pct: string | number }) => string;
+      seeThem: string;
+      hideThem: string;
+      diffCols: {
+        parcel: string;
+        date: string;
+        sold: string;
+        today: string;
+      };
+      onSales: (a: { pct: string | number }) => string;
+      tableTitle: string;
+      tableLede: (a: { file: string | number }) => string;
+      against: string;
+      writtenDifferentlyPill: string;
+      writtenDifferentlyWhy: (a: { sold: string | number; today: string | number }) => string;
     };
   };
   tabs: {

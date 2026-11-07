@@ -617,11 +617,27 @@ the field steps, checks, guesses, assumptions and Review carry over.
   2026-11-07). Per field, **The sale's** or **Today's** (`wizard.as_sold`); until chosen, today's (nothing changes
   silently), with a suggestion: today's where 99% or more are the same (a snapshot exported with the sales, not
   history: Guilford, 99.6-100%), else the sale's. The sale's loads its column into the sales file read as the parcel's
-  is (its unit, number format, scale), so OpenAVMKit's hydration uses it per sale and fills the rest from the parcel;
-  the parcel's reading changing changes it too, and the parcel field gone takes it with it. The same choice on each
-  characteristic's own screen, under its column (**For sales**: "As sold: HEATED_AREA · sale.csv" or "Today's, as the
-  parcels", with the figures). A characteristic only the sales file has isn't offered: a model can't value a parcel
-  on it. 8 s on Guilford's 220,000 sales (the columns read again): shown waiting, with the time and Stop.
+  is (number format, scale; an area in its own unit), so OpenAVMKit's hydration uses it per sale and fills the rest
+  from the parcel; the parcel's reading changing changes it too, and the parcel field gone takes it with it. A
+  characteristic only the sales file has isn't offered: a model can't value a parcel on it.
+
+  **Found by its values too, in its own unit** (2026-11-07). Nothing by name: the sales file's column that agrees with
+  today's for at least half the sales on the same parcels (up to 4,000 compared), an area tried in each unit. An area
+  found by name takes the unit its name gives away (`ACREAGE`: acres), else the one that agrees. Compared in today's
+  unit (Guilford's `ACREAGE` in acres against `Shape__Area` in sq ft: the same for 77%). Nothing found: said, and any
+  column can still be picked.
+
+  **At the sale, on each characteristic's own screen** (2026-11-07, `AtSale` in `AsSold.tsx`). Beside its column
+  (**Today's**, the parcels: what's valued), **At the sale** (the sales: what the models learn from), the same widget
+  reading the sales file: **Column** (*none: today's*; the one found, marked found, not used until picked; any of the
+  sales file's columns; picking a column is using it, no second switch), **Its unit** for an area (today's said when
+  it differs), its values, its spread for a size or a year (in the project's unit), then against today's: the share
+  the same, the sales that differ with the first three, **See them** (up to 50: parcel, sale date, at the sale,
+  today's), and what that suggests. Side by side where there's room (Big five at 1,400 px), else stacked: each pair
+  wraps on its own. Big five's parts pair per field (Age's two each under its name); Quality and Condition beside
+  their column's boxes; Land use & building type a table under the step (field, today's, at the sale, against
+  today's). Sales as sold's own table has the same picker. 1.5-2.7 s on Guilford with the quick-read copies (8 s
+  before), shown waiting, with the time and Stop.
 - **Condo units: a major step of its own (7, after Sales as sold), one decision per part.** OpenAVMKit's
   `data.process.condos`, for units on the roll but not on the map: each has a parcel ID of its own and no parcel shape,
   because it sits on a parcel it shares.

@@ -1175,7 +1175,8 @@ export interface paths {
         };
         /**
          * Wizard Field Histogram
-         * @description How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five).
+         * @description How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five). `sales`:
+         *     as the sales file has it (At the sale).
          */
         get: operations["wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get"];
         put?: never;
@@ -3093,6 +3094,25 @@ export interface components {
              * @description The sales file's column the sales use; null: today's (the parcel's).
              */
             column: string | null;
+            /**
+             * Area Unit
+             * @description An area: the unit the column is in.
+             */
+            area_unit?: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+        };
+        /** AsSoldDiff */
+        AsSoldDiff: {
+            /** Parcel */
+            parcel: string;
+            /**
+             * Date
+             * @description The sale's date as written ('' if no date is loaded).
+             */
+            date: string;
+            /** Sold */
+            sold: string;
+            /** Today */
+            today: string;
         };
         /** AsSoldRow */
         AsSoldRow: {
@@ -3109,14 +3129,29 @@ export interface components {
             parcel_column: string;
             /**
              * Column
-             * @description The sales file's column: chosen, else the one that mirrors it.
+             * @description The sales file's column: chosen, else the one that mirrors it; None: none found.
              */
             column: string | null;
             /**
              * Found
-             * @description The column was found by its name (not chosen by hand).
+             * @description The column was found (not chosen by hand).
              */
             found: boolean;
+            /**
+             * How
+             * @description How it was found: the parcel's column name, a name it's known by, its values.
+             */
+            how: ("name" | "known" | "values") | null;
+            /**
+             * Unit
+             * @description An area: the unit the sales file's column is in.
+             */
+            unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+            /**
+             * Today Unit
+             * @description An area: the unit today's column is in.
+             */
+            today_unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
             /**
              * Choice
              * @description The user's; None: not chosen (today's is used).
@@ -3152,6 +3187,11 @@ export interface components {
              * @description [as sold, today] where they differ.
              */
             examples: string[][];
+            /**
+             * Diffs
+             * @description The sales that differ (the first 50).
+             */
+            diffs: components["schemas"]["AsSoldDiff"][];
             /**
              * Written Differently
              * @description Its values aren't written as today's are (another code).
@@ -13520,7 +13560,9 @@ export interface operations {
     };
     wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get: {
         parameters: {
-            query?: never;
+            query?: {
+                sales?: boolean;
+            };
             header?: never;
             path: {
                 project_id: string;

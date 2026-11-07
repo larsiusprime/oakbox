@@ -1257,7 +1257,41 @@
       "asSoldOption": "As sold: {column} · {file}",
       "todayOption": "Today's, as the parcels",
       "lineNote": "{file} has it for {have} of sales, the same as today's for {same}. As sold, the others take today's.",
-      "lineNotDecided": "Decided on Sales as sold; until then, today's."
+      "lineNotDecided": "Decided on Sales as sold; until then, today's.",
+      "atSale": "At the sale",
+      "atSaleNote": "the sales: what the models learn from",
+      "todays": "Today's",
+      "todaysNote": "the parcels: what's valued",
+      "column": "Column",
+      "unit": "Its unit",
+      "noneToday": "none: today's",
+      "how": {
+        "name": "found: same name",
+        "known": "found: a known name",
+        "values": "matched by its values"
+      },
+      "suggestedOption": "{column} (found)",
+      "notFound": "Nothing in {file} matches by name or by its values: sales use today's. Pick a column if one holds it.",
+      "unitNote": "today's is in {today}; compared in {today}",
+      "notUsed": "Found, not used yet: sales use today's until you pick {column} above.",
+      "suggestToday": "Nearly all the same: an export of today's, likely, not the property as sold. Using it changes little.",
+      "suggestSale": "Differs for {pct} of sales: history since the sale (a split, a rebuild) the sales should see. Worth using.",
+      "differsFor": "differs for {n, plural, =1 {1 sale} other {# sales}}",
+      "sameFor": "same as today's for {pct}",
+      "seeThem": "See them",
+      "hideThem": "Hide them",
+      "diffCols": {
+        "parcel": "Parcel",
+        "date": "Sold",
+        "sold": "At the sale",
+        "today": "Today's"
+      },
+      "onSales": "on {pct} of sales (the rest take today's)",
+      "tableTitle": "At the sale",
+      "tableLede": "Each field's column in {file}, if the sales have one of their own; else they take today's.",
+      "against": "Against today's",
+      "writtenDifferentlyPill": "written differently",
+      "writtenDifferentlyWhy": "{sold} where today's is {today}: these can't be compared, or read as today's are. Export the same codes to use them; sales use today's until then."
     }
   },
   "tabs": {

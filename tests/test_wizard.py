@@ -250,6 +250,44 @@ def test_sales_as_sold(client, pid, tmp_path):
     assert v["rows"][0]["choice"] == "today"
 
 
+def test_at_the_sale_reads_an_area_in_its_own_unit(client, pid, tmp_path):
+    """At the sale: an area column found by its name in another unit (ACREAGE in acres where today's is sq ft) is
+    compared in today's unit and, picked, loaded in its own; a field the sales file doesn't have says so."""
+    sqft = {IDS[0]: 1500, IDS[2]: 980, IDS[3]: 1750}  # cama's LIVING_AREA, taken as land area here
+    pd.DataFrame(
+        {
+            "PROP_ID": list(sqft),
+            "SALE_PRICE": [185000, 92500, 240000],
+            "SALE_DT": ["03/14/2023", "01/09/2024", "06/30/2025"],
+            "ACREAGE": [round(v / 43560, 5) for v in sqft.values()],
+        }
+    ).to_csv(tmp_path / "sales_acres.csv", index=False)
+    body = {"path": str(tmp_path / "sales_acres.csv"), "mode": "copy", "name": "sales_acres"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "shapes", universe=True)
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_acres", holds="sales")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sales_acres", "column": "SALE_PRICE"})
+    client.put(f"{field}/land_area_sqft", json={"file": "cama", "column": "LIVING_AREA", "area_unit": "sqft"})
+    client.put(f"{field}/bldg_year_built", json={"file": "cama", "column": "YR_BLT"})
+    rows = {r["key"]: r for r in client.get(f"/api/projects/{pid}/wizard/as-sold").json()["rows"]}
+    land = rows["land_area_sqft"]
+    assert (land["column"], land["how"], land["unit"], land["today_unit"]) == ("ACREAGE", "known", "acres", "sqft")
+    assert (land["compared"], land["same"], land["diffs"]) == (3, 3, [])
+    assert rows["bldg_year_built"]["column"] is None  # not in the sales file: today's, and said so
+    # Picked without a unit: read in the one it was found in.
+    assert (
+        client.put(f"/api/projects/{pid}/wizard/as-sold/land_area_sqft", json={"column": "ACREAGE"}).status_code == 200
+    )
+    entry = read_settings(pid)["data"]["load"]["sales_acres"]
+    assert entry["load"]["land_area_sqft_in_acres"][0] == "ACREAGE"
+    assert entry["calc"]["land_area_sqft"] == ["*", "land_area_sqft_in_acres", 43560.0]
+    # Its spread at the sale, in the project's unit.
+    h = client.get(f"{field}/land_area_sqft/histogram", params={"sales": True}).json()
+    assert h["unit"] == "sq ft" and round(h["median"]) == 1500
+
+
 def test_names_say_the_jurisdiction(client, pid):
     w = client.get(f"/api/projects/{pid}/wizard").json()
     jurisdiction = projects.load(pid).jurisdiction

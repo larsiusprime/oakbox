@@ -13,14 +13,30 @@ function edge(v: number, year: boolean): string {
 
 /** How a number field's values spread, as loaded (Big five: sizes in the project's unit, years): a bar per bin,
  * its count on hover, the edges under it, and what's outside or blank said under that. */
-export function FieldHistogram({ projectId, field }: { projectId: string; field: WizardField }) {
-  const source = field.sources[0];
+export function FieldHistogram({
+  projectId,
+  field,
+  sale,
+}: {
+  projectId: string;
+  field: WizardField;
+  /** At the sale: the sales file's column, as it's loaded there (the cache key: its column and unit). */
+  sale?: { column: string; unit: string | null };
+}) {
+  const source = sale ? { file: "sales", column: sale.column } : field.sources[0];
   const q = useQuery({
-    queryKey: ["histogram", projectId, field.key, source?.file, source?.column, field.area_unit],
+    queryKey: [
+      "histogram",
+      projectId,
+      field.key,
+      source?.file,
+      source?.column,
+      sale ? sale.unit : field.area_unit,
+    ],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/wizard/fields/{key}/histogram", {
-          params: { path: { project_id: projectId, key: field.key } },
+          params: { path: { project_id: projectId, key: field.key }, query: { sales: !!sale } },
         }),
       ),
     enabled: !!source,
@@ -41,8 +57,8 @@ export function FieldHistogram({ projectId, field }: { projectId: string; field:
     v.empty ? h.empty({ n: v.empty }) : null,
   ].filter(Boolean);
   return (
-    <div className="frame qc-panel">
-      <h3 className="wiz-group">{h.title({ name: field.name })}</h3>
+    <div className={sale ? "fh-in" : "frame qc-panel"}>
+      {!sale && <h3 className="wiz-group">{h.title({ name: field.name })}</h3>}
       <div className="fh-chart" role="img" aria-label={h.title({ name: field.name })}>
         {v.bins.map((b) => (
           <span
