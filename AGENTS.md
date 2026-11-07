@@ -84,6 +84,12 @@ from a bug stays a 500 with its traceback.
   ("Reading parcels.csv · 0:12"). Never a click that seems to do nothing while the server works: large counties
   (Guilford, NC: a 220 MB parcel file) make every slow path visible. Applies to adding a file, picking a field,
   opening a preview, every step's run and every mutation.
+  **The shared pieces** (`components/Activity.tsx`, `components/Waiting.tsx`): every mutation and query already
+  shows in the corner pill from its first moment (what, how long, Stop for a read), and the control pressed gets
+  `data-busy` while the change it started is saved; nothing to add for that. A screen's first load uses
+  `<Loading q qkey doing>` (its clock, Stop, Try again; the pill then leaves it out); anything else slow, `<Waiting>`
+  where its result will appear. A query or mutation showing its own progress (polling, a run, a progress bar) takes
+  `meta: { quiet: true }`; one that can say more than "Saving your change", `meta: { doing: "…" }`.
 - **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a
   maximum). **Everything else is as wide as what's in it**, not stretched to the page: a file's entry, a frame, a
   row of tests, a form (`width: fit-content; max-width: 100%`). Boxes in one list share the widest one's width

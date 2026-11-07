@@ -16,6 +16,7 @@ import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
 import { NamesFiles } from "../components/FileEntry";
 import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
+import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
 import { say, t } from "../wording";
@@ -62,7 +63,7 @@ export function FieldsTab({ detail, step }: { detail: ProjectDetail; step: strin
         await api.GET("/api/projects/{project_id}/wizard", { params: { path: { project_id: projectId } } }),
       ),
   });
-  if (wizard.isPending) return <p className="empty">{w.loading}</p>;
+  if (wizard.isPending) return <Loading q={wizard} qkey={["wizard", projectId]} doing={w.loading} />;
   if (wizard.error) return <p className="error">{wizard.error.message}</p>;
   return <WizardView project={detail.project} data={wizard.data} step={step} />;
 }

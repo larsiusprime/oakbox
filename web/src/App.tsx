@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
+import { Activity } from "./components/Activity";
 import { OakFrame } from "./components/OakFrame";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { UndoToast } from "./components/UndoToast";
@@ -89,6 +90,7 @@ export function App() {
         }}
       />
       <UndoToast />
+      <Activity />
       <OakFrame />
       <AppMenus route={route} />
     </div>

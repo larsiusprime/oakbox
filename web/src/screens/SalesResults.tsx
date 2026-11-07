@@ -227,6 +227,7 @@ export function useTimePreview(projectId: string) {
           params: { path: { project_id: projectId } },
         }),
       ),
+    meta: { quiet: true }, // its own progress
     refetchInterval: (query) => (query.state.data?.status === "running" ? POLL : false),
   });
   const run = useMutation({

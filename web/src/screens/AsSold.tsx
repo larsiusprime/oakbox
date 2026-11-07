@@ -18,6 +18,7 @@ const a = t.wizard.asSold;
 function useAsSold(projectId: string) {
   return useQuery({
     queryKey: ["as-sold", projectId],
+    meta: { quiet: true }, // its own Waiting
     queryFn: async ({ signal }) =>
       unwrap(
         await api.GET("/api/projects/{project_id}/wizard/as-sold", {

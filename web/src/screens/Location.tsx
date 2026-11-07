@@ -9,6 +9,7 @@ import { Choice } from "../components/Form";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
+import { Loading } from "../components/Waiting";
 import { PICKED } from "../lib/colours";
 import { say, t } from "../wording";
 
@@ -69,7 +70,7 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
         </>
       ) : view.isPending ? (
-        <p className="wiz-note">{l.loading}</p>
+        <Loading q={view} qkey={["map", projectId]} doing={l.loading} />
       ) : (
         <p className="wiz-note">{l.noMap}</p>
       )}

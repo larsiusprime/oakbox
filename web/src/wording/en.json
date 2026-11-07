@@ -3209,5 +3209,13 @@
     "again": "Make it",
     "failed": "Couldn't make a quick-read copy of {file} ({error}): it's read as it is (slower).",
     "waiting": "Quick-read copy of {file} about to start…"
+  },
+  "activity": {
+    "saving": "Saving your change",
+    "reading": "Updating the page",
+    "more": "(and {n} more)",
+    "stop": "Stop",
+    "stopped": "Stopped.",
+    "again": "Try again"
   }
 }

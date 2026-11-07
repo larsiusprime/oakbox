@@ -2571,4 +2571,12 @@ export type Wording = {
     failed: (a: { file: string | number; error: string | number }) => string;
     waiting: (a: { file: string | number }) => string;
   };
+  activity: {
+    saving: string;
+    reading: string;
+    more: (a: { n: string | number }) => string;
+    stop: string;
+    stopped: string;
+    again: string;
+  };
 };

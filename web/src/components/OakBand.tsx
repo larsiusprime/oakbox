@@ -106,6 +106,7 @@ function ProjectCrumbs({ page }: { page: Extract<Page, { kind: "project" }> }) {
   const running = useQuery({
     queryKey: ["running"],
     queryFn: async () => unwrap(await api.GET("/api/running")),
+    meta: { quiet: true }, // its own progress
     refetchInterval: 5000,
   });
   const tabId = where?.projectId === page.id ? where.tab : null;

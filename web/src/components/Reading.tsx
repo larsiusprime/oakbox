@@ -22,6 +22,7 @@ export function useReadings(projectId: string) {
           signal,
         }),
       ),
+    meta: { quiet: true }, // its own progress
     refetchInterval: (q) => (q.state.data?.some(going) ? 1000 : false),
   });
 }

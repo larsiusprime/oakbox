@@ -5705,6 +5705,10 @@ under what it's about; a file appended as rows {
   background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
   transition: width 0.3s;
 }
+/* A quick-read copy: the bar and its percentage change together, the bar never behind the number. */
+.reading .engine-bar > i {
+  transition: none;
+}
 .engines-table {
   width: 100%;
   margin: var(--sp) 0;
@@ -6781,11 +6785,57 @@ div.map-wait-ask small {
 }
 
 /* ---------- Something taking a moment (components/Waiting.tsx) ---------- */
+/* Activity (components/Activity.tsx): what's being saved or read, from the first moment, in the corner. */
+.activity {
+  position: fixed;
+  z-index: 45;
+  top: 0.6rem;
+  right: 0.8rem;
+  display: flex;
+  gap: 0.6em;
+  align-items: center;
+  padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--paper-shadow);
+}
+/* The control pressed, while the change it started is saved. */
+[data-busy] {
+  cursor: progress;
+}
+[data-busy]::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-left: 0.45em;
+  vertical-align: 0.1em;
+  background: currentColor;
+  border-radius: 50%;
+  animation: bi-pulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-busy]::after {
+    animation: none;
+  }
+}
 .waiting {
   display: flex;
   align-items: center;
   gap: 0.6em;
   color: var(--muted);
+}
+/* The project still loading: on a sheet of paper, never text on the bare wood. */
+.waiting-sheet {
+  width: fit-content;
+  margin: var(--sp);
+  padding: 0.5rem 0.8rem;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--paper-shadow);
 }
 
 /* ---------- Data › Sales as sold (screens/AsSold.tsx) ---------- */

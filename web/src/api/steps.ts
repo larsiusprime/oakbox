@@ -92,6 +92,7 @@ export function useStep<K extends StepId>(id: K, projectId: string) {
       const view = unwrap(await api.GET(path, { params: { path: { project_id: projectId } } }));
       return view as unknown as StepViews[K];
     },
+    meta: { quiet: true }, // its own progress
     refetchInterval: (q) => (q.state.data?.status === "running" ? POLL : false),
   });
 }
