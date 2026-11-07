@@ -282,9 +282,7 @@ function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: stri
           {skipping ? t.step.skipping : model ? t.step.skipModel : t.step.skip}
         </Button>
       )}
-      {job.part && !skipping && (
-        <span className="bi-skip-note">{model ? t.step.skipModelNote : t.step.skipNote}</span>
-      )}
+      {job.part && !skipping && !model && <span className="bi-skip-note">{t.step.skipNote}</span>}
     </div>
   );
 }

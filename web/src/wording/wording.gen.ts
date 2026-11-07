@@ -905,7 +905,6 @@ export type Wording = {
     skip: string;
     skipping: string;
     skipModel: string;
-    skipModelNote: string;
     skipNote: string;
     failed: string;
     ran: (a: { when: string | number; seconds: number; engine: string | number }) => string;
