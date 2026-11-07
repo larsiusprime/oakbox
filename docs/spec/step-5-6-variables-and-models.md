@@ -79,12 +79,13 @@ slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-
   - **Small groups:** left unvalued by default (below), and no negative values shipped.
   - **Finalize:** `finalize_models`, then the model values checked as step 4 checks the roll's, side by side. **Looks
     right** ends step 5.
-- **Slice 3, working on them:** outliers back into Check sales; testing variables; per-group variables and models; "why
-  this value" from the contributions OpenAVMKit already writes (`contributions_universe.csv`).
+- **Slice 3, working on them:** **Outliers** (built 2026-11-07, below): why the models are off on a sale, and each
+  call back where it belongs; testing variables; "why this value" from the contributions OpenAVMKit already writes
+  (`contributions_universe.csv`). Per-group variables and models are built.
 
 **Steps** (the tab continues after What changed): Fill blanks › Rare categories › Prepare the fields › What changed ›
 **Variables** › **Models** › **Try them** (the run) › **How they did** › **Small groups** › **Finalize** (the run) ›
-**Model values** (Looks right).
+**Model values** (Looks right) › **Outliers**.
 - **Variables.** One table: each candidate with what it is, its coverage after Prepare, and whether it has blanks left.
   Ticked by default:
   - **The big five:** finished area, land area, effective age (else age), quality, condition; units for multi-family.
@@ -376,9 +377,58 @@ tiers and total value only.*
     use fewer tuning trials and reuse saved tuning; to be measured in M1.
   - Parallel fold workers are capped by memory (`cv_max_workers`).
 
+### Outliers (slice 3; built 2026-11-07: `outliers.py`, `routes/outliers.py`, `Outliers.tsx`)
+
+After Model values: the sales the models valued furthest from their price, and why. OpenAVMKit's notebook has the
+analysis (`identify_outliers`: the sales outside 0.75-1.25, their price per area against their area's, and its
+layered-comps comp analysis); OAK box puts it on a map with the context to decide, and sends each call where it
+belongs.
+
+- **The sales** (Finalize keeps them: `out/oakbox/final/sales.parquet`): every valid sale of a valued group, each valued
+  out of fold (by the cross-validation's models, which never saw it), with every field of its parcel. The ratio is to the
+  price time-adjusted to the valuation date, as the models value (sales of every year, so not the study's window).
+- **Outliers:** outside a band, 0.75 to 1.25 to start (OpenAVMKit's), per model group: the map (every sale by ratio; the
+  outliers marked; one picked, with its comps), the list worst first (valued low, then valued high), filtered by side
+  and by open or decided.
+- **One sale:** sold for, and at the valuation date; valued at; the roll's; **what its comps say** (the 5 sales most like
+  it, on the models' numbers in the group's spreads and on the map; their price per finished area times its area, and
+  how the models did on them); the comps side by side. **How it's unlike the others:** each field (in the models or not):
+  this parcel, its comps (median, or most common), where it sits among the group's sales (a bar: the middle half, and
+  it), whether the models use it. A field where it's among the group's extremes (under the 5th percentile or over the
+  95th, a category under 5% of sales) or unlike its comps (more than the group's middle half apart; a category its comps
+  mostly don't share) comes first, marked.
+- **Why is it off?** Four calls, as the user framed them (2026-11-07):
+  - **The sale isn't a market sale:** a reason from a list (related parties, sold with other parcels, partial interest,
+    wrong price, foreclosure or short sale, changed after it sold, not an open-market sale, other: say what) and a note.
+    Check sales' Exclude, the note "Outliers: <reason>: <note>".
+  - **The data is wrong or missing:** a patch: the field (those the parcels have once the data's brought in: not one
+    made from them, as a building's age), what it should be (a number for a number field), its source. Kept in the
+    project (`patches`: parcel, field, was, now, source, who, when, the sale), written as OpenAVMKit's
+    `data.process.enrich.tweak.universe` (its existing per-row override, after enrichment, so every step sees it: census
+    and distance fields too), listed under the outliers with **Remove**, and **Export as CSV** for whoever keeps the
+    data. A vacant parcel's building fields are emptied by OpenAVMKit after: patch what makes it vacant.
+  - **It's in the wrong group:** the parcel moved by hand to another group: kept on the group (`ModelGroup.keys`), its
+    filter `["or", ["isin", "key", …], rule]`, and every other group's `["and", ["notin", "key", …], rule]`, so first
+    match or not it's in that group alone. Not yet shown on Model groups (to do: the parcels put in each group by hand,
+    beside its rule, with ×). Or change the group's rule, on Model groups.
+  - **The model misses something:** a note, beside what the misses have in common.
+- **Calls are a list until applied** (2026-11-07): a call changes nothing until **Apply my calls**, so the outliers can
+  be gone through without Check sales, Model groups or Bring in data going out of date at each (and the Models tab
+  locking). Applying does each where it belongs; the steps from the earliest it changed run again. A call is shown "to
+  apply" until then; **Take back** undoes it, and what it did if applied.
+- **What the misses have in common** (per group, under the sale): every sale of the group (not only the outliers: chosen
+  for being wrong, they'd mislead), its error `log(value / price)`, and every field: the sales sorted into buckets (a
+  category by value, 10 sales at least; a number in fifths), and the share of the error's spread between the buckets (a
+  one-way ANOVA's R²: 0 when the models' mistakes are random with respect to the field). Shown only when it beats 300
+  shuffles of the errors (fewer than 5% as high) and is 2% or more, ranked; each as the bucket that pulls hardest: "Pool:
+  yes, 18 sales, 7 outliers, valued 18% low; the rest right". A field whose bucket is mostly the same sales as one ranked
+  above says "mostly the same sales as …" (Jaccard 0.5 or more), not a second finding. On the map: Moran's I of the
+  errors over each sale's 8 nearest, against 199 shuffles: "the errors are more alike between neighbours than chance:
+  a location the models miss".
+
 **Try, review, finalize.**
 1. **Try** runs the chosen models and shows ratio statistics side by side. It's repeatable and cheap to re-run.
-2. **Review outliers.** Model outliers appear in Sales review (§3.6) with likely causes.
+2. **Review outliers.** Models › Outliers (below): each outlying sale with its context, and a call on why it's off.
 3. **Finalize** commits the values and writes the model-value ratio study.
 - **Re-tune.** Oakbox reuses saved tuning by default. A **Re-tune** toggle discards it, and is suggested after big data
   or model group changes. Cancelling never deletes tuning journals, so a cancelled tune can resume.

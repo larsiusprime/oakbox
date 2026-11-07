@@ -2521,6 +2521,188 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/outliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outliers View
+         * @description A model group's outliers (the first group with any, unless named), and every sale of it on the map.
+         */
+        get: operations["outliers_view_api_projects__project_id__outliers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/band": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Outliers Band
+         * @description The ratio band outside which a sale is an outlier.
+         */
+        put: operations["outliers_band_api_projects__project_id__outliers_band_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/sale/{key_sale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outliers Sale
+         * @description One sale: its comps, how it's unlike the others, what can be patched, where it can be moved.
+         */
+        get: operations["outliers_sale_api_projects__project_id__outliers_sale__key_sale__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/common/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outliers Common
+         * @description What a group's misses have in common: the fields the models' error lines up with, and the map.
+         */
+        get: operations["outliers_common_api_projects__project_id__outliers_common__group__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/call/{key_sale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Outliers Call
+         * @description The call on an outlying sale: invalid, the data, the group or the model. On the list until Apply my calls.
+         */
+        put: operations["outliers_call_api_projects__project_id__outliers_call__key_sale__put"];
+        post?: never;
+        /**
+         * Outliers Undo
+         * @description Take back the call on a sale, and what it did.
+         */
+        delete: operations["outliers_undo_api_projects__project_id__outliers_call__key_sale__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Outliers Apply
+         * @description Apply my calls: each done where it belongs (Check sales, Model groups, the patches). The steps they change are
+         *     out of date after.
+         */
+        post: operations["outliers_apply_api_projects__project_id__outliers_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/patches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Patches List
+         * @description Every correction made to the parcels' data, in order.
+         */
+        get: operations["patches_list_api_projects__project_id__patches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/patches/{i}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Patches Remove */
+        delete: operations["patches_remove_api_projects__project_id__patches__i__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/patches/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Patches Csv
+         * @description Every patch as CSV, for whoever keeps the data.
+         */
+        get: operations["patches_csv_api_projects__project_id__patches_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/engines": {
         parameters: {
             query?: never;
@@ -5925,6 +6107,11 @@ export interface components {
              * @description Modeled (Model groups › Check them); None: proposed, yes with enough sales.
              */
             modeled?: boolean | null;
+            /**
+             * Keys
+             * @description Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule.
+             */
+            keys?: string[];
         };
         /**
          * ModelGroup
@@ -5955,6 +6142,11 @@ export interface components {
              * @description Modeled (Model groups › Check them); None: proposed, yes with enough sales.
              */
             modeled: boolean | null;
+            /**
+             * Keys
+             * @description Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule.
+             */
+            keys: string[];
         };
         /** ModelGroupResult */
         ModelGroupResult: {
@@ -6506,6 +6698,477 @@ export interface components {
              */
             top_n: number;
         };
+        /** OutlierBand */
+        OutlierBand: {
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+        };
+        /**
+         * OutlierCall
+         * @description What the user decided about an outlying sale: why the model is off on it.
+         */
+        OutlierCall: {
+            /**
+             * Why
+             * @enum {string}
+             */
+            why: "invalid" | "data" | "group" | "model";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Key
+             * @description The sale's parcel (a move by hand is the parcel's).
+             * @default
+             */
+            key: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Reason
+             * @description invalid: why it isn't a market sale (outliers.REASONS).
+             */
+            reason: string | null;
+            /**
+             * Group
+             * @description group: the group the parcel goes to.
+             */
+            group: string | null;
+            /**
+             * Field
+             * @description data: the field patched.
+             */
+            field: string | null;
+            /**
+             * Was
+             * @description data: its value when the call was made.
+             */
+            was: string | number | null;
+            /**
+             * Now
+             * @description data: its corrected value.
+             */
+            now: string | number | null;
+            /**
+             * Source
+             * @description data: where the correction comes from.
+             * @default
+             */
+            source: string;
+            /**
+             * Applied
+             * @description Done where it belongs (Apply my calls): until then a call is the user's list, changing nothing, so the steps it would put out of date stay as they are while the outliers are gone through.
+             * @default false
+             */
+            applied: boolean;
+        };
+        /** OutlierCallBody */
+        OutlierCallBody: {
+            /**
+             * Why
+             * @enum {string}
+             */
+            why: "invalid" | "data" | "group" | "model";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Reason
+             * @description The sale isn't a market sale: why (required).
+             */
+            reason?: ("related" | "multi_parcel" | "partial" | "wrong_price" | "distressed" | "changed" | "not_open_market" | "other") | null;
+            /**
+             * Group
+             * @description It's in the wrong group: the group to move it to.
+             */
+            group?: string | null;
+            /**
+             * Field
+             * @description The data is wrong: the field to patch.
+             */
+            field?: string | null;
+            /**
+             * Now
+             * @description The data is wrong: its corrected value.
+             */
+            now?: string | null;
+            /**
+             * Source
+             * @description The data is wrong: where the correction comes from.
+             * @default
+             */
+            source: string;
+        };
+        /** OutlierCommon */
+        OutlierCommon: {
+            /** Group */
+            group: string;
+            /** Sales */
+            sales: number;
+            /** Outliers */
+            outliers: number;
+            /** Patterns */
+            patterns: components["schemas"]["OutlierPattern"][];
+            /**
+             * Clustered
+             * @description Errors more alike between neighbours than chance; None: no places.
+             */
+            clustered: boolean | null;
+            /**
+             * Moran
+             * @description Moran's I of the errors over each sale's 8 nearest (0: none).
+             */
+            moran: number | null;
+        };
+        /** OutlierComp */
+        OutlierComp: {
+            /** Key Sale */
+            key_sale: string;
+            /** Key */
+            key: string;
+            /** Address */
+            address: string | null;
+            /** Date */
+            date: string;
+            /** Price */
+            price: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Away
+             * @description Miles (imperial) or kilometres away.
+             */
+            away: number | null;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /**
+             * Fields
+             * @description The compared fields' values, in words.
+             */
+            fields: {
+                [key: string]: string | null;
+            };
+        };
+        /** OutlierDetail */
+        OutlierDetail: {
+            sale: components["schemas"]["OutlierSale"];
+            /** Comps */
+            comps: components["schemas"]["OutlierComp"][];
+            /**
+             * Compared
+             * @description The fields the comps are shown with (OutlierComp.fields), in order.
+             */
+            compared: string[];
+            /**
+             * Mine
+             * @description The sale's own values of the compared fields, in words.
+             */
+            mine: {
+                [key: string]: string | null;
+            };
+            /** Names */
+            names: {
+                [key: string]: string;
+            };
+            /**
+             * Comps Say
+             * @description What the comps say it's worth: their price per finished area.
+             */
+            comps_say: number | null;
+            /**
+             * Comps Ratio
+             * @description The models' median ratio on the comps.
+             */
+            comps_ratio: number | null;
+            /** Unlike */
+            unlike: components["schemas"]["OutlierUnlike"][];
+            /**
+             * Patchable
+             * @description The parcel's fields a patch can correct, as they are now.
+             */
+            patchable: components["schemas"]["OutlierPatchField"][];
+            /**
+             * Groups
+             * @description (id, name) of the groups it can be moved to.
+             */
+            groups: [
+                string,
+                string
+            ][];
+            /**
+             * Units
+             * @enum {string}
+             */
+            units: "mi" | "km";
+        };
+        /** OutlierGroupCount */
+        OutlierGroupCount: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sales */
+            sales: number;
+            /** Outliers */
+            outliers: number;
+        };
+        /** OutlierPatchField */
+        OutlierPatchField: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Numeric */
+            numeric: boolean;
+            /** Now */
+            now: string | null;
+        };
+        /** OutlierPatchRow */
+        OutlierPatchRow: {
+            /** I */
+            i: number;
+            /** Key */
+            key: string;
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Was */
+            was: string | null;
+            /** Now */
+            now: string | null;
+            /** Source */
+            source: string;
+            /** At */
+            at: string;
+            /** By */
+            by: string;
+            /** Sale */
+            sale: string | null;
+        };
+        /** OutlierPattern */
+        OutlierPattern: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** In Model */
+            in_model: boolean;
+            /**
+             * Bucket
+             * @description The sales it's about: "pool: yes", "lot size over 12,000".
+             */
+            bucket: string;
+            /**
+             * N
+             * @description Sales in it.
+             */
+            n: number;
+            /**
+             * Misses
+             * @description Outliers in it.
+             */
+            misses: number;
+            /**
+             * Off
+             * @description The models' average error on them: -0.18 is valued 18% low.
+             */
+            off: number;
+            /**
+             * Rest Off
+             * @description On the group's other sales.
+             */
+            rest_off: number;
+            /**
+             * Share
+             * @description Of the models' error, the share that lines up with the field (0-1).
+             */
+            share: number;
+            /**
+             * Chance
+             * @description How often shuffled errors line up as much (0-1): lower is surer.
+             */
+            chance: number;
+            /**
+             * Goes With
+             * @description A field ranked above whose sales these mostly are.
+             */
+            goes_with: string | null;
+        };
+        /** OutlierPoint */
+        OutlierPoint: {
+            /** Key Sale */
+            key_sale: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Out
+             * @description Outside the band: an outlier.
+             */
+            out: boolean;
+        };
+        /** OutlierSale */
+        OutlierSale: {
+            /** Key Sale */
+            key_sale: string;
+            /** Key */
+            key: string;
+            /** Address */
+            address: string | null;
+            /** Group */
+            group: string;
+            /** Date */
+            date: string;
+            /**
+             * Sold
+             * @description What it sold for.
+             */
+            sold: number;
+            /**
+             * Price
+             * @description The price, time-adjusted to the valuation date (as the models value).
+             */
+            price: number;
+            /**
+             * Value
+             * @description The models' value of it, out of fold (they hadn't seen it).
+             */
+            value: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Roll
+             * @description The roll's value of the parcel, if a roll was loaded.
+             */
+            roll: number | null;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Call */
+            call: ("invalid" | "data" | "group" | "model") | null;
+            /** Note */
+            note: string;
+            /**
+             * Applied
+             * @description The call is done where it belongs (Apply my calls); false: on the list only.
+             */
+            applied: boolean;
+        };
+        /**
+         * OutlierState
+         * @description Outliers (6. Models): the ratio band outside which a sale is an outlier, and the calls made on them.
+         */
+        OutlierState: {
+            /**
+             * Low
+             * @description A ratio under this is an outlier (OpenAVMKit's 0.75).
+             * @default 0.75
+             */
+            low: number;
+            /**
+             * High
+             * @description A ratio over this is an outlier (OpenAVMKit's 1.25).
+             * @default 1.25
+             */
+            high: number;
+            /**
+             * Calls
+             * @description key_sale -> the call made on it.
+             */
+            calls: {
+                [key: string]: components["schemas"]["OutlierCall"];
+            };
+        };
+        /** OutlierUnlike */
+        OutlierUnlike: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Numeric */
+            numeric: boolean;
+            /** This */
+            this: string | null;
+            /**
+             * Comps
+             * @description Its comps' median (a number) or most common value (a category).
+             */
+            comps: string | null;
+            /**
+             * Pct
+             * @description A number: where it sits among the group's sales, 0-100.
+             */
+            pct: number | null;
+            /**
+             * Share
+             * @description A category: the share of the group's sales with its value.
+             */
+            share: number | null;
+            /**
+             * Flag
+             * @description It stands out: among the group's extremes, or unlike its comps.
+             */
+            flag: boolean;
+            /** In Model */
+            in_model: boolean;
+        };
+        /** OutlierView */
+        OutlierView: {
+            /**
+             * Ready
+             * @description Finalize has run since Outliers came: the sales and their values are there.
+             */
+            ready: boolean;
+            /** Groups */
+            groups: components["schemas"]["OutlierGroupCount"][];
+            /** Group */
+            group: string | null;
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+            /**
+             * Outliers
+             * @description Worst first: the lowest ratios, then the highest.
+             */
+            outliers: components["schemas"]["OutlierSale"][];
+            /**
+             * Points
+             * @description Every sale of the group with a place: the outliers among them.
+             */
+            points: components["schemas"]["OutlierPoint"][];
+            /**
+             * Calls
+             * @description Outliers of the group with a call made.
+             */
+            calls: number;
+            /**
+             * Pending
+             * @description The kinds of call made and not yet applied, in every group.
+             */
+            pending: ("invalid" | "data" | "group" | "model")[];
+            /**
+             * To Apply
+             * @description Calls made and not yet applied, in every group (notes on the model aside).
+             */
+            to_apply: number;
+        };
         /** Overlap */
         Overlap: {
             /** Column */
@@ -6707,6 +7370,49 @@ export interface components {
             price: number | null;
             /** Vacant */
             vacant: boolean;
+        };
+        /**
+         * Patch
+         * @description A correction to one parcel's field (Outliers › The data is wrong or missing), kept for the record and sent to
+         *     whoever keeps the data (exported). Written as OpenAVMKit's data.process.enrich.tweak, so every step sees it.
+         */
+        Patch: {
+            /** Key */
+            key: string;
+            /** Field */
+            field: string;
+            /**
+             * Was
+             * @description Its value when patched (None: blank).
+             */
+            was: string | number | null;
+            /**
+             * Now
+             * @description The corrected value: a number for a number field.
+             */
+            now: string | number;
+            /**
+             * Source
+             * @description Where the correction comes from: a permit, a visit, the deed.
+             * @default
+             */
+            source: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * By
+             * @description Who patched it: the computer's user.
+             * @default
+             */
+            by: string;
+            /**
+             * Sale
+             * @description The outlying sale it was patched from (key_sale), if any.
+             */
+            sale: string | null;
         };
         /**
          * PatternTable
@@ -7078,6 +7784,13 @@ export interface components {
             model: components["schemas"]["ModelState"];
             /** @description Step 7, Report: what it judges on, its title. */
             report: components["schemas"]["ReportState"];
+            /** @description 6. Models › Outliers: its calls. */
+            outliers: components["schemas"]["OutlierState"];
+            /**
+             * Patches
+             * @description Corrections to parcels' data, in order made.
+             */
+            patches: components["schemas"]["Patch"][];
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -14985,6 +15698,331 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_view_api_projects__project_id__outliers_get: {
+        parameters: {
+            query?: {
+                group?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_band_api_projects__project_id__outliers_band_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutlierBand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_sale_api_projects__project_id__outliers_sale__key_sale__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_common_api_projects__project_id__outliers_common__group__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierCommon"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_call_api_projects__project_id__outliers_call__key_sale__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutlierCallBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_undo_api_projects__project_id__outliers_call__key_sale__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_apply_api_projects__project_id__outliers_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patches_list_api_projects__project_id__patches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierPatchRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patches_remove_api_projects__project_id__patches__i__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                i: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierPatchRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patches_csv_api_projects__project_id__patches_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

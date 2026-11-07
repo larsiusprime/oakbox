@@ -1783,6 +1783,7 @@ export type Wording = {
       small: string;
       final: string;
       values: string;
+      outliers: string;
     };
     lag: {
       lede: string;
@@ -2185,6 +2186,154 @@ export type Wording = {
       slight: string;
       notesTitle: string;
       nextSlice: string;
+    };
+    outliers: {
+      lede: string;
+      notReady: string;
+      group: string;
+      outside: string;
+      to: string;
+      which: {
+        all: (a: { n: string | number }) => string;
+        low: (a: { n: string | number }) => string;
+        high: (a: { n: string | number }) => string;
+      };
+      state: {
+        open: (a: { n: string | number }) => string;
+        decided: (a: { n: string | number }) => string;
+      };
+      none: (a: { low: string | number; high: string | number }) => string;
+      cols: {
+        address: string;
+        ratio: string;
+        sold: string;
+        valued: string;
+        date: string;
+        call: string;
+      };
+      calls: {
+        invalid: string;
+        data: string;
+        group: string;
+        model: string;
+      };
+      open: string;
+      mapLabel: string;
+      legend: {
+        under: (a: { low: string | number }) => string;
+        within: (a: { low: string | number; high: string | number }) => string;
+        over: (a: { high: string | number }) => string;
+        picked: string;
+        comps: string;
+      };
+      sold: string;
+      soldLine: (a: { price: string | number; date: string | number; adjusted: string | number }) => string;
+      valuedAt: string;
+      valuedLine: (a: { value: string | number }) => string;
+      roll: string;
+      compsSay: string;
+      compsSayLine: (a: { value: string | number; ratio: string | number }) => string;
+      comps: string;
+      thisSale: string;
+      away: string;
+      unlike: string;
+      unlikeLede: string;
+      field: string;
+      thisParcel: string;
+      itsComps: string;
+      among: string;
+      inModel: string;
+      yes: string;
+      no: string;
+      blank: string;
+      share: (a: { pct: string | number }) => string;
+      why: string;
+      whys: {
+        invalid: {
+          title: string;
+          lede: string;
+        };
+        data: {
+          title: string;
+          lede: string;
+        };
+        group: {
+          title: string;
+          lede: string;
+        };
+        model: {
+          title: string;
+          lede: string;
+        };
+      };
+      reason: string;
+      reasons: {
+        related: string;
+        multi_parcel: string;
+        partial: string;
+        wrong_price: string;
+        distressed: string;
+        changed: string;
+        not_open_market: string;
+        other: string;
+      };
+      note: string;
+      leaveOut: string;
+      leaveOutNote: string;
+      patchField: string;
+      is: string;
+      shouldBe: string;
+      source: string;
+      sourceHint: string;
+      patchIt: string;
+      patchNote: string;
+      moveTo: string;
+      move: string;
+      moveNote: string;
+      orRule: string;
+      noteIt: string;
+      modelNote: string;
+      modelLede: string;
+      decided: (a: { call: string | number }) => string;
+      undo: string;
+      common: string;
+      commonLede: string;
+      cSales: string;
+      cOff: string;
+      cRest: string;
+      cMisses: string;
+      cShare: string;
+      cChance: string;
+      goesWith: (a: { name: string | number }) => string;
+      offLow: (a: { pct: string | number }) => string;
+      offHigh: (a: { pct: string | number }) => string;
+      offNone: string;
+      noneCommon: string;
+      clustered: (a: { i: string | number }) => string;
+      notClustered: string;
+      loading: string;
+      patches: string;
+      patchesLede: string;
+      noPatches: string;
+      export: string;
+      remove: string;
+      patchCols: {
+        parcel: string;
+        field: string;
+        was: string;
+        now: string;
+        source: string;
+        by: string;
+        at: string;
+      };
+      toApply: string;
+      pending: (a: { n: number; what: string | number }) => string;
+      pendingWhat: {
+        invalid: string;
+        group: string;
+        data: string;
+      };
+      apply: string;
     };
   };
   metadata: {

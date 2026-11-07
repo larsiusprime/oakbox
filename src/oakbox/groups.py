@@ -202,13 +202,16 @@ def numeric_fields(project_dir: Path, groups: list[ModelGroup]) -> list[ModelGro
     return out
 
 
-def _matches(u, g: ModelGroup):
-    """Which parcels meet the group's rule (by OpenAVMKit's filter code); None if it can't run yet."""
+def _matches(u, g: ModelGroup, groups: list[ModelGroup] | None = None):
+    """Which parcels meet the group's rule, with the parcels put in it (or elsewhere) by hand (by OpenAVMKit's filter
+    code); None if it can't run yet."""
     from openavmkit.filters import resolve_filter
 
     if any(c.column not in u.columns for c in g.rule.conditions):
         return None
-    f = group_filter(g)
+    if (g.keys or any(o.keys for o in groups or [])) and "key" not in u.columns:
+        return None
+    f = group_filter(g, groups)
     if not f:
         return None
     return resolve_filter(u, f).fillna(False).astype(bool).to_numpy()
@@ -221,7 +224,7 @@ def assign(u, groups: list[ModelGroup]):
     out = np.full(len(u), -1, dtype=int)
     met = []
     for i, g in enumerate(groups):
-        m = _matches(u, g)
+        m = _matches(u, g, groups)
         met.append(m)
         if m is not None:
             out[(out == -1) & m] = i

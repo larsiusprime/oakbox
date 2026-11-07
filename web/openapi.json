@@ -6645,6 +6645,490 @@
     }
    }
   },
+  "/api/projects/{project_id}/outliers": {
+   "get": {
+    "summary": "Outliers View",
+    "description": "A model group's outliers (the first group with any, unless named), and every sale of it on the map.",
+    "operationId": "outliers_view_api_projects__project_id__outliers_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/outliers/band": {
+   "put": {
+    "summary": "Outliers Band",
+    "description": "The ratio band outside which a sale is an outlier.",
+    "operationId": "outliers_band_api_projects__project_id__outliers_band_put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OutlierBand"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/outliers/sale/{key_sale}": {
+   "get": {
+    "summary": "Outliers Sale",
+    "description": "One sale: its comps, how it's unlike the others, what can be patched, where it can be moved.",
+    "operationId": "outliers_sale_api_projects__project_id__outliers_sale__key_sale__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key_sale",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key Sale"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/outliers/common/{group}": {
+   "get": {
+    "summary": "Outliers Common",
+    "description": "What a group's misses have in common: the fields the models' error lines up with, and the map.",
+    "operationId": "outliers_common_api_projects__project_id__outliers_common__group__get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "group",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierCommon"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/outliers/call/{key_sale}": {
+   "put": {
+    "summary": "Outliers Call",
+    "description": "The call on an outlying sale: invalid, the data, the group or the model. On the list until Apply my calls.",
+    "operationId": "outliers_call_api_projects__project_id__outliers_call__key_sale__put",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key_sale",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key Sale"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OutlierCallBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "summary": "Outliers Undo",
+    "description": "Take back the call on a sale, and what it did.",
+    "operationId": "outliers_undo_api_projects__project_id__outliers_call__key_sale__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "key_sale",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key Sale"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/outliers/apply": {
+   "post": {
+    "summary": "Outliers Apply",
+    "description": "Apply my calls: each done where it belongs (Check sales, Model groups, the patches). The steps they change are\nout of date after.",
+    "operationId": "outliers_apply_api_projects__project_id__outliers_apply_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutlierView"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/patches": {
+   "get": {
+    "summary": "Patches List",
+    "description": "Every correction made to the parcels' data, in order.",
+    "operationId": "patches_list_api_projects__project_id__patches_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/OutlierPatchRow"
+         },
+         "title": "Response Patches List Api Projects  Project Id  Patches Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/patches/{i}": {
+   "delete": {
+    "summary": "Patches Remove",
+    "operationId": "patches_remove_api_projects__project_id__patches__i__delete",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "i",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "I"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/OutlierPatchRow"
+         },
+         "title": "Response Patches Remove Api Projects  Project Id  Patches  I  Delete"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/patches/csv": {
+   "get": {
+    "summary": "Patches Csv",
+    "description": "Every patch as CSV, for whoever keeps the data.",
+    "operationId": "patches_csv_api_projects__project_id__patches_csv_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/engines": {
    "get": {
     "summary": "List Engines",
@@ -14175,6 +14659,14 @@
       ],
       "title": "Modeled",
       "description": "Modeled (Model groups \u203a Check them); None: proposed, yes with enough sales."
+     },
+     "keys": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Keys",
+      "description": "Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule."
      }
     },
     "type": "object",
@@ -14225,6 +14717,14 @@
       ],
       "title": "Modeled",
       "description": "Modeled (Model groups \u203a Check them); None: proposed, yes with enough sales."
+     },
+     "keys": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Keys",
+      "description": "Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule."
      }
     },
     "type": "object",
@@ -14234,7 +14734,8 @@
      "color",
      "rule",
      "numeric",
-     "modeled"
+     "modeled",
+     "keys"
     ],
     "title": "ModelGroup",
     "description": "Parcels valued together (SPEC \u00a73.5): OpenAVMKit's modeling.model_groups entry. First match wins."
@@ -15499,6 +16000,1112 @@
     ],
     "title": "OsmFeature"
    },
+   "OutlierBand": {
+    "properties": {
+     "low": {
+      "type": "number",
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Low"
+     },
+     "high": {
+      "type": "number",
+      "exclusiveMaximum": 10.0,
+      "exclusiveMinimum": 1.0,
+      "title": "High"
+     }
+    },
+    "type": "object",
+    "required": [
+     "low",
+     "high"
+    ],
+    "title": "OutlierBand"
+   },
+   "OutlierCall": {
+    "properties": {
+     "why": {
+      "type": "string",
+      "enum": [
+       "invalid",
+       "data",
+       "group",
+       "model"
+      ],
+      "title": "Why"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     },
+     "key": {
+      "type": "string",
+      "title": "Key",
+      "description": "The sale's parcel (a move by hand is the parcel's).",
+      "default": ""
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason",
+      "description": "invalid: why it isn't a market sale (outliers.REASONS)."
+     },
+     "group": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Group",
+      "description": "group: the group the parcel goes to."
+     },
+     "field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Field",
+      "description": "data: the field patched."
+     },
+     "was": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Was",
+      "description": "data: its value when the call was made."
+     },
+     "now": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Now",
+      "description": "data: its corrected value."
+     },
+     "source": {
+      "type": "string",
+      "title": "Source",
+      "description": "data: where the correction comes from.",
+      "default": ""
+     },
+     "applied": {
+      "type": "boolean",
+      "title": "Applied",
+      "description": "Done where it belongs (Apply my calls): until then a call is the user's list, changing nothing, so the steps it would put out of date stay as they are while the outliers are gone through.",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "why",
+     "note",
+     "key",
+     "at",
+     "reason",
+     "group",
+     "field",
+     "was",
+     "now",
+     "source",
+     "applied"
+    ],
+    "title": "OutlierCall",
+    "description": "What the user decided about an outlying sale: why the model is off on it."
+   },
+   "OutlierCallBody": {
+    "properties": {
+     "why": {
+      "type": "string",
+      "enum": [
+       "invalid",
+       "data",
+       "group",
+       "model"
+      ],
+      "title": "Why"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     },
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "related",
+         "multi_parcel",
+         "partial",
+         "wrong_price",
+         "distressed",
+         "changed",
+         "not_open_market",
+         "other"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason",
+      "description": "The sale isn't a market sale: why (required)."
+     },
+     "group": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Group",
+      "description": "It's in the wrong group: the group to move it to."
+     },
+     "field": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Field",
+      "description": "The data is wrong: the field to patch."
+     },
+     "now": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Now",
+      "description": "The data is wrong: its corrected value."
+     },
+     "source": {
+      "type": "string",
+      "title": "Source",
+      "description": "The data is wrong: where the correction comes from.",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "why"
+    ],
+    "title": "OutlierCallBody"
+   },
+   "OutlierCommon": {
+    "properties": {
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "outliers": {
+      "type": "integer",
+      "title": "Outliers"
+     },
+     "patterns": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierPattern"
+      },
+      "type": "array",
+      "title": "Patterns"
+     },
+     "clustered": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clustered",
+      "description": "Errors more alike between neighbours than chance; None: no places."
+     },
+     "moran": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Moran",
+      "description": "Moran's I of the errors over each sale's 8 nearest (0: none)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "group",
+     "sales",
+     "outliers",
+     "patterns",
+     "clustered",
+     "moran"
+    ],
+    "title": "OutlierCommon"
+   },
+   "OutlierComp": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "date": {
+      "type": "string",
+      "title": "Date"
+     },
+     "price": {
+      "type": "number",
+      "title": "Price"
+     },
+     "ratio": {
+      "type": "number",
+      "title": "Ratio"
+     },
+     "away": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Away",
+      "description": "Miles (imperial) or kilometres away."
+     },
+     "lat": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lat"
+     },
+     "lon": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lon"
+     },
+     "fields": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Fields",
+      "description": "The compared fields' values, in words."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "key",
+     "address",
+     "date",
+     "price",
+     "ratio",
+     "away",
+     "lat",
+     "lon",
+     "fields"
+    ],
+    "title": "OutlierComp"
+   },
+   "OutlierDetail": {
+    "properties": {
+     "sale": {
+      "$ref": "#/components/schemas/OutlierSale"
+     },
+     "comps": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierComp"
+      },
+      "type": "array",
+      "title": "Comps"
+     },
+     "compared": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Compared",
+      "description": "The fields the comps are shown with (OutlierComp.fields), in order."
+     },
+     "mine": {
+      "additionalProperties": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "object",
+      "title": "Mine",
+      "description": "The sale's own values of the compared fields, in words."
+     },
+     "names": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Names"
+     },
+     "comps_say": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Comps Say",
+      "description": "What the comps say it's worth: their price per finished area."
+     },
+     "comps_ratio": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Comps Ratio",
+      "description": "The models' median ratio on the comps."
+     },
+     "unlike": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierUnlike"
+      },
+      "type": "array",
+      "title": "Unlike"
+     },
+     "patchable": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierPatchField"
+      },
+      "type": "array",
+      "title": "Patchable",
+      "description": "The parcel's fields a patch can correct, as they are now."
+     },
+     "groups": {
+      "items": {
+       "prefixItems": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "string"
+        }
+       ],
+       "type": "array",
+       "maxItems": 2,
+       "minItems": 2
+      },
+      "type": "array",
+      "title": "Groups",
+      "description": "(id, name) of the groups it can be moved to."
+     },
+     "units": {
+      "type": "string",
+      "enum": [
+       "mi",
+       "km"
+      ],
+      "title": "Units"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sale",
+     "comps",
+     "compared",
+     "mine",
+     "names",
+     "comps_say",
+     "comps_ratio",
+     "unlike",
+     "patchable",
+     "groups",
+     "units"
+    ],
+    "title": "OutlierDetail"
+   },
+   "OutlierGroupCount": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "sales": {
+      "type": "integer",
+      "title": "Sales"
+     },
+     "outliers": {
+      "type": "integer",
+      "title": "Outliers"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "sales",
+     "outliers"
+    ],
+    "title": "OutlierGroupCount"
+   },
+   "OutlierPatchField": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "numeric": {
+      "type": "boolean",
+      "title": "Numeric"
+     },
+     "now": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Now"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "numeric",
+     "now"
+    ],
+    "title": "OutlierPatchField"
+   },
+   "OutlierPatchRow": {
+    "properties": {
+     "i": {
+      "type": "integer",
+      "title": "I"
+     },
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "was": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Was"
+     },
+     "now": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Now"
+     },
+     "source": {
+      "type": "string",
+      "title": "Source"
+     },
+     "at": {
+      "type": "string",
+      "title": "At"
+     },
+     "by": {
+      "type": "string",
+      "title": "By"
+     },
+     "sale": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale"
+     }
+    },
+    "type": "object",
+    "required": [
+     "i",
+     "key",
+     "field",
+     "name",
+     "was",
+     "now",
+     "source",
+     "at",
+     "by",
+     "sale"
+    ],
+    "title": "OutlierPatchRow"
+   },
+   "OutlierPattern": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "in_model": {
+      "type": "boolean",
+      "title": "In Model"
+     },
+     "bucket": {
+      "type": "string",
+      "title": "Bucket",
+      "description": "The sales it's about: \"pool: yes\", \"lot size over 12,000\"."
+     },
+     "n": {
+      "type": "integer",
+      "title": "N",
+      "description": "Sales in it."
+     },
+     "misses": {
+      "type": "integer",
+      "title": "Misses",
+      "description": "Outliers in it."
+     },
+     "off": {
+      "type": "number",
+      "title": "Off",
+      "description": "The models' average error on them: -0.18 is valued 18% low."
+     },
+     "rest_off": {
+      "type": "number",
+      "title": "Rest Off",
+      "description": "On the group's other sales."
+     },
+     "share": {
+      "type": "number",
+      "title": "Share",
+      "description": "Of the models' error, the share that lines up with the field (0-1)."
+     },
+     "chance": {
+      "type": "number",
+      "title": "Chance",
+      "description": "How often shuffled errors line up as much (0-1): lower is surer."
+     },
+     "goes_with": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Goes With",
+      "description": "A field ranked above whose sales these mostly are."
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "in_model",
+     "bucket",
+     "n",
+     "misses",
+     "off",
+     "rest_off",
+     "share",
+     "chance",
+     "goes_with"
+    ],
+    "title": "OutlierPattern"
+   },
+   "OutlierPoint": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "lat": {
+      "type": "number",
+      "title": "Lat"
+     },
+     "lon": {
+      "type": "number",
+      "title": "Lon"
+     },
+     "ratio": {
+      "type": "number",
+      "title": "Ratio"
+     },
+     "out": {
+      "type": "boolean",
+      "title": "Out",
+      "description": "Outside the band: an outlier."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "lat",
+     "lon",
+     "ratio",
+     "out"
+    ],
+    "title": "OutlierPoint"
+   },
+   "OutlierSale": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "group": {
+      "type": "string",
+      "title": "Group"
+     },
+     "date": {
+      "type": "string",
+      "title": "Date"
+     },
+     "sold": {
+      "type": "number",
+      "title": "Sold",
+      "description": "What it sold for."
+     },
+     "price": {
+      "type": "number",
+      "title": "Price",
+      "description": "The price, time-adjusted to the valuation date (as the models value)."
+     },
+     "value": {
+      "type": "number",
+      "title": "Value",
+      "description": "The models' value of it, out of fold (they hadn't seen it)."
+     },
+     "ratio": {
+      "type": "number",
+      "title": "Ratio"
+     },
+     "roll": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Roll",
+      "description": "The roll's value of the parcel, if a roll was loaded."
+     },
+     "lat": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lat"
+     },
+     "lon": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lon"
+     },
+     "call": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "invalid",
+         "data",
+         "group",
+         "model"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Call"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     },
+     "applied": {
+      "type": "boolean",
+      "title": "Applied",
+      "description": "The call is done where it belongs (Apply my calls); false: on the list only."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "key",
+     "address",
+     "group",
+     "date",
+     "sold",
+     "price",
+     "value",
+     "ratio",
+     "roll",
+     "lat",
+     "lon",
+     "call",
+     "note",
+     "applied"
+    ],
+    "title": "OutlierSale"
+   },
+   "OutlierState": {
+    "properties": {
+     "low": {
+      "type": "number",
+      "exclusiveMaximum": 1.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Low",
+      "description": "A ratio under this is an outlier (OpenAVMKit's 0.75).",
+      "default": 0.75
+     },
+     "high": {
+      "type": "number",
+      "exclusiveMaximum": 10.0,
+      "exclusiveMinimum": 1.0,
+      "title": "High",
+      "description": "A ratio over this is an outlier (OpenAVMKit's 1.25).",
+      "default": 1.25
+     },
+     "calls": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/OutlierCall"
+      },
+      "type": "object",
+      "title": "Calls",
+      "description": "key_sale -> the call made on it."
+     }
+    },
+    "type": "object",
+    "required": [
+     "low",
+     "high",
+     "calls"
+    ],
+    "title": "OutlierState",
+    "description": "Outliers (6. Models): the ratio band outside which a sale is an outlier, and the calls made on them."
+   },
+   "OutlierUnlike": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "numeric": {
+      "type": "boolean",
+      "title": "Numeric"
+     },
+     "this": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "This"
+     },
+     "comps": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Comps",
+      "description": "Its comps' median (a number) or most common value (a category)."
+     },
+     "pct": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pct",
+      "description": "A number: where it sits among the group's sales, 0-100."
+     },
+     "share": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Share",
+      "description": "A category: the share of the group's sales with its value."
+     },
+     "flag": {
+      "type": "boolean",
+      "title": "Flag",
+      "description": "It stands out: among the group's extremes, or unlike its comps."
+     },
+     "in_model": {
+      "type": "boolean",
+      "title": "In Model"
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "name",
+     "numeric",
+     "this",
+     "comps",
+     "pct",
+     "share",
+     "flag",
+     "in_model"
+    ],
+    "title": "OutlierUnlike"
+   },
+   "OutlierView": {
+    "properties": {
+     "ready": {
+      "type": "boolean",
+      "title": "Ready",
+      "description": "Finalize has run since Outliers came: the sales and their values are there."
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierGroupCount"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "group": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Group"
+     },
+     "low": {
+      "type": "number",
+      "title": "Low"
+     },
+     "high": {
+      "type": "number",
+      "title": "High"
+     },
+     "outliers": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierSale"
+      },
+      "type": "array",
+      "title": "Outliers",
+      "description": "Worst first: the lowest ratios, then the highest."
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/OutlierPoint"
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "Every sale of the group with a place: the outliers among them."
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls",
+      "description": "Outliers of the group with a call made."
+     },
+     "pending": {
+      "items": {
+       "type": "string",
+       "enum": [
+        "invalid",
+        "data",
+        "group",
+        "model"
+       ]
+      },
+      "type": "array",
+      "title": "Pending",
+      "description": "The kinds of call made and not yet applied, in every group."
+     },
+     "to_apply": {
+      "type": "integer",
+      "title": "To Apply",
+      "description": "Calls made and not yet applied, in every group (notes on the model aside)."
+     }
+    },
+    "type": "object",
+    "required": [
+     "ready",
+     "groups",
+     "group",
+     "low",
+     "high",
+     "outliers",
+     "points",
+     "calls",
+     "pending",
+     "to_apply"
+    ],
+    "title": "OutlierView"
+   },
    "Overlap": {
     "properties": {
      "column": {
@@ -15959,6 +17566,87 @@
      "vacant"
     ],
     "title": "ParcelSale"
+   },
+   "Patch": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "field": {
+      "type": "string",
+      "title": "Field"
+     },
+     "was": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Was",
+      "description": "Its value when patched (None: blank)."
+     },
+     "now": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "number"
+       }
+      ],
+      "title": "Now",
+      "description": "The corrected value: a number for a number field."
+     },
+     "source": {
+      "type": "string",
+      "title": "Source",
+      "description": "Where the correction comes from: a permit, a visit, the deed.",
+      "default": ""
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "by": {
+      "type": "string",
+      "title": "By",
+      "description": "Who patched it: the computer's user.",
+      "default": ""
+     },
+     "sale": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sale",
+      "description": "The outlying sale it was patched from (key_sale), if any."
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "field",
+     "was",
+     "now",
+     "source",
+     "at",
+     "by",
+     "sale"
+    ],
+    "title": "Patch",
+    "description": "A correction to one parcel's field (Outliers \u203a The data is wrong or missing), kept for the record and sent to\nwhoever keeps the data (exported). Written as OpenAVMKit's data.process.enrich.tweak, so every step sees it."
    },
    "PatternTable": {
     "properties": {
@@ -16765,6 +18453,18 @@
       "$ref": "#/components/schemas/ReportState",
       "description": "Step 7, Report: what it judges on, its title."
      },
+     "outliers": {
+      "$ref": "#/components/schemas/OutlierState",
+      "description": "6. Models \u203a Outliers: its calls."
+     },
+     "patches": {
+      "items": {
+       "$ref": "#/components/schemas/Patch"
+      },
+      "type": "array",
+      "title": "Patches",
+      "description": "Corrections to parcels' data, in order made."
+     },
      "accepted": {
       "additionalProperties": {
        "type": "string"
@@ -16799,6 +18499,8 @@
      "ratio",
      "model",
      "report",
+     "outliers",
+     "patches",
      "accepted"
     ],
     "title": "Project"

@@ -20,8 +20,11 @@ isn't; the milestones are kept as they were planned.
   tuning trials went from 23 s to 4 s on average, and it scored best of the single models in both groups. Upstream as
   #429, with a fix for SHAP on a category listed twice. Spatial average and per area statistics are their own pages
   next to each other in Variables.
-- **Left of M3:** slice 3 of the models (outliers back into Check sales, why this
-  value), CAMA export, the model summary report. Per area statistics (§3.12.3) is built (2026-11-07).
+- **Built 2026-11-07: Outliers** (6. Models, after Model values): the sales the models valued furthest from their price
+  on a map, one sale's comps and how it's unlike the others, what the misses have in common, and a call on each (not a
+  market sale, the data, the group, the model) applied together to Check sales, patches (OpenAVMKit's tweak, exported)
+  and parcels moved by hand.
+- **Left of M3:** slice 3 of the models (testing variables, why this value), CAMA export, the model summary report. Per area statistics (§3.12.3) is built (2026-11-07).
 - **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried). On
   the assessor's 12-core Windows PC, 4,600 parcels: Try them 11 minutes for 7 models in 2 groups, CatBoost 60% of it.
 - **Waiting on the maintainer:** real extracts (Travis CAD first), the usability test with three assessors, and timing

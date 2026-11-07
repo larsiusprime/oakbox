@@ -173,16 +173,73 @@ class ModelGroup(BaseModel):
     modeled: bool | None = Field(
         default=None, description="Modeled (Model groups › Check them); None: proposed, yes with enough sales."
     )
+    keys: list[str] = Field(
+        default_factory=list,
+        description="Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule.",
+    )
 
 
-def group_filter(g: ModelGroup) -> list:
-    """The group's rule as an OpenAVMKit filter ([] while it has no complete condition)."""
+def group_filter(g: ModelGroup, groups: list[ModelGroup] | None = None) -> list:
+    """The group's rule as an OpenAVMKit filter ([] while it has nothing to go on). Parcels put in it by hand are in
+    it; parcels put in another group by hand (of `groups`) are not, whatever the rule says."""
     conditions = [c for c in g.rule.conditions if c.values or c.op in ("isempty", "notempty")]
-    if not conditions:
-        return []
-    rule = g.rule.model_copy(update={"conditions": conditions})
-    names = {c.column: (c.column, "float" if c.column in g.numeric else "string") for c in conditions}
-    return rule_filter(rule, names)
+    f: list = []
+    if conditions:
+        rule = g.rule.model_copy(update={"conditions": conditions})
+        names = {c.column: (c.column, "float" if c.column in g.numeric else "string") for c in conditions}
+        f = rule_filter(rule, names)
+    elsewhere = sorted({k for o in groups or [] if o.id != g.id for k in o.keys} - set(g.keys))
+    if f and elsewhere:
+        f = ["and", ["notin", "key", [f"str:{k}" for k in elsewhere]], f]
+    if g.keys:
+        mine: list = ["isin", "key", [f"str:{k}" for k in sorted(g.keys)]]
+        f = ["or", mine, f] if f else mine
+    return f
+
+
+class Patch(BaseModel):
+    """A correction to one parcel's field (Outliers › The data is wrong or missing), kept for the record and sent to
+    whoever keeps the data (exported). Written as OpenAVMKit's data.process.enrich.tweak, so every step sees it."""
+
+    key: str
+    field: str
+    was: str | float | None = Field(description="Its value when patched (None: blank).")
+    now: str | float = Field(description="The corrected value: a number for a number field.")
+    source: str = Field(default="", description="Where the correction comes from: a permit, a visit, the deed.")
+    at: dt.datetime
+    by: str = Field(default="", description="Who patched it: the computer's user.")
+    sale: str | None = Field(default=None, description="The outlying sale it was patched from (key_sale), if any.")
+
+
+OutlierWhy = Literal["invalid", "data", "group", "model"]
+
+
+class OutlierCall(BaseModel):
+    """What the user decided about an outlying sale: why the model is off on it."""
+
+    why: OutlierWhy
+    note: str = ""
+    key: str = Field(default="", description="The sale's parcel (a move by hand is the parcel's).")
+    at: dt.datetime
+    reason: str | None = Field(default=None, description="invalid: why it isn't a market sale (outliers.REASONS).")
+    group: str | None = Field(default=None, description="group: the group the parcel goes to.")
+    field: str | None = Field(default=None, description="data: the field patched.")
+    was: str | float | None = Field(default=None, description="data: its value when the call was made.")
+    now: str | float | None = Field(default=None, description="data: its corrected value.")
+    source: str = Field(default="", description="data: where the correction comes from.")
+    applied: bool = Field(
+        default=False,
+        description="Done where it belongs (Apply my calls): until then a call is the user's list, changing nothing, "
+        "so the steps it would put out of date stay as they are while the outliers are gone through.",
+    )
+
+
+class OutlierState(BaseModel):
+    """Outliers (6. Models): the ratio band outside which a sale is an outlier, and the calls made on them."""
+
+    low: float = Field(default=0.75, gt=0, lt=1, description="A ratio under this is an outlier (OpenAVMKit's 0.75).")
+    high: float = Field(default=1.25, gt=1, lt=10, description="A ratio over this is an outlier (OpenAVMKit's 1.25).")
+    calls: dict[str, OutlierCall] = Field(default_factory=dict, description="key_sale -> the call made on it.")
 
 
 class Center(BaseModel):
@@ -232,6 +289,8 @@ class Project(BaseModel):
     report: ReportState = Field(
         default_factory=ReportState, description="Step 7, Report: what it judges on, its title."
     )
+    outliers: OutlierState = Field(default_factory=OutlierState, description="6. Models › Outliers: its calls.")
+    patches: list[Patch] = Field(default_factory=list, description="Corrections to parcels' data, in order made.")
 
     @model_validator(mode="before")
     @classmethod
@@ -469,7 +528,7 @@ def _analysis(project: Project) -> dict:
 
 
 def _model_groups(project: Project) -> dict:
-    groups = {g.id: {"name": g.name, "filter": f} for g in project.groups if (f := group_filter(g))}
+    groups = {g.id: {"name": g.name, "filter": f} for g in project.groups if (f := group_filter(g, project.groups))}
     return {"model_groups": groups} if groups else {}
 
 
@@ -516,6 +575,7 @@ def _data(project: Project) -> dict:
         out["process"] = process
     _condos(project, out)
     _permits(project, out)
+    _patches(project, out)
     _effective_year(project, out)
     if deed_field(project) == DEED_BOOK_PAGE:
         # Book and page as one deed ID, "123-45"; blank when either is (no deed is no deed).
@@ -545,6 +605,20 @@ def _data(project: Project) -> dict:
                 | osm
             )
     return out
+
+
+def _patches(project: Project, out: dict) -> None:
+    """The parcels' corrections, as OpenAVMKit's tweak on the parcel universe after enrichment (every field there,
+    census and distances too): one entry per field, the last patch of a parcel's field winning."""
+    if not project.patches:
+        return
+    by: dict[str, dict[str, str | float]] = {}
+    for p in project.patches:
+        by.setdefault(p.field, {})[p.key] = p.now
+    enrich = out.setdefault("process", {}).setdefault("enrich", {})
+    enrich.setdefault("tweak", {})["universe"] = [
+        {"field": f, "key": "key", "values": dict(sorted(v.items()))} for f, v in sorted(by.items())
+    ]
 
 
 CONDO_LINK, CONDO_PARENT, CONDO_UNIT, CONDO_GROUP = "condo_link", "condo_parent", "condo_unit", "condo_group"

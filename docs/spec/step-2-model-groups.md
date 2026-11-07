@@ -145,3 +145,8 @@ improved/vacant counts per model group.
     settings.
 - **Undo/redo.** Definitions can be exported and imported, to reuse across years or share with a neighbouring
   jurisdiction.
+
+**Parcels put in a group by hand** (2026-11-07, from Models › Outliers: "it's in the wrong group"): a group keeps them
+(`ModelGroup.keys`); they're in it whatever the rules say, and in no other (its filter `["or", ["isin", "key", …], rule]`,
+every other group's `["and", ["notin", "key", …], rule]`). The map and checks count them (`groups.assign`). Not yet
+listed on this page.

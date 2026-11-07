@@ -237,6 +237,7 @@ def run(project_id: str) -> None:
         by_key = dict(zip(values["key"], values[VALUE].astype(float), strict=True))
         sales["oak_oof"] = _look(ks, oof)
         sales["oak_held"] = _look(sales["key"], by_key).where(ks.isin(list(held)))
+        _keep_sales(sales, universe, tmp)
         universe[VALUE] = values[VALUE].to_numpy()
         # The studies want each field on the parcels too, blank: a blank on a sale would otherwise be filled with its
         # parcel's (OpenAVMKit's hydration), and every sale would be "held out".
@@ -388,6 +389,33 @@ def run(project_id: str) -> None:
 
 
 # ---------- The map ----------
+
+
+SALES = "sales.parquet"  # every valid sale of a valued group, its out-of-fold value and its fields (Outliers)
+
+
+def _keep_sales(sales, universe, tmp: Path) -> None:
+    """For Outliers: each valid sale the models valued out of fold, with every field of its parcel (as at its sale),
+    the time-adjusted price the ratios are on (`oak_price`), its value (`oak_oof`) and ratio (`oak_ratio`)."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
+
+    t = get_hydrated_sales_from_sup(SalesUniversePair(sales=sales, universe=universe))
+    t = pd.DataFrame(t.drop(columns=[c for c in ("geometry",) if c in t.columns]))
+    # The models value at the valuation date, as the time-adjusted prices they learn from: sales of every year are
+    # compared with that (the study's own price setting is about the window's sales only).
+    field = "sale_price_time_adj" if "sale_price_time_adj" in t else "sale_price"
+    t["oak_price"] = pd.to_numeric(t[field], errors="coerce")
+    t["oak_ratio"] = t["oak_oof"] / t["oak_price"].where(t["oak_price"] > 0)
+    keep = t["oak_ratio"].notna() & np.isfinite(t["oak_ratio"])
+    if "valid_sale" in t:
+        keep &= t["valid_sale"].astype("boolean").fillna(False)
+    t = pd.DataFrame(t[keep]).reset_index(drop=True)
+    for c in t.columns:  # mixed columns (objects of numbers and text) as text: Parquet takes one type a column
+        if t[c].dtype == object:
+            t[c] = t[c].map(lambda v: None if v is None or (isinstance(v, float) and v != v) else str(v))
+    t.to_parquet(tmp / SALES, index=False)
 
 
 class ParcelPoints(BaseModel):

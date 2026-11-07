@@ -17,5 +17,5 @@ export function newGroup(
   for (let n = 2; groups.some((x) => x.id === id); n++) id = `${base}_${n}`;
   const used = new Set(groups.map((x) => x.color));
   const color = colors.find((c) => !used.has(c)) ?? colors[groups.length % colors.length] ?? NO_COLOUR;
-  return { id, name, modeled: null, color, rule: { join: "any", conditions }, numeric: [] };
+  return { id, name, modeled: null, color, rule: { join: "any", conditions }, numeric: [], keys: [] };
 }

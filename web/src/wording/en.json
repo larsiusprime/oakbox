@@ -2291,7 +2291,8 @@
       "how": "How they did",
       "small": "Small groups",
       "final": "Finalize",
-      "values": "Model values"
+      "values": "Model values",
+      "outliers": "Outliers"
     },
     "lag": {
       "lede": "What''s around a parcel says a lot about its value. Each parcel can get the average of its nearest sales'' prices, and of its nearest parcels'' size, age and quality, as variables of their own: put them in a variable list like any other.",
@@ -2776,6 +2777,154 @@
       "slight": "a slight tilt",
       "notesTitle": "Notes from OpenAVMKit",
       "nextSlice": "Finalizing (the values written, and checked as step 4 checks the roll''s) comes next."
+    },
+    "outliers": {
+      "lede": "The sales the models valued furthest from what they sold for (adjusted to the valuation date), each valued by models that never saw it. For each, decide why: the sale, the data, the group, or the model.",
+      "notReady": "Finalize first: the outliers are the sales its models valued furthest from their price.",
+      "group": "Model group",
+      "outside": "Outside",
+      "to": "to",
+      "which": {
+        "all": "All {n}",
+        "low": "Valued low {n}",
+        "high": "Valued high {n}"
+      },
+      "state": {
+        "open": "Open {n}",
+        "decided": "Decided {n}"
+      },
+      "none": "No sale of this group is outside {low} to {high}.",
+      "cols": {
+        "address": "Address",
+        "ratio": "Ratio",
+        "sold": "Sold for",
+        "valued": "Valued at",
+        "date": "Sold",
+        "call": "Call"
+      },
+      "calls": {
+        "invalid": "Invalid",
+        "data": "Data patched",
+        "group": "Moved",
+        "model": "Model note"
+      },
+      "open": "Open",
+      "mapLabel": "The group's sales, by how far off their values are",
+      "legend": {
+        "under": "under {low}",
+        "within": "{low} to {high}",
+        "over": "over {high}",
+        "picked": "picked",
+        "comps": "its comps"
+      },
+      "sold": "Sold",
+      "soldLine": "{price} on {date}, {adjusted} at the valuation date",
+      "valuedAt": "Valued at",
+      "valuedLine": "{value}, by models that never saw the sale",
+      "roll": "On the roll",
+      "compsSay": "What its comps say",
+      "compsSayLine": "{value}, at their price per finished area; the models valued them at {ratio} of their price",
+      "comps": "Comparable sales",
+      "thisSale": "This sale",
+      "away": "Away",
+      "unlike": "How it's unlike the others",
+      "unlikeLede": "Each field: this parcel, its comps, where it sits among the group's sales (the bar is the middle half), and whether the models use it. Fields where it stands out come first.",
+      "field": "Field",
+      "thisParcel": "This parcel",
+      "itsComps": "Its comps",
+      "among": "Among the group",
+      "inModel": "In the models",
+      "yes": "yes",
+      "no": "no",
+      "blank": "blank",
+      "share": "{pct} of the group's sales",
+      "why": "Why is it off?",
+      "whys": {
+        "invalid": {
+          "title": "The sale isn't a market sale",
+          "lede": "Leave it out, with the reason. Check sales lists it."
+        },
+        "data": {
+          "title": "The data is wrong or missing",
+          "lede": "Patch the parcel. Every patch is kept, to send to whoever keeps the data."
+        },
+        "group": {
+          "title": "It's in the wrong group",
+          "lede": "Move the parcel to another group, or change the group's rule."
+        },
+        "model": {
+          "title": "The model misses something",
+          "lede": "See what the misses have in common, and note it."
+        }
+      },
+      "reason": "Why",
+      "reasons": {
+        "related": "Related parties",
+        "multi_parcel": "Sold with other parcels",
+        "partial": "Partial interest",
+        "wrong_price": "Wrong price",
+        "distressed": "Foreclosure or short sale",
+        "changed": "Changed after it sold",
+        "not_open_market": "Not an open-market sale",
+        "other": "Other (say what)"
+      },
+      "note": "Note",
+      "leaveOut": "Leave this sale out",
+      "leaveOutNote": "With Apply my calls, Check sales lists it, with the reason.",
+      "patchField": "Field",
+      "is": "Is",
+      "shouldBe": "Should be",
+      "source": "Source",
+      "sourceHint": "A permit, a visit, the deed",
+      "patchIt": "Patch it",
+      "patchNote": "With Apply my calls, it's applied as the data is brought in, so every step sees it. A vacant parcel's building fields stay empty: patch what makes it vacant.",
+      "moveTo": "Move it to",
+      "move": "Move this parcel",
+      "moveNote": "With Apply my calls, Model groups keeps it as a parcel put there by hand, before any rule.",
+      "orRule": "Or change the group's rule, on Model groups.",
+      "noteIt": "Note it",
+      "modelNote": "What might it be?",
+      "modelLede": "What the group's misses have in common is below. A field the models don't use can be added on Variable lists.",
+      "decided": "Decided: {call}",
+      "undo": "Take back",
+      "common": "What the misses have in common",
+      "commonLede": "Every sale of the group, field by field: the sales that share a value, where the models are off together. Fields the models use and fields they don't, ranked by how much of the models' error lines up with them; only what beats chance.",
+      "cSales": "Sales",
+      "cOff": "Valued",
+      "cRest": "The rest",
+      "cMisses": "Outliers in it",
+      "cShare": "Of the error",
+      "cChance": "By chance",
+      "goesWith": "mostly the same sales as {name}",
+      "offLow": "{pct} low",
+      "offHigh": "{pct} high",
+      "offNone": "right",
+      "noneCommon": "Nothing the sales share lines up with the models' error beyond chance.",
+      "clustered": "On the map, the errors are more alike between neighbours than chance would make them (Moran's I {i}): a location the models miss.",
+      "notClustered": "On the map, the errors aren't more alike between neighbours than chance would make them.",
+      "loading": "Working it out…",
+      "patches": "Patches",
+      "patchesLede": "Every correction made to the parcels' data, to send to whoever keeps it.",
+      "noPatches": "No patches yet.",
+      "export": "Export as CSV",
+      "remove": "Remove",
+      "patchCols": {
+        "parcel": "Parcel",
+        "field": "Field",
+        "was": "Was",
+        "now": "Now",
+        "source": "Source",
+        "by": "By",
+        "at": "When"
+      },
+      "toApply": "to apply",
+      "pending": "{n, number} {n, plural, =1 {call} other {calls}} made and not applied yet. They change nothing until applied, so the outliers can be gone through first; applying them changes {what}, and the steps from there on run again.",
+      "pendingWhat": {
+        "invalid": "Check sales",
+        "group": "Model groups",
+        "data": "the data brought in"
+      },
+      "apply": "Apply my calls"
     }
   },
   "metadata": {
