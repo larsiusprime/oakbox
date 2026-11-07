@@ -217,7 +217,8 @@ ticked variables is gone: each model takes a variable list.
   machine-learning list on a regression model or the other way ("it'll run, but…"), its list removed, its list empty
   (stops a try), the variables with blanks its linear engine leaves out, no locations (Multi-MRA then fits one
   regression, as MRA does; Local area can't run). **Add a model** (a row: engine, name, list; Add / Cancel), **Remove**,
-  **Copy these models to…** (a group, or every other), **Back to the default models**. Written per group as
+  **Back to the default models** (Copy these models to…, and the line saying where they're written, removed
+  2026-11-07). Written per group as
   `modeling.models.main.<group>` (OpenAVMKit takes a group's block in place of the shared one): `default` (the land and
   finished areas, for Local area and the roll), each model under a key from its name (`{"model": <engine>, "ind_vars":
   "$$variable_lists.<id>", "log": true, "locations": [...]}`; a linear model whose list has variables with blanks gets
@@ -235,8 +236,7 @@ ticked variables is gone: each model takes a variable list.
   the graphics card if there is one** (CatBoost; on; `use_gpu`), and the location stack (Multi-MRA, Local area; moved
   here from the Variables column). Each with a line on what it does; warned: log price off ("can value parcels below
   zero"), intercept off, fewer than 20 trials, no locations. Every option the engine reads is written, defaults too
-  (`OPTIONS`, `DEFAULTS` in `model.py`), and only those; a change makes the try out of date; Copy these models to…
-  copies them. Not offered: sales chasing (a test mode), global settings, hand-picked interaction pairs (OpenAVMKit's
+  (`OPTIONS`, `DEFAULTS` in `model.py`), and only those; a change makes the try out of date. Not offered: sales chasing (a test mode), global settings, hand-picked interaction pairs (OpenAVMKit's
   `interactions.fields`; later, if Categories × size is too blunt). **Layered comps** (OpenAVMKit's `lcomp`, added
   2026-11-01): comparable sales as a model, the sales split into ever-closer groups by the list's variables and a parcel
   valued from the trimmed mean prices of the groups it falls in, the closest weighted most (`layeredcompmodel`'s bagging

@@ -2075,8 +2075,6 @@ export type Wording = {
       cancel: string;
       namePlaceholder: string;
       nameLabel: string;
-      copy: string;
-      everyOther: string;
       backToDefault: string;
       noModels: string;
       takesNoList: string;
@@ -2089,7 +2087,6 @@ export type Wording = {
         blanks_left_out: (a: { n: number }) => string;
         no_locations: (a: { engine: string | number }) => string;
       };
-      written: (a: { group: string | number }) => string;
       group: string;
       parcels: string;
       sales: string;

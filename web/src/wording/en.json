@@ -2662,8 +2662,6 @@
       "cancel": "Cancel",
       "namePlaceholder": "The engine''s name",
       "nameLabel": "Name",
-      "copy": "Copy these models to…",
-      "everyOther": "Every other modeled group",
       "backToDefault": "Back to the default models",
       "noModels": "No models: add one, or untick the group on Model groups › Check them.",
       "takesNoList": "its areas'' price per area",
@@ -2676,7 +2674,6 @@
         "blanks_left_out": "Leaves out {n, number} {n, plural, =1 {variable} other {variables}} of its list with blanks: a regression can''t take a blank.",
         "no_locations": "{engine, select, local_area {Local area needs at least one location level.} other {No location levels: it fits one regression for the whole group, as MRA does.}}"
       },
-      "written": "Written to OpenAVMKit''s settings under modeling.models.main.{group}; the models'' lists as $$variable_lists.<list>.",
       "group": "Model group",
       "parcels": "Parcels",
       "sales": "Sales",
