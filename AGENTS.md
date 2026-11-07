@@ -76,6 +76,14 @@ from a bug stays a 500 with its traceback.
 
 ## Screens
 
+- **Every action is acknowledged at once (non-negotiable, 2026-11-07).** Whatever the user does (a click, a key, a
+  drop, a choice) shows a visible change *instantly*, before any answer comes back, so it's never unclear whether it
+  was taken: the button pressed and busy, the row added, the choice shown made. When the result takes a moment, show
+  a **cancellable** spinner or progress bar where the result will appear, and say **how long it should take**
+  (from a measure: the file's size, the last run's time) or, when that can't be known, **how long it's been**
+  ("Reading parcels.csv · 0:12"). Never a click that seems to do nothing while the server works: large counties
+  (Guilford, NC: a 220 MB parcel file) make every slow path visible. Applies to adding a file, picking a field,
+  opening a preview, every step's run and every mutation.
 - **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a
   maximum). **Everything else is as wide as what's in it**, not stretched to the page: a file's entry, a frame, a
   row of tests, a form (`width: fit-content; max-width: 100%`). Boxes in one list share the widest one's width
