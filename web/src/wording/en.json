@@ -2289,7 +2289,6 @@
       "models": "Models",
       "try": "Try them",
       "how": "How they did",
-      "small": "Small groups",
       "final": "Finalize",
       "values": "Model values",
       "outliers": "Outliers"
@@ -2498,8 +2497,7 @@
       "written": "Written finest first, as OpenAVMKit reads it: {fields}."
     },
     "small": {
-      "lede": "Groups the models can''t be trusted on: too few sales to learn from or to judge them by, or values that make no sense (a holdout median ratio outside 0.5 to 2, or a value below zero). Left unvalued unless you choose to model them anyway: their parcels get no model value, and the report says so.",
-      "notTried": "Try the models first: the groups are judged by the try.",
+      "lede": "Too few sales to learn from or to judge them by, or values that make no sense (a holdout median ratio outside 0.5 to 2, or a value below zero). Left unvalued unless you choose to model them anyway: their parcels get no model value, and the report says so.",
       "group": "Model group",
       "parcels": "Parcels",
       "sales": "Sales",
@@ -2522,10 +2520,10 @@
       },
       "cantModel": "No model produced values for it: it can only be left unvalued.",
       "unvalued": "Left unvalued: {parcels, number} {parcels, plural, =1 {parcel} other {parcels}} in {n, number} {n, plural, =1 {group} other {groups}} ({groups}). Their model value is blank; the report and the export list them.",
-      "noneUnvalued": "Every modeled group gets model values.",
       "blanked": "{n, number} {n, plural, =1 {parcel} other {parcels}} in groups modeled anyway came out below zero: left blank, and counted.",
       "neverBelow": "A value below zero never ships: the parcel stays blank and is counted.",
-      "applies": "Applies when the values are made (Finalize): the try models every group, to judge it."
+      "applies": "Applies when the values are made (Finalize): the try models every group, to judge it.",
+      "title": "Groups the models can't be trusted on."
     },
     "final": {
       "lede": "Trains each group''s models once more, on all of its sales, and values every parcel: the values that ship. The groups Small groups leaves unvalued are skipped; a value below zero is left blank.",

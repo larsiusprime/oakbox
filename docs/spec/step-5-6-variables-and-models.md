@@ -84,7 +84,7 @@ slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-
   (`contributions_universe.csv`). Per-group variables and models are built.
 
 **Steps** (the tab continues after What changed): Fill blanks › Rare categories › Prepare the fields › What changed ›
-**Variables** › **Models** › **Try them** (the run) › **How they did** › **Small groups** › **Finalize** (the run) ›
+**Variables** › **Models** › **Try them** (the run) › **How they did** (Looks right) › **Finalize** (the run) ›
 **Model values** (Looks right) › **Outliers**.
 - **Variables.** One table: each candidate with what it is, its coverage after Prepare, and whether it has blanks left.
   Ticked by default:
@@ -271,7 +271,8 @@ ticked variables is gone: each model takes a variable list.
   every sale, it would be judged on sales it trained on. The trimmed median ratio and VEI are the benchmark's own too
   (`median_ratio_trim`, `vei_trim`, `vei_sig_trim`: engine, in its frames, not its printout). Groups with too few sales
   say so. OpenAVMKit's notes fold away underneath. **Try again**.
-- **Small groups** (slice 2; built 2026-10-31, `smallgroups.py`, `SmallGroups.tsx`), after How they did: a row per model
+- **Small groups** (slice 2; built 2026-10-31, `smallgroups.py`, `SmallGroups.tsx`; **no longer its own step, 2026-11-07**:
+  a warning at the top of How they did, the flagged groups only, and nothing when none is flagged): a row per model
   group with the try's figures (parcels, sales, the ensemble's holdout median ratio and COD, values below zero) and why
   it can't be trusted, as pills: fewer than 15 sales ("too few to model"; OpenAVMKit's own floor), no model produced
   values, no sales held out to judge it by, a holdout median ratio outside 0.5 to 2, values below zero. Both kinds are
@@ -283,7 +284,7 @@ ticked variables is gone: each model takes a variable list.
   a value below zero that's left is a check, and the parcel stays blank and is counted. The try counts each group's
   valued parcels and values below zero (the ensemble's universe predictions). The choices apply when the values are made
   (Finalize, next): the try models every group, to judge it.
-- **Small groups' Looks right** (2026-11-01): accepts the try (`model` step's accept), so Finalize starts from it; a try
+- **How they did's Looks right** (2026-11-07; was Small groups', 2026-11-01): accepts the try (`model` step's accept), so Finalize starts from it; a try
   out of date can't be accepted.
 - **Finalize** (slice 2; built 2026-11-01, `final.py`, `FinalValues.tsx`): `python -m oakbox.final`, OpenAVMKit's
   `finalize_models` from the same starting point as Try them (`model.for_models`: the prepared hand-off, the folds, the

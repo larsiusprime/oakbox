@@ -12,15 +12,21 @@ const flag = (f: string, n: number, median: string) => {
   return typeof m === "function" ? m({ n, median }) : m;
 };
 
+/** In How they did: the groups the models can't be trusted on, each left unvalued unless modeled anyway; nothing at
+ * all when every modeled group came out fine. */
 export function SmallGroupsStep({ projectId }: { projectId: string }) {
   const q = useSmallGroups(projectId);
   const set = useSetSmall(projectId);
   const v = q.data;
-  if (!v) return <p className="empty">{q.error?.message ?? t.project.loading}</p>;
-  if (!v.tried) return <p className="wiz-from">{s.notTried}</p>;
+  if (!v?.tried) return null;
+  const flagged = v.groups.filter((g) => g.choice);
+  if (flagged.length === 0 && v.blanked === 0) return null;
   const ratio = (x: number | null) => (x == null ? "—" : num(x, 3));
   return (
-    <div className="cs-step">
+    <div className="cs-step bi-warn">
+      <p>
+        <b>{s.title}</b> {s.lede}
+      </p>
       <table className="tbl sg-table">
         <thead>
           <tr>
@@ -35,7 +41,7 @@ export function SmallGroupsStep({ projectId }: { projectId: string }) {
           </tr>
         </thead>
         <tbody>
-          {v.groups.map((g) => (
+          {flagged.map((g) => (
             <tr key={g.id} className={g.modeled ? undefined : "not-modeled"}>
               <td>
                 <span className="mg-sw ab-sw" style={{ background: g.color }} />
@@ -85,9 +91,7 @@ export function SmallGroupsStep({ projectId }: { projectId: string }) {
           ))}
         </tbody>
       </table>
-      <p className={v.unvalued.length ? "wiz-warn" : "wiz-ok"}>
-        {v.unvalued.length ? say.values.small.unvalued(v.unvalued_parcels, v.unvalued) : s.noneUnvalued}
-      </p>
+      {v.unvalued.length > 0 && <p>{say.values.small.unvalued(v.unvalued_parcels, v.unvalued)}</p>}
       {v.blanked > 0 && <p className="wiz-warn">{s.blanked({ n: v.blanked })}</p>}
       {set.error && (
         <p className="error" role="alert">

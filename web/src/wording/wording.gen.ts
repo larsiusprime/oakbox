@@ -1780,7 +1780,6 @@ export type Wording = {
       models: string;
       try: string;
       how: string;
-      small: string;
       final: string;
       values: string;
       outliers: string;
@@ -1955,7 +1954,6 @@ export type Wording = {
     };
     small: {
       lede: string;
-      notTried: string;
       group: string;
       parcels: string;
       sales: string;
@@ -1972,10 +1970,10 @@ export type Wording = {
       flags: Record<string, ((a: { n: number }) => string) | (string) | ((a: { median: string | number }) => string)>;
       cantModel: string;
       unvalued: (a: { parcels: number; n: number; groups: string | number }) => string;
-      noneUnvalued: string;
       blanked: (a: { n: number }) => string;
       neverBelow: string;
       applies: string;
+      title: string;
     };
     final: {
       lede: string;

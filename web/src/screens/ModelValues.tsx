@@ -10,8 +10,8 @@ import { Outliers } from "./Outliers";
 import { SmallGroupsStep } from "./SmallGroups";
 
 const m = t.values;
-type MvStep = "models" | "try" | "how" | "small" | "final" | "values" | "outliers";
-const MV_STEPS: MvStep[] = ["models", "try", "how", "small", "final", "values", "outliers"];
+type MvStep = "models" | "try" | "how" | "final" | "values" | "outliers";
+const MV_STEPS: MvStep[] = ["models", "try", "how", "final", "values", "outliers"];
 const f = m.final;
 
 /** Step 6, Model values (SPEC F9): each model group's models, a try, how they did, the groups left unvalued, then
@@ -74,7 +74,6 @@ export function ValuesTab({
       case "try":
         return tried;
       case "how":
-      case "small":
         return mr && !mv.stale ? "done" : "blank";
       case "final":
         if (!fr) return "blank";
@@ -90,8 +89,7 @@ export function ValuesTab({
     title: m.steps[key],
     status: statusOf(key),
     disabled:
-      ((key === "how" || key === "small" || key === "final") && !mr) ||
-      ((key === "values" || key === "outliers") && !fr),
+      ((key === "how" || key === "final") && !mr) || ((key === "values" || key === "outliers") && !fr),
   }));
   const i = MV_STEPS.indexOf(current);
   const prev = MV_STEPS[i - 1];
@@ -187,19 +185,14 @@ export function ValuesTab({
       {current === "how" && mr && (
         <>
           <StepBody title={m.steps.how} lede={m.model.howLede}>
+            {/* The groups the models can't be trusted on, if any: left unvalued unless modeled anyway. */}
+            <SmallGroupsStep projectId={projectId} />
             <HowTheyDid view={mv} />
           </StepBody>
-          <StepFoot back={back} extra={[{ label: m.model.tryAgain, onPress: tryIt }]} next={onward} />
-        </>
-      )}
-      {current === "small" && mr && (
-        <>
-          <StepBody title={m.steps.small} lede={m.small.lede}>
-            {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
-            <SmallGroupsStep projectId={projectId} />
-          </StepBody>
+          {/* Looks right accepts the try: Finalize starts from it. */}
           <StepFoot
             back={back}
+            extra={[{ label: m.model.tryAgain, onPress: tryIt }]}
             next={{ label: f.looksRight, onPress: keepTry, disabled: mv.stale || mAct.isPending }}
           />
           {errors}
