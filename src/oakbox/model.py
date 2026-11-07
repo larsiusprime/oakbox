@@ -29,7 +29,8 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from oakbox import cells, fields, locstack, machine, prepare, ratio, spatiallag, steps, valuesets
+from oakbox import areastats, cells, fields, locstack, machine, prepare, ratio, spatiallag, steps, valuesets
+from oakbox.areastats import AreaState
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.fields import VALUE_SLOTS
@@ -148,6 +149,7 @@ class ModelEntry(BaseModel):
 
 class ModelState(BaseModel):
     lag: LagState = Field(default_factory=LagState)
+    area: AreaState = Field(default_factory=AreaState)
     tests: list[str] | None = Field(
         default=None, description="The variable tests to run (besides Represented); None: all of TESTS."
     )
@@ -299,6 +301,18 @@ def _scan(
     return tuple(out)
 
 
+def area_found(project: Project, project_dir: Path, columns: list[str] | set[str]) -> list[areastats.AreaCount]:
+    """Per area statistics: each offered location's areas, from the prepared parcels and sales."""
+    return areastats.found(
+        project, project_dir, _universe_path(project_dir), steps.look(project_dir, "2-clean-sales"), columns
+    )
+
+
+def actual(name: str, sale: str) -> str:
+    """A variable as OpenAVMKit writes it: the nearby averages and area figures of the price carry its field's name."""
+    return areastats.actual(spatiallag.lag_actual(name, sale), sale)
+
+
 def universe_fields(project_dir: Path) -> list[str]:
     import pyarrow.parquet as pq
 
@@ -349,6 +363,25 @@ def variables(project: Project, project_dir: Path) -> list[Variable]:
         n = max(v.parcels + v.blanks for v in out)
         for f, name in spatiallag.lag_fields(project, columns):
             out.append(Variable(field=f, name=name, kind="location", numeric=True, parcels=n, blanks=0, ml_only=False))
+    if project.model.area.on and out:
+        # Worked out when the models run too. A figure is blank where its area has too few sales (or parcels), and
+        # for a parcel in no area: a linear model leaves it out, as any variable with blanks.
+        import pyarrow.parquet as pq
+
+        columns = set(pq.ParquetFile(path).schema_arrow.names)
+        n = max(v.parcels + v.blanks for v in out)
+        for f, name, blank, can_blank in areastats.offered(project, area_found(project, project_dir, columns), columns):
+            out.append(
+                Variable(
+                    field=f,
+                    name=name,
+                    kind="location",
+                    numeric=True,
+                    parcels=n - blank,
+                    blanks=blank,
+                    ml_only=can_blank,
+                )
+            )
     return out
 
 
@@ -448,9 +481,7 @@ def settings(project: Project, project_dir: Path) -> dict:
                 elif blanks and e.engine not in ML:
                     # A linear model can't take a blank: the list without its variables with blanks.
                     entry["ind_vars"] = [
-                        spatiallag.lag_actual(v, spatiallag.sale_field(project))
-                        for v in lst.variables
-                        if v not in blanks
+                        actual(v, spatiallag.sale_field(project)) for v in lst.variables if v not in blanks
                     ]
                 else:
                     entry["ind_vars"] = f"$$variable_lists.{lst.id}"
@@ -470,17 +501,17 @@ def settings(project: Project, project_dir: Path) -> dict:
     skip = {g.id: [m for m in names if m not in blocks[g.id]] if g.id in blocks else run for g in project.groups}
     skip = {g: v for g, v in skip.items() if v}
     sale = spatiallag.sale_field(project)
+    columns = universe_fields(project_dir)
+    lag = spatiallag.lag_settings(project, [g.id for g in project.groups if g.id in modeled], columns)
+    area = (
+        areastats.settings(project, area_found(project, project_dir, columns), set(columns))
+        if columns and project.model.area.on
+        else {}
+    )
+    enrich = {**({"spatial_lag": lag} if lag else {}), **({"area_stats": area} if area else {})}
     return {
-        "variable_lists": {x.id: [spatiallag.lag_actual(v, sale) for v in x.variables] for x in all_lists},
-        **(
-            {"data": {"process": {"enrich": {"spatial_lag": lag}}}}
-            if (
-                lag := spatiallag.lag_settings(
-                    project, [g.id for g in project.groups if g.id in modeled], universe_fields(project_dir)
-                )
-            )
-            else {}
-        ),
+        "variable_lists": {x.id: [actual(v, sale) for v in x.variables] for x in all_lists},
+        **({"data": {"process": {"enrich": enrich}}} if enrich else {}),
         "modeling": {
             "instructions": {
                 "main": {
@@ -568,8 +599,31 @@ class LagView(BaseModel):
     adds: list[LagChoice] = Field(description="The variables it adds.")
 
 
+class AreaRowView(BaseModel):
+    id: areastats.RowId
+    name: str
+    part: Literal["sales", "parcels"] = Field(description="From the sales (training sales only) or the parcels.")
+
+
+class AreaLocationView(areastats.AreaCount):
+    ticks: list[areastats.RowId] = Field(description="The figures worked out by it (as they'd start, when off).")
+
+
+class AreaView(BaseModel):
+    """Per area statistics: shown whether on or off (off, as it would start)."""
+
+    on: bool
+    stats: list[areastats.Stat]
+    min_count: int
+    rows: list[AreaRowView]
+    locations: list[AreaLocationView]
+    proposed: bool = Field(description="The ticks are as proposed (none changed yet).")
+    adds: int = Field(description="The variables it adds (would add, when off).")
+
+
 class ModelSetup(BaseModel):
     lag: LagView
+    area: AreaView
     variables: list[Variable]
     engines: list[Engine]
     groups: list[GroupModels]
@@ -667,8 +721,25 @@ def setup(project: Project, project_dir: Path) -> ModelSetup:
         if project.model.lag.on
         else [],
     )
+    cols = set(columns)
+    found = area_found(project, project_dir, cols)
+    t = areastats.ticks(project, found, cols)
+    u = "sqft" if project.units == "imperial" else "sqm"
+    area = AreaView(
+        on=project.model.area.on,
+        stats=project.model.area.stats,
+        min_count=project.model.area.min_count,
+        rows=[
+            AreaRowView(id=r, name=areastats.ROW_NAMES[r](u), part="sales" if r in areastats.SALES_ROWS else "parcels")
+            for r in areastats.rows(project, cols)
+        ],
+        locations=[AreaLocationView(**c.model_dump(), ticks=t.get(c.location, [])) for c in found],
+        proposed=project.model.area.ticks is None,
+        adds=len(areastats.offered(project, found, cols)),
+    )
     return ModelSetup(
         lag=lag,
+        area=area,
         variables=vs,
         engines=[
             Engine(
@@ -706,6 +777,12 @@ class ModelPatch(BaseModel):
     lag_own: list[str] | None = Field(
         default=None, description="Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped."
     )
+    area_on: bool | None = Field(default=None, description="Per area statistics, on or off.")
+    area_stats: list[areastats.Stat] | None = Field(default=None, description="The statistics of each figure.")
+    area_min_count: int | None = Field(default=None, ge=1, le=1000, description="Blank under this many.")
+    area_ticks: dict[str, list[areastats.RowId]] | None = Field(
+        default=None, description="Location field -> the figures worked out by it: every location, as now wanted."
+    )
 
 
 def change(project: Project, body: ModelPatch) -> None:
@@ -726,6 +803,14 @@ def change(project: Project, body: ModelPatch) -> None:
         s.lag.fields = list(dict.fromkeys(body.lag_fields))
     if body.lag_k is not None:
         s.lag.k = body.lag_k
+    if body.area_on is not None:
+        s.area.on = body.area_on
+    if body.area_stats is not None:
+        s.area.stats = [x for x in areastats.STATS if x in body.area_stats] or ["median"]
+    if body.area_min_count is not None:
+        s.area.min_count = body.area_min_count
+    if body.area_ticks is not None:
+        s.area.ticks = {loc: list(dict.fromkeys(rs)) for loc, rs in body.area_ticks.items()}
     if body.lag_own is not None:
         # Every average OpenAVMKit can make, whatever fields there are: the ones not chosen are skipped.
         every = [f for f, _ in spatiallag.lag_own(project, spatiallag.ALL_COLUMNS)]
@@ -1168,6 +1253,10 @@ def for_models(project: Project, modeled, own: dict[str, dict[str, str]]):
         dropped = spatiallag.drop_lag_zeros(
             settings, spatiallag.lag_zeros(sup.sales, sup.universe, settings, gnames), gnames, labels
         )
+    if settings.get("data", {}).get("process", {}).get("enrich", {}).get("area_stats"):
+        # After the split too: OpenAVMKit takes the price figures from training sales only.
+        steps.emit(step="area", fraction=0.08, message="Working out per area statistics")
+        sup = pl.enrich_sup_area_stats(sup, settings, verbose=False)
     return sup, settings, dropped, gnames
 
 
@@ -1337,6 +1426,12 @@ def settings_key(settings: dict, project_dir: Path) -> dict:
         "lag": settings.get("data", {}).get("process", {}).get("enrich", {}).get("spatial_lag"),
         "run": m.get("instructions", {}).get("main"),
         "study": settings.get("analysis", {}).get("ratio_study", {}).get("study_set_predictions"),
+        # Per area statistics, only when on: a project without them keeps the fingerprint its last try left.
+        **(
+            {"area": area}
+            if (area := settings.get("data", {}).get("process", {}).get("enrich", {}).get("area_stats"))
+            else {}
+        ),
     }
 
 

@@ -36,7 +36,8 @@ def test_the_calls_are_openavmkit_settings():
     p.clean.per = {"condos": "impr"}  # condos indexed on finished area, whatever OpenAVMKit would choose
     p.clean.fills = {
         "slope": clean.Fill(method="median"),
-        "lot": clean.Fill(method="zero", scope="vacant"),  # from before: a split, improved parcels left blank
+        # From before: a split, improved parcels left blank.
+        "lot": clean.Fill.model_validate({"method": "zero", "scope": "vacant"}),
         "skip": clean.Fill(method="leave"),
         "renovation_num": clean.Fill(),  # auto: zero (blank means no permit)
         "quality": clean.Fill(method="auto", split=True, kind="building"),  # a building's: improved parcels only

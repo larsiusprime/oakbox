@@ -109,9 +109,9 @@ def settings_key(settings: dict) -> dict:
     data = key["data"]
     if isinstance(data, dict) and isinstance(data.get("process"), dict):
         process = {k: v for k, v in data["process"].items() if k not in CLEAN_PROCESS}
-        if isinstance(process.get("enrich"), dict) and "spatial_lag" in process["enrich"]:
-            # Nearby sales and buildings are worked out as the models run (after the sales are split), not here.
-            process["enrich"] = {k: v for k, v in process["enrich"].items() if k != "spatial_lag"}
+        if isinstance(process.get("enrich"), dict) and process["enrich"].keys() & {"spatial_lag", "area_stats"}:
+            # Spatial average and per area statistics are worked out as the models run (after the sales are split).
+            process["enrich"] = {k: v for k, v in process["enrich"].items() if k not in ("spatial_lag", "area_stats")}
             if not process["enrich"]:
                 del process["enrich"]  # written only for it: as if never written
         key["data"] = {**data, "process": process}

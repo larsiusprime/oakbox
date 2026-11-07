@@ -189,7 +189,7 @@ in step 6. They depend on model groups and train/test splits.
     IndexError); a group with fewer than 10 parcels, or than twice k, is left out of the lag for the run (nor borrowed
     from), and its models do without, said as above.
   - On the synthetic sample (9,354 parcels, 1,770 sales) it takes 1.6 s.
-- **Per area statistics: proposed (2026-11-06, mocked up, not built), as Variables › Per area statistics**, its own
+- **Per area statistics: built (2026-11-07), as Variables › Per area statistics**, its own
   page right after Spatial average statistics (its cousin: both worked out as each run starts, after the split).
   OpenAVMKit's area statistics (`area_stats.enrich_sup_area_stats`, `data.process.enrich.area_stats`): each parcel gets its area's figures (the median sale price of its census tract, the median finished area of its
   neighbourhood) as variables of their own. Nearby sales is a smooth surface of the nearest; this is the same idea by
@@ -204,8 +204,8 @@ in step 6. They depend on model groups and train/test splits.
     - **Rows, from the sales:** sale price, price per finished area, vacant price per land area (OpenAVMKit's
       `sale_price` family: a bare `sale_price` in `fields` expands to the price and its three per-area rates, time
       adjusted when Check sales adjusts), and the number of sales (its `sales_count`, always worked out).
-    - **Rows, from the parcels:** the big five (finished area, land area, building age, quality, condition) and land
-      use, those the data has. A category field gets its most common value (`mode`, and `mode_frac`, its share).
+    - **Rows, from the parcels:** the big five (finished area, land area, building age, quality, condition), those the
+      data has. **Not built:** land use's most common value (`mode`, a category, and `mode_frac`, its share).
     - One engine block covers every location × field; a tick off leaves that column out of the variables offered (the
       engine still works it out: a few columns, milliseconds).
   - **Figures** (a MultiPick; **Median** to start): median, mean, spread (`std`), 25th and 75th percentile, smallest,
@@ -222,4 +222,12 @@ in step 6. They depend on model groups and train/test splits.
     the training sales only, so a model never sees the price it's judged on; the parcels' from every parcel. OAK box
     calls `enrich_sup_area_stats` after the lag in Try them and Test the variables, and leaves `area_stats` out of
     Bring in data's settings (as it does `spatial_lag`).
-  - **As variables:** kind location, named "Census tract median sale price", tested and listed like any other.
+  - **As variables:** kind location, named "Census tract median sale price" (median and mean before the figure, the
+    rest after it: "Census tract sale price, spread"), tested and listed like any other. Offered under stable names
+    (`area_stat_<location>_sale_price…`) and written as OpenAVMKit names them (`…sale_price_time_adj…` when Check
+    sales adjusts), as the nearby averages are. A price figure that can be blank (an area under the minimum, or a
+    parcel in none; the vacant land price always) is left out of a linear model, as any variable with blanks.
+  - **As built** (`src/oakbox/areastats.py`; `AreaState` in the project's model state; `web/src/screens/AreaStep.tsx`):
+    the ticks are stored only once changed (`ticks`, None until then: they follow the proposal). Try them is out of
+    date when its settings change, and only when it's on (a project without it keeps its fingerprint). Checked on a
+    5,000-parcel county: Test the variables tested all 9 figures in every group (7 s), Try them trained on them (62 s).

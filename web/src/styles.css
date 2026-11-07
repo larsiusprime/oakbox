@@ -6532,3 +6532,52 @@ div.map-wait-ask small {
   margin: calc(1.2 * var(--sp)) 0 calc(0.4 * var(--sp));
   font-size: 1rem;
 }
+/* Variables › Per area statistics (SPEC §3.12.3): the tick; its settings on two columns; the grid of figures by
+   location. Off, all of it as it would start, faded and out of reach. */
+.area {
+  display: grid;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  justify-items: start;
+}
+.area-body {
+  display: grid;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  justify-items: start;
+}
+.area-off {
+  opacity: 0.45;
+  filter: grayscale(0.3);
+}
+.area-set {
+  display: grid;
+  grid-template-columns: max-content minmax(12rem, 22rem);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+}
+.area-min {
+  display: inline-flex;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  white-space: nowrap;
+}
+.area-min .field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.area-grid .area-c {
+  text-align: center;
+}
+.area-grid .area-c .tick {
+  justify-content: center;
+}
+.tbl tbody tr.area-sec :where(td) {
+  padding-top: calc(0.4 * var(--sp));
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--head);
+}

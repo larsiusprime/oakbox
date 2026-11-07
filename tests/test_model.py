@@ -473,3 +473,74 @@ def test_groups_too_small_to_average_are_left_out():
     # More nearest asks for more parcels: twice k, so 12 is too few for 8 nearest.
     settings["data"]["process"]["enrich"]["spatial_lag"]["fields"] = {"land_area_sqft": 8}
     assert spatiallag.lag_prune(settings, universe) == ["sf"]
+
+
+@pytest.fixture
+def with_areas(prepared):
+    """The prepared parcels in two neighbourhoods and one census tract, with three sales."""
+    (prepared / "in" / "settings.json").write_text(
+        json.dumps({"field_classification": {"important": {"locations": ["neighborhood"]}}}), encoding="utf-8"
+    )
+    look = prepared / "out" / "look"
+    u = pd.read_parquet(look / "2-clean-universe.parquet")
+    u["neighborhood"] = ["N1", "N1", "N2"]
+    u["census_tract"] = ["T1", "T1", "T1"]
+    u.to_parquet(look / "2-clean-universe.parquet")
+    pd.DataFrame({"key": ["1", "2", "3"], "valid_sale": [True, True, True]}).to_parquet(look / "2-clean-sales.parquet")
+    return prepared
+
+
+def test_per_area_statistics(with_areas):
+    """Per area statistics: off to start (nothing written, nothing offered, but what it would give is shown); the
+    sales' figures by the location Check sales uses and the next coarser, the parcels' by the first; price figures
+    blank where an area has too few sales (a linear model leaves them out); named after the price when written."""
+    from oakbox import areastats, bring_in
+
+    p = _project()
+    p.clean.location = "neighborhood"
+    s = model.settings(p, with_areas)
+    assert "area_stats" not in s.get("data", {}).get("process", {}).get("enrich", {})
+    assert not any(v.field.startswith("area_stat_") for v in model.variables(p, with_areas))
+    view = model.setup(p, with_areas).area
+    assert view.on is False and view.proposed and view.adds > 0
+    by = {loc.location: loc for loc in view.locations}
+    assert (by["neighborhood"].areas, by["census_tract"].areas) == (2, 1)
+    assert by["neighborhood"].ticks == ["price", "price_impr", "sales", "finished", "land", "age"]
+    assert by["census_tract"].ticks == ["price", "price_impr", "price_vacant_land", "sales"]  # the coarser one
+    assert by["neighborhood"].under == 2 and by["neighborhood"].parcels_under == 3  # 2 and 1 sales, under 5
+
+    model.change(p, model.ModelPatch(area_on=True, area_stats=["mean", "median"], area_min_count=2))
+    a = model.settings(p, with_areas)["data"]["process"]["enrich"]["area_stats"]
+    assert a == {
+        "locations": ["neighborhood", "census_tract"],
+        "fields": ["sale_price", "bldg_area_finished_sqft", "land_area_sqft", "bldg_age_years"],
+        "stats": ["median", "mean"],
+        "min_count": 2,
+    }
+    vs = {v.field: v for v in model.variables(p, with_areas)}
+    price = vs["area_stat_neighborhood_sale_price_median"]
+    assert price.name == "Neighborhood median sale price" and price.kind == "location"
+    assert price.ml_only  # N2 has one sale, under 2: blank there
+    assert not vs["area_stat_neighborhood_sales_count"].ml_only
+    assert not vs["area_stat_neighborhood_bldg_area_finished_sqft_mean"].ml_only
+    assert vs["area_stat_census_tract_sale_price_vacant_land_sqft_median"].ml_only  # vacant sales are few
+
+    # Written as OpenAVMKit names it: after the price it models.
+    assert areastats.actual("area_stat_census_tract_sale_price_impr_sqft_median", "sale_price_time_adj") == (
+        "area_stat_census_tract_sale_price_time_adj_impr_sqft_median"
+    )
+    assert areastats.actual("area_stat_census_tract_sales_count", "sale_price_time_adj") == (
+        "area_stat_census_tract_sales_count"
+    )
+    # Ticks as changed: no longer the proposal.
+    model.change(p, model.ModelPatch(area_ticks={"census_tract": ["sales"], "neighborhood": []}))
+    a = model.settings(p, with_areas)["data"]["process"]["enrich"]["area_stats"]
+    assert a["locations"] == ["census_tract"] and a["fields"] == []
+    assert model.setup(p, with_areas).area.proposed is False
+
+    # Worked out as the models run: Bring in data's settings don't change with it; Try them's only when it's on.
+    bare = {"data": {"load": {}, "process": {}}}
+    only_area = {"data": {"load": {}, "process": {"enrich": {"area_stats": a}}}}
+    assert bring_in.settings_key(bare) == bring_in.settings_key(only_area)
+    assert "area" not in model.settings_key(bare, with_areas)
+    assert model.settings_key(only_area, with_areas)["area"] == a

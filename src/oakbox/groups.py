@@ -583,7 +583,8 @@ def _binary(geoms) -> bytes:
 
     g = shapely.force_2d(np.asarray(geoms, dtype=object))
     areas = np.isin(shapely.get_type_id(g), [3, 6])  # Polygon, MultiPolygon
-    g = np.where(areas, g, None)
+    g = g.copy()
+    g[~areas] = None
     if not areas.any():  # no shapes at all
         xy = np.zeros((0, 2))
         rings = polygons = np.zeros(1, np.int64)

@@ -2636,6 +2636,114 @@ export interface components {
              */
             km2: number;
         };
+        /** AreaLocationView */
+        AreaLocationView: {
+            /** Location */
+            location: string;
+            /** Name */
+            name: string;
+            /**
+             * Areas
+             * @description Distinct areas the parcels are in.
+             */
+            areas: number;
+            /**
+             * Typical Sales
+             * @description Sales in the median area.
+             */
+            typical_sales: number;
+            /**
+             * Under
+             * @description Areas with fewer sales than the minimum: their price figures are blank.
+             */
+            under: number;
+            /**
+             * Under Names
+             * @description Those areas, fewest sales first (up to 50).
+             */
+            under_names: string[];
+            /**
+             * Parcels Under
+             * @description Parcels in those areas, or in none.
+             */
+            parcels_under: number;
+            /**
+             * Ticks
+             * @description The figures worked out by it (as they'd start, when off).
+             */
+            ticks: ("price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition")[];
+        };
+        /** AreaRowView */
+        AreaRowView: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition";
+            /** Name */
+            name: string;
+            /**
+             * Part
+             * @description From the sales (training sales only) or the parcels.
+             * @enum {string}
+             */
+            part: "sales" | "parcels";
+        };
+        /**
+         * AreaState
+         * @description Per area statistics: off to start; which figures, by which location, of which statistics.
+         */
+        AreaState: {
+            /**
+             * On
+             * @default false
+             */
+            on: boolean;
+            /**
+             * Stats
+             * @description The statistics of each figure.
+             */
+            stats: ("median" | "mean" | "std" | "p25" | "p75" | "min" | "max")[];
+            /**
+             * Min Count
+             * @description An area with fewer sales (prices) or parcels has that figure blank.
+             * @default 5
+             */
+            min_count: number;
+            /**
+             * Ticks
+             * @description Location field -> the figures worked out by it; None: as proposed (proposed).
+             */
+            ticks: {
+                [key: string]: ("price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition")[];
+            } | null;
+        };
+        /**
+         * AreaView
+         * @description Per area statistics: shown whether on or off (off, as it would start).
+         */
+        AreaView: {
+            /** On */
+            on: boolean;
+            /** Stats */
+            stats: ("median" | "mean" | "std" | "p25" | "p75" | "min" | "max")[];
+            /** Min Count */
+            min_count: number;
+            /** Rows */
+            rows: components["schemas"]["AreaRowView"][];
+            /** Locations */
+            locations: components["schemas"]["AreaLocationView"][];
+            /**
+             * Proposed
+             * @description The ticks are as proposed (none changed yet).
+             */
+            proposed: boolean;
+            /**
+             * Adds
+             * @description The variables it adds (would add, when off).
+             */
+            adds: number;
+        };
         /** AssembleExports */
         AssembleExports: {
             /** Exports */
@@ -5858,6 +5966,28 @@ export interface components {
              * @description Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped.
              */
             lag_own?: string[] | null;
+            /**
+             * Area On
+             * @description Per area statistics, on or off.
+             */
+            area_on?: boolean | null;
+            /**
+             * Area Stats
+             * @description The statistics of each figure.
+             */
+            area_stats?: ("median" | "mean" | "std" | "p25" | "p75" | "min" | "max")[] | null;
+            /**
+             * Area Min Count
+             * @description Blank under this many.
+             */
+            area_min_count?: number | null;
+            /**
+             * Area Ticks
+             * @description Location field -> the figures worked out by it: every location, as now wanted.
+             */
+            area_ticks?: {
+                [key: string]: ("price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition")[];
+            } | null;
         };
         /** ModelReceipt */
         ModelReceipt: {
@@ -5900,6 +6030,7 @@ export interface components {
         /** ModelSetup */
         ModelSetup: {
             lag: components["schemas"]["LagView"];
+            area: components["schemas"]["AreaView"];
             /** Variables */
             variables: components["schemas"]["Variable"][];
             /** Engines */
@@ -5929,6 +6060,7 @@ export interface components {
         /** ModelState */
         ModelState: {
             lag: components["schemas"]["LagState"];
+            area: components["schemas"]["AreaState"];
             /**
              * Tests
              * @description The variable tests to run (besides Represented); None: all of TESTS.

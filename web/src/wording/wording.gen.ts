@@ -1763,6 +1763,7 @@ export type Wording = {
       run: string;
       done: string;
       lag: string;
+      area: string;
       test: string;
       represented: string;
       corr: string;
@@ -1796,6 +1797,34 @@ export type Wording = {
       noFields: string;
       fieldsWhy: string;
       split: (a: { k: string | number }) => string;
+    };
+    area: {
+      lede: string;
+      on: string;
+      figures: string;
+      noFigures: string;
+      blankUnder: string;
+      blankUnderUnit: string;
+      fromSales: string;
+      fromParcels: string;
+      theAreas: string;
+      areas: string;
+      typical: string;
+      under: string;
+      underChip: (a: { n: number }) => string;
+      underTip: (a: { min: number; parcels: number }) => string;
+      noLocations: string;
+      adds: (a: { n: number }) => string;
+      tickFor: (a: { row: string | number; location: string | number }) => string;
+      stats: {
+        median: string;
+        mean: string;
+        std: string;
+        p25: string;
+        p75: string;
+        min: string;
+        max: string;
+      };
     };
     fillLede: string;
     blocked: string;
