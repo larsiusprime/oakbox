@@ -4,7 +4,7 @@
 
 **Where the work lives (updated 2026-11-03).** OpenAVMKit's own `master`. OAK box's engine changes went upstream in
 six PRs, #409 to #414 (merged 2026-11-03), and OAK box pins `master` by commit (`pyproject.toml`, `[tool.uv.sources]`:
-`openavmkit @ git+https://github.com/larsiusprime/openavmkit@<commit>`, now `d05c5bc`, **for local testing only: the head of
+`openavmkit @ git+https://github.com/larsiusprime/openavmkit@<commit>`, now `977cbd3`, **for local testing only: the head of
 OpenAVMKit's `claude/wizardly-lamport-ffuzb9`, not master** (the trial log and Skip this model, not yet a PR; back to master
 once they're merged). Before it `fa4dc85`, #428's merge (census `total_population`
 is a land field, so a vacant parcel keeps its block group's population; before it #427, LightGBM tuning

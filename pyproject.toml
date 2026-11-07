@@ -33,7 +33,7 @@ catboost = ["openavmkit[catboost]"]
 dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.8", "pyright>=1.1.390", "oakbox[xgboost,catboost]"]
 
 [tool.uv.sources]
-openavmkit = { git = "https://github.com/larsiusprime/openavmkit", rev = "d05c5bc2a82d06e62941874cea09c839fc814f35" }
+openavmkit = { git = "https://github.com/larsiusprime/openavmkit", rev = "977cbd383464311ce66820c3c3ed9a831d822f51" }
 
 [build-system]
 requires = ["hatchling"]
