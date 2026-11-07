@@ -187,8 +187,9 @@ def scale_check(files: Files, entry: DataFile, key: str, column: str, s: Scale) 
 
 
 def field_by_id(project: Project, files: Files, key: str, match: str, only: DataFile | None = None) -> dict[str, float]:
-    """A loaded parcel field as numbers, by parcel ID (the first row of each): areas in the project's unit. From the
-    first parcel file that loads it, or from the one file given."""
+    """A loaded parcel field as numbers, by parcel ID (key: the first row of each, whatever ID its file joins on):
+    areas in the project's unit. From the first parcel file that loads it, or from the one file given. (`match` is
+    kept for callers: every file's IDs are put as parcel IDs.)"""
     import pandas as pd
 
     f = next(
@@ -196,7 +197,7 @@ def field_by_id(project: Project, files: Files, key: str, match: str, only: Data
             x
             for x in ([only] if only is not None else project.files)
             if key in x.load
-            and match in x.load
+            and x.match in x.load
             and x.holds not in ("sales", "overlay", "unused")
             and x.name in files.preview
         ),
@@ -214,7 +215,7 @@ def field_by_id(project: Project, files: Files, key: str, match: str, only: Data
     if key in AREA_FIELDS:
         factor = SQFT_PER[f.area_units.get(key, small_unit(project.units))] / SQFT_PER[small_unit(project.units)]
     out: dict[str, float] = {}
-    for i, v in zip(files.ids(f.name, match), nums, strict=True):
+    for i, v in zip(files.parcel_ids(f.name), nums, strict=True):
         if i and v == v and i not in out:
             out[i] = float(v) * factor
     return out
@@ -232,14 +233,13 @@ def _ages(project: Project, files: Files, match: str) -> tuple[dict[str, float],
 
 
 def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tuple[str, float]], list[str]]:
-    """(parcel ID, price) for each sale to compare against, and notes on what that's based on."""
+    """(parcel ID, price) for each sale to compare against, and notes on what that's based on. The parcel ID is the
+    main one (key), whatever ID the sales join on: as every parcel field here (Files.parcel_ids)."""
     import pandas as pd
 
     sales = sales_file(project)
     if sales is None or "sale_price" not in sales.load or sales.name not in files.preview:
         return [], ["No sales yet: add them to compare by price."]
-    if sales.match != match:
-        return [], ["The sales join the parcels on another ID: no price comparison."]
     stamp = file_stamp(files.in_dir / sales.filename)
     column = sales.load["sale_price"][0]
     if "sale_price" in sales.numbers:
@@ -257,12 +257,31 @@ def _sales_evidence(project: Project, files: Files, match: str) -> tuple[list[tu
     else:
         valid = [True] * len(prices)
         notes.append("all sales: no valid-sale rule yet")
-    rows = [
-        (i, float(p))
-        for i, p, ok in zip(files.ids(sales.name, match), prices, valid, strict=True)
-        if ok and i and p == p and p > 0
-    ]
+    parcels = files.parcel_ids(sales.name)
+    priced = [(i, p) for i, p, ok in zip(parcels, prices, valid, strict=True) if ok and p == p and p > 0]
+    rows = [(i, float(p)) for i, p in priced if i]
+    if priced and not rows:
+        # The sales' ID finds no parcel at all: said, with the IDs, rather than an empty preview.
+        own = [i for i in files.ids(sales.name, sales.match) if i][:3]
+        notes.append(
+            f"none of the {len(priced):,} sales finds a parcel by its {ID_WORDS.get(sales.match, sales.match)} "
+            f"(like {', '.join(own) or 'none'}): check the sales' ID on Sales › IDs"
+        )
     return rows, notes
+
+
+ID_WORDS = {"key": "parcel ID", "key2": "second ID", "key3": "third ID"}
+
+
+def _unmatched(rows: list[tuple[str, float]], ids) -> str:
+    """Why no sale found these parcels, so it can be put right: how many sales, and their parcels' IDs beside the
+    field's (both as parcel IDs: an ID written differently on each side shows)."""
+    sold = list(dict.fromkeys(i for i, _ in rows))[:3]
+    mine = list(dict.fromkeys(ids))[:3]
+    return (
+        f"none of the {len(rows):,} sales is on a parcel with a value here: the sales' parcels are like "
+        f"{', '.join(sold) or 'none'}; this field's like {', '.join(mine) or 'none'}"
+    )
 
 
 class PriceGroup(BaseModel):
@@ -305,7 +324,7 @@ def _price_by(
         for g, v in by.items()
     }
     if not out:
-        notes.append("no sales found these parcels")
+        notes.append(_unmatched(rows, group))
     return out, basis, notes
 
 
@@ -313,7 +332,7 @@ def _by_parcel(files: Files, entry: DataFile, column: str) -> dict[str, str]:
     """A column's value for each parcel (its first row: the main building card)."""
     values = _qc_values(files, entry, column)
     out: dict[str, str] = {}
-    for i, v in zip(files.ids(entry.name, entry.match), values, strict=True):
+    for i, v in zip(files.parcel_ids(entry.name), values, strict=True):
         if i and v and i not in out:
             out[i] = v
     return out
@@ -554,7 +573,7 @@ def _text_by_id(project: Project, files: Files, key: str, match: str) -> dict[st
             x
             for x in project.files
             if key in x.load
-            and match in x.load
+            and x.match in x.load
             and x.holds not in ("sales", "overlay", "unused")
             and x.name in files.preview
         ),
@@ -617,7 +636,7 @@ def _value_bands(
         return [], None, "", "", notes
     sold = [(i, p, label_of[i]) for i, p in rows if i in label_of]
     if not sold:
-        return [], None, "", "", [*notes, "no sales found these parcels"]
+        return [], None, "", "", [*notes, _unmatched(rows, label_of)]
     size = field_by_id(project, files, "bldg_area_finished_sqft", entry.match)
     unit = "sq ft" if small_unit(project.units) == "sqft" else "m²"
     if not size:

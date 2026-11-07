@@ -112,6 +112,22 @@ class Files:
         use = f.clean.get(field, []) if steps is None else steps
         return cleaned_ids(file_stamp(self.in_dir / f.filename), f.layer, spec[0], steps_key(use))
 
+    def parcel_ids(self, name: str) -> list[str]:
+        """A file's rows' parcel IDs (key), whatever ID it joins on: a second or third ID looked up in the parcel
+        universe, as a run looks it up (a sales file joined on key2 gets key from the base file). "" where none."""
+        f = self.entry(name)
+        own = list(self.ids(name, f.match))
+        if f.match == "key":
+            return own
+        base = self.project.base_file()
+        if base is None or base.name == name:
+            return [""] * len(own)
+        to_key: dict[str, str] = {}
+        for a, k in zip(self.ids(base.name, f.match), self.ids(base.name, "key"), strict=False):
+            if a and k and a not in to_key:
+                to_key[a] = k
+        return [to_key.get(i, "") for i in own]
+
     def geometry(self, name: str) -> bool:
         p = self.preview.get(name)
         return bool(p and p.geometry)

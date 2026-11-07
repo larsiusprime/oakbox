@@ -190,6 +190,24 @@ def test_sales_matched_by_the_second_id(client, pid, monkeypatch):
     assert sales_df["key_sale"].tolist()[0] == "M0-2023-03-14"
 
 
+def test_previews_find_sales_joined_on_the_second_id(client, pid):
+    """Sales joined on the second ID (a map number), a parcel field from a file joined on the parcel ID: the previews
+    pair them through the parcel universe, as a run does (they found no sales: Guilford, NC)."""
+    put_file(client, pid, "shapes", universe=True, extra_field="key2", extra_column="MAP_NO")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_by_map", holds="sales")
+    visit_sales(client, pid)
+    client.put(f"/api/projects/{pid}/wizard/fields/sale_price", json={"file": "sales_by_map", "column": "PRICE"})
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    tiers = client.post(f"{field}/bldg_quality_num/tiers", json={"file": "cama", "column": "QUALITY"}).json()
+    # The sales are on parcels 0012-001 (Good, twice) and 0012-004 (Good): found, priced per sq ft.
+    sold = {t["value"]: t["sales"] for t in tiers["tiers"]}
+    assert sold["Good"] == 3 and sum(sold.values()) == 3
+    assert tiers["basis"] == "price per sq ft"
+
+
 def test_names_say_the_jurisdiction(client, pid):
     w = client.get(f"/api/projects/{pid}/wizard").json()
     jurisdiction = projects.load(pid).jurisdiction
