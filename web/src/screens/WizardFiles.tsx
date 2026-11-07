@@ -28,6 +28,7 @@ import { AddButton } from "../components/AddButton";
 import { firstSentence } from "../components/Callout";
 import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
+import { ReadingLine } from "../components/Reading";
 import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -411,6 +412,7 @@ export function FilePicker({
 
 /** A file a step uses: its entry, the red − taking it off the step (it stays in the project), its settings inside. */
 export function StepFile({
+  projectId,
   file,
   onRemove,
   undo,
@@ -418,6 +420,7 @@ export function StepFile({
   actions,
   children,
 }: {
+  projectId: string;
   file: WizardFile;
   onRemove: () => void;
   /** Puts it back on the step: Undo after the −. */
@@ -431,7 +434,12 @@ export function StepFile({
       name={file.name}
       filename={file.filename}
       facts={fileFacts(file)}
-      status={status}
+      status={
+        <>
+          {status}
+          <ReadingLine projectId={projectId} name={file.name} />
+        </>
+      }
       actions={actions}
       onRemove={onRemove}
       {...(undo ? { undo } : {})}

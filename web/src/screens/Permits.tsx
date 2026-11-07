@@ -45,6 +45,7 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
   const means = Object.fromEntries(v.kinds.map((k) => [k.value, k.means]));
   return (
     <StepFile
+      projectId={project.id}
       file={file}
       onRemove={() => change({ kind: "permits", name: v.file, permits: null })}
       undo={() =>

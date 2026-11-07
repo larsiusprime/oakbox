@@ -404,6 +404,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/reading": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readings
+         * @description Each CSV's Parquet copy: made, being made (how far, how long to go), stopped or failed. Starts any not made.
+         */
+        get: operations["readings_api_projects__project_id__reading_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reading/{name}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Reading
+         * @description Stop making a file's copy: it's read as a CSV meanwhile (slower), until started again.
+         */
+        post: operations["stop_reading_api_projects__project_id__reading__name__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reading/{name}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Reading */
+        post: operations["start_reading_api_projects__project_id__reading__name__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/names": {
         parameters: {
             query?: never;
@@ -8278,6 +8335,38 @@ export interface components {
              */
             skipped: boolean;
         };
+        /**
+         * Reading
+         * @description A CSV's Parquet copy, made once so its columns read fast (SPEC §5): how far along.
+         */
+        Reading: {
+            /** Name */
+            name: string;
+            /** Filename */
+            filename: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "none" | "ready" | "reading" | "failed" | "waiting" | "stopped";
+            /** Fraction */
+            fraction: number;
+            /**
+             * Seconds
+             * @description Since it started.
+             */
+            seconds: number;
+            /**
+             * Left
+             * @description Seconds to go, by the pace so far. None until it can tell.
+             */
+            left: number | null;
+            /**
+             * Error
+             * @description Why it failed.
+             */
+            error: string | null;
+        };
         /** Receipt */
         Receipt: {
             /** Ran At */
@@ -11979,6 +12068,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readings_api_projects__project_id__reading_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reading"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_reading_api_projects__project_id__reading__name__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reading"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_reading_api_projects__project_id__reading__name__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reading"][];
                 };
             };
             /** @description Validation Error */

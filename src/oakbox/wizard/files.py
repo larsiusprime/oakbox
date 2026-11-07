@@ -39,9 +39,15 @@ def values_of(stamp: tuple[str, float, int], layer: str | None, column: str, raw
     """Every value of one column, as text, blanks as ''. Trimmed, unless raw (IDs: OpenAVMKit doesn't trim them)."""
     import pandas as pd
 
+    from oakbox import readcache
+
     path = Path(stamp[0])
     ext = path.suffix.lower().lstrip(".")
-    if ext == "csv":
+    cached = readcache.ready(path) if ext == "csv" else None
+    if cached is not None:
+        # Its Parquet copy: every column as text, as the CSV reads (readcache).
+        s = pd.read_parquet(cached, columns=[column])[column]
+    elif ext == "csv":
         encoding = csv_encoding(path)
         s = pd.read_csv(path, usecols=lambda c: c == column, dtype=str, keep_default_na=False, encoding=encoding)[
             column

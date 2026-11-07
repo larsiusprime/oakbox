@@ -3200,5 +3200,14 @@
     "census": "Census API key",
     "censusHint": "For census figures in Enrichments. Kept on this computer, never in a project.",
     "close": "Close"
+  },
+  "reading": {
+    "making": "Making a quick-read copy of {file}: {pct}{left, select, none {} other { · about {left} left}}",
+    "why": "A copy in a faster format, made once, so its columns open in a moment from now on. You can carry on meanwhile.",
+    "stop": "Stop",
+    "stopped": "Quick-read copy stopped: {file} is read as it is (slower) for now.",
+    "again": "Make it",
+    "failed": "Couldn't make a quick-read copy of {file} ({error}): it's read as it is (slower).",
+    "waiting": "Quick-read copy of {file} about to start…"
   }
 }

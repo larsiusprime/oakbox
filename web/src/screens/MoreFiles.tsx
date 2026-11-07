@@ -51,6 +51,7 @@ export function AddFilesStep({
     <div className="entry-list">
       {extras.map((f) => (
         <StepFile
+          projectId={project.id}
           key={f.name}
           file={f}
           onRemove={() => change({ kind: "file", name: f.name, holds: "unused" })}
@@ -166,7 +167,7 @@ function ExtraFile({
   const joined = about === "parcels" ? "parcels" : "sales";
   const rows = about === "parcels" ? "parcel_rows" : "sale_rows";
   return (
-    <StepFile file={file} onRemove={drop} undo={restore}>
+    <StepFile projectId={project.id} file={file} onRemove={drop} undo={restore}>
       {/* What it's about and how it joins, on the same two columns as its ID below. */}
       <div className="wiz-grid">
         <div className="wiz-label">{m.what}</div>

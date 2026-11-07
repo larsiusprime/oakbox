@@ -85,6 +85,15 @@ needs (0.5 GB, plus 1 GB per 50,000 parcels, plus 0.6 GB per 50,000 for each ext
 figures) against what the computer leaves OAK box (its memory less 5.5 GB for Windows and the usual programs), and
 says so when it's short: a warning, never a block.
 
+**A CSV gets a quick-read copy** (`readcache.py`, 2026-11-07). The Data steps read a file a column at a time (previews,
+ID checks, Sales as sold), and from a big CSV each read is about a second (Guilford, NC's 220 MB parcels.csv: 0.99 s).
+So each CSV is converted once into Parquet, `out/oakbox/cache/<name>-<size>-<mtime>.parquet`, every column as text
+exactly as the CSV is read (blanks as "", "NA" kept as written): a column then reads in 0.04 s. The conversion starts
+in the background when the file is added (Guilford's parcels: about 8 s, 46 MB), its entry on the step shows how far
+it is, about how long to go, and Stop (the file is read as it is until **Make it** starts it again). Nothing waits on
+it: a read before it's done reads the CSV. A changed file gets a new copy and the old one is removed. Only OAK box's
+own reads use it; OpenAVMKit reads the files themselves.
+
 - **Why this floor:**
   - Windows 10 is still about 26% of Windows PCs ([StatCounter via Yahoo, May
     2026](https://tech.yahoo.com/computing/articles/microsoft-giving-windows-10-users-180152418.html)), with paid

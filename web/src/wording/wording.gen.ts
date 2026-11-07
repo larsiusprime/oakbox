@@ -2562,4 +2562,13 @@ export type Wording = {
     censusHint: string;
     close: string;
   };
+  reading: {
+    making: (a: { file: string | number; pct: string | number; left: string | number }) => string;
+    why: string;
+    stop: string;
+    stopped: (a: { file: string | number }) => string;
+    again: string;
+    failed: (a: { file: string | number; error: string | number }) => string;
+    waiting: (a: { file: string | number }) => string;
+  };
 };
