@@ -193,7 +193,10 @@ in step 6. They depend on model groups and train/test splits.
   parcel gets its area's figures (the median sale price of its census tract, the median finished area of its
   neighbourhood) as variables of their own. Nearby sales is a smooth surface of the nearest; this is the same idea by
   named areas.
-  - **Work out area figures** (a tick; **on** to start). Off writes nothing and offers nothing.
+  - **Work out area figures** (a tick; **off** to start). Off writes nothing and offers nothing, but everything under
+    the tick is shown faded and can't be used, set as it would start: turning it on gives what's on show.
+  - **Layout** (style guide): the tick; then **Figures** and **Blank under** as settings on two columns (labels, then
+    what's set); then the grid, a table.
   - **The grid:** rows are the figures, columns the locations, a tick each.
     - **Columns:** the location fields Check sales offers for "near" (neighbourhoods, census tract and block group, the
       user's own): `area_stats.locations`.
@@ -209,8 +212,9 @@ in step 6. They depend on model groups and train/test splits.
   - **Blank under** (a number box, **5** to start; `area_stats.min_count`): an area with fewer sales (price figures)
     or parcels (the rest) has that figure blank, not borrowed. The coarser location's figure is there for the model to
     lean on. OpenAVMKit's `exclude_test_keys` isn't offered: prices already come from training sales only.
-  - **The areas** (under the grid, per location): how many areas, the sales in a typical (median) area, and how many
-    are under the minimum (amber when any). Then "Adds N variables."
+  - **The areas** (the grid's last rows, per location): how many areas, the sales in a typical (median) area, and
+    those under the minimum: "—" for none, or "⚠ 4 areas" as a small warning button that opens which areas and their
+    counts (the row stays one line high). Then "Adds N variables."
   - **To start:** the sales' figures for the location Check sales uses and the next coarser one; the parcels' for the
     first.
   - **When:** as the models run, after the sales are split, like Nearby sales: OpenAVMKit takes the price figures from
