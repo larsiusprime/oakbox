@@ -97,7 +97,7 @@ def test_a_field_from_another_file_with_its_key(client, pid):
     assert _file(w, "permits")["id_check"]["ok"]
     assert read_settings(pid)["data"]["load"]["permits"]["dupes"] == {
         "subset": ["key"],
-        "sort_by": ["key", "asc"],
+        "sort_by": [["key", "asc"], ["key", "asc"]],
         "drop": "all",
     }
     put_file(client, pid, "permits", holds="unused")
@@ -132,7 +132,11 @@ def test_sales_assumptions_and_settings(client, pid):
         assert _field(w, key)["assumed"]
     assert client.post(f"/api/projects/{pid}/wizard/steps/valid_sale/skip").status_code == 422
     entry = read_settings(pid)["data"]["load"]["sales"]
-    assert entry["dupes"] == {"subset": ["key_sale"], "sort_by": ["key_sale", "asc"], "drop": True}
+    assert entry["dupes"] == {
+        "subset": ["key_sale"],
+        "sort_by": [["key_sale", "asc"], ["key_sale", "asc"]],
+        "drop": True,
+    }
     assert entry["calc"] == {
         "key_sale": ["join", ["values", "key", "sale_date"], "str:-"],
         "valid_sale": ["set", True],
@@ -409,7 +413,7 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     )
     assert read_settings(pid)["data"]["load"]["geo_parcels"]["dupes"] == {
         "subset": ["key"],
-        "sort_by": ["key", "asc"],
+        "sort_by": [["key", "asc"], ["key", "asc"]],
         "drop": True,
     }
     rows = client.get(f"/api/projects/{pid}/wizard/files/geo_parcels/repeats").json()
@@ -418,7 +422,19 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     # Keep the first by another field, descending.
     put_file(client, pid, "geo_parcels", extra_field="key2", extra_column="PIN")
     w = put_file(client, pid, "geo_parcels", dupes="first", dupes_sort="key2", dupes_desc=True).json()
-    assert read_settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == ["key2", "desc"]
+    assert read_settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == [["key2", "desc"], ["key", "asc"]]
+    # Or by the file's own columns, level by level, loaded just for the sort (as text here: PIN is text).
+    w = put_file(
+        client, pid, "geo_parcels", dupes="first", dupes_by=[{"column": "PIN", "desc": True}, {"column": "REID"}]
+    ).json()
+    entry = read_settings(pid)["data"]["load"]["geo_parcels"]
+    assert entry["dupes"]["sort_by"] == [
+        ["oak_sort_geo_parcels_1", "desc"],
+        ["oak_sort_geo_parcels_2", "asc"],
+        ["key", "asc"],
+    ]
+    assert entry["load"]["oak_sort_geo_parcels_1"] == ["PIN", "string"]
+    assert _file(w, "geo_parcels")["repeats"]["by"][0] == {"column": "PIN", "desc": True, "numeric": False}
     issues = _file(w, "geo_parcels")["id_check"]["issues"]
     assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True, "blocking": False, "todo": ""}
     assert not any("repeat" in x for x in w["warnings"])
@@ -794,7 +810,7 @@ def test_more_files_join_the_parcels_or_the_sales(client, tmp_path, monkeypatch)
     load = read_settings(pid)["data"]["load"]
     assert load["deeds"]["load"] == {"key_sale": ["SALE_ID", "string"]}
     assert load["deeds"]["dupes"]["subset"] == ["key_sale"]
-    assert load["cama"]["dupes"] == {"subset": ["key"], "sort_by": ["key", "asc"], "drop": True}
+    assert load["cama"]["dupes"] == {"subset": ["key"], "sort_by": [["key", "asc"], ["key", "asc"]], "drop": True}
 
     client.put(f"/api/projects/{pid}/wizard/fields/valid_sale", json={"assume": True})
     client.put(f"/api/projects/{pid}/wizard/fields/vacant_sale", json={"assume": True})

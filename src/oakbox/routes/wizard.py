@@ -33,6 +33,9 @@ class WizardFileChoice(BaseModel):
     )
     dupes_sort: str | None = Field(default=None, description="With first: the field to sort by before keeping.")
     dupes_desc: bool = False
+    dupes_by: list[datafiles.SortKey] | None = Field(
+        default=None, description="With first: the file's columns to sort by, in order (the ID breaks ties)."
+    )
     blank_ok: bool | None = Field(default=None, description="Acknowledge the rows with no ID (they're dropped).")
     added: bool = Field(
         default=False, description="Added on More files: one of its files, not said yet what it holds (nothing else)."
@@ -208,6 +211,7 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
             dupes=body.dupes,
             dupes_sort=body.dupes_sort,
             dupes_desc=body.dupes_desc,
+            dupes_by=body.dupes_by,
             blank_ok=body.blank_ok,
             added=body.added,
         ),

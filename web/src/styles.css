@@ -6741,6 +6741,22 @@ div.map-wait-ask small {
   margin-left: -1px;
   background: var(--text);
 }
+/* Keeping the first row of each ID: the order, level by level, each with its column, its way, and its −. */
+.dupes-levels {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+.dupes-level {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(12rem, max-content) max-content auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+/* The row of each ID that's kept (its cells inherit it). */
+.dupes-kept {
+  font-weight: 600;
+}
 .mg-hand-list {
   display: grid;
   gap: 0.3em;

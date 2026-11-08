@@ -20,6 +20,7 @@ from oakbox.datafiles import (
     Match,
     Rule,
     Scale,
+    SortKey,
     csv_encoding,
     guess_area_unit,
     small_unit,
@@ -785,6 +786,7 @@ def set_file(
     dupes: Dupes | None = None,
     dupes_sort: str | None = None,
     dupes_desc: bool = False,
+    dupes_by: list[SortKey] | None = None,
     blank_ok: bool | None = None,
     added: bool = False,
 ) -> None:
@@ -879,10 +881,18 @@ def set_file(
         if dupes_sort is not None and dupes_sort not in entry.load:
             raise ValueError(f"Sort by a field {name} loads; {dupes_sort} isn't one.")
         entry.dupes, entry.dupes_sort, entry.dupes_desc = dupes, dupes_sort, dupes_desc
+        if dupes_by is not None:  # the columns to sort by, in order: sorted as numbers where the file has numbers
+            types = {c.name: c.type for c in files.columns(name)}
+            missing = [k.column for k in dupes_by if k.column not in types]
+            if missing:
+                raise ValueError(f"{name} has no column {missing[0]}.")
+            entry.dupes_by = [k.model_copy(update={"numeric": types[k.column] == "number"}) for k in dupes_by]
+            entry.dupes_sort, entry.dupes_desc = None, False
     if blank_ok is not None:
         entry.blank_ok = blank_ok
     if id_column is not None and dupes is None:  # a new ID: its repeats and blanks are looked at afresh
         entry.dupes, entry.dupes_sort, entry.dupes_desc, entry.blank_ok = None, None, False, False
+        entry.dupes_by = []
     update_base(project, in_dir, rename=True)
     # A file just given its part: guess its IDs and fields now, as showing the step would have.
     if universe:

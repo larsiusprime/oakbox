@@ -92,6 +92,7 @@ def _repeats_of(files: Files, name: str, field: str) -> Repeats:
         policy=entry.dupes,
         sort=entry.dupes_sort,
         descending=entry.dupes_desc,
+        by=entry.dupes_by,
         blank_ok=entry.blank_ok,
     )
 

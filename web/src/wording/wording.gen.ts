@@ -692,6 +692,13 @@ export type Wording = {
       desc: string;
       all: string;
       result: (a: { rows: number; kept: number }) => string;
+      thenBy: string;
+      addSort: string;
+      addThen: string;
+      fileOrder: string;
+      levelWhat: (a: { column: string | number }) => string;
+      kept: string;
+      keptNote: string;
     };
     rowNames: Record<string, string>;
     numberUsed: string;

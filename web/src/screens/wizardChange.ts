@@ -35,6 +35,8 @@ export type Change =
       dupes?: "first" | "all";
       dupes_sort?: string;
       dupes_desc?: boolean;
+      /** Keeping the first row of each ID: the file's columns to sort by, in order. */
+      dupes_by?: { column: string; desc: boolean; numeric: boolean }[];
       blank_ok?: boolean;
       extra_field?: "key2" | "key3";
       extra_column?: string | null;
@@ -88,6 +90,7 @@ export function useChange(projectId: string) {
               dupes: null,
               dupes_sort: null,
               dupes_desc: false,
+              dupes_by: null,
               blank_ok: null,
               added: false,
               ...body,

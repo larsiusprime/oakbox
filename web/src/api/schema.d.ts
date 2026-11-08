@@ -4069,15 +4069,20 @@ export interface components {
             dupes: ("first" | "all") | null;
             /**
              * Dupes Sort
-             * @description The field rows are sorted by before keeping the first.
+             * @description Before dupes_by: the field rows are sorted by before keeping the first.
              */
             dupes_sort: string | null;
             /**
              * Dupes Desc
-             * @description Sort descending before keeping the first.
+             * @description Before dupes_by: sort descending before keeping the first.
              * @default false
              */
             dupes_desc: boolean;
+            /**
+             * Dupes By
+             * @description Keeping the first row of each ID: the file's columns its rows are sorted by first, in order (the building card, then the area, largest first). None: the file's own order.
+             */
+            dupes_by: components["schemas"]["SortKey-Output"][];
             /**
              * Blank Ok
              * @description The rows with no ID have been acknowledged as dropped (F3d).
@@ -8717,6 +8722,11 @@ export interface components {
             /** Descending */
             descending: boolean;
             /**
+             * By
+             * @description The columns rows are sorted by, in order.
+             */
+            by: components["schemas"]["SortKey-Output"][];
+            /**
              * Blank Ok
              * @description The rows with no ID have been acknowledged.
              */
@@ -9575,6 +9585,44 @@ export interface components {
              * @description Parcels in modeled groups valued below zero: left blank.
              */
             blanked: number;
+        };
+        /**
+         * SortKey
+         * @description One level of the order repeated rows are kept in: a column of the file, and which way.
+         */
+        "SortKey-Input": {
+            /** Column */
+            column: string;
+            /**
+             * Desc
+             * @default false
+             */
+            desc: boolean;
+            /**
+             * Numeric
+             * @description Sorted as numbers (2 before 10), not as text.
+             * @default false
+             */
+            numeric: boolean;
+        };
+        /**
+         * SortKey
+         * @description One level of the order repeated rows are kept in: a column of the file, and which way.
+         */
+        "SortKey-Output": {
+            /** Column */
+            column: string;
+            /**
+             * Desc
+             * @default false
+             */
+            desc: boolean;
+            /**
+             * Numeric
+             * @description Sorted as numbers (2 before 10), not as text.
+             * @default false
+             */
+            numeric: boolean;
         };
         /** Source */
         Source: {
@@ -11206,6 +11254,11 @@ export interface components {
              * @default false
              */
             dupes_desc: boolean;
+            /**
+             * Dupes By
+             * @description With first: the file's columns to sort by, in order (the ID breaks ties).
+             */
+            dupes_by?: components["schemas"]["SortKey-Input"][] | null;
             /**
              * Blank Ok
              * @description Acknowledge the rows with no ID (they're dropped).

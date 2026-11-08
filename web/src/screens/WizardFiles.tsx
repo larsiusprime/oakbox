@@ -34,7 +34,6 @@ import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
 import { WarnChip } from "../components/WarnChip";
 import { desktop, useCanPickFile } from "../desktop";
-import { band } from "../lib/format";
 import { t } from "../wording";
 import { AddFile } from "./AddFile";
 import { describeSteps, ReconcileDialog, ReconcilePanel } from "./Reconcile";
@@ -180,9 +179,53 @@ export function IdCheck({
   );
 }
 
+type Level = { column: string; desc: boolean };
+
+/** The example rows of each repeated ID in the order chosen, its first (the one kept) marked: as OpenAVMKit sorts
+ * them (numbers as numbers, blanks last), ties in the file's order. */
+function keptFirst(
+  ex: { columns: string[]; rows: (string | null)[][]; bands: number[] },
+  levels: Level[],
+  numeric: Set<string>,
+  marking: boolean,
+): { row: (string | null)[]; band: number; kept: boolean }[] {
+  const groups: { band: number; rows: (string | null)[][] }[] = [];
+  ex.rows.forEach((row, i) => {
+    const b = ex.bands[i] ?? 0;
+    const last = groups.at(-1);
+    if (last && last.band === b) last.rows.push(row);
+    else groups.push({ band: b, rows: [row] });
+  });
+  const at = levels.map((l) => ({
+    i: ex.columns.indexOf(l.column),
+    desc: l.desc,
+    num: numeric.has(l.column),
+  }));
+  const cmp = (a: (string | null)[], b: (string | null)[]) => {
+    for (const l of at) {
+      if (l.i < 0) continue;
+      const x = a[l.i] ?? "";
+      const y = b[l.i] ?? "";
+      if (x === y) continue;
+      if (x === "") return 1; // blanks last, whichever way
+      if (y === "") return -1;
+      const c =
+        l.num && Number.isFinite(Number(x)) && Number.isFinite(Number(y))
+          ? Number(x) - Number(y)
+          : x < y
+            ? -1
+            : 1;
+      return l.desc ? -c : c;
+    }
+    return 0;
+  };
+  return groups.flatMap((g) =>
+    [...g.rows].sort(cmp).map((row, j) => ({ row, band: g.band, kept: marking && j === 0 })),
+  );
+}
+
 function DupesDialog({
   projectId,
-  data,
   file,
   change,
   close,
@@ -204,17 +247,19 @@ function DupesDialog({
         }),
       ),
   });
-  const id = file.base ? "key" : file.match;
   const [policy, setPolicy] = useState<"first" | "all" | null>(r?.policy ?? null);
-  const [sort, setSort] = useState<string>(r?.sort ?? id);
-  const [desc, setDesc] = useState<boolean>(r?.descending ?? false);
+  // The order each ID's rows are kept in: the file's columns, level by level (ties keep the file's order).
+  const [levels, setLevels] = useState<Level[]>(() =>
+    (r?.by ?? []).map((k) => ({ column: k.column, desc: k.desc })),
+  );
   const [blankOk, setBlankOk] = useState<boolean>(r?.blank_ok ?? false);
   if (!r) return null;
   const hasRepeats = r.extra > 0;
   const hasBlanks = r.blank > 0;
-  const fieldsHere = Object.values(data.used[file.name] ?? {});
   const kept = policy === "all" ? r.singles : policy === "first" ? r.distinct : null;
-  const nameOf = (key: string) => w.idNames[key] ?? data.fields.find((f) => f.key === key)?.name ?? key;
+  const columns = file.columns.filter((c) => c.type !== "geometry").map((c) => c.name);
+  const numeric = new Set(file.columns.filter((c) => c.type === "number").map((c) => c.name));
+  const shown = examples.data ? keptFirst(examples.data, levels, numeric, policy === "first") : null;
   return (
     <ModalOverlay className="modal-overlay" isDismissable isOpen onOpenChange={(o) => !o && close()}>
       <Modal className="modal wiz-modal wiz-modal-wide">
@@ -228,20 +273,22 @@ function DupesDialog({
               <span className="wiz-from">{r.few ? d.fewMeans : d.manyMeans}</span>
             </div>
           )}
-          {hasRepeats && examples.data && (
+          {hasRepeats && examples.data && shown && (
             <div className="wiz-dupes-table">
               <table className="tbl wiz-table">
                 <thead>
                   <tr>
+                    {policy === "first" && <th />}
                     {examples.data.columns.map((c) => (
                       <th key={c}>{c}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {examples.data.rows.map((row, i) => (
+                  {shown.map(({ row, band: b, kept: k }, i) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
-                    <tr key={i} className={band(examples.data.bands, i)}>
+                    <tr key={i} className={`${b ? "band-b" : "band-a"}${k ? " dupes-kept" : ""}`}>
+                      {policy === "first" && <td>{k && <span className="pill pill-ok">{d.kept}</span>}</td>}
                       {row.map((v, j) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
                         <td key={j} className="mono">
@@ -266,22 +313,59 @@ function DupesDialog({
                 {d.first}
               </Radio>
               {policy === "first" && (
-                <div className="wiz-pair wiz-indent">
-                  <Choice
-                    label={d.sortBy}
-                    value={sort}
-                    options={fieldsHere.map((k) => [k, nameOf(k)] as const)}
-                    onChange={setSort}
-                  />
-                  <Choice
-                    label={d.order}
-                    value={desc ? "desc" : "asc"}
-                    options={[
-                      ["asc", d.asc],
-                      ["desc", d.desc],
-                    ]}
-                    onChange={(v) => setDesc(v === "desc")}
-                  />
+                <div className="wiz-indent dupes-levels">
+                  {levels.length === 0 && <p className="wiz-from">{d.fileOrder}</p>}
+                  {levels.map((l, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a level is its place in the order
+                    <div key={i} className="dupes-level">
+                      <span className="dupes-level-label">{i === 0 ? d.sortBy : d.thenBy}</span>
+                      <Choice
+                        label={`${i === 0 ? d.sortBy : d.thenBy} (${i + 1})`}
+                        hideLabel
+                        value={l.column}
+                        options={columns.map((c) => [c, c] as const)}
+                        onChange={(column) =>
+                          setLevels(levels.map((x, j) => (j === i ? { ...x, column } : x)))
+                        }
+                      />
+                      <Choice
+                        label={`${d.order} (${i + 1})`}
+                        hideLabel
+                        value={l.desc ? "desc" : "asc"}
+                        options={[
+                          ["asc", d.asc],
+                          ["desc", d.desc],
+                        ]}
+                        onChange={(v) =>
+                          setLevels(levels.map((x, j) => (j === i ? { ...x, desc: v === "desc" } : x)))
+                        }
+                      />
+                      <RemoveButton
+                        what={d.levelWhat({ column: l.column })}
+                        onPress={() => setLevels(levels.filter((_, j) => j !== i))}
+                        undo={() => setLevels(levels)}
+                      />
+                    </div>
+                  ))}
+                  <AddButton
+                    onPress={() =>
+                      setLevels([
+                        ...levels,
+                        {
+                          column:
+                            columns.find(
+                              (c) => c !== file.id_column && !levels.some((x) => x.column === c),
+                            ) ??
+                            columns[0] ??
+                            "",
+                          desc: false,
+                        },
+                      ])
+                    }
+                  >
+                    {levels.length ? d.addThen : d.addSort}
+                  </AddButton>
+                  {examples.data && <p className="wiz-from">{d.keptNote}</p>}
                 </div>
               )}
               <Radio value="all" className="radio">
@@ -321,7 +405,9 @@ function DupesDialog({
                     kind: "file",
                     name: file.name,
                     ...(hasRepeats && policy ? { dupes: policy } : {}),
-                    ...(hasRepeats && policy === "first" ? { dupes_sort: sort, dupes_desc: desc } : {}),
+                    ...(hasRepeats && policy === "first"
+                      ? { dupes_by: levels.map((l) => ({ ...l, numeric: false })) }
+                      : {}),
                     ...(hasBlanks ? { blank_ok: blankOk } : {}),
                   },
                   { onSuccess: close },

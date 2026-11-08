@@ -1026,7 +1026,14 @@
       "asc": "Ascending",
       "desc": "Descending",
       "all": "Drop every row with a repeated ID",
-      "result": "{rows, number} rows → {kept, number} parcels"
+      "result": "{rows, number} rows → {kept, number} parcels",
+      "thenBy": "then by",
+      "addSort": "Sort by a column",
+      "addThen": "Then by",
+      "fileOrder": "In the file's own order: each ID's first row as the file has it.",
+      "levelWhat": "sorting by {column}",
+      "kept": "kept",
+      "keptNote": "Each ID's row that's kept is marked, in the order chosen; ties keep the file's order."
     },
     "rowNames": {
       "bldg_quality_num": "Number",
