@@ -128,7 +128,7 @@ class WizardState(BaseModel):
     custom: list[CustomField] = Field(default_factory=list, description="Fields the user named and classified.")
     as_sold: dict[str, str] = Field(
         default_factory=dict,
-        description="Sales as sold: characteristic -> the sales file's column the sales use; \"\": today's (the "
+        description="Sales record fields: characteristic -> the sales file's column the sales use; \"\": today's (the "
         "parcel's), chosen. Missing: not chosen (today's).",
     )
     as_sold_auto: list[str] = Field(

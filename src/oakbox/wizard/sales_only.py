@@ -1,11 +1,11 @@
-"""The main sales file's columns that only it has (SPEC F3d Sales as sold; Outliers, 2026-11-08).
+"""The main sales file's columns that only it has (SPEC F3d Sales record fields; Outliers, 2026-11-08).
 
 A column describing the sale or the property as sold that no parcel file has (Guilford's REMODELED, SALE_TYPE,
 DEED_TYPE) can't be a model variable: a model values every parcel, and parcels don't have it. It can still decide
 which sales are valid (a rule on Valid sale), and it's context when a sale looks wrong (Outliers). Left out: columns
 already loaded for a field, the ones that mirror a characteristic (the same name as a parcel column, or a name the
-field dictionary knows: Sales as sold's), blank or one-valued ones, and ones nearly unique per row (IDs, deed pages,
-links).
+field dictionary knows: Sales record fields'), blank or one-valued ones, and ones nearly unique per row (IDs, deed
+pages, links).
 """
 
 from __future__ import annotations

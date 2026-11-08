@@ -1,8 +1,8 @@
-/** Data › Sales as sold (SPEC F3d, 2026-11-07): how sales and parcels each get their characteristics, then the sales
+/** Data › Sales record fields (SPEC F3d, 2026-11-07): how sales and parcels each get their characteristics, then the sales
  * file's columns that describe the property beside the parcel fields they mirror, and what the sales use: as sold,
  * or today's. And the same choice, one field at a time, on that field's own screen (AsSoldLine). */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap, type WizardField } from "../api/client";
 import type { components } from "../api/schema";
@@ -232,15 +232,15 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
   const v = q.data;
   const r = v?.rows.find((x) => x.key === field.key);
   const file = v?.filename ?? v?.sales_file ?? "";
-  const head = (
-    <div className="as-head">
-      <b>{a.atSale}</b>
-      <span className="wiz-from">{a.atSaleNote}</span>
-    </div>
-  );
+  const mark = r?.auto ? (
+    <span className="pill pill-ok">{a.auto}</span>
+  ) : r?.column && r.how ? (
+    <span className="pill pill-info">{a.how[r.how]}</span>
+  ) : null;
+  const head = <CapHead kind="sr" mark={mark} />;
   if (!v)
     return (
-      <div className="frame as-side">
+      <div className="frame as-cap as-side">
         {head}
         <Waiting doing={a.loading({ file: "the sales file" })} />
       </div>
@@ -256,28 +256,22 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
   const same = r.compared ? r.same / r.compared : 1;
   const differ = r.compared - r.same;
   return (
-    <div className="frame as-side">
+    <div className="frame as-cap as-side">
       {head}
-      <div className="as-grid">
+      {/* One row, as the parcel universe's: the column, its unit, its values; its spread right under it, level with
+          the parcel universe's; then, below the dotted line, how it compares. */}
+      <div className="as-row">
         <span className="wiz-label">{a.column}</span>
-        <span className="as-control">
+        <div className="wiz-pair as-sr-pair">
           <Picker
             r={r}
             columns={v.columns}
-            label={`${a.atSale}: ${field.name}`}
+            label={`${a.srTitle}: ${field.name}`}
             disabled={choose.isPending}
             pick={(c) => pick(c ?? TODAY)}
           />
-          {r.auto ? (
-            <span className="pill pill-ok">{a.auto}</span>
-          ) : (
-            r.column && r.how && <span className="pill pill-info">{a.how[r.how]}</span>
-          )}
-        </span>
-        {area && r.column && (
-          <>
-            <span className="wiz-label">{a.unit}</span>
-            <span className="as-control">
+          {area && r.column && (
+            <div className="wiz-unit">
               <Choice
                 label={`${a.unit}: ${r.column}`}
                 hideLabel
@@ -286,21 +280,14 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
                 onChange={(u: string) => pick(r.column ?? TODAY, u)}
                 isDisabled={choose.isPending}
               />
-              {r.unit !== r.today_unit && r.today_unit && (
-                <span className="wiz-from">{a.unitNote({ today: units[r.today_unit] ?? r.today_unit })}</span>
-              )}
-            </span>
-          </>
-        )}
-        {r.column && (
-          <>
-            <span />
-            <span className="as-control">
-              <ValuesButton projectId={projectId} file={v.sales_file} column={r.column} distinct={null} />
-              <span className="wiz-from">{a.onSales({ pct: share(r.have, r.sales) })}</span>
-            </span>
-          </>
-        )}
+            </div>
+          )}
+        </div>
+        <span>
+          {r.column && (
+            <ValuesButton projectId={projectId} file={v.sales_file} column={r.column} distinct={r.distinct} />
+          )}
+        </span>
       </div>
       {used && r.column && (area || r.key.includes("year")) && (
         <FieldHistogram
@@ -310,7 +297,9 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
         />
       )}
       {!r.column ? (
-        <p className="wiz-from as-note">{a.notFound({ file })}</p>
+        <div className="as-against">
+          <p className="wiz-from">{a.notFound({ file })}</p>
+        </div>
       ) : r.written_differently ? (
         <div className="as-against">
           <p>
@@ -320,7 +309,14 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
         </div>
       ) : (
         <div className="as-against">
+          <p className="wiz-from">
+            {a.onSales({ pct: share(r.have, r.sales) })}
+            {area && r.unit !== r.today_unit && r.today_unit
+              ? ` ${a.unitNote({ today: units[r.today_unit] ?? r.today_unit })}`
+              : ""}
+          </p>
           <p>
+            <b>{a.against}</b>{" "}
             <span className={same >= 0.99 ? "pill pill-ok" : "pill pill-warn"}>
               {a.sameFor({ pct: pct(same) })}
             </span>{" "}
@@ -349,7 +345,7 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
                     <td>
                       <code>{d.parcel}</code>
                     </td>
-                    <td>{d.date}</td>
+                    <td>{d.date || "—"}</td>
                     <td className="cs-n">{showValue(d.sold, r.unit ?? null)}</td>
                     <td className="cs-n">{showValue(d.today, r.today_unit ?? null)}</td>
                   </tr>
@@ -357,7 +353,7 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
               </tbody>
             </table>
           )}
-          <p className="wiz-from as-note">
+          <p className="wiz-from">
             {r.auto && `${a.autoNote({ pct: pct(same) })} `}
             {!used && `${a.notUsed({ column: r.column })} `}
             {r.suggest === "today"
@@ -373,6 +369,18 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
           {choose.error.message}
         </p>
       )}
+    </div>
+  );
+}
+
+/** A capsule's header: which dataset it's from, by name and symbol (AGENTS.md), what that dataset is for, and a mark
+ * (found, picked for you). */
+export function CapHead({ kind, mark }: { kind: "pu" | "sr"; mark?: ReactNode }) {
+  return (
+    <div className={`as-head as-head-${kind}`}>
+      <b>{kind === "pu" ? a.puTitle : a.srTitle}</b>
+      {mark}
+      <span className="wiz-from as-head-note">{kind === "pu" ? a.puNote : a.srNote}</span>
     </div>
   );
 }

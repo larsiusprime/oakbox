@@ -86,7 +86,7 @@ figures) against what the computer leaves OAK box (its memory less 5.5 GB for Wi
 says so when it's short: a warning, never a block.
 
 **A CSV gets a quick-read copy** (`readcache.py`, 2026-11-07). The Data steps read a file a column at a time (previews,
-ID checks, Sales as sold), and from a big CSV each read is about a second (Guilford, NC's 220 MB parcels.csv: 0.99 s).
+ID checks, Sales record fields), and from a big CSV each read is about a second (Guilford, NC's 220 MB parcels.csv: 0.99 s).
 So each CSV is converted once into Parquet, `out/oakbox/cache/<name>-<size>-<mtime>.parquet`, every column as text
 exactly as the CSV is read (blanks as "", "NA" kept as written): a column then reads in 0.04 s. The conversion starts
 in the background when the file is added (Guilford's parcels: about 8 s, 46 MB), its entry on the step shows how far

@@ -6874,7 +6874,7 @@ div.map-wait-ask small {
   box-shadow: var(--paper-shadow);
 }
 
-/* ---------- Data › Sales as sold (screens/AsSold.tsx) ---------- */
+/* ---------- Data › Sales record fields (screens/AsSold.tsx) ---------- */
 .as-explain {
   max-width: 46rem;
 }
@@ -6925,11 +6925,44 @@ div.map-wait-ask small {
 .wiz-capsule > .as-head-row {
   grid-column: 1 / -1;
 }
+/* A dataset's capsule (🌐 Parcel universe, 💰 Sales record): its header a band across the top; a field's row; its
+   spread right under; the sales record's comparison below a dotted line. */
+.as-cap {
+  display: grid;
+  gap: calc(0.5 * var(--sp));
+  align-content: start;
+  padding-top: 0;
+}
+.as-cap > .as-head {
+  margin: 0 calc(-0.7 * var(--sp));
+  padding: 0.35rem calc(0.7 * var(--sp));
+  border-bottom: 1px solid var(--entry-head);
+  background: var(--entry-head);
+  border-radius: var(--radius) var(--radius) 0 0;
+  min-height: 2rem;
+  align-items: center;
+}
+.as-cap > .as-head-sr {
+  background: var(--info-tint);
+  border-bottom-color: var(--info-edge);
+}
+.as-head-note {
+  margin-left: auto;
+}
+.as-cap > .wiz-capsules {
+  width: auto;
+}
+.as-row {
+  display: grid;
+  grid-template-columns: max-content max-content max-content;
+  gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
+  align-items: center;
+}
 .as-side {
   display: grid;
   gap: calc(0.5 * var(--sp));
   width: fit-content;
-  max-width: min(100%, 34rem);
+  max-width: 100%;
   background: var(--info-tint);
   border-color: var(--info-edge);
 }
@@ -6979,6 +7012,24 @@ div.map-wait-ask small {
   gap: 0.6rem;
   justify-items: start;
   margin-top: calc(1.2 * var(--sp));
+}
+/* The spread and the comparison never widen their capsule (their words wrap): a capsule is as wide as its row, and the
+   pair fits side by side sooner. */
+.as-pu .wiz-capsule-wide,
+.as-side > .fh-in,
+.as-side > .as-against {
+  width: 0;
+  min-width: 100%;
+}
+/* The sales record's column and its unit on one line, as the parcel universe's: the two rows, and so the two spreads
+   under them, level. */
+.as-row > .as-control {
+  flex-wrap: nowrap;
+}
+/* As the parcel universe's: a column and its unit in one 23rem pair. */
+.as-sr-pair {
+  width: 23rem;
+  max-width: 100%;
 }
 .as-table-wrap {
   margin-top: calc(1 * var(--sp));

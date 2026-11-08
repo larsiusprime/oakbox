@@ -61,7 +61,7 @@ def set_field(
     allowed = field_files(project, step.sales)
     if only is not None:
         # A file of its own rows, more sales details, or the main sales file carrying a characteristic as sold
-        # (Sales as sold: as_sold.choose).
+        # (Sales record fields: as_sold.choose).
         allowed = [
             f
             for f in project.files
@@ -160,7 +160,7 @@ def set_field(
     from oakbox.wizard.as_sold import autopick, resync
 
     if key in project.wizard.as_sold:
-        # The sales' copy of it (Sales as sold) follows: read as the parcel's now is, or today's if it's gone.
+        # The sales' copy of it (Sales record fields) follows: read as the parcel's now is, or today's if it's gone.
         resync(project, in_dir, key)
     else:
         autopick(project, in_dir, [key])  # an obvious sale's column, picked (conservatively)

@@ -20,7 +20,7 @@ import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
 import { say, t } from "../wording";
-import { AsSoldStep, AtSale, AtSaleTable } from "./AsSold";
+import { AsSoldStep, AtSale, AtSaleTable, CapHead } from "./AsSold";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
@@ -41,7 +41,7 @@ import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 // Quality and condition: numbers or categories, on a page of their own (QualityStep).
 const QUALITY_STEPS = ["quality", "condition"];
-/** The steps whose fields describe the property: each shows what its sales use (Sales as sold). */
+/** The steps whose fields describe the property: each shows what its sales use (Sales record fields). */
 const CHARACTERISTIC_STEPS = ["building_size", "land_size", "age", "quality", "condition", "property_type"];
 // Sales' field parts: each field on a page of its own, read and checked under it (SalesFieldPage).
 const SALES_FIELD_STEPS = ["sale_price", "sale_date", "valid_sale", "vacant_sale"];
@@ -443,7 +443,7 @@ function FieldsStep({
   const inUse = (f: WizardField) => f.sources.length > 0 || f.assumed || f.absent;
   const shown = mine.filter((f) => !f.more || more || inUse(f));
   const hidden = mine.filter((f) => f.more && !inUse(f)).length;
-  // A sales file: each characteristic loaded for the parcels gets its At the sale (Sales as sold, F3d).
+  // A sales file: each characteristic loaded for the parcels gets its At the sale (Sales record fields, F3d).
   const hasSales = data.files.some((f) => f.holds === "sales");
   return (
     <>
@@ -457,29 +457,26 @@ function FieldsStep({
               {/* Two fields on the step (Age): each pair under its field's name; one, the question says it. */}
               {hasSales && shown.length > 1 && <h3 className="wiz-group">{shortName(f)}</h3>}
               <div className="as-pair">
-                <div className="wiz-grid wiz-capsules as-today">
-                  <div className="frame wiz-capsule">
-                    {hasSales && f.sources.length > 0 && (
-                      <div className="as-head as-head-row">
-                        <b>{t.wizard.asSold.todays}</b>
-                        <span className="wiz-from">{t.wizard.asSold.todaysNote}</span>
+                <div className={hasSales && f.sources.length > 0 ? "frame as-cap as-pu" : "as-today"}>
+                  {hasSales && f.sources.length > 0 && <CapHead kind="pu" />}
+                  <div className="wiz-grid wiz-capsules">
+                    <div className={hasSales && f.sources.length > 0 ? "wiz-capsule" : "frame wiz-capsule"}>
+                      <FieldRow
+                        project={project}
+                        data={data}
+                        field={f}
+                        sales={step.sales}
+                        change={change}
+                        bare
+                        {...(hasSales && f.sources.length > 0 ? { label: t.wizard.asSold.column } : {})}
+                      />
+                    </div>
+                    {f.sources.length > 0 && (f.area_unit || f.key.includes("year")) && (
+                      <div className="wiz-capsule-wide">
+                        <FieldHistogram projectId={project.id} field={f} bare={hasSales} />
                       </div>
                     )}
-                    <FieldRow
-                      project={project}
-                      data={data}
-                      field={f}
-                      sales={step.sales}
-                      change={change}
-                      bare
-                      {...(hasSales && f.sources.length > 0 ? { label: t.wizard.asSold.column } : {})}
-                    />
                   </div>
-                  {f.sources.length > 0 && (f.area_unit || f.key.includes("year")) && (
-                    <div className="wiz-capsule-wide">
-                      <FieldHistogram projectId={project.id} field={f} />
-                    </div>
-                  )}
                 </div>
                 {hasSales && f.sources.length > 0 && <AtSale projectId={project.id} field={f} />}
               </div>

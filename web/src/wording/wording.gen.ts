@@ -874,17 +874,12 @@ export type Wording = {
       };
       same: (a: { pct: string | number }) => string;
       differs: (a: { pct: string | number }) => string;
-      examples: (a: { list: string | number }) => string;
       writtenDifferently: (a: { sold: string | number; today: string | number }) => string;
       sale: string;
       today: string;
       suggested: string;
       allSame: (a: { file: string | number }) => string;
       forSales: string;
-      asSoldOption: (a: { column: string | number; file: string | number }) => string;
-      todayOption: string;
-      lineNote: (a: { file: string | number; have: string | number; same: string | number }) => string;
-      lineNotDecided: string;
       atSale: string;
       atSaleNote: string;
       todays: string;
@@ -931,6 +926,10 @@ export type Wording = {
       inRule: string;
       toValid: string;
       onlyNone: (a: { file: string | number }) => string;
+      puTitle: string;
+      srTitle: string;
+      puNote: string;
+      srNote: string;
     };
   };
   tabs: {

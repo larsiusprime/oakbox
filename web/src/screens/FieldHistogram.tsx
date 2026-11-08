@@ -17,9 +17,12 @@ export function FieldHistogram({
   projectId,
   field,
   sale,
+  bare = false,
 }: {
   projectId: string;
   field: WizardField;
+  /** Inside a dataset's capsule (🌐 or 💰): no frame or title of its own. */
+  bare?: boolean;
   /** At the sale: the sales file's column, as it's loaded there (the cache key: its column and unit). */
   sale?: { column: string; unit: string | null };
 }) {
@@ -57,8 +60,8 @@ export function FieldHistogram({
     v.empty ? h.empty({ n: v.empty }) : null,
   ].filter(Boolean);
   return (
-    <div className={sale ? "fh-in" : "frame qc-panel"}>
-      {!sale && <h3 className="wiz-group">{h.title({ name: field.name })}</h3>}
+    <div className={sale || bare ? "fh-in" : "frame qc-panel"}>
+      {!sale && !bare && <h3 className="wiz-group">{h.title({ name: field.name })}</h3>}
       <div className="fh-chart" role="img" aria-label={h.title({ name: field.name })}>
         {v.bins.map((b) => (
           <span

@@ -325,7 +325,7 @@ def wizard_sales_only(project_id: str) -> sales_only.SalesOnlyView:
 
 @router.get("/api/projects/{project_id}/wizard/as-sold")
 def wizard_as_sold(project_id: str) -> as_sold.AsSoldView:
-    """Sales as sold: the sales file's columns that mirror a characteristic, each against today's values."""
+    """Sales record fields: the sales file's columns that mirror a characteristic, each against today's values."""
     project = load_project(project_id)
     return as_sold.view(project, projects.inputs_dir(project_id))
 

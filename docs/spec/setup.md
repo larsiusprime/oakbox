@@ -603,7 +603,7 @@ the field steps, checks, guesses, assumptions and Review carry over.
     suggests cents. One click applies it.
   - **Values flagged:** amounts written as Excel writes big numbers (`1.11E+06`, rounded, can't be repaired). The price
     dialog only reads prices; it never changes which sales are valid.
-- **Sales as sold: a major step of its own (6, after More details; built 2026-11-07, `wizard/as_sold.py`,
+- **Sales record fields: a major step of its own (6, after More details; built 2026-11-07, `wizard/as_sold.py`,
   `AsSold.tsx`).** After the characteristics are chosen, since it compares with them. First a screen to itself, how it
   works: a sale described as the property was when it sold (it may have changed since); those are what the models
   learn from; parcels are valued on what they are now (the parcel files); so it's best practice to freeze the
@@ -650,9 +650,9 @@ the field steps, checks, guesses, assumptions and Review carry over.
   today's), and what that suggests. Side by side where there's room (Big five at 1,400 px), else stacked: each pair
   wraps on its own. Big five's parts pair per field (Age's two each under its name); Quality and Condition beside
   their column's boxes; Land use & building type a table under the step (field, today's, at the sale, against
-  today's). Sales as sold's own table has the same picker. 1.5-2.7 s on Guilford with the quick-read copies (8 s
+  today's). Sales record fields' own table has the same picker. 1.5-2.7 s on Guilford with the quick-read copies (8 s
   before), shown waiting, with the time and Stop.
-- **Condo units: a major step of its own (7, after Sales as sold), one decision per part.** OpenAVMKit's
+- **Condo units: a major step of its own (7, after Sales record fields), one decision per part.** OpenAVMKit's
   `data.process.condos`, for units on the roll but not on the map: each has a parcel ID of its own and no parcel shape,
   because it sits on a parcel it shares.
   - **What fits the pattern,** listed on the first part so the user recognises theirs: condos of any kind (homes,

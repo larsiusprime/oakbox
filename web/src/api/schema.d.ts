@@ -743,7 +743,7 @@ export interface paths {
         };
         /**
          * Wizard As Sold
-         * @description Sales as sold: the sales file's columns that mirror a characteristic, each against today's values.
+         * @description Sales record fields: the sales file's columns that mirror a characteristic, each against today's values.
          */
         get: operations["wizard_as_sold_api_projects__project_id__wizard_as_sold_get"];
         put?: never;
@@ -3142,7 +3142,7 @@ export interface components {
             name: string;
             /**
              * Parcel File
-             * @description The parcel file it's loaded from (today's).
+             * @description The parcel file it's loaded from (the universe's).
              */
             parcel_file: string;
             /** Parcel Column */
@@ -3169,12 +3169,12 @@ export interface components {
             unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
             /**
              * Today Unit
-             * @description An area: the unit today's column is in.
+             * @description An area: the unit the universe's column is in.
              */
             today_unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
             /**
              * Choice
-             * @description The user's; None: not chosen (today's is used).
+             * @description The user's; None: not chosen (the universe's is used).
              */
             choice: ("sale" | "today") | null;
             /**
@@ -3185,7 +3185,7 @@ export interface components {
             auto: boolean;
             /**
              * Suggest
-             * @description What the figures suggest: today's when they're the same; None: written another way.
+             * @description What the figures suggest: the universe's when they're the same; None: written another way.
              */
             suggest: ("sale" | "today") | null;
             /**
@@ -3200,12 +3200,12 @@ export interface components {
             have: number;
             /**
              * Compared
-             * @description Of those, on a parcel with today's value too.
+             * @description Of those, on a parcel with the universe's value too.
              */
             compared: number;
             /**
              * Same
-             * @description Of those, the same as today's.
+             * @description Of those, the same as the universe's.
              */
             same: number;
             /**
@@ -3220,9 +3220,15 @@ export interface components {
             diffs: components["schemas"]["AsSoldDiff"][];
             /**
              * Written Differently
-             * @description Its values aren't written as today's are (another code).
+             * @description Its values aren't written as the universe's are (another code).
              */
             written_differently: boolean;
+            /**
+             * Distinct
+             * @description Its distinct values (for its values list).
+             * @default 0
+             */
+            distinct: number;
         };
         /** AsSoldView */
         AsSoldView: {
@@ -11392,7 +11398,7 @@ export interface components {
             custom: components["schemas"]["CustomField"][];
             /**
              * As Sold
-             * @description Sales as sold: characteristic -> the sales file's column the sales use; "": today's (the parcel's), chosen. Missing: not chosen (today's).
+             * @description Sales record fields: characteristic -> the sales file's column the sales use; "": today's (the parcel's), chosen. Missing: not chosen (today's).
              */
             as_sold: {
                 [key: string]: string;

@@ -1,18 +1,19 @@
-"""Data › Sales as sold (SPEC §3.0 F3d, 2026-11-07): the main sales file's columns that describe the property, beside
-the parcel fields they mirror.
+"""Data › Sales record fields (SPEC §3.0 F3d, 2026-11-07): the sales record's columns that describe the property,
+beside the parcel universe fields they mirror.
 
 A sale should be described as the property was when it sold (it may have changed since): those are what the models
-learn from. Parcels are valued on what they are now: the parcel files. Where a sale has no characteristics of its own,
-OpenAVMKit fills them in from its parcel today (it hydrates the sales): an assumption that the parcel hasn't changed.
+learn from. Parcels are valued on what they are now: the parcel universe. Where a sale has no characteristics of its
+own, OpenAVMKit fills them in from its parcel in the parcel universe (it hydrates the sales): an assumption that the
+parcel hasn't changed.
 
-For each characteristic loaded from a parcel file, the sales file's column that mirrors it: the same column name, a
-name the field dictionary knows, else a column whose values agree with today's on the same parcels for most sales (an
-area tried in each unit: TOTAL_ACREAGE in acres where today's is sq ft). Checked against today's value on the same
-parcels, in today's unit: how many sales have one, how many differ, and which.
+For each characteristic loaded from a parcel universe file, the sales record's column that mirrors it: the same column
+name, a name the field dictionary knows, else a column whose values agree with the universe's on the same parcels for
+most sales (an area tried in each unit: TOTAL_ACREAGE in acres where the universe's is sq ft). Checked against the
+universe's value on the same parcels, in the universe's unit: how many sales have one, how many differ, and which.
 
-The user's choice per field (`project.wizard.as_sold`): the sale's (its column loaded into the sales file, read as the
-parcel's is: number format, scale; an area in its own unit) or today's (nothing loaded). Until chosen, today's:
-nothing changes silently; the step, and each field's At the sale box, suggests.
+The user's choice per field (`project.wizard.as_sold`): the sales record's (its column loaded into the sales file, read
+as the universe's is: number format, scale; an area in its own unit) or the universe's (nothing loaded). Until chosen,
+the universe's, unless obvious (autopick): nothing else changes silently; the step, and each field's box, suggests.
 """
 
 from __future__ import annotations
@@ -29,13 +30,13 @@ from oakbox.wizard.base import CHARACTERISTIC_STEPS, RENAMED, STEPS, normalized
 from oakbox.wizard.checks import _names
 from oakbox.wizard.files import Files, dictionary_by_key, file_stamp, sales_file, values_of
 
-SAME_ENOUGH = 0.99  # this share the same as today's: a snapshot exported with the sales, not history
-WRITTEN_DIFFERENTLY = 0.2  # under this share of the sale's values among today's: written another way
+SAME_ENOUGH = 0.99  # this share the same as the universe's: a snapshot exported with the sales, not history
+WRITTEN_DIFFERENTLY = 0.2  # under this share of the sale's values among the universe's: written another way
 EXAMPLES = 3
 DIFFS = 50  # the sales that differ, listed (See them)
-BY_VALUES = 0.5  # a column found by its values: the same as today's for at least this share
+BY_VALUES = 0.5  # a column found by its values: the same as the universe's for at least this share
 SAMPLE = 4000  # sales compared when looking for a column by its values
-AUTO_SAME = 0.9  # picked for the user: the same column name, and the same as today's for this share
+AUTO_SAME = 0.9  # picked for the user: the same column name, and the same as the universe's for this share
 AUTO_MIN = 20  # ... of at least this many sales
 
 
@@ -53,7 +54,7 @@ class AsSoldDiff(BaseModel):
 class AsSoldRow(BaseModel):
     key: str
     name: str
-    parcel_file: str = Field(description="The parcel file it's loaded from (today's).")
+    parcel_file: str = Field(description="The parcel file it's loaded from (the universe's).")
     parcel_column: str
     column: str | None = Field(
         description="The sales file's column: chosen, else the one that mirrors it; None: none found."
@@ -63,19 +64,22 @@ class AsSoldRow(BaseModel):
         default=None, description="How it was found: the parcel's column name, a name it's known by, its values."
     )
     unit: AreaUnit | None = Field(default=None, description="An area: the unit the sales file's column is in.")
-    today_unit: AreaUnit | None = Field(default=None, description="An area: the unit today's column is in.")
-    choice: Literal["sale", "today"] | None = Field(description="The user's; None: not chosen (today's is used).")
+    today_unit: AreaUnit | None = Field(default=None, description="An area: the unit the universe's column is in.")
+    choice: Literal["sale", "today"] | None = Field(
+        description="The user's; None: not chosen (the universe's is used)."
+    )
     auto: bool = Field(default=False, description="The sale's, picked by OAK box (AUTO_SAME); the user can change it.")
     suggest: Literal["sale", "today"] | None = Field(
-        description="What the figures suggest: today's when they're the same; None: written another way."
+        description="What the figures suggest: the universe's when they're the same; None: written another way."
     )
     sales: int = Field(description="Sales on a parcel.")
     have: int = Field(description="Of them, with a value in the column.")
-    compared: int = Field(description="Of those, on a parcel with today's value too.")
-    same: int = Field(description="Of those, the same as today's.")
+    compared: int = Field(description="Of those, on a parcel with the universe's value too.")
+    same: int = Field(description="Of those, the same as the universe's.")
     examples: list[list[str]] = Field(description="[as sold, today] where they differ.")
     diffs: list[AsSoldDiff] = Field(default_factory=list, description="The sales that differ (the first 50).")
-    written_differently: bool = Field(description="Its values aren't written as today's are (another code).")
+    written_differently: bool = Field(description="Its values aren't written as the universe's are (another code).")
+    distinct: int = Field(default=0, description="Its distinct values (for its values list).")
 
 
 class AsSoldView(BaseModel):
@@ -108,8 +112,8 @@ def _found(files: Files, sales: DataFile, key: str, parcel_column: str, taken: s
 def _by_values(
     files: Files, sales: DataFile, key: str, src: DataFile, taken: set[str], only: str | None = None
 ) -> tuple[str, AreaUnit | None] | None:
-    """Nothing by name: the sales file's column that agrees with today's for most sales on the same parcels (an area
-    in whichever unit agrees). (column, its unit)."""
+    """Nothing by name: the sales file's column that agrees with the universe's for most sales on the same parcels
+    (an area in whichever unit agrees). (column, its unit)."""
     from oakbox.wizard.quality import _by_parcel
 
     numeric = _numeric(key)
@@ -149,7 +153,7 @@ def _num(v: str) -> float | None:
 
 
 def _same(a: str, b: str, numeric: bool, factor: float = 1.0) -> bool:
-    """As sold against today's; `factor` turns the sale's unit into today's (acres to sq ft: 43,560)."""
+    """As sold against the universe's; `factor` turns the sale's unit into the universe's (acres to sq ft: 43,560)."""
     if numeric:
         x, y = _num(a), _num(b)
         if x is not None and y is not None:
@@ -161,7 +165,7 @@ def _same(a: str, b: str, numeric: bool, factor: float = 1.0) -> bool:
 def _compare(
     project: Project, files: Files, sales: DataFile, key: str, column: str, src: DataFile, unit: AreaUnit | None
 ) -> dict:
-    """The sale's column against today's value of each sale's parcel, in today's unit."""
+    """The sale's column against the universe's value of each sale's parcel, in the universe's unit."""
     from oakbox.wizard.quality import _by_parcel
 
     numeric = _numeric(key)
@@ -202,7 +206,8 @@ def _compare(
     today_values = {t.strip().upper() for t in today.values()}
     overlap = len(mine_values & today_values) / len(mine_values) if mine_values else 1.0
     if numeric or all(_num(t) is not None for t in list(today_values)[:200]):
-        # Numbers today, and mostly not numbers as sold ("B-5  120%" where today's is 1.2): another way of writing.
+        # Numbers in the universe, and mostly not in the sales record ("B-5  120%" where the universe has 1.2): another
+        # way of writing.
         as_numbers = sum(_num(v) is not None for v in mine_values) / len(mine_values) if mine_values else 1.0
         differently = compared >= 20 and same / compared < WRITTEN_DIFFERENTLY and as_numbers < 0.5
     else:
@@ -215,6 +220,7 @@ def _compare(
         "examples": examples,
         "diffs": diffs,
         "written_differently": differently,
+        "distinct": len(mine_values),
     }
 
 
@@ -259,6 +265,7 @@ def view(project: Project, in_dir: Path) -> AsSoldView:
             "examples": [],
             "diffs": [],
             "written_differently": False,
+            "distinct": 0,
         }
         c = _compare(project, files, sales, key, column, src, unit) if column else empty
         suggest: Literal["sale", "today"] | None = None
@@ -290,7 +297,7 @@ def view(project: Project, in_dir: Path) -> AsSoldView:
 
 
 def choose(project: Project, in_dir: Path, key: str, column: str | None, area_unit: AreaUnit | None = None) -> None:
-    """The sale's (its column, read as the parcel's, an area in its own unit if given) or today's (None)."""
+    """The sale's (its column, read as the parcel's, an area in its own unit if given) or the universe's (None)."""
     from oakbox.wizard.setfield import set_field
 
     if key not in characteristic_keys():
@@ -324,7 +331,7 @@ def choose(project: Project, in_dir: Path, key: str, column: str | None, area_un
 
 def _unit_of(project: Project, in_dir: Path, key: str, column: str, sales: DataFile, src: DataFile) -> AreaUnit | None:
     """An area column's unit when none is given: as already read, else as its name says (ACREAGE), else the one that
-    agrees with today's, else today's."""
+    agrees with the universe's, else the universe's."""
     if key not in AREA_FIELDS:
         return None
     if project.wizard.as_sold.get(key) == column and key in sales.area_units:
@@ -337,7 +344,7 @@ def _unit_of(project: Project, in_dir: Path, key: str, column: str, sales: DataF
 
 
 def resync(project: Project, in_dir: Path, key: str) -> None:
-    """The parcel field changed: the sale's column read as it now is, or today's if it's no longer loaded."""
+    """The parcel field changed: the sale's column read as it now is, or the universe's if it's no longer loaded."""
     column = project.wizard.as_sold.get(key)
     if not column:
         return
@@ -359,9 +366,9 @@ def resync(project: Project, in_dir: Path, key: str) -> None:
 
 
 def autopick(project: Project, in_dir: Path, keys: list[str] | None = None) -> None:
-    """Conservatively, the sale's where it's obvious: the sales file has a column of the very same name as the
-    parcel's, read the same way, the same as today's for 90%+ of at least 20 sales. Never over a choice (the user's,
-    or none: today's chosen); marked as picked (as_sold_auto), so it's said and can be changed."""
+    """Conservatively, the sales record's where it's obvious: the sales file has a column of the very same name as
+    the universe's, read the same way, the same as the universe's for 90%+ of at least 20 sales. Never over a choice
+    (the user's, or none chosen); marked as picked (as_sold_auto), so it's said and can be changed."""
     sales = sales_file(project)
     if sales is None:
         return
