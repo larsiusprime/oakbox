@@ -19,7 +19,11 @@ export function signed(v: number, digits: number): string {
 /** A share as a percentage, whole unless it's within one point of 0 or 100: "0.4%", "37%", "99.6%". */
 export function pct(share: number): string {
   const p = 100 * share;
-  return (p > 0 && p < 1) || (p > 99 && p < 100) ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
+  // Near the ends, one decimal, rounded toward the middle: only all of them is 100% and none 0% (56 of 170,000
+  // differing is 99.9%, never "100%" beside "differs for 56").
+  if (p > 99 && p < 100) return `${(Math.floor(p * 10) / 10).toFixed(1)}%`;
+  if (p > 0 && p < 1) return `${(Math.ceil(p * 10) / 10).toFixed(1)}%`;
+  return `${Math.round(p)}%`;
 }
 
 /** An amount in a currency (its ISO code): cents under 100, two significant figures under 1. */

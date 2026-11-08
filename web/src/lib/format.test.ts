@@ -21,6 +21,10 @@ describe("how numbers are written", () => {
     expect(pct(0.004)).toBe("0.4%");
     expect(pct(0.996)).toBe("99.6%");
     expect(pct(0)).toBe("0%");
+    // Only all is 100%, only none 0%: 56 of 170,000 differing is 99.9%, not "100%".
+    expect(pct(169_944 / 170_000)).toBe("99.9%");
+    expect(pct(1)).toBe("100%");
+    expect(pct(56 / 170_000)).toBe("0.1%");
     expect(pct(1)).toBe("100%");
   });
 });
