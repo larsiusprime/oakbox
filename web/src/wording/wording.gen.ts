@@ -831,10 +831,12 @@ export type Wording = {
     from: (a: { column: string | number; file: string | number }) => string;
     histogram: {
       title: (a: { name: string | number }) => string;
-      median: (a: { m: string | number }) => string;
-      below: (a: { n: number; v: string | number }) => string;
-      above: (a: { n: number; v: string | number }) => string;
-      empty: (a: { n: number }) => string;
+      from: string;
+      to: string;
+      lowest: string;
+      highest: string;
+      reset: string;
+      linked: string;
     };
     salesParts: {
       noFile: string;

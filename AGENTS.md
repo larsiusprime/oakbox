@@ -196,6 +196,11 @@ from a bug stays a 500 with its traceback.
   breaks a long word in its box, and a dialog never grows past the screen (it scrolls). Check new screens against
   a file with long values.
 
+- **State outside React (a module-level store):** the build memoizes with React Compiler, which can't see a mutable
+  `Map` or `Set` change. Keep such state as one immutable snapshot, replaced on every change, read with
+  `useSyncExternalStore(subscribe, () => snapshot)` and computed from the snapshot it returns (as
+  `screens/FieldHistogram.tsx` does); never read a mutable module variable during render.
+
 ## Wording
 
 Every word the page shows is in `web/src/wording/en.json` (ICU MessageFormat, SPEC §6.6), imported as `t` from

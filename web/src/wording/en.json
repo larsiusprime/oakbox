@@ -1211,10 +1211,12 @@
     "from": "{column} · {file}",
     "histogram": {
       "title": "{name}: how they spread",
-      "median": "median {m}",
-      "below": "{n, number} under {v}",
-      "above": "{n, number} over {v}",
-      "empty": "{n, number} blank or none"
+      "from": "From",
+      "to": "to",
+      "lowest": "Lowest shown",
+      "highest": "Highest shown",
+      "reset": "Reset",
+      "linked": "linked"
     },
     "salesParts": {
       "noFile": "Add the sales file first, on Sales.",

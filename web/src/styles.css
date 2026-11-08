@@ -7008,6 +7008,87 @@ div.map-wait-ask small {
   display: grid;
   gap: 0.3em;
 }
+/* The range shown: two handles on one track under the bars, as wide as them; the bounds typed below. */
+.fh-range {
+  display: grid;
+  gap: 0.3em;
+}
+.fh-track {
+  position: relative;
+  width: min(100%, 36rem);
+  height: 1.4rem;
+}
+.fh-track::before {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--well);
+}
+.fh-sel {
+  position: absolute;
+  top: 0.6rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--link);
+}
+.fh-track input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: none;
+  pointer-events: none;
+  appearance: none;
+}
+.fh-track input[type="range"]::-webkit-slider-thumb {
+  width: 12px;
+  height: 1.2rem;
+  border: 1px solid var(--btn-edge);
+  border-radius: 3px;
+  background: var(--btn-top);
+  box-shadow: var(--paper-shadow);
+  cursor: ew-resize;
+  pointer-events: auto;
+  appearance: none;
+}
+.fh-track input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 1.2rem;
+  border: 1px solid var(--btn-edge);
+  border-radius: 3px;
+  background: var(--btn-top);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+.fh-bounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45em;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.fh-bound {
+  width: 7rem;
+  padding: 1px 6px;
+  border: 1px solid var(--btn-edge);
+  border-radius: 3px;
+  font: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.fh-linked {
+  display: inline-flex;
+  gap: 0.3em;
+  align-items: center;
+}
+/* In a pair, as wide as its bars there. */
+.as-pair .fh-track {
+  width: min(100%, 28rem);
+}
 .as-only {
   display: grid;
   gap: 0.6rem;

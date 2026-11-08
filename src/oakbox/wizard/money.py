@@ -89,6 +89,16 @@ class FieldSpread(BaseModel):
     empty: int = Field(description="Rows with no value: blank, zero (none), or not a number.")
     median: float | None
     total: int
+    quantiles: list[float] = Field(
+        default_factory=list,
+        description="The values at every 0.2% (501, smallest to largest): the page re-bins from them for any range, "
+        "as it's dragged, with no wait.",
+    )
+    auto: list[float] = Field(
+        default_factory=list,
+        description="[low, high]: the range shown first: the middle half of the values and three times its width "
+        "each side, within the smallest and largest.",
+    )
 
 
 def _step(span: float, bins: int, whole: bool = False) -> float:
@@ -160,7 +170,15 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24, sa
             counts[i] += 1
     out.bins = [Bin(low=start + i * width, high=start + (i + 1) * width, count=c) for i, c in enumerate(counts)]
     out.median = statistics.median(nums)
+    last = len(ordered) - 1
+    out.quantiles = [ordered[round(last * i / QUANTILES)] for i in range(QUANTILES + 1)]
+    q1, q3 = ordered[round(0.25 * last)], ordered[round(0.75 * last)]
+    spread = q3 - q1
+    out.auto = [max(ordered[0], q1 - 3 * spread), min(ordered[-1], q3 + 3 * spread)]
     return out
+
+
+QUANTILES = 500  # the values at every 0.2%: what the page draws any range from
 
 
 # ---------- Money: reading it when it's written as text, and whether the amounts look right (F3d) ----------

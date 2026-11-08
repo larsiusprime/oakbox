@@ -294,6 +294,7 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
           projectId={projectId}
           field={field}
           sale={{ column: r.column, unit: r.unit ?? null }}
+          pair
         />
       )}
       {!r.column ? (

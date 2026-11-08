@@ -290,6 +290,10 @@ def test_at_the_sale_reads_an_area_in_its_own_unit(client, pid, tmp_path):
     # Its spread at the sale, in the project's unit.
     h = client.get(f"{field}/land_area_sqft/histogram", params={"sales": True}).json()
     assert h["unit"] == "sq ft" and round(h["median"]) == 1500
+    # The values at every 0.2%, smallest to largest, for the page to draw any range from; the automatic range within.
+    q = h["quantiles"]
+    assert len(q) == 501 and q == sorted(q) and round(q[0]) == 980 and round(q[-1]) == 1750
+    assert q[0] <= h["auto"][0] <= h["auto"][1] <= q[-1]
 
 
 def test_obvious_sales_columns_are_picked_and_sales_only_ones_listed(client, pid, tmp_path):

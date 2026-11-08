@@ -627,6 +627,17 @@ the field steps, checks, guesses, assumptions and Review carry over.
   unit (Guilford's `ACREAGE` in acres against `Shape__Area` in sq ft: the same for 77%). Nothing found: said, and any
   column can still be picked.
 
+  **The spread, its range set live** (2026-11-08, `FieldHistogram.tsx`). A size's or a year's histogram starts on the
+  automatic range: the middle half of the values and three times its width each side, within the smallest and
+  largest (Guilford's land: to 125,380 sq ft, where the 1st–99th percentile reached 1.2 million and flattened the
+  rest). Two handles under the bars, on a track over the column's whole range (spaced by order of magnitude when it
+  spans a hundredfold or more), and From/To typed (thousands separated; read on Enter or leaving the box); **Reset**
+  once changed. The bars are drawn in the page from the field's values at every 0.2% (`FieldSpread.quantiles`, sent
+  once), so they follow a handle as it's dragged. **🔗 linked** (on; shown when both datasets' histograms of the field
+  are there): the 🌐 Parcel universe's and 💰 Sales record's share one range, bar for bar; unlinked, each keeps the
+  range they shared, and linked again they share the one linked from. Only the view, for the visit: nothing in the
+  data or the settings changes.
+
   **Picked for you, conservatively** (2026-11-08, `as_sold.autopick`). The sale's column is picked, and marked
   **picked for you**, only when it's obvious: the sales file has a column of the very same name as the parcel's, it
   isn't written differently, and it's the same as today's for 90% or more of at least 20 sales. Never over a choice

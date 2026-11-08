@@ -4788,6 +4788,16 @@ export interface components {
             median: number | null;
             /** Total */
             total: number;
+            /**
+             * Quantiles
+             * @description The values at every 0.2% (501, smallest to largest): the page re-bins from them for any range, as it's dragged, with no wait.
+             */
+            quantiles: number[];
+            /**
+             * Auto
+             * @description [low, high]: the range shown first: the middle half of the values and three times its width each side, within the smallest and largest.
+             */
+            auto: number[];
         };
         /** Fifth */
         Fifth: {

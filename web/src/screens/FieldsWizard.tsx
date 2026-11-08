@@ -473,7 +473,7 @@ function FieldsStep({
                     </div>
                     {f.sources.length > 0 && (f.area_unit || f.key.includes("year")) && (
                       <div className="wiz-capsule-wide">
-                        <FieldHistogram projectId={project.id} field={f} bare={hasSales} />
+                        <FieldHistogram projectId={project.id} field={f} bare={hasSales} pair={hasSales} />
                       </div>
                     )}
                   </div>
