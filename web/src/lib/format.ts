@@ -66,13 +66,19 @@ export function day(text: string | null | undefined): string {
   return text ? text.slice(0, 10) : "—";
 }
 
-/** When something happened: "today at 14:05", or its date and time. */
+/** A date as YYYY-MM-DD, as every date is shown (AGENTS.md), in this computer's time zone. */
+export function isoDay(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** When something happened: "today at 14:05", or its date (YYYY-MM-DD) and time. */
 export function when(iso: string): string {
   const d = new Date(iso);
-  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return new Date().toDateString() === d.toDateString()
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return isoDay(new Date()) === isoDay(d)
     ? t.format.todayAt({ time })
-    : t.format.dayAt({ date: d.toLocaleDateString(), time });
+    : t.format.dayAt({ date: isoDay(d), time });
 }
 
 /** A duration on a clock: "3:07". */

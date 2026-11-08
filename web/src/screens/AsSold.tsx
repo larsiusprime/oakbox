@@ -182,12 +182,8 @@ function Against({ r }: { r: Row }) {
       <span className={same >= 0.99 ? "pill pill-ok" : "pill pill-warn"}>
         {same >= 0.5 ? a.same({ pct: pct(same) }) : a.differs({ pct: pct(1 - same) })}
       </span>
-      {r.examples.length > 0 && (
-        <div className="wiz-from as-eg">
-          {a.examples({
-            list: r.examples.map(([s = "", d = ""]) => `${show(s, r.key)} → ${show(d, r.key)}`).join(", "),
-          })}
-        </div>
+      {r.compared > r.same && (
+        <div className="wiz-from as-eg">{a.differsFor({ n: r.compared - r.same })}</div>
       )}
     </>
   );
@@ -330,14 +326,7 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
             </span>{" "}
             {differ > 0 && (
               <>
-                {a.differsFor({ n: differ })}:{" "}
-                {r.examples
-                  .map(
-                    ([s = "", d = ""]) =>
-                      `${showValue(s, r.unit ?? null)} → ${showValue(d, r.today_unit ?? null)}`,
-                  )
-                  .join(", ")}
-                {differ > r.examples.length && " …"}{" "}
+                {a.differsFor({ n: differ })}{" "}
                 <Disclose open={open} onPress={() => setOpen(!open)}>
                   {open ? a.hideThem : a.seeThem}
                 </Disclose>

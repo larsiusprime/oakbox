@@ -23,6 +23,7 @@ from typing import Literal
 from pydantic import Field
 
 from oakbox.datafiles import AREA_FIELDS, SQFT_PER, AreaUnit, BaseModel, DataFile, guess_area_unit
+from oakbox.dates import column_format, iso_day
 from oakbox.projects import Project
 from oakbox.wizard.base import CHARACTERISTIC_STEPS, RENAMED, STEPS, normalized
 from oakbox.wizard.checks import _names
@@ -169,8 +170,10 @@ def _compare(
     today = _by_parcel(files, src, src.load[key][0])
     stamp = file_stamp(files.in_dir / sales.filename)
     sold = values_of(stamp, sales.layer, column)
-    date_col = sales.load.get("sale_date", [None])[0]
-    dates = values_of(stamp, sales.layer, date_col) if date_col else ()
+    date_spec = sales.load.get("sale_date") or [None]
+    date_col = date_spec[0]
+    raw_dates = values_of(stamp, sales.layer, date_col) if date_col else ()
+    fmt = column_format(sales, date_col) if date_col else None
     parcels = files.parcel_ids(sales.name)
     n = have = compared = same = 0
     examples: list[list[str]] = []
@@ -194,7 +197,8 @@ def _compare(
         if len(examples) < EXAMPLES:
             examples.append([v.strip(), t.strip()])
         if len(diffs) < DIFFS:
-            diffs.append(AsSoldDiff(parcel=p, date=dates[i] if i < len(dates) else "", sold=v.strip(), today=t.strip()))
+            day = iso_day(raw_dates[i], fmt) if i < len(raw_dates) else ""
+            diffs.append(AsSoldDiff(parcel=p, date=day, sold=v.strip(), today=t.strip()))
     today_values = {t.strip().upper() for t in today.values()}
     overlap = len(mine_values & today_values) / len(mine_values) if mine_values else 1.0
     if numeric or all(_num(t) is not None for t in list(today_values)[:200]):

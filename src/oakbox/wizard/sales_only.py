@@ -17,6 +17,7 @@ from pathlib import Path
 from pydantic import Field
 
 from oakbox.datafiles import BaseModel, DataFile
+from oakbox.dates import date_format_of, iso_day
 from oakbox.projects import Project
 from oakbox.wizard.base import normalized
 from oakbox.wizard.checks import _names
@@ -54,9 +55,11 @@ def _excluded(project: Project, files: Files, sales: DataFile) -> set[str]:
 
 
 @lru_cache(maxsize=64)
-def _summary(stamp: tuple[str, float, int], layer: str | None, column: str) -> tuple[int, int, int, tuple]:
+def _summary(
+    stamp: tuple[str, float, int], layer: str | None, column: str, fmt: str | None
+) -> tuple[int, int, int, tuple]:
     values = values_of(stamp, layer, column)
-    counts = Counter(v for v in values if v)
+    counts = Counter(iso_day(v, fmt) for v in values if v)  # a date as YYYY-MM-DD, its days counted together
     have = sum(counts.values())
     top = tuple((v, n) for v, n in counts.most_common(TOP))
     return have, len(values), len(counts), top
@@ -74,7 +77,7 @@ def columns(project: Project, in_dir: Path) -> list[SalesOnlyColumn]:
     for c in files.columns(sales.name):
         if c.name in skip:
             continue
-        have, rows, distinct, top = _summary(stamp, sales.layer, c.name)
+        have, rows, distinct, top = _summary(stamp, sales.layer, c.name, date_format_of(files, sales, c.name))
         if distinct < 2 or (have > 50 and distinct >= NEARLY_UNIQUE * have):  # one value, or an ID/link
             continue
         out.append(
@@ -133,5 +136,5 @@ def context(project: Project, in_dir: Path, parcel: str, date: str) -> list[list
     for c in columns(project, in_dir):
         v = values_of(stamp, sales.layer, c.column)[row]
         if v:
-            out.append([c.column, v])
+            out.append([c.column, iso_day(v, date_format_of(files, sales, c.column))])
     return out

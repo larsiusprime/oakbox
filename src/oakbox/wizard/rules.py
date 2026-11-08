@@ -20,6 +20,7 @@ from oakbox.datafiles import (
     rule_fields,
     rule_filter,
 )
+from oakbox.dates import date_format_of, iso_day
 from oakbox.errors import NotFound
 from oakbox.projects import Project
 from oakbox.wizard.base import DATE_WORDS
@@ -97,6 +98,13 @@ def column_values(
         raise NotFound(f"{file}.{column}")
     f = files.entry(file)
     counts = value_counts(file_stamp(in_dir / f.filename), f.layer, column)
+    fmt = date_format_of(files, f, column)
+    if fmt is not None:  # dates as YYYY-MM-DD, each day's rows together (times of day, ways of writing it)
+        merged: dict[str, int] = {}
+        for v, n in counts:
+            d = iso_day(v, fmt) if v else ""
+            merged[d] = merged.get(d, 0) + n
+        counts = tuple(sorted(merged.items(), key=lambda x: -x[1]))
     blank = next((n for v, n in counts if v == ""), 0)
     listed = [(v, n) for v, n in counts if v]
     q = search.strip().lower()

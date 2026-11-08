@@ -211,6 +211,16 @@ app window, its page from the dev server), or `npm run dev:wording -- --host 127
 `python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. A message may have line breaks (`\n`) and paragraph breaks (`\n\n`): show
 wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
+**The two datasets, by name (non-negotiable, 2026-11-08):** always **Parcel universe** (every parcel, sold or not,
+as it is now: what's valued) and **Sales record** (every sale: what the models learn from), with their symbols:
+🌐 Parcel universe, 💰 Sales record. "In the parcel universe", "in the sales record"; never "today's", "as it is
+today", "the parcels'", "at the sale", "as sold", "in the sale" or other loose stand-ins. A box, column or heading
+that's one of them is headed by its name and symbol ("🌐 Parcel universe", "💰 Sales record"). The files are still
+named as files (`sale.csv`); the dataset is named as the dataset.
+**Dates (non-negotiable, 2026-11-08):** every date shown is **YYYY-MM-DD**, however the file writes it: read with its
+column's format (`oakbox/dates.py`: `iso_day`, `date_format_of`; the page's `day`, `isoDay`, `when` in
+`lib/format.ts`), never a file's own way ("12/15/1988 0:01") or the computer's locale. The one exception is a date
+field's reading table, whose "As written" side is there to show the file's own way beside YYYY-MM-DD.
 **Naming the steps:** a step is its tab's short name (Inputs, Model groups, Sales, Evaluate, Variables, Models,
 Report): its page's title, "Looks right › Sales", "Press Looks right on Sales first". Its run keeps a verb (Bring in data,
 Check sales, Check my values), on its Run button and wherever the run is meant ("applies on the next Check sales").

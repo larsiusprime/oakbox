@@ -13,7 +13,7 @@ import { Choice, Field } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { OUTLIER } from "../lib/colours";
-import { day, money, num, pct } from "../lib/format";
+import { day, money, num, pct, when } from "../lib/format";
 import { t } from "../wording";
 
 type S = components["schemas"];
@@ -183,7 +183,7 @@ export function Outliers({ projectId, currency }: { projectId: string; currency:
                       </td>
                       <td className="num">{fmt(s.price)}</td>
                       <td className="num">{fmt(s.value)}</td>
-                      <td>{s.date.slice(0, 7)}</td>
+                      <td>{day(s.date)}</td>
                       <td>
                         {s.call ? (
                           <span className={s.applied || s.call === "model" ? "ol-tag done" : "ol-tag"}>
@@ -793,7 +793,7 @@ function PatchesCard({ projectId }: { projectId: string }) {
                   <td className="num">{p.now}</td>
                   <td>{p.source}</td>
                   <td>{p.by}</td>
-                  <td>{p.at.replace("T", " ")}</td>
+                  <td>{when(p.at)}</td>
                   <td>
                     <Button
                       className="button"
