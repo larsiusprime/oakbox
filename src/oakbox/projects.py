@@ -131,6 +131,11 @@ class WizardState(BaseModel):
         description="Sales as sold: characteristic -> the sales file's column the sales use; \"\": today's (the "
         "parcel's), chosen. Missing: not chosen (today's).",
     )
+    as_sold_auto: list[str] = Field(
+        default_factory=list,
+        description="Of as_sold, the ones OAK box picked (the same column name, the same as today's for 90%+); "
+        "chosen by the user, they leave this list.",
+    )
     condos: bool | None = Field(
         default=None,
         description="Condo units: whether some parcels are units without a shape of their own; None: not asked yet.",

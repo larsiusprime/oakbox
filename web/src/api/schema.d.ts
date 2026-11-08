@@ -714,6 +714,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/wizard/sales-only": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Sales Only
+         * @description The main sales file's columns no parcel file has: for valid-sale rules and Outliers, not models (F3d).
+         */
+        get: operations["wizard_sales_only_api_projects__project_id__wizard_sales_only_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/wizard/as-sold": {
         parameters: {
             query?: never;
@@ -3157,6 +3177,12 @@ export interface components {
              * @description The user's; None: not chosen (today's is used).
              */
             choice: ("sale" | "today") | null;
+            /**
+             * Auto
+             * @description The sale's, picked by OAK box (AUTO_SAME); the user can change it.
+             * @default false
+             */
+            auto: boolean;
             /**
              * Suggest
              * @description What the figures suggest: today's when they're the same; None: written another way.
@@ -7187,6 +7213,11 @@ export interface components {
              * @enum {string}
              */
             units: "mi" | "km";
+            /**
+             * At Sale
+             * @description [column, value]: the sale's own values in the columns only the sales file has (REMODELED, SALE_TYPE): context, not model variables.
+             */
+            at_sale: string[][];
         };
         /** OutlierGroupCount */
         OutlierGroupCount: {
@@ -9164,6 +9195,39 @@ export interface components {
             count: number;
             /** Text */
             text: string;
+        };
+        /** SalesOnlyColumn */
+        SalesOnlyColumn: {
+            /** Column */
+            column: string;
+            /**
+             * Have
+             * @description Sales with a value in it.
+             */
+            have: number;
+            /** Rows */
+            rows: number;
+            /** Distinct */
+            distinct: number;
+            /**
+             * Top
+             * @description [value, count], the most common first.
+             */
+            top: string[][];
+            /**
+             * In Rule
+             * @description A valid or vacant sale rule tests it already.
+             */
+            in_rule: boolean;
+        };
+        /** SalesOnlyView */
+        SalesOnlyView: {
+            /** Sales File */
+            sales_file: string | null;
+            /** Filename */
+            filename: string | null;
+            /** Columns */
+            columns: components["schemas"]["SalesOnlyColumn"][];
         };
         /**
          * SalesSet
@@ -11251,6 +11315,11 @@ export interface components {
                 [key: string]: string;
             };
             /**
+             * As Sold Auto
+             * @description Of as_sold, the ones OAK box picked (the same column name, the same as today's for 90%+); chosen by the user, they leave this list.
+             */
+            as_sold_auto: string[];
+            /**
              * Condos
              * @description Condo units: whether some parcels are units without a shape of their own; None: not asked yet.
              */
@@ -12719,6 +12788,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RulePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_sales_only_api_projects__project_id__wizard_sales_only_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOnlyView"];
                 };
             };
             /** @description Validation Error */

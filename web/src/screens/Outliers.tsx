@@ -4,7 +4,7 @@
 
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
@@ -413,6 +413,22 @@ function SaleCard({
             </>
           )}
         </dl>
+        {d.at_sale.length > 0 && (
+          <>
+            <h4>{o.atSale}</h4>
+            <p className="wiz-from">{o.atSaleLede}</p>
+            <dl className="ol-dl">
+              {d.at_sale.map(([c = "", v = ""]) => (
+                <Fragment key={c}>
+                  <dt>
+                    <code>{c}</code>
+                  </dt>
+                  <dd>{v}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          </>
+        )}
         <h4>{o.comps}</h4>
         {d.basis ? (
           <p className="wiz-from">

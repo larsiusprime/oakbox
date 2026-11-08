@@ -6938,6 +6938,12 @@ div.map-wait-ask small {
   display: grid;
   gap: 0.3em;
 }
+.as-only {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  margin-top: calc(1.2 * var(--sp));
+}
 .as-table-wrap {
   margin-top: calc(1 * var(--sp));
 }

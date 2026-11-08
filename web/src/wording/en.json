@@ -1237,7 +1237,7 @@
       "noSales": "Add the sales file first, on Sales.",
       "noneFound": "{file} doesn't describe the property: every sale will use today's characteristics (it's assumed the parcel hasn't changed).",
       "loading": "Comparing {file} with today's characteristics",
-      "lede": "{file}'s columns that look like a parcel field, each checked against the parcel's value today, on the same parcels. Until you choose, sales use today's.",
+      "lede": "{file}'s columns that look like a parcel field, each checked against the parcel's value today, on the same parcels. The obvious ones (the very same column name, the same as today's for 90% or more) are picked for you; the rest use today's until you choose.",
       "cols": {
         "field": "Parcel field (today, from)",
         "column": "In {file}",
@@ -1291,7 +1291,19 @@
       "tableLede": "Each field's column in {file}, if the sales have one of their own; else they take today's.",
       "against": "Against today's",
       "writtenDifferentlyPill": "written differently",
-      "writtenDifferentlyWhy": "{sold} where today's is {today}: these can't be compared, or read as today's are. Export the same codes to use them; sales use today's until then."
+      "writtenDifferentlyWhy": "{sold} where today's is {today}: these can't be compared, or read as today's are. Export the same codes to use them; sales use today's until then.",
+      "auto": "picked for you",
+      "autoNote": "Picked for you: the same column name as today's, read the same way, the same for {pct} of sales. Choose none: today's to use the parcels' instead.",
+      "onlyTitle": "Only in the sales file",
+      "onlyLede": "{file}'s columns that describe the sale or the property as sold, which no parcel file has. A model can't use them: it values every parcel, and parcels don't have them. They can decide which sales count: a rule on Valid sale (leave out a status, a type). And they show beside each sale in Outliers.",
+      "onlyCols": {
+        "column": "Column",
+        "have": "Sales with one",
+        "values": "Most common"
+      },
+      "inRule": "in a rule",
+      "toValid": "Valid sale",
+      "onlyNone": "Every column in {file} is loaded for a field or mirrors a parcel column."
     }
   },
   "tabs": {
@@ -3001,7 +3013,9 @@
       },
       "apply": "Apply my calls",
       "compsHow": "Its comps (layered comps): the {n, number} other {n, plural, =1 {sale} other {sales}} where, {depth, number} of the {full, number} splits of its comp tree kept:",
-      "noComps": "No comps: no comp tree for its group (too few sales)."
+      "noComps": "No comps: no comp tree for its group (too few sales).",
+      "atSale": "At the sale, only in the sales file",
+      "atSaleLede": "What the sales file says about this sale that the parcels don't (it can't be a model's variable): a remodel, a sale type, a status may explain it, and make it a sale to set aside."
     }
   },
   "metadata": {

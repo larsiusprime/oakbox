@@ -31,6 +31,7 @@ from oakbox.projects import BIG_FIVE_PARTS, SALES_PARTS, Project
 from oakbox.valuesets import ROLL, value_field, value_sets
 from oakbox.wizard.base import (
     ASSUMABLE,
+    CHARACTERISTIC_STEPS,
     ONLY_WITHOUT,
     PAIRS,
     PARENTS,
@@ -651,6 +652,10 @@ def _guess(project: Project, in_dir: Path, step: str) -> None:
                 files.entry(found[0]).area_units[key] = unit
             loaded.add(key)
             project.wizard.decided.append(key)
+    if step in CHARACTERISTIC_STEPS:
+        from oakbox.wizard.as_sold import autopick
+
+        autopick(project, in_dir, [*spec.fields, *spec.more])  # the sales' obvious column for what was just guessed
 
 
 def _guess_universe(project: Project, files: Files) -> None:
@@ -894,6 +899,10 @@ def set_file(
         for step in STEPS:
             if step.fields and not step.sales and step.key in project.wizard.visited:
                 _guess(project, in_dir, step.key)
+    if holds in ("sales", "parcels") or id_column is not None:
+        from oakbox.wizard.as_sold import autopick
+
+        autopick(project, in_dir)  # a sales file, or a parcel file's ID, new: the sales' obvious columns
 
 
 def _put(entry: DataFile, field: str, spec: list[str]) -> None:

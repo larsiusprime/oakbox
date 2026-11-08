@@ -157,11 +157,13 @@ def set_field(
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if only is not None:
         return
+    from oakbox.wizard.as_sold import autopick, resync
+
     if key in project.wizard.as_sold:
         # The sales' copy of it (Sales as sold) follows: read as the parcel's now is, or today's if it's gone.
-        from oakbox.wizard.as_sold import resync
-
         resync(project, in_dir, key)
+    else:
+        autopick(project, in_dir, [key])  # an obvious sale's column, picked (conservatively)
     if key not in project.wizard.decided:
         project.wizard.decided.append(key)
     if step.key in project.wizard.skipped and (file or assume):

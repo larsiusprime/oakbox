@@ -235,7 +235,7 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
                 ))}
             </div>
           )}
-          {current.key === "as_sold" && <AsSoldStep projectId={project.id} />}
+          {current.key === "as_sold" && <AsSoldStep projectId={project.id} go={go} />}
           {current.key === "coordinates" && (
             <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
           )}

@@ -68,7 +68,7 @@ const show = (v: string, key: string) =>
     : v;
 
 /** The step: the explanation first, then the columns. */
-export function AsSoldStep({ projectId }: { projectId: string }) {
+export function AsSoldStep({ projectId, go }: { projectId: string; go: (step: string) => void }) {
   const [page, setPage] = useState<"explain" | "columns">("explain");
   return page === "explain" ? (
     <div className="as-explain">
@@ -90,6 +90,7 @@ export function AsSoldStep({ projectId }: { projectId: string }) {
         ‹ {a.back}
       </Button>
       <Columns projectId={projectId} />
+      <SalesOnly projectId={projectId} go={go} />
     </div>
   );
 }
@@ -149,7 +150,8 @@ function Columns({ projectId }: { projectId: string }) {
                   disabled={choose.isPending}
                   pick={(column) => choose.mutate({ key: r.key, column })}
                 />
-                {r.suggest && r.suggest !== (r.choice ?? "today") && (
+                {r.auto && <span className="pill pill-ok">{a.auto}</span>}
+                {!r.auto && r.suggest && r.suggest !== (r.choice ?? "today") && (
                   <span className="pill pill-info">
                     {a.suggested}: {r.suggest === "sale" ? a.sale : a.today}
                   </span>
@@ -270,7 +272,11 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
             disabled={choose.isPending}
             pick={(c) => pick(c ?? TODAY)}
           />
-          {r.column && r.how && <span className="pill pill-info">{a.how[r.how]}</span>}
+          {r.auto ? (
+            <span className="pill pill-ok">{a.auto}</span>
+          ) : (
+            r.column && r.how && <span className="pill pill-info">{a.how[r.how]}</span>
+          )}
         </span>
         {area && r.column && (
           <>
@@ -363,6 +369,7 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
             </table>
           )}
           <p className="wiz-from as-note">
+            {r.auto && `${a.autoNote({ pct: pct(same) })} `}
             {!used && `${a.notUsed({ column: r.column })} `}
             {r.suggest === "today"
               ? a.suggestToday
@@ -441,5 +448,59 @@ export function AtSaleTable({ projectId, fields }: { projectId: string; fields: 
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** The sales file's columns no parcel file has: not for models; for valid-sale rules, and Outliers (2026-11-08). */
+function SalesOnly({ projectId, go }: { projectId: string; go: (step: string) => void }) {
+  const q = useQuery({
+    queryKey: ["sales-only", projectId],
+    meta: { quiet: true }, // its own Waiting
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/wizard/sales-only", {
+          params: { path: { project_id: projectId } },
+          signal,
+        }),
+      ),
+  });
+  const v = q.data;
+  if (!v) return q.isFetching ? <Waiting doing={a.loading({ file: "the sales file" })} /> : null;
+  if (!v.sales_file) return null;
+  const file = v.filename ?? v.sales_file;
+  return (
+    <section className="as-only">
+      <h3 className="wiz-group">{a.onlyTitle}</h3>
+      <p className="wiz-from">{a.onlyLede({ file })}</p>
+      {v.columns.length === 0 ? (
+        <p className="wiz-note">{a.onlyNone({ file })}</p>
+      ) : (
+        <table className="tbl as-table">
+          <thead>
+            <tr>
+              <th>{a.onlyCols.column}</th>
+              <th className="cs-n">{a.onlyCols.have}</th>
+              <th>{a.onlyCols.values}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {v.columns.map((c) => (
+              <tr key={c.column}>
+                <td>
+                  <code>{c.column}</code> {c.in_rule && <span className="pill pill-info">{a.inRule}</span>}
+                </td>
+                <td className="cs-n">{share(c.have, c.rows)}</td>
+                <td>
+                  {c.top.map(([val = "", n = ""]) => `${val} (${Number(n).toLocaleString()})`).join(", ")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <Button className="button" onPress={() => go("valid_sale")}>
+        {a.toValid} ›
+      </Button>
+    </section>
   );
 }

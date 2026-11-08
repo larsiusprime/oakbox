@@ -34,6 +34,8 @@ EXAMPLES = 3
 DIFFS = 50  # the sales that differ, listed (See them)
 BY_VALUES = 0.5  # a column found by its values: the same as today's for at least this share
 SAMPLE = 4000  # sales compared when looking for a column by its values
+AUTO_SAME = 0.9  # picked for the user: the same column name, and the same as today's for this share
+AUTO_MIN = 20  # ... of at least this many sales
 
 
 def characteristic_keys() -> list[str]:
@@ -62,6 +64,7 @@ class AsSoldRow(BaseModel):
     unit: AreaUnit | None = Field(default=None, description="An area: the unit the sales file's column is in.")
     today_unit: AreaUnit | None = Field(default=None, description="An area: the unit today's column is in.")
     choice: Literal["sale", "today"] | None = Field(description="The user's; None: not chosen (today's is used).")
+    auto: bool = Field(default=False, description="The sale's, picked by OAK box (AUTO_SAME); the user can change it.")
     suggest: Literal["sale", "today"] | None = Field(
         description="What the figures suggest: today's when they're the same; None: written another way."
     )
@@ -269,6 +272,7 @@ def view(project: Project, in_dir: Path) -> AsSoldView:
                 unit=unit if key in AREA_FIELDS else None,
                 today_unit=today_unit,
                 choice=("sale" if mine else "today") if key in chosen else None,
+                auto=key in project.wizard.as_sold_auto,
                 suggest=suggest,
                 **c,
             )
@@ -293,6 +297,8 @@ def choose(project: Project, in_dir: Path, key: str, column: str | None, area_un
         raise ValueError("Add the sales file first.")
     if src is None:
         raise ValueError("Load it for the parcels first: a sale's value is used beside the parcel's, never alone.")
+    if key in project.wizard.as_sold_auto:
+        project.wizard.as_sold_auto.remove(key)  # the user's now (autopick adds it back for its own)
     if column is None:
         set_field(project, in_dir, key, None, None, False, only=sales.name)
         project.wizard.as_sold[key] = ""
@@ -339,5 +345,38 @@ def resync(project: Project, in_dir: Path, key: str) -> None:
         if sales is not None:
             set_field(project, in_dir, key, None, None, False, only=sales.name)
         project.wizard.as_sold.pop(key, None)
+        if key in project.wizard.as_sold_auto:
+            project.wizard.as_sold_auto.remove(key)
         return
+    auto = key in project.wizard.as_sold_auto
     choose(project, in_dir, key, column)
+    if auto:
+        project.wizard.as_sold_auto.append(key)
+
+
+def autopick(project: Project, in_dir: Path, keys: list[str] | None = None) -> None:
+    """Conservatively, the sale's where it's obvious: the sales file has a column of the very same name as the
+    parcel's, read the same way, the same as today's for 90%+ of at least 20 sales. Never over a choice (the user's,
+    or none: today's chosen); marked as picked (as_sold_auto), so it's said and can be changed."""
+    sales = sales_file(project)
+    if sales is None:
+        return
+    files = Files(project, in_dir)
+    if sales.name not in files.preview:
+        return
+    taken = {s[0] for k, s in sales.load.items() if k not in characteristic_keys()}
+    for key in keys if keys is not None else characteristic_keys():
+        if key not in characteristic_keys() or key in project.wizard.as_sold or key in sales.load:
+            continue
+        src = _parcel_source(project, key)
+        if src is None:
+            continue
+        hit = _found(files, sales, key, src.load[key][0], taken)
+        if hit is None or hit[1] != "name":
+            continue
+        unit = _unit_of(project, in_dir, key, hit[0], sales, src)
+        c = _compare(project, files, sales, key, hit[0], src, unit)
+        if c["written_differently"] or c["compared"] < AUTO_MIN or c["same"] < AUTO_SAME * c["compared"]:
+            continue
+        choose(project, in_dir, key, hit[0], unit)
+        project.wizard.as_sold_auto.append(key)

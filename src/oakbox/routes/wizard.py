@@ -12,7 +12,7 @@ from oakbox import datafiles, enrichments, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
 from oakbox.errors import NotFound
 from oakbox.routes.common import editing, file_entry, load_project, wizard_view
-from oakbox.wizard import as_sold
+from oakbox.wizard import as_sold, sales_only
 
 router = APIRouter()
 
@@ -311,6 +311,12 @@ def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizar
 class AsSoldChoice(BaseModel):
     column: str | None = Field(description="The sales file's column the sales use; null: today's (the parcel's).")
     area_unit: datafiles.AreaUnit | None = Field(default=None, description="An area: the unit the column is in.")
+
+
+@router.get("/api/projects/{project_id}/wizard/sales-only")
+def wizard_sales_only(project_id: str) -> sales_only.SalesOnlyView:
+    """The main sales file's columns no parcel file has: for valid-sale rules and Outliers, not models (F3d)."""
+    return sales_only.view(load_project(project_id), projects.inputs_dir(project_id))
 
 
 @router.get("/api/projects/{project_id}/wizard/as-sold")

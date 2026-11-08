@@ -288,6 +288,61 @@ def test_at_the_sale_reads_an_area_in_its_own_unit(client, pid, tmp_path):
     assert h["unit"] == "sq ft" and round(h["median"]) == 1500
 
 
+def test_obvious_sales_columns_are_picked_and_sales_only_ones_listed(client, pid, tmp_path):
+    """The sale's column picked for the user when obvious (the same name, the same as today's for 90%+ of 20+ sales),
+    marked so; the user's choice stands. The sales file's own columns (no parcel file has them) listed, IDs and
+    one-valued ones left out, and found again for one sale by its parcel and date (Outliers)."""
+    from oakbox import projects as pr
+    from oakbox.wizard import sales_only
+
+    area = dict(zip(IDS, [1500, 2200, 980, 1750, 3100, 1200], strict=True))  # cama's LIVING_AREA
+    rows = [(IDS[n % 4], f"{1 + n % 12:02d}/{1 + n:02d}/2023") for n in range(24)]
+    pd.DataFrame(
+        {
+            "PROP_ID": [r[0] for r in rows],
+            "SALE_PRICE": [200000 + 1000 * n for n in range(24)],
+            "SALE_DT": [r[1] for r in rows],
+            "LIVING_AREA": [area[r[0]] for r in rows],
+            "SALE_TYPE": ["IMPROVED" if n % 3 else "VACANT" for n in range(24)],
+            "DEED_NO": [f"D{n:04d}" for n in range(24)],  # a name the field dictionary knows: not only the sales'
+            "NOTE": [f"n{n % 7}" for n in range(24)],
+            "STATUS": ["Q"] * 24,  # one value: left out
+        }
+    ).to_csv(tmp_path / "sales_many.csv", index=False)
+    body = {"path": str(tmp_path / "sales_many.csv"), "mode": "copy", "name": "sales_many"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "shapes", universe=True)
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_many", holds="sales")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sales_many", "column": "SALE_PRICE"})
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    row = next(
+        r
+        for r in client.get(f"/api/projects/{pid}/wizard/as-sold").json()["rows"]
+        if r["key"] == "bldg_area_finished_sqft"
+    )
+    assert (row["choice"], row["auto"], row["column"]) == ("sale", True, "LIVING_AREA")
+    assert read_settings(pid)["data"]["load"]["sales_many"]["load"]["bldg_area_finished_sqft"][0] == "LIVING_AREA"
+    # The user's choice (today's) stands, and isn't marked picked; setting the parcel field again doesn't re-pick.
+    client.put(f"/api/projects/{pid}/wizard/as-sold/bldg_area_finished_sqft", json={"column": None})
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    row = next(
+        r
+        for r in client.get(f"/api/projects/{pid}/wizard/as-sold").json()["rows"]
+        if r["key"] == "bldg_area_finished_sqft"
+    )
+    assert (row["choice"], row["auto"]) == ("today", False)
+    # Only in the sales file: SALE_TYPE, NOTE; not STATUS (one value), DEED_NO (known), nor the loaded.
+    only = client.get(f"/api/projects/{pid}/wizard/sales-only").json()
+    assert [c["column"] for c in only["columns"]] == ["SALE_TYPE", "NOTE"]
+    assert only["columns"][0]["top"][0] == ["IMPROVED", "16"]
+    # One sale, found by its parcel and date.
+    project = pr.load(pid)
+    ctx = sales_only.context(project, pr.inputs_dir(pid), IDS[0], "2023-01-01")
+    assert ctx == [["SALE_TYPE", "VACANT"], ["NOTE", "n0"]]
+
+
 def test_names_say_the_jurisdiction(client, pid):
     w = client.get(f"/api/projects/{pid}/wizard").json()
     jurisdiction = projects.load(pid).jurisdiction

@@ -359,6 +359,11 @@ class OutlierDetail(BaseModel):
     patchable: list[OutlierPatchField] = Field(description="The parcel's fields a patch can correct, as they are now.")
     groups: list[tuple[str, str]] = Field(description="(id, name) of the groups it can be moved to.")
     units: Literal["mi", "km"]
+    at_sale: list[list[str]] = Field(
+        default_factory=list,
+        description="[column, value]: the sale's own values in the columns only the sales file has (REMODELED, "
+        "SALE_TYPE): context, not model variables.",
+    )
 
 
 def _area_field(project: Project) -> str:
@@ -565,7 +570,18 @@ def detail(project: Project, project_dir: Path, key_sale: str) -> OutlierDetail:
         patchable=patchable,
         groups=[(x.id, x.name) for x in project.groups if x.id != group],
         units="mi" if imperial else "km",
+        at_sale=_at_sale(project, project_dir, me),
     )
+
+
+def _at_sale(project: Project, project_dir: Path, me) -> list[list[str]]:
+    """The sale's row in the sales file, by its parcel and date: its values only that file has."""
+    from oakbox.wizard.sales_only import context
+
+    try:
+        return context(project, project_dir / "in", str(me.get("key")), str(me.get("sale_date"))[:10])
+    except Exception:  # noqa: BLE001 - context only: the details show without it
+        return []
 
 
 def patch_fields(project_dir: Path) -> set[str]:

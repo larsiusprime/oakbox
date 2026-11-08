@@ -130,7 +130,16 @@ def test_what_the_misses_have_in_common_finds_the_field_and_not_the_noise(tmp_pa
     assert c.clustered is False  # random places: the errors aren't alike between neighbours
 
 
-def test_the_outliers_worst_first_and_one_sales_context(tmp_path, looked):
+def test_the_outliers_worst_first_and_one_sales_context(tmp_path, looked, monkeypatch):
+    from oakbox.wizard import sales_only
+
+    asked = []
+
+    def ctx(project, in_dir, parcel, date):
+        asked.append((in_dir, parcel, date))
+        return [["SALE_TYPE", "VACANT"]]
+
+    monkeypatch.setattr(sales_only, "context", ctx)
     t = _sales(tmp_path)
     p = _project()
     v = outliers.view(p, tmp_path, None)
@@ -153,6 +162,9 @@ def test_the_outliers_worst_first_and_one_sales_context(tmp_path, looked):
     pool = next(u for u in d.unlike if u.field == "pool")
     assert pool.share is not None and not pool.in_model
     assert {x.field for x in d.patchable} == {"bldg_quality_num", "pool"}
+    # Only the sales file's: the sale's own row, found by its parcel and date.
+    assert d.at_sale == [["SALE_TYPE", "VACANT"]]
+    assert asked[0] == (tmp_path / "in", d.sale.key, "2025-01-01")
 
 
 def test_each_call_goes_where_it_belongs_and_comes_back(tmp_path, looked):

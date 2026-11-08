@@ -912,6 +912,18 @@ export type Wording = {
       against: string;
       writtenDifferentlyPill: string;
       writtenDifferentlyWhy: (a: { sold: string | number; today: string | number }) => string;
+      auto: string;
+      autoNote: (a: { pct: string | number }) => string;
+      onlyTitle: string;
+      onlyLede: (a: { file: string | number }) => string;
+      onlyCols: {
+        column: string;
+        have: string;
+        values: string;
+      };
+      inRule: string;
+      toValid: string;
+      onlyNone: (a: { file: string | number }) => string;
     };
   };
   tabs: {
@@ -2406,6 +2418,8 @@ export type Wording = {
       apply: string;
       compsHow: (a: { n: number; depth: number; full: number }) => string;
       noComps: string;
+      atSale: string;
+      atSaleLede: string;
     };
   };
   metadata: {

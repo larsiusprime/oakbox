@@ -627,6 +627,20 @@ the field steps, checks, guesses, assumptions and Review carry over.
   unit (Guilford's `ACREAGE` in acres against `Shape__Area` in sq ft: the same for 77%). Nothing found: said, and any
   column can still be picked.
 
+  **Picked for you, conservatively** (2026-11-08, `as_sold.autopick`). The sale's column is picked, and marked
+  **picked for you**, only when it's obvious: the sales file has a column of the very same name as the parcel's, it
+  isn't written differently, and it's the same as today's for 90% or more of at least 20 sales. Never over a choice
+  (the user's, or *none: today's* chosen); choosing takes the mark off. Looked for when a characteristic is guessed or
+  chosen for the parcels, and when the sales file or a parcel file is set. Guilford: `YEAR_BUILT`, 99.7%.
+
+  **Only in the sales file** (2026-11-08, `wizard/sales_only.py`). Under the step's table, the sales file's columns
+  no parcel file has (not loaded for a field, not a parcel column's name nor one the field dictionary knows; blank,
+  one-valued and nearly unique ones left out): each with its share of sales and most common values. A model can't use
+  them (it values every parcel; parcels don't have them); they can decide which sales count (a rule on **Valid
+  sale**, linked), and they show beside each sale in Outliers. Guilford: `SALE_TYPE`, `SALE_STATUS`,
+  `REVENUE_STAMP_VALUE`, `GRADE_UNEDIT`… In **Outliers**, a sale's details show its own values in them (**At the
+  sale, only in the sales file**), its row found by its parcel and sale date, as the run makes its key.
+
   **At the sale, on each characteristic's own screen** (2026-11-07, `AtSale` in `AsSold.tsx`). Beside its column
   (**Today's**, the parcels: what's valued), **At the sale** (the sales: what the models learn from), the same widget
   reading the sales file: **Column** (*none: today's*; the one found, marked found, not used until picked; any of the
