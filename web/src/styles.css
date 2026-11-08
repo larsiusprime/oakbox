@@ -7097,6 +7097,11 @@ div.map-wait-ask small {
   min-width: 100%;
   overflow-x: auto;
 }
+/* Inside a panel (Sale price's As it's read): the spread as wide as a chart is, not the page. */
+.qc-panel > .fh-in {
+  width: 36rem;
+  max-width: 100%;
+}
 /* In a field's details (Inputs): the popover's width, bars and track alike. */
 .fd-ranged {
   display: grid;

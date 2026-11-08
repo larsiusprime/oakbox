@@ -89,10 +89,6 @@ export function SalesFieldPage({
       {field.key === "sale_price" && file && column && (
         <NumberPreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
       )}
-      {/* How the prices spread, as read: $10 deeds and $50M portfolios at the ends, the range set live. */}
-      {field.key === "sale_price" && file && column && (
-        <FieldHistogram projectId={project.id} field={field} sales />
-      )}
       {dated && file && column && (
         <DatePreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
       )}
@@ -261,6 +257,9 @@ function NumberPreview({
           ))}
         </tbody>
       </table>
+      {/* How the prices spread, as read: in this box, under the samples ($10 deeds and portfolio sales at the ends,
+          the range set live). */}
+      <FieldHistogram projectId={projectId} field={field} sales bare />
     </div>
   );
 }
