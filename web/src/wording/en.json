@@ -154,14 +154,14 @@
     "columnFor": "Column for {field}",
     "steps": {
       "universe": {
-        "title": "Parcel universe",
-        "question": "Parcel Universe",
-        "lede": "Please provide the file that contains your parcel GEOMETRY as well as your primary parcel ID."
+        "title": "🌐 Parcel Universe",
+        "question": "🌐 Parcel Universe",
+        "lede": "Every parcel, sold or not, as it is now: what's valued. Please provide the file that contains your parcel GEOMETRY as well as your primary parcel ID."
       },
       "sales": {
-        "title": "Sales",
-        "question": "Which file holds the sales?",
-        "lede": "The sales record: one row per sale. Pick it here; its date, its IDs and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
+        "title": "💰 Sales Record",
+        "question": "Which file is your 💰 Sales Record?",
+        "lede": "One row per sale: what the models learn from. Pick it here; its date, its IDs and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
       },
       "sales_ids": {
         "title": "IDs",
@@ -817,11 +817,11 @@
       "first": "Add a file",
       "another": "Add another file",
       "what": "It''s about",
-      "parcels": "Parcels",
-      "sales": "Sales",
+      "parcels": "🌐 Parcel Universe",
+      "sales": "💰 Sales Record",
       "how": "It adds",
-      "joinedParcels": "More about each parcel",
-      "joinedSales": "More about each sale",
+      "joinedParcels": "More fields for each parcel",
+      "joinedSales": "More fields for each sale",
       "rowsParcels": "More parcels",
       "rowsSales": "More sales",
       "needsShapes": "Needs shapes, as the parcel universe''s parcels have",
@@ -1248,7 +1248,7 @@
       "loading": "Comparing {file} with the parcel universe",
       "lede": "{file}'s columns that look like a parcel universe field, each checked against the parcel universe on the same parcels. The obvious ones (the very same column name, the same as the parcel universe for 90% or more) are picked for you; the rest take the parcel universe's until you choose.",
       "cols": {
-        "field": "🌐 Parcel universe field (its column, file)",
+        "field": "🌐 Parcel Universe field (its column, file)",
         "column": "💰 In {file}",
         "have": "Sales with a value",
         "against": "Against the parcel universe",
@@ -1257,14 +1257,14 @@
       "same": "same for {pct}",
       "differs": "differs for {pct}",
       "writtenDifferently": "written differently ({sold} where the parcel universe has {today}): export the same codes to use it",
-      "sale": "💰 Sales record",
-      "today": "🌐 Parcel universe",
+      "sale": "💰 Sales Record",
+      "today": "🌐 Parcel Universe",
       "suggested": "suggested",
       "allSame": "Everything here matches the parcel universe: {file} looks like the parcel universe's fields exported with the sales, not the property as it sold. Using it changes little.",
       "forSales": "For sales",
-      "atSale": "💰 Sales record",
+      "atSale": "💰 Sales Record",
       "atSaleNote": "the sales: what the models learn from",
-      "todays": "🌐 Parcel universe",
+      "todays": "🌐 Parcel Universe",
       "todaysNote": "the parcels: what's valued",
       "column": "Column",
       "unit": "Its unit",
@@ -1287,11 +1287,11 @@
       "diffCols": {
         "parcel": "Parcel",
         "date": "Sold",
-        "sold": "💰 Sales record",
-        "today": "🌐 Parcel universe"
+        "sold": "💰 Sales Record",
+        "today": "🌐 Parcel Universe"
       },
       "onSales": "In the sales record for {pct} of sales; the rest take the parcel universe's.",
-      "tableTitle": "💰 Sales record",
+      "tableTitle": "💰 Sales Record",
       "tableLede": "Each field's column in {file}, if the sales record has one of its own; else sales take the parcel universe's.",
       "against": "Against the parcel universe:",
       "writtenDifferentlyPill": "written differently",
@@ -1308,8 +1308,8 @@
       "inRule": "in a rule",
       "toValid": "Valid sale",
       "onlyNone": "Every column in {file} is loaded for a field or mirrors a parcel column.",
-      "puTitle": "🌐 Parcel universe",
-      "srTitle": "💰 Sales record",
+      "puTitle": "🌐 Parcel Universe",
+      "srTitle": "💰 Sales Record",
       "puNote": "what's valued",
       "srNote": "what the models learn from"
     }
@@ -3027,7 +3027,7 @@
       "apply": "Apply my calls",
       "compsHow": "Its comps (layered comps): the {n, number} other {n, plural, =1 {sale} other {sales}} where, {depth, number} of the {full, number} splits of its comp tree kept:",
       "noComps": "No comps: no comp tree for its group (too few sales).",
-      "atSale": "💰 Only in the sales record",
+      "atSale": "💰 Only in the Sales Record",
       "atSaleLede": "What the sales record says about this sale that the parcel universe doesn't (it can't be a model's variable): a remodel, a sale type, a status may explain it, and make it a sale to set aside."
     }
   },

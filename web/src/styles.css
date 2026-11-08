@@ -7090,6 +7090,13 @@ div.map-wait-ask small {
 .as-pair .fh-track {
   width: 28rem;
 }
+/* Quality and condition in one 🌐 capsule: what it sold for inside it, never wider than its rows (its words and table
+   wrap or scroll), so the 💰 capsule fits beside it. */
+.qc-cap > .qc-in {
+  width: 0;
+  min-width: 100%;
+  overflow-x: auto;
+}
 /* In a field's details (Inputs): the popover's width, bars and track alike. */
 .fd-ranged {
   display: grid;

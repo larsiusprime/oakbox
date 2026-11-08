@@ -218,9 +218,10 @@ wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor 
 keep it behind `__WORDING_EDIT__`.
 **The two datasets, by name (non-negotiable, 2026-11-08):** always **Parcel universe** (every parcel, sold or not,
 as it is now: what's valued) and **Sales record** (every sale: what the models learn from), with their symbols:
-🌐 Parcel universe, 💰 Sales record. "In the parcel universe", "in the sales record"; never "today's", "as it is
-today", "the parcels'", "at the sale", "as sold", "in the sale" or other loose stand-ins. A box, column or heading
-that's one of them is headed by its name and symbol ("🌐 Parcel universe", "💰 Sales record"). The files are still
+🌐 Parcel Universe, 💰 Sales Record. "In the parcel universe", "in the sales record"; never "today's", "as it is
+today", "the parcels'", "at the sale", "as sold", "in the sale" or other loose stand-ins. A box, column, step or heading
+that's one of them is headed by its symbol and its name in title case ("🌐 Parcel Universe", "💰 Sales Record"); in
+running text, lower case ("in the parcel universe"). The files are still
 named as files (`sale.csv`); the dataset is named as the dataset.
 **Dates (non-negotiable, 2026-11-08):** every date shown is **YYYY-MM-DD**, however the file writes it: read with its
 column's format (`oakbox/dates.py`: `iso_day`, `date_format_of`; the page's `day`, `isoDay`, `when` in

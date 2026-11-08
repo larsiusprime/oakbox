@@ -224,7 +224,18 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             // Today's (the parcels') beside At the sale (the sales'): side by side where there's room, else stacked.
             <div className="as-pair">
               <div className="as-today">
-                <QualityStep project={project} data={data} step={current} change={change.mutateAsync} />
+                <QualityStep
+                  project={project}
+                  data={data}
+                  step={current}
+                  change={change.mutateAsync}
+                  capsule={
+                    data.files.some((f) => f.holds === "sales") &&
+                    data.fields.some(
+                      (f) => current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
+                    )
+                  }
+                />
               </div>
               {data.fields
                 .filter(
@@ -443,7 +454,7 @@ function FieldsStep({
   const inUse = (f: WizardField) => f.sources.length > 0 || f.assumed || f.absent;
   const shown = mine.filter((f) => !f.more || more || inUse(f));
   const hidden = mine.filter((f) => f.more && !inUse(f)).length;
-  // A sales file: each characteristic loaded for the parcels gets its At the sale (Sales record fields, F3d).
+  // A sales file: each characteristic in the parcel universe gets its 💰 Sales Record capsule (Sales record fields, F3d).
   const hasSales = data.files.some((f) => f.holds === "sales");
   return (
     <>
