@@ -6996,7 +6996,8 @@ div.map-wait-ask small {
 }
 /* Beside At the sale, a spread no wider than Today's row above it (it never widens the box: its notes wrap), so
    the pair fits side by side sooner. */
-.as-pair .fh-chart {
+.as-pair .fh-chart,
+.as-pair .fh-axis {
   width: min(100%, 28rem);
 }
 .as-today > .wiz-capsule-wide {
