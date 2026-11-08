@@ -1245,6 +1245,11 @@ export type Wording = {
     blank: string;
     startButton: string;
     undoConfirm: string;
+    byHand: string;
+    byHandLede: string;
+    byHandFrom: (a: { date: string | number }) => string;
+    byHandFromSale: string;
+    byHandWhat: (a: { key: string | number }) => string;
   };
   sales: {
     steps: {

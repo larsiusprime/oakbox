@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from oakbox import assemble, groups, projects, steps
+from oakbox import assemble, groups, outliers, projects, steps
 from oakbox.datafiles import BaseModel
 from oakbox.errors import NotFound, NotReady
 from oakbox.routes.common import assemble_view, editing, load_project
@@ -64,6 +64,7 @@ def groups_save(project_id: str, body: GroupsBody) -> groups.GroupsView:
     with editing(project_id, settings=True) as project:
         project.groups = groups.clean(projects.project_dir(project_id), body.groups)
         project.groups_start = project.groups_start or "scratch"
+        outliers.forget_moves(project)  # a parcel put back where its rule puts it: the Outliers call goes
     return _groups_view(project)
 
 

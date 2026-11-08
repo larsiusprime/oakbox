@@ -188,7 +188,18 @@ def test_each_call_goes_where_it_belongs_and_comes_back(tmp_path, looked):
     assert outliers.pending(p) == []
     # The sale isn't a market sale: Check sales' Exclude, with the reason.
     assert p.clean.marks[k[0]].action == "exclude" and "related parties: to a son" in p.clean.marks[k[0]].note
-    # The wrong group: the parcel put in the other by hand.
+    # The wrong group: the parcel put in the other by hand, listed on Model groups with the sale it came from.
+    assert p.groups[1].keys == ["1"]
+    from oakbox import groups as grp
+
+    hand = grp.by_hand(p)["condo"]
+    assert [(h.key, h.sale, h.sold) for h in hand] == [("1", k[1], "2025-01-01")]
+    # Taken out there (Model groups, saved): the call that moved it goes, the others stay.
+    p.groups[1].keys = []
+    outliers.forget_moves(p)
+    assert {c.why for c in p.outliers.calls.values()} == {"invalid", "data", "model"}
+    outliers.decide(p, tmp_path, k[1], outliers.OutlierCallBody(why="group", group="condo"))
+    outliers.apply(p, tmp_path)
     assert p.groups[1].keys == ["1"]
     # The data: a patch, a number for a number field.
     assert p.patches[0].now == 5.0 and p.patches[0].key == "2" and p.patches[0].sale == k[2]

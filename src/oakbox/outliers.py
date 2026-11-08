@@ -814,6 +814,18 @@ def undo(project: Project, key_sale: str) -> None:
 # ---------- Patches ----------
 
 
+def forget_moves(project: Project) -> None:
+    """A parcel taken out of the group it was put in by hand (on Model groups): the call that moved it goes too, so
+    Outliers doesn't say it's moved."""
+    gone = [
+        ks
+        for ks, c in project.outliers.calls.items()
+        if c.why == "group" and c.applied and not any(g.id == c.group and c.key in g.keys for g in project.groups)
+    ]
+    for ks in gone:
+        del project.outliers.calls[ks]
+
+
 class OutlierPatchRow(BaseModel):
     i: int
     key: str

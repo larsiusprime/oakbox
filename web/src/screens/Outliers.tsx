@@ -12,6 +12,7 @@ import { type StepId, stepChanged } from "../api/steps";
 import { Choice, Field } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
+import { OUTLIER } from "../lib/colours";
 import { day, money, num, pct } from "../lib/format";
 import { t } from "../wording";
 
@@ -19,9 +20,7 @@ type S = components["schemas"];
 type Why = S["OutlierCallBody"]["why"];
 type Reason = NonNullable<S["OutlierCallBody"]["reason"]>;
 const o = t.values.outliers;
-const LOW = "#c2410c";
-const HIGH = "#1d4ed8";
-const WITHIN = "#9ca3af";
+const { under: LOW, over: HIGH, within: WITHIN } = OUTLIER;
 const WHYS: Why[] = ["invalid", "data", "group", "model"];
 const REASONS: Reason[] = [
   "related",
@@ -303,7 +302,7 @@ function OutlierMap({
         stroked: true,
         lineWidthUnits: "pixels",
         getLineWidth: 2,
-        getLineColor: rgba("#444444"),
+        getLineColor: rgba(OUTLIER.comp),
       }),
       ...(me
         ? [
@@ -317,7 +316,7 @@ function OutlierMap({
               stroked: true,
               lineWidthUnits: "pixels",
               getLineWidth: 3,
-              getLineColor: rgba("#111111"),
+              getLineColor: rgba(OUTLIER.ring),
             }),
           ]
         : []),

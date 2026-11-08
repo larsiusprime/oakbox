@@ -1642,7 +1642,12 @@
     "cancel": "Cancel",
     "blank": "(blank)",
     "startButton": "Start",
-    "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone."
+    "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone.",
+    "byHand": "Put here by hand",
+    "byHandLede": "These parcels are in this group whatever its rules say, before any rule. Take one out and its rules decide again (the Outliers call that moved it goes too).",
+    "byHandFrom": "from Outliers: its sale on {date}",
+    "byHandFromSale": "from Outliers",
+    "byHandWhat": "parcel {key} from this group"
   },
   "sales": {
     "steps": {

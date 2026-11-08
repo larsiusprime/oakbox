@@ -23,6 +23,15 @@ export const BY_LEVEL = "#2f5d9b";
 export const PICKED = "#1d5bb8";
 /** A boundary that's wrong on a map (--bad). */
 export const BAD = "#a3231b";
+/** Outliers' map: a sale valued under its price (--under, the ratio maps' blue below 1), over it (--over, their red),
+ * within the band (grey); the sale picked, ringed, and its comps' outlines. */
+export const OUTLIER = {
+  under: "#2f5d9b",
+  over: "#b3362e",
+  within: "#9a9a9a",
+  ring: CHART.ink,
+  comp: CHART.mark,
+};
 /** A model group with no colour of its own. */
 export const NO_COLOUR = "#9a9a9a";
 /** On a sale's chart: the sale itself, others set aside too, and the rest. */

@@ -679,6 +679,15 @@ def _new_id(name: str, groups: list[ModelGroup]) -> str:
 # ---------- The tab's state ----------
 
 
+class ByHand(BaseModel):
+    """A parcel put in a group by hand, and where that was decided."""
+
+    key: str
+    sale: str | None = Field(default=None, description="The outlying sale it was moved from (key_sale), if any.")
+    sold: str | None = Field(default=None, description="That sale's date (YYYY-MM-DD).")
+    note: str = ""
+
+
 class GroupsView(BaseModel):
     ready: bool = Field(description="Bring in data has a receipt to make groups from.")
     start: Literal["scratch", "suggested"] | None
@@ -687,6 +696,28 @@ class GroupsView(BaseModel):
     colors: list[str]
     unassigned_color: str = UNASSIGNED
     can_suggest: bool = Field(description="The parcel universe has a property-type field to suggest groups from.")
+    by_hand: dict[str, list[ByHand]] = Field(
+        default_factory=dict, description="Group id -> the parcels put in it by hand (ModelGroup.keys), with why."
+    )
+
+
+def _sold(key_sale: str | None) -> str | None:
+    """The date at the end of a sale's key (the run makes it parcel-date), if it's one."""
+    import re
+
+    m = re.search(r"(\d{4}-\d{2}-\d{2})(?:[ T].*)?$", key_sale or "")
+    return m.group(1) if m else None
+
+
+def by_hand(project: Project) -> dict[str, list[ByHand]]:
+    """Each group's parcels put in it by hand, with the Outliers call that moved them (if one did)."""
+    calls = {(c.group, c.key): (ks, c) for ks, c in project.outliers.calls.items() if c.why == "group" and c.applied}
+    out: dict[str, list[ByHand]] = {}
+    for g in project.groups:
+        for k in g.keys:
+            ks, c = calls.get((g.id, k), (None, None))
+            out.setdefault(g.id, []).append(ByHand(key=k, sale=ks, sold=_sold(ks), note=c.note if c else ""))
+    return out
 
 
 def view(project: Project, project_dir: Path) -> GroupsView:
@@ -694,7 +725,13 @@ def view(project: Project, project_dir: Path) -> GroupsView:
         flds = fields(project_dir)
     except NotReady:
         return GroupsView(
-            ready=False, start=project.groups_start, groups=project.groups, fields=[], colors=COLORS, can_suggest=False
+            ready=False,
+            start=project.groups_start,
+            groups=project.groups,
+            fields=[],
+            colors=COLORS,
+            can_suggest=False,
+            by_hand=by_hand(project),
         )
     names = {f.name for f in flds}
     return GroupsView(
@@ -704,6 +741,7 @@ def view(project: Project, project_dir: Path) -> GroupsView:
         fields=flds,
         colors=COLORS,
         can_suggest=any(f in names for f in SUGGEST_FIELDS),
+        by_hand=by_hand(project),
     )
 
 

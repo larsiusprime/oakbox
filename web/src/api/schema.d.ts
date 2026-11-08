@@ -3345,6 +3345,29 @@ export interface components {
              */
             source: string | null;
         };
+        /**
+         * ByHand
+         * @description A parcel put in a group by hand, and where that was decided.
+         */
+        ByHand: {
+            /** Key */
+            key: string;
+            /**
+             * Sale
+             * @description The outlying sale it was moved from (key_sale), if any.
+             */
+            sale: string | null;
+            /**
+             * Sold
+             * @description That sale's date (YYYY-MM-DD).
+             */
+            sold: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
         /** Candidate */
         Candidate: {
             /** File */
@@ -5446,6 +5469,13 @@ export interface components {
              * @description The parcel universe has a property-type field to suggest groups from.
              */
             can_suggest: boolean;
+            /**
+             * By Hand
+             * @description Group id -> the parcels put in it by hand (ModelGroup.keys), with why.
+             */
+            by_hand: {
+                [key: string]: components["schemas"]["ByHand"][];
+            };
         };
         /** HTTPValidationError */
         HTTPValidationError: {
