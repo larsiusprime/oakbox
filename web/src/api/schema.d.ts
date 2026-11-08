@@ -4762,6 +4762,12 @@ export interface components {
              */
             unit: string;
             /**
+             * Prefix
+             * @description Before an amount: the currency ("$") for money.
+             * @default
+             */
+            prefix: string;
+            /**
              * Year
              * @description Years: bins labelled as years, never in decimals.
              * @default false
@@ -5536,6 +5542,16 @@ export interface components {
              * @description Zeros, left out (often 'none': no building, no year).
              */
             zeros: number;
+            /**
+             * Quantiles
+             * @description The values at every 0.2% (zeros left out).
+             */
+            quantiles: number[];
+            /**
+             * Auto
+             * @description [low, high]: the range shown first.
+             */
+            auto: number[];
         };
         /** IndexOnChange */
         IndexOnChange: {

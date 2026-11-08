@@ -7015,7 +7015,8 @@ div.map-wait-ask small {
 }
 .fh-track {
   position: relative;
-  width: min(100%, 36rem);
+  width: 36rem;
+  max-width: 100%;
   height: 1.4rem;
 }
 .fh-track::before {
@@ -7087,7 +7088,17 @@ div.map-wait-ask small {
 }
 /* In a pair, as wide as its bars there. */
 .as-pair .fh-track {
-  width: min(100%, 28rem);
+  width: 28rem;
+}
+/* In a field's details (Inputs): the popover's width, bars and track alike. */
+.fd-ranged {
+  display: grid;
+  gap: 0.3em;
+}
+.fd-ranged .fh-chart,
+.fd-ranged .fh-axis,
+.fd-ranged .fh-track {
+  width: 100%;
 }
 .as-only {
   display: grid;

@@ -136,6 +136,7 @@ export function FieldHistogram({
   projectId,
   field,
   sale,
+  sales = false,
   bare = false,
   pair = false,
 }: {
@@ -147,6 +148,8 @@ export function FieldHistogram({
   sale?: { column: string; unit: string | null };
   /** Beside the other dataset's histogram of the same field: 🔗 linked offered. */
   pair?: boolean;
+  /** A sales record field on its own page (Sale price): read from the sales file, in a frame of its own. */
+  sales?: boolean;
 }) {
   const source = sale ? { file: "sales", column: sale.column } : field.sources[0];
   const q = useQuery({
@@ -157,50 +160,97 @@ export function FieldHistogram({
       source?.file,
       source?.column,
       sale ? sale.unit : field.area_unit,
+      field.number_format ?? null,
     ],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/wizard/fields/{key}/histogram", {
-          params: { path: { project_id: projectId, key: field.key }, query: { sales: !!sale } },
+          params: { path: { project_id: projectId, key: field.key }, query: { sales: !!sale || sales } },
         }),
       ),
     enabled: !!source,
     placeholderData: keepPreviousData,
   });
   const v = q.data;
-  const qs = v?.quantiles ?? [];
-  const [autoLo, autoHi] = v?.auto ?? [];
+  if (!source || !v || (v.quantiles ?? []).length < 2) return null;
+  return (
+    <div className={sale || bare ? "fh-in" : "frame qc-panel"}>
+      {!sale && !bare && <h3 className="wiz-group">{h.title({ name: field.name })}</h3>}
+      <RangedBars
+        quantiles={v.quantiles ?? []}
+        count={v.total - v.empty}
+        auto={v.auto ?? []}
+        year={v.year}
+        unit={v.unit}
+        prefix={v.prefix ?? ""}
+        linkKey={field.key}
+        side={sale || sales ? "sr" : "pu"}
+        pair={pair}
+        label={h.title({ name: field.name })}
+      />
+    </div>
+  );
+}
+
+/** A spread drawn from a column's values at every 0.2% (`quantiles`: smallest to largest), on the range shown: the
+ * automatic one to start (`auto`), set live with the handles or typed. `linkKey` and `side`: which range it shares
+ * (a field's 🌐 and 💰 histograms, while linked). Used by a field's capsules, Inputs' field details and Sale price. */
+export function RangedBars({
+  quantiles: qs,
+  count,
+  auto,
+  year,
+  unit,
+  prefix = "",
+  linkKey,
+  side = "pu",
+  pair = false,
+  label,
+}: {
+  quantiles: number[];
+  count: number;
+  auto: number[];
+  year: boolean;
+  /** After an amount ("sq ft"); "" for none. */
+  unit: string;
+  /** Before an amount ("$"). */
+  prefix?: string;
+  linkKey: string;
+  side?: Side;
+  pair?: boolean;
+  label: string;
+}) {
+  const [autoLo, autoHi] = auto;
   const own: Extent | null =
     qs.length > 1 && autoLo != null && autoHi != null
       ? { auto: { lo: autoLo, hi: autoHi }, min: qs[0] ?? autoLo, max: qs[qs.length - 1] ?? autoHi }
       : null;
-  const r = useRange(field.key, sale ? "sr" : "pu", own);
-  if (!source || !v || !r.range || !r.ext || qs.length < 2) return null;
-  const year = v.year;
-  const unit = v.unit ? ` ${v.unit}` : "";
-  const bars = barsFrom(qs, v.total - v.empty, r.range, year);
+  const r = useRange(linkKey, side, own);
+  if (!r.range || !r.ext || qs.length < 2) return null;
+  const after = unit ? ` ${unit}` : "";
+  const show = (x: number) => `${prefix}${edge(x, year)}`;
+  const bars = barsFrom(qs, count, r.range, year);
   const top = Math.max(1, ...bars.map((b) => b.n));
   const every = Math.max(1, Math.ceil(bars.length / 6));
   return (
-    <div className={sale || bare ? "fh-in" : "frame qc-panel"}>
-      {!sale && !bare && <h3 className="wiz-group">{h.title({ name: field.name })}</h3>}
-      <div className="fh-chart" role="img" aria-label={h.title({ name: field.name })}>
+    <>
+      <div className="fh-chart" role="img" aria-label={label}>
         {bars.map((b) => (
           <span
             key={b.low}
             className="fh-bar"
             style={{ height: `${(8 * b.n) / top}rem` }}
-            title={`${edge(b.low, year)}–${edge(b.high, year)}${unit}: ${num(Math.round(b.n))}`}
+            title={`${show(b.low)}–${show(b.high)}${after}: ${num(Math.round(b.n))}`}
           />
         ))}
       </div>
       <div className="fh-axis" style={{ gridTemplateColumns: `repeat(${bars.length}, 1fr)` }}>
         {bars.map((b, i) => (
-          <span key={b.low}>{i % every === 0 ? edge(b.low, year) : ""}</span>
+          <span key={b.low}>{i % every === 0 ? show(b.low) : ""}</span>
         ))}
       </div>
-      <RangeControls r={r} year={year} unit={v.unit} pair={pair} />
-    </div>
+      <RangeControls r={r} year={year} unit={unit} prefix={prefix} pair={pair} />
+    </>
   );
 }
 
@@ -210,11 +260,13 @@ function RangeControls({
   r,
   year,
   unit,
+  prefix,
   pair,
 }: {
   r: ReturnType<typeof useRange>;
   year: boolean;
   unit: string;
+  prefix: string;
   pair: boolean;
 }) {
   const ext = r.ext as Extent;
@@ -257,8 +309,10 @@ function RangeControls({
       </div>
       <div className="fh-bounds">
         <span>{h.from}</span>
+        {prefix && <span>{prefix}</span>}
         <Bound value={range.lo} year={year} label={h.lowest} onCommit={setLo} />
         <span>{h.to}</span>
+        {prefix && <span>{prefix}</span>}
         <Bound value={range.hi} year={year} label={h.highest} onCommit={setHi} />
         {unit && <span>{unit}</span>}
         {!r.isAuto && (

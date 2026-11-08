@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, type Histogram, unwrap } from "../api/client";
+import { RangedBars } from "../screens/FieldHistogram";
 import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
@@ -81,7 +82,7 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
               ))}
             </dl>
           )}
-          {v.histogram && <Spread h={v.histogram} years={field.includes("year")} />}
+          {v.histogram && <Spread h={v.histogram} years={field.includes("year")} field={field} />}
           {v.distinct > 12 && (
             <SearchField
               aria-label={t.wizard.values.search}
@@ -110,7 +111,22 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
 
 /** How a number's values spread: a bar per bin over the middle 98% (lowest and highest 1% counted apart), zeros
  * said apart; a log scale when the values span orders of magnitude. Each bar says its range and count on hover. */
-function Spread({ h, years }: { h: Histogram; years: boolean }) {
+function Spread({ h, years, field }: { h: Histogram; years: boolean; field: string }) {
+  // The values at every 0.2% (Bring in data since 2026-11-08): the range set live, as on the Data steps.
+  if ((h.quantiles ?? []).length > 1)
+    return (
+      <figure className="fd-hist fd-ranged">
+        <RangedBars
+          quantiles={h.quantiles ?? []}
+          count={h.counts.reduce((a, b) => a + b, 0) + h.below + h.above}
+          auto={h.auto ?? []}
+          year={years}
+          unit=""
+          linkKey={`inputs:${field}`}
+          label={d.histogram}
+        />
+      </figure>
+    );
   const top = Math.max(1, ...h.counts);
   const n = h.counts.length;
   const fmt = (x: number) =>

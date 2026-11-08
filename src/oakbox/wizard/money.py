@@ -82,6 +82,7 @@ class FieldSpread(BaseModel):
     and what's outside."""
 
     unit: str = Field(description='The unit, as words (sq ft, m²); "" for years.')
+    prefix: str = Field(default="", description='Before an amount: the currency ("$") for money.')
     year: bool = Field(default=False, description="Years: bins labelled as years, never in decimals.")
     bins: list[Bin]
     below: int = Field(description="Sizes under the first bin (the smallest 1%).")
@@ -132,9 +133,15 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24, sa
     year = "year" in key
     area = key in AREA_FIELDS
     factor = SQFT_PER[entry.area_units.get(key, target)] / SQFT_PER[target] if area else 1.0
-    raw = values_of(file_stamp(files.in_dir / entry.filename), entry.layer, column)
+    stamp = file_stamp(files.in_dir / entry.filename)
+    raw = values_of(stamp, entry.layer, column)
     nums = []
-    for v in raw:
+    money = is_money(key)
+    if money:
+        # An amount read as OpenAVMKit will: its number format ("$185,000", "185.000,00"), else the one detected.
+        fmt = entry.numbers.get(key) or detect_number_format(raw, project.numbers)[0]
+        nums = [n for n in read_numbers(stamp, entry.layer, column, fmt.model_dump_json()) if n == n and n > 0]
+    for v in [] if money else raw:
         try:
             n = float(v) * factor
         except ValueError:
@@ -142,6 +149,7 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24, sa
         if n == n and (1700 <= n <= 2100 if year else n > 0):
             nums.append(n)
     out = FieldSpread(
+        prefix=currency_symbol(project) if money else "",
         unit=UNIT_WORDS[target] if area else "",
         year=year,
         bins=[],
@@ -170,15 +178,21 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24, sa
             counts[i] += 1
     out.bins = [Bin(low=start + i * width, high=start + (i + 1) * width, count=c) for i, c in enumerate(counts)]
     out.median = statistics.median(nums)
-    last = len(ordered) - 1
-    out.quantiles = [ordered[round(last * i / QUANTILES)] for i in range(QUANTILES + 1)]
-    q1, q3 = ordered[round(0.25 * last)], ordered[round(0.75 * last)]
-    spread = q3 - q1
-    out.auto = [max(ordered[0], q1 - 3 * spread), min(ordered[-1], q3 + 3 * spread)]
+    out.quantiles, out.auto = quantiles_and_auto(ordered)
     return out
 
 
 QUANTILES = 500  # the values at every 0.2%: what the page draws any range from
+
+
+def quantiles_and_auto(ordered: list[float]) -> tuple[list[float], list[float]]:
+    """Sorted values: the values at every 0.2%, and the automatic range shown first (the middle half and three times
+    its width each side, within the smallest and largest)."""
+    last = len(ordered) - 1
+    q = [ordered[round(last * i / QUANTILES)] for i in range(QUANTILES + 1)]
+    q1, q3 = ordered[round(0.25 * last)], ordered[round(0.75 * last)]
+    spread = q3 - q1
+    return q, [max(ordered[0], q1 - 3 * spread), min(ordered[-1], q3 + 3 * spread)]
 
 
 # ---------- Money: reading it when it's written as text, and whether the amounts look right (F3d) ----------

@@ -321,6 +321,8 @@ class Histogram(BaseModel):
     below: int = Field(description="Values under the first edge (the lowest 1%).")
     above: int = Field(description="Values over the last edge (the highest 1%).")
     zeros: int = Field(description="Zeros, left out (often 'none': no building, no year).")
+    quantiles: list[float] = Field(default_factory=list, description="The values at every 0.2% (zeros left out).")
+    auto: list[float] = Field(default_factory=list, description="[low, high]: the range shown first.")
 
 
 BINS = 24
@@ -344,7 +346,12 @@ def histogram(x) -> Histogram | None:
     edges = np.geomspace(lo, hi, BINS + 1) if log else np.linspace(lo, hi, BINS + 1)
     inside = v[(v >= lo) & (v <= hi)]
     counts, _ = np.histogram(inside, bins=edges)
+    from oakbox.wizard.money import quantiles_and_auto
+
+    q, auto = quantiles_and_auto(sorted(float(x) for x in v))
     return Histogram(
+        quantiles=q,
+        auto=auto,
         edges=[float(e) for e in edges],
         counts=[int(c) for c in counts],
         log=bool(log),

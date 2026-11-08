@@ -637,6 +637,10 @@ the field steps, checks, guesses, assumptions and Review carry over.
   are there): the 🌐 Parcel universe's and 💰 Sales record's share one range, bar for bar; unlinked, each keeps the
   range they shared, and linked again they share the one linked from. Only the view, for the visit: nothing in the
   data or the settings changes.
+  The same spread, range and controls (`RangedBars`) on **Data › Sale price** (under As it's read: the prices as
+  OpenAVMKit will read them, with the currency; $10 deeds and portfolio sales no longer flatten the rest) and in
+  **Inputs › a field's details** (every number field of the parcel universe and sales record after Bring in data;
+  results from before 2026-11-08 keep their old drawing until it runs again).
 
   **Picked for you, conservatively** (2026-11-08, `as_sold.autopick`). The sale's column is picked, and marked
   **picked for you**, only when it's obvious: the sales file has a column of the very same name as the parcel's, it

@@ -21,6 +21,7 @@ import { Val } from "../components/Val";
 import { amount, num, pct } from "../lib/format";
 import { useOnSettled, useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
+import { FieldHistogram } from "./FieldHistogram";
 import { FieldRow } from "./FieldRow";
 import { ruleComplete } from "./FieldRules";
 import type { MutateAsync } from "./wizardChange";
@@ -87,6 +88,10 @@ export function SalesFieldPage({
       </div>
       {field.key === "sale_price" && file && column && (
         <NumberPreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
+      )}
+      {/* How the prices spread, as read: $10 deeds and $50M portfolios at the ends, the range set live. */}
+      {field.key === "sale_price" && file && column && (
+        <FieldHistogram projectId={project.id} field={field} sales />
       )}
       {dated && file && column && (
         <DatePreview projectId={project.id} field={field} file={file} column={column.name} save={save} />
