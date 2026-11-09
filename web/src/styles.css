@@ -7364,32 +7364,41 @@ div.map-wait-ask small {
 }
 .opening-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-weight: 600;
 }
-.opening-doing {
+.opening-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0;
+  gap: 0.7rem;
 }
-.opening-file {
-  display: grid;
-  grid-template-columns: minmax(0, 12rem) 1fr auto;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.85rem;
+.opening-bar {
+  flex: 1;
+  width: auto;
+  max-width: none;
 }
-.opening-file .engine-bar {
-  width: 100%;
+/* No measure of how far: a stretch of the bar sliding across. */
+.opening-bar-busy > i {
+  width: 35%;
+  animation: opening-slide 1.4s ease-in-out infinite;
 }
-.opening-why {
-  margin: 0;
+@keyframes opening-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opening-bar-busy > i {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+.opening-time {
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
-  font-size: 0.85rem;
-}
-.opening-foot {
-  display: flex;
-  justify-content: flex-end;
 }
 .waiting-sheet {
   width: fit-content;
