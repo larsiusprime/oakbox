@@ -7576,7 +7576,6 @@ section.wiz-section:has(> .cf-tbl),
   flex-wrap: wrap;
   align-items: center;
   gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
-  align-items: center;
 }
 .as-side {
   display: grid;
