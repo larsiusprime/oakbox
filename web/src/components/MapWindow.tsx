@@ -447,9 +447,10 @@ function MapPanel({
   );
 }
 
-/** The colour picker: the 🌐 Parcel Universe's fields first (yours, the Big five first), the 💰 Sales Record's, the
- * problems; the parcel files' other columns folded away under a row of their own (choosing it unfolds them), and
- * found by typing either way. */
+/** The colour picker, in sections, each folded or unfolded by its heading (remembered): the 🌐 Parcel Universe's
+ * fields (yours, the Big five first), the 💰 Sales Record's, the problems (IDs), the differences (a 💰 sale's value
+ * against its 🌐 parcel's), and the parcel files' other columns (folded to start). Typing finds them all, folded or
+ * not. */
 function FieldPick({
   sales,
   problems,
@@ -463,14 +464,64 @@ function FieldPick({
   value: string | null;
   onChange: (id: string) => void;
 }) {
-  const [more, setMore] = useState(false);
+  const folded = new Set(useDock().folded);
+  const fold = (k: Fold) => {
+    const next = new Set(folded);
+    if (next.has(k)) next.delete(k);
+    else next.add(k);
+    setDock({ folded: [...next] });
+  };
+  // A section's items: all that match while typing; else none while it's folded.
+  const shown = <T,>(k: Fold, q: string, items: T[]) => (q.trim() || !folded.has(k) ? items : []);
   const list = (q: string) => fields.filter((f) => matches(f.label, q) || matches(f.file, q));
-  const loaded = (q: string) => list(q).filter((f) => f.field);
-  const rawAll = fields.filter((f) => !f.field);
-  // The other columns: shown once unfolded, or when typing finds them.
-  const others = (q: string) => (more || q.trim() ? list(q).filter((f) => !f.field) : []);
-  const sr = (q: string) => sales.filter((k) => matches(w.sr[k as SrKey] ?? k, q));
-  const pr = (q: string) => (problems?.items ?? []).filter((x) => matches(problemLabel(x), q));
+  const items = (q: string) => ({
+    pu: list(q).filter((f) => f.field),
+    sr: sales.filter((k) => matches(w.sr[k as SrKey] ?? k, q)),
+    problems: (problems?.items ?? []).filter(
+      (x) => !x.id.startsWith("pr:differs:") && matches(problemLabel(x), q),
+    ),
+    differences: (problems?.items ?? []).filter(
+      (x) => x.id.startsWith("pr:differs:") && matches(problemLabel(x), q),
+    ),
+    columns: list(q).filter((f) => !f.field),
+  });
+  const totals = items("");
+  const all = (q: string) => {
+    const x = items(q);
+    return [
+      ...x.pu.map((f) => f.id),
+      ...x.sr.map((k) => `sr:${k}`),
+      ...x.problems.map((p) => p.id),
+      ...x.differences.map((p) => p.id),
+      ...x.columns.map((f) => f.id),
+    ];
+  };
+  const head = (k: Fold, q: string, n: number, title: string) => (
+    <Header className="wiz-section-head mapwin-fold-head">
+      {q.trim() ? (
+        title
+      ) : (
+        // Not a choice: it folds or unfolds the section in place, the list staying open (the pointer doesn't take
+        // the focus from the box).
+        <button
+          type="button"
+          tabIndex={-1}
+          className="mapwin-fold"
+          aria-expanded={!folded.has(k)}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => fold(k)}
+        >
+          <span aria-hidden="true">{folded.has(k) ? "▸" : "▾"}</span> {title}{" "}
+          {folded.has(k) && <span className="mapwin-fold-n">({n})</span>}
+        </button>
+      )}
+    </Header>
+  );
+  const option = (id: string, label: string, q: string, mono = false) => (
+    <ListBoxItem key={id} id={id} className={`choice-item ${mono ? "mono" : ""}`} textValue={label}>
+      <Marked text={label} query={q} />
+    </ListBoxItem>
+  );
   return (
     <Combo
       label={w.colourBy}
@@ -479,82 +530,56 @@ function FieldPick({
       popoverClassName="popover choice-popover wiz-popover"
       selectedKey={value}
       onChange={onChange}
-      count={(q) => [
-        loaded(q).length + others(q).length + sr(q).length + pr(q).length,
-        fields.length + sales.length + (problems?.items.length ?? 0),
-      ]}
-      first={(q) =>
-        loaded(q)[0]?.id ?? (sr(q)[0] ? `sr:${sr(q)[0]}` : (pr(q)[0]?.id ?? others(q)[0]?.id ?? null))
-      }
+      count={(q) => [all(q).length, all("").length]}
+      first={(q) => all(q)[0] ?? null}
     >
-      {(q) => (
-        <>
-          {loaded(q).length > 0 && (
-            <ListBoxSection className="wiz-section">
-              <Header className="wiz-section-head">{w.puTitle}</Header>
-              {loaded(q).map((f) => (
-                <ListBoxItem key={f.id} id={f.id} className="choice-item" textValue={f.label}>
-                  <Marked text={f.label} query={q} />
-                </ListBoxItem>
-              ))}
-            </ListBoxSection>
-          )}
-          {sr(q).length > 0 && (
-            <ListBoxSection className="wiz-section">
-              <Header className="wiz-section-head">{w.srTitle}</Header>
-              {sr(q).map((k) => (
-                <ListBoxItem key={k} id={`sr:${k}`} className="choice-item" textValue={w.sr[k as SrKey] ?? k}>
-                  <Marked text={w.sr[k as SrKey] ?? k} query={q} />
-                </ListBoxItem>
-              ))}
-            </ListBoxSection>
-          )}
-          {pr(q).length > 0 && (
-            <ListBoxSection className="wiz-section">
-              <Header className="wiz-section-head">{w.prTitle}</Header>
-              {pr(q).map((x) => (
-                <ListBoxItem key={x.id} id={x.id} className="choice-item" textValue={problemLabel(x)}>
-                  <Marked text={problemLabel(x)} query={q} />
-                </ListBoxItem>
-              ))}
-            </ListBoxSection>
-          )}
-          {!q.trim() && rawAll.length > 0 && (
-            <ListBoxSection className="wiz-section">
-              <Header className="wiz-section-head mapwin-more-head">
-                {/* Not a choice: pressing it unfolds the columns in place, the list staying open (the pointer
-                    doesn't take the focus from the box). */}
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  className="mapwin-more"
-                  aria-expanded={more}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setMore(!more)}
-                >
-                  {more ? "▾ " : "▸ "}
-                  {more ? w.fewerColumns : w.moreColumns({ n: rawAll.length })}
-                </button>
-              </Header>
-            </ListBoxSection>
-          )}
-          {[...new Set(others(q).map((f) => f.file))].map((file) => (
-            <ListBoxSection key={file} className="wiz-section">
-              <Header className="wiz-section-head">{w.otherColumns({ file })}</Header>
-              {others(q)
-                .filter((f) => f.file === file)
-                .map((f) => (
-                  <ListBoxItem key={f.id} id={f.id} className="choice-item mono" textValue={f.label}>
-                    <Marked text={f.label} query={q} />
-                  </ListBoxItem>
-                ))}
-            </ListBoxSection>
-          ))}
-        </>
-      )}
+      {(q) => {
+        const x = items(q);
+        return (
+          <>
+            {x.pu.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("pu", q, totals.pu.length, w.puTitle)}
+                {shown("pu", q, x.pu).map((f) => option(f.id, f.label, q))}
+              </ListBoxSection>
+            )}
+            {x.sr.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("sr", q, totals.sr.length, w.srTitle)}
+                {shown("sr", q, x.sr).map((k) => option(`sr:${k}`, w.sr[k as SrKey] ?? k, q))}
+              </ListBoxSection>
+            )}
+            {x.problems.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("problems", q, totals.problems.length, w.prTitle)}
+                {shown("problems", q, x.problems).map((p) => option(p.id, problemLabel(p), q))}
+              </ListBoxSection>
+            )}
+            {x.differences.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("differences", q, totals.differences.length, w.diffTitle)}
+                {shown("differences", q, x.differences).map((p) => option(p.id, problemLabel(p), q))}
+              </ListBoxSection>
+            )}
+            {x.columns.length > 0 && !q.trim() && (
+              <ListBoxSection className="wiz-section">
+                {head("columns", q, totals.columns.length, w.columnsTitle)}
+              </ListBoxSection>
+            )}
+            {[...new Set(shown("columns", q, x.columns).map((f) => f.file))].map((file) => (
+              <ListBoxSection key={file} className="wiz-section">
+                <Header className="wiz-section-head">{w.otherColumns({ file })}</Header>
+                {x.columns.filter((f) => f.file === file).map((f) => option(f.id, f.label, q, true))}
+              </ListBoxSection>
+            ))}
+          </>
+        );
+      }}
     </Combo>
   );
 }
+
+type Fold = "pu" | "sr" | "problems" | "differences" | "columns";
 
 // ---------- Follow ----------
 
@@ -853,6 +878,7 @@ function MapBody({
             index={picked}
             stepOf={stepOf}
             onGo={onGo}
+            onColour={(id) => setDock({ field: id, follow: false })}
             pinned={pinned}
             onPin={(on) => setDock({ cardPinned: on })}
             stage={stage}

@@ -3329,10 +3329,10 @@
     "validYes": "valid",
     "validNo": "not valid",
     "vacantYes": "vacant",
-    "prTitle": "Problems, where they are",
+    "prTitle": "Problems: parcel IDs",
     "prBlankIds": "🌐 Parcels with no ID: {n, number} ({share})",
     "prRepeatedIds": "🌐 Parcels whose ID repeats: {n, number} ({share})",
-    "prDiffers": "💰 differs from 🌐: {field}, {n, number} {n, plural, =1 {sale} other {sales}} ({share})",
+    "prDiffers": "{field}: {n, number} {n, plural, =1 {sale differs} other {sales differ}} ({share})",
     "readingProblem": "Finding them",
     "prHas": {
       "pu": "{n, number} of {of, number} parcels ({share})",
@@ -3365,7 +3365,8 @@
       "pin": "Pin to the map''s side",
       "unpin": "Unpin: float it over the map",
       "pinTip": "Pin the card at the map''s left, beside it.",
-      "unpinTip": "Unpin the card to float it over the map; drag it by its title."
+      "unpinTip": "Unpin the card to float it over the map; drag it by its title.",
+      "toStep": "Go to its step: {step}"
     },
     "full": "Full size",
     "unfull": "Back to docked",
@@ -3376,7 +3377,7 @@
     "dockBack": "Dock back",
     "alone": "OAK box map",
     "puTitle": "🌐 Parcel Universe: your fields",
-    "moreColumns": "More columns from your parcel files ({n, number})",
-    "fewerColumns": "Fold the other columns away"
+    "diffTitle": "Differences: 💰 sale against 🌐 parcel",
+    "columnsTitle": "🌐 Other columns of your parcel files"
   }
 }

@@ -97,6 +97,9 @@ const TIP = {
   background: "#ffffff",
   border: "1px solid #c9ccc4",
   borderRadius: "4px",
+  // Clear of the pointer (deck.gl puts it at the pointer's tip): below and right of a pointing finger.
+  marginLeft: "16px",
+  marginTop: "22px",
 };
 
 /** No street map: a plain background. */

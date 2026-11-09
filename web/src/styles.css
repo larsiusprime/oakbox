@@ -6455,20 +6455,27 @@ html[data-map="top"] .oak-nav {
 .mapwin-follow[data-hovered] {
   border-color: #1d5bb8;
 }
-.mapwin-more-head {
-  border-top: 1px solid var(--line, #c9ccc4);
-  text-transform: none;
+.mapwin-fold-head {
+  padding: 0;
 }
-.mapwin-more {
-  padding: 0.3rem 0;
+/* A section's heading in the colour picker: pressed, it folds the section away or unfolds it. */
+.mapwin-fold {
+  width: 100%;
+  padding: 0.35rem 0.5rem 0.25rem;
   border: none;
   background: none;
   font: inherit;
-  color: var(--link, #1d5bb8);
+  text-align: left;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
   cursor: pointer;
 }
-.mapwin-more:hover {
-  text-decoration: underline;
+.mapwin-fold:hover {
+  background: rgba(29, 91, 184, 0.08);
+}
+.mapwin-fold-n {
+  text-transform: none;
 }
 .mapwin-tools {
   display: flex;
@@ -6734,6 +6741,11 @@ html[data-map="top"] .oak-nav {
 }
 .mapcard-tag.no {
   background: #f6e1de;
+}
+.mapcard-step {
+  margin-left: 0.35rem;
+  font-weight: 600;
+  text-decoration: none;
 }
 .mapcard-more {
   margin-top: 0.3rem;

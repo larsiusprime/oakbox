@@ -16,6 +16,9 @@ import { Waiting } from "./Waiting";
 
 const w = t.mapWindow.card;
 
+/** A Data step's name, as the sidebar says it. */
+const stepTitle = (key: string) => t.wizard.steps[key]?.title ?? key;
+
 /** A value as the card shows it: a number with a long tail of decimals (a shape's computed area) to two places,
  * its unit kept; anything else as written. */
 export function tidy(v: string): string {
@@ -31,6 +34,7 @@ export function MapCard({
   index,
   stepOf,
   onGo,
+  onColour,
   onClose,
   pinned,
   onPin,
@@ -42,6 +46,8 @@ export function MapCard({
   stepOf: (field: string) => string | null;
   /** A link followed: the main window goes to the step (from a popped-out map, it's asked to). */
   onGo: (step: string) => void;
+  /** A field's name clicked: the map coloured by it (a 🌐 file:column, or a difference, pr:differs:<field>). */
+  onColour: (id: string) => void;
   onClose: () => void;
   /** Pinned to the map's left side (📌), or floating over it. */
   pinned: boolean;
@@ -154,12 +160,19 @@ export function MapCard({
                   return (
                     <tr key={`${f.file}:${f.column}`}>
                       <th scope="row">
-                        {step ? (
-                          <Button className="wiz-link" onPress={() => go(step)}>
-                            {f.label}
-                          </Button>
-                        ) : (
-                          f.label
+                        <Button className="wiz-link" onPress={() => onColour(`${f.file}:${f.column}`)}>
+                          {f.label}
+                        </Button>
+                        {step && (
+                          <Tip text={w.toStep({ step: stepTitle(step) })}>
+                            <Button
+                              className="wiz-link mapcard-step"
+                              aria-label={w.toStep({ step: stepTitle(step) })}
+                              onPress={() => go(step)}
+                            >
+                              ›
+                            </Button>
+                          </Tip>
                         )}
                       </th>
                       <td>{tidy(f.value) || <span className="mapcard-dim">{w.blank}</span>}</td>
@@ -186,7 +199,9 @@ export function MapCard({
                     {others.map((f) => (
                       <tr key={`${f.file}:${f.column}`}>
                         <th scope="row" className="mono">
-                          {f.column}
+                          <Button className="wiz-link" onPress={() => onColour(`${f.file}:${f.column}`)}>
+                            {f.column}
+                          </Button>
                         </th>
                         <td>{f.value}</td>
                       </tr>
@@ -219,7 +234,11 @@ export function MapCard({
                   <tbody>
                     {s.compared.map((x) => (
                       <tr key={x.field} className={x.differs && !x.written_differently ? "differs" : ""}>
-                        <th scope="row">{x.label}</th>
+                        <th scope="row">
+                          <Button className="wiz-link" onPress={() => onColour(`pr:differs:${x.field}`)}>
+                            {x.label}
+                          </Button>
+                        </th>
                         <td>{tidy(x.sold)}</td>
                         <td>
                           {tidy(x.today)}

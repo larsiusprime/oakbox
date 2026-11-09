@@ -752,7 +752,7 @@ def card(project: Project, in_dir: Path, index: int) -> ParcelCard:
                 today.setdefault(k, v)
                 unit = f.area_units.get(k, "sqft") if k in AREA_FIELDS else None
                 shown = f"{v} {UNIT_WORDS.get(unit, unit)}" if v and unit else v
-                item = CardValue(label=names.get(k, k), value=shown, field=k, file=f.name, column=c.name)
+                item = CardValue(label=_short(names.get(k, k)), value=shown, field=k, file=f.name, column=c.name)
                 loaded.append(((rank.get(k, len(rank)), item.label.lower()), item))
             elif v:
                 others.append(CardValue(label=c.name, value=v, field=None, file=f.name, column=c.name))
@@ -787,7 +787,7 @@ def card(project: Project, in_dir: Path, index: int) -> ParcelCard:
                 compared.append(
                     CardCompare(
                         field=r.key,
-                        label=r.name,
+                        label=_short(r.name),
                         sold=f"{sold} {UNIT_WORDS.get(unit, unit)}" if unit else sold,
                         today=f"{now} {UNIT_WORDS.get(today_unit, today_unit)}" if today_unit else now,
                         differs=not _same(sold, now, _numeric(r.key), factor),

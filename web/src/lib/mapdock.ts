@@ -22,6 +22,8 @@ export type Dock = {
   out: boolean;
   /** The parcel's card pinned to the map's left side (📌), or floating over it, where it was dragged. */
   cardPinned: boolean;
+  /** The colour picker's sections folded away (pu, sr, problems, differences, columns). */
+  folded: string[];
 };
 
 const KEY = "oakbox.mapDock";
@@ -38,6 +40,7 @@ const START: Dock = {
   full: false,
   out: false,
   cardPinned: true,
+  folded: ["columns"],
 };
 
 function load<T>(key: string, fallback: T): T {

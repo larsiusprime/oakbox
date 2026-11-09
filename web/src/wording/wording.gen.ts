@@ -2727,6 +2727,7 @@ export type Wording = {
       unpin: string;
       pinTip: string;
       unpinTip: string;
+      toStep: (a: { step: string | number }) => string;
     };
     full: string;
     unfull: string;
@@ -2737,7 +2738,7 @@ export type Wording = {
     dockBack: string;
     alone: string;
     puTitle: string;
-    moreColumns: (a: { n: number }) => string;
-    fewerColumns: string;
+    diffTitle: string;
+    columnsTitle: string;
   };
 };
