@@ -1216,7 +1216,9 @@
       "lowest": "Lowest shown",
       "highest": "Highest shown",
       "reset": "Reset",
-      "linked": "linked"
+      "linked": "linked",
+      "under": "Under {edge}: {n, number}",
+      "over": "Over {edge}: {n, number}"
     },
     "salesParts": {
       "noFile": "Add the sales file first, on Sales.",

@@ -416,7 +416,11 @@ five first; the first of them the map's colouring to start), the 💰 Sales Reco
 (a 💰 sale's value against its 🌐 parcel's), and the parcel files' other columns (Guilford: 319; folded to start).
 Typing finds them all, folded or not. Names without their unit ("Building area (finished) (HEATED_AREA)"). On the
 card, a field's name colours the map by it (a difference's, by that difference; Follow goes off, as for a choice by
-hand); the › after it goes to the step that sets it. The hover label sits below and right of the pointer. A row is read
+hand); the › after it goes to the step that sets it. The hover label sits below and right of the pointer. Every histogram's range track (the map's legend, the
+fields' capsules, Inputs) is laid out by percentile, not value: a handle a quarter of the way along is at the 25th
+percentile, so a few huge values can't squeeze the rest into the track's first pixels (Guilford's land area: the
+automatic range's top now 91% along, not 1%). And each histogram has an overflow bar at each end, hatched and set
+apart: how many values are under and over the range shown (capped at the chart's height, a dashed top when it is). A row is read
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 

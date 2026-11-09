@@ -837,6 +837,8 @@ export type Wording = {
       highest: string;
       reset: string;
       linked: string;
+      under: (a: { edge: string | number; n: number }) => string;
+      over: (a: { edge: string | number; n: number }) => string;
     };
     salesParts: {
       noFile: string;

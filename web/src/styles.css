@@ -6141,6 +6141,34 @@ under what it's about; a file appended as rows {
 .fh-bar:hover {
   background: #6f95cf;
 }
+/* The overflow at each end: the values under and over the range shown, hatched and set apart. */
+.fh-chart,
+.fh-axis {
+  --fh-spill: 0.9rem;
+}
+.fh-spill {
+  flex: 0 0 var(--fh-spill);
+  background: repeating-linear-gradient(135deg, #b9bdb4 0 3px, #dfe1db 3px 6px);
+}
+.fh-spill:first-child {
+  margin-right: 3px;
+}
+.fh-spill:last-child {
+  margin-left: 3px;
+}
+.fh-spill:hover {
+  background: repeating-linear-gradient(135deg, #8f948a 0 3px, #c9ccc4 3px 6px);
+}
+.fh-spill-capped {
+  border-top: 2px dashed #5f6159;
+}
+.fh-spill-none {
+  background: none;
+  min-height: 0;
+}
+.fh-spill-label {
+  text-align: center;
+}
 .fh-axis {
   display: grid;
   gap: 2px;
@@ -6566,7 +6594,8 @@ html[data-map="top"] .oak-nav {
 }
 .mapwin-legend .fh-chart,
 .mapwin-legend .fh-axis,
-.mapwin-legend .fh-controls {
+.mapwin-legend .fh-controls,
+.mapwin-legend .fh-track {
   width: 100%;
 }
 /* The colours under the bars: the ramp, light to dark, across the range shown. */

@@ -239,9 +239,28 @@ export function RangedBars({
   const bars = barsFrom(qs, count, r.range, year);
   const top = Math.max(1, ...bars.map((b) => b.n));
   const every = Math.max(1, Math.ceil(bars.length / 6));
+  // Overflow: the values under and over the range shown, a bar at each end (capped at the chart's height, so a
+  // crowd past an end can't flatten the bars in the range; a capped one says so with its dashed top).
+  const shownRange = r.range;
+  const under = Math.round(count * shareOf(qs, shownRange.lo));
+  const over = Math.round(count * (1 - shareOf(qs, shownRange.hi)));
+  const spill = (n: number, side: "under" | "over") =>
+    n > 0 ? (
+      <span
+        className={`fh-bar fh-spill ${n > top ? "fh-spill-capped" : ""}`}
+        style={{ height: `${Math.min(100, (100 * n) / top)}%` }}
+        title={(side === "under" ? h.under : h.over)({
+          edge: `${show(side === "under" ? shownRange.lo : shownRange.hi)}${after}`,
+          n,
+        })}
+      />
+    ) : (
+      <span className="fh-bar fh-spill fh-spill-none" />
+    );
   return (
     <>
       <div className="fh-chart" role="img" aria-label={label}>
+        {spill(under, "under")}
         {bars.map((b) => (
           <span
             key={b.low}
@@ -250,43 +269,85 @@ export function RangedBars({
             title={`${show(b.low)}–${show(b.high)}${after}: ${num(Math.round(b.n))}`}
           />
         ))}
+        {spill(over, "over")}
       </div>
-      <div className="fh-axis" style={{ gridTemplateColumns: `repeat(${bars.length}, 1fr)` }}>
+      <div
+        className="fh-axis"
+        style={{ gridTemplateColumns: `var(--fh-spill) repeat(${bars.length}, 1fr) var(--fh-spill)` }}
+      >
+        <span className="fh-spill-label">{under > 0 ? "‹" : ""}</span>
         {bars.map((b, i) => (
           <span key={b.low}>{i % every === 0 ? show(b.low) : ""}</span>
         ))}
+        <span className="fh-spill-label">{over > 0 ? "›" : ""}</span>
       </div>
-      <RangeControls r={r} year={year} unit={unit} prefix={prefix} pair={pair} />
+      <RangeControls r={r} year={year} unit={unit} prefix={prefix} pair={pair} qs={qs} />
     </>
   );
 }
 
-/** Two handles on a track over the field's whole range (spaced by order of magnitude for sizes spanning a hundredfold
- * or more), and the bounds typed. */
+/** Where a value falls among the values at every 0.2% (sorted): 0 the smallest, 1 the largest, a run of equal
+ * values at its middle. */
+export function shareOf(qs: number[], x: number): number {
+  const n = qs.length - 1;
+  if (n < 1) return 0;
+  if (x <= (qs[0] ?? 0)) return 0;
+  if (x >= (qs[n] ?? 0)) return 1;
+  // The first point at or above x, and the first above it.
+  let lo = 0;
+  let hi = n;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if ((qs[m] ?? 0) < x) lo = m + 1;
+    else hi = m;
+  }
+  const at = lo;
+  const a = qs[at - 1] ?? 0;
+  const b = qs[at] ?? 0;
+  if (b > x) return (at - 1 + (x - a) / (b - a || 1)) / n;
+  let end = at;
+  while (end < n && (qs[end + 1] ?? 0) === x) end++;
+  return (at + end) / 2 / n;
+}
+
+/** The value at a share of the way through the values (0 to 1), between the two nearest points. */
+export function valueAt(qs: number[], share: number): number {
+  const n = qs.length - 1;
+  const f = Math.min(1, Math.max(0, share)) * n;
+  const k = Math.floor(f);
+  const a = qs[k] ?? 0;
+  const b = qs[Math.min(n, k + 1)] ?? a;
+  return a + (b - a) * (f - k);
+}
+
+/** Two handles on a track over the field's whole range, laid out by percentile (the middle of the track the median),
+ * and the bounds typed. */
 function RangeControls({
   r,
   year,
   unit,
   prefix,
   pair,
+  qs,
 }: {
   r: ReturnType<typeof useRange>;
   year: boolean;
   unit: string;
   prefix: string;
   pair: boolean;
+  /** The values at every 0.2%: the track is laid out by them. */
+  qs: number[];
 }) {
   const ext = r.ext as Extent;
   const range = r.range as Range;
-  const log = !year && ext.min > 0 && ext.max / ext.min >= 100;
-  const lmin = Math.log10(Math.max(ext.min, 1e-9));
-  const lmax = Math.log10(Math.max(ext.max, 1e-9));
+  // The track is laid out by percentile, not by value: a handle a quarter of the way along is at the 25th
+  // percentile, so a few huge values (a county's farms, a mall) can't squeeze every ordinary one into its first
+  // pixels. Without the percentiles (too few values), by value.
+  const byShare = qs.length > 1;
   const toPos = (x: number) =>
-    log
-      ? (1000 * (Math.log10(Math.max(x, ext.min)) - lmin)) / (lmax - lmin || 1)
-      : (1000 * (x - ext.min)) / (ext.max - ext.min || 1);
+    byShare ? 1000 * shareOf(qs, x) : (1000 * (x - ext.min)) / (ext.max - ext.min || 1);
   const fromPos = (p: number) =>
-    log ? 10 ** (lmin + ((lmax - lmin) * p) / 1000) : ext.min + ((ext.max - ext.min) * p) / 1000;
+    byShare ? valueAt(qs, p / 1000) : ext.min + ((ext.max - ext.min) * p) / 1000;
   const round = (x: number) => (year ? Math.round(x) : Number(x.toPrecision(3)));
   const gap = year ? 1 : (range.hi - range.lo) / 1000;
   const setLo = (x: number) => r.set({ lo: Math.min(round(x), range.hi - gap), hi: range.hi });
