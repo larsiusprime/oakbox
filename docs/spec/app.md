@@ -311,3 +311,68 @@ On Projects and New project the band carries the plate alone, the page below it:
     by hand on Windows.
 - **Elsewhere** (macOS, from source), pywebview's own menus are the fallback: same items, but fixed at start-up (no
   check marks or greyed items). macOS gets native menus when it gets a native window.
+
+## 3.15 The map window (designed 2026-11-09; not built)
+
+One map of the 🌐 Parcel Universe and 💰 Sales Record that stays with the user through every step: rich context to
+understand the data and catch patterns a table hides (a subdivision whose IDs don't join, a township with no year
+built, Guilford's land area differences: 23% of parcels, county-wide, deeded acres against surveyed shapes), during
+setup and after the runs.
+
+**Where it lives.** One map, in one of six states: docked right, bottom, left or top of the main window; popped out
+into a window of its own; closed. 🗺 Map in the title bar, or Ctrl+M; first opened docked right. Docked, a divider
+sets its size (25–70%); popped out, a desktop window (a browser window on the web build); popping out *moves* the map
+(never two maps), and closing its window docks it back where it was. Where it is, its size and its layers are
+remembered per computer. At phone width, docked bottom only, at 40%.
+
+**Layers**, each there once its data is:
+
+| Group | Layers | From |
+|---|---|---|
+| 🌐 Parcel Universe | shapes coloured by any field (the histogram's live range) or by a problem | the universe |
+| 💰 Sales Record | sales as dots: price, date, valid or not, 💰 vs 🌐 difference | a sales file |
+| Problems | blank values, unmatched IDs, repeated IDs, 💰 differs from 🌐 | as soon as checked |
+| Patterns | hot spots: cells over twice the county's share of a problem | with a problem layer |
+| Results | model groups, values (or per area), ratios (blue under, red over), value against the roll | the last run |
+| Context | shapefiles, public data, the street map (as the map settings say) | always |
+
+One colour scale at a time (🌐 shapes or 💰 dots), its legend always shown. A results layer from a run older than the
+settings says so ("from the run on 2026-11-07: out of date since Land size changed"). Outliers with their comps is a
+second version; the Outliers screen keeps its map meanwhile.
+
+**Follow** (in the map's header, on by default): the map takes the step's colouring and layers; it moves only when
+something is picked. Off, it stays as set.
+
+| Step | Shows |
+|---|---|
+| 🌐 Parcel Universe, its IDs | parcels; blank and repeated IDs |
+| 💰 Sales Record, IDs | sales; those finding no parcel |
+| Sale date, Sale price | sales by year, by price |
+| Valid sale, Vacant sale | valid against invalid; vacant against improved |
+| Big five, any field | parcels coloured by it; a 💰 column chosen: 💰 differs from 🌐, with hot spots |
+| Address, Coordinates, Location fields | parcels by the location field; the centre |
+| Land use & building type | parcels by the category |
+| Sales record fields | 💰 vs 🌐 for the field picked |
+| Shapefiles, Enrichments | the layer over the parcels |
+| Model groups | the groups |
+| Check sales | sales kept against set aside, by reason |
+| Evaluate, Models | ratios |
+
+**Picking.** A parcel's card: its 🌐 fields (the Big five first); its 💰 sales (date, price, each sale's own values
+beside the 🌐 ones, differences flagged); its model group, value and ratio after a run; each a link to where it's set.
+A sale's card the same, from the sale. "Show on map" from a few key places only: the problem counts (blank and
+repeated IDs, unmatched sales, "differs for N sales"), See them, and Outliers' list; a row picked there flies the map
+to it. Picking on the map never changes the step; only the card's links go anywhere.
+
+**Performance.** Tested 2026-11-08 on Guilford (222,135 parcels, 1.43 million vertices after simplifying to 3 ft,
+182,568 sales; 18 MB, prepared in 8 s): loaded and drawn in 1.1 s (3.2 s at a quarter of the CPU), 50 MB; selection to
+a popped-out window in 0.7 s (BroadcastChannel; its redraw the time). Panning everything at once, drawn in software
+(no GPU): about 1 frame a second, 0.3 with the sales dots; an empty map 60. So: zoomed out, the county as cells (about
+1 km, finer as it zooms) coloured by the layer's figure; at street zoom, only the parcels and sales in view (a few
+thousand), fetched from OAK box. Simplified shapes and cells made once, when the universe is set; on the machine
+check's lower tiers, cells longer and sales dots off by default. Pop-out sync on Windows (WebView2 windows sharing one
+engine) still to confirm; OAK box's server relays it if not.
+
+**The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
+control. Model groups' and Outliers' maps stay, with Open in map. The values and final maps become layers, with Open in
+map from their pages.
