@@ -92,6 +92,7 @@ export function useStep<K extends StepId>(id: K, projectId: string) {
       const view = unwrap(await api.GET(path, { params: { path: { project_id: projectId } } }));
       return view as unknown as StepViews[K];
     },
+    meta: { quiet: true }, // its own progress
     refetchInterval: (q) => (q.state.data?.status === "running" ? POLL : false),
   });
 }
@@ -105,6 +106,20 @@ export function useAccepted(id: Accepting, projectId: string): boolean {
 }
 
 /** Run, stop, or Looks right: the answer is the step's new state, and the steps after it are asked again. */
+/** Skip one model while Try them or Finalize runs (Skip on its progress): it stops after its current tuning trial,
+ * is left out, and the run goes on. */
+export function useStepSkip(id: "model" | "final", projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (part: string) => {
+      const path =
+        `/api/projects/{project_id}/${id}/skip/{part}` as "/api/projects/{project_id}/model/skip/{part}";
+      return unwrap(await api.POST(path, { params: { path: { project_id: projectId, part } } }));
+    },
+    onSuccess: (data) => queryClient.setQueryData(stepKey(id, projectId), data),
+  });
+}
+
 export function useStepAct<K extends StepId>(id: K, projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({

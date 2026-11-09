@@ -76,6 +76,20 @@ from a bug stays a 500 with its traceback.
 
 ## Screens
 
+- **Every action is acknowledged at once (non-negotiable, 2026-11-07).** Whatever the user does (a click, a key, a
+  drop, a choice) shows a visible change *instantly*, before any answer comes back, so it's never unclear whether it
+  was taken: the button pressed and busy, the row added, the choice shown made. When the result takes a moment, show
+  a **cancellable** spinner or progress bar where the result will appear, and say **how long it should take**
+  (from a measure: the file's size, the last run's time) or, when that can't be known, **how long it's been**
+  ("Reading parcels.csv · 0:12"). Never a click that seems to do nothing while the server works: large counties
+  (Guilford, NC: a 220 MB parcel file) make every slow path visible. Applies to adding a file, picking a field,
+  opening a preview, every step's run and every mutation.
+  **The shared pieces** (`components/Activity.tsx`, `components/Waiting.tsx`): every mutation and query already
+  shows in the corner pill from its first moment (what, how long, Stop for a read), and the control pressed gets
+  `data-busy` while the change it started is saved; nothing to add for that. A screen's first load uses
+  `<Loading q qkey doing>` (its clock, Stop, Try again; the pill then leaves it out); anything else slow, `<Waiting>`
+  where its result will appear. A query or mutation showing its own progress (polling, a run, a progress bar) takes
+  `meta: { quiet: true }`; one that can say more than "Saving your change", `meta: { doing: "…" }`.
 - **Width** (revised 2026-11-04): **tables** use all the width available (a minimum width is fine, never a
   maximum). **Everything else is as wide as what's in it**, not stretched to the page: a file's entry, a frame, a
   row of tests, a form (`width: fit-content; max-width: 100%`). Boxes in one list share the widest one's width
@@ -182,6 +196,11 @@ from a bug stays a 500 with its traceback.
   breaks a long word in its box, and a dialog never grows past the screen (it scrolls). Check new screens against
   a file with long values.
 
+- **State outside React (a module-level store):** the build memoizes with React Compiler, which can't see a mutable
+  `Map` or `Set` change. Keep such state as one immutable snapshot, replaced on every change, read with
+  `useSyncExternalStore(subscribe, () => snapshot)` and computed from the snapshot it returns (as
+  `screens/FieldHistogram.tsx` does); never read a mutable module variable during render.
+
 ## Wording
 
 Every word the page shows is in `web/src/wording/en.json` (ICU MessageFormat, SPEC §6.6), imported as `t` from
@@ -197,6 +216,17 @@ app window, its page from the dev server), or `npm run dev:wording -- --host 127
 `python -m oakbox --port 8765 --ui-url http://127.0.0.1:5173`; then Alt+click text. It writes `en.json`. A message may have line breaks (`\n`) and paragraph breaks (`\n\n`): show
 wording in a `p`, `li`, `dd` or tooltip, which keep them. Nothing of the editor may reach other builds:
 keep it behind `__WORDING_EDIT__`.
+**The two datasets, by name (non-negotiable, 2026-11-08):** always **Parcel universe** (every parcel, sold or not,
+as it is now: what's valued) and **Sales record** (every sale: what the models learn from), with their symbols:
+🌐 Parcel Universe, 💰 Sales Record. "In the parcel universe", "in the sales record"; never "today's", "as it is
+today", "the parcels'", "at the sale", "as sold", "in the sale" or other loose stand-ins. A box, column, step or heading
+that's one of them is headed by its symbol and its name in title case ("🌐 Parcel Universe", "💰 Sales Record"); in
+running text, lower case ("in the parcel universe"). The files are still
+named as files (`sale.csv`); the dataset is named as the dataset.
+**Dates (non-negotiable, 2026-11-08):** every date shown is **YYYY-MM-DD**, however the file writes it: read with its
+column's format (`oakbox/dates.py`: `iso_day`, `date_format_of`; the page's `day`, `isoDay`, `when` in
+`lib/format.ts`), never a file's own way ("12/15/1988 0:01") or the computer's locale. The one exception is a date
+field's reading table, whose "As written" side is there to show the file's own way beside YYYY-MM-DD.
 **Naming the steps:** a step is its tab's short name (Inputs, Model groups, Sales, Evaluate, Variables, Models,
 Report): its page's title, "Looks right › Sales", "Press Looks right on Sales first". Its run keeps a verb (Bring in data,
 Check sales, Check my values), on its Run button and wherever the run is meant ("applies on the next Check sales").

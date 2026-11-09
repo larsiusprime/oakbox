@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppMenus } from "./AppMenus";
+import { Activity } from "./components/Activity";
+import { MapAlone } from "./components/MapWindow";
 import { OakFrame } from "./components/OakFrame";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { UndoToast } from "./components/UndoToast";
@@ -73,6 +75,7 @@ export function App() {
           <>
             {route.name === "home" && <HomeScreen />}
             {route.name === "new" && <NewProjectScreen />}
+            {route.name === "map" && <MapAlone projectId={route.id} />}
             {route.name === "project" && (
               <ProjectScreen projectId={route.id} tab={route.tab ?? null} step={route.step ?? null} />
             )}
@@ -89,8 +92,9 @@ export function App() {
         }}
       />
       <UndoToast />
-      <OakFrame />
-      <AppMenus route={route} />
+      <Activity />
+      {route.name !== "map" && <OakFrame />}
+      {route.name !== "map" && <AppMenus route={route} />}
     </div>
   );
 }

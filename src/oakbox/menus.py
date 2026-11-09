@@ -35,6 +35,7 @@ PAGE_COMMANDS = (
     "engines",
     "about",
     "settings",
+    "performance-report",
 )
 
 
@@ -117,6 +118,9 @@ MENUS: tuple[Submenu, ...] = (
         (
             Item("docs", "OpenAVMKit &documentation"),
             Item("engines", "Model &engines…"),
+            None,
+            Item("performance-report", "Save a &performance report", enabled=_in_project),
+            None,
             Item("about", "&About OAK box"),
         ),
     ),

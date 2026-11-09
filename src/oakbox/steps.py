@@ -311,6 +311,9 @@ _emit_lock = threading.Lock()
 def emit(**kw) -> None:
     """One line of progress for the app, on the real stdout: enrichments capture what OpenAVMKit prints, and the
     heartbeat writes from its own thread."""
+    from oakbox import timing
+
+    timing.line(kw)  # the run's timeline, when it's being recorded
     out = sys.__stdout__
     if out is None:
         return
@@ -462,12 +465,26 @@ def main(run: Callable[[str], None]) -> None:
     from oakbox import engines
 
     engines.activate()  # the app passes PYTHONPATH on; this covers a run started by hand
+    from oakbox import projects, timing
+
+    # Where the run's time goes, for a slow run to be diagnosed (Help › Save a performance report).
+    try:
+        # Run as `python -m oakbox.<step>`, its module is __main__: the spec keeps the name.
+        spec = getattr(sys.modules.get("__main__"), "__spec__", None)
+        name = (spec.name if spec is not None else run.__module__).rsplit(".", 1)[-1]
+        recorder = timing.start(projects.project_dir(sys.argv[1]), name)
+    except Exception:  # noqa: BLE001 - a diagnostic: never stops the run
+        recorder = None
     try:
         run(sys.argv[1])
     except Exception as e:  # noqa: BLE001 - the app shows the last line of the log
+        if recorder is not None:
+            recorder.finish(error=f"{type(e).__name__}: {e}")
         traceback.print_exc()
         print(f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
         sys.exit(1)
+    if recorder is not None:
+        recorder.finish()
 
 
 # ---------- The step's state, from the app ----------

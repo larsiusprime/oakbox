@@ -1,5 +1,5 @@
-/** The top of every screen (SPEC D21): the box's lid, polished oak with the brass plate on it. The plate is the
- * app's main navigation: a trail of where you are, Projects › project › tab › step, each crumb above you a link,
+/** The top of every screen (SPEC D21): the box's lid, polished oak with brass on it: at its left, ⚙ Settings and 🗺
+ * Map (in a project), each a brass button of its own; then the plate, the app's main navigation: a trail of where you are, Projects › project › tab › step, each crumb above you a link,
  * the one you're on in bold; each crumb in a project opens a list of the others at its level (projects, tabs,
  * steps), each saying where it will open. No text sits on the bare wood: what's said is on the plate. */
 import { useQuery } from "@tanstack/react-query";
@@ -9,10 +9,12 @@ import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-a
 import { useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
 import { openSettings } from "../lib/machine";
+import { toggleMap, useDock } from "../lib/mapdock";
 import { lastStep, lastTab, usePlace } from "../lib/place";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { StorageLocationDialog } from "./StorageLocation";
+import { Tip } from "./Tip";
 
 const n = t.nav;
 
@@ -25,12 +27,15 @@ export type Page =
 export function OakBand({ page }: { page: Page }) {
   return (
     <header className="oak-nav">
+      {page.kind !== "check" && (
+        <div className="oak-tools">
+          <Button className="oak-btn oak-btn-gear" aria-label={n.settings} onPress={() => openSettings()}>
+            <Settings aria-hidden="true" size="1.05em" />
+          </Button>
+          {page.kind === "project" && <MapButton />}
+        </div>
+      )}
       <nav className="plate" aria-label={n.label}>
-        <span className="wordmark">
-          <span className="wordmark-strong">OAK</span>
-          <span className="wordmark-light">box</span>
-        </span>
-        <span className="plate-rule" aria-hidden="true" />
         <ol className="crumbs">
           {page.kind === "check" ? null : page.kind === "projects" ? (
             <ProjectsHere />
@@ -45,13 +50,24 @@ export function OakBand({ page }: { page: Page }) {
           {page.kind === "check" && <Here>{t.machine.title}</Here>}
           {page.kind === "project" && <ProjectCrumbs page={page} />}
         </ol>
-        {page.kind !== "check" && (
-          <Button className="plate-gear" aria-label={n.settings} onPress={() => openSettings()}>
-            <Settings aria-hidden="true" size="1em" />
-          </Button>
-        )}
       </nav>
     </header>
+  );
+}
+
+/** 🗺 Map: shows or hides the map window (SPEC §3.15); Ctrl+M too. */
+function MapButton() {
+  const d = useDock();
+  return (
+    <Tip text={n.mapTip}>
+      <Button
+        className={`oak-btn oak-btn-map ${d.open && !d.out ? "on" : ""}`}
+        aria-pressed={d.open}
+        onPress={toggleMap}
+      >
+        <span aria-hidden="true">🗺</span> {d.out ? n.mapOut : n.map}
+      </Button>
+    </Tip>
   );
 }
 
@@ -106,6 +122,7 @@ function ProjectCrumbs({ page }: { page: Extract<Page, { kind: "project" }> }) {
   const running = useQuery({
     queryKey: ["running"],
     queryFn: async () => unwrap(await api.GET("/api/running")),
+    meta: { quiet: true }, // its own progress
     refetchInterval: 5000,
   });
   const tabId = where?.projectId === page.id ? where.tab : null;

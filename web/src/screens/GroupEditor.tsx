@@ -10,6 +10,7 @@ import {
   type Move,
   unwrap,
 } from "../api/client";
+import type { components } from "../api/schema";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
@@ -17,6 +18,8 @@ import { RemoveButton, RemoveTextButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { moneyShort, num } from "../lib/format";
 import { t } from "../wording";
+
+type ByHand = components["schemas"]["ByHand"];
 
 const g = t.groups;
 
@@ -54,6 +57,7 @@ export function GroupEditor({
   onDelete,
   onShow,
   moved,
+  byHand = [],
 }: {
   projectId: string;
   currency: string;
@@ -68,6 +72,8 @@ export function GroupEditor({
   onDelete: () => void;
   onShow: (indexes: number[]) => void;
   moved: (m: Move) => number[];
+  /** The parcels put in it by hand (Outliers), with where that was decided. */
+  byHand?: ByHand[];
 }) {
   const rule = group.rule;
   const setConditions = (conditions: Condition[]) => onChange({ rule: { ...rule, conditions } });
@@ -214,6 +220,31 @@ export function GroupEditor({
               </Button>
             </span>
           ))}
+        </div>
+      )}
+      {group.keys.length > 0 && (
+        <div className="mg-card mg-hand">
+          <h4 className="mg-card-h">{g.byHand}</h4>
+          <p className="mg-help">{g.byHandLede}</p>
+          <ul className="mg-hand-list">
+            {group.keys.map((k) => {
+              const why = byHand.find((b) => b.key === k);
+              return (
+                <li key={k}>
+                  <code>{k}</code>{" "}
+                  <span className="wiz-from">
+                    {why?.sale ? (why.sold ? g.byHandFrom({ date: why.sold }) : g.byHandFromSale) : ""}
+                    {why?.note ? ` · ${why.note}` : ""}
+                  </span>
+                  <RemoveButton
+                    what={g.byHandWhat({ key: k })}
+                    onPress={() => onChange({ keys: group.keys.filter((x) => x !== k) })}
+                    undo={() => onChange({ keys: group.keys })}
+                  />
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
       {stats && stats.checks.length > 0 && (

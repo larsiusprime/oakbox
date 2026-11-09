@@ -5,9 +5,11 @@ import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { api, type ProjectDetail, unwrap } from "../api/client";
 import { useAccepted, useStep } from "../api/steps";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
+import { MapWindow } from "../components/MapWindow";
 import { OakBand } from "../components/OakBand";
 import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
+import { Loading } from "../components/Waiting";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { navigate, TABS, type TabId } from "../lib/route";
@@ -38,7 +40,8 @@ export function ProjectScreen({
       unwrap(await api.GET("/api/projects/{project_id}", { params: { path: { project_id: projectId } } })),
   });
 
-  if (detail.isPending) return <p className="empty">{t.project.loading}</p>;
+  if (detail.isPending)
+    return <Loading q={detail} qkey={["project", projectId]} doing={t.project.loading} sheet />;
   if (detail.error) return <p className="error">{detail.error.message}</p>;
   return <ProjectView detail={detail.data} tab={tab} step={step} />;
 }
@@ -144,6 +147,7 @@ function ProjectView({
     <div className="project">
       <h1 className="visually-hidden">{project.name}</h1>
       <OakBand page={{ kind: "project", id: projectId, name: project.name, year: project.tax_year }} />
+      <MapWindow projectId={projectId} tab={tab} step={step} />
       <Tabs
         className="folder-tabs"
         selectedKey={selected}

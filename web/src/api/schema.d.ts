@@ -326,6 +326,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/performance-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Performance Report
+         * @description Zip the project's run records (timing, tuning trials, receipts, the end of the logs; no data) into the project
+         *     folder for a slow run to be diagnosed, and show it in the file manager (Help › Save a performance report).
+         */
+        post: operations["performance_report_api_projects__project_id__performance_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/show-in-folder": {
         parameters: {
             query?: never;
@@ -377,6 +398,63 @@ export interface paths {
          * @description Move or copy a file into in/ and add its data.load entry (SPEC §3.0 F2).
          */
         post: operations["add_file_api_projects__project_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reading": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readings
+         * @description Each CSV's Parquet copy: made, being made (how far, how long to go), stopped or failed. Starts any not made.
+         */
+        get: operations["readings_api_projects__project_id__reading_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reading/{name}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Reading
+         * @description Stop making a file's copy: it's read as a CSV meanwhile (slower), until started again.
+         */
+        post: operations["stop_reading_api_projects__project_id__reading__name__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/reading/{name}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Reading */
+        post: operations["start_reading_api_projects__project_id__reading__name__start_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -630,6 +708,66 @@ export interface paths {
          * @description What a yes/no rule makes of the sales file, without saving it (F3d).
          */
         post: operations["wizard_rule_preview_api_projects__project_id__wizard_fields__key__rule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/sales-only": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard Sales Only
+         * @description The main sales file's columns no parcel file has: for valid-sale rules and Outliers, not models (F3d).
+         */
+        get: operations["wizard_sales_only_api_projects__project_id__wizard_sales_only_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/as-sold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wizard As Sold
+         * @description Sales record fields: the sales file's columns that mirror a characteristic, each against today's values.
+         */
+        get: operations["wizard_as_sold_api_projects__project_id__wizard_as_sold_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/wizard/as-sold/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Wizard As Sold Choose
+         * @description For a characteristic, the sale's value (its column, read as the parcel's) or today's.
+         */
+        put: operations["wizard_as_sold_choose_api_projects__project_id__wizard_as_sold__key__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1057,7 +1195,8 @@ export interface paths {
         };
         /**
          * Wizard Field Histogram
-         * @description How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five).
+         * @description How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five). `sales`:
+         *     as the sales file has it (At the sale).
          */
         get: operations["wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get"];
         put?: never;
@@ -1534,6 +1673,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/skip/{part}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Model Skip
+         * @description Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is
+         *     left out, and the run goes on with the rest.
+         */
+        post: operations["model_skip_api_projects__project_id__model_skip__part__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/model/stop": {
         parameters: {
             query?: never;
@@ -1599,6 +1759,27 @@ export interface paths {
          * @description Finalize: OpenAVMKit's finalize_models, the groups Small groups leaves unvalued skipped, then the values checked against the sales (out of fold, held out, as valued) beside the roll's.
          */
         post: operations["final_run_api_projects__project_id__final_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/final/skip/{part}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Final Skip
+         * @description Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is
+         *     left out, and the run goes on with the rest.
+         */
+        post: operations["final_skip_api_projects__project_id__final_skip__part__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2458,6 +2639,350 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/outliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outliers View
+         * @description A model group's outliers (the first group with any, unless named), and every sale of it on the map.
+         */
+        get: operations["outliers_view_api_projects__project_id__outliers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/band": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Outliers Band
+         * @description The ratio band outside which a sale is an outlier.
+         */
+        put: operations["outliers_band_api_projects__project_id__outliers_band_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/sale/{key_sale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outliers Sale
+         * @description One sale: its comps, how it's unlike the others, what can be patched, where it can be moved.
+         */
+        get: operations["outliers_sale_api_projects__project_id__outliers_sale__key_sale__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/common/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outliers Common
+         * @description What a group's misses have in common: the fields the models' error lines up with, and the map.
+         */
+        get: operations["outliers_common_api_projects__project_id__outliers_common__group__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/call/{key_sale}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Outliers Call
+         * @description The call on an outlying sale: invalid, the data, the group or the model. On the list until Apply my calls.
+         */
+        put: operations["outliers_call_api_projects__project_id__outliers_call__key_sale__put"];
+        post?: never;
+        /**
+         * Outliers Undo
+         * @description Take back the call on a sale, and what it did.
+         */
+        delete: operations["outliers_undo_api_projects__project_id__outliers_call__key_sale__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/outliers/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Outliers Apply
+         * @description Apply my calls: each done where it belongs (Check sales, Model groups, the patches). The steps they change are
+         *     out of date after.
+         */
+        post: operations["outliers_apply_api_projects__project_id__outliers_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/patches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Patches List
+         * @description Every correction made to the parcels' data, in order.
+         */
+        get: operations["patches_list_api_projects__project_id__patches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/patches/{i}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Patches Remove */
+        delete: operations["patches_remove_api_projects__project_id__patches__i__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/patches/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Patches Csv
+         * @description Every patch as CSV, for whoever keeps the data.
+         */
+        get: operations["patches_csv_api_projects__project_id__patches_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Info
+         * @description Whether the map's shapes are ready (they're made in the background, started here if not), and the fields it
+         *     can colour the parcels by.
+         */
+        get: operations["map_info_api_projects__project_id__map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/shapes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Shapes
+         * @description Every parcel's shape, in the universe file's order: binary, as groups._binary lays it out.
+         */
+        get: operations["map_shapes_api_projects__project_id__map_shapes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/centres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Centres
+         * @description Every parcel's centre, longitude and latitude as float32 (NaN with no shape), in the universe file's order.
+         */
+        get: operations["map_centres_api_projects__project_id__map_centres_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/column": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Column
+         * @description A field's value for each parcel (field: file:column, from the map's field list).
+         */
+        get: operations["map_column_api_projects__project_id__map_column_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Sales
+         * @description Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say).
+         */
+        get: operations["map_sales_api_projects__project_id__map_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Problems
+         * @description The problems the map can show where they are (blank and repeated IDs, sales whose value differs from their
+         *     parcel's), with how many.
+         */
+        get: operations["map_problems_api_projects__project_id__map_problems_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/problem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Problem
+         * @description Which parcels (or sales) have one problem.
+         */
+        get: operations["map_problem_api_projects__project_id__map_problem_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/parcel/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Parcel
+         * @description One parcel's card: its fields as each parcel file has it, and its sales beside it.
+         */
+        get: operations["map_parcel_api_projects__project_id__map_parcel__index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/engines": {
         parameters: {
             query?: never;
@@ -2636,6 +3161,254 @@ export interface components {
              */
             km2: number;
         };
+        /** AreaLocationView */
+        AreaLocationView: {
+            /** Location */
+            location: string;
+            /** Name */
+            name: string;
+            /**
+             * Areas
+             * @description Distinct areas the parcels are in.
+             */
+            areas: number;
+            /**
+             * Typical Sales
+             * @description Sales in the median area.
+             */
+            typical_sales: number;
+            /**
+             * Under
+             * @description Areas with fewer sales than the minimum: their price figures are blank.
+             */
+            under: number;
+            /**
+             * Under Names
+             * @description Those areas, fewest sales first (up to 50).
+             */
+            under_names: string[];
+            /**
+             * Parcels Under
+             * @description Parcels in those areas, or in none.
+             */
+            parcels_under: number;
+            /**
+             * Ticks
+             * @description The figures worked out by it (as they'd start, when off).
+             */
+            ticks: ("price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition")[];
+        };
+        /** AreaRowView */
+        AreaRowView: {
+            /**
+             * Id
+             * @enum {string}
+             */
+            id: "price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition";
+            /** Name */
+            name: string;
+            /**
+             * Part
+             * @description From the sales (training sales only) or the parcels.
+             * @enum {string}
+             */
+            part: "sales" | "parcels";
+        };
+        /**
+         * AreaState
+         * @description Per area statistics: off to start; which figures, by which location, of which statistics.
+         */
+        AreaState: {
+            /**
+             * On
+             * @default false
+             */
+            on: boolean;
+            /**
+             * Stats
+             * @description The statistics of each figure.
+             */
+            stats: ("median" | "mean" | "std" | "p25" | "p75" | "min" | "max")[];
+            /**
+             * Min Count
+             * @description An area with fewer sales (prices) or parcels has that figure blank.
+             * @default 5
+             */
+            min_count: number;
+            /**
+             * Ticks
+             * @description Location field -> the figures worked out by it; None: as proposed (proposed).
+             */
+            ticks: {
+                [key: string]: ("price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition")[];
+            } | null;
+        };
+        /**
+         * AreaView
+         * @description Per area statistics: shown whether on or off (off, as it would start).
+         */
+        AreaView: {
+            /** On */
+            on: boolean;
+            /** Stats */
+            stats: ("median" | "mean" | "std" | "p25" | "p75" | "min" | "max")[];
+            /** Min Count */
+            min_count: number;
+            /** Rows */
+            rows: components["schemas"]["AreaRowView"][];
+            /** Locations */
+            locations: components["schemas"]["AreaLocationView"][];
+            /**
+             * Proposed
+             * @description The ticks are as proposed (none changed yet).
+             */
+            proposed: boolean;
+            /**
+             * Adds
+             * @description The variables it adds (would add, when off).
+             */
+            adds: number;
+        };
+        /** AsSoldChoice */
+        AsSoldChoice: {
+            /**
+             * Column
+             * @description The sales file's column the sales use; null: today's (the parcel's).
+             */
+            column: string | null;
+            /**
+             * Area Unit
+             * @description An area: the unit the column is in.
+             */
+            area_unit?: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+        };
+        /** AsSoldDiff */
+        AsSoldDiff: {
+            /** Parcel */
+            parcel: string;
+            /**
+             * Date
+             * @description The sale's date as written ('' if no date is loaded).
+             */
+            date: string;
+            /** Sold */
+            sold: string;
+            /** Today */
+            today: string;
+        };
+        /** AsSoldRow */
+        AsSoldRow: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /**
+             * Parcel File
+             * @description The parcel file it's loaded from (the universe's).
+             */
+            parcel_file: string;
+            /** Parcel Column */
+            parcel_column: string;
+            /**
+             * Column
+             * @description The sales file's column: chosen, else the one that mirrors it; None: none found.
+             */
+            column: string | null;
+            /**
+             * Found
+             * @description The column was found (not chosen by hand).
+             */
+            found: boolean;
+            /**
+             * How
+             * @description How it was found: the parcel's column name, a name it's known by, its values.
+             */
+            how: ("name" | "known" | "values") | null;
+            /**
+             * Unit
+             * @description An area: the unit the sales file's column is in.
+             */
+            unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+            /**
+             * Today Unit
+             * @description An area: the unit the universe's column is in.
+             */
+            today_unit: ("sqft" | "sqm" | "acres" | "hectares" | "sqyd" | "tsubo" | "pyeong" | "mu") | null;
+            /**
+             * Choice
+             * @description The user's; None: not chosen (the universe's is used).
+             */
+            choice: ("sale" | "today") | null;
+            /**
+             * Auto
+             * @description The sale's, picked by OAK box (AUTO_SAME); the user can change it.
+             * @default false
+             */
+            auto: boolean;
+            /**
+             * Suggest
+             * @description What the figures suggest: the universe's when they're the same; None: written another way.
+             */
+            suggest: ("sale" | "today") | null;
+            /**
+             * Sales
+             * @description Sales on a parcel.
+             */
+            sales: number;
+            /**
+             * Have
+             * @description Of them, with a value in the column.
+             */
+            have: number;
+            /**
+             * Compared
+             * @description Of those, on a parcel with the universe's value too.
+             */
+            compared: number;
+            /**
+             * Same
+             * @description Of those, the same as the universe's.
+             */
+            same: number;
+            /**
+             * Examples
+             * @description [as sold, today] where they differ.
+             */
+            examples: string[][];
+            /**
+             * Diffs
+             * @description The sales that differ (the first 50).
+             */
+            diffs: components["schemas"]["AsSoldDiff"][];
+            /**
+             * Written Differently
+             * @description Its values aren't written as the universe's are (another code).
+             */
+            written_differently: boolean;
+            /**
+             * Distinct
+             * @description Its distinct values (for its values list).
+             * @default 0
+             */
+            distinct: number;
+        };
+        /** AsSoldView */
+        AsSoldView: {
+            /** Sales File */
+            sales_file: string | null;
+            /**
+             * Filename
+             * @description The sales file's own name (sale.csv).
+             */
+            filename: string | null;
+            /**
+             * Columns
+             * @description The sales file's columns, to choose from.
+             */
+            columns: string[];
+            /** Rows */
+            rows: components["schemas"]["AsSoldRow"][];
+        };
         /** AssembleExports */
         AssembleExports: {
             /** Exports */
@@ -2740,6 +3513,29 @@ export interface components {
              */
             source: string | null;
         };
+        /**
+         * ByHand
+         * @description A parcel put in a group by hand, and where that was decided.
+         */
+        ByHand: {
+            /** Key */
+            key: string;
+            /**
+             * Sale
+             * @description The outlying sale it was moved from (key_sale), if any.
+             */
+            sale: string | null;
+            /**
+             * Sold
+             * @description That sale's date (YYYY-MM-DD).
+             */
+            sold: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
         /** Candidate */
         Candidate: {
             /** File */
@@ -2770,6 +3566,70 @@ export interface components {
             warn: boolean;
             /** Loaded As */
             loaded_as: ("number" | "category") | null;
+        };
+        /** CardCompare */
+        CardCompare: {
+            /** Field */
+            field: string;
+            /** Label */
+            label: string;
+            /**
+             * Sold
+             * @description The sale's own value, as the 💰 Sales Record writes it.
+             */
+            sold: string;
+            /**
+             * Today
+             * @description The parcel's, in the 🌐 Parcel Universe.
+             */
+            today: string;
+            /** Differs */
+            differs: boolean;
+            /**
+             * Written Differently
+             * @description The two are written differently (codes against scores).
+             */
+            written_differently: boolean;
+        };
+        /** CardSale */
+        CardSale: {
+            /**
+             * Row
+             * @description Its row in the sales file (0 the first).
+             */
+            row: number;
+            /**
+             * Date
+             * @description YYYY-MM-DD, or as written if it doesn't read as a date.
+             */
+            date: string;
+            /** Price */
+            price: string;
+            /**
+             * Valid
+             * @description 1 valid, 0 not, -1 unknown.
+             */
+            valid: number;
+            /** Vacant */
+            vacant: number;
+            /** Compared */
+            compared: components["schemas"]["CardCompare"][];
+        };
+        /** CardValue */
+        CardValue: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+            /**
+             * Field
+             * @description The field it's loaded as (its step links there); None: another column.
+             */
+            field: string | null;
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
         };
         /** CensusKey */
         CensusKey: {
@@ -3441,15 +4301,20 @@ export interface components {
             dupes: ("first" | "all") | null;
             /**
              * Dupes Sort
-             * @description The field rows are sorted by before keeping the first.
+             * @description Before dupes_by: the field rows are sorted by before keeping the first.
              */
             dupes_sort: string | null;
             /**
              * Dupes Desc
-             * @description Sort descending before keeping the first.
+             * @description Before dupes_by: sort descending before keeping the first.
              * @default false
              */
             dupes_desc: boolean;
+            /**
+             * Dupes By
+             * @description Keeping the first row of each ID: the file's columns its rows are sorted by first, in order (the building card, then the area, largest first). None: the file's own order.
+             */
+            dupes_by: components["schemas"]["SortKey-Output"][];
             /**
              * Blank Ok
              * @description The rows with no ID have been acknowledged as dropped (F3d).
@@ -4123,6 +4988,12 @@ export interface components {
              */
             unit: string;
             /**
+             * Prefix
+             * @description Before an amount: the currency ("$") for money.
+             * @default
+             */
+            prefix: string;
+            /**
              * Year
              * @description Years: bins labelled as years, never in decimals.
              * @default false
@@ -4149,6 +5020,16 @@ export interface components {
             median: number | null;
             /** Total */
             total: number;
+            /**
+             * Quantiles
+             * @description The values at every 0.2% (501, smallest to largest): the page re-bins from them for any range, as it's dragged, with no wait.
+             */
+            quantiles: number[];
+            /**
+             * Auto
+             * @description [low, high]: the range shown first: the middle half of the values and three times its width each side, within the smallest and largest.
+             */
+            auto: number[];
         };
         /** Fifth */
         Fifth: {
@@ -4841,6 +5722,13 @@ export interface components {
              * @description The parcel universe has a property-type field to suggest groups from.
              */
             can_suggest: boolean;
+            /**
+             * By Hand
+             * @description Group id -> the parcels put in it by hand (ModelGroup.keys), with why.
+             */
+            by_hand: {
+                [key: string]: components["schemas"]["ByHand"][];
+            };
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -4880,6 +5768,16 @@ export interface components {
              * @description Zeros, left out (often 'none': no building, no year).
              */
             zeros: number;
+            /**
+             * Quantiles
+             * @description The values at every 0.2% (zeros left out).
+             */
+            quantiles: number[];
+            /**
+             * Auto
+             * @description [low, high]: the range shown first.
+             */
+            auto: number[];
         };
         /** IndexOnChange */
         IndexOnChange: {
@@ -5469,6 +6367,111 @@ export interface components {
              */
             memory_for_oakbox_gb: number | null;
         };
+        /** MapColumn */
+        MapColumn: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "number" | "category";
+            /**
+             * Values
+             * @description Base64: numbers, float32 little-endian, NaN blank; categories, uint16 little-endian: an index into categories, 65535 blank, 65534 another value.
+             */
+            values: string;
+            /**
+             * Have
+             * @description Parcels with a value.
+             */
+            have: number;
+            /**
+             * Categories
+             * @default []
+             */
+            categories: string[];
+            /**
+             * Counts
+             * @description Parcels with each category, as categories.
+             * @default []
+             */
+            counts: number[];
+            /**
+             * Quantiles
+             * @description Numbers: the values at every 0.2% (the histogram's).
+             * @default []
+             */
+            quantiles: number[];
+            /**
+             * Auto
+             * @description Numbers: the automatic range, [low, high].
+             * @default []
+             */
+            auto: number[];
+        };
+        /** MapField */
+        MapField: {
+            /**
+             * Id
+             * @description file:column, as asked for by column().
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            /**
+             * Field
+             * @description The field it's loaded as, if it is.
+             */
+            field: string | null;
+        };
+        /** MapInfo */
+        MapInfo: {
+            /**
+             * Status
+             * @description none: no 🌐 Parcel Universe yet; making: its shapes are being prepared.
+             * @enum {string}
+             */
+            status: "none" | "making" | "ready" | "failed";
+            /** Error */
+            error: string | null;
+            /**
+             * Since
+             * @description When making started (seconds since 1970).
+             */
+            since: number | null;
+            /**
+             * Parcels
+             * @default 0
+             */
+            parcels: number;
+            /**
+             * Bounds
+             * @description [[west, south], [east, north]].
+             */
+            bounds: number[][] | null;
+            /**
+             * Stamp
+             * @description Changes when the shapes are made again: the files' cache key.
+             * @default
+             */
+            stamp: string;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["MapField"][];
+            /**
+             * Sales
+             * @description What the 💰 Sales Record can colour by: price, year, valid, vacant (as it has them).
+             * @default []
+             */
+            sales: string[];
+        };
         /** MapPoint */
         MapPoint: {
             /** Lat */
@@ -5483,6 +6486,119 @@ export interface components {
             value: number;
             /** Trimmed */
             trimmed: boolean;
+        };
+        /** MapProblem */
+        MapProblem: {
+            /** Id */
+            id: string;
+            /**
+             * On
+             * @enum {string}
+             */
+            on: "pu" | "sr";
+            /**
+             * Flags
+             * @description int8 base64, a parcel (pu) or a sale (sr) each: 1 the problem, 0 not, -1 n/a.
+             */
+            flags: string;
+            /** Count */
+            count: number;
+            /** Of */
+            of: number;
+        };
+        /** MapProblemItem */
+        MapProblemItem: {
+            /**
+             * Id
+             * @description pr:blank_ids, pr:repeated_ids, or pr:differs:<field>.
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * On
+             * @description pu: marks parcels; sr: marks sales (at their parcels).
+             * @enum {string}
+             */
+            on: "pu" | "sr";
+            /** Count */
+            count: number;
+            /** Of */
+            of: number;
+        };
+        /** MapProblems */
+        MapProblems: {
+            /** Items */
+            items: components["schemas"]["MapProblemItem"][];
+            /**
+             * Unplaced
+             * @description Sales whose parcel isn't in the 🌐 Parcel Universe: a problem with no place.
+             */
+            unplaced: number;
+        };
+        /**
+         * MapSales
+         * @description Each sale of the main sales file, at its parcel (a sale has no place of its own): base64 arrays, one entry a
+         *     sale, in the file's order.
+         */
+        MapSales: {
+            /** Sales */
+            sales: number;
+            /**
+             * Placed
+             * @description Sales whose parcel is in the 🌐 Parcel Universe: the ones on the map.
+             */
+            placed: number;
+            /**
+             * Parcel
+             * @description int32: the parcel's index in the universe's order, -1 none.
+             */
+            parcel: string;
+            /**
+             * Price
+             * @description float32, NaN blank.
+             */
+            price: string;
+            /**
+             * Year
+             * @description float32: the sale date as a year and its fraction (2023.5 mid-2023), NaN blank.
+             */
+            year: string;
+            /**
+             * Valid
+             * @description int8: 1 valid, 0 not, -1 unknown.
+             */
+            valid: string;
+            /**
+             * Vacant
+             * @description int8: 1 vacant, 0 not, -1 unknown.
+             */
+            vacant: string;
+            /**
+             * Price Quantiles
+             * @default []
+             */
+            price_quantiles: number[];
+            /**
+             * Price Auto
+             * @default []
+             */
+            price_auto: number[];
+            /**
+             * Year Quantiles
+             * @default []
+             */
+            year_quantiles: number[];
+            /**
+             * Year Auto
+             * @default []
+             */
+            year_auto: number[];
+            /**
+             * Has
+             * @description Which of price, year, valid, vacant the sales file has.
+             */
+            has: string[];
         };
         /**
          * MapView
@@ -5754,6 +6870,11 @@ export interface components {
              * @description Modeled (Model groups › Check them); None: proposed, yes with enough sales.
              */
             modeled?: boolean | null;
+            /**
+             * Keys
+             * @description Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule.
+             */
+            keys?: string[];
         };
         /**
          * ModelGroup
@@ -5784,6 +6905,11 @@ export interface components {
              * @description Modeled (Model groups › Check them); None: proposed, yes with enough sales.
              */
             modeled: boolean | null;
+            /**
+             * Keys
+             * @description Parcels put in this group by hand (Outliers), whatever the rules say: theirs before any rule.
+             */
+            keys: string[];
         };
         /** ModelGroupResult */
         ModelGroupResult: {
@@ -5838,7 +6964,7 @@ export interface components {
             tests?: string[] | null;
             /**
              * Lag On
-             * @description Nearby sales and buildings, on or off.
+             * @description Spatial average statistics, on or off.
              */
             lag_on?: boolean | null;
             /** @description A group's sales sources besides its own. */
@@ -5858,6 +6984,28 @@ export interface components {
              * @description Which of OpenAVMKit's own averages to offer (stable names); the rest are dropped.
              */
             lag_own?: string[] | null;
+            /**
+             * Area On
+             * @description Per area statistics, on or off.
+             */
+            area_on?: boolean | null;
+            /**
+             * Area Stats
+             * @description The statistics of each figure.
+             */
+            area_stats?: ("median" | "mean" | "std" | "p25" | "p75" | "min" | "max")[] | null;
+            /**
+             * Area Min Count
+             * @description Blank under this many.
+             */
+            area_min_count?: number | null;
+            /**
+             * Area Ticks
+             * @description Location field -> the figures worked out by it: every location, as now wanted.
+             */
+            area_ticks?: {
+                [key: string]: ("price" | "price_impr" | "price_vacant_land" | "sales" | "finished" | "land" | "age" | "quality" | "condition")[];
+            } | null;
         };
         /** ModelReceipt */
         ModelReceipt: {
@@ -5900,6 +7048,7 @@ export interface components {
         /** ModelSetup */
         ModelSetup: {
             lag: components["schemas"]["LagView"];
+            area: components["schemas"]["AreaView"];
             /** Variables */
             variables: components["schemas"]["Variable"][];
             /** Engines */
@@ -5929,6 +7078,7 @@ export interface components {
         /** ModelState */
         ModelState: {
             lag: components["schemas"]["LagState"];
+            area: components["schemas"]["AreaState"];
             /**
              * Tests
              * @description The variable tests to run (besides Represented); None: all of TESTS.
@@ -6311,6 +7461,539 @@ export interface components {
              */
             top_n: number;
         };
+        /** OutlierBand */
+        OutlierBand: {
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+        };
+        /**
+         * OutlierCall
+         * @description What the user decided about an outlying sale: why the model is off on it.
+         */
+        OutlierCall: {
+            /**
+             * Why
+             * @enum {string}
+             */
+            why: "invalid" | "data" | "group" | "model";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Key
+             * @description The sale's parcel (a move by hand is the parcel's).
+             * @default
+             */
+            key: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Reason
+             * @description invalid: why it isn't a market sale (outliers.REASONS).
+             */
+            reason: string | null;
+            /**
+             * Group
+             * @description group: the group the parcel goes to.
+             */
+            group: string | null;
+            /**
+             * Field
+             * @description data: the field patched.
+             */
+            field: string | null;
+            /**
+             * Was
+             * @description data: its value when the call was made.
+             */
+            was: string | number | null;
+            /**
+             * Now
+             * @description data: its corrected value.
+             */
+            now: string | number | null;
+            /**
+             * Source
+             * @description data: where the correction comes from.
+             * @default
+             */
+            source: string;
+            /**
+             * Applied
+             * @description Done where it belongs (Apply my calls): until then a call is the user's list, changing nothing, so the steps it would put out of date stay as they are while the outliers are gone through.
+             * @default false
+             */
+            applied: boolean;
+        };
+        /** OutlierCallBody */
+        OutlierCallBody: {
+            /**
+             * Why
+             * @enum {string}
+             */
+            why: "invalid" | "data" | "group" | "model";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Reason
+             * @description The sale isn't a market sale: why (required).
+             */
+            reason?: ("related" | "multi_parcel" | "partial" | "wrong_price" | "distressed" | "changed" | "not_open_market" | "other") | null;
+            /**
+             * Group
+             * @description It's in the wrong group: the group to move it to.
+             */
+            group?: string | null;
+            /**
+             * Field
+             * @description The data is wrong: the field to patch.
+             */
+            field?: string | null;
+            /**
+             * Now
+             * @description The data is wrong: its corrected value.
+             */
+            now?: string | null;
+            /**
+             * Source
+             * @description The data is wrong: where the correction comes from.
+             * @default
+             */
+            source: string;
+        };
+        /** OutlierCommon */
+        OutlierCommon: {
+            /** Group */
+            group: string;
+            /** Sales */
+            sales: number;
+            /** Outliers */
+            outliers: number;
+            /** Patterns */
+            patterns: components["schemas"]["OutlierPattern"][];
+            /**
+             * Clustered
+             * @description Errors more alike between neighbours than chance; None: no places.
+             */
+            clustered: boolean | null;
+            /**
+             * Moran
+             * @description Moran's I of the errors over each sale's 8 nearest (0: none).
+             */
+            moran: number | null;
+        };
+        /** OutlierComp */
+        OutlierComp: {
+            /** Key Sale */
+            key_sale: string;
+            /** Key */
+            key: string;
+            /** Address */
+            address: string | null;
+            /** Date */
+            date: string;
+            /** Price */
+            price: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Away
+             * @description Miles (imperial) or kilometres away.
+             */
+            away: number | null;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /**
+             * Fields
+             * @description The compared fields' values, in words.
+             */
+            fields: {
+                [key: string]: string | null;
+            };
+        };
+        /** OutlierCondition */
+        OutlierCondition: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /**
+             * Words
+             * @description What its comps share in it: "is N0_2", "over 1,306", "1,306 to 1,950".
+             */
+            words: string;
+        };
+        /** OutlierDetail */
+        OutlierDetail: {
+            sale: components["schemas"]["OutlierSale"];
+            /**
+             * Comps
+             * @description Its comps nearest it on the map (up to 5), for the table.
+             */
+            comps: components["schemas"]["OutlierComp"][];
+            /**
+             * Members
+             * @description Every comp's place, for the map.
+             */
+            members: components["schemas"]["OutlierMember"][];
+            /**
+             * Basis
+             * @description What the comps are compared on: price per finished area, per land area, price; None: no comps.
+             */
+            basis: ("impr" | "land" | "price") | null;
+            /**
+             * Conditions
+             * @description What makes them its comps: its comp tree's path.
+             */
+            conditions: components["schemas"]["OutlierCondition"][];
+            /**
+             * Depth
+             * @description The conditions kept (each a split of the comp tree).
+             */
+            depth: number;
+            /**
+             * Full Depth
+             * @description How deep its own path goes: kept fewer when too few other sales were left.
+             */
+            full_depth: number;
+            /**
+             * N Comps
+             * @description Its comps: the sales meeting every condition, it left out.
+             */
+            n_comps: number;
+            /**
+             * Per Area
+             * @description Their mean price per area (basis impr or land).
+             */
+            per_area: number | null;
+            /**
+             * Compared
+             * @description The fields the comps are shown with (OutlierComp.fields), in order.
+             */
+            compared: string[];
+            /**
+             * Mine
+             * @description The sale's own values of the compared fields, in words.
+             */
+            mine: {
+                [key: string]: string | null;
+            };
+            /** Names */
+            names: {
+                [key: string]: string;
+            };
+            /**
+             * Comps Say
+             * @description What the comps say it's worth: their price per area times its own.
+             */
+            comps_say: number | null;
+            /**
+             * Comps Ratio
+             * @description The models' median ratio on the comps.
+             */
+            comps_ratio: number | null;
+            /** Unlike */
+            unlike: components["schemas"]["OutlierUnlike"][];
+            /**
+             * Patchable
+             * @description The parcel's fields a patch can correct, as they are now.
+             */
+            patchable: components["schemas"]["OutlierPatchField"][];
+            /**
+             * Groups
+             * @description (id, name) of the groups it can be moved to.
+             */
+            groups: [
+                string,
+                string
+            ][];
+            /**
+             * Units
+             * @enum {string}
+             */
+            units: "mi" | "km";
+            /**
+             * At Sale
+             * @description [column, value]: the sale's own values in the columns only the sales file has (REMODELED, SALE_TYPE): context, not model variables.
+             */
+            at_sale: string[][];
+        };
+        /** OutlierGroupCount */
+        OutlierGroupCount: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sales */
+            sales: number;
+            /** Outliers */
+            outliers: number;
+        };
+        /** OutlierMember */
+        OutlierMember: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+        };
+        /** OutlierPatchField */
+        OutlierPatchField: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Numeric */
+            numeric: boolean;
+            /** Now */
+            now: string | null;
+        };
+        /** OutlierPatchRow */
+        OutlierPatchRow: {
+            /** I */
+            i: number;
+            /** Key */
+            key: string;
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Was */
+            was: string | null;
+            /** Now */
+            now: string | null;
+            /** Source */
+            source: string;
+            /** At */
+            at: string;
+            /** By */
+            by: string;
+            /** Sale */
+            sale: string | null;
+        };
+        /** OutlierPattern */
+        OutlierPattern: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** In Model */
+            in_model: boolean;
+            /**
+             * Bucket
+             * @description The sales it's about: "pool: yes", "lot size over 12,000".
+             */
+            bucket: string;
+            /**
+             * N
+             * @description Sales in it.
+             */
+            n: number;
+            /**
+             * Misses
+             * @description Outliers in it.
+             */
+            misses: number;
+            /**
+             * Off
+             * @description The models' average error on them: -0.18 is valued 18% low.
+             */
+            off: number;
+            /**
+             * Rest Off
+             * @description On the group's other sales.
+             */
+            rest_off: number;
+            /**
+             * Share
+             * @description Of the models' error, the share that lines up with the field (0-1).
+             */
+            share: number;
+            /**
+             * Chance
+             * @description How often shuffled errors line up as much (0-1): lower is surer.
+             */
+            chance: number;
+            /**
+             * Goes With
+             * @description A field ranked above whose sales these mostly are.
+             */
+            goes_with: string | null;
+        };
+        /** OutlierPoint */
+        OutlierPoint: {
+            /** Key Sale */
+            key_sale: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Out
+             * @description Outside the band: an outlier.
+             */
+            out: boolean;
+        };
+        /** OutlierSale */
+        OutlierSale: {
+            /** Key Sale */
+            key_sale: string;
+            /** Key */
+            key: string;
+            /** Address */
+            address: string | null;
+            /** Group */
+            group: string;
+            /** Date */
+            date: string;
+            /**
+             * Sold
+             * @description What it sold for.
+             */
+            sold: number;
+            /**
+             * Price
+             * @description The price, time-adjusted to the valuation date (as the models value).
+             */
+            price: number;
+            /**
+             * Value
+             * @description The models' value of it, out of fold (they hadn't seen it).
+             */
+            value: number;
+            /** Ratio */
+            ratio: number;
+            /**
+             * Roll
+             * @description The roll's value of the parcel, if a roll was loaded.
+             */
+            roll: number | null;
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Call */
+            call: ("invalid" | "data" | "group" | "model") | null;
+            /** Note */
+            note: string;
+            /**
+             * Applied
+             * @description The call is done where it belongs (Apply my calls); false: on the list only.
+             */
+            applied: boolean;
+        };
+        /**
+         * OutlierState
+         * @description Outliers (6. Models): the ratio band outside which a sale is an outlier, and the calls made on them.
+         */
+        OutlierState: {
+            /**
+             * Low
+             * @description A ratio under this is an outlier (OpenAVMKit's 0.75).
+             * @default 0.75
+             */
+            low: number;
+            /**
+             * High
+             * @description A ratio over this is an outlier (OpenAVMKit's 1.25).
+             * @default 1.25
+             */
+            high: number;
+            /**
+             * Calls
+             * @description key_sale -> the call made on it.
+             */
+            calls: {
+                [key: string]: components["schemas"]["OutlierCall"];
+            };
+        };
+        /** OutlierUnlike */
+        OutlierUnlike: {
+            /** Field */
+            field: string;
+            /** Name */
+            name: string;
+            /** Numeric */
+            numeric: boolean;
+            /** This */
+            this: string | null;
+            /**
+             * Comps
+             * @description Its comps' median (a number) or most common value (a category).
+             */
+            comps: string | null;
+            /**
+             * Pct
+             * @description A number: where it sits among the group's sales, 0-100.
+             */
+            pct: number | null;
+            /**
+             * Share
+             * @description A category: the share of the group's sales with its value.
+             */
+            share: number | null;
+            /**
+             * Flag
+             * @description It stands out: among the group's extremes, or unlike its comps.
+             */
+            flag: boolean;
+            /** In Model */
+            in_model: boolean;
+        };
+        /** OutlierView */
+        OutlierView: {
+            /**
+             * Ready
+             * @description Finalize has run since Outliers came: the sales and their values are there.
+             */
+            ready: boolean;
+            /** Groups */
+            groups: components["schemas"]["OutlierGroupCount"][];
+            /** Group */
+            group: string | null;
+            /** Low */
+            low: number;
+            /** High */
+            high: number;
+            /**
+             * Outliers
+             * @description Worst first: the lowest ratios, then the highest.
+             */
+            outliers: components["schemas"]["OutlierSale"][];
+            /**
+             * Points
+             * @description Every sale of the group with a place: the outliers among them.
+             */
+            points: components["schemas"]["OutlierPoint"][];
+            /**
+             * Calls
+             * @description Outliers of the group with a call made.
+             */
+            calls: number;
+            /**
+             * Pending
+             * @description The kinds of call made and not yet applied, in every group.
+             */
+            pending: ("invalid" | "data" | "group" | "model")[];
+            /**
+             * To Apply
+             * @description Calls made and not yet applied, in every group (notes on the model aside).
+             */
+            to_apply: number;
+        };
         /** Overlap */
         Overlap: {
             /** Column */
@@ -6433,6 +8116,30 @@ export interface components {
              */
             name_column: string | null;
         };
+        /** ParcelCard */
+        ParcelCard: {
+            /** Index */
+            index: number;
+            /** Key */
+            key: string;
+            /**
+             * Fields
+             * @description Its fields first (the Big five first), then the files' other columns.
+             */
+            fields: components["schemas"]["CardValue"][];
+            /**
+             * Rows
+             * @description Rows each parcel file has for it (a building file: one a building).
+             */
+            rows: {
+                [key: string]: number;
+            };
+            /**
+             * Sales
+             * @description Its sales, the latest first.
+             */
+            sales: components["schemas"]["CardSale"][];
+        };
         /** ParcelField */
         ParcelField: {
             /** Label */
@@ -6514,6 +8221,49 @@ export interface components {
             vacant: boolean;
         };
         /**
+         * Patch
+         * @description A correction to one parcel's field (Outliers › The data is wrong or missing), kept for the record and sent to
+         *     whoever keeps the data (exported). Written as OpenAVMKit's data.process.enrich.tweak, so every step sees it.
+         */
+        Patch: {
+            /** Key */
+            key: string;
+            /** Field */
+            field: string;
+            /**
+             * Was
+             * @description Its value when patched (None: blank).
+             */
+            was: string | number | null;
+            /**
+             * Now
+             * @description The corrected value: a number for a number field.
+             */
+            now: string | number;
+            /**
+             * Source
+             * @description Where the correction comes from: a permit, a visit, the deed.
+             * @default
+             */
+            source: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * By
+             * @description Who patched it: the computer's user.
+             * @default
+             */
+            by: string;
+            /**
+             * Sale
+             * @description The outlying sale it was patched from (key_sale), if any.
+             */
+            sale: string | null;
+        };
+        /**
          * PatternTable
          * @description The sales scrutiny flagged far from their group, by pattern: the five-pattern table, for one model group or
          *     all ("").
@@ -6569,6 +8319,16 @@ export interface components {
              * @enum {string}
              */
             street_map: "recommended" | "on" | "off";
+        };
+        /** PerformanceReport */
+        PerformanceReport: {
+            /**
+             * Path
+             * @description The zip, in the project folder.
+             */
+            path: string;
+            /** Name */
+            name: string;
         };
         /** PermitKind */
         PermitKind: {
@@ -6873,6 +8633,13 @@ export interface components {
             model: components["schemas"]["ModelState"];
             /** @description Step 7, Report: what it judges on, its title. */
             report: components["schemas"]["ReportState"];
+            /** @description 6. Models › Outliers: its calls. */
+            outliers: components["schemas"]["OutlierState"];
+            /**
+             * Patches
+             * @description Corrections to parcels' data, in order made.
+             */
+            patches: components["schemas"]["Patch"][];
             /**
              * Accepted
              * @description Step -> the settings it was run with when Looks right was pressed.
@@ -7174,6 +8941,38 @@ export interface components {
              */
             skipped: boolean;
         };
+        /**
+         * Reading
+         * @description A CSV's Parquet copy, made once so its columns read fast (SPEC §5): how far along.
+         */
+        Reading: {
+            /** Name */
+            name: string;
+            /** Filename */
+            filename: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "none" | "ready" | "reading" | "failed" | "waiting" | "stopped";
+            /** Fraction */
+            fraction: number;
+            /**
+             * Seconds
+             * @description Since it started.
+             */
+            seconds: number;
+            /**
+             * Left
+             * @description Seconds to go, by the pace so far. None until it can tell.
+             */
+            left: number | null;
+            /**
+             * Error
+             * @description Why it failed.
+             */
+            error: string | null;
+        };
         /** Receipt */
         Receipt: {
             /** Ran At */
@@ -7422,6 +9221,11 @@ export interface components {
             sort: string | null;
             /** Descending */
             descending: boolean;
+            /**
+             * By
+             * @description The columns rows are sorted by, in order.
+             */
+            by: components["schemas"]["SortKey-Output"][];
             /**
              * Blank Ok
              * @description The rows with no ID have been acknowledged.
@@ -7932,6 +9736,39 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** SalesOnlyColumn */
+        SalesOnlyColumn: {
+            /** Column */
+            column: string;
+            /**
+             * Have
+             * @description Sales with a value in it.
+             */
+            have: number;
+            /** Rows */
+            rows: number;
+            /** Distinct */
+            distinct: number;
+            /**
+             * Top
+             * @description [value, count], the most common first.
+             */
+            top: string[][];
+            /**
+             * In Rule
+             * @description A valid or vacant sale rule tests it already.
+             */
+            in_rule: boolean;
+        };
+        /** SalesOnlyView */
+        SalesOnlyView: {
+            /** Sales File */
+            sales_file: string | null;
+            /** Filename */
+            filename: string | null;
+            /** Columns */
+            columns: components["schemas"]["SalesOnlyColumn"][];
+        };
         /**
          * SalesSet
          * @description A set of sales the figures are on, as OpenAVMKit's benchmark has them.
@@ -8248,6 +10085,44 @@ export interface components {
              * @description Parcels in modeled groups valued below zero: left blank.
              */
             blanked: number;
+        };
+        /**
+         * SortKey
+         * @description One level of the order repeated rows are kept in: a column of the file, and which way.
+         */
+        "SortKey-Input": {
+            /** Column */
+            column: string;
+            /**
+             * Desc
+             * @default false
+             */
+            desc: boolean;
+            /**
+             * Numeric
+             * @description Sorted as numbers (2 before 10), not as text.
+             * @default false
+             */
+            numeric: boolean;
+        };
+        /**
+         * SortKey
+         * @description One level of the order repeated rows are kept in: a column of the file, and which way.
+         */
+        "SortKey-Output": {
+            /** Column */
+            column: string;
+            /**
+             * Desc
+             * @default false
+             */
+            desc: boolean;
+            /**
+             * Numeric
+             * @description Sorted as numbers (2 before 10), not as text.
+             * @default false
+             */
+            numeric: boolean;
         };
         /** Source */
         Source: {
@@ -9880,6 +11755,11 @@ export interface components {
              */
             dupes_desc: boolean;
             /**
+             * Dupes By
+             * @description With first: the file's columns to sort by, in order (the ID breaks ties).
+             */
+            dupes_by?: components["schemas"]["SortKey-Input"][] | null;
+            /**
              * Blank Ok
              * @description Acknowledge the rows with no ID (they're dropped).
              */
@@ -10010,6 +11890,18 @@ export interface components {
              * @description Fields the user named and classified.
              */
             custom: components["schemas"]["CustomField"][];
+            /**
+             * As Sold
+             * @description Sales record fields: characteristic -> the sales file's column the sales use; "": today's (the parcel's), chosen. Missing: not chosen (today's).
+             */
+            as_sold: {
+                [key: string]: string;
+            };
+            /**
+             * As Sold Auto
+             * @description Of as_sold, the ones OAK box picked (the same column name, the same as today's for 90%+); chosen by the user, they leave this list.
+             */
+            as_sold_auto: string[];
             /**
              * Condos
              * @description Condo units: whether some parcels are units without a shape of their own; None: not asked yet.
@@ -10749,6 +12641,37 @@ export interface operations {
             };
         };
     };
+    performance_report_api_projects__project_id__performance_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerformanceReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     show_in_folder_api_projects__project_id__show_in_folder_post: {
         parameters: {
             query?: never;
@@ -10837,6 +12760,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readings_api_projects__project_id__reading_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reading"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_reading_api_projects__project_id__reading__name__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reading"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_reading_api_projects__project_id__reading__name__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reading"][];
                 };
             };
             /** @description Validation Error */
@@ -11353,6 +13371,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RulePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_sales_only_api_projects__project_id__wizard_sales_only_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesOnlyView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_as_sold_api_projects__project_id__wizard_as_sold_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsSoldView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wizard_as_sold_choose_api_projects__project_id__wizard_as_sold__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsSoldChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AsSoldView"];
                 };
             };
             /** @description Validation Error */
@@ -12127,7 +14243,9 @@ export interface operations {
     };
     wizard_field_histogram_api_projects__project_id__wizard_fields__key__histogram_get: {
         parameters: {
-            query?: never;
+            query?: {
+                sales?: boolean;
+            };
             header?: never;
             path: {
                 project_id: string;
@@ -12973,6 +15091,38 @@ export interface operations {
             };
         };
     };
+    model_skip_api_projects__project_id__model_skip__part__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                part: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     model_stop_api_projects__project_id__model_stop_post: {
         parameters: {
             query?: never;
@@ -13072,6 +15222,38 @@ export interface operations {
             header?: never;
             path: {
                 project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    final_skip_api_projects__project_id__final_skip__part__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                part: string;
             };
             cookie?: never;
         };
@@ -14685,6 +16867,584 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_view_api_projects__project_id__outliers_get: {
+        parameters: {
+            query?: {
+                group?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_band_api_projects__project_id__outliers_band_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutlierBand"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_sale_api_projects__project_id__outliers_sale__key_sale__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_common_api_projects__project_id__outliers_common__group__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierCommon"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_call_api_projects__project_id__outliers_call__key_sale__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutlierCallBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_undo_api_projects__project_id__outliers_call__key_sale__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                key_sale: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outliers_apply_api_projects__project_id__outliers_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patches_list_api_projects__project_id__patches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierPatchRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patches_remove_api_projects__project_id__patches__i__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                i: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutlierPatchRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patches_csv_api_projects__project_id__patches_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_info_api_projects__project_id__map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_shapes_api_projects__project_id__map_shapes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_centres_api_projects__project_id__map_centres_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_column_api_projects__project_id__map_column_get: {
+        parameters: {
+            query: {
+                field: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapColumn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_sales_api_projects__project_id__map_sales_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapSales"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_problems_api_projects__project_id__map_problems_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapProblems"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_problem_api_projects__project_id__map_problem_get: {
+        parameters: {
+            query: {
+                id: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapProblem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_parcel_api_projects__project_id__map_parcel__index__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParcelCard"];
                 };
             };
             /** @description Validation Error */

@@ -180,11 +180,17 @@ def run(project_id: str) -> None:
             done = groups.index(parts[1]) / max(len(groups), 1)
             name = next((g.name for g in project.groups if g.id == parts[1]), parts[1])
             engine = own.get(parts[1], {}).get(parts[2]) or model.ENGINES.get(parts[2], (parts[2],))[0]
-            steps.emit(step="models", fraction=0.1 + 0.75 * done, message=f"{name}: training {engine}")
+            # A part the user can skip (Skip on the progress): this model in this group.
+            steps.emit(step="models", fraction=0.1 + 0.75 * done, message=f"{name}: training {engine}", part=e.step)
         else:
             steps.emit(detail=e.message)
 
-    with warnings.catch_warnings(record=True) as caught, progress.reporting(inside), steps.heartbeat():
+    skips, skip_check = model.skippable(pdir, MODULE)
+    with (
+        warnings.catch_warnings(record=True) as caught,
+        progress.reporting(inside, skip=skip_check),
+        steps.heartbeat(),
+    ):
         warnings.simplefilter("always")
         sup, settings, dropped, gnames = model.for_models(project, modeled, own)
         _skip(settings, leave)
@@ -231,6 +237,9 @@ def run(project_id: str) -> None:
         by_key = dict(zip(values["key"], values[VALUE].astype(float), strict=True))
         sales["oak_oof"] = _look(ks, oof)
         sales["oak_held"] = _look(sales["key"], by_key).where(ks.isin(list(held)))
+        _keep_sales(sales, universe, tmp)
+        steps.emit(step="comps", fraction=0.87, message="Finding each sale's comparable sales")
+        _fit_comps(project, pdir, tmp)
         universe[VALUE] = values[VALUE].to_numpy()
         # The studies want each field on the parcels too, blank: a blank on a sale would otherwise be filled with its
         # parcel's (OpenAVMKit's hydration), and every sale would be "held out".
@@ -368,7 +377,11 @@ def run(project_id: str) -> None:
         roll=roll[1] if roll else None,
         sets=sets,
         groups=out,
-        notes=[*dropped, *list(dict.fromkeys(str(w.message) for w in mine_notes))][:20],
+        notes=[
+            *model.skipped_notes(project, own, skips),
+            *dropped,
+            *list(dict.fromkeys(str(w.message) for w in mine_notes if model.SKIPPED_BY_ENGINE not in str(w.message))),
+        ][:20],
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(json.dumps({"hash": depends}), encoding="utf-8")
@@ -378,6 +391,46 @@ def run(project_id: str) -> None:
 
 
 # ---------- The map ----------
+
+
+SALES = "sales.parquet"  # every valid sale of a valued group, its out-of-fold value and its fields (Outliers)
+
+
+def _keep_sales(sales, universe, tmp: Path) -> None:
+    """For Outliers: each valid sale the models valued out of fold, with every field of its parcel (as at its sale),
+    the time-adjusted price the ratios are on (`oak_price`), its value (`oak_oof`) and ratio (`oak_ratio`)."""
+    import numpy as np
+    import pandas as pd
+    from openavmkit.data import SalesUniversePair, get_hydrated_sales_from_sup
+
+    t = get_hydrated_sales_from_sup(SalesUniversePair(sales=sales, universe=universe))
+    t = pd.DataFrame(t.drop(columns=[c for c in ("geometry",) if c in t.columns]))
+    # The models value at the valuation date, as the time-adjusted prices they learn from: sales of every year are
+    # compared with that (the study's own price setting is about the window's sales only).
+    field = "sale_price_time_adj" if "sale_price_time_adj" in t else "sale_price"
+    t["oak_price"] = pd.to_numeric(t[field], errors="coerce")
+    t["oak_ratio"] = t["oak_oof"] / t["oak_price"].where(t["oak_price"] > 0)
+    keep = t["oak_ratio"].notna() & np.isfinite(t["oak_ratio"])
+    if "valid_sale" in t:
+        keep &= t["valid_sale"].astype("boolean").fillna(False)
+    t = pd.DataFrame(t[keep]).reset_index(drop=True)
+    for c in t.columns:  # mixed columns (objects of numbers and text) as text: Parquet takes one type a column
+        if t[c].dtype == object:
+            t[c] = t[c].map(lambda v: None if v is None or (isinstance(v, float) and v != v) else str(v))
+    t.to_parquet(tmp / SALES, index=False)
+
+
+def _fit_comps(project, pdir: Path, tmp: Path) -> None:
+    """Each valued group's comp trees (OpenAVMKit's layered comps), for Outliers: fitted here, while the run is
+    running anyway, so Outliers opens without waiting for them."""
+    import pandas as pd
+
+    from oakbox import outliers
+
+    t = pd.read_parquet(tmp / SALES)
+    t["model_group"] = t["model_group"].astype(str)
+    for g in sorted(set(t["model_group"])):
+        outliers.fit_comps(project, pdir, t, g, tmp / outliers.COMPS_DIR / f"{g}.json")
 
 
 class ParcelPoints(BaseModel):

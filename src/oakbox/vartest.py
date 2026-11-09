@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import Field
 
-from oakbox import cells, model, prepare, spatiallag, steps
+from oakbox import areastats, cells, model, prepare, spatiallag, steps
 from oakbox.datafiles import BaseModel
 
 if TYPE_CHECKING:
@@ -210,6 +210,10 @@ def run(project_id: str) -> None:
             spatiallag.lag_prune(settings, sup.universe)
             sup = pl.enrich_sup_spatial_lag(sup, settings, verbose=False)
             sup = spatiallag.lag_stable(sup, spatiallag.sale_field(project))
+        if settings.get("data", {}).get("process", {}).get("enrich", {}).get("area_stats"):
+            steps.emit(step="area", fraction=0.04, message="Working out per area statistics")
+            sup = pl.enrich_sup_area_stats(sup, settings, verbose=False)
+            sup = areastats.stable(sup, spatiallag.sale_field(project))
         sales = get_hydrated_sales_from_sup(sup)
         universe = sup.universe
         from oakbox import assemble
@@ -290,7 +294,14 @@ def run(project_id: str) -> None:
     )
     (tmp / "receipt.json").write_text(receipt.model_dump_json(indent=1), encoding="utf-8")
     (tmp / "settings.json").write_text(
-        json.dumps({"prepare": prepare.STEP.ran_at(pdir), "modeled": sorted(modeled), "lag": _lag(project, pdir)}),
+        json.dumps(
+            {
+                "prepare": prepare.STEP.ran_at(pdir),
+                "modeled": sorted(modeled),
+                "lag": _lag(project, pdir),
+                "area": _area(project, pdir),
+            }
+        ),
         encoding="utf-8",
     )
     steps.publish(tmp, out_dir(pdir))
@@ -315,6 +326,14 @@ def _lag(project: Project, project_dir: Path) -> dict:
     )
 
 
+def _area(project: Project, project_dir: Path) -> dict:
+    """The per area statistics it tests: what changes their values."""
+    if not project.model.area.on:
+        return {}
+    cols = set(model.universe_fields(project_dir))
+    return areastats.settings(project, model.area_found(project, project_dir, cols), cols) if cols else {}
+
+
 def _key(project: Project, project_dir: Path) -> dict:
     from oakbox import assemble
 
@@ -322,6 +341,7 @@ def _key(project: Project, project_dir: Path) -> dict:
         "prepare": prepare.STEP.ran_at(project_dir),
         "modeled": sorted(assemble.modeled(project, project_dir)),
         "lag": _lag(project, project_dir),
+        "area": _area(project, project_dir),
     }
 
 
@@ -333,7 +353,12 @@ STEP = steps.Step(
     key=_key,
     after=prepare.STEP,
     ran_hash=lambda ran: steps.key_hash(
-        {"prepare": ran.get("prepare"), "modeled": ran.get("modeled", []), "lag": ran.get("lag", {})}
+        {
+            "prepare": ran.get("prepare"),
+            "modeled": ran.get("modeled", []),
+            "lag": ran.get("lag", {}),
+            "area": ran.get("area", {}),
+        }
     ),
     again="Test the variables again first: something changed since.",
 )

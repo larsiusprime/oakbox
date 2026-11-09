@@ -23,7 +23,7 @@ from oakbox.datafiles import (
 )
 from oakbox.errors import NotFound
 from oakbox.projects import Project
-from oakbox.wizard.base import ABSENT_OK, ASSUMABLE, PAIRS, ROWS, SCALED, STEPS
+from oakbox.wizard.base import ABSENT_OK, ASSUMABLE, CHARACTERISTIC_STEPS, PAIRS, ROWS, SCALED, STEPS
 from oakbox.wizard.checks import field_check
 from oakbox.wizard.files import Files, dictionary_by_key, field_files, file_stamp, is_more_sales, sales_file, values_of
 from oakbox.wizard.money import detect_number_format, is_money, plain_numbers
@@ -60,10 +60,18 @@ def set_field(
         raise NotFound(key)
     allowed = field_files(project, step.sales)
     if only is not None:
-        allowed = [f for f in project.files if f.name == only and (f.holds in ROWS or is_more_sales(f))]
+        # A file of its own rows, more sales details, or the main sales file carrying a characteristic as sold
+        # (Sales record fields: as_sold.choose).
+        allowed = [
+            f
+            for f in project.files
+            if f.name == only
+            and (f.holds in ROWS or is_more_sales(f) or (f.holds == "sales" and step.key in CHARACTERISTIC_STEPS))
+        ]
         if not allowed:
             raise NotFound(only)
-        step = step.model_copy(update={"sales": allowed[0].holds in ("sales", "sale_rows")})
+        if allowed[0].holds in ROWS or is_more_sales(allowed[0]):
+            step = step.model_copy(update={"sales": allowed[0].holds in ("sales", "sale_rows")})
     sales = sales_file(project)
     target: DataFile | None = None
     spec: list[str] | None = None
@@ -149,6 +157,13 @@ def set_field(
         sales.calc[key] = ["set", ASSUMABLE[key]]
     if only is not None:
         return
+    from oakbox.wizard.as_sold import autopick, resync
+
+    if key in project.wizard.as_sold:
+        # The sales' copy of it (Sales record fields) follows: read as the parcel's now is, or today's if it's gone.
+        resync(project, in_dir, key)
+    else:
+        autopick(project, in_dir, [key])  # an obvious sale's column, picked (conservatively)
     if key not in project.wizard.decided:
         project.wizard.decided.append(key)
     if step.key in project.wizard.skipped and (file or assume):

@@ -14,6 +14,7 @@ const group = (id: string, name: string): ModelGroup => ({
   color: "#123456",
   rule: { join: "any", conditions: [] },
   numeric: [],
+  keys: [],
 });
 
 const stats = (

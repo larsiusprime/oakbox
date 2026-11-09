@@ -311,3 +311,129 @@ On Projects and New project the band carries the plate alone, the page below it:
     by hand on Windows.
 - **Elsewhere** (macOS, from source), pywebview's own menus are the fallback: same items, but fixed at start-up (no
   check marks or greyed items). macOS gets native menus when it gets a native window.
+
+## 3.15 The map window (designed 2026-11-09; being built)
+
+One map of the 🌐 Parcel Universe and 💰 Sales Record that stays with the user through every step: rich context to
+understand the data and catch patterns a table hides (a subdivision whose IDs don't join, a township with no year
+built, Guilford's land area differences: 23% of parcels, county-wide, deeded acres against surveyed shapes), during
+setup and after the runs.
+
+**Where it lives.** One map, in one of six states: docked right, bottom, left or top of the main window; popped out
+into a window of its own; closed. 🗺 Map in the title bar, or Ctrl+M; first opened docked right. Docked, a divider
+sets its size (25–70%); popped out, a desktop window (a browser window on the web build); popping out *moves* the map
+(never two maps), and closing its window docks it back where it was. Where it is, its size and its layers are
+remembered per computer. At phone width, docked bottom only, at 40%.
+
+**Layers**, each there once its data is:
+
+| Group | Layers | From |
+|---|---|---|
+| 🌐 Parcel Universe | shapes coloured by any field (the histogram's live range) or by a problem | the universe |
+| 💰 Sales Record | sales as dots: price, date, valid or not, 💰 vs 🌐 difference | a sales file |
+| Problems | blank values, unmatched IDs, repeated IDs, 💰 differs from 🌐 | as soon as checked |
+| Patterns | hot spots: cells over twice the county's share of a problem | with a problem layer |
+| Results | model groups, values (or per area), ratios (blue under, red over), value against the roll | the last run |
+| Context | shapefiles, public data, the street map (as the map settings say) | always |
+
+One colour scale at a time (🌐 shapes or 💰 dots), its legend always shown. A results layer from a run older than the
+settings says so ("from the run on 2026-11-07: out of date since Land size changed"). Outliers with their comps is a
+second version; the Outliers screen keeps its map meanwhile.
+
+**Follow** (in the map's header, on by default): the map takes the step's colouring and layers; it moves only when
+something is picked. Off, it stays as set.
+
+| Step | Shows |
+|---|---|
+| 🌐 Parcel Universe, its IDs | parcels; blank and repeated IDs |
+| 💰 Sales Record, IDs | sales; those finding no parcel |
+| Sale date, Sale price | sales by year, by price |
+| Valid sale, Vacant sale | valid against invalid; vacant against improved |
+| Big five, any field | parcels coloured by it; a 💰 column chosen: 💰 differs from 🌐, with hot spots |
+| Address, Coordinates, Location fields | parcels by the location field; the centre |
+| Land use & building type | parcels by the category |
+| Sales record fields | 💰 vs 🌐 for the field picked |
+| Shapefiles, Enrichments | the layer over the parcels |
+| Model groups | the groups |
+| Check sales | sales kept against set aside, by reason |
+| Evaluate, Models | ratios |
+
+**Picking.** A parcel's card: its 🌐 fields (the Big five first); its 💰 sales (date, price, each sale's own values
+beside the 🌐 ones, differences flagged); its model group, value and ratio after a run; each a link to where it's set.
+A sale's card the same, from the sale. "Show on map" from a few key places only: the problem counts (blank and
+repeated IDs, unmatched sales, "differs for N sales"), See them, and Outliers' list; a row picked there flies the map
+to it. Picking on the map never changes the step; only the card's links go anywhere.
+
+**Performance.** Tested 2026-11-08 on Guilford (222,135 parcels, 1.43 million vertices after simplifying to 3 ft,
+182,568 sales; 18 MB, prepared in 8 s): loaded and drawn in 1.1 s (3.2 s at a quarter of the CPU), 50 MB; selection to
+a popped-out window in 0.7 s (BroadcastChannel; its redraw the time). Panning everything at once, drawn in software
+(no GPU): about 1 frame a second, 0.3 with the sales dots; an empty map 60. So: zoomed out, the county as cells (about
+1 km, finer as it zooms) coloured by the layer's figure; at street zoom, only the parcels and sales in view (a few
+thousand), fetched from OAK box. Simplified shapes and cells made once, when the universe is set; on the machine
+check's lower tiers, cells longer and sales dots off by default. Tested so the same day, in software: what costs is the
+number of shapes drawn, hardly the pixels (half the window, a quarter faster). Panning the county as 474 cells: 59
+frames a second (30 at a quarter of the CPU); 6,536 cells at 250 m: 27 (19); a street view with the 4,600 parcels
+around it (the view and half its size again each side, reloaded as it pans, in 3 ms, 340 KB): 28 (20), 16 with its
+1,710 sales as dots; a neighbourhood's 13,160 parcels: 16. Rules from it: a few thousand shapes at most; finer cells
+(125 m: 49,745 for the county, 11 frames a second) only those in view; sales as dots only at street zoom, as cells'
+figures before. Pop-out sync on Windows (WebView2 windows sharing one
+engine) still to confirm; OAK box's server relays it if not.
+
+**Built so far** (2026-11-09): docked on any side or closed (🗺 Map on the plate, Ctrl+M), the divider and the
+side remembered on this computer (narrow windows: the bottom only), opened without waiting for a click when maps
+otherwise do (opening it is the click); the 🌐 parcels coloured by any column of the parcel files (your fields first,
+the Big five first among them; numbers on a light-to-dark scale over the histogram's live range, the legend; the 12
+commonest values of a category in their own colours). Its data (`mapdata.py`, `out/oakbox/map/`) is made in the
+background from the universe file when it's set: each shape simplified to a metre, its centre, the box around them all
+(Guilford: 24 s). Cells from 8 km down to 30 m, the finest at least 16 pixels across, only around the view; the shapes
+once 8,000 or fewer parcels are in the view and a quarter more each side. The shapes file comes to the browser once,
+the first time it zooms in that far, and the parcels in view are picked out there (what the test timed), not asked
+for view by view. Its divider is a thin oak stile (or rail, docked top or bottom), grained as the frame, the map a pane
+set into the box.
+
+Then (same day): **Follow** (on by default; choosing a colour by hand stops it): a Data step's field (its first
+loaded, in the step's order), the 💰 steps' sales, the 🌐 Parcel Universe step its ID problems (whichever has more
+parcels), Sales record fields the field whose 💰 values differ most; a step with nothing to show keeps what was shown.
+**💰 sales** at their parcels (`map/sales`): by price, date (light old, dark new), valid or vacant (dark yes; a cell its
+share); cells of their sales zoomed out, dots on the plain parcels zoomed in. **Problems** (`map/problems`, worked
+out once a change, kept until the project or its files change; Guilford: 5 s, then at once): 🌐 parcels with no ID or a
+repeated one; 💰 sales whose value of a field differs from their parcel's, as Sales record fields compares them (not
+one written differently, like grade codes against scores); cells by their share of it (light to dark orange, at three
+times the county's share), **hot spots** outlined (more than twice the county's share, 30 or more). Sales whose parcel
+isn't in the universe have no place: the legend says how many. Guilford's land area: 23% of sales differ, nearly all
+in the rural parts, the cities hardly at all.
+
+Then **the parcel's card** (`map/parcel/{index}`): a parcel, or a sale's dot, clicked opens it over the map, the parcel
+outlined; a cell clicked zooms to it. Its 🌐 fields as each parcel file has them (the Big five first; each a link to
+the step that sets it; a file with several rows says so, the first shown), its files' other columns folded away, and its
+💰 sales, the latest first: date, price, valid or not, and each sale's own values beside the parcel's (as Sales record
+fields compares them; a difference in red, ≠). Esc or ✕ closes it; clicking never changes the step. Its thumbtack (📌)
+pins it as a column at the map's left (the default; the map beside it) or unpins it to float over the map, dragged by
+its title, never past the map's edges; remembered on this computer. The pointer is a pointing finger over what a click
+picks (a parcel, a sale), a magnifier over a cell (a click zooms to it), the map's drag hand elsewhere. The colour picker
+is in sections, each folded or unfolded by its heading (remembered): the 🌐 Parcel Universe's fields (yours, the Big
+five first; the first of them the map's colouring to start), the 💰 Sales Record's, Problems (parcel IDs), Differences
+(a 💰 sale's value against its 🌐 parcel's), and the parcel files' other columns (Guilford: 319; folded to start).
+Typing finds them all, folded or not. Names without their unit ("Building area (finished) (HEATED_AREA)"). On the
+card, a field's name colours the map by it (a difference's, by that difference; Follow goes off, as for a choice by
+hand); the › after it goes to the step that sets it. The hover label sits below and right of the pointer. Every histogram's range track (the map's legend, the
+fields' capsules, Inputs) is laid out by percentile, not value: a handle a quarter of the way along is at the 25th
+percentile, so a few huge values can't squeeze the rest into the track's first pixels (Guilford's land area: the
+automatic range's top now 91% along, not 1%). And each histogram has an overflow bar at each end, hatched and set
+apart: how many values are under and over the range shown (capped at the chart's height, a dashed top when it is). A row is read
+alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
+opening a few seconds (the sales' comparison, shared with the problems).
+
+Then **full size and popping out** (2026-11-09). Full size (⤢): the map over the whole main window inside the frame,
+under the lid, the page behind it; the same button (⤡) docks it again. Pop out (⧉): the map moves to a window of its own
+(#/map/<project>: a desktop window, pywebview's, reused; in a browser, a popup), the main window shows none and its 🗺
+Map says "Map (popped out)" (pressing it docks it back). Closing that window, or its Dock back, docks it back where it
+was. The windows keep in step through the computer's storage (its `storage` event reaches every window of the app,
+in a browser and in the desktop app's web view alike): the dock itself, where the main window is (the popped-out map
+follows its step), and the card's links (the main window goes there). The desktop app also tells the main window when
+the popped-out one closes. Tested in a browser; on Windows (WebView2) and Linux (Qt) still to confirm. Still to come:
+the results layers and the card's group, value and ratio.
+
+**The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
+control. Model groups' and Outliers' maps stay, with Open in map. The values and final maps become layers, with Open in
+map from their pages.

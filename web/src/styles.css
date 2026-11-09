@@ -60,6 +60,12 @@
   --info-tint: #eef3fb;
   --info-edge: #b9cdee;
   --select: #dce9fd;
+  /* A sale valued under its price and over it (Outliers; the ratio maps' blue below 1, red above:
+     lib/colours.ts OUTLIER). */
+  --under: #2f5d9b;
+  --under-tint: #e3ecf8;
+  --over: #b3362e;
+  --over-tint: #fbe5e2;
 
   /* The box's inside (D21): Manila folders, creamy but still Manila, and white paper on them. */
   --manila: #f8f0d4;
@@ -349,32 +355,7 @@ body {
   transform: rotate(70deg);
 }
 
-.wordmark {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3em;
-  font-size: 1.1rem;
-  /* Plex's capitals sit centred in a 1em line box, on the screws' centreline */
-  line-height: 1;
-}
-
-.wordmark-strong {
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.wordmark-light {
-  font-weight: 400;
-  letter-spacing: 0.02em;
-}
-
 /* an engraved rule between the name and what it is */
-.plate-rule {
-  width: 2px;
-  height: 1.2rem;
-  border-left: 1px solid rgba(0, 0, 0, 0.35);
-  border-right: 1px solid rgba(255, 255, 255, 0.45);
-}
 
 /* ---------- Layout ---------- */
 
@@ -2644,6 +2625,11 @@ like the wizard's Next {
 }
 .bi-steps .now {
   font-weight: 600;
+}
+.bi-took {
+  margin-inline-start: 0.6em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .bi-receipt {
   display: grid;
@@ -5700,6 +5686,10 @@ under what it's about; a file appended as rows {
   background: linear-gradient(to bottom, var(--fill-top), var(--fill-bottom));
   transition: width 0.3s;
 }
+/* A quick-read copy: the bar and its percentage change together, the bar never behind the number. */
+.reading .engine-bar > i {
+  transition: none;
+}
 .engines-table {
   width: 100%;
   margin: var(--sp) 0;
@@ -6151,6 +6141,34 @@ under what it's about; a file appended as rows {
 .fh-bar:hover {
   background: #6f95cf;
 }
+/* The overflow at each end: the values under and over the range shown, hatched and set apart. */
+.fh-chart,
+.fh-axis {
+  --fh-spill: 0.9rem;
+}
+.fh-spill {
+  flex: 0 0 var(--fh-spill);
+  background: repeating-linear-gradient(135deg, #b9bdb4 0 3px, #dfe1db 3px 6px);
+}
+.fh-spill:first-child {
+  margin-right: 3px;
+}
+.fh-spill:last-child {
+  margin-left: 3px;
+}
+.fh-spill:hover {
+  background: repeating-linear-gradient(135deg, #8f948a 0 3px, #c9ccc4 3px 6px);
+}
+.fh-spill-capped {
+  border-top: 2px dashed #5f6159;
+}
+.fh-spill-none {
+  background: none;
+  min-height: 0;
+}
+.fh-spill-label {
+  text-align: center;
+}
 .fh-axis {
   display: grid;
   gap: 2px;
@@ -6247,32 +6265,519 @@ under what it's about; a file appended as rows {
 
 /* ---------- This computer and Settings (SPEC §5) ---------- */
 
-/* Settings on the plate: a small raised brass button at its right end, before the screw. */
-.plate-gear {
-  display: inline-grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.35rem;
-  padding: 0;
-  margin-left: calc(0.2 * var(--sp));
+/* 🗺 Map and ⚙ Settings (OakBand): brass buttons of their own on the lid, left of the plate, as tall as it; raised,
+   and pressed in while what they open is open. */
+.oak-tools {
+  display: flex;
+  align-self: stretch;
+  gap: max(calc(0.4 * var(--sp)), 0.35rem);
+  margin-right: max(calc(0.6 * var(--sp)), 0.5rem);
+}
+.oak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  min-width: 2.1rem;
+  padding: 0 0.65rem;
+  font: inherit;
+  font-size: 0.9rem;
   color: var(--plate-text);
   border: 1px solid var(--plate-edge);
-  border-radius: 2px;
-  background: linear-gradient(to bottom, var(--plate-hi), var(--plate-lo));
+  border-radius: 3px;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(to bottom, var(--plate-hi), var(--plate-mid) 55%, var(--plate-lo));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 1px 1px rgba(30, 15, 0, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    0 1px 1px rgba(30, 15, 0, 0.45),
+    0 2px 5px rgba(30, 15, 0, 0.2);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
   cursor: pointer;
 }
-.plate-gear[data-hovered] {
-  background: linear-gradient(to bottom, #fff2c8, var(--plate-mid));
+.oak-btn-gear {
+  padding: 0;
 }
-.plate-gear[data-pressed] {
-  box-shadow: inset 0 1px 2px rgba(30, 15, 0, 0.45);
+.oak-btn[data-hovered] {
+  background: linear-gradient(to bottom, #fff6d8, var(--plate-hi) 45%, var(--plate-mid));
 }
-.plate-gear[data-focus-visible] {
+.oak-btn[data-pressed],
+.oak-btn.on {
+  background: linear-gradient(to bottom, var(--plate-lo), var(--plate-mid));
+  box-shadow:
+    inset 0 1px 3px rgba(30, 15, 0, 0.5),
+    0 1px 0 rgba(255, 240, 215, 0.35);
+}
+.oak-btn[data-focus-visible] {
   outline: 2px solid var(--focus);
-  outline-offset: 1px;
+  outline-offset: 2px;
+}
+
+/* The map window (components/MapWindow, SPEC §3.15): docked on a side, inside the frame; the page makes room for it
+   (its padding on that side), and the lid stays the full width over it. */
+:root {
+  --map-gap: calc(calc(0.9 * var(--sp)) + 5px);
+  --map-w: calc(var(--map-frac, 0.4) * (100vw - 2 * var(--rim)));
+  --map-h: calc(var(--map-frac, 0.4) * (100vh - var(--lid-bottom, 0px) - var(--rim)));
+}
+/* The page makes room: the map, its oak stile, and the usual gap before the page. */
+html[data-map="right"] .content {
+  padding-right: calc(var(--map-gap) + var(--map-w) + var(--rim));
+}
+html[data-map="right"] .oak-nav {
+  margin-right: calc(-1 * var(--map-gap) - var(--map-w) - var(--rim));
+}
+html[data-map="left"] .content {
+  padding-left: calc(var(--map-gap) + var(--map-w) + var(--rim));
+}
+html[data-map="left"] .oak-nav {
+  margin-left: calc(-1 * var(--map-gap) - var(--map-w) - var(--rim));
+}
+html[data-map="bottom"] .content {
+  padding-bottom: calc(calc(1.5 * var(--sp)) + var(--rim) + var(--map-h) + var(--rim));
+}
+html[data-map="top"] .oak-nav {
+  margin-bottom: calc(var(--map-h) + var(--rim) + var(--map-gap));
+}
+/* A pane set into the box: flush with the frame, under the lid, the oak divider on its inner side. */
+.mapwin {
+  position: fixed;
+  z-index: 3;
+  display: flex;
+  background: var(--panel, #fff);
+}
+.mapwin-right,
+.mapwin-left {
+  top: var(--lid-bottom, 0px);
+  bottom: var(--rim);
+  width: var(--map-w);
+}
+.mapwin-right {
+  right: var(--rim);
+}
+.mapwin-left {
+  left: var(--rim);
+}
+.mapwin-top,
+.mapwin-bottom {
+  left: var(--rim);
+  right: var(--rim);
+  height: var(--map-h);
+}
+.mapwin-top {
+  top: var(--lid-bottom, 0px);
+}
+/* Full size: everything inside the frame, under the lid. */
+.mapwin-full {
+  top: var(--lid-bottom, 0px);
+  left: var(--rim);
+  right: var(--rim);
+  bottom: var(--rim);
+}
+/* Popped out: the whole of its own window. */
+.mapwin-alone {
+  inset: 0;
+  z-index: 10;
+}
+.mapwin-bottom {
+  bottom: var(--rim);
+}
+/* The divider: a thin oak stile (docked left or right; grain running down, as the frame's sides) or rail (docked
+   top or bottom; grain across, as its bottom), with the frame's dark seams. Drag it to size the map. */
+.mapwin-divider {
+  position: absolute;
+  z-index: 5;
+  touch-action: none;
+  background-color: #b98450;
+  box-shadow:
+    0 0 0 1px rgba(25, 12, 3, 0.85),
+    inset 0 0 0 1px rgba(255, 240, 215, 0.25);
+}
+.mapwin-divider-across {
+  top: 0;
+  bottom: 0;
+  width: var(--rim);
+  cursor: col-resize;
+  background-image:
+    linear-gradient(to right, rgba(255, 248, 235, 0.25), rgba(60, 30, 5, 0.18)), url("./assets/oak-v.svg");
+  background-size: 60px 640px;
+  background-repeat: repeat-y;
+}
+.mapwin-divider-down {
+  left: 0;
+  right: 0;
+  height: var(--rim);
+  cursor: row-resize;
+  background:
+    linear-gradient(rgba(255, 248, 235, 0.2), rgba(60, 30, 5, 0.25)),
+    url("./assets/oak-h.svg") -300px 50% / 640px 60px repeat-x,
+    #b98450;
+}
+.mapwin-divider:hover,
+.mapwin-divider:focus-visible {
+  filter: brightness(1.15);
+  outline: none;
+}
+.mapwin-divider:focus-visible {
+  box-shadow:
+    0 0 0 1px rgba(25, 12, 3, 0.85),
+    0 0 0 3px var(--focus);
+}
+.mapwin-right > .mapwin-divider {
+  left: calc(-1 * var(--rim));
+  background-position: 0 -333px;
+}
+.mapwin-left > .mapwin-divider {
+  right: calc(-1 * var(--rim));
+}
+.mapwin-bottom > .mapwin-divider {
+  top: calc(-1 * var(--rim));
+}
+.mapwin-top > .mapwin-divider {
+  bottom: calc(-1 * var(--rim));
+}
+.mapwin-in {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.mapwin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--line, #c9ccc4);
+  background: var(--paper-2, #f4f1e8);
+}
+.mapwin-title {
+  white-space: nowrap;
+}
+.mapwin-field {
+  min-width: 0;
+  flex: 0 1 22rem;
+}
+.mapwin-field .combo-input {
+  width: 100%;
+}
+.mapwin-follow {
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--line, #c9ccc4);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted, #5f6159);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mapwin-follow.on {
+  border-color: #3d7a3d;
+  background: #e8f3e5;
+  color: #22532a;
+}
+.mapwin-follow[data-hovered] {
+  border-color: #1d5bb8;
+}
+.mapwin-fold-head {
+  padding: 0;
+}
+/* A section's heading in the colour picker: pressed, it folds the section away or unfolds it. */
+.mapwin-fold {
+  width: 100%;
+  padding: 0.35rem 0.5rem 0.25rem;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.mapwin-fold:hover {
+  background: rgba(29, 91, 184, 0.08);
+}
+.mapwin-fold-n {
+  text-transform: none;
+}
+.mapwin-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+}
+/* A window with its docked side shaded: which side the map goes. */
+.mapwin-glyph {
+  position: relative;
+  width: 0.95rem;
+  height: 0.75rem;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+}
+.mapwin-glyph::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.mapwin-glyph-right::after {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 40%;
+}
+.mapwin-glyph-left::after {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+}
+.mapwin-glyph-top::after {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 40%;
+}
+.mapwin-glyph-bottom::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+}
+.mapwin-msg {
+  margin: 0.8rem;
+}
+.mapwin-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mapwin-map {
+  flex: 1;
+  min-height: 0;
+}
+/* Its controls over what's drawn (deck.gl's canvas sits above MapLibre's). */
+.mapwin-map .maplibregl-control-container > div,
+.mapwin-map .map-street {
+  z-index: 3;
+}
+/* Docked top or bottom: the legend beside the map, not under it. */
+.mapwin-top .mapwin-body,
+.mapwin-bottom .mapwin-body {
+  flex-direction: row;
+}
+.mapwin-top .mapwin-legend,
+.mapwin-bottom .mapwin-legend {
+  width: min(24rem, 40%);
+  max-height: none;
+  border-top: none;
+  border-left: 1px solid var(--line, #c9ccc4);
+  align-content: start;
+}
+.mapwin-legend {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem 0.45rem;
+  border-top: 1px solid var(--line, #c9ccc4);
+  font-size: 0.85rem;
+  max-height: 40%;
+  overflow: auto;
+}
+.mapwin-legend .fh-chart {
+  height: 2.6rem;
+}
+.mapwin-legend .fh-chart,
+.mapwin-legend .fh-axis,
+.mapwin-legend .fh-controls,
+.mapwin-legend .fh-track {
+  width: 100%;
+}
+/* The colours under the bars: the ramp, light to dark, across the range shown. */
+.mapwin-ramp {
+  height: 0.5rem;
+  border-radius: 2px;
+  background: linear-gradient(to right, #ffffcc, #a1dab4, #41b6c4, #2c7fb8, #253494);
+}
+.mapwin-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mapwin-cats li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.mapwin-cats small,
+.mapwin-how {
+  color: var(--muted, #5f6159);
+}
+.mapwin-share {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted, #5f6159);
+}
+.mapwin-sw {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 2px;
+}
+.mapwin-sw-problem {
+  background: #de6b1a;
+}
+.mapwin-sw-hot {
+  border: 2px solid #5a1e00;
+  background: #fdd0a2;
+}
+.mapwin-note {
+  flex-basis: 100%;
+  color: var(--muted, #5f6159);
+}
+.mapwin-sw-other {
+  background: #969696;
+}
+
+/* The map's area (above the legend): the map, and the parcel's card pinned at its left or floating over it. */
+.mapwin-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.mapwin-stage > .mapwin-map {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The parcel's card (components/MapCard): pinned (📌), a column at the map's left; floating, over the map (its top
+   right to start), dragged by its title, never past the map's edges. */
+.mapcard {
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #c9ccc4);
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+}
+.mapcard-float {
+  position: absolute;
+  top: 2.6rem;
+  right: 0.6rem;
+  width: min(24rem, calc(100% - 4rem));
+  max-height: calc(100% - 3.4rem);
+}
+.mapcard-float .mapcard-head {
+  cursor: move;
+  touch-action: none;
+}
+.mapcard-pinned {
+  order: -1;
+  flex: none;
+  width: min(22rem, 45%);
+  border-width: 0 1px 0 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.mapcard-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--line, #c9ccc4);
+}
+.mapcard-head b {
+  flex: 1;
+}
+.mapcard-busy {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--accent, #1d5bb8);
+  opacity: 0.6;
+}
+.mapcard-body {
+  overflow: auto;
+  padding: 0.3rem 0.6rem 0.6rem;
+}
+.mapcard-h {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.85rem;
+}
+.mapcard-tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+.mapcard-tbl th,
+.mapcard-tbl td {
+  padding: 0.12rem 0.3rem 0.12rem 0;
+  text-align: left;
+  vertical-align: top;
+  font-weight: normal;
+}
+.mapcard-tbl td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.mapcard-tbl tbody tr + tr {
+  border-top: 1px solid #ecebe6;
+}
+.mapcard-raw th {
+  font-size: 0.78rem;
+}
+.mapcard-cmp thead th {
+  text-align: right;
+  font-size: 0.78rem;
+}
+.mapcard-cmp tr.differs td {
+  color: var(--over, #b3362e);
+  font-weight: 600;
+}
+.mapcard-dim {
+  color: var(--muted, #5f6159);
+  margin: 0.2rem 0;
+}
+.mapcard-sale {
+  margin: 0.35rem 0 0.5rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--line, #c9ccc4);
+}
+.mapcard-sale-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+.mapcard-tag {
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #ecebe6;
+  font-size: 0.75rem;
+}
+.mapcard-tag.ok {
+  background: #e3efe0;
+}
+.mapcard-tag.no {
+  background: #f6e1de;
+}
+.mapcard-step {
+  margin-left: 0.35rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.mapcard-more {
+  margin-top: 0.3rem;
 }
 
 /* The check: one sheet, as wide as what's on it. */
@@ -6531,4 +7036,596 @@ div.map-wait-ask small {
 .fill-sub {
   margin: calc(1.2 * var(--sp)) 0 calc(0.4 * var(--sp));
   font-size: 1rem;
+}
+/* Variables › Per area statistics (SPEC §3.12.3): the tick; its settings on two columns; the grid of figures by
+   location. Off, all of it as it would start, faded and out of reach. */
+.area {
+  display: grid;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  justify-items: start;
+}
+.area-body {
+  display: grid;
+  gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
+  justify-items: start;
+}
+.area-off {
+  opacity: 0.45;
+  filter: grayscale(0.3);
+}
+.area-set {
+  display: grid;
+  grid-template-columns: max-content minmax(12rem, 22rem);
+  gap: max(calc(0.45 * var(--sp)), min(0.45rem, var(--gap-min)))
+    max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+  align-items: center;
+}
+.area-min {
+  display: inline-flex;
+  gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
+  align-items: center;
+  white-space: nowrap;
+}
+.area-min .field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.area-grid .area-c {
+  text-align: center;
+}
+.area-grid .area-c .tick {
+  justify-content: center;
+}
+.tbl tbody tr.area-sec :where(td) {
+  padding-top: calc(0.4 * var(--sp));
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--head);
+}
+
+/* ---------- 6. Models › Outliers (screens/Outliers.tsx) ---------- */
+.ol {
+  display: grid;
+  gap: max(var(--sp), min(1rem, var(--gap-min)));
+}
+.ol-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
+}
+.ol-apply {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--info-edge);
+  background: var(--info-tint);
+}
+.ol-band {
+  display: inline-flex;
+  align-items: end;
+  gap: 0.4em;
+}
+.ol-band .field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.ol-band .mo-label {
+  align-self: center;
+}
+.ol-band .field-short {
+  width: 5rem;
+}
+.ol-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ol-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: max(var(--sp), min(1rem, var(--gap-min)));
+  align-items: start;
+}
+.ol-map {
+  height: 380px;
+}
+.ol-list {
+  max-height: 420px;
+  overflow: auto;
+}
+.ol-list tr {
+  cursor: pointer;
+}
+.ol-pill {
+  display: inline-block;
+  padding: 0 0.45em;
+  border-radius: 0.6em;
+  font-size: 0.85em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ol-pill.lo {
+  background: var(--under-tint);
+  color: var(--under);
+}
+.ol-pill.hi {
+  background: var(--over-tint);
+  color: var(--over);
+}
+.ol-tag {
+  font-size: 0.85em;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0 0.35em;
+}
+.ol-tag.done {
+  color: var(--ok);
+  border-color: currentColor;
+}
+.rv-legend .rv-swatch.ol-ring {
+  background: transparent;
+  border: 2px solid var(--text);
+}
+.ol-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: max(var(--sp), min(1rem, var(--gap-min)));
+  border-top: 2px solid var(--rule);
+  padding-top: max(var(--sp), min(1rem, var(--gap-min)));
+}
+.ol-detail h3,
+.ol-detail h4,
+.ol-common h3,
+.ol-patches h3 {
+  margin: 0 0 0.4em;
+}
+.ol-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15em 1em;
+  margin: 0 0 0.8em;
+}
+.ol-dl dt {
+  font-weight: 600;
+}
+.ol-dl dd {
+  margin: 0;
+}
+.ol-detail .tbl tr.ol-flag :where(td) {
+  color: var(--warn);
+  font-weight: 600;
+}
+.ol-bar-among {
+  display: inline-block;
+  position: relative;
+  width: 7.5rem;
+  height: 0.6rem;
+  background: var(--well);
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.ol-bar-among .ol-mid {
+  position: absolute;
+  inset: 0 25%;
+  background: var(--info-edge);
+}
+.ol-bar-among .ol-mark {
+  position: absolute;
+  top: -0.2rem;
+  width: 3px;
+  height: 1rem;
+  margin-left: -1px;
+  background: var(--text);
+}
+/* Keeping the first row of each ID: the order, level by level, each with its column, its way, and its −. */
+.dupes-levels {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+.dupes-level {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(12rem, max-content) max-content auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+/* The row of each ID that's kept (its cells inherit it). */
+.dupes-kept {
+  font-weight: 600;
+}
+.mg-hand-list {
+  display: grid;
+  gap: 0.3em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* A parcel put here by hand: its ID, where that was decided (wrapping), its red − at the end of the row. */
+.mg-hand-list > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.5em;
+  align-items: center;
+}
+.ol-decide {
+  grid-column: 1 / -1;
+}
+.ol-whys {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.6rem;
+}
+.ol-why {
+  display: grid;
+  gap: 0.2em;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--panel);
+  font: inherit;
+  cursor: pointer;
+}
+.ol-why span {
+  color: var(--muted);
+  font-size: 0.88em;
+}
+.ol-why.on {
+  border-color: var(--link);
+  background: var(--select);
+  box-shadow: inset 3px 0 0 var(--link);
+}
+.ol-form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  max-width: 48rem;
+}
+.ol-lo {
+  color: var(--under);
+  font-weight: 600;
+}
+.ol-hi {
+  color: var(--over);
+  font-weight: 600;
+}
+@media (max-width: 1100px) {
+  .ol-top,
+  .ol-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Something taking a moment (components/Waiting.tsx) ---------- */
+/* Activity (components/Activity.tsx): what's being saved or read, from the first moment, in the corner. */
+.activity {
+  position: fixed;
+  z-index: 45;
+  top: 0.6rem;
+  right: 0.8rem;
+  display: flex;
+  gap: 0.6em;
+  align-items: center;
+  padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--paper-shadow);
+}
+/* The control pressed, while the change it started is saved. */
+[data-busy] {
+  cursor: progress;
+}
+[data-busy]::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-left: 0.45em;
+  vertical-align: 0.1em;
+  background: currentColor;
+  border-radius: 50%;
+  animation: bi-pulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-busy]::after {
+    animation: none;
+  }
+}
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  color: var(--muted);
+}
+/* The project still loading: on a sheet of paper, never text on the bare wood. */
+.waiting-sheet {
+  width: fit-content;
+  margin: var(--sp);
+  padding: 0.5rem 0.8rem;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--paper-shadow);
+}
+
+/* ---------- Data › Sales record fields (screens/AsSold.tsx) ---------- */
+.as-explain {
+  max-width: 46rem;
+}
+.as-explain ol {
+  padding-left: 1.3em;
+  display: grid;
+  gap: 0.45em;
+  margin: 0.5em 0 1em;
+}
+.as-sold {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+.as-choice {
+  white-space: nowrap;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+.as-eg {
+  font-size: 0.85em;
+}
+/* A characteristic: Today's (the parcels') beside At the sale (the sales'), side by side where there's room, else
+   stacked; each as wide as what's in it. */
+.as-pairs {
+  display: grid;
+  gap: calc(1 * var(--sp));
+  justify-items: start;
+}
+.as-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(0.8 * var(--sp));
+  align-items: flex-start;
+  max-width: 100%;
+}
+.as-today {
+  max-width: 100%;
+}
+.as-head {
+  display: flex;
+  gap: 1em;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.wiz-capsule > .as-head-row {
+  grid-column: 1 / -1;
+}
+/* A dataset's capsule (🌐 Parcel universe, 💰 Sales record): its header a band across the top; a field's row; its
+   spread right under; the sales record's comparison below a dotted line. */
+.as-cap {
+  display: grid;
+  gap: calc(0.5 * var(--sp));
+  align-content: start;
+  padding-top: 0;
+}
+.as-cap > .as-head {
+  margin: 0 calc(-0.7 * var(--sp));
+  padding: 0.35rem calc(0.7 * var(--sp));
+  border-bottom: 1px solid var(--entry-head);
+  background: var(--entry-head);
+  border-radius: var(--radius) var(--radius) 0 0;
+  min-height: 2rem;
+  align-items: center;
+}
+.as-cap > .as-head-sr {
+  background: var(--info-tint);
+  border-bottom-color: var(--info-edge);
+}
+.as-head-note {
+  margin-left: auto;
+}
+.as-cap > .wiz-capsules {
+  width: auto;
+}
+.as-row {
+  display: grid;
+  grid-template-columns: max-content max-content max-content;
+  gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
+  align-items: center;
+}
+.as-side {
+  display: grid;
+  gap: calc(0.5 * var(--sp));
+  width: fit-content;
+  max-width: 100%;
+  background: var(--info-tint);
+  border-color: var(--info-edge);
+}
+.as-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
+  align-items: center;
+}
+.as-control {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  align-items: center;
+}
+.as-against {
+  display: grid;
+  gap: 0.4em;
+  padding-top: calc(0.5 * var(--sp));
+  border-top: 1px dashed var(--info-edge);
+}
+.as-against > p,
+.as-side > .as-note {
+  margin: 0;
+}
+.as-diffs {
+  width: auto;
+  max-height: 16rem;
+  overflow: auto;
+  display: block;
+}
+/* Beside At the sale, a spread no wider than Today's row above it (it never widens the box: its notes wrap), so
+   the pair fits side by side sooner. */
+.as-pair .fh-chart,
+.as-pair .fh-axis {
+  width: min(100%, 28rem);
+}
+.as-today > .wiz-capsule-wide {
+  width: 0;
+  min-width: 100%;
+}
+.fh-in {
+  display: grid;
+  gap: 0.3em;
+}
+/* The range shown: two handles on one track under the bars, as wide as them; the bounds typed below. */
+.fh-range {
+  display: grid;
+  gap: 0.3em;
+}
+.fh-track {
+  position: relative;
+  width: 36rem;
+  max-width: 100%;
+  height: 1.4rem;
+}
+.fh-track::before {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--well);
+}
+.fh-sel {
+  position: absolute;
+  top: 0.6rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--link);
+}
+.fh-track input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: none;
+  pointer-events: none;
+  appearance: none;
+}
+.fh-track input[type="range"]::-webkit-slider-thumb {
+  width: 12px;
+  height: 1.2rem;
+  border: 1px solid var(--btn-edge);
+  border-radius: 3px;
+  background: var(--btn-top);
+  box-shadow: var(--paper-shadow);
+  cursor: ew-resize;
+  pointer-events: auto;
+  appearance: none;
+}
+.fh-track input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 1.2rem;
+  border: 1px solid var(--btn-edge);
+  border-radius: 3px;
+  background: var(--btn-top);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+.fh-bounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45em;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.fh-bound {
+  width: 7rem;
+  padding: 1px 6px;
+  border: 1px solid var(--btn-edge);
+  border-radius: 3px;
+  font: inherit;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.fh-linked {
+  display: inline-flex;
+  gap: 0.3em;
+  align-items: center;
+}
+/* In a pair, as wide as its bars there. */
+.as-pair .fh-track {
+  width: 28rem;
+}
+/* Quality and condition in one 🌐 capsule: what it sold for inside it, never wider than its rows (its words and table
+   wrap or scroll), so the 💰 capsule fits beside it. */
+.qc-cap > .qc-in {
+  width: 0;
+  min-width: 100%;
+  overflow-x: auto;
+}
+/* Inside a panel (Sale price's As it's read): the spread as wide as a chart is, not the page. */
+.qc-panel > .fh-in {
+  width: 36rem;
+  max-width: 100%;
+}
+/* In a field's details (Inputs): the popover's width, bars and track alike. */
+.fd-ranged {
+  display: grid;
+  gap: 0.3em;
+}
+.fd-ranged .fh-chart,
+.fd-ranged .fh-axis,
+.fd-ranged .fh-track {
+  width: 100%;
+}
+.as-only {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  margin-top: calc(1.2 * var(--sp));
+}
+/* The spread and the comparison never widen their capsule (their words wrap): a capsule is as wide as its row, and the
+   pair fits side by side sooner. */
+.as-pu .wiz-capsule-wide,
+.as-side > .fh-in,
+.as-side > .as-against {
+  width: 0;
+  min-width: 100%;
+}
+/* The sales record's column and its unit on one line, as the parcel universe's: the two rows, and so the two spreads
+   under them, level. */
+.as-row > .as-control {
+  flex-wrap: nowrap;
+}
+/* As the parcel universe's: a column and its unit in one 23rem pair. */
+.as-sr-pair {
+  width: 23rem;
+  max-width: 100%;
+}
+.as-table-wrap {
+  margin-top: calc(1 * var(--sp));
 }

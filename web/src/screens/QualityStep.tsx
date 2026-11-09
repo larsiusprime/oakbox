@@ -17,6 +17,7 @@ import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { amount, num } from "../lib/format";
 import { say, t } from "../wording";
+import { CapHead } from "./AsSold";
 import { FieldRow } from "./FieldRow";
 import { PAIRS, SCALED, ScaleChoice } from "./Quality";
 import type { MutateAsync } from "./wizardChange";
@@ -35,11 +36,15 @@ export function QualityStep({
   data,
   step,
   change,
+  capsule = false,
 }: {
   project: Project;
   data: Wizard;
   step: WizardStep;
   change: MutateAsync;
+  /** Beside the 💰 Sales Record's: all of it one 🌐 Parcel Universe capsule (its header, the column, how it's read,
+   * and what it sold for), as the Big five's are. */
+  capsule?: boolean;
 }) {
   const num = data.fields.find((f) => f.key === step.fields.find((k) => SCALED.includes(k)));
   const txt = data.fields.find((f) => f.key === PAIRS[num?.key ?? ""]);
@@ -74,13 +79,12 @@ export function QualityStep({
   const ownText = !!txt?.sources[0] && txt.sources[0].column !== source?.column;
   // Only the universe so far: building details are often in a separate file (a CAMA export).
   const onlyBase = data.files.filter((f) => f.holds === "parcels").length <= 1;
-  return (
+  const frame = capsule ? "wiz-capsule" : "frame wiz-capsule";
+  const body = (
     <>
-      {onlyBase && <p className="wiz-note wiz-another">{t.wizard.anotherFileHint}</p>}
-      {/* The column first, in a box of its own (picked for you, often); then what's to say about it, in another. One
-          grid, so the two boxes' columns line up. */}
+      {/* The column first (picked for you, often); then how it's read. One grid, so their columns line up. */}
       <div className="wiz-grid wiz-capsules">
-        <div className="frame wiz-capsule">
+        <div className={frame}>
           <FieldRow
             project={project}
             data={data}
@@ -97,7 +101,7 @@ export function QualityStep({
           )}
         </div>
         {source && (
-          <div className="frame wiz-capsule qc-ask">
+          <div className={`${frame} qc-ask`}>
             <div className="wiz-label">{q.writtenAsLabel}</div>
             <div className="wiz-span seg-row">
               <Seg
@@ -119,10 +123,23 @@ export function QualityStep({
         )}
       </div>
       {source && !mismatch && as === "num" && num.scale?.kind && num.scale.kind !== "tiers" && (
-        <Evidence projectId={project.id} field={num} source={source} />
+        <Evidence projectId={project.id} field={num} source={source} bare={capsule} />
       )}
       {source && as === "cat" && num.scale?.kind === "tiers" && (
-        <TiersPanel projectId={project.id} field={num} source={source} change={change} />
+        <TiersPanel projectId={project.id} field={num} source={source} change={change} bare={capsule} />
+      )}
+    </>
+  );
+  return (
+    <>
+      {onlyBase && <p className="wiz-note wiz-another">{t.wizard.anotherFileHint}</p>}
+      {capsule ? (
+        <div className="frame as-cap as-pu qc-cap">
+          <CapHead kind="pu" />
+          {body}
+        </div>
+      ) : (
+        body
       )}
     </>
   );
@@ -152,7 +169,18 @@ function stepsDown(medians: (readonly [number, number | null | undefined])[]): n
 }
 
 /** What each value sold for, as the column is read now (higher is better): changes as soon as the way is chosen. */
-function Evidence({ projectId, field, source }: { projectId: string; field: WizardField; source: Source }) {
+function Evidence({
+  projectId,
+  field,
+  source,
+  bare = false,
+}: {
+  projectId: string;
+  field: WizardField;
+  source: Source;
+  /** Inside the 🌐 capsule: no frame of its own, and never wider than the capsule's rows. */
+  bare?: boolean;
+}) {
   const scale = field.scale;
   const preview = useQuery({
     queryKey: ["scale", projectId, field.key, source.file, source.column, scale?.kind, scale?.fraction],
@@ -176,7 +204,7 @@ function Evidence({ projectId, field, source }: { projectId: string; field: Wiza
   const told = v.fits.length > 0 && v.by_age.filter((b) => b.count >= 5).length > 1;
   const newer = told && !!scale?.kind && v.fits.includes(scale.kind);
   return (
-    <div className="frame qc-panel">
+    <div className={bare ? "qc-panel qc-in" : "frame qc-panel"}>
       <h3 className="wiz-group">{q.evidenceHead}</h3>
       {condition && told && (
         <div className={`rc-meter ${newer ? "ok" : "bad"}`}>
@@ -233,11 +261,14 @@ function TiersPanel({
   field,
   source,
   change,
+  bare = false,
 }: {
   projectId: string;
   field: WizardField;
   source: Source;
   change: MutateAsync;
+  /** Inside the 🌐 capsule: no frame of its own. */
+  bare?: boolean;
 }) {
   const saved = field.scale?.tiers ?? {};
   const preview = useQuery({
@@ -292,7 +323,7 @@ function TiersPanel({
   }
   const down = stepsDown(worstFirst.map((r) => [r.sales, r.median] as const));
   return (
-    <div className="frame qc-panel">
+    <div className={bare ? "qc-panel qc-in" : "frame qc-panel"}>
       <h3 className="wiz-group">{q.tiersHead}</h3>
       <p className="rc-sub">{q.tiersHint}</p>
       <div className="qc-row">

@@ -39,9 +39,15 @@ def values_of(stamp: tuple[str, float, int], layer: str | None, column: str, raw
     """Every value of one column, as text, blanks as ''. Trimmed, unless raw (IDs: OpenAVMKit doesn't trim them)."""
     import pandas as pd
 
+    from oakbox import readcache
+
     path = Path(stamp[0])
     ext = path.suffix.lower().lstrip(".")
-    if ext == "csv":
+    cached = readcache.ready(path) if ext == "csv" else None
+    if cached is not None:
+        # Its Parquet copy: every column as text, as the CSV reads (readcache).
+        s = pd.read_parquet(cached, columns=[column])[column]
+    elif ext == "csv":
         encoding = csv_encoding(path)
         s = pd.read_csv(path, usecols=lambda c: c == column, dtype=str, keep_default_na=False, encoding=encoding)[
             column
@@ -52,8 +58,11 @@ def values_of(stamp: tuple[str, float, int], layer: str | None, column: str, raw
         import pyogrio
 
         s = pyogrio.read_dataframe(path, layer=layer, columns=[column], read_geometry=False)[column]
-    text = ("" if v is None or (isinstance(v, float) and v != v) else str(v) for v in s.tolist())
-    return tuple(v if raw and v.strip() else v.strip() for v in text)
+    # As text, blanks (None, NaN) as ""; trimmed, unless raw and not blank. In pandas, not value by value: a
+    # 220,000-row column in 0.03 s, not 0.3 s.
+    text = s.astype(object).where(s.notna(), "").astype(str)
+    trimmed = text.str.strip()
+    return tuple((text.where(trimmed != "", "") if raw else trimmed).tolist())
 
 
 @lru_cache(maxsize=64)
@@ -111,6 +120,22 @@ class Files:
             return ()
         use = f.clean.get(field, []) if steps is None else steps
         return cleaned_ids(file_stamp(self.in_dir / f.filename), f.layer, spec[0], steps_key(use))
+
+    def parcel_ids(self, name: str) -> list[str]:
+        """A file's rows' parcel IDs (key), whatever ID it joins on: a second or third ID looked up in the parcel
+        universe, as a run looks it up (a sales file joined on key2 gets key from the base file). "" where none."""
+        f = self.entry(name)
+        own = list(self.ids(name, f.match))
+        if f.match == "key":
+            return own
+        base = self.project.base_file()
+        if base is None or base.name == name:
+            return [""] * len(own)
+        to_key: dict[str, str] = {}
+        for a, k in zip(self.ids(base.name, f.match), self.ids(base.name, "key"), strict=False):
+            if a and k and a not in to_key:
+                to_key[a] = k
+        return [to_key.get(i, "") for i in own]
 
     def geometry(self, name: str) -> bool:
         p = self.preview.get(name)

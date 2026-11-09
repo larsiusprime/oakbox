@@ -16,9 +16,11 @@ import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
 import { NamesFiles } from "../components/FileEntry";
 import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
+import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
 import { say, t } from "../wording";
+import { AsSoldStep, AtSale, AtSaleTable, CapHead } from "./AsSold";
 import { CustomFields } from "./CustomFields";
 import { DeedNames } from "./DeedNames";
 import { EnrichStep } from "./Enrich";
@@ -27,6 +29,7 @@ import { ASSUMABLE, FieldRow, shortName } from "./FieldRow";
 import { Coordinates, LocationFields } from "./Location";
 import { AddFilesStep, FileStep, MORE } from "./MoreFiles";
 import { PermitsStep } from "./Permits";
+import { SCALED } from "./Quality";
 import { QualityStep } from "./QualityStep";
 import { SalesFieldPage } from "./SalesParts";
 import { ShapefilesStep } from "./Shapefiles";
@@ -38,6 +41,8 @@ import { type Mutate, type MutateAsync, useChange } from "./wizardChange";
 
 // Quality and condition: numbers or categories, on a page of their own (QualityStep).
 const QUALITY_STEPS = ["quality", "condition"];
+/** The steps whose fields describe the property: each shows what its sales use (Sales record fields). */
+const CHARACTERISTIC_STEPS = ["building_size", "land_size", "age", "quality", "condition", "property_type"];
 // Sales' field parts: each field on a page of its own, read and checked under it (SalesFieldPage).
 const SALES_FIELD_STEPS = ["sale_price", "sale_date", "valid_sale", "vacant_sale"];
 
@@ -59,7 +64,7 @@ export function FieldsTab({ detail, step }: { detail: ProjectDetail; step: strin
         await api.GET("/api/projects/{project_id}/wizard", { params: { path: { project_id: projectId } } }),
       ),
   });
-  if (wizard.isPending) return <p className="empty">{w.loading}</p>;
+  if (wizard.isPending) return <Loading q={wizard} qkey={["wizard", projectId]} doing={w.loading} />;
   if (wizard.error) return <p className="error">{wizard.error.message}</p>;
   return <WizardView project={detail.project} data={wizard.data} step={step} />;
 }
@@ -216,8 +221,32 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
               <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
             )}
           {QUALITY_STEPS.includes(current.key) && (
-            <QualityStep project={project} data={data} step={current} change={change.mutateAsync} />
+            // Today's (the parcels') beside At the sale (the sales'): side by side where there's room, else stacked.
+            <div className="as-pair">
+              <div className="as-today">
+                <QualityStep
+                  project={project}
+                  data={data}
+                  step={current}
+                  change={change.mutateAsync}
+                  capsule={
+                    data.files.some((f) => f.holds === "sales") &&
+                    data.fields.some(
+                      (f) => current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
+                    )
+                  }
+                />
+              </div>
+              {data.fields
+                .filter(
+                  (f) => current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
+                )
+                .map((f) => (
+                  <AtSale key={f.key} projectId={project.id} field={f} />
+                ))}
+            </div>
           )}
+          {current.key === "as_sold" && <AsSoldStep projectId={project.id} go={go} />}
           {current.key === "coordinates" && (
             <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
           )}
@@ -425,25 +454,45 @@ function FieldsStep({
   const inUse = (f: WizardField) => f.sources.length > 0 || f.assumed || f.absent;
   const shown = mine.filter((f) => !f.more || more || inUse(f));
   const hidden = mine.filter((f) => f.more && !inUse(f)).length;
+  // A sales file: each characteristic in the parcel universe gets its 💰 Sales Record capsule (Sales record fields, F3d).
+  const hasSales = data.files.some((f) => f.holds === "sales");
   return (
     <>
       {onlyBase && <p className="wiz-note wiz-another">{w.anotherFileHint}</p>}
       {step.parent === "big_five" ? (
-        // Big five's parts: each field a capsule of its own, their columns lined up (one grid, each a subgrid).
-        <div className="wiz-grid wiz-capsules">
+        // Big five's parts: each field a capsule of its own (Today's: the parcels'), how a size or a year spreads under
+        // it, and beside it At the sale (the sales'): side by side where there's room, else stacked.
+        <div className="as-pairs">
           {shown.map((f) => (
-            <div key={f.key} className="frame wiz-capsule">
-              <FieldRow project={project} data={data} field={f} sales={step.sales} change={change} bare />
+            <div key={f.key} className="as-pairs">
+              {/* Two fields on the step (Age): each pair under its field's name; one, the question says it. */}
+              {hasSales && shown.length > 1 && <h3 className="wiz-group">{shortName(f)}</h3>}
+              <div className="as-pair">
+                <div className={hasSales && f.sources.length > 0 ? "frame as-cap as-pu" : "as-today"}>
+                  {hasSales && f.sources.length > 0 && <CapHead kind="pu" />}
+                  <div className="wiz-grid wiz-capsules">
+                    <div className={hasSales && f.sources.length > 0 ? "wiz-capsule" : "frame wiz-capsule"}>
+                      <FieldRow
+                        project={project}
+                        data={data}
+                        field={f}
+                        sales={step.sales}
+                        change={change}
+                        bare
+                        {...(hasSales && f.sources.length > 0 ? { label: t.wizard.asSold.column } : {})}
+                      />
+                    </div>
+                    {f.sources.length > 0 && (f.area_unit || f.key.includes("year")) && (
+                      <div className="wiz-capsule-wide">
+                        <FieldHistogram projectId={project.id} field={f} bare={hasSales} pair={hasSales} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {hasSales && f.sources.length > 0 && <AtSale projectId={project.id} field={f} />}
+              </div>
             </div>
           ))}
-          {/* A size or a year: how its values spread, under the fields. */}
-          {shown
-            .filter((f) => f.sources.length > 0 && (f.area_unit || f.key.includes("year")))
-            .map((f) => (
-              <div key={`${f.key}-h`} className="wiz-capsule-wide">
-                <FieldHistogram projectId={project.id} field={f} />
-              </div>
-            ))}
         </div>
       ) : (
         <div className="wiz-grid frame">
@@ -481,6 +530,9 @@ function FieldsStep({
                 ],
           )}
         </div>
+      )}
+      {hasSales && step.parent !== "big_five" && CHARACTERISTIC_STEPS.includes(step.key) && (
+        <AtSaleTable projectId={project.id} fields={shown.filter((f) => f.sources.length > 0)} />
       )}
       {hidden > 0 && (
         <Disclose className="wiz-more" open={more} onPress={() => setMore(!more)}>

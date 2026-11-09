@@ -79,12 +79,13 @@ slope; LightGBM and local-area with a median ensemble; OpenAVMKit's defaults, 5-
   - **Small groups:** left unvalued by default (below), and no negative values shipped.
   - **Finalize:** `finalize_models`, then the model values checked as step 4 checks the roll's, side by side. **Looks
     right** ends step 5.
-- **Slice 3, working on them:** outliers back into Check sales; testing variables; per-group variables and models; "why
-  this value" from the contributions OpenAVMKit already writes (`contributions_universe.csv`).
+- **Slice 3, working on them:** **Outliers** (built 2026-11-07, below): why the models are off on a sale, and each
+  call back where it belongs; testing variables; "why this value" from the contributions OpenAVMKit already writes
+  (`contributions_universe.csv`). Per-group variables and models are built.
 
 **Steps** (the tab continues after What changed): Fill blanks › Rare categories › Prepare the fields › What changed ›
-**Variables** › **Models** › **Try them** (the run) › **How they did** › **Small groups** › **Finalize** (the run) ›
-**Model values** (Looks right).
+**Variables** › **Models** › **Try them** (the run) › **How they did** (Looks right) › **Finalize** (the run) ›
+**Model values** (Looks right) › **Outliers**.
 - **Variables.** One table: each candidate with what it is, its coverage after Prepare, and whether it has blanks left.
   Ticked by default:
   - **The big five:** finished area, land area, effective age (else age), quality, condition; units for multi-family.
@@ -217,7 +218,8 @@ ticked variables is gone: each model takes a variable list.
   machine-learning list on a regression model or the other way ("it'll run, but…"), its list removed, its list empty
   (stops a try), the variables with blanks its linear engine leaves out, no locations (Multi-MRA then fits one
   regression, as MRA does; Local area can't run). **Add a model** (a row: engine, name, list; Add / Cancel), **Remove**,
-  **Copy these models to…** (a group, or every other), **Back to the default models**. Written per group as
+  **Back to the default models** (Copy these models to…, and the line saying where they're written, removed
+  2026-11-07). Written per group as
   `modeling.models.main.<group>` (OpenAVMKit takes a group's block in place of the shared one): `default` (the land and
   finished areas, for Local area and the roll), each model under a key from its name (`{"model": <engine>, "ind_vars":
   "$$variable_lists.<id>", "log": true, "locations": [...]}`; a linear model whose list has variables with blanks gets
@@ -235,8 +237,7 @@ ticked variables is gone: each model takes a variable list.
   the graphics card if there is one** (CatBoost; on; `use_gpu`), and the location stack (Multi-MRA, Local area; moved
   here from the Variables column). Each with a line on what it does; warned: log price off ("can value parcels below
   zero"), intercept off, fewer than 20 trials, no locations. Every option the engine reads is written, defaults too
-  (`OPTIONS`, `DEFAULTS` in `model.py`), and only those; a change makes the try out of date; Copy these models to…
-  copies them. Not offered: sales chasing (a test mode), global settings, hand-picked interaction pairs (OpenAVMKit's
+  (`OPTIONS`, `DEFAULTS` in `model.py`), and only those; a change makes the try out of date. Not offered: sales chasing (a test mode), global settings, hand-picked interaction pairs (OpenAVMKit's
   `interactions.fields`; later, if Categories × size is too blunt). **Layered comps** (OpenAVMKit's `lcomp`, added
   2026-11-01): comparable sales as a model, the sales split into ever-closer groups by the list's variables and a parcel
   valued from the trimmed mean prices of the groups it falls in, the closest weighted most (`layeredcompmodel`'s bagging
@@ -256,6 +257,13 @@ ticked variables is gone: each model takes a variable list.
   it, fewer areas above more. Preview: `GET /model/stack/{group}?fields=…`.
 - **Try them:** `python -m oakbox.model`: the prepared hand-off, `write_canonical_splits`, then `try_models` (no vacant
   models), with progress per group and model and Stop. 28 s on the sample.
+  - **Skip this model** (built 2026-11-07), on the model training now: it stops after its current tuning trial, is
+    left out of that group (the ensemble made of the rest), and the run goes on; the receipt says so ("Single-family:
+    CatBoost skipped, as you asked"). OpenAVMKit's part `model:<group>:<model>` (`progress.in_part`, upstream): OAK box
+    names it in the step's skip file, `OPENAVMKIT_SKIP_FILE`, which the fold worker processes read between trials.
+    Measured: CatBoost skipped 4 s into its tuning, the next model 1.2 s later. Finalize has it too.
+  - Each model's line, once it's done, shows how long it took (setup.md, "While it runs"): a slow one is plain beside
+    the rest, and Skip this model is the way out.
 - **How they did:** as above (2026-10-30). The figures are OpenAVMKit's own numbers: the benchmark's frames, read after
   the engine has printed them (printing no longer turns them into text), and `academic_metrics`. On the study set each
   model is judged by its holdout predictions (`analysis.ratio_study.study_set_predictions: "holdout"`, an engine opt-in
@@ -263,7 +271,8 @@ ticked variables is gone: each model takes a variable list.
   every sale, it would be judged on sales it trained on. The trimmed median ratio and VEI are the benchmark's own too
   (`median_ratio_trim`, `vei_trim`, `vei_sig_trim`: engine, in its frames, not its printout). Groups with too few sales
   say so. OpenAVMKit's notes fold away underneath. **Try again**.
-- **Small groups** (slice 2; built 2026-10-31, `smallgroups.py`, `SmallGroups.tsx`), after How they did: a row per model
+- **Small groups** (slice 2; built 2026-10-31, `smallgroups.py`, `SmallGroups.tsx`; **no longer its own step, 2026-11-07**:
+  a warning at the top of How they did, the flagged groups only, and nothing when none is flagged): a row per model
   group with the try's figures (parcels, sales, the ensemble's holdout median ratio and COD, values below zero) and why
   it can't be trusted, as pills: fewer than 15 sales ("too few to model"; OpenAVMKit's own floor), no model produced
   values, no sales held out to judge it by, a holdout median ratio outside 0.5 to 2, values below zero. Both kinds are
@@ -275,7 +284,7 @@ ticked variables is gone: each model takes a variable list.
   a value below zero that's left is a check, and the parcel stays blank and is counted. The try counts each group's
   valued parcels and values below zero (the ensemble's universe predictions). The choices apply when the values are made
   (Finalize, next): the try models every group, to judge it.
-- **Small groups' Looks right** (2026-11-01): accepts the try (`model` step's accept), so Finalize starts from it; a try
+- **How they did's Looks right** (2026-11-07; was Small groups', 2026-11-01): accepts the try (`model` step's accept), so Finalize starts from it; a try
   out of date can't be accepted.
 - **Finalize** (slice 2; built 2026-11-01, `final.py`, `FinalValues.tsx`): `python -m oakbox.final`, OpenAVMKit's
   `finalize_models` from the same starting point as Try them (`model.for_models`: the prepared hand-off, the folds, the
@@ -369,9 +378,69 @@ tiers and total value only.*
     use fewer tuning trials and reuse saved tuning; to be measured in M1.
   - Parallel fold workers are capped by memory (`cv_max_workers`).
 
+### Outliers (slice 3; built 2026-11-07: `outliers.py`, `routes/outliers.py`, `Outliers.tsx`)
+
+After Model values: the sales the models valued furthest from their price, and why. OpenAVMKit's notebook has the
+analysis (`identify_outliers`: the sales outside 0.75-1.25, their price per area against their area's, and its
+layered-comps comp analysis); OAK box puts it on a map with the context to decide, and sends each call where it
+belongs.
+
+- **The sales** (Finalize keeps them: `out/oakbox/final/sales.parquet`): every valid sale of a valued group, each valued
+  out of fold (by the cross-validation's models, which never saw it), with every field of its parcel. The ratio is to the
+  price time-adjusted to the valuation date, as the models value (sales of every year, so not the study's window).
+- **Outliers:** outside a band, 0.75 to 1.25 to start (OpenAVMKit's), per model group: the map (every sale by ratio; the
+  outliers marked; one picked, with its comps), the list worst first (valued low, then valued high), filtered by side
+  and by open or decided.
+- **One sale:** sold for, and at the valuation date; valued at; the roll's. **Its comps, by layered comps**
+  (OpenAVMKit's `outliers.find_comps`, as its notebook's `identify_outliers` analyses outliers; settled 2026-11-07, no
+  other method): the group's comp trees (price per finished area for an improved sale, per land area for a vacant
+  one, else price; on the group's layered comps model's variables, else its first machine-learning list's), the sale
+  traced down its tree, itself left out (the trees fit on every sale), to the deepest split with 5 other sales or more.
+  Shown: the conditions they share, merged per field ("Neighborhood is N0_2; finished area over 1,306"), how many of
+  its path's splits were kept (few: few sales are like it), **what they say it's worth** (their mean price per area
+  times its own), the models' median ratio on them, every comp on the map, the 5 nearest in a table. **How it's unlike
+  the others** (`outliers.compare_fields`): each field (in the models or not): this parcel, its comps (median, or most
+  common), where it sits among the group's sales (a bar: the middle half, and it), whether the models use it. A field
+  where it's among the group's extremes (under the 5th percentile or over the 95th, a category under 5% of sales) or
+  unlike its comps (more than the group's middle half apart; a category its comps mostly don't share) comes first.
+- **The comp trees are fitted by Finalize** (2026-11-07), while it runs anyway: `out/oakbox/final/comps/<group>.json`
+  (`CompModels.to_dict`), a few seconds a group (one tree: 0.7 s on 288 sales, 3 s on 8,000). A project finalized
+  before: the page fits the missing ones in the background as it opens (the group shown first), and a sale opened
+  before its group's are ready waits for them. The layered comps engine's own saved model isn't reused: it's a bag
+  of 10 trees on 80% samples each, on price only, there only when the group runs it, and its final fit saw the sale.
+- **Why is it off?** Four calls, as the user framed them (2026-11-07):
+  - **The sale isn't a market sale:** a reason from a list (related parties, sold with other parcels, partial interest,
+    wrong price, foreclosure or short sale, changed after it sold, not an open-market sale, other: say what) and a note.
+    Check sales' Exclude, the note "Outliers: <reason>: <note>".
+  - **The data is wrong or missing:** a patch: the field (those the parcels have once the data's brought in: not one
+    made from them, as a building's age), what it should be (a number for a number field), its source. Kept in the
+    project (`patches`: parcel, field, was, now, source, who, when, the sale), written as OpenAVMKit's
+    `data.process.enrich.tweak.universe` (its existing per-row override, after enrichment, so every step sees it: census
+    and distance fields too), listed under the outliers with **Remove**, and **Export as CSV** for whoever keeps the
+    data. A vacant parcel's building fields are emptied by OpenAVMKit after: patch what makes it vacant.
+  - **It's in the wrong group:** the parcel moved by hand to another group: kept on the group (`ModelGroup.keys`), its
+    filter `["or", ["isin", "key", …], rule]`, and every other group's `["and", ["notin", "key", …], rule]`, so first
+    match or not it's in that group alone. Not yet shown on Model groups (to do: the parcels put in each group by hand,
+    beside its rule, with ×). Or change the group's rule, on Model groups.
+  - **The model misses something:** a note, beside what the misses have in common.
+- **Calls are a list until applied** (2026-11-07): a call changes nothing until **Apply my calls**, so the outliers can
+  be gone through without Check sales, Model groups or Bring in data going out of date at each (and the Models tab
+  locking). Applying does each where it belongs; the steps from the earliest it changed run again. A call is shown "to
+  apply" until then; **Take back** undoes it, and what it did if applied.
+- **What the misses have in common** (per group, under the sale; OpenAVMKit's `outliers.error_patterns` and
+  `error_clustering`): every sale of the group (not only the outliers: chosen
+  for being wrong, they'd mislead), its error `log(value / price)`, and every field: the sales sorted into buckets (a
+  category by value, 10 sales at least; a number in fifths), and the share of the error's spread between the buckets (a
+  one-way ANOVA's R²: 0 when the models' mistakes are random with respect to the field). Shown only when it beats 300
+  shuffles of the errors (fewer than 5% as high) and is 2% or more, ranked; each as the bucket that pulls hardest: "Pool:
+  yes, 18 sales, 7 outliers, valued 18% low; the rest right". A field whose bucket is mostly the same sales as one ranked
+  above says "mostly the same sales as …" (Jaccard 0.5 or more), not a second finding. On the map: Moran's I of the
+  errors over each sale's 8 nearest, against 199 shuffles: "the errors are more alike between neighbours than chance:
+  a location the models miss".
+
 **Try, review, finalize.**
 1. **Try** runs the chosen models and shows ratio statistics side by side. It's repeatable and cheap to re-run.
-2. **Review outliers.** Model outliers appear in Sales review (§3.6) with likely causes.
+2. **Review outliers.** Models › Outliers (below): each outlying sale with its context, and a call on why it's off.
 3. **Finalize** commits the values and writes the model-value ratio study.
 - **Re-tune.** Oakbox reuses saved tuning by default. A **Re-tune** toggle discards it, and is suggested after big data
   or model group changes. Cancelling never deletes tuning journals, so a cancelled tune can resume.

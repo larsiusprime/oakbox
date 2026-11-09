@@ -3,6 +3,7 @@
  * Made into deck.gl's binary features (the layout loaders.gl's geojsonToBinary makes) for GeoJsonLayer, whole or for
  * a few parcels, with each corner carrying its parcel's index: what's clicked and coloured.
  */
+import { earcut } from "@math.gl/polygon";
 
 export type Shapes = {
   parcels: number;
@@ -52,6 +53,9 @@ export type BinaryShapes = {
     globalFeatureIds: { value: Uint32Array; size: 1 };
     numericProps: { parcel: { value: Float32Array; size: 1 } };
     properties: object[];
+    /** The fill's triangles, when any polygon has holes: without them deck.gl fills a polygon's outline and holes as
+     * one ring (a common-area parcel with the lots cut out of it drawn as spikes across them). */
+    triangles?: { value: Uint32Array; size: 1 };
   };
 };
 
@@ -120,6 +124,7 @@ export function toBinary(s: Shapes, which?: Iterable<number>): BinaryShapes {
   }
   polygonIndices[pi] = ci;
   primitive[ri] = ci;
+  const triangles = nRing > nPoly ? triangulate(positions, polygonIndices, primitive) : null;
   return {
     shape: "binary-feature-collection",
     points: noPoints(),
@@ -133,8 +138,29 @@ export function toBinary(s: Shapes, which?: Iterable<number>): BinaryShapes {
       globalFeatureIds: { value: ofParcel, size: 1 },
       numericProps: { parcel: { value: parcelProp, size: 1 } },
       properties: [],
+      ...(triangles ? { triangles: { value: triangles, size: 1 } } : {}),
     },
   };
+}
+
+/** Each polygon's fill as triangles (earcut, its holes cut out), as corner indices into all the corners. */
+export function triangulate(
+  positions: Float64Array,
+  polygonIndices: Uint32Array,
+  rings: Uint32Array,
+): Uint32Array {
+  const out: number[] = [];
+  let r = 0;
+  for (let p = 0; p + 1 < polygonIndices.length; p++) {
+    const start = polygonIndices[p] ?? 0;
+    const end = polygonIndices[p + 1] ?? start;
+    const holes: number[] = [];
+    while ((rings[r] ?? end) < start) r++;
+    for (let k = r + 1; (rings[k] ?? end) < end; k++) holes.push((rings[k] ?? 0) - start);
+    const tri = earcut(positions.subarray(start * 2, end * 2), holes.length ? holes : undefined, 2);
+    for (const i of tri) out.push(i + start);
+  }
+  return Uint32Array.from(out);
 }
 
 /** The box around every corner: [[west, south], [east, north]], or undefined with none. */

@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
+import { useStep, useStepAct, useStepNav, useStepSetup, useStepSkip } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { when } from "../lib/format";
 import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
 import { HowTheyDid } from "./HowTheyDid";
 import { GroupModelsCard } from "./Models";
+import { Outliers } from "./Outliers";
 import { SmallGroupsStep } from "./SmallGroups";
 
 const m = t.values;
-type MvStep = "models" | "try" | "how" | "small" | "final" | "values";
-const MV_STEPS: MvStep[] = ["models", "try", "how", "small", "final", "values"];
+type MvStep = "models" | "try" | "how" | "final" | "values" | "outliers";
+const MV_STEPS: MvStep[] = ["models", "try", "how", "final", "values", "outliers"];
 const f = m.final;
 
 /** Step 6, Model values (SPEC F9): each model group's models, a try, how they did, the groups left unvalued, then
@@ -30,6 +31,8 @@ export function ValuesTab({
   const mv = ms.data;
   const { setup: mSetup } = useStepSetup("model", projectId);
   const mAct = useStepAct("model", projectId);
+  const skipTry = useStepSkip("model", projectId);
+  const skipFinal = useStepSkip("final", projectId);
   const nav = useStepNav<MvStep>();
   // Models: one model group at a time, the footer moving between them.
   const [groupAt, setGroupAt] = useState(0);
@@ -71,20 +74,22 @@ export function ValuesTab({
       case "try":
         return tried;
       case "how":
-      case "small":
         return mr && !mv.stale ? "done" : "blank";
       case "final":
         if (!fr) return "blank";
         return fv?.stale || (fv?.blocked.length ?? 0) > 0 ? "attention" : "done";
       case "values":
         return fv?.accepted ? "done" : "blank";
+      case "outliers":
+        return fr && fv?.stale ? "attention" : "blank";
     }
   };
   const steps: Step[] = MV_STEPS.map((key) => ({
     key,
     title: m.steps[key],
     status: statusOf(key),
-    disabled: ((key === "how" || key === "small" || key === "final") && !mr) || (key === "values" && !fr),
+    disabled:
+      ((key === "how" || key === "final") && !mr) || ((key === "values" || key === "outliers") && !fr),
   }));
   const i = MV_STEPS.indexOf(current);
   const prev = MV_STEPS[i - 1];
@@ -139,7 +144,11 @@ export function ValuesTab({
               </div>
             )}
             {trying ? (
-              <RunProgress job={mv.job} lastSeconds={mr?.seconds ?? null} />
+              <RunProgress
+                job={mv.job}
+                lastSeconds={mr?.seconds ?? null}
+                skip={(part) => skipTry.mutate(part)}
+              />
             ) : (
               <>
                 {mv.status === "failed" && mv.job?.error && (
@@ -176,19 +185,14 @@ export function ValuesTab({
       {current === "how" && mr && (
         <>
           <StepBody title={m.steps.how} lede={m.model.howLede}>
+            {/* The groups the models can't be trusted on, if any: left unvalued unless modeled anyway. */}
+            <SmallGroupsStep projectId={projectId} />
             <HowTheyDid view={mv} />
           </StepBody>
-          <StepFoot back={back} extra={[{ label: m.model.tryAgain, onPress: tryIt }]} next={onward} />
-        </>
-      )}
-      {current === "small" && mr && (
-        <>
-          <StepBody title={m.steps.small} lede={m.small.lede}>
-            {mv.stale && <p className="wiz-warn">{m.model.stale}</p>}
-            <SmallGroupsStep projectId={projectId} />
-          </StepBody>
+          {/* Looks right accepts the try: Finalize starts from it. */}
           <StepFoot
             back={back}
+            extra={[{ label: m.model.tryAgain, onPress: tryIt }]}
             next={{ label: f.looksRight, onPress: keepTry, disabled: mv.stale || mAct.isPending }}
           />
           {errors}
@@ -203,7 +207,11 @@ export function ValuesTab({
               </div>
             )}
             {finalizing ? (
-              <RunProgress job={fv?.job ?? null} lastSeconds={fr?.seconds ?? null} />
+              <RunProgress
+                job={fv?.job ?? null}
+                lastSeconds={fr?.seconds ?? null}
+                skip={(part) => skipFinal.mutate(part)}
+              />
             ) : (
               <>
                 {fv?.status === "failed" && fv.job?.error && (
@@ -252,6 +260,15 @@ export function ValuesTab({
               onPress: () => fAct.mutate("accept"),
             }}
           />
+        </>
+      )}
+      {current === "outliers" && fr && (
+        <>
+          <StepBody title={m.steps.outliers} lede={m.outliers.lede}>
+            {fv?.stale && <p className="wiz-warn">{f.stale}</p>}
+            <Outliers projectId={projectId} currency={currency} />
+          </StepBody>
+          <StepFoot back={back} next={null} />
         </>
       )}
     </StepFrame>

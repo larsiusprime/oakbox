@@ -44,6 +44,7 @@ def _step_routes(
     before: Callable[[projects.Project, Path], None] | None = None,
     accept: Callable[[projects.Project, Path], None] | None = None,
     run_doc: str = "",
+    skip: bool = False,
 ) -> None:
     """GET <path>: ready, running, or the last run's receipt and whether it's out of date. POST run (in a
     process of its own; `before` gets the project ready), stop, and accept (Looks right) when it has one."""
@@ -68,6 +69,21 @@ def _step_routes(
                     start(project, pdir)
                 except (ValueError, FileNotFoundError) as e:
                     raise HTTPException(409, str(e)) from e
+            return view(project)
+
+    if skip:
+
+        @router.post(f"{base}/skip/{{part}}", response_model=view_type, name=f"{name}_skip")
+        def skip_route(project_id: str, part: str) -> Any:
+            """Skip one model while the run runs (Skip on its progress): it stops after its current tuning trial, is
+            left out, and the run goes on with the rest."""
+            project = load_project(project_id)
+            if not part.startswith("model:"):
+                raise HTTPException(422, f"{part} can't be skipped.")
+            try:
+                steps.skip(project_id, projects.project_dir(project_id), part, step.module)
+            except ValueError as e:
+                raise HTTPException(409, str(e)) from e
             return view(project)
 
     @router.post(f"{base}/stop", response_model=view_type, name=f"{name}_stop")
@@ -145,6 +161,7 @@ _step_routes(
     before=_write,
     accept=model.STEP.accept,
     run_doc="Try the models: OpenAVMKit's try_models on the prepared fields, every model group.",
+    skip=True,
 )
 _step_routes(
     "final",
@@ -156,4 +173,5 @@ _step_routes(
     accept=final.accept,
     run_doc="Finalize: OpenAVMKit's finalize_models, the groups Small groups leaves unvalued skipped, then the values"
     " checked against the sales (out of fold, held out, as valued) beside the roll's.",
+    skip=True,
 )

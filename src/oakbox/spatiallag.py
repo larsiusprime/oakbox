@@ -169,7 +169,7 @@ def drop_lag_zeros(
             if not kept and key != "default":
                 raise ValueError(
                     f"Too few sales near {names.get(g, g)}'s parcels to average, and {key} has no other variable:"
-                    " let the group borrow another group's sales (Variables › Nearby sales and buildings), or give"
+                    " let the group borrow another group's sales (Variables › Spatial average statistics), or give"
                     " the model more variables."
                 )
             entry["ind_vars"] = kept

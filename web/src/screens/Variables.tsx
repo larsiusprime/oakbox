@@ -4,6 +4,7 @@ import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../compon
 import { short, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
+import { AreaStep } from "./AreaStep";
 import { CollapseCard, FillCard, FillGroups } from "./CleanCards";
 import { LagStep } from "./LagStep";
 import { VarListsStep } from "./VarLists";
@@ -13,8 +14,8 @@ const m = t.values;
 // The variable tests (SPEC F9): Test the variables is a major step, the tests the user picked its parts.
 const TESTS = ["represented", "corr", "vif"] as const;
 type Test = (typeof TESTS)[number];
-type VStep = "fill" | "rare" | "run" | "done" | "lag" | "test" | Test | "verdict" | "lists";
-const V_STEPS: VStep[] = ["fill", "rare", "run", "done", "lag", "test", ...TESTS, "verdict", "lists"];
+type VStep = "fill" | "rare" | "run" | "done" | "lag" | "area" | "test" | Test | "verdict" | "lists";
+const V_STEPS: VStep[] = ["fill", "rare", "run", "done", "lag", "area", "test", ...TESTS, "verdict", "lists"];
 const TESTED: VStep[] = [...TESTS, "verdict"];
 
 /** Step 5, Variables (SPEC F7, F9): preparing the fields for the models (fills for blanks they can't take, folding
@@ -83,14 +84,14 @@ export function VariablesTab({ projectId }: { projectId: string }) {
               ? vFresh
                 ? "done"
                 : "blank"
-              : key === "lists" || key === "lag"
+              : key === "lists" || key === "lag" || key === "area"
                 ? prepared
                   ? "done"
                   : "blank"
                 : called,
     disabled:
       (key === "done" && !r) ||
-      ((key === "test" || key === "lists" || key === "lag") && !prepared) ||
+      ((key === "test" || key === "lists" || key === "lag" || key === "area") && !prepared) ||
       (TESTED.includes(key) && !vr),
   }));
   const i = shown.indexOf(current);
@@ -210,6 +211,15 @@ export function VariablesTab({ projectId }: { projectId: string }) {
         <>
           <StepBody title={m.steps.lag} lede={m.lag.lede}>
             {mu ? <LagStep setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
+            {errors}
+          </StepBody>
+          <StepFoot back={back} next={onward} />
+        </>
+      )}
+      {current === "area" && (
+        <>
+          <StepBody title={m.steps.area} lede={m.area.lede}>
+            {mu ? <AreaStep setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />

@@ -76,6 +76,12 @@ export type Wording = {
     copyNote: string;
     moveNote: string;
   };
+  performanceReport: {
+    title: string;
+    saved: string;
+    what: string;
+    close: string;
+  };
   about: {
     version: string;
     openavmkit: string;
@@ -686,6 +692,13 @@ export type Wording = {
       desc: string;
       all: string;
       result: (a: { rows: number; kept: number }) => string;
+      thenBy: string;
+      addSort: string;
+      addThen: string;
+      fileOrder: string;
+      levelWhat: (a: { column: string | number }) => string;
+      kept: string;
+      keptNote: string;
     };
     rowNames: Record<string, string>;
     numberUsed: string;
@@ -818,10 +831,14 @@ export type Wording = {
     from: (a: { column: string | number; file: string | number }) => string;
     histogram: {
       title: (a: { name: string | number }) => string;
-      median: (a: { m: string | number }) => string;
-      below: (a: { n: number; v: string | number }) => string;
-      above: (a: { n: number; v: string | number }) => string;
-      empty: (a: { n: number }) => string;
+      from: string;
+      to: string;
+      lowest: string;
+      highest: string;
+      reset: string;
+      linked: string;
+      under: (a: { edge: string | number; n: number }) => string;
+      over: (a: { edge: string | number; n: number }) => string;
     };
     salesParts: {
       noFile: string;
@@ -838,6 +855,85 @@ export type Wording = {
       matchHead: string;
       matchParcels: string;
       matchSales: string;
+    };
+    asSold: {
+      explainTitle: string;
+      point1: ReactNode;
+      point2: ReactNode;
+      point3: ReactNode;
+      point4: ReactNode;
+      point5: ReactNode;
+      toColumns: string;
+      back: string;
+      noSales: string;
+      noneFound: (a: { file: string | number }) => string;
+      loading: (a: { file: string | number }) => string;
+      lede: (a: { file: string | number }) => string;
+      cols: {
+        field: string;
+        column: (a: { file: string | number }) => string;
+        have: string;
+        against: string;
+        use: string;
+      };
+      same: (a: { pct: string | number }) => string;
+      differs: (a: { pct: string | number }) => string;
+      writtenDifferently: (a: { sold: string | number; today: string | number }) => string;
+      sale: string;
+      today: string;
+      suggested: string;
+      allSame: (a: { file: string | number }) => string;
+      forSales: string;
+      atSale: string;
+      atSaleNote: string;
+      todays: string;
+      todaysNote: string;
+      column: string;
+      unit: string;
+      noneToday: string;
+      how: {
+        name: string;
+        known: string;
+        values: string;
+      };
+      suggestedOption: (a: { column: string | number }) => string;
+      notFound: (a: { file: string | number }) => string;
+      unitNote: (a: { today: string | number }) => string;
+      notUsed: (a: { column: string | number }) => string;
+      suggestToday: string;
+      suggestSale: (a: { pct: string | number }) => string;
+      differsFor: (a: { n: number }) => string;
+      sameFor: (a: { pct: string | number }) => string;
+      seeThem: string;
+      hideThem: string;
+      diffCols: {
+        parcel: string;
+        date: string;
+        sold: string;
+        today: string;
+      };
+      onSales: (a: { pct: string | number }) => string;
+      tableTitle: string;
+      tableLede: (a: { file: string | number }) => string;
+      against: string;
+      writtenDifferentlyPill: string;
+      writtenDifferentlyWhy: (a: { sold: string | number; today: string | number }) => string;
+      auto: string;
+      autoNote: (a: { pct: string | number }) => string;
+      onlyTitle: string;
+      onlyLede: (a: { file: string | number }) => string;
+      onlyCols: {
+        column: string;
+        have: string;
+        values: string;
+      };
+      inRule: string;
+      toValid: string;
+      onlyNone: (a: { file: string | number }) => string;
+      puTitle: string;
+      srTitle: string;
+      puNote: string;
+      srNote: string;
     };
   };
   tabs: {
@@ -898,6 +994,7 @@ export type Wording = {
     starting: string;
     skip: string;
     skipping: string;
+    skipModel: string;
     skipNote: string;
     failed: string;
     ran: (a: { when: string | number; seconds: number; engine: string | number }) => string;
@@ -1158,6 +1255,11 @@ export type Wording = {
     blank: string;
     startButton: string;
     undoConfirm: string;
+    byHand: string;
+    byHandLede: string;
+    byHandFrom: (a: { date: string | number }) => string;
+    byHandFromSale: string;
+    byHandWhat: (a: { key: string | number }) => string;
   };
   sales: {
     steps: {
@@ -1763,6 +1865,7 @@ export type Wording = {
       run: string;
       done: string;
       lag: string;
+      area: string;
       test: string;
       represented: string;
       corr: string;
@@ -1772,9 +1875,9 @@ export type Wording = {
       models: string;
       try: string;
       how: string;
-      small: string;
       final: string;
       values: string;
+      outliers: string;
     };
     lag: {
       lede: string;
@@ -1796,6 +1899,34 @@ export type Wording = {
       noFields: string;
       fieldsWhy: string;
       split: (a: { k: string | number }) => string;
+    };
+    area: {
+      lede: string;
+      on: string;
+      figures: string;
+      noFigures: string;
+      blankUnder: string;
+      blankUnderUnit: string;
+      fromSales: string;
+      fromParcels: string;
+      theAreas: string;
+      areas: string;
+      typical: string;
+      under: string;
+      underChip: (a: { n: number }) => string;
+      underTip: (a: { min: number; parcels: number }) => string;
+      noLocations: string;
+      adds: (a: { n: number }) => string;
+      tickFor: (a: { row: string | number; location: string | number }) => string;
+      stats: {
+        median: string;
+        mean: string;
+        std: string;
+        p25: string;
+        p75: string;
+        min: string;
+        max: string;
+      };
     };
     fillLede: string;
     blocked: string;
@@ -1918,7 +2049,6 @@ export type Wording = {
     };
     small: {
       lede: string;
-      notTried: string;
       group: string;
       parcels: string;
       sales: string;
@@ -1935,10 +2065,10 @@ export type Wording = {
       flags: Record<string, ((a: { n: number }) => string) | (string) | ((a: { median: string | number }) => string)>;
       cantModel: string;
       unvalued: (a: { parcels: number; n: number; groups: string | number }) => string;
-      noneUnvalued: string;
       blanked: (a: { n: number }) => string;
       neverBelow: string;
       applies: string;
+      title: string;
     };
     final: {
       lede: string;
@@ -2046,8 +2176,6 @@ export type Wording = {
       cancel: string;
       namePlaceholder: string;
       nameLabel: string;
-      copy: string;
-      everyOther: string;
       backToDefault: string;
       noModels: string;
       takesNoList: string;
@@ -2060,7 +2188,6 @@ export type Wording = {
         blanks_left_out: (a: { n: number }) => string;
         no_locations: (a: { engine: string | number }) => string;
       };
-      written: (a: { group: string | number }) => string;
       group: string;
       parcels: string;
       sales: string;
@@ -2153,6 +2280,162 @@ export type Wording = {
       notesTitle: string;
       nextSlice: string;
     };
+    outliers: {
+      lede: string;
+      notReady: string;
+      group: string;
+      outside: string;
+      to: string;
+      which: {
+        all: (a: { n: string | number }) => string;
+        low: (a: { n: string | number }) => string;
+        high: (a: { n: string | number }) => string;
+      };
+      state: {
+        open: (a: { n: string | number }) => string;
+        decided: (a: { n: string | number }) => string;
+      };
+      none: (a: { low: string | number; high: string | number }) => string;
+      cols: {
+        address: string;
+        ratio: string;
+        sold: string;
+        valued: string;
+        date: string;
+        call: string;
+      };
+      calls: {
+        invalid: string;
+        data: string;
+        group: string;
+        model: string;
+      };
+      open: string;
+      mapLabel: string;
+      legend: {
+        under: (a: { low: string | number }) => string;
+        within: (a: { low: string | number; high: string | number }) => string;
+        over: (a: { high: string | number }) => string;
+        picked: string;
+        comps: string;
+      };
+      sold: string;
+      soldLine: (a: { price: string | number; date: string | number; adjusted: string | number }) => string;
+      valuedAt: string;
+      valuedLine: (a: { value: string | number }) => string;
+      roll: string;
+      compsSay: string;
+      compsSayLine: {
+        impr: (a: { value: string | number; per: string | number; ratio: string | number }) => string;
+        land: (a: { value: string | number; per: string | number; ratio: string | number }) => string;
+        price: (a: { value: string | number; ratio: string | number }) => string;
+      };
+      comps: string;
+      thisSale: string;
+      away: string;
+      unlike: string;
+      unlikeLede: string;
+      field: string;
+      thisParcel: string;
+      itsComps: string;
+      among: string;
+      inModel: string;
+      yes: string;
+      no: string;
+      blank: string;
+      share: (a: { pct: string | number }) => string;
+      why: string;
+      whys: {
+        invalid: {
+          title: string;
+          lede: string;
+        };
+        data: {
+          title: string;
+          lede: string;
+        };
+        group: {
+          title: string;
+          lede: string;
+        };
+        model: {
+          title: string;
+          lede: string;
+        };
+      };
+      reason: string;
+      reasons: {
+        related: string;
+        multi_parcel: string;
+        partial: string;
+        wrong_price: string;
+        distressed: string;
+        changed: string;
+        not_open_market: string;
+        other: string;
+      };
+      note: string;
+      leaveOut: string;
+      leaveOutNote: string;
+      patchField: string;
+      is: string;
+      shouldBe: string;
+      source: string;
+      sourceHint: string;
+      patchIt: string;
+      patchNote: string;
+      moveTo: string;
+      move: string;
+      moveNote: string;
+      orRule: string;
+      noteIt: string;
+      modelNote: string;
+      modelLede: string;
+      decided: (a: { call: string | number }) => string;
+      undo: string;
+      common: string;
+      commonLede: string;
+      cSales: string;
+      cOff: string;
+      cRest: string;
+      cMisses: string;
+      cShare: string;
+      cChance: string;
+      goesWith: (a: { name: string | number }) => string;
+      offLow: (a: { pct: string | number }) => string;
+      offHigh: (a: { pct: string | number }) => string;
+      offNone: string;
+      noneCommon: string;
+      clustered: (a: { i: string | number }) => string;
+      notClustered: string;
+      loading: string;
+      patches: string;
+      patchesLede: string;
+      noPatches: string;
+      export: string;
+      remove: string;
+      patchCols: {
+        parcel: string;
+        field: string;
+        was: string;
+        now: string;
+        source: string;
+        by: string;
+        at: string;
+      };
+      toApply: string;
+      pending: (a: { n: number; what: string | number }) => string;
+      pendingWhat: {
+        invalid: string;
+        group: string;
+        data: string;
+      };
+      apply: string;
+      compsHow: (a: { n: number; depth: number; full: number }) => string;
+      noComps: string;
+      atSale: string;
+      atSaleLede: string;
+    };
   };
   metadata: {
     details: string;
@@ -2198,6 +2481,9 @@ export type Wording = {
     projectsSettings: string;
     whereKept: string;
     settings: string;
+    map: string;
+    mapTip: string;
+    mapOut: string;
   };
   project: {
     title: (a: { name: string | number }) => string;
@@ -2341,5 +2627,120 @@ export type Wording = {
     census: string;
     censusHint: string;
     close: string;
+  };
+  reading: {
+    making: (a: { file: string | number; pct: string | number; left: string | number }) => string;
+    why: string;
+    stop: string;
+    stopped: (a: { file: string | number }) => string;
+    again: string;
+    failed: (a: { file: string | number; error: string | number }) => string;
+    waiting: (a: { file: string | number }) => string;
+  };
+  activity: {
+    saving: string;
+    reading: string;
+    more: (a: { n: string | number }) => string;
+    stop: string;
+    stopped: string;
+    again: string;
+  };
+  mapWindow: {
+    label: string;
+    title: string;
+    mapLabel: string;
+    divider: string;
+    dock: (a: { side: string | number }) => string;
+    close: string;
+    loading: string;
+    none: string;
+    making: string;
+    failed: (a: { error: string | number }) => string;
+    colourBy: string;
+    otherColumns: (a: { file: string | number }) => string;
+    reading: string;
+    spread: (a: { field: string | number }) => string;
+    other: string;
+    blank: string;
+    cell: (a: { n: number; what: string | number }) => string;
+    mostly: (a: { share: string | number }) => string;
+    howShapes: (a: { n: number }) => string;
+    howCells: (a: { size: string | number; sales: string | number }) => string;
+    follow: string;
+    following: (a: { step: string | number }) => string;
+    followIdle: string;
+    followOnTip: string;
+    followOffTip: string;
+    srTitle: string;
+    sr: {
+      price: string;
+      year: string;
+      valid: string;
+      vacant: string;
+    };
+    readingSales: string;
+    salesPlaced: (a: { n: number; of: number }) => string;
+    share0: {
+      valid: string;
+      vacant: string;
+    };
+    share1: {
+      valid: string;
+      vacant: string;
+    };
+    cellSales: (a: { n: number; parcels: number }) => string;
+    validYes: string;
+    validNo: string;
+    vacantYes: string;
+    prTitle: string;
+    prBlankIds: (a: { n: number; share: string | number }) => string;
+    prRepeatedIds: (a: { n: number; share: string | number }) => string;
+    prDiffers: (a: { field: string | number; n: number; share: string | number }) => string;
+    readingProblem: string;
+    prHas: {
+      pu: (a: { n: number; of: number; share: string | number }) => string;
+      sr: (a: { n: number; of: number; share: string | number }) => string;
+    };
+    prHot: string;
+    prCell: (a: { share: string | number }) => string;
+    prYes: string;
+    prNo: string;
+    unplaced: (a: { n: number }) => string;
+    card: {
+      title: (a: { key: string | number }) => string;
+      loading: string;
+      close: string;
+      pu: string;
+      noFields: string;
+      blank: string;
+      rows: (a: { file: string | number; n: number }) => string;
+      notIn: (a: { files: string | number }) => string;
+      more: (a: { n: number }) => string;
+      sr: (a: { n: number }) => string;
+      noSales: string;
+      noDate: string;
+      noPrice: string;
+      valid: string;
+      invalid: string;
+      vacant: string;
+      differs: string;
+      toAsSold: string;
+      pin: string;
+      unpin: string;
+      pinTip: string;
+      unpinTip: string;
+      toStep: (a: { step: string | number }) => string;
+    };
+    full: string;
+    unfull: string;
+    fullTip: string;
+    unfullTip: string;
+    popOut: string;
+    popOutTip: string;
+    dockBack: string;
+    alone: string;
+    puTitle: string;
+    diffTitle: string;
+    columnsTitle: string;
   };
 };

@@ -79,6 +79,12 @@
     "copyNote": "A new copy is made for the project; the original stays where it is.",
     "moveNote": "The original moves into the project folder."
   },
+  "performanceReport": {
+    "title": "Performance report saved",
+    "saved": "Saved in the project folder:",
+    "what": "It holds how long each step's last run took and where the time went (each model's tuning trials, CPU and memory), the runs' receipts and the end of their logs, and the project's settings for OpenAVMKit: file and field names, no data. Send it along with what was slow.",
+    "close": "Close"
+  },
   "about": {
     "version": "OAK box",
     "openavmkit": "OpenAVMKit",
@@ -148,14 +154,14 @@
     "columnFor": "Column for {field}",
     "steps": {
       "universe": {
-        "title": "Parcel universe",
-        "question": "Parcel Universe",
-        "lede": "Please provide the file that contains your parcel GEOMETRY as well as your primary parcel ID."
+        "title": "🌐 Parcel Universe",
+        "question": "🌐 Parcel Universe",
+        "lede": "Every parcel, sold or not, as it is now: what's valued. Please provide the file that contains your parcel GEOMETRY as well as your primary parcel ID."
       },
       "sales": {
-        "title": "Sales",
-        "question": "Which file holds the sales?",
-        "lede": "The sales record: one row per sale. Pick it here; its date, its IDs and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
+        "title": "💰 Sales Record",
+        "question": "Which file is your 💰 Sales Record?",
+        "lede": "One row per sale: what the models learn from. Pick it here; its date, its IDs and the rest come one by one in the next steps. Files with more about each sale (deeds, say) come later: just pick the main one for now."
       },
       "sales_ids": {
         "title": "IDs",
@@ -276,6 +282,11 @@
         "title": "Shapefiles",
         "question": "Any map layers?",
         "lede": "Zoning, school zones, flood zones, parks, schools… Each layer either stamps its areas onto the parcels inside them, or gives each parcel its distance to the nearest feature."
+      },
+      "as_sold": {
+        "title": "Sales record fields",
+        "question": "Does your sales record describe each property as it was when it sold?",
+        "lede": "How sales and parcels each get their characteristics: what the models learn from, and what they value."
       },
       "condos": {
         "title": "Condo units",
@@ -806,11 +817,11 @@
       "first": "Add a file",
       "another": "Add another file",
       "what": "It''s about",
-      "parcels": "Parcels",
-      "sales": "Sales",
+      "parcels": "🌐 Parcel Universe",
+      "sales": "💰 Sales Record",
       "how": "It adds",
-      "joinedParcels": "More about each parcel",
-      "joinedSales": "More about each sale",
+      "joinedParcels": "More fields for each parcel",
+      "joinedSales": "More fields for each sale",
       "rowsParcels": "More parcels",
       "rowsSales": "More sales",
       "needsShapes": "Needs shapes, as the parcel universe''s parcels have",
@@ -1015,7 +1026,14 @@
       "asc": "Ascending",
       "desc": "Descending",
       "all": "Drop every row with a repeated ID",
-      "result": "{rows, number} rows → {kept, number} parcels"
+      "result": "{rows, number} rows → {kept, number} parcels",
+      "thenBy": "then by",
+      "addSort": "Sort by a column",
+      "addThen": "Then by",
+      "fileOrder": "In the file's own order: each ID's first row as the file has it.",
+      "levelWhat": "sorting by {column}",
+      "kept": "kept",
+      "keptNote": "Each ID's row that's kept is marked, in the order chosen; ties keep the file's order."
     },
     "rowNames": {
       "bldg_quality_num": "Number",
@@ -1193,10 +1211,14 @@
     "from": "{column} · {file}",
     "histogram": {
       "title": "{name}: how they spread",
-      "median": "median {m}",
-      "below": "{n, number} under {v}",
-      "above": "{n, number} over {v}",
-      "empty": "{n, number} blank or none"
+      "from": "From",
+      "to": "to",
+      "lowest": "Lowest shown",
+      "highest": "Highest shown",
+      "reset": "Reset",
+      "linked": "linked",
+      "under": "Under {edge}: {n, number}",
+      "over": "Over {edge}: {n, number}"
     },
     "salesParts": {
       "noFile": "Add the sales file first, on Sales.",
@@ -1213,6 +1235,85 @@
       "matchHead": "Do the sales find their parcels?",
       "matchParcels": "Do its rows find their parcels?",
       "matchSales": "Do its rows find their sales?"
+    },
+    "asSold": {
+      "explainTitle": "How sales describe the property",
+      "point1": "A sale should be described as the property was **when it sold**: it may have changed since (an addition, a new roof, a regrade).",
+      "point2": "Those characteristics are what the models **learn from**: they're what the price paid for.",
+      "point3": "To value a parcel, the models use its characteristics **now**: the parcel files.",
+      "point4": "So it's best practice to **freeze** a parcel's characteristics at the sale, and record them with the sale.",
+      "point5": "Where a sale has no frozen characteristics, OAK box **assumes the parcel hasn't changed** and uses the parcel universe's. That's called *hydrating* the sales, filling them in from the parcels, and it's a modeling assumption.",
+      "toColumns": "Your sales file's columns that describe the property",
+      "back": "How it works",
+      "noSales": "Add the sales file first, on Sales.",
+      "noneFound": "{file} doesn't describe the property: every sale takes the parcel universe's fields (it's assumed the parcel hasn't changed).",
+      "loading": "Comparing {file} with the parcel universe",
+      "lede": "{file}'s columns that look like a parcel universe field, each checked against the parcel universe on the same parcels. The obvious ones (the very same column name, the same as the parcel universe for 90% or more) are picked for you; the rest take the parcel universe's until you choose.",
+      "cols": {
+        "field": "🌐 Parcel Universe field (its column, file)",
+        "column": "💰 In {file}",
+        "have": "Sales with a value",
+        "against": "Against the parcel universe",
+        "use": "Sales use"
+      },
+      "same": "same for {pct}",
+      "differs": "differs for {pct}",
+      "writtenDifferently": "written differently ({sold} where the parcel universe has {today}): export the same codes to use it",
+      "sale": "💰 Sales Record",
+      "today": "🌐 Parcel Universe",
+      "suggested": "suggested",
+      "allSame": "Everything here matches the parcel universe: {file} looks like the parcel universe's fields exported with the sales, not the property as it sold. Using it changes little.",
+      "forSales": "For sales",
+      "atSale": "💰 Sales Record",
+      "atSaleNote": "the sales: what the models learn from",
+      "todays": "🌐 Parcel Universe",
+      "todaysNote": "the parcels: what's valued",
+      "column": "Column",
+      "unit": "Its unit",
+      "noneToday": "none: the parcel universe's",
+      "how": {
+        "name": "found: same name",
+        "known": "found: a known name",
+        "values": "matched by its values"
+      },
+      "suggestedOption": "{column} (found)",
+      "notFound": "Nothing in {file} matches by name or by its values: sales take the parcel universe's. Pick a column if one holds it.",
+      "unitNote": "(The parcel universe's is in {today}: compared in {today}.)",
+      "notUsed": "Found, not used yet: sales take the parcel universe's until you pick {column} above.",
+      "suggestToday": "Nearly all the same: likely an export of the parcel universe, not the property as it sold. Using it changes little.",
+      "suggestSale": "Differs for {pct} of sales: history since the sale (a split, a rebuild) the models should see. Worth using.",
+      "differsFor": "differs for {n, plural, =1 {1 sale} other {# sales}}",
+      "sameFor": "the same for {pct}",
+      "seeThem": "See them",
+      "hideThem": "Hide them",
+      "diffCols": {
+        "parcel": "Parcel",
+        "date": "Sold",
+        "sold": "💰 Sales Record",
+        "today": "🌐 Parcel Universe"
+      },
+      "onSales": "In the sales record for {pct} of sales; the rest take the parcel universe's.",
+      "tableTitle": "💰 Sales Record",
+      "tableLede": "Each field's column in {file}, if the sales record has one of its own; else sales take the parcel universe's.",
+      "against": "Against the parcel universe:",
+      "writtenDifferentlyPill": "written differently",
+      "writtenDifferentlyWhy": "{sold} where the parcel universe has {today}: these can't be compared, or read as the parcel universe's are. Export the same codes to use them; sales take the parcel universe's until then.",
+      "auto": "picked for you",
+      "autoNote": "Picked for you: the same column name as the parcel universe's, read the same way, the same for {pct} of sales. Choose none to use the parcel universe's instead.",
+      "onlyTitle": "Only in the sales record",
+      "onlyLede": "{file}'s columns that describe the sale or the property as it sold, which no parcel universe file has. A model can't use them: it values every parcel, and the parcel universe doesn't have them. They can decide which sales count: a rule on Valid sale (leave out a status, a type). And they show beside each sale in Outliers.",
+      "onlyCols": {
+        "column": "Column",
+        "have": "Sales with one",
+        "values": "Most common"
+      },
+      "inRule": "in a rule",
+      "toValid": "Valid sale",
+      "onlyNone": "Every column in {file} is loaded for a field or mirrors a parcel column.",
+      "puTitle": "🌐 Parcel Universe",
+      "srTitle": "💰 Sales Record",
+      "puNote": "what's valued",
+      "srNote": "what the models learn from"
     }
   },
   "tabs": {
@@ -1277,6 +1378,7 @@
     "starting": "Starting Python and OpenAVMKit (it can take a few seconds)",
     "skip": "Skip this step",
     "skipping": "Skipping…",
+    "skipModel": "Skip this model",
     "skipNote": "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
     "failed": "It stopped with an error:",
     "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"
@@ -1550,7 +1652,12 @@
     "cancel": "Cancel",
     "blank": "(blank)",
     "startButton": "Start",
-    "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone."
+    "undoConfirm": "Discard your changes to the groups since they were last saved? This can't be undone.",
+    "byHand": "Put here by hand",
+    "byHandLede": "These parcels are in this group whatever its rules say, before any rule. Take one out and its rules decide again (the Outliers call that moved it goes too).",
+    "byHandFrom": "from Outliers: its sale on {date}",
+    "byHandFromSale": "from Outliers",
+    "byHandWhat": "parcel {key} from this group"
   },
   "sales": {
     "steps": {
@@ -2271,7 +2378,8 @@
       "rare": "Rare categories",
       "run": "Prepare the fields",
       "done": "What changed",
-      "lag": "Nearby sales and buildings",
+      "lag": "Spatial average statistics",
+      "area": "Per area statistics",
       "test": "Test the variables",
       "represented": "Represented",
       "corr": "Correlation",
@@ -2281,9 +2389,9 @@
       "models": "Models",
       "try": "Try them",
       "how": "How they did",
-      "small": "Small groups",
       "final": "Finalize",
-      "values": "Model values"
+      "values": "Model values",
+      "outliers": "Outliers"
     },
     "lag": {
       "lede": "What''s around a parcel says a lot about its value. Each parcel can get the average of its nearest sales'' prices, and of its nearest parcels'' size, age and quality, as variables of their own: put them in a variable list like any other.",
@@ -2305,6 +2413,34 @@
       "noFields": "Nothing else",
       "fieldsWhy": "Numbers of the parcels around each one, besides those above.",
       "split": "Worked out as the models are tried, after the sales are split: a sale''s nearby price comes only from sales outside its own fold, so a model never sees the price it''s judged on. A group with {k} or fewer sales to average has none (OpenAVMKit writes 0): let it borrow another group''s sales."
+    },
+    "area": {
+      "lede": "Each parcel gets its area''s figures: the median sale price of its census tract, the median finished area of its neighbourhood (OpenAVMKit''s area statistics). Worked out as each run starts, after the sales are split: prices come from training sales only.",
+      "on": "Work out per area statistics",
+      "figures": "Figures",
+      "noFigures": "Median",
+      "blankUnder": "Blank under",
+      "blankUnderUnit": "sales or parcels in an area",
+      "fromSales": "From the sales",
+      "fromParcels": "From the parcels",
+      "theAreas": "The areas",
+      "areas": "Areas",
+      "typical": "Sales in a typical area",
+      "under": "Under the minimum",
+      "underChip": "{n, number} {n, plural, =1 {area} other {areas}}",
+      "underTip": "Fewer than {min, number} sales: their price figures are blank (a model leans on a coarser area''s). The parcels in them, or in no area: {parcels, number}.",
+      "noLocations": "No location fields to work them out by: add neighbourhoods on Data, or census tracts and block groups on Enrichments.",
+      "adds": "Adds {n, number} {n, plural, =1 {variable} other {variables}}.",
+      "tickFor": "{row} by {location}",
+      "stats": {
+        "median": "Median",
+        "mean": "Mean",
+        "std": "Spread",
+        "p25": "25th percentile",
+        "p75": "75th percentile",
+        "min": "Smallest",
+        "max": "Largest"
+      }
     },
     "fillLede": "Blanks the models can''t take: some models fail on a blank (the linear ones), others read it as unknown. Nothing in Check sales uses these: they only change what the models learn from.",
     "blocked": "Not yet:",
@@ -2461,8 +2597,7 @@
       "written": "Written finest first, as OpenAVMKit reads it: {fields}."
     },
     "small": {
-      "lede": "Groups the models can''t be trusted on: too few sales to learn from or to judge them by, or values that make no sense (a holdout median ratio outside 0.5 to 2, or a value below zero). Left unvalued unless you choose to model them anyway: their parcels get no model value, and the report says so.",
-      "notTried": "Try the models first: the groups are judged by the try.",
+      "lede": "Too few sales to learn from or to judge them by, or values that make no sense (a holdout median ratio outside 0.5 to 2, or a value below zero). Left unvalued unless you choose to model them anyway: their parcels get no model value, and the report says so.",
       "group": "Model group",
       "parcels": "Parcels",
       "sales": "Sales",
@@ -2485,10 +2620,10 @@
       },
       "cantModel": "No model produced values for it: it can only be left unvalued.",
       "unvalued": "Left unvalued: {parcels, number} {parcels, plural, =1 {parcel} other {parcels}} in {n, number} {n, plural, =1 {group} other {groups}} ({groups}). Their model value is blank; the report and the export list them.",
-      "noneUnvalued": "Every modeled group gets model values.",
       "blanked": "{n, number} {n, plural, =1 {parcel} other {parcels}} in groups modeled anyway came out below zero: left blank, and counted.",
       "neverBelow": "A value below zero never ships: the parcel stays blank and is counted.",
-      "applies": "Applies when the values are made (Finalize): the try models every group, to judge it."
+      "applies": "Applies when the values are made (Finalize): the try models every group, to judge it.",
+      "title": "Groups the models can't be trusted on."
     },
     "final": {
       "lede": "Trains each group''s models once more, on all of its sales, and values every parcel: the values that ship. The groups Small groups leaves unvalued are skipped; a value below zero is left blank.",
@@ -2633,8 +2768,6 @@
       "cancel": "Cancel",
       "namePlaceholder": "The engine''s name",
       "nameLabel": "Name",
-      "copy": "Copy these models to…",
-      "everyOther": "Every other modeled group",
       "backToDefault": "Back to the default models",
       "noModels": "No models: add one, or untick the group on Model groups › Check them.",
       "takesNoList": "its areas'' price per area",
@@ -2647,7 +2780,6 @@
         "blanks_left_out": "Leaves out {n, number} {n, plural, =1 {variable} other {variables}} of its list with blanks: a regression can''t take a blank.",
         "no_locations": "{engine, select, local_area {Local area needs at least one location level.} other {No location levels: it fits one regression for the whole group, as MRA does.}}"
       },
-      "written": "Written to OpenAVMKit''s settings under modeling.models.main.{group}; the models'' lists as $$variable_lists.<list>.",
       "group": "Model group",
       "parcels": "Parcels",
       "sales": "Sales",
@@ -2743,6 +2875,162 @@
       "slight": "a slight tilt",
       "notesTitle": "Notes from OpenAVMKit",
       "nextSlice": "Finalizing (the values written, and checked as step 4 checks the roll''s) comes next."
+    },
+    "outliers": {
+      "lede": "The sales the models valued furthest from what they sold for (adjusted to the valuation date), each valued by models that never saw it. For each, decide why: the sale, the data, the group, or the model.",
+      "notReady": "Finalize first: the outliers are the sales its models valued furthest from their price.",
+      "group": "Model group",
+      "outside": "Outside",
+      "to": "to",
+      "which": {
+        "all": "All {n}",
+        "low": "Valued low {n}",
+        "high": "Valued high {n}"
+      },
+      "state": {
+        "open": "Open {n}",
+        "decided": "Decided {n}"
+      },
+      "none": "No sale of this group is outside {low} to {high}.",
+      "cols": {
+        "address": "Address",
+        "ratio": "Ratio",
+        "sold": "Sold for",
+        "valued": "Valued at",
+        "date": "Sold",
+        "call": "Call"
+      },
+      "calls": {
+        "invalid": "Invalid",
+        "data": "Data patched",
+        "group": "Moved",
+        "model": "Model note"
+      },
+      "open": "Open",
+      "mapLabel": "The group's sales, by how far off their values are",
+      "legend": {
+        "under": "under {low}",
+        "within": "{low} to {high}",
+        "over": "over {high}",
+        "picked": "picked",
+        "comps": "its comps"
+      },
+      "sold": "Sold",
+      "soldLine": "{price} on {date}, {adjusted} at the valuation date",
+      "valuedAt": "Valued at",
+      "valuedLine": "{value}, by models that never saw the sale",
+      "roll": "On the roll",
+      "compsSay": "What its comps say",
+      "compsSayLine": {
+        "impr": "{value}: their price per finished area, {per}, times its own; the models valued them at {ratio} of their price",
+        "land": "{value}: their price per land area, {per}, times its own; the models valued them at {ratio} of their price",
+        "price": "{value}: their price; the models valued them at {ratio} of their price"
+      },
+      "comps": "Comparable sales",
+      "thisSale": "This sale",
+      "away": "Away",
+      "unlike": "How it's unlike the others",
+      "unlikeLede": "Each field: this parcel, its comps, where it sits among the group's sales (the bar is the middle half), and whether the models use it. Fields where it stands out come first.",
+      "field": "Field",
+      "thisParcel": "This parcel",
+      "itsComps": "Its comps",
+      "among": "Among the group",
+      "inModel": "In the models",
+      "yes": "yes",
+      "no": "no",
+      "blank": "blank",
+      "share": "{pct} of the group's sales",
+      "why": "Why is it off?",
+      "whys": {
+        "invalid": {
+          "title": "The sale isn't a market sale",
+          "lede": "Leave it out, with the reason. Check sales lists it."
+        },
+        "data": {
+          "title": "The data is wrong or missing",
+          "lede": "Patch the parcel. Every patch is kept, to send to whoever keeps the data."
+        },
+        "group": {
+          "title": "It's in the wrong group",
+          "lede": "Move the parcel to another group, or change the group's rule."
+        },
+        "model": {
+          "title": "The model misses something",
+          "lede": "See what the misses have in common, and note it."
+        }
+      },
+      "reason": "Why",
+      "reasons": {
+        "related": "Related parties",
+        "multi_parcel": "Sold with other parcels",
+        "partial": "Partial interest",
+        "wrong_price": "Wrong price",
+        "distressed": "Foreclosure or short sale",
+        "changed": "Changed after it sold",
+        "not_open_market": "Not an open-market sale",
+        "other": "Other (say what)"
+      },
+      "note": "Note",
+      "leaveOut": "Leave this sale out",
+      "leaveOutNote": "With Apply my calls, Check sales lists it, with the reason.",
+      "patchField": "Field",
+      "is": "Is",
+      "shouldBe": "Should be",
+      "source": "Source",
+      "sourceHint": "A permit, a visit, the deed",
+      "patchIt": "Patch it",
+      "patchNote": "With Apply my calls, it's applied as the data is brought in, so every step sees it. A vacant parcel's building fields stay empty: patch what makes it vacant.",
+      "moveTo": "Move it to",
+      "move": "Move this parcel",
+      "moveNote": "With Apply my calls, Model groups keeps it as a parcel put there by hand, before any rule.",
+      "orRule": "Or change the group's rule, on Model groups.",
+      "noteIt": "Note it",
+      "modelNote": "What might it be?",
+      "modelLede": "What the group's misses have in common is below. A field the models don't use can be added on Variable lists.",
+      "decided": "Decided: {call}",
+      "undo": "Take back",
+      "common": "What the misses have in common",
+      "commonLede": "Every sale of the group, field by field: the sales that share a value, where the models are off together. Fields the models use and fields they don't, ranked by how much of the models' error lines up with them; only what beats chance.",
+      "cSales": "Sales",
+      "cOff": "Valued",
+      "cRest": "The rest",
+      "cMisses": "Outliers in it",
+      "cShare": "Of the error",
+      "cChance": "By chance",
+      "goesWith": "mostly the same sales as {name}",
+      "offLow": "{pct} low",
+      "offHigh": "{pct} high",
+      "offNone": "right",
+      "noneCommon": "Nothing the sales share lines up with the models' error beyond chance.",
+      "clustered": "On the map, the errors are more alike between neighbours than chance would make them (Moran's I {i}): a location the models miss.",
+      "notClustered": "On the map, the errors aren't more alike between neighbours than chance would make them.",
+      "loading": "Working it out…",
+      "patches": "Patches",
+      "patchesLede": "Every correction made to the parcel universe's data, to send to whoever keeps it.",
+      "noPatches": "No patches yet.",
+      "export": "Export as CSV",
+      "remove": "Remove",
+      "patchCols": {
+        "parcel": "Parcel",
+        "field": "Field",
+        "was": "Was",
+        "now": "Now",
+        "source": "Source",
+        "by": "By",
+        "at": "When"
+      },
+      "toApply": "to apply",
+      "pending": "{n, number} {n, plural, =1 {call} other {calls}} made and not applied yet. They change nothing until applied, so the outliers can be gone through first; applying them changes {what}, and the steps from there on run again.",
+      "pendingWhat": {
+        "invalid": "Check sales",
+        "group": "Model groups",
+        "data": "the data brought in"
+      },
+      "apply": "Apply my calls",
+      "compsHow": "Its comps (layered comps): the {n, number} other {n, plural, =1 {sale} other {sales}} where, {depth, number} of the {full, number} splits of its comp tree kept:",
+      "noComps": "No comps: no comp tree for its group (too few sales).",
+      "atSale": "💰 Only in the Sales Record",
+      "atSaleLede": "What the sales record says about this sale that the parcel universe doesn't (it can't be a model's variable): a remodel, a sale type, a status may explain it, and make it a sale to set aside."
     }
   },
   "metadata": {
@@ -2831,7 +3119,10 @@
     "tabsFoot": "Each tab opens on the step you last had open in it.",
     "projectsSettings": "settings",
     "whereKept": "Where projects are kept…",
-    "settings": "Settings"
+    "settings": "Settings",
+    "map": "Map",
+    "mapTip": "Show or hide the map (Ctrl+M)",
+    "mapOut": "Map (popped out)"
   },
   "project": {
     "title": "{name} – OAK box",
@@ -2975,5 +3266,120 @@
     "census": "Census API key",
     "censusHint": "For census figures in Enrichments. Kept on this computer, never in a project.",
     "close": "Close"
+  },
+  "reading": {
+    "making": "Making a quick-read copy of {file}: {pct}{left, select, none {} other { · about {left} left}}",
+    "why": "A copy in a faster format, made once, so its columns open in a moment from now on. You can carry on meanwhile.",
+    "stop": "Stop",
+    "stopped": "Quick-read copy stopped: {file} is read as it is (slower) for now.",
+    "again": "Make it",
+    "failed": "Couldn't make a quick-read copy of {file} ({error}): it's read as it is (slower).",
+    "waiting": "Quick-read copy of {file} about to start…"
+  },
+  "activity": {
+    "saving": "Saving your change",
+    "reading": "Updating the page",
+    "more": "(and {n} more)",
+    "stop": "Stop",
+    "stopped": "Stopped.",
+    "again": "Try again"
+  },
+  "mapWindow": {
+    "label": "Map window",
+    "title": "Map",
+    "mapLabel": "Map of the 🌐 Parcel Universe",
+    "divider": "Map size: drag, or use the arrow keys",
+    "dock": "Dock on the {side}",
+    "close": "Close the map (Ctrl+M)",
+    "loading": "Opening the map",
+    "none": "The map shows the 🌐 Parcel Universe once its file is chosen (Data › 🌐 Parcel Universe).",
+    "making": "Preparing the 🌐 Parcel Universe''s shapes for the map (once; about half a minute for 200,000 parcels)",
+    "failed": "The map can''t be drawn: {error}.",
+    "colourBy": "Colour the parcels by",
+    "otherColumns": "🌐 Other columns of {file}",
+    "reading": "Reading the values",
+    "spread": "How {field} spreads; the range set here is the map''s colours",
+    "other": "another value",
+    "blank": "blank",
+    "cell": "{n, number} {n, plural, =1 {parcel} other {parcels}} here{what, select, other { · {what}} none {}}",
+    "mostly": "{share}% of them this",
+    "howShapes": "{n, number} parcels in view, drawn as shapes",
+    "howCells": "Zoomed out: squares of {size}, each coloured by its {sales, select, yes {sales} other {parcels}}; zoom in for the parcels",
+    "follow": "Follow",
+    "following": "Following: {step}",
+    "followIdle": "Following",
+    "followOnTip": "The map shows what the step you''re on is about (its field), as you go. Choosing a field here, or this button, stops it.",
+    "followOffTip": "Show what each step is about as you go.",
+    "srTitle": "💰 Sales Record: its sales, at their parcels",
+    "sr": {
+      "price": "Sale price",
+      "year": "Sale date",
+      "valid": "Valid sale (share valid)",
+      "vacant": "Vacant sale (share vacant)"
+    },
+    "readingSales": "Reading the sales",
+    "salesPlaced": "{n, number} of {of, number} sales on the map: a sale is where its parcel is; one whose parcel isn''t in the 🌐 Parcel Universe has no place",
+    "share0": {
+      "valid": "none valid",
+      "vacant": "none vacant"
+    },
+    "share1": {
+      "valid": "all valid",
+      "vacant": "all vacant"
+    },
+    "cellSales": "{n, number} {n, plural, =1 {sale} other {sales}} on {parcels, number} {parcels, plural, =1 {parcel} other {parcels}} here",
+    "validYes": "valid",
+    "validNo": "not valid",
+    "vacantYes": "vacant",
+    "prTitle": "Problems: parcel IDs",
+    "prBlankIds": "🌐 Parcels with no ID: {n, number} ({share})",
+    "prRepeatedIds": "🌐 Parcels whose ID repeats: {n, number} ({share})",
+    "prDiffers": "{field}: {n, number} {n, plural, =1 {sale differs} other {sales differ}} ({share})",
+    "readingProblem": "Finding them",
+    "prHas": {
+      "pu": "{n, number} of {of, number} parcels ({share})",
+      "sr": "{n, number} of {of, number} sales compared ({share}), each at its parcel"
+    },
+    "prHot": "Hot spot: a square with more than twice the county''s share (outlined)",
+    "prCell": "{share} of them here",
+    "prYes": "has it",
+    "prNo": "doesn''t",
+    "unplaced": "{n, number} {n, plural, =1 {sale finds} other {sales find}} no parcel in the 🌐 Parcel Universe, so {n, plural, =1 {it has} other {they have}} no place on the map",
+    "card": {
+      "title": "Parcel {key}",
+      "loading": "Reading the parcel",
+      "close": "Close the card (Esc)",
+      "pu": "🌐 Parcel Universe",
+      "noFields": "No fields loaded from the parcel files yet.",
+      "blank": "blank",
+      "rows": "{file} has {n, number} rows for it: the first is shown.",
+      "notIn": "Not in {files}.",
+      "more": "Its other columns ({n, number})",
+      "sr": "💰 Sales Record: {n, number} {n, plural, =1 {sale} other {sales}}",
+      "noSales": "No sales.",
+      "noDate": "no date",
+      "noPrice": "no price",
+      "valid": "valid",
+      "invalid": "not valid",
+      "vacant": "vacant",
+      "differs": "The sale''s value differs from the parcel''s",
+      "toAsSold": "Sales record fields ›",
+      "pin": "Pin to the map''s side",
+      "unpin": "Unpin: float it over the map",
+      "pinTip": "Pin the card at the map''s left, beside it.",
+      "unpinTip": "Unpin the card to float it over the map; drag it by its title.",
+      "toStep": "Go to its step: {step}"
+    },
+    "full": "Full size",
+    "unfull": "Back to docked",
+    "fullTip": "The map over the whole window (the page behind it); this button docks it again.",
+    "unfullTip": "Dock the map again, beside the page.",
+    "popOut": "Pop out",
+    "popOutTip": "The map in a window of its own (on another screen, say); it still follows the step you''re on here. Closing that window docks it back.",
+    "dockBack": "Dock back",
+    "alone": "OAK box map",
+    "puTitle": "🌐 Parcel Universe: your fields",
+    "diffTitle": "Differences: 💰 sale against 🌐 parcel",
+    "columnsTitle": "🌐 Other columns of your parcel files"
   }
 }

@@ -30,6 +30,7 @@ export function UniverseStep({ project, data, change }: { project: Project; data
   const columns = base.columns.map((c) => [c.name, c.name] as const);
   return (
     <StepFile
+      projectId={project.id}
       file={base}
       onRemove={() => change({ kind: "file", name: base.name, holds: "unused" })}
       undo={() => change({ kind: "file", name: base.name, universe: true })}
@@ -172,6 +173,7 @@ export function SalesFile({ project, data, change }: { project: Project; data: W
   }
   return (
     <StepFile
+      projectId={project.id}
       file={sales}
       onRemove={() => change({ kind: "file", name: sales.name, holds: "unused" })}
       undo={() => change({ kind: "file", name: sales.name, holds: "sales" })}

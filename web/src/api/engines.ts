@@ -10,6 +10,7 @@ export function useEngines() {
   return useQuery({
     queryKey: enginesKey,
     queryFn: fetchEngines,
+    meta: { quiet: true }, // its own progress
     refetchInterval: (q) => (q.state.data?.some((e) => e.install?.status === "running") ? 500 : false),
   });
 }

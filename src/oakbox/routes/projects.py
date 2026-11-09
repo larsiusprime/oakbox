@@ -9,9 +9,9 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
-from oakbox import datafiles, projects, steps, wizard
+from oakbox import datafiles, projects, readcache, steps, wizard
 from oakbox.datafiles import BaseModel
-from oakbox.routes.common import editing, load_project
+from oakbox.routes.common import editing, file_entry, load_project
 
 router = APIRouter()
 
@@ -177,6 +177,26 @@ def delete_project(project_id: str) -> None:
             raise HTTPException(500, f"Couldn't move the project to the Recycle Bin: {e}") from e
 
 
+class PerformanceReport(BaseModel):
+    path: str = Field(description="The zip, in the project folder.")
+    name: str
+
+
+@router.post("/api/projects/{project_id}/performance-report")
+def performance_report(project_id: str) -> PerformanceReport:
+    """Zip the project's run records (timing, tuning trials, receipts, the end of the logs; no data) into the project
+    folder for a slow run to be diagnosed, and show it in the file manager (Help › Save a performance report)."""
+    from oakbox import timing
+
+    load_project(project_id)
+    out = timing.report(projects.project_dir(project_id))
+    try:
+        projects.show_file(out)
+    except OSError:
+        pass  # saved all the same: the page says where
+    return PerformanceReport(path=str(out), name=out.name)
+
+
 @router.post("/api/projects/{project_id}/show-in-folder")
 def show_in_folder(project_id: str) -> None:
     load_project(project_id)
@@ -211,7 +231,56 @@ def add_file(project_id: str, body: AddFile) -> projects.Project:
             raise HTTPException(422, str(e)) from e
         project.files.append(entry)
         wizard.update_base(project, projects.inputs_dir(project_id))
+    readcache.start(projects.inputs_dir(project_id) / entry.filename)  # after the add's own reads: not both at once
     return project
+
+
+class Reading(BaseModel):
+    """A CSV's Parquet copy, made once so its columns read fast (SPEC §5): how far along."""
+
+    name: str
+    filename: str
+    state: readcache.State
+    fraction: float
+    seconds: float = Field(description="Since it started.")
+    left: float | None = Field(description="Seconds to go, by the pace so far. None until it can tell.")
+    error: str | None = Field(default=None, description="Why it failed.")
+
+
+def _readings(project_id: str) -> list[Reading]:
+    project = load_project(project_id)
+    in_dir = projects.inputs_dir(project_id)
+    out = []
+    for f in project.files:
+        s = readcache.status(in_dir / f.filename)
+        if s.state != "none":
+            out.append(Reading(name=f.name, filename=f.filename, **vars(s)))  # fmt: skip
+    return out
+
+
+@router.get("/api/projects/{project_id}/reading")
+def readings(project_id: str) -> list[Reading]:
+    """Each CSV's Parquet copy: made, being made (how far, how long to go), stopped or failed. Starts any not made."""
+    project = load_project(project_id)
+    in_dir = projects.inputs_dir(project_id)
+    for f in project.files:
+        readcache.start(in_dir / f.filename)
+    return _readings(project_id)
+
+
+@router.post("/api/projects/{project_id}/reading/{name}/stop")
+def stop_reading(project_id: str, name: str) -> list[Reading]:
+    """Stop making a file's copy: it's read as a CSV meanwhile (slower), until started again."""
+    entry = file_entry(load_project(project_id), name)
+    readcache.stop(projects.inputs_dir(project_id) / entry.filename)
+    return _readings(project_id)
+
+
+@router.post("/api/projects/{project_id}/reading/{name}/start")
+def start_reading(project_id: str, name: str) -> list[Reading]:
+    entry = file_entry(load_project(project_id), name)
+    readcache.start(projects.inputs_dir(project_id) / entry.filename, again=True)
+    return _readings(project_id)
 
 
 @router.get("/api/projects/{project_id}")

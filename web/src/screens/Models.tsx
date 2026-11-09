@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Button, Input, Menu, MenuItem, MenuTrigger, Popover, TextField } from "react-aria-components";
+import { Button, Input, TextField } from "react-aria-components";
 import type { EngineState, ModelEntry, ModelSetup } from "../api/client";
 import { downloadEnded, mb, useEngineAction, useOptionalEngines } from "../api/engines";
 import { useSetGroupModels } from "../api/models";
@@ -33,7 +33,7 @@ const entryOf = (e: ModelEntry): ModelEntry => ({
 
 /** Model values › Models: a tab per modeled group (the others greyed, not modeled), its models in a table: each a
  * name, an engine, its variable list and (Multi-MRA, Local area) its location stack, opened in place one at a time;
- * Add a model; copy a group's models to others; back to the default ones. */
+ * Add a model; back to the default ones. */
 export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: ModelSetup; gid: string }) {
   const put = useSetGroupModels(projectId);
   const [stack, setStack] = useState<string | null>(null);
@@ -80,7 +80,6 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
     return v.lists.find((x) => x.kind === kind && x.groups.includes(g.id))?.id;
   };
   const listOptions = v.lists.map((x) => [x.id, m.list({ name: x.name, n: x.count })] as const);
-  const others = modeled.filter((x) => x.id !== g.id);
   const engineOptions = v.engines.map((x) => [x.key, x.name] as const);
   const aside = Object.fromEntries(
     optional.all
@@ -324,26 +323,6 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
             {m.add}
           </AddButton>
         )}
-        {others.length > 0 && (
-          <MenuTrigger>
-            <Button className="button button-small">{m.copy}</Button>
-            <Popover className="popover rc-menu" placement="bottom start" offset={0}>
-              <Menu
-                className="choice-list"
-                onAction={(key) => {
-                  for (const x of key === "*" ? others : others.filter((o) => o.id === key))
-                    save(entries, x.id);
-                }}
-              >
-                {[{ id: "*", name: m.everyOther }, ...others].map((x) => (
-                  <MenuItem key={x.id} id={x.id} className="choice-item rc-menu-item" textValue={x.name}>
-                    {x.name}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </Popover>
-          </MenuTrigger>
-        )}
         {g.custom && (
           <Button className="button button-small" onPress={() => save(null)}>
             {m.backToDefault}
@@ -355,7 +334,6 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
           {put.error.message}
         </p>
       )}
-      <p className="wiz-from">{m.written({ group: g.id })}</p>
     </div>
   );
 }

@@ -19,7 +19,11 @@ export function signed(v: number, digits: number): string {
 /** A share as a percentage, whole unless it's within one point of 0 or 100: "0.4%", "37%", "99.6%". */
 export function pct(share: number): string {
   const p = 100 * share;
-  return (p > 0 && p < 1) || (p > 99 && p < 100) ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
+  // Near the ends, one decimal, rounded toward the middle: only all of them is 100% and none 0% (56 of 170,000
+  // differing is 99.9%, never "100%" beside "differs for 56").
+  if (p > 99 && p < 100) return `${(Math.floor(p * 10) / 10).toFixed(1)}%`;
+  if (p > 0 && p < 1) return `${(Math.ceil(p * 10) / 10).toFixed(1)}%`;
+  return `${Math.round(p)}%`;
 }
 
 /** An amount in a currency (its ISO code): cents under 100, two significant figures under 1. */
@@ -66,13 +70,19 @@ export function day(text: string | null | undefined): string {
   return text ? text.slice(0, 10) : "—";
 }
 
-/** When something happened: "today at 14:05", or its date and time. */
+/** A date as YYYY-MM-DD, as every date is shown (AGENTS.md), in this computer's time zone. */
+export function isoDay(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** When something happened: "today at 14:05", or its date (YYYY-MM-DD) and time. */
 export function when(iso: string): string {
   const d = new Date(iso);
-  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return new Date().toDateString() === d.toDateString()
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return isoDay(new Date()) === isoDay(d)
     ? t.format.todayAt({ time })
-    : t.format.dayAt({ date: d.toLocaleDateString(), time });
+    : t.format.dayAt({ date: isoDay(d), time });
 }
 
 /** A duration on a clock: "3:07". */

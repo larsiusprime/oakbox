@@ -109,9 +109,9 @@ def settings_key(settings: dict) -> dict:
     data = key["data"]
     if isinstance(data, dict) and isinstance(data.get("process"), dict):
         process = {k: v for k, v in data["process"].items() if k not in CLEAN_PROCESS}
-        if isinstance(process.get("enrich"), dict) and "spatial_lag" in process["enrich"]:
-            # Nearby sales and buildings are worked out as the models run (after the sales are split), not here.
-            process["enrich"] = {k: v for k, v in process["enrich"].items() if k != "spatial_lag"}
+        if isinstance(process.get("enrich"), dict) and process["enrich"].keys() & {"spatial_lag", "area_stats"}:
+            # Spatial average and per area statistics are worked out as the models run (after the sales are split).
+            process["enrich"] = {k: v for k, v in process["enrich"].items() if k not in ("spatial_lag", "area_stats")}
             if not process["enrich"]:
                 del process["enrich"]  # written only for it: as if never written
         key["data"] = {**data, "process": process}
@@ -321,6 +321,8 @@ class Histogram(BaseModel):
     below: int = Field(description="Values under the first edge (the lowest 1%).")
     above: int = Field(description="Values over the last edge (the highest 1%).")
     zeros: int = Field(description="Zeros, left out (often 'none': no building, no year).")
+    quantiles: list[float] = Field(default_factory=list, description="The values at every 0.2% (zeros left out).")
+    auto: list[float] = Field(default_factory=list, description="[low, high]: the range shown first.")
 
 
 BINS = 24
@@ -344,7 +346,12 @@ def histogram(x) -> Histogram | None:
     edges = np.geomspace(lo, hi, BINS + 1) if log else np.linspace(lo, hi, BINS + 1)
     inside = v[(v >= lo) & (v <= hi)]
     counts, _ = np.histogram(inside, bins=edges)
+    from oakbox.wizard.money import quantiles_and_auto
+
+    q, auto = quantiles_and_auto(sorted(float(x) for x in v))
     return Histogram(
+        quantiles=q,
+        auto=auto,
         edges=[float(e) for e in edges],
         counts=[int(c) for c in counts],
         log=bool(log),

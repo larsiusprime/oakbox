@@ -22,6 +22,7 @@ from oakbox.datafiles import (
     Permits,
     Rule,
     Scale,
+    SortKey,
     Units,
 )
 from oakbox.fields import Column
@@ -57,6 +58,7 @@ class Repeats(BaseModel):
     policy: Dupes | None
     sort: str | None
     descending: bool
+    by: list[SortKey] = Field(default_factory=list, description="The columns rows are sorted by, in order.")
     blank_ok: bool = Field(description="The rows with no ID have been acknowledged.")
 
 

@@ -487,6 +487,7 @@ function Builder({
                 preview={p}
                 name={name}
                 onChange={(patch) => update(group.id, patch)}
+                byHand={view.by_hand[group.id] ?? []}
                 onDelete={() => {
                   const before = draft;
                   setDraft(draft.filter((x) => x.id !== group.id));

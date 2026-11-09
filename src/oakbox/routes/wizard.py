@@ -8,10 +8,11 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
-from oakbox import datafiles, enrichments, names, projects, wizard
+from oakbox import datafiles, enrichments, mapdata, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
 from oakbox.errors import NotFound
 from oakbox.routes.common import editing, file_entry, load_project, wizard_view
+from oakbox.wizard import as_sold, sales_only
 
 router = APIRouter()
 
@@ -32,6 +33,9 @@ class WizardFileChoice(BaseModel):
     )
     dupes_sort: str | None = Field(default=None, description="With first: the field to sort by before keeping.")
     dupes_desc: bool = False
+    dupes_by: list[datafiles.SortKey] | None = Field(
+        default=None, description="With first: the file's columns to sort by, in order (the ID breaks ties)."
+    )
     blank_ok: bool | None = Field(default=None, description="Acknowledge the rows with no ID (they're dropped).")
     added: bool = Field(
         default=False, description="Added on More files: one of its files, not said yet what it holds (nothing else)."
@@ -192,7 +196,7 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
     """A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d)."""
     project = load_project(project_id)
     file_entry(project, name)
-    return _change(
+    out = _change(
         project_id,
         lambda p, d: wizard.set_file(
             p,
@@ -207,10 +211,14 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
             dupes=body.dupes,
             dupes_sort=body.dupes_sort,
             dupes_desc=body.dupes_desc,
+            dupes_by=body.dupes_by,
             blank_ok=body.blank_ok,
             added=body.added,
         ),
     )
+    if body.universe:  # the map window's shapes, made in the background (SPEC §3.15)
+        mapdata.start(load_project(project_id), projects.project_dir(project_id), projects.inputs_dir(project_id))
+    return out
 
 
 @router.get("/api/projects/{project_id}/wizard/files/{name}/repeats")
@@ -305,6 +313,35 @@ def wizard_rule_preview(project_id: str, key: str, body: datafiles.Rule) -> wiza
 def wizard_rule(project_id: str, key: str, body: datafiles.Rule) -> wizard.Wizard:
     """Work a yes/no field (valid sale, vacant sale) out from the sales file's columns (F3d)."""
     return _change(project_id, lambda p, d: wizard.set_rule(p, d, key, body))
+
+
+class AsSoldChoice(BaseModel):
+    column: str | None = Field(description="The sales file's column the sales use; null: today's (the parcel's).")
+    area_unit: datafiles.AreaUnit | None = Field(default=None, description="An area: the unit the column is in.")
+
+
+@router.get("/api/projects/{project_id}/wizard/sales-only")
+def wizard_sales_only(project_id: str) -> sales_only.SalesOnlyView:
+    """The main sales file's columns no parcel file has: for valid-sale rules and Outliers, not models (F3d)."""
+    return sales_only.view(load_project(project_id), projects.inputs_dir(project_id))
+
+
+@router.get("/api/projects/{project_id}/wizard/as-sold")
+def wizard_as_sold(project_id: str) -> as_sold.AsSoldView:
+    """Sales record fields: the sales file's columns that mirror a characteristic, each against today's values."""
+    project = load_project(project_id)
+    return as_sold.view(project, projects.inputs_dir(project_id))
+
+
+@router.put("/api/projects/{project_id}/wizard/as-sold/{key}")
+def wizard_as_sold_choose(project_id: str, key: str, body: AsSoldChoice) -> as_sold.AsSoldView:
+    """For a characteristic, the sale's value (its column, read as the parcel's) or today's."""
+    with editing(project_id, settings=True) as project:
+        try:
+            as_sold.choose(project, projects.inputs_dir(project_id), key, body.column, body.area_unit)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+    return as_sold.view(project, projects.inputs_dir(project_id))
 
 
 @router.get("/api/projects/{project_id}/wizard/locations")
@@ -505,10 +542,11 @@ def wizard_candidates(project_id: str, key: str) -> list[wizard.Candidate]:
 
 
 @router.get("/api/projects/{project_id}/wizard/fields/{key}/histogram")
-def wizard_field_histogram(project_id: str, key: str) -> wizard.FieldSpread:
-    """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five)."""
+def wizard_field_histogram(project_id: str, key: str, sales: bool = False) -> wizard.FieldSpread:
+    """How a number field's values spread, as loaded: sizes in the project's unit, years (F3d: Big five). `sales`:
+    as the sales file has it (At the sale)."""
     try:
-        return wizard.field_histogram(load_project(project_id), projects.inputs_dir(project_id), key)
+        return wizard.field_histogram(load_project(project_id), projects.inputs_dir(project_id), key, sales=sales)
     except NotFound as e:
         raise HTTPException(404, f"{key} isn't loaded.") from e
 

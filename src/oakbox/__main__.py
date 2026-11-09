@@ -190,6 +190,7 @@ class _Picker:
         self._controller: Any = None
         self._menu: Any = None
         self._viewer: Any = None
+        self._map: Any = None
 
     def set_context(self, title: str, project_id: str | None) -> None:
         """Where the page is: the title bar says so (SPEC D44), and the menus follow (§3.14)."""
@@ -220,6 +221,40 @@ class _Picker:
             viewer.events.closed += lambda: setattr(self, "_viewer", None)
         self._viewer = viewer
 
+    def open_map(self, url: str, title: str) -> None:
+        """The map window popped out (SPEC §3.15): the app's own page (#/map/<project>) in a window of its own,
+        reused. Its closing tells the main window, which docks the map back."""
+        import webview
+
+        if not url.startswith(("http://127.0.0.1", "http://localhost")):
+            return
+        if self._map is not None:
+            try:
+                self._map.load_url(url)
+                self._map.show()
+                return
+            except Exception:  # noqa: BLE001 - closed since: open a new one
+                self._map = None
+        popped = webview.create_window(title, url, width=1100, height=800, js_api=_MapApi(self))
+        if popped is None:
+            return
+
+        def closed() -> None:
+            self._map = None
+            if self._window is not None:
+                self._window.evaluate_js("window.dispatchEvent(new Event('oak-map-closed'))")
+
+        popped.events.closed += closed
+        self._map = popped
+
+    def close_map(self) -> None:
+        """The popped-out map docked back: its window goes."""
+        if self._map is not None:
+            try:
+                self._map.destroy()
+            except Exception:  # noqa: BLE001 - already gone
+                self._map = None
+
     def pick_folder(self) -> str | None:
         import webview
 
@@ -237,6 +272,17 @@ class _Picker:
         types = ("Data files (*.csv;*.parquet;*.geoparquet;*.gpkg;*.shp)", "All files (*.*)")
         result = self._window.create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=types)
         return str(result[0]) if result else None
+
+
+class _MapApi:
+    """The popped-out map window's page API: only closing itself (docked back). Not the main window's (its title and
+    menus are the main window's)."""
+
+    def __init__(self, main: _Picker) -> None:
+        self._main = main
+
+    def close_map(self) -> None:
+        self._main.close_map()
 
 
 def _skip_machine_check() -> None:

@@ -145,3 +145,10 @@ improved/vacant counts per model group.
     settings.
 - **Undo/redo.** Definitions can be exported and imported, to reuse across years or share with a neighbouring
   jurisdiction.
+
+**Parcels put in a group by hand** (2026-11-07, from Models › Outliers: "it's in the wrong group"): a group keeps them
+(`ModelGroup.keys`); they're in it whatever the rules say, and in no other (its filter `["or", ["isin", "key", …], rule]`,
+every other group's `["and", ["notin", "key", …], rule]`). The map and checks count them (`groups.assign`). Listed in
+the group's editor (2026-11-08) under **Put here by hand**: each parcel's ID, the outlying sale it was moved from
+(its date) and the call's note, and a red − (with Undo) that takes it out; saved, its rules decide again, and the
+Outliers call that moved it goes too (`outliers.forget_moves`), so Outliers doesn't still say it's moved.

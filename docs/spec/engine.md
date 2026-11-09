@@ -2,9 +2,9 @@
 
 ## 7. Engine: OpenAVMKit changes
 
-**Where the work lives (updated 2026-11-03).** OpenAVMKit's own `master`. OAK box's engine changes went upstream in
+**Where the work lives (updated 2026-11-07).** OpenAVMKit's own `master`. OAK box's engine changes went upstream in
 six PRs, #409 to #414 (merged 2026-11-03), and OAK box pins `master` by commit (`pyproject.toml`, `[tool.uv.sources]`:
-`openavmkit @ git+https://github.com/larsiusprime/openavmkit@<commit>`, now `fa4dc85`, #428's merge (census `total_population`
+`openavmkit @ git+https://github.com/larsiusprime/openavmkit@<commit>`, now `8013bf4`, **for local testing only: the head of OpenAVMKit's `claude/wizardly-lamport-ffuzb9`, not master** (`openavmkit.outliers`: comps by layered comps, how a sale is unlike the others, what the misses have in common; not yet a PR; back to master once merged). Before it `7617e9d`, #429's merge (the tuning trial log; Skip this model; CatBoost takes a fold's share of the cores, its depth is searched up to 8, and its `categories` setting one-hot encodes on Windows by default, where CatBoost's own encoding costs ~20 ms a round; SHAP no longer fails on a category listed twice). Before it `fa4dc85`, #428's merge (census `total_population`
 is a land field, so a vacant parcel keeps its block group's population; before it #427, LightGBM tuning
 evaluates one trial at a time: two at once crashed it; #426, five functions OAK box calls made public; #425,
 CSV text encodings worked out, OpenAVMKit's own text files UTF-8; #424, each sales cluster reads one column; #423,

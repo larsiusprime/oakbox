@@ -82,6 +82,7 @@ class FieldSpread(BaseModel):
     and what's outside."""
 
     unit: str = Field(description='The unit, as words (sq ft, m²); "" for years.')
+    prefix: str = Field(default="", description='Before an amount: the currency ("$") for money.')
     year: bool = Field(default=False, description="Years: bins labelled as years, never in decimals.")
     bins: list[Bin]
     below: int = Field(description="Sizes under the first bin (the smallest 1%).")
@@ -89,6 +90,16 @@ class FieldSpread(BaseModel):
     empty: int = Field(description="Rows with no value: blank, zero (none), or not a number.")
     median: float | None
     total: int
+    quantiles: list[float] = Field(
+        default_factory=list,
+        description="The values at every 0.2% (501, smallest to largest): the page re-bins from them for any range, "
+        "as it's dragged, with no wait.",
+    )
+    auto: list[float] = Field(
+        default_factory=list,
+        description="[low, high]: the range shown first: the middle half of the values and three times its width "
+        "each side, within the smallest and largest.",
+    )
 
 
 def _step(span: float, bins: int, whole: bool = False) -> float:
@@ -103,12 +114,16 @@ def _step(span: float, bins: int, whole: bool = False) -> float:
     return next(m * power for m in (1, 2, 2.5, 5, 10) if m * power >= raw)
 
 
-def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) -> FieldSpread:
+def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24, sales: bool = False) -> FieldSpread:
     """How a number field's values spread, read as it's loaded: an area in its unit, converted to the project's; a
-    year as a year (0, written for none, left out)."""
+    year as a year (0, written for none, left out). `sales`: as the sales file has it (At the sale)."""
     files = Files(project, in_dir)
     entry = next(
-        (f for f in project.files if key in f.load and f.holds not in ("sales", "overlay", "unused")),
+        (
+            f
+            for f in project.files
+            if key in f.load and (f.holds == "sales" if sales else f.holds not in ("sales", "overlay", "unused"))
+        ),
         None,
     )
     target = small_unit(project.units)
@@ -118,9 +133,15 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) ->
     year = "year" in key
     area = key in AREA_FIELDS
     factor = SQFT_PER[entry.area_units.get(key, target)] / SQFT_PER[target] if area else 1.0
-    raw = values_of(file_stamp(files.in_dir / entry.filename), entry.layer, column)
+    stamp = file_stamp(files.in_dir / entry.filename)
+    raw = values_of(stamp, entry.layer, column)
     nums = []
-    for v in raw:
+    money = is_money(key)
+    if money:
+        # An amount read as OpenAVMKit will: its number format ("$185,000", "185.000,00"), else the one detected.
+        fmt = entry.numbers.get(key) or detect_number_format(raw, project.numbers)[0]
+        nums = [n for n in read_numbers(stamp, entry.layer, column, fmt.model_dump_json()) if n == n and n > 0]
+    for v in [] if money else raw:
         try:
             n = float(v) * factor
         except ValueError:
@@ -128,6 +149,7 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) ->
         if n == n and (1700 <= n <= 2100 if year else n > 0):
             nums.append(n)
     out = FieldSpread(
+        prefix=currency_symbol(project) if money else "",
         unit=UNIT_WORDS[target] if area else "",
         year=year,
         bins=[],
@@ -156,7 +178,21 @@ def field_histogram(project: Project, in_dir: Path, key: str, bins: int = 24) ->
             counts[i] += 1
     out.bins = [Bin(low=start + i * width, high=start + (i + 1) * width, count=c) for i, c in enumerate(counts)]
     out.median = statistics.median(nums)
+    out.quantiles, out.auto = quantiles_and_auto(ordered)
     return out
+
+
+QUANTILES = 500  # the values at every 0.2%: what the page draws any range from
+
+
+def quantiles_and_auto(ordered: list[float]) -> tuple[list[float], list[float]]:
+    """Sorted values: the values at every 0.2%, and the automatic range shown first (the middle half and three times
+    its width each side, within the smallest and largest)."""
+    last = len(ordered) - 1
+    q = [ordered[round(last * i / QUANTILES)] for i in range(QUANTILES + 1)]
+    q1, q3 = ordered[round(0.25 * last)], ordered[round(0.75 * last)]
+    spread = q3 - q1
+    return q, [max(ordered[0], q1 - 3 * spread), min(ordered[-1], q3 + 3 * spread)]
 
 
 # ---------- Money: reading it when it's written as text, and whether the amounts look right (F3d) ----------

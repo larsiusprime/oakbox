@@ -4,6 +4,7 @@ join (and repeat), and the modest guesses (SPEC D45) of which column holds an ID
 
 from __future__ import annotations
 
+import math
 import re
 
 from oakbox.datafiles import (
@@ -92,6 +93,7 @@ def _repeats_of(files: Files, name: str, field: str) -> Repeats:
         policy=entry.dupes,
         sort=entry.dupes_sort,
         descending=entry.dupes_desc,
+        by=entry.dupes_by,
         blank_ok=entry.blank_ok,
     )
 
@@ -234,7 +236,12 @@ def share_text(n: int, total: int) -> str:
     if not total:
         return "0%"
     p = 100 * n / total
-    return f"{p:.1f}%" if 99 < p < 100 or 0 < p < 1 else f"{p:.0f}%"
+    # Near the ends, one decimal rounded toward the middle: only all is 100%, only none 0%.
+    if 99 < p < 100:
+        return f"{math.floor(p * 10) / 10:.1f}%"
+    if 0 < p < 1:
+        return f"{math.ceil(p * 10) / 10:.1f}%"
+    return f"{p:.0f}%"
 
 
 # ---------- Guesses ----------

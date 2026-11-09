@@ -21,6 +21,7 @@ import { Val } from "../components/Val";
 import { amount, num, pct } from "../lib/format";
 import { useOnSettled, useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
+import { FieldHistogram } from "./FieldHistogram";
 import { FieldRow } from "./FieldRow";
 import { ruleComplete } from "./FieldRules";
 import type { MutateAsync } from "./wizardChange";
@@ -256,6 +257,9 @@ function NumberPreview({
           ))}
         </tbody>
       </table>
+      {/* How the prices spread, as read: in this box, under the samples ($10 deeds and portfolio sales at the ends,
+          the range set live). */}
+      <FieldHistogram projectId={projectId} field={field} sales bare />
     </div>
   );
 }

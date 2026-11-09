@@ -441,6 +441,32 @@ class Permits(BaseModel):
     effective_age: bool = Field(default=True, description="Major renovations reset the effective year built.")
 
 
+class SortKey(BaseModel):
+    """One level of the order repeated rows are kept in: a column of the file, and which way."""
+
+    column: str
+    desc: bool = False
+    numeric: bool = Field(default=False, description="Sorted as numbers (2 before 10), not as text.")
+
+
+def sort_levels(f: DataFile, load: dict[str, list[str]], id_field: str) -> list[list[str]]:
+    """OpenAVMKit's dupes sort_by for a file: each level a column loaded for it (`oak_sort_<file>_<n>`, into
+    `load`), and the ID last. Two levels at least, always: pandas sorts on two stably, so rows tied on every level
+    keep the file's order (on one level alone, "the first row" was any of them)."""
+    levels: list[list[str]] = []
+    slug = re.sub(r"\W+", "_", f.name).strip("_").lower()
+    for i, k in enumerate(f.dupes_by, 1):
+        helper = f"oak_sort_{slug}_{i}"
+        load[helper] = [k.column, "float" if k.numeric else "string"]
+        levels.append([helper, "desc" if k.desc else "asc"])
+    if not f.dupes_by and f.dupes_sort:
+        levels.append([f.dupes_sort, "desc" if f.dupes_desc else "asc"])
+    levels.append([id_field, "asc"])
+    if len(levels) == 1:
+        levels.append([id_field, "asc"])
+    return levels
+
+
 class DataFile(BaseModel):
     """One data.load entry, as OAK box wrote it."""
 
@@ -462,8 +488,15 @@ class DataFile(BaseModel):
         description="Repeated IDs in a parcel file (F3d): keep the first row of each, or drop them all. "
         "None: keep the first, the default, if there are only a few.",
     )
-    dupes_sort: str | None = Field(default=None, description="The field rows are sorted by before keeping the first.")
-    dupes_desc: bool = Field(default=False, description="Sort descending before keeping the first.")
+    dupes_sort: str | None = Field(
+        default=None, description="Before dupes_by: the field rows are sorted by before keeping the first."
+    )
+    dupes_desc: bool = Field(default=False, description="Before dupes_by: sort descending before keeping the first.")
+    dupes_by: list[SortKey] = Field(
+        default_factory=list,
+        description="Keeping the first row of each ID: the file's columns its rows are sorted by first, in order "
+        "(the building card, then the area, largest first). None: the file's own order.",
+    )
     blank_ok: bool = Field(default=False, description="The rows with no ID have been acknowledged as dropped (F3d).")
     units: Units | None = Field(
         default=None, description="Parcel file: its rows without a shape are units of a shared parcel (F3d condos)."
@@ -712,6 +745,8 @@ def data_load(files: list[DataFile], units: str = "imperial", in_dir: Path | Non
                 elif kind == "float" and load[field][1:2] == ["string"]:
                     load[field] = [column, "float"]
             rules[key] = ["?", rule_filter(rule, names)]
+        # The order repeated rows are kept in: its columns loaded with the rest, before the load is written.
+        sort_by = sort_levels(f, load, "key_sale" if f.holds == "sales" else f.match)
         if load:
             entry["load"] = {field: spec[0] if len(spec) == 1 else spec for field, spec in load.items()}
         # Cleaned IDs first: the other calcs (a made sale ID, valid/vacant rules) use them.
@@ -727,9 +762,8 @@ def data_load(files: list[DataFile], units: str = "imperial", in_dir: Path | Non
             entry["calc"] = calc
         if f.holds == "parcels":
             # One row per parcel, as OpenAVMKit's own default for a keyed file, but written out (F3d).
-            order = "desc" if f.dupes_desc else "asc"
             drop: bool | str = "all" if f.dupes == "all" else True
-            entry["dupes"] = {"subset": [f.match], "sort_by": [f.dupes_sort or f.match, order], "drop": drop}
+            entry["dupes"] = {"subset": [f.match], "sort_by": sort_by, "drop": drop}
         if (
             f.holds == "overlay"
             or f.holds == "permits"
@@ -741,9 +775,8 @@ def data_load(files: list[DataFile], units: str = "imperial", in_dir: Path | Non
             entry["dupes"] = "allow"
         if f.holds == "sales":
             # Without this OpenAVMKit de-duplicates on key, the parcel ID, dropping repeat sales of a parcel.
-            order = "desc" if f.dupes_desc else "asc"
             drop = "all" if f.dupes == "all" else True
-            entry["dupes"] = {"subset": ["key_sale"], "sort_by": [f.dupes_sort or "key_sale", order], "drop": drop}
+            entry["dupes"] = {"subset": ["key_sale"], "sort_by": sort_by, "drop": drop}
         out[f.name] = entry
     return out
 

@@ -84,6 +84,9 @@ STEPS: list[Step] = [
     ),
     # Map layers joined onto the parcels by where they are, or measured to (F3d Shapefiles).
     Step(key="shapefiles", parent="details"),
+    # Sales record fields (2026-11-07): the sales file's columns that describe the property, beside the parcel
+    # universe fields they mirror. After the characteristics are chosen (Big five, More details): it compares with them.
+    Step(key="as_sold"),
     # Condos and the like: units on the roll without a shape of their own, on a parcel they share (F3d condos).
     # Asked first; the rest, one decision each, only when the answer is yes.
     Step(key="condos"),
@@ -120,6 +123,9 @@ ASSUMABLE = {"valid_sale": True, "vacant_sale": False}
 ONLY_WITHOUT = {"bldg_age_years": "bldg_year_built", "bldg_effective_age_years": "bldg_effective_year_built"}
 
 # Quality and condition: the number (used for modelling) and the category (kept as text), each the other's pair.
+# The steps whose fields describe the property: what a sale can carry as it was sold (Sales record fields).
+CHARACTERISTIC_STEPS = ("building_size", "land_size", "age", "quality", "condition", "property_type")
+
 PAIRS = {
     "bldg_quality_num": "bldg_quality_txt",
     "bldg_condition_num": "bldg_condition_txt",

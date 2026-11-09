@@ -214,7 +214,7 @@ export function StepFoot({
   );
 }
 
-/** A run in progress: the parts done, the one it's on (with what it's doing inside it), the clock. */
+/** A run in progress: the parts done and how long each took, the one it's on (with what it's doing inside it), the clock. */
 export function RunProgress({
   job,
   lastSeconds,
@@ -244,9 +244,12 @@ export function RunProgress({
         {steps.map((x, i) => {
           const now = i === steps.length - 1;
           return (
-            <li key={x.step} className={now ? "now" : "done"}>
+            // biome-ignore lint/suspicious/noArrayIndexKey: lines are only ever appended; a step can have many (each model)
+            <li key={i} className={now ? "now" : "done"}>
               {now ? <span className="bi-pulse" aria-hidden="true" /> : "✓ "}
               {x.message}
+              {/* How long it took (to the next line's start): a model much slower than the others shows. */}
+              {!now && <span className="bi-took">{clock((steps[i + 1]?.at ?? x.at) - x.at)}</span>}
               {now && job && <Busy job={job} since={x.at} skip={skip} />}
             </li>
           );
@@ -260,6 +263,8 @@ export function RunProgress({
  * still alive (it says so every 2 seconds), and Skip for a step that can be left out. */
 function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: string) => void }) {
   const skipping = job.part !== null && job.skipping.includes(job.part);
+  // A model in Try them or Finalize ("model:<group>:<model>"), or a part of Bring in data (an enrichment).
+  const model = job.part?.startsWith("model:") ?? false;
   // Two missed heartbeats and more: it may be stuck (a frozen process says nothing at all).
   const silent = job.quiet > 10;
   return (
@@ -277,10 +282,10 @@ function Busy({ job, since, skip }: { job: Job; since: number; skip: (part: stri
       </span>
       {job.part && (
         <Button className="button bi-skip" isDisabled={skipping} onPress={() => job.part && skip(job.part)}>
-          {skipping ? t.step.skipping : t.step.skip}
+          {skipping ? t.step.skipping : model ? t.step.skipModel : t.step.skip}
         </Button>
       )}
-      {job.part && !skipping && <span className="bi-skip-note">{t.step.skipNote}</span>}
+      {job.part && !skipping && !model && <span className="bi-skip-note">{t.step.skipNote}</span>}
     </div>
   );
 }

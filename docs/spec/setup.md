@@ -603,7 +603,71 @@ the field steps, checks, guesses, assumptions and Review carry over.
     suggests cents. One click applies it.
   - **Values flagged:** amounts written as Excel writes big numbers (`1.11E+06`, rounded, can't be repaired). The price
     dialog only reads prices; it never changes which sales are valid.
-- **Condo units: a major step of its own (6, after More details), one decision per part.** OpenAVMKit's
+- **Sales record fields: a major step of its own (6, after More details; built 2026-11-07, `wizard/as_sold.py`,
+  `AsSold.tsx`).** After the characteristics are chosen, since it compares with them. First a screen to itself, how it
+  works: a sale described as the property was when it sold (it may have changed since); those are what the models
+  learn from; parcels are valued on what they are now (the parcel files); so it's best practice to freeze the
+  characteristics at the sale; where a sale has none, today's are assumed (the sales are *hydrated* from the parcels):
+  a modeling assumption. Then the main sales file's columns that mirror a characteristic loaded for the parcels (Big
+  five, Land use & building type: the parcel's own column name, or a name the field dictionary knows), each checked
+  against today's value of the sale's parcel: sales with a value, the share the same as today's (a number within
+  0.5%), examples where they differ; **written differently** when today's are numbers and the sale's mostly aren't
+  (Guilford's `GRADE`, "B-5  120%" where today's is 1.2), or text with almost no values in common: then the sale's
+  can't be chosen, and the answer is a cleaner export (the same codes), not a reading in OAK box (settled
+  2026-11-07). Per field, **The sale's** or **Today's** (`wizard.as_sold`); until chosen, today's (nothing changes
+  silently), with a suggestion: today's where 99% or more are the same (a snapshot exported with the sales, not
+  history: Guilford, 99.6-100%), else the sale's. The sale's loads its column into the sales file read as the parcel's
+  is (number format, scale; an area in its own unit), so OpenAVMKit's hydration uses it per sale and fills the rest
+  from the parcel; the parcel's reading changing changes it too, and the parcel field gone takes it with it. A
+  characteristic only the sales file has isn't offered: a model can't value a parcel on it.
+
+  **Found by its values too, in its own unit** (2026-11-07). Nothing by name: the sales file's column that agrees with
+  today's for at least half the sales on the same parcels (up to 4,000 compared), an area tried in each unit. An area
+  found by name takes the unit its name gives away (`ACREAGE`: acres), else the one that agrees. Compared in today's
+  unit (Guilford's `ACREAGE` in acres against `Shape__Area` in sq ft: the same for 77%). Nothing found: said, and any
+  column can still be picked.
+
+  **The spread, its range set live** (2026-11-08, `FieldHistogram.tsx`). A size's or a year's histogram starts on the
+  automatic range: the middle half of the values and three times its width each side, within the smallest and
+  largest (Guilford's land: to 125,380 sq ft, where the 1st–99th percentile reached 1.2 million and flattened the
+  rest). Two handles under the bars, on a track over the column's whole range (spaced by order of magnitude when it
+  spans a hundredfold or more), and From/To typed (thousands separated; read on Enter or leaving the box); **Reset**
+  once changed. The bars are drawn in the page from the field's values at every 0.2% (`FieldSpread.quantiles`, sent
+  once), so they follow a handle as it's dragged. **🔗 linked** (on; shown when both datasets' histograms of the field
+  are there): the 🌐 Parcel universe's and 💰 Sales record's share one range, bar for bar; unlinked, each keeps the
+  range they shared, and linked again they share the one linked from. Only the view, for the visit: nothing in the
+  data or the settings changes.
+  The same spread, range and controls (`RangedBars`) on **Data › Sale price** (under As it's read: the prices as
+  OpenAVMKit will read them, with the currency; $10 deeds and portfolio sales no longer flatten the rest) and in
+  **Inputs › a field's details** (every number field of the parcel universe and sales record after Bring in data;
+  results from before 2026-11-08 keep their old drawing until it runs again).
+
+  **Picked for you, conservatively** (2026-11-08, `as_sold.autopick`). The sale's column is picked, and marked
+  **picked for you**, only when it's obvious: the sales file has a column of the very same name as the parcel's, it
+  isn't written differently, and it's the same as today's for 90% or more of at least 20 sales. Never over a choice
+  (the user's, or *none: today's* chosen); choosing takes the mark off. Looked for when a characteristic is guessed or
+  chosen for the parcels, and when the sales file or a parcel file is set. Guilford: `YEAR_BUILT`, 99.7%.
+
+  **Only in the sales file** (2026-11-08, `wizard/sales_only.py`). Under the step's table, the sales file's columns
+  no parcel file has (not loaded for a field, not a parcel column's name nor one the field dictionary knows; blank,
+  one-valued and nearly unique ones left out): each with its share of sales and most common values. A model can't use
+  them (it values every parcel; parcels don't have them); they can decide which sales count (a rule on **Valid
+  sale**, linked), and they show beside each sale in Outliers. Guilford: `SALE_TYPE`, `SALE_STATUS`,
+  `REVENUE_STAMP_VALUE`, `GRADE_UNEDIT`… In **Outliers**, a sale's details show its own values in them (**At the
+  sale, only in the sales file**), its row found by its parcel and sale date, as the run makes its key.
+
+  **At the sale, on each characteristic's own screen** (2026-11-07, `AtSale` in `AsSold.tsx`). Beside its column
+  (**Today's**, the parcels: what's valued), **At the sale** (the sales: what the models learn from), the same widget
+  reading the sales file: **Column** (*none: today's*; the one found, marked found, not used until picked; any of the
+  sales file's columns; picking a column is using it, no second switch), **Its unit** for an area (today's said when
+  it differs), its values, its spread for a size or a year (in the project's unit), then against today's: the share
+  the same, the sales that differ with the first three, **See them** (up to 50: parcel, sale date, at the sale,
+  today's), and what that suggests. Side by side where there's room (Big five at 1,400 px), else stacked: each pair
+  wraps on its own. Big five's parts pair per field (Age's two each under its name); Quality and Condition beside
+  their column's boxes; Land use & building type a table under the step (field, today's, at the sale, against
+  today's). Sales record fields' own table has the same picker. 1.5-2.7 s on Guilford with the quick-read copies (8 s
+  before), shown waiting, with the time and Stop.
+- **Condo units: a major step of its own (7, after Sales record fields), one decision per part.** OpenAVMKit's
   `data.process.condos`, for units on the roll but not on the map: each has a parcel ID of its own and no parcel shape,
   because it sits on a parcel it shares.
   - **What fits the pattern,** listed on the first part so the user recognises theirs: condos of any kind (homes,
@@ -957,7 +1021,9 @@ needs a key).
   10 seconds".
 - **While it runs, it's never a mystery.** The clock is the server's and moves every second. The step that's running
   shows what it's doing inside ("Parks (2 of 4)", "Downloading buildings: 12,400 so far", "Working out slopes"), its own
-  bar when that's known, and "working · 0:42 on this step". The run says it's alive every 2 seconds; with no word for
+  bar when that's known, and "working · 0:42 on this step". Each finished line shows how long it took, muted
+  ("✓ Single-family: training CatBoost 3:31"), so a model much slower than the others shows without a warning of its
+  own (2026-11-07: in place of the slow-model alert mocked earlier). The run says it's alive every 2 seconds; with no word for
   over 10 seconds it says it may be stuck (stop it, or wait). Until the first step, "Starting Python and OpenAVMKit".
   The detail comes from OpenAVMKit's progress events (`progress.report(..., sub=, part=)`) and, between them, the latest
   line it printed.

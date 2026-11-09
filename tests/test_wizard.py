@@ -4,6 +4,7 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 from helpers import (
+    IDS,
     NEW,
     put_file,
     read_settings,
@@ -96,7 +97,7 @@ def test_a_field_from_another_file_with_its_key(client, pid):
     assert _file(w, "permits")["id_check"]["ok"]
     assert read_settings(pid)["data"]["load"]["permits"]["dupes"] == {
         "subset": ["key"],
-        "sort_by": ["key", "asc"],
+        "sort_by": [["key", "asc"], ["key", "asc"]],
         "drop": "all",
     }
     put_file(client, pid, "permits", holds="unused")
@@ -131,7 +132,11 @@ def test_sales_assumptions_and_settings(client, pid):
         assert _field(w, key)["assumed"]
     assert client.post(f"/api/projects/{pid}/wizard/steps/valid_sale/skip").status_code == 422
     entry = read_settings(pid)["data"]["load"]["sales"]
-    assert entry["dupes"] == {"subset": ["key_sale"], "sort_by": ["key_sale", "asc"], "drop": True}
+    assert entry["dupes"] == {
+        "subset": ["key_sale"],
+        "sort_by": [["key_sale", "asc"], ["key_sale", "asc"]],
+        "drop": True,
+    }
     assert entry["calc"] == {
         "key_sale": ["join", ["values", "key", "sale_date"], "str:-"],
         "valid_sale": ["set", True],
@@ -188,6 +193,162 @@ def test_sales_matched_by_the_second_id(client, pid, monkeypatch):
     _, sales_df = _engine(pid, monkeypatch)
     assert sales_df["key"].tolist() == ["0012-001", "0012-001", "0012-004"]  # looked up by map number
     assert sales_df["key_sale"].tolist()[0] == "M0-2023-03-14"
+
+
+def test_previews_find_sales_joined_on_the_second_id(client, pid):
+    """Sales joined on the second ID (a map number), a parcel field from a file joined on the parcel ID: the previews
+    pair them through the parcel universe, as a run does (they found no sales: Guilford, NC)."""
+    put_file(client, pid, "shapes", universe=True, extra_field="key2", extra_column="MAP_NO")
+    client.post(f"/api/projects/{pid}/wizard/steps/universe/visit")
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_by_map", holds="sales")
+    visit_sales(client, pid)
+    client.put(f"/api/projects/{pid}/wizard/fields/sale_price", json={"file": "sales_by_map", "column": "PRICE"})
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    tiers = client.post(f"{field}/bldg_quality_num/tiers", json={"file": "cama", "column": "QUALITY"}).json()
+    # The sales are on parcels 0012-001 (Good, twice) and 0012-004 (Good): found, priced per sq ft.
+    sold = {t["value"]: t["sales"] for t in tiers["tiers"]}
+    assert sold["Good"] == 3 and sum(sold.values()) == 3
+    assert tiers["basis"] == "price per sq ft"
+
+
+def test_sales_as_sold(client, pid, tmp_path):
+    """Sales as sold: the sales file's column that mirrors a parcel field is found and checked against today's; the
+    sale's is used only when chosen (read as the parcel's), follows the parcel's reading, and goes with it."""
+
+    # Sales recording the living area as sold: one of the three differs from today's (an addition since).
+    pd.DataFrame(
+        {
+            "PROP_ID": [IDS[0], IDS[2], IDS[3]],
+            "SALE_PRICE": [185000, 92500, 240000],
+            "SALE_DT": ["03/14/2023", "01/09/2024", "06/30/2025"],
+            "LIVING_AREA": [1500, 700, 1750],
+        }
+    ).to_csv(tmp_path / "sales_sold.csv", index=False)
+    body = {"path": str(tmp_path / "sales_sold.csv"), "mode": "copy", "name": "sales_sold"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "shapes", universe=True)
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_sold", holds="sales")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sales_sold", "column": "SALE_PRICE"})
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    v = client.get(f"/api/projects/{pid}/wizard/as-sold").json()
+    row = next(r for r in v["rows"] if r["key"] == "bldg_area_finished_sqft")
+    assert (row["column"], row["have"], row["compared"], row["same"]) == ("LIVING_AREA", 3, 3, 2)
+    assert row["choice"] is None and row["suggest"] == "sale" and row["examples"] == [["700", "980"]]
+    assert "bldg_area_finished_sqft" not in read_settings(pid)["data"]["load"]["sales_sold"]["load"]  # today's
+    # The sale's: loaded into the sales file too, in the parcel's unit; the parcel's still from cama.
+    v = client.put(f"/api/projects/{pid}/wizard/as-sold/bldg_area_finished_sqft", json={"column": "LIVING_AREA"})
+    assert v.status_code == 200 and v.json()["rows"][0]["choice"] == "sale"
+    load = read_settings(pid)["data"]["load"]
+    assert load["sales_sold"]["load"]["bldg_area_finished_sqft"][0] == "LIVING_AREA"
+    assert load["cama"]["load"]["bldg_area_finished_sqft"][0] == "LIVING_AREA"
+    # The parcel field gone: the sales' copy goes with it.
+    client.put(f"{field}/bldg_area_finished_sqft", json={})
+    assert "bldg_area_finished_sqft" not in read_settings(pid)["data"]["load"]["sales_sold"]["load"]
+    # Today's, chosen: nothing loaded into the sales file.
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    v = client.put(f"/api/projects/{pid}/wizard/as-sold/bldg_area_finished_sqft", json={"column": None}).json()
+    assert v["rows"][0]["choice"] == "today"
+
+
+def test_at_the_sale_reads_an_area_in_its_own_unit(client, pid, tmp_path):
+    """At the sale: an area column found by its name in another unit (ACREAGE in acres where today's is sq ft) is
+    compared in today's unit and, picked, loaded in its own; a field the sales file doesn't have says so."""
+    sqft = {IDS[0]: 1500, IDS[2]: 980, IDS[3]: 1750}  # cama's LIVING_AREA, taken as land area here
+    pd.DataFrame(
+        {
+            "PROP_ID": list(sqft),
+            "SALE_PRICE": [185000, 92500, 240000],
+            "SALE_DT": ["03/14/2023", "01/09/2024", "06/30/2025"],
+            "ACREAGE": [round(v / 43560, 5) for v in sqft.values()],
+        }
+    ).to_csv(tmp_path / "sales_acres.csv", index=False)
+    body = {"path": str(tmp_path / "sales_acres.csv"), "mode": "copy", "name": "sales_acres"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "shapes", universe=True)
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_acres", holds="sales")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sales_acres", "column": "SALE_PRICE"})
+    client.put(f"{field}/land_area_sqft", json={"file": "cama", "column": "LIVING_AREA", "area_unit": "sqft"})
+    client.put(f"{field}/bldg_year_built", json={"file": "cama", "column": "YR_BLT"})
+    rows = {r["key"]: r for r in client.get(f"/api/projects/{pid}/wizard/as-sold").json()["rows"]}
+    land = rows["land_area_sqft"]
+    assert (land["column"], land["how"], land["unit"], land["today_unit"]) == ("ACREAGE", "known", "acres", "sqft")
+    assert (land["compared"], land["same"], land["diffs"]) == (3, 3, [])
+    assert rows["bldg_year_built"]["column"] is None  # not in the sales file: today's, and said so
+    # Picked without a unit: read in the one it was found in.
+    assert (
+        client.put(f"/api/projects/{pid}/wizard/as-sold/land_area_sqft", json={"column": "ACREAGE"}).status_code == 200
+    )
+    entry = read_settings(pid)["data"]["load"]["sales_acres"]
+    assert entry["load"]["land_area_sqft_in_acres"][0] == "ACREAGE"
+    assert entry["calc"]["land_area_sqft"] == ["*", "land_area_sqft_in_acres", 43560.0]
+    # Its spread at the sale, in the project's unit.
+    h = client.get(f"{field}/land_area_sqft/histogram", params={"sales": True}).json()
+    assert h["unit"] == "sq ft" and round(h["median"]) == 1500
+    # The values at every 0.2%, smallest to largest, for the page to draw any range from; the automatic range within.
+    q = h["quantiles"]
+    assert len(q) == 501 and q == sorted(q) and round(q[0]) == 980 and round(q[-1]) == 1750
+    assert q[0] <= h["auto"][0] <= h["auto"][1] <= q[-1]
+
+
+def test_obvious_sales_columns_are_picked_and_sales_only_ones_listed(client, pid, tmp_path):
+    """The sale's column picked for the user when obvious (the same name, the same as today's for 90%+ of 20+ sales),
+    marked so; the user's choice stands. The sales file's own columns (no parcel file has them) listed, IDs and
+    one-valued ones left out, and found again for one sale by its parcel and date (Outliers)."""
+    from oakbox import projects as pr
+    from oakbox.wizard import sales_only
+
+    area = dict(zip(IDS, [1500, 2200, 980, 1750, 3100, 1200], strict=True))  # cama's LIVING_AREA
+    rows = [(IDS[n % 4], f"{1 + n % 12:02d}/{1 + n:02d}/2023") for n in range(24)]
+    pd.DataFrame(
+        {
+            "PROP_ID": [r[0] for r in rows],
+            "SALE_PRICE": [200000 + 1000 * n for n in range(24)],
+            "SALE_DT": [r[1] for r in rows],
+            "LIVING_AREA": [area[r[0]] for r in rows],
+            "SALE_TYPE": ["IMPROVED" if n % 3 else "VACANT" for n in range(24)],
+            "DEED_NO": [f"D{n:04d}" for n in range(24)],  # a name the field dictionary knows: not only the sales'
+            "NOTE": [f"n{n % 7}" for n in range(24)],
+            "STATUS": ["Q"] * 24,  # one value: left out
+        }
+    ).to_csv(tmp_path / "sales_many.csv", index=False)
+    body = {"path": str(tmp_path / "sales_many.csv"), "mode": "copy", "name": "sales_many"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    put_file(client, pid, "shapes", universe=True)
+    put_file(client, pid, "cama", holds="parcels")
+    put_file(client, pid, "sales_many", holds="sales")
+    field = f"/api/projects/{pid}/wizard/fields"
+    client.put(f"{field}/sale_price", json={"file": "sales_many", "column": "SALE_PRICE"})
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    row = next(
+        r
+        for r in client.get(f"/api/projects/{pid}/wizard/as-sold").json()["rows"]
+        if r["key"] == "bldg_area_finished_sqft"
+    )
+    assert (row["choice"], row["auto"], row["column"]) == ("sale", True, "LIVING_AREA")
+    assert read_settings(pid)["data"]["load"]["sales_many"]["load"]["bldg_area_finished_sqft"][0] == "LIVING_AREA"
+    # The user's choice (today's) stands, and isn't marked picked; setting the parcel field again doesn't re-pick.
+    client.put(f"/api/projects/{pid}/wizard/as-sold/bldg_area_finished_sqft", json={"column": None})
+    client.put(f"{field}/bldg_area_finished_sqft", json={"file": "cama", "column": "LIVING_AREA"})
+    row = next(
+        r
+        for r in client.get(f"/api/projects/{pid}/wizard/as-sold").json()["rows"]
+        if r["key"] == "bldg_area_finished_sqft"
+    )
+    assert (row["choice"], row["auto"]) == ("today", False)
+    # Only in the sales file: SALE_TYPE, NOTE; not STATUS (one value), DEED_NO (known), nor the loaded.
+    only = client.get(f"/api/projects/{pid}/wizard/sales-only").json()
+    assert [c["column"] for c in only["columns"]] == ["SALE_TYPE", "NOTE"]
+    assert only["columns"][0]["top"][0] == ["IMPROVED", "16"]
+    # One sale, found by its parcel and date.
+    project = pr.load(pid)
+    ctx = sales_only.context(project, pr.inputs_dir(pid), IDS[0], "2023-01-01")
+    assert ctx == [["SALE_TYPE", "VACANT"], ["NOTE", "n0"]]
 
 
 def test_names_say_the_jurisdiction(client, pid):
@@ -256,7 +417,7 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     )
     assert read_settings(pid)["data"]["load"]["geo_parcels"]["dupes"] == {
         "subset": ["key"],
-        "sort_by": ["key", "asc"],
+        "sort_by": [["key", "asc"], ["key", "asc"]],
         "drop": True,
     }
     rows = client.get(f"/api/projects/{pid}/wizard/files/geo_parcels/repeats").json()
@@ -265,7 +426,19 @@ def test_a_few_repeated_or_blank_ids_are_handled_and_flagged(client, tmp_path):
     # Keep the first by another field, descending.
     put_file(client, pid, "geo_parcels", extra_field="key2", extra_column="PIN")
     w = put_file(client, pid, "geo_parcels", dupes="first", dupes_sort="key2", dupes_desc=True).json()
-    assert read_settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == ["key2", "desc"]
+    assert read_settings(pid)["data"]["load"]["geo_parcels"]["dupes"]["sort_by"] == [["key2", "desc"], ["key", "asc"]]
+    # Or by the file's own columns, level by level, loaded just for the sort (as text here: PIN is text).
+    w = put_file(
+        client, pid, "geo_parcels", dupes="first", dupes_by=[{"column": "PIN", "desc": True}, {"column": "REID"}]
+    ).json()
+    entry = read_settings(pid)["data"]["load"]["geo_parcels"]
+    assert entry["dupes"]["sort_by"] == [
+        ["oak_sort_geo_parcels_1", "desc"],
+        ["oak_sort_geo_parcels_2", "asc"],
+        ["key", "asc"],
+    ]
+    assert entry["load"]["oak_sort_geo_parcels_1"] == ["PIN", "string"]
+    assert _file(w, "geo_parcels")["repeats"]["by"][0] == {"column": "PIN", "desc": True, "numeric": False}
     issues = _file(w, "geo_parcels")["id_check"]["issues"]
     assert issues[0] == {"text": "1 repeated ID, first kept", "resolved": True, "blocking": False, "todo": ""}
     assert not any("repeat" in x for x in w["warnings"])
@@ -641,7 +814,7 @@ def test_more_files_join_the_parcels_or_the_sales(client, tmp_path, monkeypatch)
     load = read_settings(pid)["data"]["load"]
     assert load["deeds"]["load"] == {"key_sale": ["SALE_ID", "string"]}
     assert load["deeds"]["dupes"]["subset"] == ["key_sale"]
-    assert load["cama"]["dupes"] == {"subset": ["key"], "sort_by": ["key", "asc"], "drop": True}
+    assert load["cama"]["dupes"] == {"subset": ["key"], "sort_by": [["key", "asc"], ["key", "asc"]], "drop": True}
 
     client.put(f"/api/projects/{pid}/wizard/fields/valid_sale", json={"assume": True})
     client.put(f"/api/projects/{pid}/wizard/fields/vacant_sale", json={"assume": True})

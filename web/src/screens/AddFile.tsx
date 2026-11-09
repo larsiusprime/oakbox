@@ -127,6 +127,7 @@ function Choices({
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["project", project.id] });
+      void queryClient.invalidateQueries({ queryKey: ["reading", project.id] }); // its quick-read copy, under way
       onAdded?.(name.trim());
       onDone();
     },

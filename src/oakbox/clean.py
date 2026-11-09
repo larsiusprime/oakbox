@@ -551,7 +551,7 @@ def _put_in(x: pd.Series, blank: pd.Series, has: pd.Series, method: FillMethod) 
         return None
     if method == "leave":
         return FillPart(blanks=n, value=None, left=True)
-    there = x[has]
+    there = cast("pd.Series", x[has])
     if method == "zero":
         value: float | None = 0.0
     elif method == "mode":
@@ -1127,13 +1127,7 @@ def _receipt(
                 continue
             n = int(f[col].sum())
             how = project.clean.fills.get(col)
-            words = (
-                f"{how.method}{'' if how.scope == 'all' else ' (' + how.scope + ' only)'}"
-                if how
-                else "0"
-                if col in YEAR_AGE
-                else "OpenAVMKit's own"
-            )
+            words = fill_words(col, how) if how else "0" if col in YEAR_AGE else "OpenAVMKit's own"
             filled.append(Filled(field=col, name=names.get(col, col), count=n, how=words))
     written = []
     for path in [steps.handoff(pdir, "2-clean"), *sorted(steps.look_dir(pdir).glob("2-clean-*"))]:
