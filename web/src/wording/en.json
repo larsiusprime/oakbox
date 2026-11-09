@@ -3381,5 +3381,15 @@
     "puTitle": "🌐 Parcel Universe: your fields",
     "diffTitle": "Differences: 💰 sale against 🌐 parcel",
     "columnsTitle": "🌐 Other columns of your parcel files"
+  },
+  "opening": {
+    "title": "Opening {name}",
+    "titleNoName": "Opening the project",
+    "reading": "Reading its files",
+    "readingFiles": "Reading its files: a quick-read copy of each is made the first time, so they open in a moment after",
+    "waiting": "waiting its turn",
+    "made": "{pct}{left, select, none {} other { · about {left} left}}",
+    "why": "Its tabs, the map and Settings come once it''s open.",
+    "cancel": "Cancel"
   }
 }

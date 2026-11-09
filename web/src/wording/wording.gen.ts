@@ -2743,4 +2743,14 @@ export type Wording = {
     diffTitle: string;
     columnsTitle: string;
   };
+  opening: {
+    title: (a: { name: string | number }) => string;
+    titleNoName: string;
+    reading: string;
+    readingFiles: string;
+    waiting: string;
+    made: (a: { pct: string | number; left: string | number }) => string;
+    why: string;
+    cancel: string;
+  };
 };

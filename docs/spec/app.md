@@ -312,6 +312,12 @@ On Projects and New project the band carries the plate alone, the page below it:
 - **Elsewhere** (macOS, from source), pywebview's own menus are the fallback: same items, but fixed at start-up (no
   check marks or greyed items). macOS gets native menus when it gets a native window.
 
+**A project opening** (2026-11-09): until its details and its files' first reading (the Data wizard's) are in, the
+window shows only the lid with the project's name and one manila sheet: what's happening, how long it's been, a bar for
+each file's quick-read copy being made, and Cancel. No tabs, no map, no Settings: nothing to press that could act on a
+half-opened project. Cancel stops the reading in the window and goes back to Projects; the server finishes what it's in
+the middle of on its own (its quick-read copies are kept, so the next opening is quicker).
+
 ## 3.15 The map window (designed 2026-11-09; being built)
 
 One map of the 🌐 Parcel Universe and 💰 Sales Record that stays with the user through every step: rich context to
