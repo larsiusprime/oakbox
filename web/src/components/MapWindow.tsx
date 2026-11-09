@@ -40,7 +40,7 @@ import { navigate } from "../lib/route";
 import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { t } from "../wording";
-import { CloseButton } from "./Buttons";
+import { CloseButton, SmallButton, ToolButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
 import { MapCard } from "./MapCard";
 import { type Bounds, MapView, rgba } from "./MapView";
@@ -384,42 +384,34 @@ function MapPanel({
           {mode === "docked" &&
             !narrow &&
             SIDES.map((s) => (
-              <Button
+              <ToolButton
                 key={s}
-                className={`mapwin-side ${s === side ? "on" : ""}`}
-                aria-label={w.dock({ side: s })}
-                aria-pressed={s === side}
+                label={w.dock({ side: s })}
+                pressed={s === side}
                 onPress={() => setDock({ side: s })}
               >
                 <span className={`mapwin-glyph mapwin-glyph-${s}`} aria-hidden="true" />
-              </Button>
+              </ToolButton>
             ))}
           {mode !== "alone" && (
-            <Tip text={mode === "full" ? w.unfullTip : w.fullTip}>
-              <Button
-                className={`mapwin-side ${mode === "full" ? "on" : ""}`}
-                aria-label={mode === "full" ? w.unfull : w.full}
-                aria-pressed={mode === "full"}
-                onPress={() => setDock({ full: mode !== "full" })}
-              >
-                {mode === "full" ? (
-                  <Minimize2 aria-hidden="true" size="0.95em" />
-                ) : (
-                  <Maximize2 aria-hidden="true" size="0.95em" />
-                )}
-              </Button>
-            </Tip>
+            <ToolButton
+              label={mode === "full" ? w.unfullTip : w.fullTip}
+              pressed={mode === "full"}
+              onPress={() => setDock({ full: mode !== "full" })}
+            >
+              {mode === "full" ? (
+                <Minimize2 aria-hidden="true" size="1em" />
+              ) : (
+                <Maximize2 aria-hidden="true" size="1em" />
+              )}
+            </ToolButton>
           )}
           {mode === "alone" ? (
-            <Button className="button button-small" onPress={() => setDock({ out: false, open: true })}>
-              {w.dockBack}
-            </Button>
+            <SmallButton onPress={() => setDock({ out: false, open: true })}>{w.dockBack}</SmallButton>
           ) : (
-            <Tip text={w.popOutTip}>
-              <Button className="mapwin-side" aria-label={w.popOut} onPress={popOut}>
-                <ExternalLink aria-hidden="true" size="0.95em" />
-              </Button>
-            </Tip>
+            <ToolButton label={w.popOutTip} onPress={popOut}>
+              <ExternalLink aria-hidden="true" size="1em" />
+            </ToolButton>
           )}
           <CloseButton
             label={w.close}

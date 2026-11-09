@@ -3,13 +3,13 @@
  * 💰 sales, the latest first, with each sale's own values beside the parcel's and the differences flagged. Picking
  * never changes the step; only the links here go anywhere. */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Pin, PinOff } from "lucide-react";
+import { Pin } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { t } from "../wording";
-import { CloseButton } from "./Buttons";
+import { CloseButton, ToolButton } from "./Buttons";
 import { Disclose } from "./Disclose";
 import { Tip } from "./Tip";
 import { Waiting } from "./Waiting";
@@ -125,19 +125,16 @@ export function MapCard({
       <header className="mapcard-head" onPointerDown={onDrag}>
         <b>{c ? w.title({ key: c.key || "—" }) : "…"}</b>
         {q.isFetching && c && <span className="mapcard-busy" aria-hidden="true" />}
-        <Tip text={pinned ? w.unpinTip : w.pinTip}>
-          <Button
-            className={`mapcard-pin ${pinned ? "on" : ""}`}
-            aria-label={pinned ? w.unpin : w.pin}
-            aria-pressed={pinned}
-            onPress={() => {
-              setPos(null);
-              onPin(!pinned);
-            }}
-          >
-            {pinned ? <Pin aria-hidden="true" size="0.95em" /> : <PinOff aria-hidden="true" size="0.95em" />}
-          </Button>
-        </Tip>
+        <ToolButton
+          label={pinned ? w.unpinTip : w.pinTip}
+          pressed={pinned}
+          onPress={() => {
+            setPos(null);
+            onPin(!pinned);
+          }}
+        >
+          <Pin aria-hidden="true" size="1em" />
+        </ToolButton>
         <CloseButton label={w.close} onPress={onClose} />
       </header>
       {q.error ? (

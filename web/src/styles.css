@@ -6461,24 +6461,6 @@ html[data-map="top"] .oak-nav {
   gap: 0.2rem;
   margin-left: auto;
 }
-.mapwin-side {
-  display: inline-grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.4rem;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: none;
-  cursor: pointer;
-}
-.mapwin-side[data-hovered] {
-  border-color: var(--line, #c9ccc4);
-}
-.mapwin-side.on {
-  border-color: #1d5bb8;
-  background: #e5eefb;
-}
 /* A window with its docked side shaded: which side the map goes. */
 .mapwin-glyph {
   position: relative;
@@ -6655,26 +6637,6 @@ html[data-map="top"] .oak-nav {
   border-width: 0 1px 0 0;
   border-radius: 0;
   box-shadow: none;
-}
-.mapcard-pin {
-  display: inline-grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.4rem;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: none;
-  color: var(--muted, #5f6159);
-  cursor: pointer;
-}
-.mapcard-pin[data-hovered] {
-  border-color: var(--line, #c9ccc4);
-}
-.mapcard-pin.on {
-  color: #1d5bb8;
-  border-color: #1d5bb8;
-  background: #e5eefb;
 }
 .mapcard-head {
   display: flex;
