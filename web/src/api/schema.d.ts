@@ -2821,6 +2821,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Info
+         * @description Whether the map's shapes are ready (they're made in the background, started here if not), and the fields it
+         *     can colour the parcels by.
+         */
+        get: operations["map_info_api_projects__project_id__map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/shapes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Shapes
+         * @description Every parcel's shape, in the universe file's order: binary, as groups._binary lays it out.
+         */
+        get: operations["map_shapes_api_projects__project_id__map_shapes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/centres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Centres
+         * @description Every parcel's centre, longitude and latitude as float32 (NaN with no shape), in the universe file's order.
+         */
+        get: operations["map_centres_api_projects__project_id__map_centres_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/column": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Column
+         * @description A field's value for each parcel (field: file:column, from the map's field list).
+         */
+        get: operations["map_column_api_projects__project_id__map_column_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/engines": {
         parameters: {
             query?: never;
@@ -6140,6 +6221,105 @@ export interface components {
              * @description Memory left for OAK box once the rest have theirs.
              */
             memory_for_oakbox_gb: number | null;
+        };
+        /** MapColumn */
+        MapColumn: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "number" | "category";
+            /**
+             * Values
+             * @description Base64: numbers, float32 little-endian, NaN blank; categories, uint16 little-endian: an index into categories, 65535 blank, 65534 another value.
+             */
+            values: string;
+            /**
+             * Have
+             * @description Parcels with a value.
+             */
+            have: number;
+            /**
+             * Categories
+             * @default []
+             */
+            categories: string[];
+            /**
+             * Counts
+             * @description Parcels with each category, as categories.
+             * @default []
+             */
+            counts: number[];
+            /**
+             * Quantiles
+             * @description Numbers: the values at every 0.2% (the histogram's).
+             * @default []
+             */
+            quantiles: number[];
+            /**
+             * Auto
+             * @description Numbers: the automatic range, [low, high].
+             * @default []
+             */
+            auto: number[];
+        };
+        /** MapField */
+        MapField: {
+            /**
+             * Id
+             * @description file:column, as asked for by column().
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
+            /**
+             * Field
+             * @description The field it's loaded as, if it is.
+             */
+            field: string | null;
+        };
+        /** MapInfo */
+        MapInfo: {
+            /**
+             * Status
+             * @description none: no 🌐 Parcel Universe yet; making: its shapes are being prepared.
+             * @enum {string}
+             */
+            status: "none" | "making" | "ready" | "failed";
+            /** Error */
+            error: string | null;
+            /**
+             * Since
+             * @description When making started (seconds since 1970).
+             */
+            since: number | null;
+            /**
+             * Parcels
+             * @default 0
+             */
+            parcels: number;
+            /**
+             * Bounds
+             * @description [[west, south], [east, north]].
+             */
+            bounds: number[][] | null;
+            /**
+             * Stamp
+             * @description Changes when the shapes are made again: the files' cache key.
+             * @default
+             */
+            stamp: string;
+            /**
+             * Fields
+             * @default []
+             */
+            fields: components["schemas"]["MapField"][];
         };
         /** MapPoint */
         MapPoint: {
@@ -16724,6 +16904,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_info_api_projects__project_id__map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_shapes_api_projects__project_id__map_shapes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_centres_api_projects__project_id__map_centres_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_column_api_projects__project_id__map_column_get: {
+        parameters: {
+            query: {
+                field: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapColumn"];
                 };
             };
             /** @description Validation Error */

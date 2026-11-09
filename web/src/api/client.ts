@@ -5,6 +5,8 @@ import type { components, paths } from "./schema";
 export const api = createClient<paths>({ baseUrl: "" });
 
 export type Project = components["schemas"]["Project"];
+export type MapInfo = components["schemas"]["MapInfo"];
+export type MapColumn = components["schemas"]["MapColumn"];
 export type NamesView = components["schemas"]["NamesView"];
 export type RatioView = components["schemas"]["RatioView"];
 export type RatioSetup = components["schemas"]["RatioSetup"];

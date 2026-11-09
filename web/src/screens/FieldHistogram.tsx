@@ -96,6 +96,13 @@ function useRange(key: string, side: Side, own: Extent | null) {
   };
 }
 
+/** The range chosen for a field's 🌐 histogram (shared while linked), or null while it's the automatic one: what
+ * the map window colours by. */
+export function useChosenRange(key: string): Range | null {
+  const snap = useSyncExternalStore(subscribe, () => store);
+  return snap.chosen.get(snap.unlinked.has(key) ? `${key}:pu` : key) ?? null;
+}
+
 /** Bars over [lo, hi] from the values at every 0.2%: each 0.2% of the values spread evenly between its two points. */
 function barsFrom(
   q: number[],
@@ -239,7 +246,7 @@ export function RangedBars({
           <span
             key={b.low}
             className="fh-bar"
-            style={{ height: `${(8 * b.n) / top}rem` }}
+            style={{ height: `${(100 * b.n) / top}%` }}
             title={`${show(b.low)}–${show(b.high)}${after}: ${num(Math.round(b.n))}`}
           />
         ))}

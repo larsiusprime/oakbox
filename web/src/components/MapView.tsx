@@ -122,13 +122,16 @@ function streetStyle(url: string): Promise<maplibregl.StyleSpecification> {
   return style;
 }
 
-type Props = Omit<Parameters<typeof MapCanvas>[0], "street">;
+type Props = Omit<Parameters<typeof MapCanvas>[0], "street"> & {
+  /** Opened on purpose (the map window): that was the click, so it doesn't wait for another. */
+  asked?: boolean;
+};
 
 /** The map, or, where maps wait for a click (Settings › Performance), a panel in its place until Show map. */
 export function MapView(props: Props) {
   const r = useResolved();
   const [shown, setShown] = useState(false);
-  if (r.maps === "click" && !shown)
+  if (r.maps === "click" && !shown && !props.asked)
     return (
       <div className={`map-view map-wait ${props.className}`}>
         <div className="map-wait-ask">
@@ -145,7 +148,8 @@ export function MapView(props: Props) {
         </div>
       </div>
     );
-  return <MapCanvas {...props} street={r.street_map === "on"} />;
+  const { asked: _, ...rest } = props;
+  return <MapCanvas {...rest} street={r.street_map === "on"} />;
 }
 
 function MapCanvas({

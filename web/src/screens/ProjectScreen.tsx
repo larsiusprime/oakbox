@@ -5,6 +5,7 @@ import { Button, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { api, type ProjectDetail, unwrap } from "../api/client";
 import { useAccepted, useStep } from "../api/steps";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
+import { MapWindow } from "../components/MapWindow";
 import { OakBand } from "../components/OakBand";
 import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
@@ -146,6 +147,7 @@ function ProjectView({
     <div className="project">
       <h1 className="visually-hidden">{project.name}</h1>
       <OakBand page={{ kind: "project", id: projectId, name: project.name, year: project.tax_year }} />
+      <MapWindow projectId={projectId} />
       <Tabs
         className="folder-tabs"
         selectedKey={selected}

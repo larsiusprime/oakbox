@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
 
-from oakbox import datafiles, enrichments, names, projects, wizard
+from oakbox import datafiles, enrichments, mapdata, names, projects, wizard
 from oakbox.datafiles import BaseModel, CleanStep
 from oakbox.errors import NotFound
 from oakbox.routes.common import editing, file_entry, load_project, wizard_view
@@ -196,7 +196,7 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
     """A file's part (parcel universe, sales, more parcel details) and the ID it joins on (F3d)."""
     project = load_project(project_id)
     file_entry(project, name)
-    return _change(
+    out = _change(
         project_id,
         lambda p, d: wizard.set_file(
             p,
@@ -216,6 +216,9 @@ def wizard_file(project_id: str, name: str, body: WizardFileChoice) -> wizard.Wi
             added=body.added,
         ),
     )
+    if body.universe:  # the map window's shapes, made in the background (SPEC §3.15)
+        mapdata.start(load_project(project_id), projects.project_dir(project_id), projects.inputs_dir(project_id))
+    return out
 
 
 @router.get("/api/projects/{project_id}/wizard/files/{name}/repeats")

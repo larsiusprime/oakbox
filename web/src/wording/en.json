@@ -3117,7 +3117,9 @@
     "tabsFoot": "Each tab opens on the step you last had open in it.",
     "projectsSettings": "settings",
     "whereKept": "Where projects are kept…",
-    "settings": "Settings"
+    "settings": "Settings",
+    "map": "Map",
+    "mapTip": "Show or hide the map (Ctrl+M)"
   },
   "project": {
     "title": "{name} – OAK box",
@@ -3278,5 +3280,28 @@
     "stop": "Stop",
     "stopped": "Stopped.",
     "again": "Try again"
+  },
+  "mapWindow": {
+    "label": "Map window",
+    "title": "Map",
+    "mapLabel": "Map of the 🌐 Parcel Universe",
+    "divider": "Map size: drag, or use the arrow keys",
+    "dock": "Dock on the {side}",
+    "close": "Close the map (Ctrl+M)",
+    "loading": "Opening the map",
+    "none": "The map shows the 🌐 Parcel Universe once its file is chosen (Data › 🌐 Parcel Universe).",
+    "making": "Preparing the 🌐 Parcel Universe''s shapes for the map (once; about half a minute for 200,000 parcels)",
+    "failed": "The map can''t be drawn: {error}.",
+    "colourBy": "Colour the parcels by",
+    "yourFields": "Your fields",
+    "otherColumns": "Other columns of {file}",
+    "reading": "Reading the values",
+    "spread": "How {field} spreads; the range set here is the map''s colours",
+    "other": "another value",
+    "blank": "blank",
+    "cell": "{n, number} {n, plural, =1 {parcel} other {parcels}} here{what, select, other { · {what}} none {}}",
+    "mostly": "{share}% of them this",
+    "howShapes": "{n, number} parcels in view, drawn as shapes",
+    "howCells": "Zoomed out: squares of {size}, each coloured by its parcels; zoom in for the parcels"
   }
 }

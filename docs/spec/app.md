@@ -312,7 +312,7 @@ On Projects and New project the band carries the plate alone, the page below it:
 - **Elsewhere** (macOS, from source), pywebview's own menus are the fallback: same items, but fixed at start-up (no
   check marks or greyed items). macOS gets native menus when it gets a native window.
 
-## 3.15 The map window (designed 2026-11-09; not built)
+## 3.15 The map window (designed 2026-11-09; being built)
 
 One map of the 🌐 Parcel Universe and 💰 Sales Record that stays with the user through every step: rich context to
 understand the data and catch patterns a table hides (a subdivision whose IDs don't join, a township with no year
@@ -378,6 +378,18 @@ around it (the view and half its size again each side, reloaded as it pans, in 3
 (125 m: 49,745 for the county, 11 frames a second) only those in view; sales as dots only at street zoom, as cells'
 figures before. Pop-out sync on Windows (WebView2 windows sharing one
 engine) still to confirm; OAK box's server relays it if not.
+
+**Built so far** (2026-11-09): docked on any side or closed (🗺 Map on the plate, Ctrl+M), the divider and the
+side remembered on this computer (narrow windows: the bottom only), opened without waiting for a click when maps
+otherwise do (opening it is the click); the 🌐 parcels coloured by any column of the parcel files (your fields first,
+the Big five first among them; numbers on a light-to-dark scale over the histogram's live range, the legend; the 12
+commonest values of a category in their own colours). Its data (`mapdata.py`, `out/oakbox/map/`) is made in the
+background from the universe file when it's set: each shape simplified to a metre, its centre, the box around them all
+(Guilford: 24 s). Cells from 8 km down to 30 m, the finest at least 16 pixels across, only around the view; the shapes
+once 8,000 or fewer parcels are in the view and a quarter more each side. The shapes file comes to the browser once,
+the first time it zooms in that far, and the parcels in view are picked out there (what the test timed), not asked
+for view by view. Still to come: popping out, Follow, the 💰 sales, the problem, pattern and results layers, the
+parcel's card.
 
 **The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
 control. Model groups' and Outliers' maps stay, with Open in map. The values and final maps become layers, with Open in

@@ -2479,6 +2479,8 @@ export type Wording = {
     projectsSettings: string;
     whereKept: string;
     settings: string;
+    map: string;
+    mapTip: string;
   };
   project: {
     title: (a: { name: string | number }) => string;
@@ -2639,5 +2641,28 @@ export type Wording = {
     stop: string;
     stopped: string;
     again: string;
+  };
+  mapWindow: {
+    label: string;
+    title: string;
+    mapLabel: string;
+    divider: string;
+    dock: (a: { side: string | number }) => string;
+    close: string;
+    loading: string;
+    none: string;
+    making: string;
+    failed: (a: { error: string | number }) => string;
+    colourBy: string;
+    yourFields: string;
+    otherColumns: (a: { file: string | number }) => string;
+    reading: string;
+    spread: (a: { field: string | number }) => string;
+    other: string;
+    blank: string;
+    cell: (a: { n: number; what: string | number }) => string;
+    mostly: (a: { share: string | number }) => string;
+    howShapes: (a: { n: number }) => string;
+    howCells: (a: { size: string | number }) => string;
   };
 };

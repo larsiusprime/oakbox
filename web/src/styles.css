@@ -6263,6 +6263,7 @@ under what it's about; a file appended as rows {
 /* ---------- This computer and Settings (SPEC §5) ---------- */
 
 /* Settings on the plate: a small raised brass button at its right end, before the screw. */
+.plate-map,
 .plate-gear {
   display: inline-grid;
   place-items: center;
@@ -6279,15 +6280,293 @@ under what it's about; a file appended as rows {
     0 1px 1px rgba(30, 15, 0, 0.35);
   cursor: pointer;
 }
+.plate-map[data-hovered],
 .plate-gear[data-hovered] {
   background: linear-gradient(to bottom, #fff2c8, var(--plate-mid));
 }
+.plate-map[data-pressed],
 .plate-gear[data-pressed] {
   box-shadow: inset 0 1px 2px rgba(30, 15, 0, 0.45);
 }
+.plate-map[data-focus-visible],
 .plate-gear[data-focus-visible] {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
+}
+
+/* 🗺 Map on the plate: a word, not an icon alone; pressed in while the map is open. */
+.plate-map {
+  display: inline-flex;
+  gap: 0.3em;
+  width: auto;
+  padding: 0 0.45rem;
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.plate-map.on {
+  background: linear-gradient(to bottom, var(--plate-lo), var(--plate-mid));
+  box-shadow: inset 0 1px 2px rgba(30, 15, 0, 0.45);
+}
+
+/* The map window (components/MapWindow, SPEC §3.15): docked on a side, inside the frame; the page makes room for it
+   (its padding on that side), and the lid stays the full width over it. */
+:root {
+  --map-gap: calc(calc(0.9 * var(--sp)) + 5px);
+  --map-w: calc(var(--map-frac, 0.4) * (100vw - 2 * var(--rim)));
+  --map-h: calc(var(--map-frac, 0.4) * (100vh - var(--lid-bottom, 0px) - var(--rim)));
+}
+html[data-map="right"] .content {
+  padding-right: calc(var(--map-gap) + var(--map-w));
+}
+html[data-map="right"] .oak-nav {
+  margin-right: calc(-1 * var(--map-gap) - var(--map-w));
+}
+html[data-map="left"] .content {
+  padding-left: calc(var(--map-gap) + var(--map-w));
+}
+html[data-map="left"] .oak-nav {
+  margin-left: calc(-1 * var(--map-gap) - var(--map-w));
+}
+html[data-map="bottom"] .content {
+  padding-bottom: calc(calc(1.5 * var(--sp)) + var(--rim) + var(--map-h));
+}
+html[data-map="top"] .oak-nav {
+  margin-bottom: calc(var(--map-h) + var(--map-gap));
+}
+.mapwin {
+  position: fixed;
+  z-index: 3;
+  display: flex;
+  background: var(--panel, #fff);
+  border: 1px solid #4a2e15;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+.mapwin-right,
+.mapwin-left {
+  top: calc(var(--lid-bottom, 0px) + 6px);
+  bottom: calc(var(--rim) + 6px);
+  width: calc(var(--map-w) - 6px);
+}
+.mapwin-right {
+  right: calc(var(--rim) + 6px);
+}
+.mapwin-left {
+  left: calc(var(--rim) + 6px);
+}
+.mapwin-top,
+.mapwin-bottom {
+  left: calc(var(--rim) + 6px);
+  right: calc(var(--rim) + 6px);
+  height: calc(var(--map-h) - 6px);
+}
+.mapwin-top {
+  top: calc(var(--lid-bottom, 0px) + 6px);
+}
+.mapwin-bottom {
+  bottom: calc(var(--rim) + 6px);
+}
+.mapwin-in {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.mapwin-divider {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+  touch-action: none;
+}
+.mapwin-divider:hover,
+.mapwin-divider:focus-visible {
+  background: rgba(29, 91, 184, 0.35);
+  outline: none;
+}
+.mapwin-divider-across {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+}
+.mapwin-divider-down {
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: row-resize;
+}
+.mapwin-right > .mapwin-divider {
+  left: -9px;
+}
+.mapwin-left > .mapwin-divider {
+  right: -9px;
+}
+.mapwin-bottom > .mapwin-divider {
+  top: -9px;
+}
+.mapwin-top > .mapwin-divider {
+  bottom: -9px;
+}
+.mapwin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--line, #c9ccc4);
+  background: var(--paper-2, #f4f1e8);
+}
+.mapwin-title {
+  white-space: nowrap;
+}
+.mapwin-field {
+  min-width: 0;
+  flex: 0 1 22rem;
+}
+.mapwin-field .combo-input {
+  width: 100%;
+}
+.mapwin-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+}
+.mapwin-side {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+}
+.mapwin-side[data-hovered] {
+  border-color: var(--line, #c9ccc4);
+}
+.mapwin-side.on {
+  border-color: #1d5bb8;
+  background: #e5eefb;
+}
+/* A window with its docked side shaded: which side the map goes. */
+.mapwin-glyph {
+  position: relative;
+  width: 0.95rem;
+  height: 0.75rem;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+}
+.mapwin-glyph::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.mapwin-glyph-right::after {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 40%;
+}
+.mapwin-glyph-left::after {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+}
+.mapwin-glyph-top::after {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 40%;
+}
+.mapwin-glyph-bottom::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+}
+.mapwin-msg {
+  margin: 0.8rem;
+}
+.mapwin-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mapwin-map {
+  flex: 1;
+  min-height: 0;
+}
+/* Its controls over what's drawn (deck.gl's canvas sits above MapLibre's). */
+.mapwin-map .maplibregl-control-container > div,
+.mapwin-map .map-street {
+  z-index: 3;
+}
+/* Docked top or bottom: the legend beside the map, not under it. */
+.mapwin-top .mapwin-body,
+.mapwin-bottom .mapwin-body {
+  flex-direction: row;
+}
+.mapwin-top .mapwin-legend,
+.mapwin-bottom .mapwin-legend {
+  width: min(24rem, 40%);
+  max-height: none;
+  border-top: none;
+  border-left: 1px solid var(--line, #c9ccc4);
+  align-content: start;
+}
+.mapwin-legend {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem 0.45rem;
+  border-top: 1px solid var(--line, #c9ccc4);
+  font-size: 0.85rem;
+  max-height: 40%;
+  overflow: auto;
+}
+.mapwin-legend .fh-chart {
+  height: 2.6rem;
+}
+.mapwin-legend .fh-chart,
+.mapwin-legend .fh-axis,
+.mapwin-legend .fh-controls {
+  width: 100%;
+}
+/* The colours under the bars: the ramp, light to dark, across the range shown. */
+.mapwin-ramp {
+  height: 0.5rem;
+  border-radius: 2px;
+  background: linear-gradient(to right, #ffffcc, #a1dab4, #41b6c4, #2c7fb8, #253494);
+}
+.mapwin-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mapwin-cats li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.mapwin-cats small,
+.mapwin-how {
+  color: var(--muted, #5f6159);
+}
+.mapwin-sw {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 2px;
+}
+.mapwin-sw-other {
+  background: #969696;
 }
 
 /* The check: one sheet, as wide as what's on it. */

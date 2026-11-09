@@ -27,6 +27,7 @@ from oakbox.routes import (
     clean,
     engines,
     groups,
+    maps,
     model,
     outliers,
     projects,
@@ -119,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(model.router)
     app.include_router(values.router)
     app.include_router(outliers.router)
+    app.include_router(maps.router)
     app.include_router(engines.router)
 
     if WEB_DIST.exists():

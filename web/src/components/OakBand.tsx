@@ -9,10 +9,12 @@ import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-a
 import { useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
 import { openSettings } from "../lib/machine";
+import { toggleMap, useDock } from "../lib/mapdock";
 import { lastStep, lastTab, usePlace } from "../lib/place";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { StorageLocationDialog } from "./StorageLocation";
+import { Tip } from "./Tip";
 
 const n = t.nav;
 
@@ -45,6 +47,7 @@ export function OakBand({ page }: { page: Page }) {
           {page.kind === "check" && <Here>{t.machine.title}</Here>}
           {page.kind === "project" && <ProjectCrumbs page={page} />}
         </ol>
+        {page.kind === "project" && <MapButton />}
         {page.kind !== "check" && (
           <Button className="plate-gear" aria-label={n.settings} onPress={() => openSettings()}>
             <Settings aria-hidden="true" size="1em" />
@@ -52,6 +55,18 @@ export function OakBand({ page }: { page: Page }) {
         )}
       </nav>
     </header>
+  );
+}
+
+/** 🗺 Map: shows or hides the map window (SPEC §3.15); Ctrl+M too. */
+function MapButton() {
+  const d = useDock();
+  return (
+    <Tip text={n.mapTip}>
+      <Button className={`plate-map ${d.open ? "on" : ""}`} aria-pressed={d.open} onPress={toggleMap}>
+        <span aria-hidden="true">🗺</span> {n.map}
+      </Button>
+    </Tip>
   );
 }
 
