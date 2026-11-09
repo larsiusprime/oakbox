@@ -1381,7 +1381,8 @@
     "skipModel": "Skip this model",
     "skipNote": "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
     "failed": "It stopped with an error:",
-    "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"
+    "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}",
+    "loading": "Loading this step"
   },
   "bringIn": {
     "steps": {

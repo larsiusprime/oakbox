@@ -7354,6 +7354,19 @@ div.map-wait-ask small {
   color: var(--muted);
 }
 /* The project still loading: on a sheet of paper, never text on the bare wood. */
+/* A step's content loading (FieldsWizard StepContent): a bar in its place under the header; the content mounted but
+   unseen until it's ready. */
+.step-loading {
+  display: flex;
+  padding: 1rem 0;
+}
+.step-loading .opening-bar {
+  flex: 0 1 24rem;
+}
+.step-content-loading {
+  display: none;
+}
+
 /* A project opening (components/Opening): one manila sheet, nothing else to press. */
 .opening-sheet {
   width: min(36rem, 100%);

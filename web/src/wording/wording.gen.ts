@@ -998,6 +998,7 @@ export type Wording = {
     skipNote: string;
     failed: string;
     ran: (a: { when: string | number; seconds: number; engine: string | number }) => string;
+    loading: string;
   };
   bringIn: {
     steps: {

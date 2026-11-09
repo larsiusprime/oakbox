@@ -66,9 +66,12 @@ export type Change =
   | LayerChange
   | PermitsChange;
 
-export function useChange(projectId: string) {
+/** `quiet`: left out of the corner's Activity pill. A step's visit is: moving between steps records where you are
+ * (and fills in a guess or two, shown on the step itself), nothing to say "Saving" about. */
+export function useChange(projectId: string, { quiet = false }: { quiet?: boolean } = {}) {
   const queryClient = useQueryClient();
   return useMutation({
+    ...(quiet ? { meta: { quiet: true } } : {}),
     mutationFn: async (c: Change): Promise<Wizard> => {
       const project_id = projectId;
       if (c.kind === "visit" || c.kind === "skip" || c.kind === "confirm") {
@@ -237,7 +240,12 @@ export function useChange(projectId: string) {
       );
     },
     onSuccess: async (data, c) => {
+      const before = queryClient.getQueryData<Wizard>(["wizard", projectId]);
       queryClient.setQueryData(["wizard", projectId], data);
+      // Showing or moving on from a step that changed nothing but the steps (where you've been, which are done):
+      // nothing else to ask again.
+      if ((c.kind === "visit" || c.kind === "confirm") && before && beyondSteps(before) === beyondSteps(data))
+        return;
       // Sales record fields compares the sales file with the parcel fields: either changing asks it again.
       void queryClient.invalidateQueries({ queryKey: ["as-sold", projectId] });
       // Renaming the base to geo_parcels, and the field counts, show on the other tabs.
@@ -247,6 +255,9 @@ export function useChange(projectId: string) {
     },
   });
 }
+
+/** The wizard without its steps (their statuses, which a visit changes): what a visit changing something shows in. */
+const beyondSteps = (w: Wizard) => JSON.stringify({ ...w, steps: undefined });
 
 export type Mutate = (c: Change, options?: { onSuccess?: () => void }) => void;
 export type MutateAsync = (c: Change) => Promise<Wizard>;

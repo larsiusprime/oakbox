@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useIsFetching, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import {
@@ -54,6 +54,39 @@ function stepTitle(s: WizardStep | undefined): string {
 const w = t.wizard;
 const L = t.landing.pages;
 
+/** A step's content: while its first data is loading (just opened), a loading bar under the step's header in its
+ * place, the content kept mounted behind it so its reads go on; shown once nothing of it is loading. Later reads (a
+ * choice changed) show where they are, as before. */
+function StepContent({ stepKey, children }: { stepKey: string; children: React.ReactNode }) {
+  const busy = useIsFetching({
+    predicate: (q) =>
+      q.state.status === "pending" &&
+      q.meta?.quiet !== true &&
+      !String(q.queryKey[0]).startsWith("map") &&
+      q.queryKey[0] !== "wizard",
+  });
+  const [settled, setSettled] = useState<string | null>(null);
+  // Settled once nothing's been loading for a moment (the step's reads start as it mounts, just after).
+  useEffect(() => {
+    if (busy > 0 || settled === stepKey) return;
+    const id = window.setTimeout(() => setSettled(stepKey), 120);
+    return () => window.clearTimeout(id);
+  }, [busy, stepKey, settled]);
+  const loading = settled !== stepKey;
+  return (
+    <>
+      {loading && busy > 0 && (
+        <div className="step-loading" role="status" aria-label={t.step.loading}>
+          <span className="engine-bar opening-bar opening-bar-busy">
+            <i />
+          </span>
+        </div>
+      )}
+      <div className={loading ? "step-content step-content-loading" : "step-content"}>{children}</div>
+    </>
+  );
+}
+
 /** F3d: the Fields tab, a guided wizard over all of the project's files (SPEC §3.0). */
 export function FieldsTab({ detail, step }: { detail: ProjectDetail; step: string | null }) {
   const projectId = detail.project.id;
@@ -101,7 +134,10 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
 
   // Showing a step fills in its guesses, once (the server keeps track).
   const key = landing ? null : current?.key;
-  const visit = change.mutate;
+  // Moving between steps (showing one, moving on from one) is quiet: not something to say "Saving" about; what it
+  // changes shows on the steps themselves (a guess filled in, a ✅).
+  const moving = useChange(projectId, { quiet: true });
+  const visit = moving.mutate;
   useEffect(() => {
     if (key) visit({ kind: "visit", step: key });
   }, [key, visit]);
@@ -184,9 +220,12 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
       : current.left.filter((l) => l.blocking);
   // After the last step, the next tab: Bring in data.
   const ahead = () => (next ? go(next.key) : navigate({ name: "project", id: projectId, tab: "bring" }));
-  const onward = () =>
-    // Moving on confirms the step: an optional step is then complete (SPEC F3d).
-    change.mutate({ kind: "confirm", step: current.key }, { onSuccess: ahead });
+  // Moving on confirms the step (an optional step is then complete, SPEC F3d), and moves on at once: the next step
+  // shows straight away, its content loading in it, not this one waiting on the save.
+  const onward = () => {
+    moving.mutate({ kind: "confirm", step: current.key });
+    ahead();
+  };
 
   return (
     <div className="wiz">
@@ -195,79 +234,84 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
         <div className="wiz-body">
           <h2 className="wiz-q">{copy.question}</h2>
           {copy.lede && <p className="wiz-lede">{copy.lede}</p>}
-          {current.key === "universe" && (
-            <UniverseStep project={project} data={data} change={change.mutate} />
-          )}
-          {current.key === "sales_ids" && <SalesIds project={project} data={data} change={change.mutate} />}
-          {SALES_FIELD_STEPS.includes(current.key) && (
-            <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />
-          )}
-          {current.key === "more_add" && (
-            <AddFilesStep project={project} data={data} change={change.mutate} go={go} />
-          )}
-          {current.key.startsWith(MORE) && (
-            <FileStep project={project} data={data} step={current} change={change.mutate} go={go} />
-          )}
-          {current.key === "review" && (
-            <ReviewStep projectId={projectId} data={data} go={go} change={change.mutate} />
-          )}
-          {current.key === "assessed" && (
-            <ValueSetsStep project={project} data={data} change={change.mutateAsync} />
-          )}
-          {current.fields.length > 0 &&
-            current.key !== "assessed" &&
-            !QUALITY_STEPS.includes(current.key) &&
-            !SALES_FIELD_STEPS.includes(current.key) && (
-              <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
+          <StepContent stepKey={current.key}>
+            {current.key === "universe" && (
+              <UniverseStep project={project} data={data} change={change.mutate} />
             )}
-          {QUALITY_STEPS.includes(current.key) && (
-            // Today's (the parcels') beside At the sale (the sales'): side by side where there's room, else stacked.
-            <div className="as-pair">
-              <div className="as-today">
-                <QualityStep
-                  project={project}
-                  data={data}
-                  step={current}
-                  change={change.mutateAsync}
-                  capsule={
-                    data.files.some((f) => f.holds === "sales") &&
-                    data.fields.some(
-                      (f) => current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
-                    )
-                  }
-                />
+            {current.key === "sales_ids" && <SalesIds project={project} data={data} change={change.mutate} />}
+            {SALES_FIELD_STEPS.includes(current.key) && (
+              <SalesFieldPage project={project} data={data} step={current} change={change.mutateAsync} />
+            )}
+            {current.key === "more_add" && (
+              <AddFilesStep project={project} data={data} change={change.mutate} go={go} />
+            )}
+            {current.key.startsWith(MORE) && (
+              <FileStep project={project} data={data} step={current} change={change.mutate} go={go} />
+            )}
+            {current.key === "review" && (
+              <ReviewStep projectId={projectId} data={data} go={go} change={change.mutate} />
+            )}
+            {current.key === "assessed" && (
+              <ValueSetsStep project={project} data={data} change={change.mutateAsync} />
+            )}
+            {current.fields.length > 0 &&
+              current.key !== "assessed" &&
+              !QUALITY_STEPS.includes(current.key) &&
+              !SALES_FIELD_STEPS.includes(current.key) && (
+                <FieldsStep project={project} data={data} step={current} change={change.mutateAsync} />
+              )}
+            {QUALITY_STEPS.includes(current.key) && (
+              // Today's (the parcels') beside At the sale (the sales'): side by side where there's room, else stacked.
+              <div className="as-pair">
+                <div className="as-today">
+                  <QualityStep
+                    project={project}
+                    data={data}
+                    step={current}
+                    change={change.mutateAsync}
+                    capsule={
+                      data.files.some((f) => f.holds === "sales") &&
+                      data.fields.some(
+                        (f) =>
+                          current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
+                      )
+                    }
+                  />
+                </div>
+                {data.fields
+                  .filter(
+                    (f) => current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
+                  )
+                  .map((f) => (
+                    <AtSale key={f.key} projectId={project.id} field={f} />
+                  ))}
               </div>
-              {data.fields
-                .filter(
-                  (f) => current.fields.includes(f.key) && SCALED.includes(f.key) && f.sources.length > 0,
-                )
-                .map((f) => (
-                  <AtSale key={f.key} projectId={project.id} field={f} />
-                ))}
-            </div>
-          )}
-          {current.key === "as_sold" && <AsSoldStep projectId={project.id} go={go} />}
-          {current.key === "coordinates" && (
-            <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
-          )}
-          {current.key === "location" && (
-            <LocationFields projectId={projectId} data={data} change={change.mutate} />
-          )}
-          {current.key === "custom" && (
-            <CustomFields projectId={projectId} data={data} change={change.mutate} />
-          )}
-          {current.key === "shapefiles" && (
-            <ShapefilesStep project={project} data={data} change={change.mutate} />
-          )}
-          {current.key === "deeds" && data.deeds && (
-            <p className={data.deeds.ok ? "wiz-note" : "wiz-note wiz-warn"}>{data.deeds.text}</p>
-          )}
-          {current.key === "deeds" && <DeedNames projectId={projectId} />}
-          {current.key === "enrich" && <EnrichStep projectId={projectId} />}
-          {current.key === "permits" && <PermitsStep project={project} data={data} change={change.mutate} />}
-          {current.parent === "condos" && (
-            <CondoStep step={current.key} projectId={projectId} data={data} change={change.mutate} />
-          )}
+            )}
+            {current.key === "as_sold" && <AsSoldStep projectId={project.id} go={go} />}
+            {current.key === "coordinates" && (
+              <Coordinates projectId={projectId} hasShapes={data.files.some((f) => f.base && f.geometry)} />
+            )}
+            {current.key === "location" && (
+              <LocationFields projectId={projectId} data={data} change={change.mutate} />
+            )}
+            {current.key === "custom" && (
+              <CustomFields projectId={projectId} data={data} change={change.mutate} />
+            )}
+            {current.key === "shapefiles" && (
+              <ShapefilesStep project={project} data={data} change={change.mutate} />
+            )}
+            {current.key === "deeds" && data.deeds && (
+              <p className={data.deeds.ok ? "wiz-note" : "wiz-note wiz-warn"}>{data.deeds.text}</p>
+            )}
+            {current.key === "deeds" && <DeedNames projectId={projectId} />}
+            {current.key === "enrich" && <EnrichStep projectId={projectId} />}
+            {current.key === "permits" && (
+              <PermitsStep project={project} data={data} change={change.mutate} />
+            )}
+            {current.parent === "condos" && (
+              <CondoStep step={current.key} projectId={projectId} data={data} change={change.mutate} />
+            )}
+          </StepContent>
           {change.error && (
             <p className="error" role="alert">
               {change.error.message}
@@ -292,9 +336,10 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
           {skippable && (
             <Button
               className="button"
-              onPress={() =>
-                change.mutate({ kind: "skip", step: current.key }, { onSuccess: () => next && go(next.key) })
-              }
+              onPress={() => {
+                change.mutate({ kind: "skip", step: current.key });
+                if (next) go(next.key);
+              }}
             >
               {w.skip}
             </Button>
