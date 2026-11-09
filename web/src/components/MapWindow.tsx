@@ -294,7 +294,7 @@ function MapPanel({
     if (desktop.openMap(url, w.alone)) setDock({ out: true, full: false });
   };
   const info = useQuery({
-    queryKey: ["map", projectId],
+    queryKey: ["map-info", projectId],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/map", { params: { path: { project_id: projectId } } }),

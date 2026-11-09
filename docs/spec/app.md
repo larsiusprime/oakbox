@@ -318,6 +318,14 @@ far while files' quick-read copies are made, else a moving bar), the time elapse
 half-opened project. Cancel stops the reading in the window and goes back to Projects; the server finishes what it's in
 the middle of on its own (its quick-read copies are kept, so the next opening is quicker).
 
+**Moving between steps** (2026-11-09): Next (and I don't have these) moves at once, the sidebar and the step's header
+with it; the step's content shows a loading bar in its place until its first data is in, never the old step waiting.
+Showing a step and moving on from one are quiet: no "Saving" or "Updating" in the corner (what they change shows on the
+steps). The corner's Activity pill is for saves, runs and refreshes; a first load is shown where it will appear.
+
+**Nothing runs past its box** (2026-11-09): a step's sheet shrinks with the window down to 36rem, then the folder
+scrolls sideways within itself; inside it, rows wrap, pairs stack, tables scroll in their own wrapper (AGENTS.md).
+
 ## 3.15 The map window (designed 2026-11-09; being built)
 
 One map of the 🌐 Parcel Universe and 💰 Sales Record that stays with the user through every step: rich context to

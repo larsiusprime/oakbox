@@ -273,7 +273,7 @@ export function RangedBars({
       </div>
       <div
         className="fh-axis"
-        style={{ gridTemplateColumns: `var(--fh-spill) repeat(${bars.length}, 1fr) var(--fh-spill)` }}
+        style={{ gridTemplateColumns: `var(--fh-spill) repeat(${bars.length}, minmax(0, 1fr)) var(--fh-spill)` }}
       >
         <span className="fh-spill-label">{under > 0 ? "‹" : ""}</span>
         {bars.map((b, i) => (
