@@ -3302,6 +3302,11 @@
     "cell": "{n, number} {n, plural, =1 {parcel} other {parcels}} here{what, select, other { · {what}} none {}}",
     "mostly": "{share}% of them this",
     "howShapes": "{n, number} parcels in view, drawn as shapes",
-    "howCells": "Zoomed out: squares of {size}, each coloured by its parcels; zoom in for the parcels"
+    "howCells": "Zoomed out: squares of {size}, each coloured by its parcels; zoom in for the parcels",
+    "follow": "Follow",
+    "following": "Following: {step}",
+    "followIdle": "Following",
+    "followOnTip": "The map shows what the step you''re on is about (its field), as you go. Choosing a field here, or this button, stops it.",
+    "followOffTip": "Show what each step is about as you go."
   }
 }

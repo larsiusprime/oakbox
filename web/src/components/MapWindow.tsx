@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Header, ListBoxItem, ListBoxSection } from "react-aria-components";
-import { api, type MapColumn, type MapInfo, unwrap } from "../api/client";
+import { api, type MapColumn, type MapInfo, unwrap, type Wizard } from "../api/client";
 import { type Dock, MAX, MIN, type Side, setDock, sideFor, toggleMap, useDock } from "../lib/mapdock";
 import { readShapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
@@ -17,6 +17,7 @@ import { t } from "../wording";
 import { CloseButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
 import { type Bounds, MapView, rgba } from "./MapView";
+import { Tip } from "./Tip";
 import { Waiting } from "./Waiting";
 
 const w = t.mapWindow;
@@ -55,7 +56,16 @@ const BLANK_LINE: [number, number, number, number] = [120, 120, 120, 90];
 
 // ---------- The window ----------
 
-export function MapWindow({ projectId }: { projectId: string }) {
+export function MapWindow({
+  projectId,
+  tab,
+  step,
+}: {
+  projectId: string;
+  /** Where the main window is: what Follow follows. */
+  tab: string | null;
+  step: string | null;
+}) {
   const d = useDock();
   const width = useWindowWidth();
   const side = sideFor(d.side, width);
@@ -86,7 +96,7 @@ export function MapWindow({ projectId }: { projectId: string }) {
   return (
     <aside className={`mapwin mapwin-${side}`} aria-label={w.label}>
       <Divider side={side} size={d.size} />
-      <MapPanel projectId={projectId} dock={d} side={side} narrow={side !== d.side} />
+      <MapPanel projectId={projectId} dock={d} side={side} narrow={side !== d.side} tab={tab} step={step} />
     </aside>
   );
 }
@@ -171,11 +181,15 @@ function MapPanel({
   dock,
   side,
   narrow,
+  tab,
+  step,
 }: {
   projectId: string;
   dock: Dock;
   side: Side;
   narrow: boolean;
+  tab: string | null;
+  step: string | null;
 }) {
   const info = useQuery({
     queryKey: ["map", projectId],
@@ -187,14 +201,51 @@ function MapPanel({
     meta: { quiet: true },
   });
   const m = info.data;
-  const field = m?.fields.find((f) => f.id === dock.field) ?? m?.fields[0] ?? null;
+  // The wizard (the sidebar's, shared): each step's fields, for Follow; a field loaded there, a new choice here.
+  const wizard = useQuery({
+    queryKey: ["wizard", projectId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/wizard", { params: { path: { project_id: projectId } } }),
+      ),
+  });
+  const refetch = info.refetch;
+  const stamp = wizard.dataUpdatedAt;
+  useEffect(() => {
+    if (stamp) void refetch();
+  }, [stamp, refetch]);
+  const target = m ? followed(tab, step, wizard.data, m.fields) : null;
+  const following = dock.follow && target !== null;
+  // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
+  const followedField = following ? target?.field : undefined;
+  useEffect(() => {
+    if (followedField) setDock({ field: followedField });
+  }, [followedField]);
+  const field =
+    (following ? m?.fields.find((f) => f.id === target?.field) : null) ??
+    m?.fields.find((f) => f.id === dock.field) ??
+    m?.fields[0] ??
+    null;
   return (
     <div className="mapwin-in">
       <header className="mapwin-head">
         <b className="mapwin-title">🗺 {w.title}</b>
         {m?.status === "ready" && m.fields.length > 0 && (
-          <FieldPick fields={m.fields} value={field?.id ?? null} onChange={(id) => setDock({ field: id })} />
+          <FieldPick
+            fields={m.fields}
+            value={field?.id ?? null}
+            onChange={(id) => setDock({ field: id, follow: false })}
+          />
         )}
+        <Tip text={dock.follow ? w.followOnTip : w.followOffTip}>
+          <Button
+            className={`mapwin-follow ${following ? "on" : ""}`}
+            aria-pressed={dock.follow}
+            onPress={() => setDock({ follow: !dock.follow })}
+          >
+            {dock.follow ? (target ? w.following({ step: target.title }) : w.followIdle) : w.follow}
+          </Button>
+        </Tip>
         <span className="mapwin-tools">
           {!narrow &&
             SIDES.map((s) => (
@@ -286,6 +337,29 @@ function FieldPick({
       )}
     </Combo>
   );
+}
+
+// ---------- Follow ----------
+
+type Target = { title: string; field: string };
+
+/** What the step on screen shows on the map (SPEC §3.15's table): a Data step's field (its first loaded one, in the
+ * step's order: Building size its finished area, Age its year built), or null where the step has none yet. */
+function followed(
+  tab: string | null,
+  step: string | null,
+  wizard: Wizard | undefined,
+  fields: MapInfo["fields"],
+): Target | null {
+  if (tab !== "fields" || !step || !wizard) return null;
+  const s = wizard.steps.find((x) => x.key === step);
+  if (!s) return null;
+  const keys = step === "location" ? wizard.locations.map((l) => l.name) : s.fields;
+  for (const k of keys) {
+    const f = fields.find((x) => x.field === k);
+    if (f) return { title: s.title ?? t.wizard.steps[s.key]?.title ?? s.key, field: f.id };
+  }
+  return null;
 }
 
 // ---------- What's drawn ----------

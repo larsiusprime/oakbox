@@ -3,12 +3,20 @@
 import { useSyncExternalStore } from "react";
 
 export type Side = "right" | "bottom" | "left" | "top";
-export type Dock = { open: boolean; side: Side; size: number; field: string | null };
+export type Dock = {
+  open: boolean;
+  side: Side;
+  size: number;
+  /** The field chosen by hand (when not following, or the step shows none). */
+  field: string | null;
+  /** Follow: the map takes the step's colouring (SPEC §3.15); on until a field is chosen by hand. */
+  follow: boolean;
+};
 
 const KEY = "oakbox.mapDock";
 export const MIN = 0.25;
 export const MAX = 0.7;
-const START: Dock = { open: false, side: "right", size: 0.4, field: null };
+const START: Dock = { open: false, side: "right", size: 0.4, field: null, follow: true };
 
 function read(): Dock {
   try {

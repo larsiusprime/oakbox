@@ -147,7 +147,7 @@ function ProjectView({
     <div className="project">
       <h1 className="visually-hidden">{project.name}</h1>
       <OakBand page={{ kind: "project", id: projectId, name: project.name, year: project.tax_year }} />
-      <MapWindow projectId={projectId} />
+      <MapWindow projectId={projectId} tab={tab} step={step} />
       <Tabs
         className="folder-tabs"
         selectedKey={selected}

@@ -2664,5 +2664,10 @@ export type Wording = {
     mostly: (a: { share: string | number }) => string;
     howShapes: (a: { n: number }) => string;
     howCells: (a: { size: string | number }) => string;
+    follow: string;
+    following: (a: { step: string | number }) => string;
+    followIdle: string;
+    followOnTip: string;
+    followOffTip: string;
   };
 };
