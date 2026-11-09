@@ -6613,14 +6613,22 @@ html[data-map="top"] .oak-nav {
   background: #969696;
 }
 
-/* The parcel's card (components/MapCard): over the map's top right, under its Street map box. */
+/* The map's area (above the legend): the map, and the parcel's card pinned at its left or floating over it. */
+.mapwin-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.mapwin-stage > .mapwin-map {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The parcel's card (components/MapCard): pinned (📌), a column at the map's left; floating, over the map (its top
+   right to start), dragged by its title, never past the map's edges. */
 .mapcard {
-  position: absolute;
   z-index: 4;
-  top: 2.6rem;
-  right: 0.6rem;
-  width: min(24rem, calc(100% - 4rem));
-  max-height: calc(100% - 3.4rem);
   display: flex;
   flex-direction: column;
   background: var(--panel, #fff);
@@ -6628,6 +6636,45 @@ html[data-map="top"] .oak-nav {
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
   font-size: 0.85rem;
+}
+.mapcard-float {
+  position: absolute;
+  top: 2.6rem;
+  right: 0.6rem;
+  width: min(24rem, calc(100% - 4rem));
+  max-height: calc(100% - 3.4rem);
+}
+.mapcard-float .mapcard-head {
+  cursor: move;
+  touch-action: none;
+}
+.mapcard-pinned {
+  order: -1;
+  flex: none;
+  width: min(22rem, 45%);
+  border-width: 0 1px 0 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.mapcard-pin {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: var(--muted, #5f6159);
+  cursor: pointer;
+}
+.mapcard-pin[data-hovered] {
+  border-color: var(--line, #c9ccc4);
+}
+.mapcard-pin.on {
+  color: #1d5bb8;
+  border-color: #1d5bb8;
+  background: #e5eefb;
 }
 .mapcard-head {
   display: flex;

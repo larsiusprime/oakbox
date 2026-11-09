@@ -692,6 +692,7 @@ function MapBody({
   const [plan, setPlan] = useState<Plan | null>(null);
   // The parcel picked (a parcel, or a sale's dot): its card, and its outline.
   const [picked, setPicked] = useState<number | null>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const mapNow = useRef<maplibregl.Map | null>(null);
   const zoomTo = useCallback((b: Bounds) => mapNow.current?.fitBounds(b, { padding: 24, maxZoom: 17 }), []);
   const shapes = useQuery({
@@ -756,6 +757,10 @@ function MapBody({
       if (!frame) frame = requestAnimationFrame(look);
     });
     m.on("resize", look);
+    // Dragging the map: its own hand, not the finger left from what was under the pointer.
+    m.on("dragstart", () => {
+      m.getCanvas().style.cursor = "";
+    });
     m.once("load", look);
   }, []);
   // The centres came after the map: plan now.
@@ -805,29 +810,37 @@ function MapBody({
     },
     [plan, paint, srPaint, sold, label],
   );
+  const pinned = useDock().cardPinned;
+  const docked = picked !== null && pinned;
   return (
     <div className="mapwin-body">
       {centres.error && <p className="error mapwin-msg">{centres.error.message}</p>}
-      <MapView
-        className="mapwin-map"
-        asked
-        label={w.mapLabel}
-        layers={layers}
-        bounds={bounds}
-        fitKey={info.stamp}
-        resizeKey={`${side}-${size}`}
-        onMap={watch}
-        tooltip={tooltip}
-      />
-      {picked !== null && (
-        <MapCard
-          projectId={projectId}
-          index={picked}
-          stepOf={stepOf}
-          onGo={onGo}
-          onClose={() => setPicked(null)}
+      <div className="mapwin-stage" ref={stage}>
+        <MapView
+          className="mapwin-map"
+          asked
+          label={w.mapLabel}
+          layers={layers}
+          bounds={bounds}
+          fitKey={info.stamp}
+          resizeKey={`${side}-${size}-${docked}`}
+          onMap={watch}
+          tooltip={tooltip}
+          cursor={cursorOf}
         />
-      )}
+        {picked !== null && (
+          <MapCard
+            projectId={projectId}
+            index={picked}
+            stepOf={stepOf}
+            onGo={onGo}
+            pinned={pinned}
+            onPin={(on) => setDock({ cardPinned: on })}
+            stage={stage}
+            onClose={() => setPicked(null)}
+          />
+        )}
+      </div>
       <div className="mapwin-legend">
         {prId ? (
           prob.isPending || (onSales && sales.isPending) ? (
@@ -925,6 +938,16 @@ function MapBody({
       </div>
     </div>
   );
+}
+
+/** The pointer over the map: a pointing finger over a parcel or a sale (a click picks its parcel), a magnifier over
+ * a cell (a click zooms to it), the map's drag hand elsewhere. */
+function cursorOf(info: PickingInfo): string {
+  const id = info.layer?.id ?? "";
+  if (info.index < 0) return "";
+  if (id === "parcels" || id === "sales") return "pointer";
+  if (id.startsWith("cells-")) return "zoom-in";
+  return "";
 }
 
 /** A binary feature's parcel (shapes.ts: each corner carries its parcel's index). */

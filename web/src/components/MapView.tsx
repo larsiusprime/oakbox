@@ -162,6 +162,7 @@ function MapCanvas({
   label,
   scrollZoom = true,
   tooltip,
+  cursor,
   onMap,
   children,
 }: {
@@ -181,6 +182,9 @@ function MapCanvas({
   street: boolean;
   /** What hovering an object says. */
   tooltip?: (info: PickingInfo) => string | null;
+  /** The pointer over what's drawn: a pointing finger where a click picks something ("pointer"), the map's own
+   * drag hand elsewhere (""). */
+  cursor?: (info: PickingInfo) => string;
   /** The map, once made (and null when gone): for markers of its own, like a pin to drag. */
   onMap?: (m: maplibregl.Map | null) => void;
   children?: React.ReactNode;
@@ -253,8 +257,16 @@ function MapCanvas({
             return text ? { text, style: TIP } : null;
           }
         : null,
+      // MapLibre owns the pointer (its drag hand): the cursor is set on its canvas while over something, and
+      // given back off it.
+      onHover: cursor
+        ? (info: PickingInfo) => {
+            const c = map.current?.getCanvas();
+            if (c) c.style.cursor = info.layer ? cursor(info) : "";
+          }
+        : null,
     });
-  }, [layers, tooltip]);
+  }, [layers, tooltip, cursor]);
 
   // Fitted when what's shown changes (fitKey), not whenever a new box of the same place comes in.
   const where = useRef(bounds);

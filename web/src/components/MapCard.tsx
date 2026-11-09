@@ -3,13 +3,15 @@
  * 💰 sales, the latest first, with each sale's own values beside the parcel's and the differences flagged. Picking
  * never changes the step; only the links here go anywhere. */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Pin, PinOff } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { t } from "../wording";
 import { CloseButton } from "./Buttons";
 import { Disclose } from "./Disclose";
+import { Tip } from "./Tip";
 import { Waiting } from "./Waiting";
 
 const w = t.mapWindow.card;
@@ -30,6 +32,9 @@ export function MapCard({
   stepOf,
   onGo,
   onClose,
+  pinned,
+  onPin,
+  stage,
 }: {
   projectId: string;
   index: number;
@@ -38,7 +43,53 @@ export function MapCard({
   /** A link followed: the main window goes to the step (from a popped-out map, it's asked to). */
   onGo: (step: string) => void;
   onClose: () => void;
+  /** Pinned to the map's left side (📌), or floating over it. */
+  pinned: boolean;
+  onPin: (pinned: boolean) => void;
+  /** The map's area: a floating card is dragged within it, never past its edges. */
+  stage: React.RefObject<HTMLDivElement | null>;
 }) {
+  // Floating: where it was dragged to (its top left in the map's area); until then, the map's top right.
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const me = useRef<HTMLElement>(null);
+  const clamp = useCallback(
+    (x: number, y: number) => {
+      const box = stage.current;
+      const card = me.current;
+      if (!box || !card) return { x, y };
+      return {
+        x: Math.max(0, Math.min(x, box.clientWidth - card.offsetWidth)),
+        y: Math.max(0, Math.min(y, box.clientHeight - card.offsetHeight)),
+      };
+    },
+    [stage],
+  );
+  // The map's area shrinks (the divider, the window): a dragged card stays inside it.
+  useEffect(() => {
+    const box = stage.current;
+    if (!box || pinned) return;
+    const ro = new ResizeObserver(() => setPos((p) => (p ? clamp(p.x, p.y) : p)));
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [stage, pinned, clamp]);
+  const onDrag = (e: React.PointerEvent<HTMLElement>) => {
+    if (pinned || (e.target as HTMLElement).closest("button")) return;
+    const card = me.current;
+    const box = stage.current;
+    if (!card || !box) return;
+    e.preventDefault();
+    const head = e.currentTarget;
+    head.setPointerCapture(e.pointerId);
+    const start = { px: e.clientX, py: e.clientY, x: card.offsetLeft, y: card.offsetTop };
+    const move = (ev: PointerEvent) =>
+      setPos(clamp(start.x + ev.clientX - start.px, start.y + ev.clientY - start.py));
+    const up = () => {
+      head.removeEventListener("pointermove", move);
+      head.removeEventListener("pointerup", up);
+    };
+    head.addEventListener("pointermove", move);
+    head.addEventListener("pointerup", up);
+  };
   const q = useQuery({
     queryKey: ["map-card", projectId, index],
     queryFn: async () =>
@@ -65,10 +116,28 @@ export function MapCard({
   const several = c ? Object.entries(c.rows).filter(([, n]) => n > 1) : [];
   const missing = c ? Object.entries(c.rows).filter(([, n]) => n === 0) : [];
   return (
-    <section className="mapcard" aria-label={c ? w.title({ key: c.key || "—" }) : w.loading}>
-      <header className="mapcard-head">
+    <section
+      ref={me}
+      className={`mapcard ${pinned ? "mapcard-pinned" : "mapcard-float"}`}
+      style={!pinned && pos ? { left: pos.x, top: pos.y, right: "auto" } : undefined}
+      aria-label={c ? w.title({ key: c.key || "—" }) : w.loading}
+    >
+      <header className="mapcard-head" onPointerDown={onDrag}>
         <b>{c ? w.title({ key: c.key || "—" }) : "…"}</b>
         {q.isFetching && c && <span className="mapcard-busy" aria-hidden="true" />}
+        <Tip text={pinned ? w.unpinTip : w.pinTip}>
+          <Button
+            className={`mapcard-pin ${pinned ? "on" : ""}`}
+            aria-label={pinned ? w.unpin : w.pin}
+            aria-pressed={pinned}
+            onPress={() => {
+              setPos(null);
+              onPin(!pinned);
+            }}
+          >
+            {pinned ? <Pin aria-hidden="true" size="0.95em" /> : <PinOff aria-hidden="true" size="0.95em" />}
+          </Button>
+        </Tip>
         <CloseButton label={w.close} onPress={onClose} />
       </header>
       {q.error ? (

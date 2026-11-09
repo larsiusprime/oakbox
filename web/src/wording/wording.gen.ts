@@ -2724,6 +2724,10 @@ export type Wording = {
       vacant: string;
       differs: string;
       toAsSold: string;
+      pin: string;
+      unpin: string;
+      pinTip: string;
+      unpinTip: string;
     };
     full: string;
     unfull: string;

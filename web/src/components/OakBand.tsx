@@ -1,5 +1,5 @@
-/** The top of every screen (SPEC D21): the box's lid, polished oak with brass on it: at its left, 🗺 Map (in a
- * project) and ⚙ Settings, each a brass button of its own; then the plate, the app's main navigation: a trail of where you are, Projects › project › tab › step, each crumb above you a link,
+/** The top of every screen (SPEC D21): the box's lid, polished oak with brass on it: at its left, ⚙ Settings and 🗺
+ * Map (in a project), each a brass button of its own; then the plate, the app's main navigation: a trail of where you are, Projects › project › tab › step, each crumb above you a link,
  * the one you're on in bold; each crumb in a project opens a list of the others at its level (projects, tabs,
  * steps), each saying where it will open. No text sits on the bare wood: what's said is on the plate. */
 import { useQuery } from "@tanstack/react-query";
@@ -29,10 +29,10 @@ export function OakBand({ page }: { page: Page }) {
     <header className="oak-nav">
       {page.kind !== "check" && (
         <div className="oak-tools">
-          {page.kind === "project" && <MapButton />}
           <Button className="oak-btn oak-btn-gear" aria-label={n.settings} onPress={() => openSettings()}>
             <Settings aria-hidden="true" size="1.05em" />
           </Button>
+          {page.kind === "project" && <MapButton />}
         </div>
       )}
       <nav className="plate" aria-label={n.label}>

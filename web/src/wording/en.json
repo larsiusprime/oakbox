@@ -3362,7 +3362,11 @@
       "invalid": "not valid",
       "vacant": "vacant",
       "differs": "The sale''s value differs from the parcel''s",
-      "toAsSold": "Sales record fields ›"
+      "toAsSold": "Sales record fields ›",
+      "pin": "Pin to the map''s side",
+      "unpin": "Unpin: float it over the map",
+      "pinTip": "Pin the card at the map''s left, beside it.",
+      "unpinTip": "Unpin the card to float it over the map; drag it by its title."
     },
     "full": "Full size",
     "unfull": "Back to docked",

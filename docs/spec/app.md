@@ -407,7 +407,10 @@ Then **the parcel's card** (`map/parcel/{index}`): a parcel, or a sale's dot, cl
 outlined; a cell clicked zooms to it. Its 🌐 fields as each parcel file has them (the Big five first; each a link to
 the step that sets it; a file with several rows says so, the first shown), its files' other columns folded away, and its
 💰 sales, the latest first: date, price, valid or not, and each sale's own values beside the parcel's (as Sales record
-fields compares them; a difference in red, ≠). Esc or ✕ closes it; clicking never changes the step. A row is read
+fields compares them; a difference in red, ≠). Esc or ✕ closes it; clicking never changes the step. Its thumbtack (📌)
+pins it as a column at the map's left (the default; the map beside it) or unpins it to float over the map, dragged by
+its title, never past the map's edges; remembered on this computer. The pointer is a pointing finger over what a click
+picks (a parcel, a sale), a magnifier over a cell (a click zooms to it), the map's drag hand elsewhere. A row is read
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 

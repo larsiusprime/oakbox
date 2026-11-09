@@ -20,6 +20,8 @@ export type Dock = {
   full: boolean;
   /** Popped out: in a window of its own; the main window shows none. */
   out: boolean;
+  /** The parcel's card pinned to the map's left side (📌), or floating over it, where it was dragged. */
+  cardPinned: boolean;
 };
 
 const KEY = "oakbox.mapDock";
@@ -35,6 +37,7 @@ const START: Dock = {
   follow: true,
   full: false,
   out: false,
+  cardPinned: true,
 };
 
 function load<T>(key: string, fallback: T): T {
