@@ -2663,11 +2663,32 @@ export type Wording = {
     cell: (a: { n: number; what: string | number }) => string;
     mostly: (a: { share: string | number }) => string;
     howShapes: (a: { n: number }) => string;
-    howCells: (a: { size: string | number }) => string;
+    howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
     followOnTip: string;
     followOffTip: string;
+    srTitle: string;
+    sr: {
+      price: string;
+      year: string;
+      valid: string;
+      vacant: string;
+    };
+    readingSales: string;
+    salesPlaced: (a: { n: number; of: number }) => string;
+    share0: {
+      valid: string;
+      vacant: string;
+    };
+    share1: {
+      valid: string;
+      vacant: string;
+    };
+    cellSales: (a: { n: number; parcels: number }) => string;
+    validYes: string;
+    validNo: string;
+    vacantYes: string;
   };
 };

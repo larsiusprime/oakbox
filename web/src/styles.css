@@ -6598,6 +6598,11 @@ html[data-map="top"] .oak-nav {
 .mapwin-how {
   color: var(--muted, #5f6159);
 }
+.mapwin-share {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted, #5f6159);
+}
 .mapwin-sw {
   width: 0.8rem;
   height: 0.8rem;

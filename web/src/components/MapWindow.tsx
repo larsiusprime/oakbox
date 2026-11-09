@@ -4,12 +4,12 @@
  * field of the parcel files, with the histogram's live range as its legend. Tested on Guilford's 220,000 parcels
  * (docs/spec/app.md §3.15): what costs is the number of shapes drawn, so never more than a few thousand. */
 import type { Layer, PickingInfo } from "@deck.gl/core";
-import { GeoJsonLayer, SolidPolygonLayer } from "@deck.gl/layers";
-import { useQuery } from "@tanstack/react-query";
+import { GeoJsonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Header, ListBoxItem, ListBoxSection } from "react-aria-components";
-import { api, type MapColumn, type MapInfo, unwrap, type Wizard } from "../api/client";
+import { api, type MapColumn, type MapInfo, type MapSales, unwrap, type Wizard } from "../api/client";
 import { type Dock, MAX, MIN, type Side, setDock, sideFor, toggleMap, useDock } from "../lib/mapdock";
 import { readShapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
@@ -214,16 +214,19 @@ function MapPanel({
   useEffect(() => {
     if (stamp) void refetch();
   }, [stamp, refetch]);
-  const target = m ? followed(tab, step, wizard.data, m.fields) : null;
+  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales) : null;
   const following = dock.follow && target !== null;
   // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
   const followedField = following ? target?.field : undefined;
   useEffect(() => {
     if (followedField) setDock({ field: followedField });
   }, [followedField]);
+  const choices = m
+    ? [...m.sales.map((k) => ({ id: `sr:${k}`, label: w.sr[k as SrKey] ?? k })), ...m.fields]
+    : [];
   const field =
-    (following ? m?.fields.find((f) => f.id === target?.field) : null) ??
-    m?.fields.find((f) => f.id === dock.field) ??
+    (following ? choices.find((f) => f.id === target?.field) : null) ??
+    choices.find((f) => f.id === dock.field) ??
     m?.fields[0] ??
     null;
   return (
@@ -232,6 +235,7 @@ function MapPanel({
         <b className="mapwin-title">🗺 {w.title}</b>
         {m?.status === "ready" && m.fields.length > 0 && (
           <FieldPick
+            sales={m.sales}
             fields={m.fields}
             value={field?.id ?? null}
             onChange={(id) => setDock({ field: id, follow: false })}
@@ -278,6 +282,7 @@ function MapPanel({
           info={m}
           fieldId={field?.id ?? null}
           label={field?.label ?? ""}
+          wizardStamp={stamp}
           side={side}
           size={dock.size}
         />
@@ -287,10 +292,12 @@ function MapPanel({
 }
 
 function FieldPick({
+  sales,
   fields,
   value,
   onChange,
 }: {
+  sales: string[];
   fields: MapInfo["fields"];
   value: string | null;
   onChange: (id: string) => void;
@@ -298,6 +305,7 @@ function FieldPick({
   const list = (q: string) => fields.filter((f) => matches(f.label, q) || matches(f.file, q));
   const loaded = (q: string) => list(q).filter((f) => f.field);
   const others = (q: string) => list(q).filter((f) => !f.field);
+  const sr = (q: string) => sales.filter((k) => matches(w.sr[k as SrKey] ?? k, q));
   return (
     <Combo
       label={w.colourBy}
@@ -306,11 +314,21 @@ function FieldPick({
       popoverClassName="popover choice-popover wiz-popover"
       selectedKey={value}
       onChange={onChange}
-      count={(q) => [list(q).length, fields.length]}
-      first={(q) => list(q)[0]?.id ?? null}
+      count={(q) => [list(q).length + sr(q).length, fields.length + sales.length]}
+      first={(q) => (sr(q)[0] ? `sr:${sr(q)[0]}` : (list(q)[0]?.id ?? null))}
     >
       {(q) => (
         <>
+          {sr(q).length > 0 && (
+            <ListBoxSection className="wiz-section">
+              <Header className="wiz-section-head">{w.srTitle}</Header>
+              {sr(q).map((k) => (
+                <ListBoxItem key={k} id={`sr:${k}`} className="choice-item" textValue={w.sr[k as SrKey] ?? k}>
+                  <Marked text={w.sr[k as SrKey] ?? k} query={q} />
+                </ListBoxItem>
+              ))}
+            </ListBoxSection>
+          )}
           {loaded(q).length > 0 && (
             <ListBoxSection className="wiz-section">
               <Header className="wiz-section-head">{w.yourFields}</Header>
@@ -341,6 +359,17 @@ function FieldPick({
 
 // ---------- Follow ----------
 
+type SrKey = keyof typeof w.sr;
+/** The 💰 Sales Record's steps: what each colours its sales by (the first the project has). */
+const SALES_STEPS: Record<string, string[]> = {
+  sales: ["price", "year"],
+  sale_date: ["year"],
+  sales_ids: ["price", "year"],
+  sale_price: ["price"],
+  valid_sale: ["valid"],
+  vacant_sale: ["vacant"],
+};
+
 type Target = { title: string; field: string };
 
 /** What the step on screen shows on the map (SPEC §3.15's table): a Data step's field (its first loaded one, in the
@@ -350,14 +379,21 @@ function followed(
   step: string | null,
   wizard: Wizard | undefined,
   fields: MapInfo["fields"],
+  sales: string[],
 ): Target | null {
   if (tab !== "fields" || !step || !wizard) return null;
   const s = wizard.steps.find((x) => x.key === step);
   if (!s) return null;
+  const title = s.title ?? t.wizard.steps[s.key]?.title ?? s.key;
+  const sr = SALES_STEPS[step];
+  if (sr) {
+    const k = sr.find((x) => sales.includes(x));
+    return k ? { title, field: `sr:${k}` } : null;
+  }
   const keys = step === "location" ? wizard.locations.map((l) => l.name) : s.fields;
   for (const k of keys) {
     const f = fields.find((x) => x.field === k);
-    if (f) return { title: s.title ?? t.wizard.steps[s.key]?.title ?? s.key, field: f.id };
+    if (f) return { title, field: f.id };
   }
   return null;
 }
@@ -386,6 +422,7 @@ function MapBody({
   info,
   fieldId,
   label,
+  wizardStamp,
   side,
   size,
 }: {
@@ -393,9 +430,12 @@ function MapBody({
   info: MapInfo;
   fieldId: string | null;
   label: string;
+  /** When the wizard last changed: the sales (their rules, their columns) read again. */
+  wizardStamp: number;
   side: Side;
   size: number;
 }) {
+  const by = fieldId?.startsWith("sr:") ? (fieldId.slice(3) as SrKey) : null;
   const base = `/api/projects/${encodeURIComponent(projectId)}/map`;
   const centres = useQuery({
     queryKey: ["map-centres", projectId, info.stamp],
@@ -410,9 +450,22 @@ function MapBody({
           params: { path: { project_id: projectId }, query: { field: fieldId ?? "" } },
         }),
       ),
-    enabled: !!fieldId,
+    enabled: !!fieldId && !by,
     staleTime: Number.POSITIVE_INFINITY,
   });
+  const sales = useQuery({
+    queryKey: ["map-sales", projectId, info.stamp, wizardStamp],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/map/sales", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+    enabled: !!by,
+    placeholderData: keepPreviousData,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const sold = useMemo(() => (sales.data ? unpackSales(sales.data) : null), [sales.data]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const shapes = useQuery({
     queryKey: ["map-shapes", projectId, info.stamp],
@@ -423,8 +476,13 @@ function MapBody({
 
   // The colour of each parcel (and its place 0..1 on the ramp, for a cell's average), from the field and its range.
   const linkKey = `map:${fieldId}`;
-  const range = useRangeOf(linkKey, col.data);
-  const paint = useMemo(() => painter(col.data, range), [col.data, range]);
+  const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
+  const range = useRangeOf(linkKey, by ? srSpread : col.data);
+  const paint = useMemo(
+    () => (by ? painter(undefined, null) : painter(col.data, range)),
+    [by, col.data, range],
+  );
+  const srPaint = useMemo(() => (by && sold ? salesPainter(sold, by, range) : null), [by, sold, range]);
 
   // Following the view: a new plan only when the view leaves the last one's box, or the zoom wants another size.
   const xy = centres.data;
@@ -491,21 +549,26 @@ function MapBody({
           getLineWidth: 0.5,
           updateTriggers: { getFillColor: paint, getLineColor: paint },
         }),
+        ...(srPaint && sold ? [dotsLayer(xy, sold, plan.ids, srPaint)] : []),
       ];
     }
     const level = plan.kind === "cells" ? plan.level : levelFor(plan.box.mpp);
-    return [cellsLayer(xy, plan.box, level, paint)];
-  }, [xy, plan, shapes.data, paint]);
+    return [cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined)];
+  }, [xy, plan, shapes.data, paint, srPaint, sold]);
 
   const bounds = (info.bounds as Bounds | null | undefined) ?? null;
   const tooltip = useCallback(
     (i: PickingInfo) => {
-      const o = i.object as { n?: number; text?: string } | undefined;
-      if (o && typeof o.n === "number") return w.cell({ n: o.n, what: o.text ?? "" });
-      if (i.index >= 0 && plan?.kind === "shapes") return `${label}: ${paint.text(i.index)}`;
+      const o = i.object as { n?: number; parcels?: number; text?: string; sale?: number } | undefined;
+      if (o && typeof o.sale === "number" && srPaint && sold) return saleText(sold, o.sale);
+      if (o && typeof o.n === "number")
+        return srPaint
+          ? w.cellSales({ n: o.n, parcels: o.parcels ?? 0 })
+          : w.cell({ n: o.n, what: o.text ?? "" });
+      if (i.index >= 0 && plan?.kind === "shapes" && !srPaint) return `${label}: ${paint.text(i.index)}`;
       return null;
     },
-    [plan, paint, label],
+    [plan, paint, srPaint, sold, label],
   );
   return (
     <div className="mapwin-body">
@@ -522,7 +585,37 @@ function MapBody({
         tooltip={tooltip}
       />
       <div className="mapwin-legend">
-        {col.isPending && fieldId ? (
+        {by ? (
+          sales.isPending ? (
+            <Waiting doing={w.readingSales} />
+          ) : sales.error ? (
+            <p className="error">{sales.error.message}</p>
+          ) : srSpread && (by === "price" || by === "year") ? (
+            <>
+              <div className="mapwin-ramp" aria-hidden="true" />
+              <RangedBars
+                quantiles={srSpread.quantiles}
+                count={srSpread.have}
+                auto={srSpread.auto}
+                year={by === "year"}
+                unit=""
+                linkKey={linkKey}
+                label={w.spread({ field: label })}
+              />
+              <small className="mapwin-how">
+                {w.salesPlaced({ n: sales.data?.placed ?? 0, of: sales.data?.sales ?? 0 })}
+              </small>
+            </>
+          ) : (
+            <>
+              <div className="mapwin-ramp" aria-hidden="true" />
+              <small className="mapwin-share">
+                <span>{w.share0[by as "valid" | "vacant"]}</span>
+                <span>{w.share1[by as "valid" | "vacant"]}</span>
+              </small>
+            </>
+          )
+        ) : col.isPending && fieldId ? (
           <Waiting doing={w.reading} />
         ) : col.error ? (
           <p className="error">{col.error.message}</p>
@@ -557,7 +650,10 @@ function MapBody({
           <small className="mapwin-how">
             {plan.kind === "shapes"
               ? w.howShapes({ n: plan.ids.length })
-              : w.howCells({ size: plan.level >= 1000 ? `${plan.level / 1000} km` : `${plan.level} m` })}
+              : w.howCells({
+                  size: plan.level >= 1000 ? `${plan.level / 1000} km` : `${plan.level} m`,
+                  sales: by ? "yes" : "no",
+                })}
           </small>
         )}
       </div>
@@ -675,32 +771,54 @@ function painter(c: MapColumn | undefined, range: { lo: number; hi: number } | n
   };
 }
 
-type Cell = { polygon: [number, number][]; fill: [number, number, number, number]; n: number; text: string };
+type Cell = {
+  polygon: [number, number][];
+  fill: [number, number, number, number];
+  n: number;
+  parcels: number;
+  text: string;
+};
 
 /** The parcels in the box, in cells of `level` metres: a cell's colour is its parcels' average place on the ramp
  * (numbers) or their most common category. */
-function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint): Layer {
+function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, sold?: Sold): Layer {
   const lat0 = (((box.s + box.n) / 2) * Math.PI) / 180;
   const dx = level / (111_320 * Math.cos(lat0));
   const dy = level / 110_540;
-  const acc = new Map<string, { n: number; sum: number; have: number; cats: Map<number, number> }>();
-  for (let i = 0; i < xy.length / 2; i++) {
-    const x = xy[2 * i] ?? Number.NaN;
-    const y = xy[2 * i + 1] ?? Number.NaN;
-    if (!(x >= box.w && x <= box.e && y >= box.s && y <= box.n)) continue;
+  type Acc = { parcels: number; n: number; sum: number; have: number; cats: Map<number, number> };
+  const acc = new Map<string, Acc>();
+  const cellAt = (x: number, y: number): Acc | null => {
+    if (!(x >= box.w && x <= box.e && y >= box.s && y <= box.n)) return null;
     const key = `${Math.floor(x / dx)}:${Math.floor(y / dy)}`;
     let c = acc.get(key);
     if (!c) {
-      c = { n: 0, sum: 0, have: 0, cats: new Map() };
+      c = { parcels: 0, n: 0, sum: 0, have: 0, cats: new Map() };
       acc.set(key, c);
     }
+    return c;
+  };
+  const add = (c: Acc, k: number) => {
     c.n++;
-    const a = paint.at(i);
-    if (a === null) continue;
+    const a = paint.at(k);
+    if (a === null) return;
     c.have++;
     if (paint.kind === "number") c.sum += a;
     else c.cats.set(a, (c.cats.get(a) ?? 0) + 1);
+  };
+  // The parcels: what's coloured (🌐), or what's behind the sales (💰), the county's shape.
+  for (let i = 0; i < xy.length / 2; i++) {
+    const c = cellAt(xy[2 * i] ?? Number.NaN, xy[2 * i + 1] ?? Number.NaN);
+    if (!c) continue;
+    c.parcels++;
+    if (!sold) add(c, i);
   }
+  if (sold)
+    for (let k = 0; k < sold.n; k++) {
+      const p = sold.parcel[k] ?? -1;
+      if (p < 0) continue;
+      const c = cellAt(xy[2 * p] ?? Number.NaN, xy[2 * p + 1] ?? Number.NaN);
+      if (c) add(c, k);
+    }
   const cells: Cell[] = [];
   for (const [key, c] of acc) {
     const [gx = 0, gy = 0] = key.split(":").map(Number);
@@ -714,7 +832,7 @@ function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint): L
       const [top, k] = [...c.cats.entries()].sort((p, q) => q[1] - p[1])[0] ?? [-1, 0];
       fill = top < 0 ? OTHER : rgba(CATS[top % CATS.length] ?? "#999999", 0.85);
       text = w.mostly({ share: Math.round((100 * k) / c.have) });
-    } else if (paint.kind !== "none") fill = [235, 235, 235, 160];
+    } else if (paint.kind !== "none") fill = [235, 235, 235, sold ? 110 : 160];
     cells.push({
       polygon: [
         [x0, y0],
@@ -723,7 +841,8 @@ function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint): L
         [x0, y0 + dy],
       ],
       fill,
-      n: c.n,
+      n: sold ? c.n : c.parcels,
+      parcels: c.parcels,
       text,
     });
   }
@@ -742,4 +861,123 @@ function useRangeOf(key: string, c: MapColumn | undefined): { lo: number; hi: nu
   if (chosen) return chosen;
   const [lo, hi] = c?.auto ?? [];
   return lo != null && hi != null ? { lo, hi } : null;
+}
+
+// ---------- The 💰 sales ----------
+
+type Sold = {
+  n: number;
+  parcel: Int32Array;
+  price: Float32Array;
+  year: Float32Array;
+  valid: Int8Array;
+  vacant: Int8Array;
+};
+
+function unpackSales(d: MapSales): Sold {
+  return {
+    n: d.sales,
+    parcel: new Int32Array(decode(d.parcel)),
+    price: new Float32Array(decode(d.price)),
+    year: new Float32Array(decode(d.year)),
+    valid: new Int8Array(decode(d.valid)),
+    vacant: new Int8Array(decode(d.vacant)),
+  };
+}
+
+/** The legend's spread for price or date: what RangedBars takes, as a field's column gives it. */
+function spreadOf(d: MapSales, by: SrKey): MapColumn | undefined {
+  if (by !== "price" && by !== "year") return undefined;
+  const q = by === "price" ? d.price_quantiles : d.year_quantiles;
+  const auto = by === "price" ? d.price_auto : d.year_auto;
+  return {
+    id: `sr:${by}`,
+    kind: "number",
+    values: "",
+    have: d.placed,
+    quantiles: q,
+    auto,
+    categories: [],
+    counts: [],
+  };
+}
+
+/** Each sale's colour: price or date on the ramp over the range shown; valid or vacant at its two ends (dark: yes),
+ * so a cell's average is the share. */
+function salesPainter(d: Sold, by: SrKey, range: { lo: number; hi: number } | null): Paint {
+  let at: (k: number) => number | null;
+  if (by === "price" || by === "year") {
+    const v = by === "price" ? d.price : d.year;
+    const lo = range?.lo ?? 0;
+    const hi = range?.hi ?? 1;
+    const log = by === "price" && lo > 0 && hi / lo >= 100;
+    const f = log ? Math.log10 : (x: number) => x;
+    const span = f(hi) - f(lo) || 1;
+    at = (k) => {
+      const x = v[k];
+      return x === undefined || Number.isNaN(x) ? null : (f(log ? Math.max(x, lo) : x) - f(lo)) / span;
+    };
+  } else {
+    const v = by === "valid" ? d.valid : d.vacant;
+    at = (k) => {
+      const x = v[k] ?? -1;
+      return x < 0 ? null : x;
+    };
+  }
+  return {
+    kind: "number",
+    at,
+    has: (k) => at(k) !== null,
+    fill: (k) => {
+      const p = at(k);
+      return p === null ? [150, 150, 150, 200] : ramp(p);
+    },
+    text: () => "",
+  };
+}
+
+/** A year with its fraction (2023.41) as the day, YYYY-MM-DD. */
+function dayOf(y: number): string {
+  const year = Math.floor(y);
+  const d = new Date(Date.UTC(year, 0, 1) + Math.round((y - year) * 365.25) * 86_400_000);
+  return d.toISOString().slice(0, 10);
+}
+
+function saleText(d: Sold, k: number): string {
+  const y = d.year[k];
+  const p = d.price[k];
+  const bits = [
+    y === undefined || Number.isNaN(y) ? null : dayOf(y),
+    p === undefined || Number.isNaN(p) ? null : p.toLocaleString(),
+    d.valid[k] === 1 ? w.validYes : d.valid[k] === 0 ? w.validNo : null,
+    d.vacant[k] === 1 ? w.vacantYes : null,
+  ];
+  return `💰 ${bits.filter(Boolean).join(" · ")}`;
+}
+
+type Dot = { sale: number; position: [number, number] };
+
+/** The sales on the parcels drawn, as dots at their parcels' centres: the latest on top. */
+function dotsLayer(xy: Float32Array, d: Sold, ids: number[], paint: Paint): Layer {
+  const shown = new Set(ids);
+  const dots: Dot[] = [];
+  for (let k = 0; k < d.n; k++) {
+    const p = d.parcel[k] ?? -1;
+    if (p >= 0 && shown.has(p)) dots.push({ sale: k, position: [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0] });
+  }
+  dots.sort((a, b) => (d.year[a.sale] || 0) - (d.year[b.sale] || 0));
+  return new ScatterplotLayer<Dot>({
+    id: "sales",
+    data: dots,
+    pickable: true,
+    radiusUnits: "pixels",
+    getRadius: 4.5,
+    stroked: true,
+    lineWidthUnits: "pixels",
+    getLineWidth: 1,
+    getLineColor: [40, 40, 40, 220],
+    getPosition: (o) => o.position,
+    getFillColor: (o) => paint.fill(o.sale),
+    updateTriggers: { getFillColor: paint },
+  });
 }

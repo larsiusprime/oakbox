@@ -7,14 +7,14 @@ import time
 
 import numpy as np
 import pytest
-from helpers import NEW, wizard_files
+from helpers import NEW, start_wizard, wizard_files
 
 
 @pytest.fixture
 def pid(client, tmp_path):
     pid = client.post("/api/projects", json=NEW).json()["id"]
     wizard_files(tmp_path)
-    for name in ("shapes", "cama"):
+    for name in ("shapes", "cama", "sales"):
         ext = "parquet" if name == "shapes" else "csv"
         body = {"path": str(tmp_path / f"{name}.{ext}"), "mode": "copy", "name": name}
         assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
@@ -84,3 +84,19 @@ def test_unknown_field(client, pid):
     client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})
     _ready(client, pid)
     assert client.get(f"/api/projects/{pid}/map/column", params={"field": "geo_parcels:NOPE"}).status_code == 404
+
+
+def test_sales_at_their_parcels(client, pid):
+    start_wizard(client, pid)  # the universe, and the sales with their price and date found
+    m = _ready(client, pid)
+    assert {"price", "year"} <= set(m["sales"])
+    d = client.get(f"/api/projects/{pid}/map/sales").json()
+    assert (d["sales"], d["placed"]) == (4, 4)
+    parcel = np.frombuffer(base64.b64decode(d["parcel"]), dtype="<i4").tolist()
+    assert parcel == [0, 0, 2, 3]  # each sale at its parcel's place in the universe
+    price = np.frombuffer(base64.b64decode(d["price"]), dtype="<f4").tolist()
+    assert price == [185000, 210000, 92500, 240000]
+    year = np.frombuffer(base64.b64decode(d["year"]), dtype="<f4")
+    assert [int(y) for y in year] == [2023, 2024, 2024, 2025] and 2023.19 < year[0] < 2023.21  # 14 March
+    valid = np.frombuffer(base64.b64decode(d["valid"]), dtype="i1").tolist()
+    assert valid == [-1] * 4  # no valid sale field or rule: unknown

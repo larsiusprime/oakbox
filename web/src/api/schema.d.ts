@@ -2902,6 +2902,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/map/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Sales
+         * @description Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say).
+         */
+        get: operations["map_sales_api_projects__project_id__map_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/engines": {
         parameters: {
             query?: never;
@@ -6320,6 +6340,12 @@ export interface components {
              * @default []
              */
             fields: components["schemas"]["MapField"][];
+            /**
+             * Sales
+             * @description What the 💰 Sales Record can colour by: price, year, valid, vacant (as it has them).
+             * @default []
+             */
+            sales: string[];
         };
         /** MapPoint */
         MapPoint: {
@@ -6335,6 +6361,70 @@ export interface components {
             value: number;
             /** Trimmed */
             trimmed: boolean;
+        };
+        /**
+         * MapSales
+         * @description Each sale of the main sales file, at its parcel (a sale has no place of its own): base64 arrays, one entry a
+         *     sale, in the file's order.
+         */
+        MapSales: {
+            /** Sales */
+            sales: number;
+            /**
+             * Placed
+             * @description Sales whose parcel is in the 🌐 Parcel Universe: the ones on the map.
+             */
+            placed: number;
+            /**
+             * Parcel
+             * @description int32: the parcel's index in the universe's order, -1 none.
+             */
+            parcel: string;
+            /**
+             * Price
+             * @description float32, NaN blank.
+             */
+            price: string;
+            /**
+             * Year
+             * @description float32: the sale date as a year and its fraction (2023.5 mid-2023), NaN blank.
+             */
+            year: string;
+            /**
+             * Valid
+             * @description int8: 1 valid, 0 not, -1 unknown.
+             */
+            valid: string;
+            /**
+             * Vacant
+             * @description int8: 1 vacant, 0 not, -1 unknown.
+             */
+            vacant: string;
+            /**
+             * Price Quantiles
+             * @default []
+             */
+            price_quantiles: number[];
+            /**
+             * Price Auto
+             * @default []
+             */
+            price_auto: number[];
+            /**
+             * Year Quantiles
+             * @default []
+             */
+            year_quantiles: number[];
+            /**
+             * Year Auto
+             * @default []
+             */
+            year_auto: number[];
+            /**
+             * Has
+             * @description Which of price, year, valid, vacant the sales file has.
+             */
+            has: string[];
         };
         /**
          * MapView
@@ -17030,6 +17120,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapColumn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_sales_api_projects__project_id__map_sales_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapSales"];
                 };
             };
             /** @description Validation Error */

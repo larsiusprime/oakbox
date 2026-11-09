@@ -40,3 +40,10 @@ def map_column(project_id: str, field: str) -> mapdata.MapColumn:
     """A field's value for each parcel (field: file:column, from the map's field list)."""
     project = load_project(project_id)
     return mapdata.column(project, projects.inputs_dir(project_id), field)
+
+
+@router.get("/api/projects/{project_id}/map/sales")
+def map_sales(project_id: str) -> mapdata.MapSales:
+    """Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say)."""
+    project = load_project(project_id)
+    return mapdata.sales(project, projects.inputs_dir(project_id))
