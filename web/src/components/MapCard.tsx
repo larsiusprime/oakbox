@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
-import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { CloseButton } from "./Buttons";
 import { Disclose } from "./Disclose";
@@ -29,12 +28,15 @@ export function MapCard({
   projectId,
   index,
   stepOf,
+  onGo,
   onClose,
 }: {
   projectId: string;
   index: number;
   /** The Data step that sets a field (its link), or null. */
   stepOf: (field: string) => string | null;
+  /** A link followed: the main window goes to the step (from a popped-out map, it's asked to). */
+  onGo: (step: string) => void;
   onClose: () => void;
 }) {
   const q = useQuery({
@@ -57,7 +59,7 @@ export function MapCard({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   const c: Card | undefined = q.data;
-  const go = (step: string) => navigate({ name: "project", id: projectId, tab: "fields", step });
+  const go = onGo;
   const loaded = c?.fields.filter((f) => f.field) ?? [];
   const others = c?.fields.filter((f) => !f.field) ?? [];
   const several = c ? Object.entries(c.rows).filter(([, n]) => n > 1) : [];

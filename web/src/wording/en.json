@@ -3119,7 +3119,8 @@
     "whereKept": "Where projects are kept…",
     "settings": "Settings",
     "map": "Map",
-    "mapTip": "Show or hide the map (Ctrl+M)"
+    "mapTip": "Show or hide the map (Ctrl+M)",
+    "mapOut": "Map (popped out)"
   },
   "project": {
     "title": "{name} – OAK box",
@@ -3362,6 +3363,14 @@
       "vacant": "vacant",
       "differs": "The sale''s value differs from the parcel''s",
       "toAsSold": "Sales record fields ›"
-    }
+    },
+    "full": "Full size",
+    "unfull": "Back to docked",
+    "fullTip": "The map over the whole window (the page behind it); this button docks it again.",
+    "unfullTip": "Dock the map again, beside the page.",
+    "popOut": "Pop out",
+    "popOutTip": "The map in a window of its own (on another screen, say); it still follows the step you''re on here. Closing that window docks it back.",
+    "dockBack": "Dock back",
+    "alone": "OAK box map"
   }
 }

@@ -64,7 +64,7 @@ function MapButton() {
   return (
     <Tip text={n.mapTip}>
       <Button className={`plate-map ${d.open ? "on" : ""}`} aria-pressed={d.open} onPress={toggleMap}>
-        <span aria-hidden="true">🗺</span> {n.map}
+        <span aria-hidden="true">🗺</span> {d.out ? n.mapOut : n.map}
       </Button>
     </Tip>
   );

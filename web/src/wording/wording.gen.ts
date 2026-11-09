@@ -2481,6 +2481,7 @@ export type Wording = {
     settings: string;
     map: string;
     mapTip: string;
+    mapOut: string;
   };
   project: {
     title: (a: { name: string | number }) => string;
@@ -2724,5 +2725,13 @@ export type Wording = {
       differs: string;
       toAsSold: string;
     };
+    full: string;
+    unfull: string;
+    fullTip: string;
+    unfullTip: string;
+    popOut: string;
+    popOutTip: string;
+    dockBack: string;
+    alone: string;
   };
 };

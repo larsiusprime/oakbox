@@ -6,6 +6,7 @@
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Header, ListBoxItem, ListBoxSection } from "react-aria-components";
@@ -19,8 +20,23 @@ import {
   unwrap,
   type Wizard,
 } from "../api/client";
+import { desktop } from "../desktop";
 import { pct } from "../lib/format";
-import { type Dock, MAX, MIN, type Side, setDock, sideFor, toggleMap, useDock } from "../lib/mapdock";
+import {
+  askGo,
+  type Dock,
+  MAX,
+  MIN,
+  onGo,
+  publishWhere,
+  type Side,
+  setDock,
+  sideFor,
+  toggleMap,
+  useDock,
+  useWhere,
+} from "../lib/mapdock";
+import { navigate } from "../lib/route";
 import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { t } from "../wording";
@@ -84,14 +100,15 @@ export function MapWindow({
   // The page makes room for it: the content's padding on its side (styles.css, html[data-map]).
   useEffect(() => {
     const root = document.documentElement;
-    if (!d.open) return;
-    root.dataset.map = side;
     root.style.setProperty("--map-frac", String(d.size));
     root.style.setProperty("--lid-bottom", `${lid}px`);
+    // Full size, it covers the page; popped out, it isn't here: the page keeps its room.
+    if (!d.open || d.out || d.full) return;
+    root.dataset.map = side;
     return () => {
       delete root.dataset.map;
     };
-  }, [d.open, side, d.size, lid]);
+  }, [d.open, d.out, d.full, side, d.size, lid]);
   // Ctrl+M opens and closes it (the 🗺 Map button on the plate too).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -103,11 +120,76 @@ export function MapWindow({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  if (!d.open) return null;
+  // Where this window is, for the map popped out to follow; and its card's links, followed here.
+  useEffect(() => {
+    publishWhere({ projectId, tab, step });
+  }, [projectId, tab, step]);
+  useEffect(
+    () =>
+      onGo((x) => {
+        if (x.projectId === projectId && x.step)
+          navigate({ name: "project", id: projectId, tab: "fields", step: x.step });
+      }),
+    [projectId],
+  );
+  // The popped-out window closed (the desktop app says so): the map docks back.
+  useEffect(() => {
+    const back = () => setDock({ out: false });
+    window.addEventListener("oak-map-closed", back);
+    return () => window.removeEventListener("oak-map-closed", back);
+  }, []);
+  if (!d.open || d.out) return null;
+  const go = (s: string) => navigate({ name: "project", id: projectId, tab: "fields", step: s });
   return (
-    <aside className={`mapwin mapwin-${side}`} aria-label={w.label}>
-      <Divider side={side} size={d.size} />
-      <MapPanel projectId={projectId} dock={d} side={side} narrow={side !== d.side} tab={tab} step={step} />
+    <aside className={`mapwin mapwin-${d.full ? "full" : side}`} aria-label={w.label}>
+      {!d.full && <Divider side={side} size={d.size} />}
+      <MapPanel
+        projectId={projectId}
+        dock={d}
+        side={side}
+        narrow={side !== d.side}
+        mode={d.full ? "full" : "docked"}
+        tab={tab}
+        step={step}
+        onGo={go}
+      />
+    </aside>
+  );
+}
+
+/** The map popped out (#/map/<project>): the whole window, following the main window's step; its card's links go
+ * there. Docked back from either window, this one closes. */
+export function MapAlone({ projectId }: { projectId: string }) {
+  const d = useDock();
+  const here = useWhere();
+  const mine = here?.projectId === projectId ? here : null;
+  // Docked back (here, or from the main window): this window goes.
+  const wasOut = useRef(false);
+  useEffect(() => {
+    if (d.out) wasOut.current = true;
+    else if (wasOut.current) desktop.closeMap();
+  }, [d.out]);
+  // This window closed: the map docks back in the main one.
+  useEffect(() => {
+    const gone = () => setDock({ out: false });
+    window.addEventListener("pagehide", gone);
+    return () => window.removeEventListener("pagehide", gone);
+  }, []);
+  useEffect(() => {
+    document.title = w.alone;
+  }, []);
+  return (
+    <aside className="mapwin mapwin-alone" aria-label={w.label}>
+      <MapPanel
+        projectId={projectId}
+        dock={d}
+        side={d.side}
+        narrow
+        mode="alone"
+        tab={mine?.tab ?? null}
+        step={mine?.step ?? null}
+        onGo={(s) => askGo({ projectId, tab: "fields", step: s })}
+      />
     </aside>
   );
 }
@@ -192,16 +274,25 @@ function MapPanel({
   dock,
   side,
   narrow,
+  mode,
   tab,
   step,
+  onGo,
 }: {
   projectId: string;
   dock: Dock;
   side: Side;
   narrow: boolean;
+  /** Docked on a side, full size in the main window, or alone in a window of its own. */
+  mode: "docked" | "full" | "alone";
   tab: string | null;
   step: string | null;
+  onGo: (step: string) => void;
 }) {
+  const popOut = () => {
+    const url = `${window.location.origin}${window.location.pathname}#/map/${projectId}`;
+    if (desktop.openMap(url, w.alone)) setDock({ out: true, full: false });
+  };
   const info = useQuery({
     queryKey: ["map", projectId],
     queryFn: async () =>
@@ -290,7 +381,8 @@ function MapPanel({
           </Button>
         </Tip>
         <span className="mapwin-tools">
-          {!narrow &&
+          {mode === "docked" &&
+            !narrow &&
             SIDES.map((s) => (
               <Button
                 key={s}
@@ -302,7 +394,37 @@ function MapPanel({
                 <span className={`mapwin-glyph mapwin-glyph-${s}`} aria-hidden="true" />
               </Button>
             ))}
-          <CloseButton label={w.close} onPress={() => setDock({ open: false })} />
+          {mode !== "alone" && (
+            <Tip text={mode === "full" ? w.unfullTip : w.fullTip}>
+              <Button
+                className={`mapwin-side ${mode === "full" ? "on" : ""}`}
+                aria-label={mode === "full" ? w.unfull : w.full}
+                aria-pressed={mode === "full"}
+                onPress={() => setDock({ full: mode !== "full" })}
+              >
+                {mode === "full" ? (
+                  <Minimize2 aria-hidden="true" size="0.95em" />
+                ) : (
+                  <Maximize2 aria-hidden="true" size="0.95em" />
+                )}
+              </Button>
+            </Tip>
+          )}
+          {mode === "alone" ? (
+            <Button className="button button-small" onPress={() => setDock({ out: false, open: true })}>
+              {w.dockBack}
+            </Button>
+          ) : (
+            <Tip text={w.popOutTip}>
+              <Button className="mapwin-side" aria-label={w.popOut} onPress={popOut}>
+                <ExternalLink aria-hidden="true" size="0.95em" />
+              </Button>
+            </Tip>
+          )}
+          <CloseButton
+            label={w.close}
+            onPress={() => setDock(mode === "alone" ? { open: false, out: false } : { open: false })}
+          />
         </span>
       </header>
       {info.error ? (
@@ -324,6 +446,7 @@ function MapPanel({
           wizardStamp={stamp}
           unplaced={probs?.unplaced ?? 0}
           stepOf={stepOf}
+          onGo={onGo}
           side={side}
           size={dock.size}
         />
@@ -504,6 +627,7 @@ function MapBody({
   wizardStamp,
   unplaced,
   stepOf,
+  onGo,
   side,
   size,
 }: {
@@ -516,6 +640,7 @@ function MapBody({
   /** Sales whose parcel isn't in the universe: said, as they can't be shown. */
   unplaced: number;
   stepOf: (field: string) => string | null;
+  onGo: (step: string) => void;
   side: Side;
   size: number;
 }) {
@@ -695,7 +820,13 @@ function MapBody({
         tooltip={tooltip}
       />
       {picked !== null && (
-        <MapCard projectId={projectId} index={picked} stepOf={stepOf} onClose={() => setPicked(null)} />
+        <MapCard
+          projectId={projectId}
+          index={picked}
+          stepOf={stepOf}
+          onGo={onGo}
+          onClose={() => setPicked(null)}
+        />
       )}
       <div className="mapwin-legend">
         {prId ? (

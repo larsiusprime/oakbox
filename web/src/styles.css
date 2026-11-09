@@ -6363,6 +6363,18 @@ html[data-map="top"] .oak-nav {
 .mapwin-top {
   top: var(--lid-bottom, 0px);
 }
+/* Full size: everything inside the frame, under the lid. */
+.mapwin-full {
+  top: var(--lid-bottom, 0px);
+  left: var(--rim);
+  right: var(--rim);
+  bottom: var(--rim);
+}
+/* Popped out: the whole of its own window. */
+.mapwin-alone {
+  inset: 0;
+  z-index: 10;
+}
 .mapwin-bottom {
   bottom: var(--rim);
 }

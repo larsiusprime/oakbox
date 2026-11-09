@@ -7,6 +7,8 @@ type DesktopApi = {
   set_context?: (title: string, projectId: string | null) => Promise<void>;
   menu_key?: (key: string) => Promise<void>;
   view_url?: (url: string, title: string) => Promise<void>;
+  open_map?: (url: string, title: string) => Promise<void>;
+  close_map?: () => Promise<void>;
 };
 
 declare global {
@@ -37,6 +39,22 @@ export const desktop = {
       const w = window.open(url, "oakbox-viewer");
       if (w) w.opener = null;
     }
+  },
+  /** The map window popped out (SPEC §3.15): a desktop window of its own; in a browser, a popup window. False when
+   * the browser blocked it. */
+  openMap: (url: string, title: string): boolean => {
+    const api = window.pywebview?.api;
+    if (api?.open_map) {
+      void api.open_map(url, title);
+      return true;
+    }
+    return !!window.open(url, "oakbox-map", "popup,width=1100,height=800");
+  },
+  /** The popped-out map's window closes itself (docked back). */
+  closeMap: () => {
+    const api = window.pywebview?.api;
+    if (api?.close_map) void api.close_map();
+    else window.close();
   },
 };
 

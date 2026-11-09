@@ -409,8 +409,17 @@ the step that sets it; a file with several rows says so, the first shown), its f
 💰 sales, the latest first: date, price, valid or not, and each sale's own values beside the parcel's (as Sales record
 fields compares them; a difference in red, ≠). Esc or ✕ closes it; clicking never changes the step. A row is read
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
-opening a few seconds (the sales' comparison, shared with the problems). Still to come: popping out, the results layers
-and the card's group, value and ratio.
+opening a few seconds (the sales' comparison, shared with the problems).
+
+Then **full size and popping out** (2026-11-09). Full size (⤢): the map over the whole main window inside the frame,
+under the lid, the page behind it; the same button (⤡) docks it again. Pop out (⧉): the map moves to a window of its own
+(#/map/<project>: a desktop window, pywebview's, reused; in a browser, a popup), the main window shows none and its 🗺
+Map says "Map (popped out)" (pressing it docks it back). Closing that window, or its Dock back, docks it back where it
+was. The windows keep in step through the computer's storage (its `storage` event reaches every window of the app,
+in a browser and in the desktop app's web view alike): the dock itself, where the main window is (the popped-out map
+follows its step), and the card's links (the main window goes there). The desktop app also tells the main window when
+the popped-out one closes. Tested in a browser; on Windows (WebView2) and Linux (Qt) still to confirm. Still to come:
+the results layers and the card's group, value and ratio.
 
 **The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
 control. Model groups' and Outliers' maps stay, with Open in map. The values and final maps become layers, with Open in
