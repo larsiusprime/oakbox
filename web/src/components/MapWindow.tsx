@@ -21,11 +21,12 @@ import {
 } from "../api/client";
 import { pct } from "../lib/format";
 import { type Dock, MAX, MIN, type Side, setDock, sideFor, toggleMap, useDock } from "../lib/mapdock";
-import { readShapes, toBinary } from "../lib/shapes";
+import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { t } from "../wording";
 import { CloseButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
+import { MapCard } from "./MapCard";
 import { type Bounds, MapView, rgba } from "./MapView";
 import { Tip } from "./Tip";
 import { Waiting } from "./Waiting";
@@ -238,6 +239,15 @@ function MapPanel({
     meta: { quiet: true },
   });
   const probs = problems.data;
+  // The step that sets each field: the card's links.
+  const steps = wizard.data?.steps;
+  const locations = wizard.data?.locations;
+  const stepOf = useCallback(
+    (field: string) =>
+      steps?.find((s) => s.fields.includes(field))?.key ??
+      (locations?.some((l) => l.name === field) ? "location" : null),
+    [steps, locations],
+  );
   const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs) : null;
   const following = dock.follow && target !== null;
   // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
@@ -313,6 +323,7 @@ function MapPanel({
           label={field?.label ?? ""}
           wizardStamp={stamp}
           unplaced={probs?.unplaced ?? 0}
+          stepOf={stepOf}
           side={side}
           size={dock.size}
         />
@@ -492,6 +503,7 @@ function MapBody({
   label,
   wizardStamp,
   unplaced,
+  stepOf,
   side,
   size,
 }: {
@@ -503,6 +515,7 @@ function MapBody({
   wizardStamp: number;
   /** Sales whose parcel isn't in the universe: said, as they can't be shown. */
   unplaced: number;
+  stepOf: (field: string) => string | null;
   side: Side;
   size: number;
 }) {
@@ -552,6 +565,10 @@ function MapBody({
   const prPaint = useMemo(() => (prId && prob.data ? problemPainter(prob.data) : null), [prId, prob.data]);
   const onSales = prob.data?.on === "sr";
   const [plan, setPlan] = useState<Plan | null>(null);
+  // The parcel picked (a parcel, or a sale's dot): its card, and its outline.
+  const [picked, setPicked] = useState<number | null>(null);
+  const mapNow = useRef<maplibregl.Map | null>(null);
+  const zoomTo = useCallback((b: Bounds) => mapNow.current?.fitBounds(b, { padding: 24, maxZoom: 17 }), []);
   const shapes = useQuery({
     queryKey: ["map-shapes", projectId, info.stamp],
     queryFn: async () => readShapes(await bin(`${base}/shapes`)),
@@ -584,6 +601,7 @@ function MapBody({
   }, [plan]);
   const lookNow = useRef<(() => void) | null>(null);
   const watch = useCallback((m: maplibregl.Map | null) => {
+    mapNow.current = m;
     if (!m) {
       lookNow.current = null;
       return;
@@ -636,13 +654,17 @@ function MapBody({
           getLineColor: (f) => (paint.has(parcelOf(f)) ? [255, 255, 255, 200] : BLANK_LINE),
           getLineWidth: 0.5,
           updateTriggers: { getFillColor: paint, getLineColor: paint },
+          onClick: ({ index }) => {
+            if (index >= 0) setPicked(index);
+          },
         }),
-        ...(srPaint && sold ? [dotsLayer(xy, sold, plan.ids, srPaint)] : []),
+        ...(picked !== null ? [outlineLayer(shapes.data, picked)] : []),
+        ...(srPaint && sold ? [dotsLayer(xy, sold, plan.ids, srPaint, setPicked)] : []),
       ];
     }
     const level = plan.kind === "cells" ? plan.level : levelFor(plan.box.mpp);
-    return cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined);
-  }, [xy, plan, shapes.data, paint, srPaint, sold]);
+    return cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined, zoomTo);
+  }, [xy, plan, shapes.data, paint, srPaint, sold, picked, zoomTo]);
 
   const bounds = (info.bounds as Bounds | null | undefined) ?? null;
   const tooltip = useCallback(
@@ -672,6 +694,9 @@ function MapBody({
         onMap={watch}
         tooltip={tooltip}
       />
+      {picked !== null && (
+        <MapCard projectId={projectId} index={picked} stepOf={stepOf} onClose={() => setPicked(null)} />
+      )}
       <div className="mapwin-legend">
         {prId ? (
           prob.isPending || (onSales && sales.isPending) ? (
@@ -898,7 +923,14 @@ type Cell = {
 
 /** The parcels in the box, in cells of `level` metres: a cell's colour is its parcels' average place on the ramp
  * (numbers) or their most common category. */
-function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, sold?: Sold): Layer[] {
+function cellsLayer(
+  xy: Float32Array,
+  box: View,
+  level: number,
+  paint: Paint,
+  sold: Sold | undefined,
+  onCell: (b: Bounds) => void,
+): Layer[] {
   const lat0 = (((box.s + box.n) / 2) * Math.PI) / 180;
   const dx = level / (111_320 * Math.cos(lat0));
   const dy = level / 110_540;
@@ -978,6 +1010,11 @@ function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, so
       pickable: true,
       getPolygon: (c) => c.polygon,
       getFillColor: (c) => c.fill,
+      // A cell clicked: zoomed to, toward its parcels.
+      onClick: ({ object }) => {
+        const p = (object as Cell | undefined)?.polygon;
+        if (p?.[0] && p[2]) onCell([p[0], p[2]]);
+      },
     }),
   ];
   // Hot spots: cells with more than twice the county's share of the problem (and enough to say so), outlined.
@@ -1135,7 +1172,13 @@ function saleText(d: Sold, k: number): string {
 type Dot = { sale: number; position: [number, number] };
 
 /** The sales on the parcels drawn, as dots at their parcels' centres: the latest on top. */
-function dotsLayer(xy: Float32Array, d: Sold, ids: number[], paint: Paint): Layer {
+function dotsLayer(
+  xy: Float32Array,
+  d: Sold,
+  ids: number[],
+  paint: Paint,
+  onPick: (parcel: number) => void,
+): Layer {
   const shown = new Set(ids);
   const dots: Dot[] = [];
   for (let k = 0; k < d.n; k++) {
@@ -1156,5 +1199,22 @@ function dotsLayer(xy: Float32Array, d: Sold, ids: number[], paint: Paint): Laye
     getPosition: (o) => o.position,
     getFillColor: (o) => paint.fill(o.sale),
     updateTriggers: { getFillColor: paint },
+    onClick: ({ object }) => {
+      const p = object ? (d.parcel[(object as Dot).sale] ?? -1) : -1;
+      if (p >= 0) onPick(p);
+    },
+  });
+}
+
+/** The parcel picked, outlined. */
+function outlineLayer(sh: Shapes, parcel: number): Layer {
+  return new GeoJsonLayer({
+    id: "picked",
+    data: toBinary(sh, [parcel]) as never,
+    stroked: true,
+    filled: false,
+    lineWidthUnits: "pixels",
+    getLineColor: [17, 17, 17, 255],
+    getLineWidth: 3,
   });
 }

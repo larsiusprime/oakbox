@@ -46,7 +46,7 @@ def map_column(project_id: str, field: str) -> mapdata.MapColumn:
 def map_sales(project_id: str) -> mapdata.MapSales:
     """Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say)."""
     project = load_project(project_id)
-    return mapdata.sales(project, projects.inputs_dir(project_id))
+    return mapdata.sales_kept(project, projects.inputs_dir(project_id))
 
 
 @router.get("/api/projects/{project_id}/map/problems")
@@ -62,3 +62,10 @@ def map_problem(project_id: str, id: str) -> mapdata.MapProblem:  # noqa: A002 -
     """Which parcels (or sales) have one problem."""
     project = load_project(project_id)
     return mapdata.problem(project, projects.inputs_dir(project_id), id)
+
+
+@router.get("/api/projects/{project_id}/map/parcel/{index}")
+def map_parcel(project_id: str, index: int) -> mapdata.ParcelCard:
+    """One parcel's card: its fields as each parcel file has it, and its sales beside it."""
+    project = load_project(project_id)
+    return mapdata.card(project, projects.inputs_dir(project_id), index)

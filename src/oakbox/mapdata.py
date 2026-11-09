@@ -505,7 +505,6 @@ def _id_flags(project: Project, in_dir: Path):
 
 @lru_cache(maxsize=8)
 def _problems(project_json: str, in_dir: str, stamps: tuple) -> MapProblems:
-    from oakbox.wizard import as_sold
     from oakbox.wizard.files import sales_file
 
     project = Project.model_validate_json(project_json)
@@ -526,7 +525,7 @@ def _problems(project_json: str, in_dir: str, stamps: tuple) -> MapProblems:
             base = project.base_file()
             known = set(files.ids(base.name, "key")) if base else set()
             unplaced = sum(1 for k in files.parcel_ids(entry.name) if not k or k not in known)
-            for r in as_sold.view(project, folder).rows:
+            for r in _as_sold_rows(project_json, in_dir, stamps):
                 # Written differently (Guilford's grade codes against scores): not a difference, the step says so.
                 if r.column and r.compared and r.compared > r.same and not r.written_differently:
                     items.append(
@@ -579,3 +578,220 @@ def _problem(project_json: str, folder: str, stamps: tuple, problem_id: str) -> 
         a = np.array(flags, dtype="i1")
         return MapProblem(id=problem_id, on="sr", flags=_b64(a), count=int((a == 1).sum()), of=int((a >= 0).sum()))
     raise NotFound(problem_id)
+
+
+# ---------- A parcel's card ----------
+
+UNIT_WORDS = {"sqft": "sq ft", "sqm": "m²", "acres": "acres", "hectares": "ha", "sqyd": "sq yd"}
+
+
+class CardValue(BaseModel):
+    label: str
+    value: str
+    field: str | None = Field(description="The field it's loaded as (its step links there); None: another column.")
+    file: str
+    column: str
+
+
+class CardCompare(BaseModel):
+    field: str
+    label: str
+    sold: str = Field(description="The sale's own value, as the 💰 Sales Record writes it.")
+    today: str = Field(description="The parcel's, in the 🌐 Parcel Universe.")
+    differs: bool
+    written_differently: bool = Field(description="The two are written differently (codes against scores).")
+
+
+class CardSale(BaseModel):
+    row: int = Field(description="Its row in the sales file (0 the first).")
+    date: str = Field(description="YYYY-MM-DD, or as written if it doesn't read as a date.")
+    price: str
+    valid: int = Field(description="1 valid, 0 not, -1 unknown.")
+    vacant: int
+    compared: list[CardCompare]
+
+
+class ParcelCard(BaseModel):
+    index: int
+    key: str
+    fields: list[CardValue] = Field(description="Its fields first (the Big five first), then the files' other columns.")
+    rows: dict[str, int] = Field(description="Rows each parcel file has for it (a building file: one a building).")
+    sales: list[CardSale] = Field(description="Its sales, the latest first.")
+
+
+@lru_cache(maxsize=4)
+def _sales_cached(project_json: str, in_dir: str, stamps: tuple) -> MapSales:
+    return sales(Project.model_validate_json(project_json), Path(in_dir))
+
+
+def sales_kept(project: Project, in_dir: Path) -> MapSales:
+    """sales(), kept until the project or its files change (a parcel's card reads its sales' flags from it)."""
+    return _sales_cached(project.model_dump_json(), str(in_dir), _stamps(project, in_dir))
+
+
+@lru_cache(maxsize=4)
+def _as_sold_rows(project_json: str, in_dir: str, stamps: tuple):
+    from oakbox.wizard import as_sold
+
+    return as_sold.view(Project.model_validate_json(project_json), Path(in_dir)).rows
+
+
+@lru_cache(maxsize=256)
+def _row(stamp: tuple[str, float, int], layer: str | None, row: int) -> dict[str, str]:
+    """One row of a file, every column as text (blank ""): read alone, not column by column (a parcel file has
+    hundreds). From its Parquet copy (or itself), only the row group holding it; a GeoPackage or shapefile, the one
+    feature."""
+    import pandas as pd
+
+    from oakbox import readcache
+    from oakbox.datafiles import csv_encoding
+
+    path = Path(stamp[0])
+    ext = path.suffix.lower().lstrip(".")
+    source = readcache.ready(path) if ext == "csv" else path if ext in ("parquet", "geoparquet") else None
+    if source is not None:
+        import pyarrow.parquet as pq
+
+        pf = pq.ParquetFile(source)
+        names = [n for n in pf.schema_arrow.names if n != "geometry"]
+        start = 0
+        for g in range(pf.num_row_groups):
+            size = pf.metadata.row_group(g).num_rows
+            if row < start + size:
+                df = pf.read_row_group(g, columns=names).slice(row - start, 1).to_pandas()
+                break
+            start += size
+        else:
+            return {}
+    elif ext == "csv":
+        df = pd.read_csv(
+            path,
+            skiprows=list(range(1, row + 1)),
+            nrows=1,
+            dtype=str,
+            keep_default_na=False,
+            encoding=csv_encoding(path),
+        )
+    else:
+        import pyogrio
+
+        df = pyogrio.read_dataframe(path, layer=layer, skip_features=row, max_features=1, read_geometry=False)
+    if df.empty:
+        return {}
+    out = {}
+    for c, v in df.iloc[0].items():
+        out[str(c)] = "" if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v).strip()
+    return out
+
+
+@lru_cache(maxsize=16)
+def _rows_by_parcel(stamp: tuple, ids: tuple[str, ...]) -> dict[str, list[int]]:
+    out: dict[str, list[int]] = {}
+    for i, k in enumerate(ids):
+        if k:
+            out.setdefault(k, []).append(i)
+    return out
+
+
+def card(project: Project, in_dir: Path, index: int) -> ParcelCard:
+    """One parcel, as each file has it, and its sales with their own values beside the parcel's (SPEC §3.15)."""
+    import numpy as np
+
+    from oakbox.datafiles import AREA_FIELDS, SQFT_PER
+    from oakbox.dates import date_format_of, iso_day
+    from oakbox.wizard.as_sold import _numeric, _same
+    from oakbox.wizard.files import sales_file
+
+    files = Files(project, in_dir)
+    base = project.base_file()
+    if base is None:
+        raise NotFound("parcel")
+    universe = files.ids(base.name, "key")
+    if not 0 <= index < len(universe):
+        raise NotFound(f"parcel {index}")
+    key = universe[index]
+    names = {k: d.name for k, d in dictionary_by_key().items()}
+    rank = {k: i for i, k in enumerate(BIG_FIVE)}
+    loaded: list[tuple[tuple, CardValue]] = []
+    others: list[CardValue] = []
+    rows: dict[str, int] = {}
+    today: dict[str, str] = {}  # field -> the parcel's value, for its sales
+    for f in project.files:
+        if f.holds != "parcels" or f.name not in files.preview:
+            continue
+        stamp = file_stamp(in_dir / f.filename)
+        if f.name == base.name:
+            mine = [index]
+        else:
+            ids = tuple(files.parcel_ids(f.name))
+            mine = _rows_by_parcel(stamp, ids).get(key, []) if key else []
+        rows[f.name] = len(mine)
+        if not mine:
+            continue
+        values = _row(stamp, f.layer, mine[0])
+        by_column = {spec[0]: k for k, spec in f.load.items() if spec}
+        for c in files.columns(f.name):
+            if c.name == "geometry":
+                continue
+            k = by_column.get(c.name)
+            if k is not None and (k == "key" or k.startswith("key")):
+                continue
+            v = values.get(c.name, "")
+            if k:
+                today.setdefault(k, v)
+                unit = f.area_units.get(k, "sqft") if k in AREA_FIELDS else None
+                shown = f"{v} {UNIT_WORDS.get(unit, unit)}" if v and unit else v
+                item = CardValue(label=names.get(k, k), value=shown, field=k, file=f.name, column=c.name)
+                loaded.append(((rank.get(k, len(rank)), item.label.lower()), item))
+            elif v:
+                others.append(CardValue(label=c.name, value=v, field=None, file=f.name, column=c.name))
+    loaded.sort(key=lambda x: x[0])
+    out_sales: list[CardSale] = []
+    entry = sales_file(project)
+    if entry is not None and key and entry.name in files.preview:
+        stamps = _stamps(project, in_dir)
+        pj = project.model_dump_json()
+        stamp = file_stamp(in_dir / entry.filename)
+        mine = _rows_by_parcel(stamp, tuple(files.parcel_ids(entry.name))).get(key, [])
+        d = _sales_cached(pj, str(in_dir), stamps) if mine else None
+        valid = np.frombuffer(base64.b64decode(d.valid), dtype="i1") if d else None
+        vacant = np.frombuffer(base64.b64decode(d.vacant), dtype="i1") if d else None
+        compare_rows = [r for r in _as_sold_rows(pj, str(in_dir), stamps) if r.column] if mine else []
+        date_col = (entry.load.get("sale_date") or [""])[0]
+        price_col = (entry.load.get("sale_price") or [""])[0]
+        date_fmt = date_format_of(files, entry, date_col) if date_col else None
+        for i in mine:
+            date = values_of(stamp, entry.layer, date_col)[i] if date_col else ""
+            if date:
+                date = iso_day(date, date_fmt)
+            price = values_of(stamp, entry.layer, price_col)[i] if price_col else ""
+            compared = []
+            for r in compare_rows:
+                sold = values_of(stamp, entry.layer, r.column)[i]
+                now = today.get(r.key, "")
+                if not sold or not now:
+                    continue
+                unit, today_unit = r.unit, r.today_unit
+                factor = SQFT_PER[unit] / SQFT_PER[today_unit] if unit and today_unit else 1.0
+                compared.append(
+                    CardCompare(
+                        field=r.key,
+                        label=r.name,
+                        sold=f"{sold} {UNIT_WORDS.get(unit, unit)}" if unit else sold,
+                        today=f"{now} {UNIT_WORDS.get(today_unit, today_unit)}" if today_unit else now,
+                        differs=not _same(sold, now, _numeric(r.key), factor),
+                        written_differently=r.written_differently,
+                    )
+                )
+            out_sales.append(
+                CardSale(
+                    row=i,
+                    date=date,
+                    price=price,
+                    valid=int(valid[i]) if valid is not None else -1,
+                    vacant=int(vacant[i]) if vacant is not None else -1,
+                    compared=compared,
+                )
+            )
+        out_sales.sort(key=lambda s: s.date, reverse=True)
+    return ParcelCard(index=index, key=key, fields=[x for _, x in loaded] + others, rows=rows, sales=out_sales)

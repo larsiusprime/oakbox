@@ -2963,6 +2963,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/map/parcel/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Parcel
+         * @description One parcel's card: its fields as each parcel file has it, and its sales beside it.
+         */
+        get: operations["map_parcel_api_projects__project_id__map_parcel__index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/engines": {
         parameters: {
             query?: never;
@@ -3546,6 +3566,70 @@ export interface components {
             warn: boolean;
             /** Loaded As */
             loaded_as: ("number" | "category") | null;
+        };
+        /** CardCompare */
+        CardCompare: {
+            /** Field */
+            field: string;
+            /** Label */
+            label: string;
+            /**
+             * Sold
+             * @description The sale's own value, as the 💰 Sales Record writes it.
+             */
+            sold: string;
+            /**
+             * Today
+             * @description The parcel's, in the 🌐 Parcel Universe.
+             */
+            today: string;
+            /** Differs */
+            differs: boolean;
+            /**
+             * Written Differently
+             * @description The two are written differently (codes against scores).
+             */
+            written_differently: boolean;
+        };
+        /** CardSale */
+        CardSale: {
+            /**
+             * Row
+             * @description Its row in the sales file (0 the first).
+             */
+            row: number;
+            /**
+             * Date
+             * @description YYYY-MM-DD, or as written if it doesn't read as a date.
+             */
+            date: string;
+            /** Price */
+            price: string;
+            /**
+             * Valid
+             * @description 1 valid, 0 not, -1 unknown.
+             */
+            valid: number;
+            /** Vacant */
+            vacant: number;
+            /** Compared */
+            compared: components["schemas"]["CardCompare"][];
+        };
+        /** CardValue */
+        CardValue: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+            /**
+             * Field
+             * @description The field it's loaded as (its step links there); None: another column.
+             */
+            field: string | null;
+            /** File */
+            file: string;
+            /** Column */
+            column: string;
         };
         /** CensusKey */
         CensusKey: {
@@ -8031,6 +8115,30 @@ export interface components {
              * @description Names each feature (for the top N).
              */
             name_column: string | null;
+        };
+        /** ParcelCard */
+        ParcelCard: {
+            /** Index */
+            index: number;
+            /** Key */
+            key: string;
+            /**
+             * Fields
+             * @description Its fields first (the Big five first), then the files' other columns.
+             */
+            fields: components["schemas"]["CardValue"][];
+            /**
+             * Rows
+             * @description Rows each parcel file has for it (a building file: one a building).
+             */
+            rows: {
+                [key: string]: number;
+            };
+            /**
+             * Sales
+             * @description Its sales, the latest first.
+             */
+            sales: components["schemas"]["CardSale"][];
         };
         /** ParcelField */
         ParcelField: {
@@ -17305,6 +17413,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapProblem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_parcel_api_projects__project_id__map_parcel__index__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParcelCard"];
                 };
             };
             /** @description Validation Error */

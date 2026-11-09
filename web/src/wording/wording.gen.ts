@@ -2704,5 +2704,25 @@ export type Wording = {
     prYes: string;
     prNo: string;
     unplaced: (a: { n: number }) => string;
+    card: {
+      title: (a: { key: string | number }) => string;
+      loading: string;
+      close: string;
+      pu: string;
+      noFields: string;
+      blank: string;
+      rows: (a: { file: string | number; n: number }) => string;
+      notIn: (a: { files: string | number }) => string;
+      more: (a: { n: number }) => string;
+      sr: (a: { n: number }) => string;
+      noSales: string;
+      noDate: string;
+      noPrice: string;
+      valid: string;
+      invalid: string;
+      vacant: string;
+      differs: string;
+      toAsSold: string;
+    };
   };
 };

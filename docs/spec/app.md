@@ -401,7 +401,16 @@ repeated one; 💰 sales whose value of a field differs from their parcel's, as 
 one written differently, like grade codes against scores); cells by their share of it (light to dark orange, at three
 times the county's share), **hot spots** outlined (more than twice the county's share, 30 or more). Sales whose parcel
 isn't in the universe have no place: the legend says how many. Guilford's land area: 23% of sales differ, nearly all
-in the rural parts, the cities hardly at all. Still to come: popping out, the results layers, the parcel's card.
+in the rural parts, the cities hardly at all.
+
+Then **the parcel's card** (`map/parcel/{index}`): a parcel, or a sale's dot, clicked opens it over the map, the parcel
+outlined; a cell clicked zooms to it. Its 🌐 fields as each parcel file has them (the Big five first; each a link to
+the step that sets it; a file with several rows says so, the first shown), its files' other columns folded away, and its
+💰 sales, the latest first: date, price, valid or not, and each sale's own values beside the parcel's (as Sales record
+fields compares them; a difference in red, ≠). Esc or ✕ closes it; clicking never changes the step. A row is read
+alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
+opening a few seconds (the sales' comparison, shared with the problems). Still to come: popping out, the results layers
+and the card's group, value and ratio.
 
 **The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
 control. Model groups' and Outliers' maps stay, with Open in map. The values and final maps become layers, with Open in

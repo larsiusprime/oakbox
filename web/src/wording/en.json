@@ -3342,6 +3342,26 @@
     "prCell": "{share} of them here",
     "prYes": "has it",
     "prNo": "doesn''t",
-    "unplaced": "{n, number} {n, plural, =1 {sale finds} other {sales find}} no parcel in the 🌐 Parcel Universe, so {n, plural, =1 {it has} other {they have}} no place on the map"
+    "unplaced": "{n, number} {n, plural, =1 {sale finds} other {sales find}} no parcel in the 🌐 Parcel Universe, so {n, plural, =1 {it has} other {they have}} no place on the map",
+    "card": {
+      "title": "Parcel {key}",
+      "loading": "Reading the parcel",
+      "close": "Close the card (Esc)",
+      "pu": "🌐 Parcel Universe",
+      "noFields": "No fields loaded from the parcel files yet.",
+      "blank": "blank",
+      "rows": "{file} has {n, number} rows for it: the first is shown.",
+      "notIn": "Not in {files}.",
+      "more": "Its other columns ({n, number})",
+      "sr": "💰 Sales Record: {n, number} {n, plural, =1 {sale} other {sales}}",
+      "noSales": "No sales.",
+      "noDate": "no date",
+      "noPrice": "no price",
+      "valid": "valid",
+      "invalid": "not valid",
+      "vacant": "vacant",
+      "differs": "The sale''s value differs from the parcel''s",
+      "toAsSold": "Sales record fields ›"
+    }
   }
 }

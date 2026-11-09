@@ -127,3 +127,19 @@ def test_blank_and_repeated_ids(client, pid, tmp_path):
     assert (items["pr:blank_ids"]["count"], items["pr:repeated_ids"]["count"]) == (1, 2)
     d = client.get(f"/api/projects/{pid}/map/problem", params={"id": "pr:repeated_ids"}).json()
     assert d["on"] == "pu" and np.frombuffer(base64.b64decode(d["flags"]), dtype="i1").tolist() == [0, 0, 1, 1]
+
+
+def test_a_parcels_card(client, pid):
+    start_wizard(client, pid)
+    client.put(f"/api/projects/{pid}/wizard/files/cama", json={"holds": "parcels", "id_column": "PROP_ID"})
+    _ready(client, pid)
+    c = client.get(f"/api/projects/{pid}/map/parcel/0").json()
+    assert c["index"] == 0 and c["key"]
+    assert c["rows"]["cama"] == 1
+    columns = {f["column"]: f["value"] for f in c["fields"]}
+    assert columns["LIVING_AREA"] == "1500" and columns["ZONE"] == "R1"
+    assert "PARCEL_ID" not in columns and "PROP_ID" not in columns  # its IDs are its title
+    # Its two sales, the latest first, each with its date as YYYY-MM-DD.
+    assert [s["date"] for s in c["sales"]] == ["2024-11-02", "2023-03-14"]
+    assert [s["price"] for s in c["sales"]] == ["210000", "185000"]
+    assert client.get(f"/api/projects/{pid}/map/parcel/99").status_code == 404
