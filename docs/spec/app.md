@@ -370,7 +370,13 @@ a popped-out window in 0.7 s (BroadcastChannel; its redraw the time). Panning ev
 (no GPU): about 1 frame a second, 0.3 with the sales dots; an empty map 60. So: zoomed out, the county as cells (about
 1 km, finer as it zooms) coloured by the layer's figure; at street zoom, only the parcels and sales in view (a few
 thousand), fetched from OAK box. Simplified shapes and cells made once, when the universe is set; on the machine
-check's lower tiers, cells longer and sales dots off by default. Pop-out sync on Windows (WebView2 windows sharing one
+check's lower tiers, cells longer and sales dots off by default. Tested so the same day, in software: what costs is the
+number of shapes drawn, hardly the pixels (half the window, a quarter faster). Panning the county as 474 cells: 59
+frames a second (30 at a quarter of the CPU); 6,536 cells at 250 m: 27 (19); a street view with the 4,600 parcels
+around it (the view and half its size again each side, reloaded as it pans, in 3 ms, 340 KB): 28 (20), 16 with its
+1,710 sales as dots; a neighbourhood's 13,160 parcels: 16. Rules from it: a few thousand shapes at most; finer cells
+(125 m: 49,745 for the county, 11 frames a second) only those in view; sales as dots only at street zoom, as cells'
+figures before. Pop-out sync on Windows (WebView2 windows sharing one
 engine) still to confirm; OAK box's server relays it if not.
 
 **The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
