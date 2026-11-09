@@ -171,6 +171,13 @@ class MapInfo(BaseModel):
     )
 
 
+def _short(name: str) -> str:
+    """A field's name without its unit: "Building area (finished)", not "… in square feet" (the column says which)."""
+    import re
+
+    return re.sub(r" in (square feet|square meters|square metres|acres|hectares)$", "", name)
+
+
 def _fields(project: Project, in_dir: Path) -> list[MapField]:
     files = Files(project, in_dir)
     names = {k: d.name for k, d in dictionary_by_key().items()}
@@ -187,7 +194,7 @@ def _fields(project: Project, in_dir: Path) -> list[MapField]:
             key = by_column.get(c.name)
             item = MapField(
                 id=f"{f.name}:{c.name}",
-                label=f"{names.get(key, key)} ({c.name})" if key else c.name,
+                label=f"{_short(names.get(key, key))} ({c.name})" if key else c.name,
                 file=f.name,
                 column=c.name,
                 field=key,
@@ -530,7 +537,11 @@ def _problems(project_json: str, in_dir: str, stamps: tuple) -> MapProblems:
                 if r.column and r.compared and r.compared > r.same and not r.written_differently:
                     items.append(
                         MapProblemItem(
-                            id=f"pr:differs:{r.key}", label=r.name, on="sr", count=r.compared - r.same, of=r.compared
+                            id=f"pr:differs:{r.key}",
+                            label=_short(r.name),
+                            on="sr",
+                            count=r.compared - r.same,
+                            of=r.compared,
                         )
                     )
     return MapProblems(items=items, unplaced=unplaced)

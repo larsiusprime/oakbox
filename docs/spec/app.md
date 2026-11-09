@@ -410,7 +410,11 @@ the step that sets it; a file with several rows says so, the first shown), its f
 fields compares them; a difference in red, ≠). Esc or ✕ closes it; clicking never changes the step. Its thumbtack (📌)
 pins it as a column at the map's left (the default; the map beside it) or unpins it to float over the map, dragged by
 its title, never past the map's edges; remembered on this computer. The pointer is a pointing finger over what a click
-picks (a parcel, a sale), a magnifier over a cell (a click zooms to it), the map's drag hand elsewhere. A row is read
+picks (a parcel, a sale), a magnifier over a cell (a click zooms to it), the map's drag hand elsewhere. The colour picker
+lists the 🌐 Parcel Universe's fields first (yours, the Big five first; the first of them the map's colouring to
+start), then the 💰 Sales Record's, then the problems; the parcel files' other columns (Guilford: 319) folded away
+under a row of their own that unfolds them in place, and found by typing either way. Names without their unit
+("Building area (finished) (HEATED_AREA)"). A row is read
 alone (the row group holding it, or the one feature), not column by column: 0.2 s a card on Guilford, the first after
 opening a few seconds (the sales' comparison, shared with the problems).
 

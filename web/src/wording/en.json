@@ -3294,8 +3294,7 @@
     "making": "Preparing the 🌐 Parcel Universe''s shapes for the map (once; about half a minute for 200,000 parcels)",
     "failed": "The map can''t be drawn: {error}.",
     "colourBy": "Colour the parcels by",
-    "yourFields": "Your fields",
-    "otherColumns": "Other columns of {file}",
+    "otherColumns": "🌐 Other columns of {file}",
     "reading": "Reading the values",
     "spread": "How {field} spreads; the range set here is the map''s colours",
     "other": "another value",
@@ -3333,7 +3332,7 @@
     "prTitle": "Problems, where they are",
     "prBlankIds": "🌐 Parcels with no ID: {n, number} ({share})",
     "prRepeatedIds": "🌐 Parcels whose ID repeats: {n, number} ({share})",
-    "prDiffers": "💰 differs from 🌐: {field}, {n, number} sales ({share})",
+    "prDiffers": "💰 differs from 🌐: {field}, {n, number} {n, plural, =1 {sale} other {sales}} ({share})",
     "readingProblem": "Finding them",
     "prHas": {
       "pu": "{n, number} of {of, number} parcels ({share})",
@@ -3375,6 +3374,9 @@
     "popOut": "Pop out",
     "popOutTip": "The map in a window of its own (on another screen, say); it still follows the step you''re on here. Closing that window docks it back.",
     "dockBack": "Dock back",
-    "alone": "OAK box map"
+    "alone": "OAK box map",
+    "puTitle": "🌐 Parcel Universe: your fields",
+    "moreColumns": "More columns from your parcel files ({n, number})",
+    "fewerColumns": "Fold the other columns away"
   }
 }

@@ -447,6 +447,9 @@ function MapPanel({
   );
 }
 
+/** The colour picker: the 🌐 Parcel Universe's fields first (yours, the Big five first), the 💰 Sales Record's, the
+ * problems; the parcel files' other columns folded away under a row of their own (choosing it unfolds them), and
+ * found by typing either way. */
 function FieldPick({
   sales,
   problems,
@@ -460,9 +463,12 @@ function FieldPick({
   value: string | null;
   onChange: (id: string) => void;
 }) {
+  const [more, setMore] = useState(false);
   const list = (q: string) => fields.filter((f) => matches(f.label, q) || matches(f.file, q));
   const loaded = (q: string) => list(q).filter((f) => f.field);
-  const others = (q: string) => list(q).filter((f) => !f.field);
+  const rawAll = fields.filter((f) => !f.field);
+  // The other columns: shown once unfolded, or when typing finds them.
+  const others = (q: string) => (more || q.trim() ? list(q).filter((f) => !f.field) : []);
   const sr = (q: string) => sales.filter((k) => matches(w.sr[k as SrKey] ?? k, q));
   const pr = (q: string) => (problems?.items ?? []).filter((x) => matches(problemLabel(x), q));
   return (
@@ -474,13 +480,25 @@ function FieldPick({
       selectedKey={value}
       onChange={onChange}
       count={(q) => [
-        list(q).length + sr(q).length + pr(q).length,
+        loaded(q).length + others(q).length + sr(q).length + pr(q).length,
         fields.length + sales.length + (problems?.items.length ?? 0),
       ]}
-      first={(q) => (sr(q)[0] ? `sr:${sr(q)[0]}` : (list(q)[0]?.id ?? null))}
+      first={(q) =>
+        loaded(q)[0]?.id ?? (sr(q)[0] ? `sr:${sr(q)[0]}` : (pr(q)[0]?.id ?? others(q)[0]?.id ?? null))
+      }
     >
       {(q) => (
         <>
+          {loaded(q).length > 0 && (
+            <ListBoxSection className="wiz-section">
+              <Header className="wiz-section-head">{w.puTitle}</Header>
+              {loaded(q).map((f) => (
+                <ListBoxItem key={f.id} id={f.id} className="choice-item" textValue={f.label}>
+                  <Marked text={f.label} query={q} />
+                </ListBoxItem>
+              ))}
+            </ListBoxSection>
+          )}
           {sr(q).length > 0 && (
             <ListBoxSection className="wiz-section">
               <Header className="wiz-section-head">{w.srTitle}</Header>
@@ -501,14 +519,23 @@ function FieldPick({
               ))}
             </ListBoxSection>
           )}
-          {loaded(q).length > 0 && (
+          {!q.trim() && rawAll.length > 0 && (
             <ListBoxSection className="wiz-section">
-              <Header className="wiz-section-head">{w.yourFields}</Header>
-              {loaded(q).map((f) => (
-                <ListBoxItem key={f.id} id={f.id} className="choice-item" textValue={f.label}>
-                  <Marked text={f.label} query={q} />
-                </ListBoxItem>
-              ))}
+              <Header className="wiz-section-head mapwin-more-head">
+                {/* Not a choice: pressing it unfolds the columns in place, the list staying open (the pointer
+                    doesn't take the focus from the box). */}
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="mapwin-more"
+                  aria-expanded={more}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setMore(!more)}
+                >
+                  {more ? "▾ " : "▸ "}
+                  {more ? w.fewerColumns : w.moreColumns({ n: rawAll.length })}
+                </button>
+              </Header>
             </ListBoxSection>
           )}
           {[...new Set(others(q).map((f) => f.file))].map((file) => (

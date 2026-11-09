@@ -2655,7 +2655,6 @@ export type Wording = {
     making: string;
     failed: (a: { error: string | number }) => string;
     colourBy: string;
-    yourFields: string;
     otherColumns: (a: { file: string | number }) => string;
     reading: string;
     spread: (a: { field: string | number }) => string;
@@ -2737,5 +2736,8 @@ export type Wording = {
     popOutTip: string;
     dockBack: string;
     alone: string;
+    puTitle: string;
+    moreColumns: (a: { n: number }) => string;
+    fewerColumns: string;
   };
 };
