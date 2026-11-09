@@ -388,8 +388,20 @@ background from the universe file when it's set: each shape simplified to a metr
 (Guilford: 24 s). Cells from 8 km down to 30 m, the finest at least 16 pixels across, only around the view; the shapes
 once 8,000 or fewer parcels are in the view and a quarter more each side. The shapes file comes to the browser once,
 the first time it zooms in that far, and the parcels in view are picked out there (what the test timed), not asked
-for view by view. Still to come: popping out, Follow, the 💰 sales, the problem, pattern and results layers, the
-parcel's card.
+for view by view. Its divider is a thin oak stile (or rail, docked top or bottom), grained as the frame, the map a pane
+set into the box.
+
+Then (same day): **Follow** (on by default; choosing a colour by hand stops it): a Data step's field (its first
+loaded, in the step's order), the 💰 steps' sales, the 🌐 Parcel Universe step its ID problems (whichever has more
+parcels), Sales record fields the field whose 💰 values differ most; a step with nothing to show keeps what was shown.
+**💰 sales** at their parcels (`map/sales`): by price, date (light old, dark new), valid or vacant (dark yes; a cell its
+share); cells of their sales zoomed out, dots on the plain parcels zoomed in. **Problems** (`map/problems`, worked
+out once a change, kept until the project or its files change; Guilford: 5 s, then at once): 🌐 parcels with no ID or a
+repeated one; 💰 sales whose value of a field differs from their parcel's, as Sales record fields compares them (not
+one written differently, like grade codes against scores); cells by their share of it (light to dark orange, at three
+times the county's share), **hot spots** outlined (more than twice the county's share, 30 or more). Sales whose parcel
+isn't in the universe have no place: the legend says how many. Guilford's land area: 23% of sales differ, nearly all
+in the rural parts, the cities hardly at all. Still to come: popping out, the results layers, the parcel's card.
 
 **The inline maps.** Coordinates (setting the centre) and Shapefiles (checking a layer) stay: they're their step's
 control. Model groups' and Outliers' maps stay, with Open in map. The values and final maps become layers, with Open in

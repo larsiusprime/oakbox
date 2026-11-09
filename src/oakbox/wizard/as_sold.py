@@ -163,7 +163,14 @@ def _same(a: str, b: str, numeric: bool, factor: float = 1.0) -> bool:
 
 
 def _compare(
-    project: Project, files: Files, sales: DataFile, key: str, column: str, src: DataFile, unit: AreaUnit | None
+    project: Project,
+    files: Files,
+    sales: DataFile,
+    key: str,
+    column: str,
+    src: DataFile,
+    unit: AreaUnit | None,
+    flags: list[int] | None = None,
 ) -> dict:
     """The sale's column against the universe's value of each sale's parcel, in the universe's unit."""
     from oakbox.wizard.quality import _by_parcel
@@ -183,6 +190,9 @@ def _compare(
     examples: list[list[str]] = []
     diffs: list[AsSoldDiff] = []
     mine_values: set[str] = set()
+    # flags (the map window's): each sale, 1 its value differs from its parcel's, 0 the same, -1 not compared.
+    if flags is not None:
+        flags.extend([-1] * len(parcels))
     for i, (p, v) in enumerate(zip(parcels, sold, strict=False)):
         if not p:
             continue
@@ -197,7 +207,11 @@ def _compare(
         compared += 1
         if _same(v, t, numeric, factor):
             same += 1
+            if flags is not None:
+                flags[i] = 0
             continue
+        if flags is not None:
+            flags[i] = 1
         if len(examples) < EXAMPLES:
             examples.append([v.strip(), t.strip()])
         if len(diffs) < DIFFS:
@@ -391,3 +405,16 @@ def autopick(project: Project, in_dir: Path, keys: list[str] | None = None) -> N
             continue
         choose(project, in_dir, key, hit[0], unit)
         project.wizard.as_sold_auto.append(key)
+
+
+def differs(project: Project, in_dir: Path, key: str) -> list[int] | None:
+    """Each sale of the main sales file: 1 where its value of the field differs from its parcel's (as this step
+    compares them, in the column and unit it shows), 0 the same, -1 not compared. None without a sales column."""
+    row = next((r for r in view(project, in_dir).rows if r.key == key), None)
+    sales = sales_file(project)
+    src = _parcel_source(project, key)
+    if row is None or row.column is None or sales is None or src is None:
+        return None
+    flags: list[int] = []
+    _compare(project, Files(project, in_dir), sales, key, row.column, src, row.unit or row.today_unit, flags)
+    return flags

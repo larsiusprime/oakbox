@@ -4,12 +4,22 @@
  * field of the parcel files, with the histogram's live range as its legend. Tested on Guilford's 220,000 parcels
  * (docs/spec/app.md §3.15): what costs is the number of shapes drawn, so never more than a few thousand. */
 import type { Layer, PickingInfo } from "@deck.gl/core";
-import { GeoJsonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
+import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Header, ListBoxItem, ListBoxSection } from "react-aria-components";
-import { api, type MapColumn, type MapInfo, type MapSales, unwrap, type Wizard } from "../api/client";
+import {
+  api,
+  type MapColumn,
+  type MapInfo,
+  type MapProblem,
+  type MapProblems,
+  type MapSales,
+  unwrap,
+  type Wizard,
+} from "../api/client";
+import { pct } from "../lib/format";
 import { type Dock, MAX, MIN, type Side, setDock, sideFor, toggleMap, useDock } from "../lib/mapdock";
 import { readShapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
@@ -214,7 +224,21 @@ function MapPanel({
   useEffect(() => {
     if (stamp) void refetch();
   }, [stamp, refetch]);
-  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales) : null;
+  // The problems the map can show (worked out on the server once a change; a few seconds on a county).
+  const problems = useQuery({
+    queryKey: ["map-problems", projectId, m?.stamp, stamp],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/map/problems", {
+          params: { path: { project_id: projectId } },
+        }),
+      ),
+    enabled: m?.status === "ready",
+    placeholderData: keepPreviousData,
+    meta: { quiet: true },
+  });
+  const probs = problems.data;
+  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs) : null;
   const following = dock.follow && target !== null;
   // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
   const followedField = following ? target?.field : undefined;
@@ -222,7 +246,11 @@ function MapPanel({
     if (followedField) setDock({ field: followedField });
   }, [followedField]);
   const choices = m
-    ? [...m.sales.map((k) => ({ id: `sr:${k}`, label: w.sr[k as SrKey] ?? k })), ...m.fields]
+    ? [
+        ...m.sales.map((k) => ({ id: `sr:${k}`, label: w.sr[k as SrKey] ?? k })),
+        ...(probs?.items ?? []).map((x) => ({ id: x.id, label: problemLabel(x) })),
+        ...m.fields,
+      ]
     : [];
   const field =
     (following ? choices.find((f) => f.id === target?.field) : null) ??
@@ -236,6 +264,7 @@ function MapPanel({
         {m?.status === "ready" && m.fields.length > 0 && (
           <FieldPick
             sales={m.sales}
+            problems={probs}
             fields={m.fields}
             value={field?.id ?? null}
             onChange={(id) => setDock({ field: id, follow: false })}
@@ -283,6 +312,7 @@ function MapPanel({
           fieldId={field?.id ?? null}
           label={field?.label ?? ""}
           wizardStamp={stamp}
+          unplaced={probs?.unplaced ?? 0}
           side={side}
           size={dock.size}
         />
@@ -293,11 +323,13 @@ function MapPanel({
 
 function FieldPick({
   sales,
+  problems,
   fields,
   value,
   onChange,
 }: {
   sales: string[];
+  problems: MapProblems | undefined;
   fields: MapInfo["fields"];
   value: string | null;
   onChange: (id: string) => void;
@@ -306,6 +338,7 @@ function FieldPick({
   const loaded = (q: string) => list(q).filter((f) => f.field);
   const others = (q: string) => list(q).filter((f) => !f.field);
   const sr = (q: string) => sales.filter((k) => matches(w.sr[k as SrKey] ?? k, q));
+  const pr = (q: string) => (problems?.items ?? []).filter((x) => matches(problemLabel(x), q));
   return (
     <Combo
       label={w.colourBy}
@@ -314,7 +347,10 @@ function FieldPick({
       popoverClassName="popover choice-popover wiz-popover"
       selectedKey={value}
       onChange={onChange}
-      count={(q) => [list(q).length + sr(q).length, fields.length + sales.length]}
+      count={(q) => [
+        list(q).length + sr(q).length + pr(q).length,
+        fields.length + sales.length + (problems?.items.length ?? 0),
+      ]}
       first={(q) => (sr(q)[0] ? `sr:${sr(q)[0]}` : (list(q)[0]?.id ?? null))}
     >
       {(q) => (
@@ -325,6 +361,16 @@ function FieldPick({
               {sr(q).map((k) => (
                 <ListBoxItem key={k} id={`sr:${k}`} className="choice-item" textValue={w.sr[k as SrKey] ?? k}>
                   <Marked text={w.sr[k as SrKey] ?? k} query={q} />
+                </ListBoxItem>
+              ))}
+            </ListBoxSection>
+          )}
+          {pr(q).length > 0 && (
+            <ListBoxSection className="wiz-section">
+              <Header className="wiz-section-head">{w.prTitle}</Header>
+              {pr(q).map((x) => (
+                <ListBoxItem key={x.id} id={x.id} className="choice-item" textValue={problemLabel(x)}>
+                  <Marked text={problemLabel(x)} query={q} />
                 </ListBoxItem>
               ))}
             </ListBoxSection>
@@ -359,6 +405,15 @@ function FieldPick({
 
 // ---------- Follow ----------
 
+function problemLabel(x: MapProblems["items"][number]): string {
+  const share = pctOf(x.count, x.of);
+  if (x.id === "pr:blank_ids") return w.prBlankIds({ n: x.count, share });
+  if (x.id === "pr:repeated_ids") return w.prRepeatedIds({ n: x.count, share });
+  return w.prDiffers({ field: x.label, n: x.count, share });
+}
+
+const pctOf = (n: number, of: number) => (of ? pct(n / of) : "");
+
 type SrKey = keyof typeof w.sr;
 /** The 💰 Sales Record's steps: what each colours its sales by (the first the project has). */
 const SALES_STEPS: Record<string, string[]> = {
@@ -380,11 +435,24 @@ function followed(
   wizard: Wizard | undefined,
   fields: MapInfo["fields"],
   sales: string[],
+  problems: MapProblems | undefined,
 ): Target | null {
   if (tab !== "fields" || !step || !wizard) return null;
   const s = wizard.steps.find((x) => x.key === step);
   if (!s) return null;
   const title = s.title ?? t.wizard.steps[s.key]?.title ?? s.key;
+  // The 🌐 Parcel Universe: its IDs' problems. Sales record fields: the field whose 💰 values differ most.
+  const items = problems?.items ?? [];
+  if (step === "universe") {
+    const x = items.filter((p) => p.on === "pu").sort((a, b) => b.count - a.count)[0];
+    return x ? { title, field: x.id } : null;
+  }
+  if (step === "as_sold") {
+    const x = items
+      .filter((p) => p.id.startsWith("pr:differs:"))
+      .sort((a, b) => b.count / Math.max(1, b.of) - a.count / Math.max(1, a.of))[0];
+    return x ? { title, field: x.id } : null;
+  }
   const sr = SALES_STEPS[step];
   if (sr) {
     const k = sr.find((x) => sales.includes(x));
@@ -423,6 +491,7 @@ function MapBody({
   fieldId,
   label,
   wizardStamp,
+  unplaced,
   side,
   size,
 }: {
@@ -432,9 +501,12 @@ function MapBody({
   label: string;
   /** When the wizard last changed: the sales (their rules, their columns) read again. */
   wizardStamp: number;
+  /** Sales whose parcel isn't in the universe: said, as they can't be shown. */
+  unplaced: number;
   side: Side;
   size: number;
 }) {
+  const prId = fieldId?.startsWith("pr:") ? fieldId : null;
   const by = fieldId?.startsWith("sr:") ? (fieldId.slice(3) as SrKey) : null;
   const base = `/api/projects/${encodeURIComponent(projectId)}/map`;
   const centres = useQuery({
@@ -450,7 +522,7 @@ function MapBody({
           params: { path: { project_id: projectId }, query: { field: fieldId ?? "" } },
         }),
       ),
-    enabled: !!fieldId && !by,
+    enabled: !!fieldId && !by && !prId,
     staleTime: Number.POSITIVE_INFINITY,
   });
   const sales = useQuery({
@@ -461,11 +533,24 @@ function MapBody({
           params: { path: { project_id: projectId } },
         }),
       ),
-    enabled: !!by,
+    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")),
     placeholderData: keepPreviousData,
     staleTime: Number.POSITIVE_INFINITY,
   });
   const sold = useMemo(() => (sales.data ? unpackSales(sales.data) : null), [sales.data]);
+  const prob = useQuery({
+    queryKey: ["map-problem", projectId, info.stamp, wizardStamp, prId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/map/problem", {
+          params: { path: { project_id: projectId }, query: { id: prId ?? "" } },
+        }),
+      ),
+    enabled: !!prId,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const prPaint = useMemo(() => (prId && prob.data ? problemPainter(prob.data) : null), [prId, prob.data]);
+  const onSales = prob.data?.on === "sr";
   const [plan, setPlan] = useState<Plan | null>(null);
   const shapes = useQuery({
     queryKey: ["map-shapes", projectId, info.stamp],
@@ -479,10 +564,13 @@ function MapBody({
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
   const paint = useMemo(
-    () => (by ? painter(undefined, null) : painter(col.data, range)),
-    [by, col.data, range],
+    () => (prPaint && !onSales ? prPaint : by || prId ? painter(undefined, null) : painter(col.data, range)),
+    [by, prId, prPaint, onSales, col.data, range],
   );
-  const srPaint = useMemo(() => (by && sold ? salesPainter(sold, by, range) : null), [by, sold, range]);
+  const srPaint = useMemo(
+    () => (prPaint && onSales ? prPaint : by && sold ? salesPainter(sold, by, range) : null),
+    [by, sold, range, prPaint, onSales],
+  );
 
   // Following the view: a new plan only when the view leaves the last one's box, or the zoom wants another size.
   const xy = centres.data;
@@ -553,7 +641,7 @@ function MapBody({
       ];
     }
     const level = plan.kind === "cells" ? plan.level : levelFor(plan.box.mpp);
-    return [cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined)];
+    return cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined);
   }, [xy, plan, shapes.data, paint, srPaint, sold]);
 
   const bounds = (info.bounds as Bounds | null | undefined) ?? null;
@@ -585,7 +673,29 @@ function MapBody({
         tooltip={tooltip}
       />
       <div className="mapwin-legend">
-        {by ? (
+        {prId ? (
+          prob.isPending || (onSales && sales.isPending) ? (
+            <Waiting doing={w.readingProblem} />
+          ) : prob.error ? (
+            <p className="error">{prob.error.message}</p>
+          ) : prob.data ? (
+            <ul className="mapwin-cats">
+              <li>
+                <span className="mapwin-sw mapwin-sw-problem" />
+                {w.prHas[prob.data.on]({
+                  n: prob.data.count,
+                  of: prob.data.of,
+                  share: pctOf(prob.data.count, prob.data.of),
+                })}
+              </li>
+              <li>
+                <span className="mapwin-sw mapwin-sw-hot" />
+                {w.prHot}
+              </li>
+              {onSales && unplaced > 0 && <li className="mapwin-note">{w.unplaced({ n: unplaced })}</li>}
+            </ul>
+          ) : null
+        ) : by ? (
           sales.isPending ? (
             <Waiting doing={w.readingSales} />
           ) : sales.error ? (
@@ -652,7 +762,7 @@ function MapBody({
               ? w.howShapes({ n: plan.ids.length })
               : w.howCells({
                   size: plan.level >= 1000 ? `${plan.level / 1000} km` : `${plan.level} m`,
-                  sales: by ? "yes" : "no",
+                  sales: by || onSales ? "yes" : "no",
                 })}
           </small>
         )}
@@ -705,14 +815,20 @@ type Paint = {
   has: (i: number) => boolean;
   text: (i: number) => string;
   kind: "number" | "category" | "none";
+  /** A problem: the county's share of it, for colouring a cell by its own share and outlining hot spots. */
+  county?: number;
 };
 
 function ramp(t: number): [number, number, number, number] {
-  const x = Math.min(0.9999, Math.max(0, t)) * (RAMP.length - 1);
+  return rampOf(RAMP, t);
+}
+
+function rampOf(stops: [number, number, number][], t: number): [number, number, number, number] {
+  const x = Math.min(0.9999, Math.max(0, t)) * (stops.length - 1);
   const k = Math.floor(x);
   const f = x - k;
-  const a = RAMP[k] ?? [0, 0, 0];
-  const b = RAMP[k + 1] ?? a;
+  const a = stops[k] ?? [0, 0, 0];
+  const b = stops[k + 1] ?? a;
   return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, 215];
 }
 
@@ -777,11 +893,12 @@ type Cell = {
   n: number;
   parcels: number;
   text: string;
+  hot?: boolean;
 };
 
 /** The parcels in the box, in cells of `level` metres: a cell's colour is its parcels' average place on the ramp
  * (numbers) or their most common category. */
-function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, sold?: Sold): Layer {
+function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, sold?: Sold): Layer[] {
   const lat0 = (((box.s + box.n) / 2) * Math.PI) / 180;
   const dx = level / (111_320 * Math.cos(lat0));
   const dy = level / 110_540;
@@ -826,7 +943,14 @@ function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, so
     const y0 = gy * dy;
     let fill: [number, number, number, number] = [214, 210, 200, 200];
     let text = "";
-    if (paint.kind === "number" && c.have) {
+    let hot = false;
+    if (paint.county !== undefined && c.have) {
+      const share = c.sum / c.have;
+      const t = paint.county > 0 ? Math.min(1, share / (3 * paint.county)) : share > 0 ? 1 : 0;
+      fill = rampOf(PROBLEM_RAMP, t);
+      hot = c.have >= HOT_MIN && share > 2 * paint.county && share > 0;
+      text = w.prCell({ share: pct(share) });
+    } else if (paint.kind === "number" && c.have) {
       fill = ramp(c.sum / c.have);
     } else if (paint.kind === "category" && c.have) {
       const [top, k] = [...c.cats.entries()].sort((p, q) => q[1] - p[1])[0] ?? [-1, 0];
@@ -844,16 +968,38 @@ function cellsLayer(xy: Float32Array, box: View, level: number, paint: Paint, so
       n: sold ? c.n : c.parcels,
       parcels: c.parcels,
       text,
+      hot,
     });
   }
-  return new SolidPolygonLayer<Cell>({
-    id: `cells-${level}`,
-    data: cells,
-    pickable: true,
-    getPolygon: (c) => c.polygon,
-    getFillColor: (c) => c.fill,
-  });
+  const out: Layer[] = [
+    new SolidPolygonLayer<Cell>({
+      id: `cells-${level}`,
+      data: cells,
+      pickable: true,
+      getPolygon: (c) => c.polygon,
+      getFillColor: (c) => c.fill,
+    }),
+  ];
+  // Hot spots: cells with more than twice the county's share of the problem (and enough to say so), outlined.
+  const hot = cells.filter((c) => c.hot);
+  if (hot.length)
+    out.push(
+      new PolygonLayer<Cell>({
+        id: `hot-${level}`,
+        data: hot,
+        filled: false,
+        stroked: true,
+        lineWidthUnits: "pixels",
+        getLineWidth: 2,
+        getLineColor: [90, 30, 0, 255],
+        getPolygon: (c) => c.polygon,
+      }),
+    );
+  return out;
 }
+
+/** Cells with fewer parcels (or sales) than this aren't called hot spots: a share of a handful says little. */
+const HOT_MIN = 30;
 
 /** The range chosen for the legend's histogram (the automatic one until it's set). */
 function useRangeOf(key: string, c: MapColumn | undefined): { lo: number; hi: number } | null {
@@ -861,6 +1007,37 @@ function useRangeOf(key: string, c: MapColumn | undefined): { lo: number; hi: nu
   if (chosen) return chosen;
   const [lo, hi] = c?.auto ?? [];
   return lo != null && hi != null ? { lo, hi } : null;
+}
+
+// ---------- Problems ----------
+
+const PROBLEM: [number, number, number, number] = [222, 107, 26, 235];
+const FINE: [number, number, number, number] = [205, 200, 190, 150];
+/** Light to dark orange: a cell's share of the problem, against three times the county's. */
+const PROBLEM_RAMP: [number, number, number][] = [
+  [243, 240, 234],
+  [253, 208, 162],
+  [253, 141, 60],
+  [217, 72, 1],
+  [127, 39, 4],
+];
+
+/** Each parcel (or sale) with the problem orange, the others grey; a cell by its share of them, the county's share
+ * for the hot spots. */
+function problemPainter(d: MapProblem): Paint {
+  const f = new Int8Array(decode(d.flags));
+  const at = (k: number) => {
+    const x = f[k] ?? -1;
+    return x < 0 ? null : x;
+  };
+  return {
+    kind: "number",
+    at,
+    has: (k) => at(k) !== null,
+    fill: (k) => (at(k) === 1 ? PROBLEM : FINE),
+    text: (k) => (at(k) === 1 ? w.prYes : w.prNo),
+    county: d.of ? d.count / d.of : 0,
+  };
 }
 
 // ---------- The 💰 sales ----------

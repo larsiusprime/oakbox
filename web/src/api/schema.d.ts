@@ -2922,6 +2922,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/map/problems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Problems
+         * @description The problems the map can show where they are (blank and repeated IDs, sales whose value differs from their
+         *     parcel's), with how many.
+         */
+        get: operations["map_problems_api_projects__project_id__map_problems_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/map/problem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Map Problem
+         * @description Which parcels (or sales) have one problem.
+         */
+        get: operations["map_problem_api_projects__project_id__map_problem_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/engines": {
         parameters: {
             query?: never;
@@ -6361,6 +6402,55 @@ export interface components {
             value: number;
             /** Trimmed */
             trimmed: boolean;
+        };
+        /** MapProblem */
+        MapProblem: {
+            /** Id */
+            id: string;
+            /**
+             * On
+             * @enum {string}
+             */
+            on: "pu" | "sr";
+            /**
+             * Flags
+             * @description int8 base64, a parcel (pu) or a sale (sr) each: 1 the problem, 0 not, -1 n/a.
+             */
+            flags: string;
+            /** Count */
+            count: number;
+            /** Of */
+            of: number;
+        };
+        /** MapProblemItem */
+        MapProblemItem: {
+            /**
+             * Id
+             * @description pr:blank_ids, pr:repeated_ids, or pr:differs:<field>.
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * On
+             * @description pu: marks parcels; sr: marks sales (at their parcels).
+             * @enum {string}
+             */
+            on: "pu" | "sr";
+            /** Count */
+            count: number;
+            /** Of */
+            of: number;
+        };
+        /** MapProblems */
+        MapProblems: {
+            /** Items */
+            items: components["schemas"]["MapProblemItem"][];
+            /**
+             * Unplaced
+             * @description Sales whose parcel isn't in the 🌐 Parcel Universe: a problem with no place.
+             */
+            unplaced: number;
         };
         /**
          * MapSales
@@ -17151,6 +17241,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapSales"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_problems_api_projects__project_id__map_problems_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapProblems"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    map_problem_api_projects__project_id__map_problem_get: {
+        parameters: {
+            query: {
+                id: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapProblem"];
                 };
             };
             /** @description Validation Error */

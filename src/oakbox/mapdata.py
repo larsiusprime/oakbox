@@ -461,3 +461,121 @@ def sales(project: Project, in_dir: Path) -> MapSales:
         year_auto=ya,
         has=has,
     )
+
+
+# ---------- Problems, where they are ----------
+
+
+class MapProblemItem(BaseModel):
+    id: str = Field(description="pr:blank_ids, pr:repeated_ids, or pr:differs:<field>.")
+    label: str
+    on: Literal["pu", "sr"] = Field(description="pu: marks parcels; sr: marks sales (at their parcels).")
+    count: int
+    of: int
+
+
+class MapProblems(BaseModel):
+    items: list[MapProblemItem]
+    unplaced: int = Field(description="Sales whose parcel isn't in the 🌐 Parcel Universe: a problem with no place.")
+
+
+class MapProblem(BaseModel):
+    id: str
+    on: Literal["pu", "sr"]
+    flags: str = Field(description="int8 base64, a parcel (pu) or a sale (sr) each: 1 the problem, 0 not, -1 n/a.")
+    count: int
+    of: int
+
+
+def _id_flags(project: Project, in_dir: Path):
+    import numpy as np
+
+    files = Files(project, in_dir)
+    base = project.base_file()
+    if base is None:
+        return None, None
+    ids = files.ids(base.name, "key")
+    blank = np.array([0 if k else 1 for k in ids], dtype="i1")
+    from collections import Counter
+
+    counts = Counter(k for k in ids if k)
+    repeated = np.array([1 if k and counts[k] > 1 else 0 for k in ids], dtype="i1")
+    return blank, repeated
+
+
+@lru_cache(maxsize=8)
+def _problems(project_json: str, in_dir: str, stamps: tuple) -> MapProblems:
+    from oakbox.wizard import as_sold
+    from oakbox.wizard.files import sales_file
+
+    project = Project.model_validate_json(project_json)
+    folder = Path(in_dir)
+    items: list[MapProblemItem] = []
+    blank, repeated = _id_flags(project, folder)
+    if blank is not None and repeated is not None:
+        n = len(blank)
+        if blank.sum():
+            items.append(MapProblemItem(id="pr:blank_ids", label="", on="pu", count=int(blank.sum()), of=n))
+        if repeated.sum():
+            items.append(MapProblemItem(id="pr:repeated_ids", label="", on="pu", count=int(repeated.sum()), of=n))
+    unplaced = 0
+    entry = sales_file(project)
+    if entry is not None and project.base_file() is not None:
+        files = Files(project, folder)
+        if entry.name in files.preview:
+            base = project.base_file()
+            known = set(files.ids(base.name, "key")) if base else set()
+            unplaced = sum(1 for k in files.parcel_ids(entry.name) if not k or k not in known)
+            for r in as_sold.view(project, folder).rows:
+                # Written differently (Guilford's grade codes against scores): not a difference, the step says so.
+                if r.column and r.compared and r.compared > r.same and not r.written_differently:
+                    items.append(
+                        MapProblemItem(
+                            id=f"pr:differs:{r.key}", label=r.name, on="sr", count=r.compared - r.same, of=r.compared
+                        )
+                    )
+    return MapProblems(items=items, unplaced=unplaced)
+
+
+def _stamps(project: Project, in_dir: Path) -> tuple:
+    out = []
+    for f in project.files:
+        path = in_dir / f.filename
+        if path.is_file():
+            out.append(file_stamp(path))
+    return tuple(out)
+
+
+def problems(project: Project, in_dir: Path) -> MapProblems:
+    """What problems the map can show where they are, with how many: worked out again only when the project or its
+    files change (comparing the 💰 sales' values with their parcels' takes seconds on a county)."""
+    return _problems(project.model_dump_json(), str(in_dir), _stamps(project, in_dir))
+
+
+def problem(project: Project, in_dir: Path, problem_id: str) -> MapProblem:
+    """Which parcels (or sales) have the problem: kept until the project or its files change."""
+    return _problem(project.model_dump_json(), str(in_dir), _stamps(project, in_dir), problem_id)
+
+
+@lru_cache(maxsize=16)
+def _problem(project_json: str, folder: str, stamps: tuple, problem_id: str) -> MapProblem:
+    import numpy as np
+
+    from oakbox.wizard import as_sold
+
+    project = Project.model_validate_json(project_json)
+    in_dir = Path(folder)
+
+    if problem_id in ("pr:blank_ids", "pr:repeated_ids"):
+        blank, repeated = _id_flags(project, in_dir)
+        if blank is None or repeated is None:
+            raise NotFound(problem_id)
+        a = blank if problem_id == "pr:blank_ids" else repeated
+        return MapProblem(id=problem_id, on="pu", flags=_b64(a), count=int(a.sum()), of=len(a))
+    if problem_id.startswith("pr:differs:"):
+        flags = as_sold.differs(project, in_dir, problem_id.removeprefix("pr:differs:"))
+        if flags is None:
+            raise NotFound(problem_id)
+        a = np.array(flags, dtype="i1")
+        return MapProblem(id=problem_id, on="sr", flags=_b64(a), count=int((a == 1).sum()), of=int((a >= 0).sum()))
+    raise NotFound(problem_id)

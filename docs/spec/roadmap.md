@@ -24,7 +24,7 @@ isn't; the milestones are kept as they were planned.
   on a map, one sale's comps and how it's unlike the others, what the misses have in common, and a call on each (not a
   market sale, the data, the group, the model) applied together to Check sales, patches (OpenAVMKit's tweak, exported)
   and parcels moved by hand.
-- **Designed 2026-11-09, being built: the map window** (§3.15; docked, cells and 🌐 colouring done): one map of both datasets, docked on any side or popped
+- **Designed 2026-11-09, being built: the map window** (§3.15; docked, cells, 🌐 colouring, Follow, 💰 sales and problems done): one map of both datasets, docked on any side or popped
   out, following the step, with a parcel's card, problem and pattern layers and the results. Tested on Guilford.
 - **Left of M3:** slice 3 of the models (testing variables, why this value), CAMA export, the model summary report. Per area statistics (§3.12.3) is built (2026-11-07).
 - **Speed:** Models and Finalize are 75–80% of a run (12 minutes at 50,000 parcels on the slowest profile tried). On

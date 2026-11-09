@@ -47,3 +47,18 @@ def map_sales(project_id: str) -> mapdata.MapSales:
     """Each sale at its parcel: its price, date, and whether it's valid and vacant (as the rules or columns say)."""
     project = load_project(project_id)
     return mapdata.sales(project, projects.inputs_dir(project_id))
+
+
+@router.get("/api/projects/{project_id}/map/problems")
+def map_problems(project_id: str) -> mapdata.MapProblems:
+    """The problems the map can show where they are (blank and repeated IDs, sales whose value differs from their
+    parcel's), with how many."""
+    project = load_project(project_id)
+    return mapdata.problems(project, projects.inputs_dir(project_id))
+
+
+@router.get("/api/projects/{project_id}/map/problem")
+def map_problem(project_id: str, id: str) -> mapdata.MapProblem:  # noqa: A002 - the API's name for it
+    """Which parcels (or sales) have one problem."""
+    project = load_project(project_id)
+    return mapdata.problem(project, projects.inputs_dir(project_id), id)

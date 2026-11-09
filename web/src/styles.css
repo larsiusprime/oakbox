@@ -6608,6 +6608,17 @@ html[data-map="top"] .oak-nav {
   height: 0.8rem;
   border-radius: 2px;
 }
+.mapwin-sw-problem {
+  background: #de6b1a;
+}
+.mapwin-sw-hot {
+  border: 2px solid #5a1e00;
+  background: #fdd0a2;
+}
+.mapwin-note {
+  flex-basis: 100%;
+  color: var(--muted, #5f6159);
+}
 .mapwin-sw-other {
   background: #969696;
 }

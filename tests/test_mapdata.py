@@ -100,3 +100,30 @@ def test_sales_at_their_parcels(client, pid):
     assert [int(y) for y in year] == [2023, 2024, 2024, 2025] and 2023.19 < year[0] < 2023.21  # 14 March
     valid = np.frombuffer(base64.b64decode(d["valid"]), dtype="i1").tolist()
     assert valid == [-1] * 4  # no valid sale field or rule: unknown
+
+
+def test_problems_where_they_are(client, pid):
+    start_wizard(client, pid)
+    _ready(client, pid)
+    p = client.get(f"/api/projects/{pid}/map/problems").json()
+    # The helper's parcels all have IDs, none repeated: no ID problems to show.
+    assert not [x for x in p["items"] if x["id"] in ("pr:blank_ids", "pr:repeated_ids")]
+    assert p["unplaced"] == 0
+    assert client.get(f"/api/projects/{pid}/map/problem", params={"id": "pr:nope"}).status_code == 404
+
+
+def test_blank_and_repeated_ids(client, pid, tmp_path):
+    import geopandas as gpd
+    from shapely.geometry import box
+
+    gpd.GeoDataFrame(
+        {"PID": ["A", "", "B", "B"]}, geometry=[box(i, 0, i + 1, 1) for i in range(4)], crs="EPSG:4326"
+    ).to_parquet(tmp_path / "odd.parquet")
+    body = {"path": str(tmp_path / "odd.parquet"), "mode": "copy", "name": "odd"}
+    assert client.post(f"/api/projects/{pid}/files", json=body).status_code == 200
+    client.put(f"/api/projects/{pid}/wizard/files/odd", json={"universe": True, "id_column": "PID"})
+    _ready(client, pid)
+    items = {x["id"]: x for x in client.get(f"/api/projects/{pid}/map/problems").json()["items"]}
+    assert (items["pr:blank_ids"]["count"], items["pr:repeated_ids"]["count"]) == (1, 2)
+    d = client.get(f"/api/projects/{pid}/map/problem", params={"id": "pr:repeated_ids"}).json()
+    assert d["on"] == "pu" and np.frombuffer(base64.b64decode(d["flags"]), dtype="i1").tolist() == [0, 0, 1, 1]

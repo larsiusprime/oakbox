@@ -2690,5 +2690,19 @@ export type Wording = {
     validYes: string;
     validNo: string;
     vacantYes: string;
+    prTitle: string;
+    prBlankIds: (a: { n: number; share: string | number }) => string;
+    prRepeatedIds: (a: { n: number; share: string | number }) => string;
+    prDiffers: (a: { field: string | number; n: number; share: string | number }) => string;
+    readingProblem: string;
+    prHas: {
+      pu: (a: { n: number; of: number; share: string | number }) => string;
+      sr: (a: { n: number; of: number; share: string | number }) => string;
+    };
+    prHot: string;
+    prCell: (a: { share: string | number }) => string;
+    prYes: string;
+    prNo: string;
+    unplaced: (a: { n: number }) => string;
   };
 };
