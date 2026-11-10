@@ -255,25 +255,32 @@ function WindowCard({ v, set }: CardProps) {
       <p className="cs-text">
         {s.window.text({ n: v.in_window, total: v.total, years: v.valuation_year - v.sales_from })}
       </p>
+      {/* A column per year, the latest first, its count over it: wide enough for its labels, scrolling sideways
+          (the earliest years off to the right). */}
       <div className="cs-bars" role="img" aria-label={s.window.chart}>
-        {v.years.map((y) => {
-          const n = y.improved + y.vacant;
-          const inside = y.year >= v.sales_from;
-          return (
-            <div key={y.year} className="cs-bar">
-              <i
-                className={inside ? "" : "out"}
-                style={{ height: `${(100 * n) / top}%` }}
-                title={s.window.bar({ y: y.year, n })}
-              />
-              <span>{y.year}</span>
-            </div>
-          );
-        })}
+        {[...v.years]
+          .sort((p, q) => q.year - p.year)
+          .map((y) => {
+            const n = y.improved + y.vacant;
+            const inside = y.year >= v.sales_from;
+            return (
+              <div key={y.year} className="cs-bar" title={s.window.bar({ y: y.year, n })}>
+                <span className="cs-bar-n">{shortCount(n)}</span>
+                <i className={inside ? "" : "out"} style={{ height: `${(9 * n) / top}rem` }} />
+                <span className="cs-bar-y">{y.year}</span>
+              </div>
+            );
+          })}
       </div>
     </Card>
   );
 }
+
+/** A year's count over its bar: as it is under 10,000, else shortened (12.6K) so the column stays narrow. */
+const shortCount = (n: number) =>
+  n < 10_000
+    ? num(n)
+    : new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
 function TimeCard({ v, set, projectId }: CardProps & { projectId: string }) {
   const queryClient = useQueryClient();

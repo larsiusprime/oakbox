@@ -1,5 +1,6 @@
-import { Radio, RadioGroup } from "react-aria-components";
+import { Radio } from "react-aria-components";
 import type { Scale, Source, WizardField } from "../api/client";
+import { Radios } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { say, t } from "../wording";
 
@@ -64,7 +65,7 @@ export function ScaleChoice({
           />
         </div>
       ) : (
-        <RadioGroup
+        <Radios
           aria-label={say.wizard.quality.meaningOf(field.name)}
           className="wiz-span scale-list"
           value={scale.kind ?? null}
@@ -77,7 +78,7 @@ export function ScaleChoice({
               <span>{cap(q.kinds[k] ?? k)}</span>
             </Radio>
           ))}
-        </RadioGroup>
+        </Radios>
       )}
       {(scale.kind === "pct_good" || scale.kind === "pct_depr") && (
         // Percentages written as 0–1 or 0–100: found from the values, and the user's to change.

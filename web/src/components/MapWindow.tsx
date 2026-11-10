@@ -5,7 +5,7 @@
  * (docs/spec/app.md §3.15): what costs is the number of shapes drawn, so never more than a few thousand. */
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import { GeoJsonLayer, PolygonLayer, ScatterplotLayer, SolidPolygonLayer } from "@deck.gl/layers";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { ExternalLink, Maximize2, Minimize2 } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -339,7 +339,9 @@ function MapPanel({
       (locations?.some((l) => l.name === field) ? "location" : null),
     [steps, locations],
   );
-  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs) : null;
+  // The project's map layers (Shapefiles) that can be placed: drawn over the parcels when chosen.
+  const layerNames = (wizard.data?.layers ?? []).filter((l) => l.projected).map((l) => l.name);
+  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames) : null;
   const following = dock.follow && target !== null;
   // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
   const followedField = following ? target?.field : undefined;
@@ -350,6 +352,7 @@ function MapPanel({
     ? [
         ...m.sales.map((k) => ({ id: `sr:${k}`, label: w.sr[k as SrKey] ?? k })),
         ...(probs?.items ?? []).map((x) => ({ id: x.id, label: problemLabel(x) })),
+        ...(layerNames.length ? [{ id: LAYERS, label: w.lyAll({ n: layerNames.length }) }] : []),
         ...m.fields,
       ]
     : [];
@@ -366,6 +369,7 @@ function MapPanel({
           <FieldPick
             sales={m.sales}
             problems={probs}
+            layers={layerNames.length}
             fields={m.fields}
             value={field?.id ?? null}
             onChange={(id) => setDock({ field: id, follow: false })}
@@ -437,6 +441,7 @@ function MapPanel({
           label={field?.label ?? ""}
           wizardStamp={stamp}
           unplaced={probs?.unplaced ?? 0}
+          layerNames={layerNames}
           stepOf={stepOf}
           onGo={onGo}
           side={side}
@@ -454,12 +459,15 @@ function MapPanel({
 function FieldPick({
   sales,
   problems,
+  layers,
   fields,
   value,
   onChange,
 }: {
   sales: string[];
   problems: MapProblems | undefined;
+  /** How many map layers the project has (Shapefiles): one choice shows them all. */
+  layers: number;
   fields: MapInfo["fields"];
   value: string | null;
   onChange: (id: string) => void;
@@ -484,6 +492,7 @@ function FieldPick({
       (x) => x.id.startsWith("pr:differs:") && matches(problemLabel(x), q),
     ),
     columns: list(q).filter((f) => !f.field),
+    layers: layers > 0 && matches(w.lyAll({ n: layers }), q) ? [LAYERS] : [],
   });
   const totals = items("");
   const all = (q: string) => {
@@ -493,6 +502,7 @@ function FieldPick({
       ...x.sr.map((k) => `sr:${k}`),
       ...x.problems.map((p) => p.id),
       ...x.differences.map((p) => p.id),
+      ...x.layers,
       ...x.columns.map((f) => f.id),
     ];
   };
@@ -561,6 +571,12 @@ function FieldPick({
                 {shown("differences", q, x.differences).map((p) => option(p.id, problemLabel(p), q))}
               </ListBoxSection>
             )}
+            {x.layers.length > 0 && (
+              <ListBoxSection className="wiz-section">
+                {head("layers", q, 1, w.lyTitle)}
+                {shown("layers", q, x.layers).map((id) => option(id, w.lyAll({ n: layers }), q))}
+              </ListBoxSection>
+            )}
             {x.columns.length > 0 && !q.trim() && (
               <ListBoxSection className="wiz-section">
                 {head("columns", q, totals.columns.length, w.columnsTitle)}
@@ -579,7 +595,10 @@ function FieldPick({
   );
 }
 
-type Fold = "pu" | "sr" | "problems" | "differences" | "columns";
+type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "columns";
+
+/** The choice that draws every map layer (Shapefiles) over the parcels. */
+const LAYERS = "ly:all";
 
 // ---------- Follow ----------
 
@@ -614,6 +633,7 @@ function followed(
   fields: MapInfo["fields"],
   sales: string[],
   problems: MapProblems | undefined,
+  layerNames: string[],
 ): Target | null {
   if (tab !== "fields" || !step || !wizard) return null;
   const s = wizard.steps.find((x) => x.key === step);
@@ -625,6 +645,8 @@ function followed(
     const x = items.filter((p) => p.on === "pu").sort((a, b) => b.count - a.count)[0];
     return x ? { title, field: x.id } : null;
   }
+  // Shapefiles: the project's map layers over the parcels.
+  if (step === "shapefiles") return layerNames.length ? { title, field: LAYERS } : null;
   if (step === "as_sold") {
     const x = items
       .filter((p) => p.id.startsWith("pr:differs:"))
@@ -670,6 +692,7 @@ function MapBody({
   label,
   wizardStamp,
   unplaced,
+  layerNames,
   stepOf,
   onGo,
   side,
@@ -683,12 +706,27 @@ function MapBody({
   wizardStamp: number;
   /** Sales whose parcel isn't in the universe: said, as they can't be shown. */
   unplaced: number;
+  layerNames: string[];
   stepOf: (field: string) => string | null;
   onGo: (step: string) => void;
   side: Side;
   size: number;
 }) {
   const prId = fieldId?.startsWith("pr:") ? fieldId : null;
+  const lyOn = fieldId === LAYERS;
+  // The map layers' shapes (as the Shapefiles step's own map has them), each read once.
+  const lyQueries = useQueries({
+    queries: (lyOn ? layerNames : []).map((name) => ({
+      queryKey: ["map-layer", projectId, name],
+      queryFn: async () =>
+        unwrap(
+          await api.GET("/api/projects/{project_id}/wizard/layers/{name}/map", {
+            params: { path: { project_id: projectId, name } },
+          }),
+        ),
+      staleTime: Number.POSITIVE_INFINITY,
+    })),
+  });
   const by = fieldId?.startsWith("sr:") ? (fieldId.slice(3) as SrKey) : null;
   const base = `/api/projects/${encodeURIComponent(projectId)}/map`;
   const centres = useQuery({
@@ -704,7 +742,7 @@ function MapBody({
           params: { path: { project_id: projectId }, query: { field: fieldId ?? "" } },
         }),
       ),
-    enabled: !!fieldId && !by && !prId,
+    enabled: !!fieldId && !by && !prId && !lyOn,
     staleTime: Number.POSITIVE_INFINITY,
   });
   const sales = useQuery({
@@ -752,8 +790,13 @@ function MapBody({
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
   const paint = useMemo(
-    () => (prPaint && !onSales ? prPaint : by || prId ? painter(undefined, null) : painter(col.data, range)),
-    [by, prId, prPaint, onSales, col.data, range],
+    () =>
+      prPaint && !onSales
+        ? prPaint
+        : by || prId || lyOn
+          ? painter(undefined, null)
+          : painter(col.data, range),
+    [by, prId, lyOn, prPaint, onSales, col.data, range],
   );
   const srPaint = useMemo(
     () => (prPaint && onSales ? prPaint : by && sold ? salesPainter(sold, by, range) : null),
@@ -814,8 +857,31 @@ function MapBody({
     if (xy) lookNow.current?.();
   }, [xy]);
 
-  // What's drawn (memoized by the React Compiler on what it reads).
-  const layers = ((): Layer[] => {
+  // What's drawn (memoized by the React Compiler on what it reads): the parcels (cells or shapes), then the map
+  // layers over them when they're chosen.
+  const overlays: Layer[] = lyOn
+    ? layerNames.flatMap((name, k) => {
+        const shapes = lyQueries[k]?.data?.shapes;
+        if (!shapes) return [];
+        const c = rgba(CATS[k % CATS.length] ?? "#4e79a7", 1);
+        return [
+          new GeoJsonLayer({
+            id: `layer-${name}`,
+            data: shapes as never,
+            stroked: true,
+            filled: true,
+            getFillColor: [c[0], c[1], c[2], 50],
+            getLineColor: [c[0], c[1], c[2], 230],
+            lineWidthUnits: "pixels",
+            getLineWidth: 2,
+            pointType: "circle",
+            pointRadiusUnits: "pixels",
+            getPointRadius: 4,
+          }),
+        ];
+      })
+    : [];
+  const parcels = ((): Layer[] => {
     if (!xy || !plan) return [] as Layer[];
     if (plan.kind === "shapes" && shapes.data) {
       const data = toBinary(shapes.data, plan.ids);
@@ -842,6 +908,7 @@ function MapBody({
     const level = plan.kind === "cells" ? plan.level : levelFor(plan.box.mpp);
     return cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined, zoomTo);
   })();
+  const layers = [...parcels, ...overlays];
 
   const bounds = (info.bounds as Bounds | null | undefined) ?? null;
   const tooltip = useCallback(
@@ -890,7 +957,18 @@ function MapBody({
         )}
       </div>
       <div className="mapwin-legend">
-        {prId ? (
+        {lyOn ? (
+          <ul className="mapwin-cats">
+            {layerNames.map((name, k) => (
+              <li key={name}>
+                <span className="mapwin-sw" style={{ background: CATS[k % CATS.length] }} />
+                <span className="mono">{name}</span>
+                {lyQueries[k]?.isPending && <small>{w.readingLayer}</small>}
+                {lyQueries[k]?.error && <small className="error">{lyQueries[k]?.error?.message}</small>}
+              </li>
+            ))}
+          </ul>
+        ) : prId ? (
           prob.isPending || (onSales && sales.isPending) ? (
             <Waiting doing={w.readingProblem} />
           ) : prob.error ? (

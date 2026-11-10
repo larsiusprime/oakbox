@@ -2183,7 +2183,9 @@ a.row-title:hover {
 }
 
 .wiz-body > .add-button,
-.wiz-body > span > .add-button {
+.wiz-body > span > .add-button,
+.wiz-body > .step-content > .add-button,
+.wiz-body > .step-content > span > .add-button {
   margin-top: calc(0.5 * var(--sp));
 }
 
@@ -2584,6 +2586,10 @@ like the wizard's Next {
   background: var(--warn-tint);
   border-radius: var(--radius);
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
+}
+.mp-need {
+  margin: 0;
+  font-size: 0.85rem;
 }
 .bi-card {
   border: 1px solid var(--frame);
@@ -4114,29 +4120,40 @@ tr.bi-kept > td {
 }
 /* The sales per year: as wide as the text above it, not the whole panel. */
 .cs-bars {
+  /* A column per year, the latest first; many years scroll sideways in it, never squeezed. */
   display: flex;
-  max-width: 58rem;
-  gap: 3px;
-  height: 5rem;
-  align-items: stretch;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--muted);
 }
 .cs-bar {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  font-size: 0.72rem;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 2px;
+  flex: none;
+  min-width: 2.6rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: var(--muted);
-  text-align: center;
 }
 .cs-bar i {
   display: block;
+  width: 100%;
+  min-height: 1px;
   background: var(--chart-bar);
   border-radius: 2px 2px 0 0;
-  min-height: 1px;
 }
 .cs-bar i.out {
   background: #d9dde3;
+}
+.cs-bar-y {
+  font-size: 0.8rem;
+  color: var(--text);
 }
 .cs-n {
   text-align: right;
@@ -4876,6 +4893,22 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vs-grow {
   flex: 1;
 }
+/* Delete set in the set's top right corner. */
+.vs-head > .vs-grow + * {
+  margin-left: auto;
+}
+/* A set being made or deleted: its outline and a sliding bar, straight away. */
+.vs-pending {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  min-width: min(24rem, 100%);
+  min-height: 3rem;
+  color: var(--muted, #6b6b6b);
+}
+.vs-pending > .opening-bar {
+  flex: 0 1 16rem;
+}
 .rv-what {
   margin-top: calc(0.4 * var(--sp));
 }
@@ -5206,6 +5239,11 @@ under what it's about; a file appended as rows {
 .map-street input {
   margin: 0;
 }
+/* Over the dots: deck.gl draws in a corner control box, above MapLibre's markers unless they're lifted. */
+.map-view .maplibregl-marker:has(> .wiz-pin),
+.map-view .maplibregl-marker.wiz-pin {
+  z-index: 3;
+}
 .wiz-pin {
   width: 22px;
   height: 26px;
@@ -5308,6 +5346,8 @@ under what it's about; a file appended as rows {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* A flex box drops the spaces at its words' edges ("GDV_REID in" beside a file's name): the gap puts one back. */
+  column-gap: 0.3em;
   text-align: center;
   margin: 8px 0;
   padding: calc(0.3 * var(--sp)) calc(1.6 * var(--sp));
@@ -5855,21 +5895,36 @@ under what it's about; a file appended as rows {
 /* A field's row (style guide, 2B): the reading is the button, in a column of one width on every row, then the
    values. A reading that needs a look is amber, with its ⚠. */
 .field-tools {
-  /* The reading in a column of one width on every row, then the values button; where there isn't room for both,
-     the button wraps under it rather than running past the row. */
-  display: inline-flex;
-  flex-wrap: wrap;
+  /* The reading in a column of one width on every row, the values button beside it: lined up, one row each. */
+  display: inline-grid;
+  grid-template-columns: 11rem 8.5rem;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
   max-width: 100%;
 }
-.field-tools > :first-child {
-  width: 11rem;
-  max-width: 100%;
+/* Only where the sheet is near its narrowest (a map docked beside it): the values button under the reading. */
+.wiz-body {
+  container-type: inline-size;
+}
+@container (max-width: 44rem) {
+  .field-tools {
+    display: inline-flex;
+    flex-wrap: wrap;
+  }
+  .field-tools > :first-child {
+    width: 11rem;
+    max-width: 100%;
+  }
 }
 .field-tools > .button.button-small {
   margin-left: 0;
+}
+/* "13,053 values ▾": one width on every row, its words to the right, so the counts line up. */
+.field-tools > .button.vals-button {
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 8.5rem;
 }
 /* A reading with nothing to change, in the same column: plain words, no ✓; amber when it needs a look. */
 .reading-plain {
@@ -6104,7 +6159,10 @@ under what it's about; a file appended as rows {
   justify-items: center;
   align-content: end;
   gap: 2px;
+  /* Room for its count and its year on one line each; many years scroll sideways in the chart, never squeezed. */
+  flex: none;
   min-width: 2.6rem;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -6215,11 +6273,17 @@ under what it's about; a file appended as rows {
 }
 
 /* A map that is the step (Coordinates): it takes the rest of the page, down to the buttons, never under 18rem. */
-.wiz-body:has(> .wiz-fill) {
+.wiz-body:has(> .wiz-fill),
+.wiz-body:has(> .step-content > .wiz-fill),
+.wiz-body > .step-content:has(> .wiz-fill) {
   display: flex;
   flex-direction: column;
 }
-.wiz-body > .wiz-fill {
+/* The step's own box (FieldsWizard's StepContent) passes the rest of the page on to it. */
+.wiz-body > .step-content:has(> .wiz-fill) {
+  flex: 1;
+}
+:is(.wiz-body, .wiz-body > .step-content) > .wiz-fill {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -6231,7 +6295,7 @@ under what it's about; a file appended as rows {
 
 /* Location fields: the fields on the left, as wide as they are (the add form no wider), and a map of one of them on
    the right, filling the page. */
-.wiz-body > .wiz-fill.loc-page {
+:is(.wiz-body, .wiz-body > .step-content) > .wiz-fill.loc-page {
   flex-direction: row;
   flex-wrap: wrap;
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
@@ -7374,18 +7438,25 @@ div.map-wait-ask small {
 /* The project still loading: on a sheet of paper, never text on the bare wood. */
 /* Nothing in a step's sheet runs past its box (SPEC D: the sheet stops shrinking at --sheet-min and the folder
    scrolls past that): every box and row at most as wide as what holds it, free to shrink inside a row or grid, a
-   long word broken where it would stick out, a wide table scrolling in its own wrapper. */
+   long word broken where it would stick out, a wide table scrolling in its own wrapper. Zero specificity (:where on
+   both parts): a widget's own width or minimum (a chart's columns) always wins over these defaults. */
 .wiz-body {
   overflow-wrap: break-word;
 }
-.wiz-body :where(div, section, form, fieldset, label, p, ul, ol, dl, table, figure, span) {
+:where(.wiz-body) :where(div, section, form, fieldset, label, p, ul, ol, dl, table, figure, span) {
   max-width: 100%;
 }
-.wiz-body :where(div, section, fieldset, label, span) {
+:where(.wiz-body) :where(div, section, fieldset, label, span) {
   min-width: 0;
 }
-.wiz-body :where(input, select, textarea, button) {
+:where(.wiz-body) :where(input, select, textarea, button) {
   max-width: 100%;
+}
+/* A map's own pieces are sized by MapLibre and deck.gl (deck.gl's drawing layer sits in a corner control box, as wide
+   as the map): never capped by the rules above. */
+.map-view :where(div, span, canvas) {
+  max-width: none;
+  min-width: auto;
 }
 .as-pair > .as-cap {
   /* Side by side where two fit; else one under the other, each the sheet's width (never squeezed). */
@@ -7413,14 +7484,21 @@ div.map-wait-ask small {
 .fh-axis > span {
   min-width: 0;
 }
+/* A label spills over the blank cells beside it (one every few bars), never cut to its own bar's width. */
 .fh-axis > span {
-  overflow: hidden;
+  overflow: visible;
   white-space: nowrap;
 }
 section.wiz-section:has(> .cf-tbl),
 .as-table-wrap,
 .wiz-body .tbl-wrap {
   overflow-x: auto;
+}
+
+/* A map layer's field just added (Shapefiles): there at once, working, until its save is done. */
+.ly-chip-adding {
+  opacity: 0.75;
+  border-style: dashed;
 }
 
 /* A step's content loading (FieldsWizard StepContent): a bar in its place under the header; the content mounted but
@@ -7757,4 +7835,125 @@ section.wiz-section:has(> .cf-tbl),
 }
 .as-table-wrap {
   margin-top: calc(1 * var(--sp));
+}
+/* As wide as what's in it (up to the sheet's width, then it scrolls): no column wider than its widest entry. */
+.tbl.as-table {
+  width: auto;
+}
+
+/* Review: one quiet line per file (style guide: only what wants a look gets a pill and a button). */
+.rv-files {
+  border-collapse: collapse;
+  margin: 0 0 calc(0.6 * var(--sp));
+}
+.rv-files > tbody > tr > td {
+  padding: 0.3rem 0.9rem 0.3rem 0;
+  font-size: 0.92rem;
+  vertical-align: middle;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+.rv-files > tbody > tr:first-child > td {
+  border-top: 0;
+}
+.rv-files .rv-pill {
+  margin-left: 0.4rem;
+}
+.rv-files > tbody > tr > td.rv-act {
+  padding-right: 0.6rem;
+  white-space: nowrap;
+}
+.rv-files > tbody > tr > td.rv-act:last-child {
+  padding-right: 0;
+}
+.rv-unloaded-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 0.8rem;
+  max-width: 62rem;
+  margin: 0.3rem 0 calc(0.6 * var(--sp));
+  font-size: 0.86rem;
+}
+.rv-unloaded-list dd {
+  margin: 0;
+  color: var(--muted);
+}
+/* Model groups, How to start, with groups already made: Keep them under the line that says so, and Start again below. */
+.mg-have {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  margin-bottom: 0.8rem;
+}
+.mg-have > .wiz-note {
+  margin: 0;
+}
+.mg-have > .form-actions {
+  justify-content: flex-start;
+  margin: 0;
+}
+
+/* ---------- Dialogs (components/DialogParts.tsx): sections split by a hairline, a strip at the foot ----------
+   One sheet: each thing to decide is a section (a bold heading, a few words beside it, what shows it, its choice);
+   no boxes or coloured bars inside. What Save will do and the buttons sit together on the foot strip. */
+.modal-body > .dlg-sec {
+  display: grid;
+  gap: 0.5rem;
+  padding: calc(0.8 * var(--sp)) calc(0.9 * var(--sp));
+}
+.modal-body > .dlg-sec + .dlg-sec {
+  border-top: 1px solid var(--rule);
+}
+.dlg-sec-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+.dlg-sec-head > h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.modal-body > .dlg-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  padding: calc(0.6 * var(--sp)) calc(0.9 * var(--sp));
+  background: #f6f6f3;
+  border-top: 1px solid var(--rule);
+}
+.dlg-grow {
+  flex: 1;
+}
+/* In a dialog, a question is a plain label over its answers: the page's call-out box would carve the sheet up. */
+.modal-body .wiz-act {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.modal-body .wiz-act-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+/* Every dialog's buttons, last on its sheet, sit on the foot strip; a heading on the sheet starts a new section. */
+.modal-body > .form-actions:last-child {
+  margin-top: calc(0.4 * var(--sp));
+  padding: calc(0.6 * var(--sp)) calc(0.9 * var(--sp));
+  background: #f6f6f3;
+  border-top: 1px solid var(--rule);
+}
+.modal-body > :is(h3, h4, .wiz-sub, .wiz-section-head-row):not(.modal-title + *) {
+  margin-top: calc(0.4 * var(--sp));
+  padding-top: calc(0.8 * var(--sp));
+  border-top: 1px solid var(--rule);
+}
+.modal-body > hr.wiz-rule {
+  display: none;
+}
+/* Reconcile's match, in its dialog: a line of the first section, not a band of its own. */
+.modal-body > .rc-meter {
+  border: 0;
+  border-radius: 0;
 }

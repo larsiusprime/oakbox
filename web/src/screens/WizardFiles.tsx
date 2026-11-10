@@ -1,17 +1,9 @@
 /** The parts of the Data wizard's file steps that other steps use too: choosing a file, its header, its ID column and
  * the checks on it (repeated and blank IDs, how many find their parcel). */
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
-import {
-  Button,
-  Dialog,
-  Heading,
-  Label,
-  Modal,
-  ModalOverlay,
-  Radio,
-  RadioGroup,
-} from "react-aria-components";
+import { Button, Dialog, Heading, Label, Modal, ModalOverlay, Radio } from "react-aria-components";
 import {
   api,
   type Project,
@@ -26,8 +18,9 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { firstSentence } from "../components/Callout";
-import { FileEntry, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
-import { Choice, Tick } from "../components/Form";
+import { DialogFoot, DialogSection } from "../components/DialogParts";
+import { FileEntry, FileName, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
+import { Choice, Radios, Tick } from "../components/Form";
 import { ReadingLine } from "../components/Reading";
 import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
@@ -90,6 +83,7 @@ export function IdCheck({
   file,
   change,
   inline = false,
+  review = false,
 }: {
   projectId: string;
   data: Wizard;
@@ -97,6 +91,9 @@ export function IdCheck({
   change: Mutate;
   /** The Sales file part: matching is laid out under the file (MatchPanel), so no Reconcile button or ⚠ here. */
   inline?: boolean;
+  /** Review's quiet line (a table row): what's handled in grey words with a link to change it; only what wants a
+   * look gets a pill and a button. */
+  review?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [reconciling, setReconciling] = useState(false);
@@ -121,6 +118,89 @@ export function IdCheck({
     (share < 1 || steps.length > 0 || (base.clean[field] ?? []).length > 0);
   // Rows for parcels missing from the parcel universe: cleaning won't help, so it's a note and a look at them.
   const missing = file.not_in_universe;
+  const dialogs = (
+    <>
+      {reconciling && base && (
+        <ReconcileDialog
+          projectId={projectId}
+          file={file}
+          base={base}
+          close={() => setReconciling(false)}
+          save={(file_steps, base_steps) =>
+            change(
+              { kind: "reconcile", name: file.name, file_steps, base_steps },
+              { onSuccess: () => setReconciling(false) },
+            )
+          }
+        />
+      )}
+      {open && (
+        <DupesDialog
+          projectId={projectId}
+          data={data}
+          file={file}
+          change={change}
+          close={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+  if (review) {
+    const issues = file.id_check?.issues ?? [];
+    const handled = issues.filter((i) => i.resolved);
+    const open_ = issues.filter((i) => !i.resolved);
+    // A match short of everything wants a look too (the check itself warns).
+    // Matching wants a look under 95% (the step's own warning, SPEC F3d); a check that's a warning of its own (IDs
+    // repeated, nothing chosen yet) wants its dialog.
+    const matchLook = reconcilable && share !== null && share !== undefined && share < 0.95;
+    const own = !!file.id_check && !file.id_check.ok && issues.length === 0;
+    const idLook = open_.length > 0 || (own && resolvable);
+    const said = (file.id_check?.text ?? "").replace(/^✓\s*/, "");
+    const act = (label: string, press: () => void, strong: boolean) => (
+      <Button className={strong ? "button button-small" : "wiz-link"} onPress={press}>
+        {label}
+      </Button>
+    );
+    return (
+      <tr>
+        <td>
+          <FileName filename={file.name} />
+        </td>
+        <td className="mono wiz-from">{file.id_column}</td>
+        <td>
+          {own ? <span className="pill pill-warn">{said}</span> : said}
+          {steps.length > 0 && (
+            <span className="wiz-from"> · {w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
+          )}
+          {handled.length > 0 && (
+            <span className="wiz-from"> · {handled.map((i) => i.text).join(" · ")}</span>
+          )}
+          {open_.map((i) => (
+            <span key={i.text} className={i.blocking ? "pill pill-bad rv-pill" : "pill pill-warn rv-pill"}>
+              {i.text}
+            </span>
+          ))}
+          {missing && (
+            <span className="pill pill-warn rv-pill">
+              {missing.title || firstSentence(missing.lines[0] ?? "")}
+            </span>
+          )}
+        </td>
+        <td className="rv-act">
+          {reconcilable &&
+            act(
+              missing ? w.reconcile.seeThem : w.reconcile.open,
+              () => setReconciling(true),
+              matchLook || !!missing,
+            )}
+        </td>
+        <td className="rv-act">
+          {resolvable && act(w.dupes.resolve, () => setOpen(true), idLook)}
+          {dialogs}
+        </td>
+      </tr>
+    );
+  }
   const reconcile = reconcilable && !inline && (
     <Button className="button button-small" onPress={() => setReconciling(true)}>
       {missing ? w.reconcile.seeThem : w.reconcile.open}
@@ -152,29 +232,7 @@ export function IdCheck({
           {missing.units && <CondosLink projectId={projectId} />}
         </WarnChip>
       )}
-      {reconciling && base && (
-        <ReconcileDialog
-          projectId={projectId}
-          file={file}
-          base={base}
-          close={() => setReconciling(false)}
-          save={(file_steps, base_steps) =>
-            change(
-              { kind: "reconcile", name: file.name, file_steps, base_steps },
-              { onSuccess: () => setReconciling(false) },
-            )
-          }
-        />
-      )}
-      {open && (
-        <DupesDialog
-          projectId={projectId}
-          data={data}
-          file={file}
-          change={change}
-          close={() => setOpen(false)}
-        />
-      )}
+      {dialogs}
     </div>
   );
 }
@@ -268,134 +326,121 @@ function DupesDialog({
             <NamesFile text={d.title({ file: file.name, column: file.id_column ?? "" })} name={file.name} />
           </Heading>
           {hasRepeats && (
-            <div className="wiz-section-head-row">
-              <h3 className="wiz-sub">{d.repeatsTitle({ n: r.repeated })}</h3>
-              <span className="wiz-from">{r.few ? d.fewMeans : d.manyMeans}</span>
-            </div>
-          )}
-          {hasRepeats && examples.data && shown && (
-            <div className="wiz-dupes-table">
-              <table className="tbl wiz-table">
-                <thead>
-                  <tr>
-                    {policy === "first" && <th />}
-                    {examples.data.columns.map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map(({ row, band: b, kept: k }, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
-                    <tr key={i} className={`${b ? "band-b" : "band-a"}${k ? " dupes-kept" : ""}`}>
-                      {policy === "first" && <td>{k && <span className="pill pill-ok">{d.kept}</span>}</td>}
-                      {row.map((v, j) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
-                        <td key={j} className="mono">
-                          <Val v={v} />
-                        </td>
+            <DialogSection title={d.repeatsTitle({ n: r.repeated })} note={r.few ? d.fewMeans : d.manyMeans}>
+              {examples.data && shown && (
+                <div className="wiz-dupes-table">
+                  <table className="tbl wiz-table">
+                    <thead>
+                      <tr>
+                        {policy === "first" && <th />}
+                        {examples.data.columns.map((c) => (
+                          <th key={c}>{c}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shown.map(({ row, band: b, kept: k }, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
+                        <tr key={i} className={`${b ? "band-b" : "band-a"}${k ? " dupes-kept" : ""}`}>
+                          {policy === "first" && (
+                            <td>{k && <span className="pill pill-ok">{d.kept}</span>}</td>
+                          )}
+                          {row.map((v, j) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
+                            <td key={j} className="mono">
+                              <Val v={v} />
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {hasRepeats && (
-            <RadioGroup
-              className="field radios wiz-act"
-              value={policy}
-              onChange={(v) => setPolicy(v as "first" | "all")}
-            >
-              <Label className="wiz-act-label">{d.what}</Label>
-              <Radio value="first" className="radio">
-                <span className="radio-dot" aria-hidden="true" />
-                {d.first}
-              </Radio>
-              {policy === "first" && (
-                <div className="wiz-indent dupes-levels">
-                  {levels.length === 0 && <p className="wiz-from">{d.fileOrder}</p>}
-                  {levels.map((l, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a level is its place in the order
-                    <div key={i} className="dupes-level">
-                      <span className="dupes-level-label">{i === 0 ? d.sortBy : d.thenBy}</span>
-                      <Choice
-                        label={`${i === 0 ? d.sortBy : d.thenBy} (${i + 1})`}
-                        hideLabel
-                        value={l.column}
-                        options={columns.map((c) => [c, c] as const)}
-                        onChange={(column) =>
-                          setLevels(levels.map((x, j) => (j === i ? { ...x, column } : x)))
-                        }
-                      />
-                      <Choice
-                        label={`${d.order} (${i + 1})`}
-                        hideLabel
-                        value={l.desc ? "desc" : "asc"}
-                        options={[
-                          ["asc", d.asc],
-                          ["desc", d.desc],
-                        ]}
-                        onChange={(v) =>
-                          setLevels(levels.map((x, j) => (j === i ? { ...x, desc: v === "desc" } : x)))
-                        }
-                      />
-                      <RemoveButton
-                        what={d.levelWhat({ column: l.column })}
-                        onPress={() => setLevels(levels.filter((_, j) => j !== i))}
-                        undo={() => setLevels(levels)}
-                      />
-                    </div>
-                  ))}
-                  <AddButton
-                    onPress={() =>
-                      setLevels([
-                        ...levels,
-                        {
-                          column:
-                            columns.find(
-                              (c) => c !== file.id_column && !levels.some((x) => x.column === c),
-                            ) ??
-                            columns[0] ??
-                            "",
-                          desc: false,
-                        },
-                      ])
-                    }
-                  >
-                    {levels.length ? d.addThen : d.addSort}
-                  </AddButton>
-                  {examples.data && <p className="wiz-from">{d.keptNote}</p>}
+                    </tbody>
+                  </table>
                 </div>
               )}
-              <Radio value="all" className="radio">
-                <span className="radio-dot" aria-hidden="true" />
-                {d.all}
-              </Radio>
-            </RadioGroup>
+              <Radios
+                className="field radios wiz-act"
+                value={policy}
+                onChange={(v) => setPolicy(v as "first" | "all")}
+              >
+                <Label className="wiz-act-label">{d.what}</Label>
+                <Radio value="first" className="radio">
+                  <span className="radio-dot" aria-hidden="true" />
+                  {d.first}
+                </Radio>
+                {policy === "first" && (
+                  <div className="wiz-indent dupes-levels">
+                    {levels.length === 0 && <p className="wiz-from">{d.fileOrder}</p>}
+                    {levels.map((l, i) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: a level is its place in the order
+                      <div key={i} className="dupes-level">
+                        <span className="dupes-level-label">{i === 0 ? d.sortBy : d.thenBy}</span>
+                        <Choice
+                          label={`${i === 0 ? d.sortBy : d.thenBy} (${i + 1})`}
+                          hideLabel
+                          value={l.column}
+                          options={columns.map((c) => [c, c] as const)}
+                          onChange={(column) =>
+                            setLevels(levels.map((x, j) => (j === i ? { ...x, column } : x)))
+                          }
+                        />
+                        <Choice
+                          label={`${d.order} (${i + 1})`}
+                          hideLabel
+                          value={l.desc ? "desc" : "asc"}
+                          options={[
+                            ["asc", d.asc],
+                            ["desc", d.desc],
+                          ]}
+                          onChange={(v) =>
+                            setLevels(levels.map((x, j) => (j === i ? { ...x, desc: v === "desc" } : x)))
+                          }
+                        />
+                        <RemoveButton
+                          what={d.levelWhat({ column: l.column })}
+                          onPress={() => setLevels(levels.filter((_, j) => j !== i))}
+                          undo={() => setLevels(levels)}
+                        />
+                      </div>
+                    ))}
+                    <AddButton
+                      onPress={() =>
+                        setLevels([
+                          ...levels,
+                          {
+                            column:
+                              columns.find(
+                                (c) => c !== file.id_column && !levels.some((x) => x.column === c),
+                              ) ??
+                              columns[0] ??
+                              "",
+                            desc: false,
+                          },
+                        ])
+                      }
+                    >
+                      {levels.length ? d.addThen : d.addSort}
+                    </AddButton>
+                    {examples.data && <p className="wiz-from">{d.keptNote}</p>}
+                  </div>
+                )}
+                <Radio value="all" className="radio">
+                  <span className="radio-dot" aria-hidden="true" />
+                  {d.all}
+                </Radio>
+              </Radios>
+            </DialogSection>
           )}
-          {hasRepeats && hasBlanks && <hr className="wiz-rule" />}
           {hasBlanks && (
-            <>
-              <div className="wiz-section-head-row">
-                <h3 className="wiz-sub">{d.blanksTitle({ n: r.blank })}</h3>
-                <span className="wiz-from">{d.blankMeans({ sales: file.holds === "sales" })}</span>
-              </div>
-              <div className="wiz-act">
-                <span className="wiz-act-label">{d.confirm}</span>
-                <Tick isSelected={blankOk} onChange={setBlankOk}>
-                  {d.blankOk({ n: r.blank, sales: file.holds === "sales" })}
-                </Tick>
-              </div>
-            </>
+            <DialogSection
+              title={d.blanksTitle({ n: r.blank })}
+              note={d.blankMeans({ sales: file.holds === "sales" })}
+            >
+              <Tick isSelected={blankOk} onChange={setBlankOk}>
+                {d.blankOk({ n: r.blank, sales: file.holds === "sales" })}
+              </Tick>
+            </DialogSection>
           )}
-          <hr className="wiz-rule" />
-          {kept !== null && (
-            <p>
-              <strong>{d.result({ rows: r.rows, kept })}</strong>
-            </p>
-          )}
-          <div className="form-actions">
+          <DialogFoot result={kept !== null && d.result({ rows: r.rows, kept })}>
             <Button
               className="button button-primary"
               isDisabled={!((hasRepeats && policy !== null) || (hasBlanks && blankOk !== r.blank_ok))}
@@ -419,7 +464,7 @@ function DupesDialog({
             <Button className="button" onPress={close}>
               {w.cancel}
             </Button>
-          </div>
+          </DialogFoot>
         </Dialog>
       </Modal>
     </ModalOverlay>

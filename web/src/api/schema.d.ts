@@ -3347,9 +3347,9 @@ export interface components {
             auto: boolean;
             /**
              * Suggest
-             * @description What the figures suggest: the universe's when they're the same; None: written another way.
+             * @description The sale's, when its column reads; None: written another way. Never today's: a sale's value that differs a little from today's may be the property as it sold.
              */
-            suggest: ("sale" | "today") | null;
+            suggest: "sale" | null;
             /**
              * Sales
              * @description Sales on a parcel.

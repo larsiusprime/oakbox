@@ -80,13 +80,13 @@ export function AsSoldStep({ projectId, go }: { projectId: string; go: (step: st
         <li>{a.point4}</li>
         <li>{a.point5}</li>
       </ol>
-      <Button className="button primary" onPress={() => setPage("columns")}>
+      <Button className="button button-primary" onPress={() => setPage("columns")}>
         {a.toColumns} ›
       </Button>
     </div>
   ) : (
     <div className="as-sold">
-      <Button className="link-button" onPress={() => setPage("explain")}>
+      <Button className="button button-small" onPress={() => setPage("explain")}>
         ‹ {a.back}
       </Button>
       <Columns projectId={projectId} />
@@ -112,7 +112,6 @@ function Columns({ projectId }: { projectId: string }) {
   if (!v.sales_file) return <p className="wiz-from">{a.noSales}</p>;
   const file = v.filename ?? v.sales_file;
   if (v.rows.length === 0) return <p className="wiz-note">{a.noneFound({ file })}</p>;
-  const allSame = v.rows.every((r) => r.suggest === "today");
   return (
     <>
       <p className="wiz-from">{a.lede({ file })}</p>
@@ -153,7 +152,7 @@ function Columns({ projectId }: { projectId: string }) {
                 {r.auto && <span className="pill pill-ok">{a.auto}</span>}
                 {!r.auto && r.suggest && r.suggest !== (r.choice ?? "today") && (
                   <span className="pill pill-info">
-                    {a.suggested}: {r.suggest === "sale" ? a.sale : a.today}
+                    {a.suggested}: {a.sale}
                   </span>
                 )}
               </td>
@@ -161,7 +160,6 @@ function Columns({ projectId }: { projectId: string }) {
           ))}
         </tbody>
       </table>
-      {allSame && <p className="wiz-from">{a.allSame({ file })}</p>}
       {choose.error && (
         <p className="error" role="alert">
           {choose.error.message}
@@ -174,7 +172,13 @@ function Columns({ projectId }: { projectId: string }) {
 function Against({ r }: { r: Row }) {
   if (r.written_differently) {
     const [sold = "", today = ""] = r.examples[0] ?? [];
-    return <span className="pill pill-bad">{a.writtenDifferently({ sold, today })}</span>;
+    // A short pill; what's written differently, and what to do, on the line under it.
+    return (
+      <>
+        <span className="pill pill-bad">{a.writtenDifferentlyPill}</span>
+        <div className="wiz-from as-eg">{a.writtenDifferently({ sold, today })}</div>
+      </>
+    );
   }
   const same = r.compared ? r.same / r.compared : 1;
   return (
@@ -354,15 +358,6 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
               </tbody>
             </table>
           )}
-          <p className="wiz-from">
-            {r.auto && `${a.autoNote({ pct: pct(same) })} `}
-            {!used && `${a.notUsed({ column: r.column })} `}
-            {r.suggest === "today"
-              ? a.suggestToday
-              : r.suggest === "sale"
-                ? a.suggestSale({ pct: pct(1 - same) })
-                : ""}
-          </p>
         </div>
       )}
       {choose.error && (

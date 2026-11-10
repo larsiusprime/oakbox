@@ -62,7 +62,7 @@ export function ShapefilesStep({
 }: {
   project: Project;
   data: Wizard;
-  change: (c: LayerChange) => void;
+  change: (c: LayerChange, options?: { onSettled?: () => void }) => void;
 }) {
   const [adding, setAdding] = useState(data.layers.length === 0);
   const taken = data.files
@@ -105,12 +105,12 @@ function LayerCard({
 }: {
   project: Project;
   layer: LayerView;
-  change: (c: LayerChange) => void;
+  change: (c: LayerChange, options?: { onSettled?: () => void }) => void;
 }) {
   const o = layer.overlay;
   const [mapShown, setMapShown] = useState(false);
-  const set = (patch: Partial<Overlay>) =>
-    change({ kind: "layer", name: layer.name, overlay: { ...o, ...patch } });
+  const set = (patch: Partial<Overlay>, options?: { onSettled?: () => void }) =>
+    change({ kind: "layer", name: layer.name, overlay: { ...o, ...patch } }, options);
   const kinds = [
     layer.polygons ? s.polygons({ n: layer.polygons }) : null,
     layer.points ? s.points({ n: layer.points }) : null,
@@ -194,9 +194,19 @@ function LayerCard({
 }
 
 /** The columns it copies onto the parcels, as chips (name ← column, used as), and + Field. */
-function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overlay>) => void }) {
+function StampFields({
+  layer,
+  set,
+}: {
+  layer: LayerView;
+  set: (p: Partial<Overlay>, options?: { onSettled?: () => void }) => void;
+}) {
   const o = layer.overlay;
   const kinds = Object.entries(s.kindsShort) as [Kind, string][];
+  // A field just added: shown at once, as a placeholder that's working, until its save (and the layer's check) is
+  // done; then it's the real chip, or gone if the save failed (its error shows on the step).
+  const [adding, setAdding] = useState<Overlay["fields"]>([]);
+  const pending = adding.filter((a) => !o.fields.some((f) => f.name === a.name));
   return (
     <>
       <span className="wiz-label">{s.copies}</span>
@@ -232,7 +242,24 @@ function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overla
             />
           </span>
         ))}
-        <AddStamp layer={layer} add={(f) => set({ fields: [...o.fields, f] })} />
+        {pending.map((f) => (
+          <span key={`adding-${f.name}`} className="ly-chip ly-chip-adding" role="status" aria-busy="true">
+            <span className="bi-pulse" aria-hidden="true" />
+            <span className="mono">{f.name}</span>
+            <span className="wiz-from">← {f.column}</span>
+            <span className="wiz-from">{s.adding}</span>
+          </span>
+        ))}
+        <AddStamp
+          layer={layer}
+          add={(f) => {
+            setAdding((a) => [...a, f]);
+            set(
+              { fields: [...o.fields, ...pending, f] },
+              { onSettled: () => setAdding((a) => a.filter((x) => x.name !== f.name)) },
+            );
+          }}
+        />
       </div>
     </>
   );
@@ -296,8 +323,33 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
   // Typed values are saved when the box is left (or Enter), so each keystroke isn't a save.
   const [feature, setFeature] = useState(o.feature);
   const [max, setMax] = useState(o.max_distance === null ? "" : String(o.max_distance));
-  const [topN, setTopN] = useState(String(o.top_n || 3));
   const units = Object.entries(s.units) as [Unit, string][];
+  // The Options box: a draft while it's open (its ticks, choices and count change nothing yet), saved once when it
+  // closes, if it changed (AGENTS.md: a box of choices isn't wired to saves while open).
+  type Draft = { name_column: string | null; store_top: boolean; top_n: string; sort_field: string | null };
+  const fromSaved = (): Draft => ({
+    name_column: o.name_column ?? null,
+    store_top: o.store_top,
+    top_n: String(o.top_n || 3),
+    sort_field: o.sort_field ?? null,
+  });
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const d = draft ?? fromSaved();
+  const edit = (patch: Partial<Draft>) => setDraft({ ...d, ...patch });
+  const onOptions = (open: boolean) => {
+    if (open) return setDraft(fromSaved());
+    if (draft) {
+      const top = draft.store_top ? Math.max(1, Number.parseInt(draft.top_n, 10) || 1) : 0;
+      const patch: Partial<Overlay> = {};
+      if (draft.name_column !== (o.name_column ?? null)) patch.name_column = draft.name_column;
+      if (draft.store_top !== o.store_top) patch.store_top = draft.store_top;
+      if (top !== (o.store_top ? o.top_n : 0)) patch.top_n = top;
+      if (draft.sort_field !== (o.sort_field ?? null) && draft.sort_field)
+        patch.sort_field = draft.sort_field as Overlay["sort_field"];
+      if (Object.keys(patch).length) set(patch);
+    }
+    setDraft(null);
+  };
   const saveFeature = () => {
     const f = nameFor(feature);
     if (f && f !== o.feature) set({ feature: f });
@@ -358,7 +410,7 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
             onChange={(unit) => set({ unit })}
           />
         </span>
-        <DialogTrigger>
+        <DialogTrigger onOpenChange={onOptions}>
           <Button className="button button-small">
             {s.options}
             {options && <span className="wiz-from"> · {options}</span>}
@@ -372,26 +424,22 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
                 </p>
                 <Choice
                   label={s.nameColumn}
-                  value={o.name_column ?? "__none"}
+                  value={d.name_column ?? "__none"}
                   options={[
                     ["__none", s.noNames] as const,
                     ...layer.columns.map((c) => [c.name, c.name] as const),
                   ]}
-                  onChange={(c) => set({ name_column: c === "__none" ? null : c })}
+                  onChange={(c) => edit({ name_column: c === "__none" ? null : c })}
                 />
-                <Tick
-                  isSelected={o.store_top}
-                  onChange={(on) => set({ store_top: on, top_n: on ? Number(topN) || 3 : 0 })}
-                >
+                <Tick isSelected={d.store_top} onChange={(on) => edit({ store_top: on })}>
                   {s.top}
                 </Tick>
-                {o.store_top && (
+                {d.store_top && (
                   <div className="ly-inline">
                     <TextField
                       aria-label={s.topN}
-                      value={topN}
-                      onChange={setTopN}
-                      onBlur={() => set({ top_n: Math.max(1, Number.parseInt(topN, 10) || 1) })}
+                      value={d.top_n}
+                      onChange={(top_n) => edit({ top_n })}
                       className="ly-max"
                     >
                       <Input className="input ly-input wiz-num" inputMode="numeric" />
@@ -400,12 +448,12 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
                     <Choice
                       label={s.sortBy}
                       hideLabel
-                      value={o.sort_field ?? (layer.lines && !layer.polygons ? "length" : "area")}
+                      value={d.sort_field ?? (layer.lines && !layer.polygons ? "length" : "area")}
                       options={[
                         ["area", s.byArea],
                         ["length", s.byLength],
                       ]}
-                      onChange={(sort_field) => set({ sort_field })}
+                      onChange={(sort_field) => edit({ sort_field })}
                     />
                   </div>
                 )}

@@ -116,6 +116,12 @@ from a bug stays a 500 with its traceback.
   It comes after the list it adds to, at that list's right edge: `<AddButton end>`, or a row of buttons in
   `.add-row`. Adding another item (a file, a layer, a value set) is outside the items' outlines; adding to one item
   (another ID, another copied field) is inside that item's outline, below its rows.
+- **A box of choices saves when it closes, not while it's open (non-negotiable, 2026-11-10).** A popover, dropdown
+  list or panel of ticks, radios, choices or small fields (MultiPick, Enrichments' field lists, a map layer's Options)
+  edits a draft held in the component while it's open: each tick, All, Clear, a typed count change it at once and
+  save nothing. Closing it saves once, the whole choice, and only if it changed. Saving per click made each tick wait
+  on the server and let a late answer undo newer clicks (Evaluate's model groups: lag, Clear not working). A dialog
+  with its own Save button already works this way; a menu that picks one thing and closes is one save anyway.
 - **No widget runs past its box (non-negotiable, 2026-11-09).** A step's sheet shrinks with the window (a docked map
   beside it) down to `--sheet-min` (36rem), then stops; past that the folder panel scrolls sideways within itself.
   Inside the sheet, every box and row fits what holds it at that width: rows wrap (`flex-wrap`), side-by-side pairs

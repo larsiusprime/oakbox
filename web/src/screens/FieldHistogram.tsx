@@ -386,7 +386,7 @@ function RangeControls({
         <Bound value={range.hi} year={year} label={h.highest} onCommit={setHi} />
         {unit && <span>{unit}</span>}
         {!r.isAuto && (
-          <Button className="link-button" onPress={() => r.set(null)}>
+          <Button className="button button-small" onPress={() => r.set(null)}>
             {h.reset}
           </Button>
         )}

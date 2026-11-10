@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Button, Radio, RadioGroup } from "react-aria-components";
+import { Button, Radio } from "react-aria-components";
 import { useMarkSale } from "../api/clean";
 import {
   api,
@@ -12,7 +12,7 @@ import {
 } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { DateField } from "../components/DateField";
-import { Choice } from "../components/Form";
+import { Choice, Radios } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
@@ -280,7 +280,7 @@ function WhatCard({ v, set }: CardProps) {
   const checking = v.check !== false;
   return (
     <div className="rv-cards">
-      <RadioGroup
+      <Radios
         aria-label={r.what.title}
         className="cu-choices"
         value={checking ? "check" : "skip"}
@@ -295,7 +295,7 @@ function WhatCard({ v, set }: CardProps) {
             </span>
           </Radio>
         ))}
-      </RadioGroup>
+      </Radios>
       {checking && (
         <div className="wiz-grid rv-what">
           <span className="wiz-label">{r.what.sets}</span>
@@ -303,7 +303,8 @@ function WhatCard({ v, set }: CardProps) {
             label={r.what.sets}
             values={v.sets.map((x) => ({ value: x.id, label: x.name }))}
             chosen={v.chosen_sets}
-            onChange={(sets) => sets.length && set({ sets })}
+            onChange={(sets) => set({ sets })}
+            atLeastOne
           />
           <span />
           <span className="wiz-label">{r.what.groups}</span>
@@ -311,7 +312,8 @@ function WhatCard({ v, set }: CardProps) {
             label={r.what.groups}
             values={v.all_groups.map((g) => ({ value: g.value, label: g.label }))}
             chosen={v.chosen_groups}
-            onChange={(groups) => groups.length && set({ groups })}
+            onChange={(groups) => set({ groups })}
+            atLeastOne
           />
           <span />
         </div>
@@ -336,19 +338,15 @@ function SalesCard({ v, set }: CardProps) {
             label={r.sales.from}
             width="short"
             value={start}
-            onChange={(v) => {
-              setStart(v);
-              commit("start", v);
-            }}
+            onChange={setStart}
+            onCommit={(v) => commit("start", v)}
           />
           <DateField
             label={r.sales.to}
             width="short"
             value={end}
-            onChange={(v) => {
-              setEnd(v);
-              commit("end", v);
-            }}
+            onChange={setEnd}
+            onCommit={(v) => commit("end", v)}
           />
         </div>
         {v.window_proposed ? (
@@ -364,7 +362,7 @@ function SalesCard({ v, set }: CardProps) {
       </section>
       <section className="cs-step">
         <h3 className="wiz-group">{r.sales.price}</h3>
-        <RadioGroup
+        <Radios
           aria-label={r.sales.price}
           className="rv-choices"
           value={v.price}
@@ -381,7 +379,7 @@ function SalesCard({ v, set }: CardProps) {
               {!v.time_adjusted && <span className="wiz-from"> · {r.sales.noTime}</span>}
             </span>
           </Radio>
-        </RadioGroup>
+        </Radios>
       </section>
       <table className="tbl">
         <tbody>

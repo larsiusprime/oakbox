@@ -1,5 +1,5 @@
 import { useIsFetching, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import {
   api,
@@ -14,7 +14,7 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
-import { NamesFiles } from "../components/FileEntry";
+import { FileName } from "../components/FileEntry";
 import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
 import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
@@ -610,27 +610,46 @@ function ReviewStep({
   const columns = loaded.reduce((n, f) => n + f.sources.length, 0);
   const required = new Set(["sale_price", "sale_date", ...ASSUMABLE]);
   const groups = order(data.steps).filter((s) => s.fields.length > 0);
+  // Every file that loads with an ID of its own: the parcel files, then the sales files.
+  const idFiles = data.files.filter((f) => (f.holds === "parcels" || f.holds === "sales") && f.id_column);
+  const unloaded = data.not_loaded.reduce((n, x) => n + x.columns.length, 0);
+  const [showUnloaded, setShowUnloaded] = useState(false);
   return (
     <>
-      <p className="wiz-lede">
-        {w.summary({ fields: loaded.length, columns })}{" "}
-        <NamesFiles
-          items={data.not_loaded.map((n) => ({
-            key: n.file,
-            text: say.wizard.notLoaded(n.file, n.columns),
-            name: n.file,
-          }))}
-        />
-      </p>
-      {data.files
-        .filter((f) => f.holds === "parcels" && (f.repeats?.extra ?? 0) > 0)
-        .map((f) => (
-          <div key={f.name} className="wiz-grid wiz-review-ids">
-            <div className="wiz-label mono">{f.name}</div>
-            <div className="mono">{f.id_column}</div>
-            <IdCheck projectId={projectId} data={data} file={f} change={change} />
-          </div>
-        ))}
+      <p className="wiz-lede">{w.reviewSummary({ fields: loaded.length, columns, files: idFiles.length })}</p>
+      {/* One quiet line per file: what's handled in grey, a pill and a button only where something wants a look. */}
+      {idFiles.length > 0 && (
+        <table className="rv-files">
+          <tbody>
+            {idFiles.map((f) => (
+              <IdCheck key={f.name} projectId={projectId} data={data} file={f} change={change} review />
+            ))}
+          </tbody>
+        </table>
+      )}
+      {unloaded > 0 && (
+        <>
+          <Disclose
+            open={showUnloaded}
+            onPress={() => setShowUnloaded(!showUnloaded)}
+            className="rv-unloaded"
+          >
+            {w.notLoadedAll({ n: unloaded })}
+          </Disclose>
+          {showUnloaded && (
+            <dl className="rv-unloaded-list">
+              {data.not_loaded.map((n) => (
+                <Fragment key={n.file}>
+                  <dt>
+                    <FileName filename={n.file} />
+                  </dt>
+                  <dd className="mono">{n.columns.join(", ")}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          )}
+        </>
+      )}
       <h3 className="wiz-sub">{w.problems}</h3>
       {data.problems.length ? (
         <ul className="wiz-problems">

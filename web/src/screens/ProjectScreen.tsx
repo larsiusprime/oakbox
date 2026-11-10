@@ -10,7 +10,6 @@ import { OakBand } from "../components/OakBand";
 import { Opening } from "../components/Opening";
 import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
-import { Loading } from "../components/Waiting";
 import { desktop } from "../desktop";
 import { lastTab, record, rememberTab, setTabs, setWhere } from "../lib/place";
 import { navigate, TABS, type TabId } from "../lib/route";

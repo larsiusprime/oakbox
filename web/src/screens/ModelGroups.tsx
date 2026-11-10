@@ -1,12 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button, Radio, RadioGroup } from "react-aria-components";
+import { Button, Radio } from "react-aria-components";
 import { api, type GroupsPreview, type GroupsView, type ModelGroup, type Move, unwrap } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { DeleteButton, ToolButton } from "../components/Buttons";
-import { Tick } from "../components/Form";
+import { Disclose } from "../components/Disclose";
+import { Radios, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { NO_COLOUR } from "../lib/colours";
@@ -63,6 +64,8 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const nav = useStepNav<MgStep>();
   // Starting again replaces the groups: asked first.
   const [replace, setReplace] = useState<"scratch" | "suggested" | null>(null);
+  // Groups already made: the choice to start again is shown only when asked for.
+  const [again, setAgain] = useState(false);
   // How to start: chosen, then Start.
   const [how, setHow] = useState<"suggested" | "scratch" | null>(null);
   const start = useMutation({
@@ -122,6 +125,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
           ? "write"
           : "build";
   const current = nav.current(a.status, fallback, "results");
+  const have = !!v.start && saved.length > 0;
   const go = nav.go;
   const statusOf = (key: MgStep): StepStatus => {
     switch (key) {
@@ -159,50 +163,73 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "start" && (
         <>
           <StepBody title={g.startTitle} lede={g.lede}>
-            {v.start && <p className="wiz-note">{g.startedWith({ how: v.start })}</p>}
-            {/* A choice, then Start: cards that acted at once read as neither a choice nor a button. */}
-            <RadioGroup
-              aria-label={g.startTitle}
-              className="cu-choices mg-start-cards"
-              value={how}
-              onChange={(x) => setHow(x as "suggested" | "scratch")}
-            >
-              <Radio value="suggested" className="radio cu-choice" isDisabled={!v.can_suggest}>
-                <span className="radio-dot" aria-hidden="true" />
-                <span className="cu-text">
-                  <b>{g.suggested}</b>
-                  <span className="cu-sub">{v.can_suggest ? g.suggestedHelp : g.noSuggest}</span>
-                </span>
-              </Radio>
-              <Radio value="scratch" className="radio cu-choice">
-                <span className="radio-dot" aria-hidden="true" />
-                <span className="cu-text">
-                  <b>{g.scratch}</b>
-                  <span className="cu-sub">{g.scratchHelp}</span>
-                </span>
-              </Radio>
-            </RadioGroup>
-            <div className="form-actions">
-              <Button
-                className="button button-primary"
-                isDisabled={!how || start.isPending}
-                onPress={() => how && (saved.length ? setReplace(how) : start.mutate(how))}
-              >
-                {g.startButton}
-              </Button>
-            </div>
-            {replace && (
-              <div className="bi-warn mg-replace" role="alert">
-                {g.replaceWarn({ n: saved.length })}{" "}
-                {/* Already the question: the answer that deletes the saved groups carries the trash can. */}
-                <Button className="button button-danger" onPress={() => start.mutate(replace)}>
-                  <Trash2 aria-hidden="true" size="1em" />
-                  {g.replaceYes}
-                </Button>{" "}
-                <Button className="button" onPress={() => setReplace(null)}>
-                  {g.replaceNo}
-                </Button>
+            {/* Groups already made: keeping them is the answer; starting again is tucked away, and asks first. */}
+            {have && (
+              <div className="mg-have">
+                <p className="wiz-note">{g.haveGroups({ n: saved.length, how: v.start ?? "scratch" })}</p>
+                <div className="form-actions mg-have-actions">
+                  <Button className="button button-primary" onPress={() => go("build")}>
+                    {g.keepThem} ›
+                  </Button>
+                </div>
+                <Disclose open={again} onPress={() => setAgain(!again)}>
+                  {g.startAgain}
+                </Disclose>
               </div>
+            )}
+            {(!have || again) && (
+              <>
+                {/* A choice, then Start: cards that acted at once read as neither a choice nor a button. */}
+                <Radios
+                  aria-label={g.startTitle}
+                  className="cu-choices mg-start-cards"
+                  value={how}
+                  onChange={(x) => setHow(x as "suggested" | "scratch")}
+                >
+                  <Radio value="suggested" className="radio cu-choice" isDisabled={!v.can_suggest}>
+                    <span className="radio-dot" aria-hidden="true" />
+                    <span className="cu-text">
+                      <b>{g.suggested}</b>
+                      <span className="cu-sub">{v.can_suggest ? g.suggestedHelp : g.noSuggest}</span>
+                    </span>
+                  </Radio>
+                  <Radio value="scratch" className="radio cu-choice">
+                    <span className="radio-dot" aria-hidden="true" />
+                    <span className="cu-text">
+                      <b>{g.scratch}</b>
+                      <span className="cu-sub">{g.scratchHelp}</span>
+                    </span>
+                  </Radio>
+                </Radios>
+                <div className="form-actions">
+                  <Button
+                    className="button button-primary"
+                    isDisabled={!how || start.isPending}
+                    onPress={() => how && (saved.length ? setReplace(how) : start.mutate(how))}
+                  >
+                    {g.startButton}
+                  </Button>
+                </div>
+                {replace && (
+                  <div className="bi-warn mg-replace" role="alert">
+                    {g.replaceWarn({ n: saved.length })}{" "}
+                    {/* Already the question: the answer that deletes the saved groups carries the trash can. */}
+                    <Button className="button button-danger" onPress={() => start.mutate(replace)}>
+                      <Trash2 aria-hidden="true" size="1em" />
+                      {g.replaceYes}
+                    </Button>{" "}
+                    <Button
+                      className="button"
+                      onPress={() => {
+                        setReplace(null);
+                        go("build");
+                      }}
+                    >
+                      {g.replaceNo}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
             {start.error && (
               <p className="error" role="alert">

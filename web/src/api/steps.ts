@@ -162,6 +162,24 @@ export function useStepSetup<K extends SetupId>(id: K, projectId: string, enable
       const params = { params: { path: { project_id: projectId } }, body: body as S["CleanPatch"] };
       return unwrap(await api.PATCH(path, params)) as unknown as Setups[K][0];
     },
+    // Shown at once (AGENTS.md): what was changed is put on the screen before it's saved, every key the view has
+    // under the same name (a radio, a tick, a choice); the server's answer then replaces it, or a failure puts back
+    // what was there.
+    onMutate: async (body) => {
+      const key = setupKey(id, projectId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const before = queryClient.getQueryData<Setups[K][0]>(key);
+      if (before && typeof body === "object" && body) {
+        const shown = Object.fromEntries(
+          Object.entries(body as Record<string, unknown>).filter(([k, x]) => k in before && x !== undefined),
+        );
+        if (Object.keys(shown).length) queryClient.setQueryData(key, { ...before, ...shown });
+      }
+      return { before };
+    },
+    onError: (_e, _body, ctx) => {
+      if (ctx?.before) queryClient.setQueryData(setupKey(id, projectId), ctx.before);
+    },
     onSuccess: (data) => {
       queryClient.setQueryData(setupKey(id, projectId), data);
       stepChanged(queryClient, projectId, id);

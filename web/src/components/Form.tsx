@@ -10,11 +10,14 @@ import {
   ListBox,
   ListBoxItem,
   Popover,
+  RadioGroup,
+  type RadioGroupProps,
   Select,
   SelectValue,
   Text,
   TextField,
 } from "react-aria-components";
+import { useAtOnce } from "../lib/hooks";
 import { Combo, Marked, matches, TYPE_FROM } from "./Combo";
 import { FileName } from "./FileEntry";
 import { Tip } from "./Tip";
@@ -74,6 +77,12 @@ export function Choice<V extends string>(props: {
   /** A note beside an option in the list (e.g. "not installed · 97 MB"). */
   aside?: Partial<Record<V, string>>;
 }) {
+  // What was picked shows at once, while it saves (AGENTS.md).
+  const [value, pick_] = useAtOnce(props.value);
+  const onPick = (v: V) => {
+    pick_(v);
+    props.onChange(v);
+  };
   const aside = (v: V) => props.aside?.[v] && <span className="choice-aside">{props.aside[v]}</span>;
   if (props.options.length >= TYPE_FROM) {
     const pick = (q: string) =>
@@ -81,8 +90,8 @@ export function Choice<V extends string>(props: {
     return (
       <Combo
         label={props.label}
-        selectedKey={props.value}
-        onChange={(k) => props.onChange(k as V)}
+        selectedKey={value}
+        onChange={(k) => onPick(k as V)}
         placeholder={props.placeholder ?? ""}
         size={Math.min(
           40,
@@ -114,8 +123,8 @@ export function Choice<V extends string>(props: {
     <Select
       className="field choice"
       {...(props.isDisabled ? { isDisabled: true } : {})}
-      selectedKey={props.value}
-      onSelectionChange={(k) => k !== null && props.onChange(String(k) as V)}
+      selectedKey={value}
+      onSelectionChange={(k) => k !== null && onPick(String(k) as V)}
       placeholder={props.placeholder ?? ""}
       {...(props.hideLabel ? { "aria-label": props.label } : {})}
     >
@@ -154,11 +163,15 @@ export function CheckList<V extends string>(props: {
   onChange: (v: V[]) => void;
   help?: string;
 }) {
+  const [value, press] = useAtOnce<readonly V[]>(props.value);
   return (
     <CheckboxGroup
       className="field checklist"
-      value={[...props.value]}
-      onChange={(v) => props.onChange(v as V[])}
+      value={[...value]}
+      onChange={(v) => {
+        press(v as V[]);
+        props.onChange(v as V[]);
+      }}
     >
       <Label className="field-label">{props.label}</Label>
       <div className="checklist-items">
@@ -177,6 +190,26 @@ export function CheckList<V extends string>(props: {
   );
 }
 
+/** A radio group whose choice shows at once while it saves (AGENTS.md): react-aria's RadioGroup, otherwise the same. */
+export function Radios(props: RadioGroupProps) {
+  const [value, press] = useAtOnce(props.value);
+  const { onChange } = props;
+  return (
+    <RadioGroup
+      {...props}
+      {...(value !== undefined ? { value } : {})}
+      {...(onChange
+        ? {
+            onChange: (v: string) => {
+              if (props.value !== undefined) press(v);
+              onChange(v);
+            },
+          }
+        : {})}
+    />
+  );
+}
+
 export function Tick(props: {
   value?: string;
   isSelected?: boolean;
@@ -184,13 +217,22 @@ export function Tick(props: {
   onChange?: (v: boolean) => void;
   children: React.ReactNode;
 }) {
+  const [selected, press] = useAtOnce(props.isSelected);
+  const onChange = props.onChange;
   return (
     <Checkbox
       className="tick"
       {...(props.isDisabled ? { isDisabled: true } : {})}
       {...(props.value !== undefined ? { value: props.value } : {})}
-      {...(props.isSelected !== undefined ? { isSelected: props.isSelected } : {})}
-      {...(props.onChange ? { onChange: props.onChange } : {})}
+      {...(selected !== undefined ? { isSelected: selected } : {})}
+      {...(onChange
+        ? {
+            onChange: (v: boolean) => {
+              if (props.isSelected !== undefined) press(v);
+              onChange(v);
+            },
+          }
+        : {})}
     >
       {({ isSelected }) => (
         <>

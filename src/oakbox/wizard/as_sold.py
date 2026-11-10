@@ -30,7 +30,6 @@ from oakbox.wizard.base import CHARACTERISTIC_STEPS, RENAMED, STEPS, normalized
 from oakbox.wizard.checks import _names
 from oakbox.wizard.files import Files, dictionary_by_key, file_stamp, sales_file, values_of
 
-SAME_ENOUGH = 0.99  # this share the same as the universe's: a snapshot exported with the sales, not history
 WRITTEN_DIFFERENTLY = 0.2  # under this share of the sale's values among the universe's: written another way
 EXAMPLES = 3
 DIFFS = 50  # the sales that differ, listed (See them)
@@ -69,8 +68,9 @@ class AsSoldRow(BaseModel):
         description="The user's; None: not chosen (the universe's is used)."
     )
     auto: bool = Field(default=False, description="The sale's, picked by OAK box (AUTO_SAME); the user can change it.")
-    suggest: Literal["sale", "today"] | None = Field(
-        description="What the figures suggest: the universe's when they're the same; None: written another way."
+    suggest: Literal["sale"] | None = Field(
+        description="The sale's, when its column reads; None: written another way. Never today's: a sale's value that "
+        "differs a little from today's may be the property as it sold."
     )
     sales: int = Field(description="Sales on a parcel.")
     have: int = Field(description="Of them, with a value in the column.")
@@ -282,9 +282,8 @@ def view(project: Project, in_dir: Path) -> AsSoldView:
             "distinct": 0,
         }
         c = _compare(project, files, sales, key, column, src, unit) if column else empty
-        suggest: Literal["sale", "today"] | None = None
-        if column and not c["written_differently"] and c["compared"]:
-            suggest = "today" if c["same"] / c["compared"] >= SAME_ENOUGH else "sale"
+        # Only ever the sale's: a sale's value a little off today's may well be the property as it sold.
+        suggest: Literal["sale"] | None = "sale" if column and not c["written_differently"] and c["compared"] else None
         rows.append(
             AsSoldRow(
                 key=key,

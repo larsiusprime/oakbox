@@ -561,7 +561,8 @@
       "sortBy": "Largest by",
       "byArea": "area",
       "byLength": "length",
-      "mapLabel": "Map of {name} over the parcels"
+      "mapLabel": "Map of {name} over the parcels",
+      "adding": "adding, checking which parcels it covers…"
     },
     "permits": {
       "date": "Date issued",
@@ -819,11 +820,11 @@
       "what": "It''s about",
       "parcels": "🌐 Parcel Universe",
       "sales": "💰 Sales Record",
-      "how": "It adds",
-      "joinedParcels": "More fields for each parcel",
-      "joinedSales": "More fields for each sale",
-      "rowsParcels": "More parcels",
-      "rowsSales": "More sales",
+      "how": "It",
+      "joinedParcels": "Joins new columns",
+      "joinedSales": "Joins new columns",
+      "rowsParcels": "Appends new rows",
+      "rowsSales": "Appends new rows",
       "needsShapes": "Needs shapes, as the parcel universe''s parcels have",
       "needsSales": "Add the sales record first",
       "madeId": "Its sale ID is made as the sales record''s: from its parcel ID and sale date.",
@@ -846,13 +847,13 @@
       "land": "Land value",
       "impr": "Improvement value",
       "roll": "The assessor''s roll",
-      "rollNote": "checked on Evaluate, and beside the models as OpenAVMKit''s assessor",
-      "otherNote": "beside the models, and on Evaluate",
       "name": "Name of the set",
       "add": "Add a set of values",
       "none": "No existing values: the models are judged on their own.",
       "deleteSet": "Delete set",
-      "deleteConfirm": "Delete {name} and the fields it gives? This can't be undone."
+      "deleteConfirm": "Delete {name} and the fields it gives? This can't be undone.",
+      "adding": "New set of values…",
+      "deleting": "Deleting {name}…"
     },
     "reconcile": {
       "open": "Reconcile…",
@@ -1202,6 +1203,8 @@
     "problems": "Before OpenAVMKit can run",
     "noProblems": "Nothing missing.",
     "summary": "{fields} fields from {columns} columns.",
+    "reviewSummary": "{fields, number} fields from {columns, number} columns of {files, plural, =1 {1 file} other {# files}}.",
+    "notLoadedAll": "{n, plural, =1 {1 column in these files isn''t loaded} other {# columns in these files aren''t loaded}}",
     "notLoaded": {
       "few": "Not loaded from {file}: {columns}.",
       "more": "Not loaded from {file}: {columns} and {more} more."
@@ -1258,11 +1261,10 @@
       },
       "same": "same for {pct}",
       "differs": "differs for {pct}",
-      "writtenDifferently": "written differently ({sold} where the parcel universe has {today}): export the same codes to use it",
+      "writtenDifferently": "{sold} where the 🌐 Parcel Universe has {today}: export the same codes to use it",
       "sale": "💰 Sales Record",
       "today": "🌐 Parcel Universe",
       "suggested": "suggested",
-      "allSame": "Everything here matches the parcel universe: {file} looks like the parcel universe's fields exported with the sales, not the property as it sold. Using it changes little.",
       "forSales": "For sales",
       "atSale": "💰 Sales Record",
       "atSaleNote": "the sales: what the models learn from",
@@ -1279,9 +1281,6 @@
       "suggestedOption": "{column} (found)",
       "notFound": "Nothing in {file} matches by name or by its values: sales take the parcel universe's. Pick a column if one holds it.",
       "unitNote": "(The parcel universe's is in {today}: compared in {today}.)",
-      "notUsed": "Found, not used yet: sales take the parcel universe's until you pick {column} above.",
-      "suggestToday": "Nearly all the same: likely an export of the parcel universe, not the property as it sold. Using it changes little.",
-      "suggestSale": "Differs for {pct} of sales: history since the sale (a split, a rebuild) the models should see. Worth using.",
       "differsFor": "differs for {n, plural, =1 {1 sale} other {# sales}}",
       "sameFor": "the same for {pct}",
       "seeThem": "See them",
@@ -1299,7 +1298,6 @@
       "writtenDifferentlyPill": "written differently",
       "writtenDifferentlyWhy": "{sold} where the parcel universe has {today}: these can't be compared, or read as the parcel universe's are. Export the same codes to use them; sales take the parcel universe's until then.",
       "auto": "picked for you",
-      "autoNote": "Picked for you: the same column name as the parcel universe's, read the same way, the same for {pct} of sales. Choose none to use the parcel universe's instead.",
       "onlyTitle": "Only in the sales record",
       "onlyLede": "{file}'s columns that describe the sale or the property as it sold, which no parcel universe file has. A model can't use them: it values every parcel, and the parcel universe doesn't have them. They can decide which sales count: a rule on Valid sale (leave out a status, a type). And they show beside each sale in Outliers.",
       "onlyCols": {
@@ -1501,7 +1499,8 @@
     "noMatch": "Nothing matches",
     "add": "Add “{v}”",
     "more": "{n, number} more values not listed: search, or type one to add it",
-    "counts": "Counts are {noun}."
+    "counts": "Counts are {noun}.",
+    "atLeastOne": "Pick at least one. Closing with none keeps the choice you had."
   },
   "groups": {
     "title": "Model groups",
@@ -1584,7 +1583,9 @@
       "write": "Tag and write",
       "results": "What each group got"
     },
-    "startedWith": "You started {how, select, suggested {from the suggested groups} other {from scratch}}. Starting again replaces the groups you have.",
+    "haveGroups": "You have {n, plural, =1 {1 group} other {# groups}}, started {how, select, suggested {from the suggested groups} other {from scratch}}.",
+    "keepThem": "Keep them",
+    "startAgain": "Start again instead",
     "pickStart": "Pick one to start.",
     "replaceWarn": "This replaces your {n} {n, plural, =1 {group} other {groups}}.",
     "replaceYes": "Replace them",
@@ -3381,7 +3382,10 @@
     "alone": "OAK box map",
     "puTitle": "🌐 Parcel Universe: your fields",
     "diffTitle": "Differences: 💰 sale against 🌐 parcel",
-    "columnsTitle": "🌐 Other columns of your parcel files"
+    "columnsTitle": "🌐 Other columns of your parcel files",
+    "lyTitle": "🗺 Your map layers",
+    "lyAll": "All {n, plural, =1 {your map layer} other {# map layers}}, over the parcels",
+    "readingLayer": "reading…"
   },
   "opening": {
     "title": "Opening Project \"{name}\"…",

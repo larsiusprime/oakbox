@@ -524,8 +524,8 @@ the field steps, checks, guesses, assumptions and Review carry over.
   do. Under half matching blocks; under 95% is a warning. Its red − sets it aside (D47), with Undo. Settings: parcel
   files join `merge.universe` (with `on` for an extra ID), sales details join `merge.sales` after the main file, each
   with `dupes` on its join key. **What it's about, then how it joins** (revised 2026-10-31, 2026-11-04): **It's about**
-  **Parcels** or **Sales**; then, under it, **It adds**: **More about each parcel / sale** (joined on the ID, as above),
-  or **More parcels / More sales** (appended as extra rows); both choices are segmented controls on the entry's two
+  **Parcels** or **Sales**; then, under it, **It**: **Joins new columns** (more about each parcel / sale, joined on the ID, as
+  above), or **Appends new rows** (more parcels / sales) (revised 2026-11-10); both choices are segmented controls on the entry's two
   columns (revised 2026-11-04) (older sales, sales from another system, sales found some other way; a second parcel
   file). Joined to each sale works with a made sale ID too: the file's own is made the same way, from its parcel ID and
   a **Sale date** picked beside it ("Its sale ID is made as the sales record's"), and its match check warns when most
@@ -615,8 +615,8 @@ the field steps, checks, guesses, assumptions and Review carry over.
   (Guilford's `GRADE`, "B-5  120%" where today's is 1.2), or text with almost no values in common: then the sale's
   can't be chosen, and the answer is a cleaner export (the same codes), not a reading in OAK box (settled
   2026-11-07). Per field, **The sale's** or **Today's** (`wizard.as_sold`); until chosen, today's (nothing changes
-  silently), with a suggestion: today's where 99% or more are the same (a snapshot exported with the sales, not
-  history: Guilford, 99.6-100%), else the sale's. The sale's loads its column into the sales file read as the parcel's
+  silently), with a suggestion: the sale's, never today's (revised 2026-11-10: a sale's value a little off today's may
+  be the property as it sold, so near-sameness isn't a reason to drop it). The sale's loads its column into the sales file read as the parcel's
   is (number format, scale; an area in its own unit), so OpenAVMKit's hydration uses it per sale and fills the rest
   from the parcel; the parcel's reading changing changes it too, and the parcel field gone takes it with it. A
   characteristic only the sales file has isn't offered: a model can't value a parcel on it.

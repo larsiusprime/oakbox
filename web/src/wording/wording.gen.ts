@@ -312,6 +312,7 @@ export type Wording = {
       byArea: string;
       byLength: string;
       mapLabel: (a: { name: string | number }) => string;
+      adding: string;
     };
     permits: {
       date: string;
@@ -556,13 +557,13 @@ export type Wording = {
       land: string;
       impr: string;
       roll: string;
-      rollNote: string;
-      otherNote: string;
       name: string;
       add: string;
       none: string;
       deleteSet: string;
       deleteConfirm: (a: { name: string | number }) => string;
+      adding: string;
+      deleting: (a: { name: string | number }) => string;
     };
     reconcile: {
       open: string;
@@ -822,6 +823,8 @@ export type Wording = {
     problems: string;
     noProblems: string;
     summary: (a: { fields: string | number; columns: string | number }) => string;
+    reviewSummary: (a: { fields: number; columns: number; files: number }) => string;
+    notLoadedAll: (a: { n: number }) => string;
     notLoaded: {
       few: (a: { file: string | number; columns: string | number }) => string;
       more: (a: { file: string | number; columns: string | number; more: string | number }) => string;
@@ -882,7 +885,6 @@ export type Wording = {
       sale: string;
       today: string;
       suggested: string;
-      allSame: (a: { file: string | number }) => string;
       forSales: string;
       atSale: string;
       atSaleNote: string;
@@ -899,9 +901,6 @@ export type Wording = {
       suggestedOption: (a: { column: string | number }) => string;
       notFound: (a: { file: string | number }) => string;
       unitNote: (a: { today: string | number }) => string;
-      notUsed: (a: { column: string | number }) => string;
-      suggestToday: string;
-      suggestSale: (a: { pct: string | number }) => string;
       differsFor: (a: { n: number }) => string;
       sameFor: (a: { pct: string | number }) => string;
       seeThem: string;
@@ -919,7 +918,6 @@ export type Wording = {
       writtenDifferentlyPill: string;
       writtenDifferentlyWhy: (a: { sold: string | number; today: string | number }) => string;
       auto: string;
-      autoNote: (a: { pct: string | number }) => string;
       onlyTitle: string;
       onlyLede: (a: { file: string | number }) => string;
       onlyCols: {
@@ -1108,6 +1106,7 @@ export type Wording = {
     add: (a: { v: string | number }) => string;
     more: (a: { n: number }) => string;
     counts: (a: { noun: string | number }) => string;
+    atLeastOne: string;
   };
   groups: {
     title: string;
@@ -1190,7 +1189,9 @@ export type Wording = {
       write: string;
       results: string;
     };
-    startedWith: (a: { how: string | number }) => string;
+    haveGroups: (a: { n: number; how: string | number }) => string;
+    keepThem: string;
+    startAgain: string;
     pickStart: string;
     replaceWarn: (a: { n: number }) => string;
     replaceYes: string;
@@ -2743,6 +2744,9 @@ export type Wording = {
     puTitle: string;
     diffTitle: string;
     columnsTitle: string;
+    lyTitle: string;
+    lyAll: (a: { n: number }) => string;
+    readingLayer: string;
   };
   opening: {
     title: (a: { name: string | number }) => string;
