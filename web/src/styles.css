@@ -7982,3 +7982,87 @@ section.wiz-section:has(> .cf-tbl),
 .mapwin-groups > .mg-legend {
   flex: none;
 }
+
+/* A take-over step's instruction card (components/MapInstruction.tsx, SPEC §3.15): the step's work is on the map. */
+.map-instr {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  max-width: 46rem;
+  margin: 0 0 calc(0.8 * var(--sp));
+  padding: 0.7rem 0.9rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-left: 4px solid var(--link);
+  border-radius: 3px;
+}
+.map-instr-icon {
+  flex: none;
+  color: var(--link);
+}
+.map-instr-text {
+  display: grid;
+  gap: 0.15rem;
+}
+.map-instr-text > b {
+  font-size: 1rem;
+}
+.map-instr-text > span {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.map-instr-show {
+  flex: none;
+  margin-left: auto;
+}
+/* The map's banner: the step's instruction, on the map; flashes when the screen's card is hovered. */
+.mapwin-banner {
+  flex: none;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.88rem;
+  background: #fff7dc;
+  border-bottom: 1px solid #ecd58f;
+}
+.mapwin-banner.flash {
+  animation: mapwin-flash 0.9s ease-out;
+}
+@keyframes mapwin-flash {
+  0% {
+    background: #ffd966;
+  }
+  100% {
+    background: #fff7dc;
+  }
+}
+/* A pin not yet moved: a ring pulses round it (SPEC §3.15: what's to be dragged shows it). */
+.wiz-pin.unmoved::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  border-radius: 50%;
+  border: 2px solid rgba(163, 35, 27, 0.6);
+  animation: pin-pulse 1.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pin-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+/* Coordinates: where the centre is, and the way back to the middle, on one line. */
+.co-centre {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  align-items: baseline;
+  margin: 0 0 calc(0.8 * var(--sp));
+}

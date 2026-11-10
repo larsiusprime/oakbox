@@ -6,11 +6,13 @@ import { Button, Input, TextField } from "react-aria-components";
 import { api, unwrap, type Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
+import { MapInstruction } from "../components/MapInstruction";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
 import { ValuesButton } from "../components/ValuesButton";
-import { Loading } from "../components/Waiting";
+import { Loading, LoadingBar } from "../components/Waiting";
 import { PICKED } from "../lib/colours";
+import { announceTouched, onTouched, useTakeOver } from "../lib/mapstep";
 import { say, t } from "../wording";
 
 const l = t.wizard.location;
@@ -20,8 +22,9 @@ type MapView = {
   center: [number, number] | null;
 };
 
-/** F3d, More details › Coordinates: where each parcel is, worked out by OpenAVMKit, and the centre it measures from. */
-export function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
+/** Where the parcels are and the centre, read and moved: the screen and the map window share them (a popped-out
+ * map's moves are announced, so the screen reads them again). */
+function useCentre(projectId: string, enabled: boolean) {
   const queryClient = useQueryClient();
   const view = useQuery({
     queryKey: ["map", projectId],
@@ -31,7 +34,7 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           params: { path: { project_id: projectId } },
         }),
       ),
-    enabled: hasShapes,
+    enabled,
   });
   const move = useMutation({
     mutationFn: async (center: { latitude: number; longitude: number } | null) =>
@@ -41,11 +44,62 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           ...(center ? { body: center } : {}),
         }),
       ),
-    onSuccess: (data) => queryClient.setQueryData(["map", projectId], data),
+    // Shown at once: the pin (or the middle) is where it was put before the server answers.
+    onMutate: (center) => {
+      const before = queryClient.getQueryData<MapView>(["map", projectId]);
+      if (before)
+        queryClient.setQueryData(["map", projectId], {
+          ...before,
+          center: center ? [center.latitude, center.longitude] : null,
+        });
+      return { before };
+    },
+    onError: (_e, _c, ctx) => {
+      if (ctx?.before) queryClient.setQueryData(["map", projectId], ctx.before);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["map", projectId], data);
+      announceTouched(projectId);
+    },
   });
-  const v = view.data as MapView | undefined;
+  useEffect(
+    () =>
+      onTouched((id) => {
+        if (id === projectId) void queryClient.invalidateQueries({ queryKey: ["map", projectId] });
+      }),
+    [projectId, queryClient],
+  );
+  return { view, move, v: view.data as MapView | undefined };
+}
+
+/** F3d, More details › Coordinates (SPEC §3.15, a take-over step): where each parcel is, worked out by OpenAVMKit,
+ * and the centre it measures from, dragged on the map window (never typed); here, what it is and the way back to the
+ * middle. */
+export function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
+  useTakeOver(projectId, "centre", t.wizard.steps.coordinates?.title ?? "", l.instruction);
+  const { view, move, v } = useCentre(projectId, hasShapes);
+  const fmt = (p: [number, number]) => `${p[0].toFixed(5)}, ${p[1].toFixed(5)}`;
+  const at = v?.center ?? v?.middle ?? null;
   return (
-    <section className="wiz-section wiz-fill">
+    <section className="wiz-section">
+      {hasShapes && v && v.points.length > 0 && (
+        <MapInstruction title={l.instruction} sub={l.instructionSub} />
+      )}
+      {!hasShapes ? (
+        <p className="wiz-note">{l.noShapes}</p>
+      ) : v && v.points.length > 0 ? (
+        <p className="co-centre">
+          <b>{l.centre}</b> {at ? fmt(at) : "—"}{" "}
+          <span className="wiz-from">· {v.center ? l.movedByYou : l.isMiddle}</span>
+          <Button className="button button-small" isDisabled={!v.center} onPress={() => move.mutate(null)}>
+            {l.useMiddle}
+          </Button>
+        </p>
+      ) : view.isPending ? (
+        <Loading q={view} qkey={["map", projectId]} doing={l.loading} />
+      ) : (
+        <p className="wiz-note">{l.noMap}</p>
+      )}
       <ul className="wiz-auto">
         <li>
           <span className="wiz-ok">✓ {l.latlon}</span> <span className="wiz-from">{l.latlonHow}</span>
@@ -54,32 +108,28 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           <span className="wiz-ok">✓ {l.polar}</span> <span className="wiz-from">{l.polarHow}</span>
         </li>
       </ul>
-      {!hasShapes ? (
-        <p className="wiz-note">{l.noShapes}</p>
-      ) : v && v.points.length > 0 ? (
-        <>
-          {/* The centre, and the way back to the middle, above the map: always shown, it's the step's point. */}
-          <p className="wiz-note">
-            {v.center ? say.wizard.location.centerSet(v.center[0], v.center[1]) : l.centerMiddle}{" "}
-            {v.center && (
-              <Button className="button button-small" onPress={() => move.mutate(null)}>
-                {l.useMiddle}
-              </Button>
-            )}
-          </p>
-          <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
-        </>
-      ) : view.isPending ? (
-        <Loading q={view} qkey={["map", projectId]} doing={l.loading} />
-      ) : (
-        <p className="wiz-note">{l.noMap}</p>
-      )}
       {(view.error || move.error) && (
         <p className="error" role="alert">
           {(view.error ?? move.error)?.message}
         </p>
       )}
     </section>
+  );
+}
+
+/** Coordinates in the map window: the parcels and the centre's pin, dragged to move it. */
+export function CentreOnMap({ projectId }: { projectId: string }) {
+  const { v, move, view } = useCentre(projectId, true);
+  if (!v) return <LoadingBar error={view.error} />;
+  if (v.points.length === 0) return <p className="mapwin-msg">{l.noMap}</p>;
+  return (
+    <div className="mapwin-stage">
+      <ParcelMap
+        view={v}
+        className="mapwin-map"
+        onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })}
+      />
+    </div>
   );
 }
 
@@ -93,7 +143,15 @@ function pinElement(): HTMLElement {
 }
 
 /** The parcels as dots on a street map, and the centre as a pin to drag. */
-function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon: number) => void }) {
+function ParcelMap({
+  view,
+  onMove,
+  className,
+}: {
+  view: MapView;
+  onMove: (lat: number, lon: number) => void;
+  className: string;
+}) {
   const [m, setM] = useState<maplibregl.Map | null>(null);
   const pin = useRef<maplibregl.Marker | null>(null);
   const move = useRef(onMove);
@@ -117,6 +175,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
 
   // The pin: where the centre is now.
   const at = view.center ?? view.middle;
+  const unmoved = !view.center;
   const lat = at?.[0];
   const lon = at?.[1];
   useEffect(() => {
@@ -133,7 +192,10 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
     } else {
       pin.current.setLngLat([lon, lat]);
     }
-  }, [m, lat, lon]);
+    // Not yet moved (the middle of the parcels): a ring pulses round it, so it's plain it's there to drag.
+    pin.current.getElement().classList.toggle("unmoved", unmoved);
+  }, [m, lat, lon, unmoved]);
+
   useEffect(
     () => () => {
       pin.current?.remove();
@@ -144,7 +206,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
 
   return (
     <MapBox
-      className="wiz-map wiz-map-fill"
+      className={className}
       label={l.mapLabel}
       layers={layers}
       bounds={boundsOf(points)}

@@ -515,6 +515,11 @@ export type Wording = {
       centerMiddle: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;
+      instruction: string;
+      instructionSub: string;
+      centre: string;
+      isMiddle: string;
+      movedByYou: string;
       column: string;
       pickColumn: string;
       name: string;
@@ -1162,6 +1167,8 @@ export type Wording = {
     hide: string;
     showMap: string;
     clickHint: string;
+    mapInstruction: string;
+    mapInstructionSub: string;
     mapLabel: string;
     loadingMap: string;
     legend: string;
@@ -2652,6 +2659,14 @@ export type Wording = {
     again: string;
   };
   mapWindow: {
+    step: {
+      closed: string;
+      closedSub: string;
+      notShowing: string;
+      notShowingSub: string;
+      show: string;
+      showHere: string;
+    };
     label: string;
     title: string;
     mapLabel: string;

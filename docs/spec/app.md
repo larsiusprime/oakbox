@@ -387,7 +387,8 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 
 What the map shows for a step is published by the step (`lib/groupmap.ts` first, for Build the groups; to be one
 contract for every step: a view, its tools and their instruction, take over or summoned), and reaches a popped-out map as
-the dock does. Phones: out of scope.
+the dock does. Phones: out of scope. **Built** (2026-11-10): the take-over (`lib/mapstep.ts`: `useTakeOver`, the banner, the
+state given back), the instruction card (`components/MapInstruction.tsx`), Coordinates and Build the groups on it.
 
 **Layers**, each there once its data is:
 

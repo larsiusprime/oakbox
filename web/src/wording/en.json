@@ -805,6 +805,11 @@
       "centerMiddle": "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",
+      "instruction": "Drag the pin on the map to the centre",
+      "instructionSub": "Downtown, say: where each parcel's distance and direction are measured from.",
+      "centre": "Centre",
+      "isMiddle": "the middle of the parcels",
+      "movedByYou": "moved by you",
       "column": "Column",
       "pickColumn": "Choose a column…",
       "name": "Name",
@@ -1556,6 +1561,8 @@
     "hide": "Hide the map",
     "showMap": "Show the map",
     "clickHint": "Click a parcel to inspect",
+    "mapInstruction": "Click a parcel on the map to see which group it joins, and why",
+    "mapInstructionSub": "The map shows the groups as they are here, saved or not: by group, or by what moved.",
     "mapLabel": "Map of the parcels, coloured by model group",
     "loadingMap": "Drawing the parcels…",
     "legend": "Shown on the map",
@@ -3291,6 +3298,14 @@
     "again": "Try again"
   },
   "mapWindow": {
+    "step": {
+      "closed": "The map is closed",
+      "closedSub": "This step's work is on the map: open it to carry on.",
+      "notShowing": "The map is showing something else",
+      "notShowingSub": "Follow is off: turn it on to see this step on the map.",
+      "show": "Show the map",
+      "showHere": "Show this step"
+    },
     "label": "Map window",
     "title": "Map",
     "mapLabel": "Map of the 🌐 Parcel Universe",
