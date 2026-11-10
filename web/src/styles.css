@@ -7937,3 +7937,23 @@ section.wiz-section:has(> .cf-tbl),
   font-size: 0.92rem;
   font-weight: 600;
 }
+/* Every dialog's buttons, last on its sheet, sit on the foot strip; a heading on the sheet starts a new section. */
+.modal-body > .form-actions:last-child {
+  margin-top: calc(0.4 * var(--sp));
+  padding: calc(0.6 * var(--sp)) calc(0.9 * var(--sp));
+  background: #f6f6f3;
+  border-top: 1px solid var(--rule);
+}
+.modal-body > :is(h3, h4, .wiz-sub, .wiz-section-head-row):not(.modal-title + *) {
+  margin-top: calc(0.4 * var(--sp));
+  padding-top: calc(0.8 * var(--sp));
+  border-top: 1px solid var(--rule);
+}
+.modal-body > hr.wiz-rule {
+  display: none;
+}
+/* Reconcile's match, in its dialog: a line of the first section, not a band of its own. */
+.modal-body > .rc-meter {
+  border: 0;
+  border-radius: 0;
+}
