@@ -2135,7 +2135,6 @@
       "assign": "Which groups",
       "run": "Check my values",
       "summary": "Summary",
-      "groups": "By model group",
       "prices": "Across prices",
       "map": "On the map",
       "regions": "Neighbourhood price levels",
@@ -2248,6 +2247,7 @@
     "summary": {
       "share": "about {pct}%",
       "head": "{name}''s values are about {pct}% of what parcels sold for, {start} to {end}.",
+      "everyFigure": "Every figure, group by group (trimmed and not, the 90% range, PRD, MKI)",
       "levelAll": " That''s outside the {lo} to {hi} the standard asks for in every model group judged.",
       "levelNone": " Every model group judged is within the {lo} to {hi} the standard asks for.",
       "levelSome": " {n} of {of} model groups judged are within the {lo} to {hi} the standard asks for.",

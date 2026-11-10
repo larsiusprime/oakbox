@@ -15,7 +15,7 @@ statistics and views.
 - **Several sets:** the results show one set at a time, a switch at the top of each part; the choice stays as you go
   from part to part.
 - **One task at a time:** **What to check** › **Which sales** › **Whose standards** › **The standards** › **Which
-  groups** › **Check my values** (the run) › **Summary** › **By model group** › **Across prices** › **On the map** ›
+  groups** › **Check my values** (the run) › **Summary** › **Across prices** › **On the map** ›
   **Neighbourhood price levels** › **Similar parcels** › **Extreme ratios**, whose Next is **Looks right › Model
   values** (it opens the Model values tab, step 6, or Variables, step 5, while that waits; once pressed, **Model values
   ›**).
@@ -56,7 +56,8 @@ statistics and views.
   difference") in the same place on every row, so groups compare down a column; what each measures is in the header's
   tip. Groups with too few sales or none say so across the row. Nominal prices among the trimmed sales are pointed out
   (Check sales now sets them aside first).
-- **By model group:** sales, trimmed, median ratio, its 90% range, COD, VEI (with its reading: compliant, not
+- **Every figure, group by group** (folded under Summary's scorecard; was its own step, By model group, until
+  2026-11-10; Summary takes the map over, each group's row with Show on map): sales, trimmed, median ratio, its 90% range, COD, VEI (with its reading: compliant, not
   significant, regressive, progressive, too few sales), PRB, PRD and MKI; the judged ones with ✓ / ✗, every sale's
   figure beneath each ("all"); all groups as the total. Headers explain themselves on hover.
 - **Across prices:** per model group, each sale's ratio against its price (log scale; trimmed in grey), the median of

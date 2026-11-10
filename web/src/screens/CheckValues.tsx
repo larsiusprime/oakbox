@@ -12,6 +12,7 @@ import {
 } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { DateField } from "../components/DateField";
+import { Disclose } from "../components/Disclose";
 import { Choice, Radios } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { OnTheMap } from "../components/OnTheMap";
@@ -40,7 +41,6 @@ type RStep =
   | "assign"
   | "run"
   | "summary"
-  | "groups"
   | "prices"
   | "map"
   | "regions"
@@ -54,14 +54,13 @@ const STEPS: RStep[] = [
   "assign",
   "run",
   "summary",
-  "groups",
   "prices",
   "map",
   "regions",
   "similar",
   "extreme",
 ];
-const AFTER: RStep[] = ["summary", "groups", "prices", "map", "regions", "similar", "extreme"];
+const AFTER: RStep[] = ["summary", "prices", "map", "regions", "similar", "extreme"];
 
 const pct = (v: number) => Math.round(100 * v);
 
@@ -82,7 +81,9 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const rc = v.receipt;
   const fresh = !!rc && !v.stale;
   const fallback: RStep = running ? "run" : fresh ? "summary" : rc ? "run" : "what";
-  const current = nav.current(v.status, fallback, "summary");
+  // A step remembered that's no longer one (By model group, folded into Summary): the tab's own pick.
+  const asked = nav.current(v.status, fallback, "summary");
+  const current = STEPS.includes(asked) ? asked : fallback;
   const go = nav.go;
   const runIt = () => act.mutate("run", { onSuccess: () => nav.ran("run") });
   const result: FieldResult | undefined = rc?.results.find((x) => x.field === shown) ?? rc?.results[0];
@@ -267,7 +268,6 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                 map={{ shown: mapGroup, show: setStepPick }}
               />
             )}
-            {current === "groups" && <GroupsTable result={result} />}
             {current === "prices" && <Prices projectId={projectId} result={result} currency={currency} />}
 
             {current === "regions" && (
@@ -462,6 +462,7 @@ function Summary({
   see: () => void;
   map: { shown: string; show: (id: string) => void };
 }) {
+  const [every, setEvery] = useState(false);
   const o = result.overall;
   const js = result.groups.filter(judged);
   const levelOk = js.filter((g) => g.verdict?.level);
@@ -501,6 +502,15 @@ function Summary({
       <div className="tbl-wrap">
         <Scorecard groups={result.groups} map={map} />
       </div>
+      {/* Every figure (trimmed and not, the 90% range, PRD, MKI), folded away: was its own step, By model group. */}
+      <Disclose open={every} onPress={() => setEvery(!every)}>
+        {r.summary.everyFigure}
+      </Disclose>
+      {every && (
+        <div className="tbl-wrap">
+          <GroupsTable result={result} />
+        </div>
+      )}
       {nominal > 0 && (
         <div className="bi-warn">
           {r.summary.nominal({ n: nominal, names })}{" "}

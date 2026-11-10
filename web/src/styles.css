@@ -8214,11 +8214,12 @@ section.wiz-section:has(> .cf-tbl),
   display: flex;
   justify-content: flex-end;
 }
-.tbl-wrap > .rv-score {
+/* A table in its own scroll (tbl-wrap): as wide as its figures and words read, never squeezed into the page. */
+.rv-cards .tbl-wrap > table {
   width: max-content;
   min-width: 100%;
   max-width: none;
 }
-.tbl-wrap > .rv-score td {
+.rv-cards .tbl-wrap > table td {
   white-space: nowrap;
 }

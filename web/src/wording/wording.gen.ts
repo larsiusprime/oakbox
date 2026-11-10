@@ -1654,7 +1654,6 @@ export type Wording = {
       assign: string;
       run: string;
       summary: string;
-      groups: string;
       prices: string;
       map: string;
       regions: string;
@@ -1761,6 +1760,7 @@ export type Wording = {
     summary: {
       share: (a: { pct: string | number }) => string;
       head: (a: { name: string | number; pct: string | number; start: string | number; end: string | number }) => string;
+      everyFigure: string;
       levelAll: (a: { lo: string | number; hi: string | number }) => string;
       levelNone: (a: { lo: string | number; hi: string | number }) => string;
       levelSome: (a: { n: string | number; of: string | number; lo: string | number; hi: string | number }) => string;
