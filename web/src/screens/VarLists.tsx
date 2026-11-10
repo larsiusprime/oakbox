@@ -14,6 +14,7 @@ import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { LoadingBar } from "../components/Waiting";
 import { num, pct } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { say, t } from "../wording";
 
 const s = t.values.lists;
@@ -135,15 +136,20 @@ export function VarListsStep({ projectId }: { projectId: string }) {
 
 function Name({ value, onCommit }: { value: string; onCommit: (v: string) => void }) {
   const [text, setText] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
   const save = () => {
     const next = text?.trim();
-    if (next && next !== value) onCommit(next);
+    if (next && next !== held) {
+      hold(next);
+      onCommit(next);
+    }
     setText(null);
   };
   return (
     <TextField
       aria-label={s.name}
-      value={text ?? value}
+      value={text ?? held}
       onChange={setText}
       onBlur={save}
       className="vl-namefield"

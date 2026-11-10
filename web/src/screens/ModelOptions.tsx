@@ -1,3 +1,4 @@
+import { useAtOnce } from "../lib/hooks";
 /** Model values › Models › Configuration (SPEC F9): a model's own settings, as OpenAVMKit reads them from its entry.
  * A one-line summary in its row (what differs from the default in bold), and the settings themselves in a panel
  * opened under the row: log price, intercept, interactions, trimming per area, tuning trials, the graphics card, and
@@ -71,15 +72,21 @@ export function ConfigSummary({
 
 function Trials({ value: v, onCommit }: { value: number; onCommit: (n: number) => void }) {
   const [text, setText] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(v);
   const save = () => {
     const n = Number.parseInt(text ?? "", 10);
-    if (text !== null && Number.isFinite(n) && n !== v) onCommit(Math.min(500, Math.max(1, n)));
+    if (text !== null && Number.isFinite(n) && n !== held) {
+      const x = Math.min(500, Math.max(1, n));
+      hold(x);
+      onCommit(x);
+    }
     setText(null);
   };
   return (
     <TextField
       aria-label={c.trials}
-      value={text ?? String(v)}
+      value={text ?? String(held)}
       onChange={setText}
       onBlur={save}
       className="mo-trials"

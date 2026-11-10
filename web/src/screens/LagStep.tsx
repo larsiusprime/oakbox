@@ -1,3 +1,4 @@
+import { useAtOnce } from "../lib/hooks";
 /** Variables › Spatial average statistics (OpenAVMKit's spatial lag, SPEC F9): each parcel gets the distance-weighted
  * average of its nearest sales' prices and of its nearest parcels' characteristics, as variables. On by default; each
  * model group averages its own sales, and may borrow another group's; fields besides OpenAVMKit's own, none to start. */
@@ -35,9 +36,14 @@ export function LagStep({
   const names = Object.fromEntries(v.groups.map((g) => [g.id, g.name]));
   // How many nearest: typed freely, kept on leaving the box when it's a whole number from 1 to 50.
   const [draft, setDraft] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [heldK, holdK] = useAtOnce(v.k);
   const keepK = () => {
     const n = Number(draft);
-    if (draft !== null && Number.isInteger(n) && n >= 1 && n <= 50 && n !== v.k) set({ lag_k: n });
+    if (draft !== null && Number.isInteger(n) && n >= 1 && n <= 50 && n !== heldK) {
+      holdK(n);
+      set({ lag_k: n });
+    }
     setDraft(null);
   };
   return (
@@ -55,7 +61,7 @@ export function LagStep({
                 label={l.nearest}
                 type="number"
                 width="short"
-                value={draft ?? String(v.k)}
+                value={draft ?? String(heldK)}
                 onChange={setDraft}
                 onBlur={keepK}
               />

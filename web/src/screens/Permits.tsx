@@ -4,6 +4,7 @@ import type { Permits, Project, Wizard } from "../api/client";
 import { Choice, Tick } from "../components/Form";
 import { Val } from "../components/Val";
 import { num } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { FilePicker, IdRow, StepFile } from "./WizardFiles";
 import type { Mutate } from "./wizardChange";
@@ -145,10 +146,15 @@ export function PermitsStep({ project, data, change }: { project: Project; data:
 function Days({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   // What's typed, until it's saved; otherwise the value as it is.
   const [draft, setDraft] = useState<string | null>(null);
-  const text = draft ?? String(value);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
+  const text = draft ?? String(held);
   const commit = () => {
     const n = Number.parseInt(text, 10);
-    if (n >= 1 && n <= 3650 && n !== value) onChange(n);
+    if (n >= 1 && n <= 3650 && n !== held) {
+      hold(n);
+      onChange(n);
+    }
     setDraft(null);
   };
   return (

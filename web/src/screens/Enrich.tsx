@@ -5,6 +5,7 @@ import { Button, Dialog, DialogTrigger, Heading, Input, Popover, TextField } fro
 import { api, type EnrichAddField, type Enrichments, type EnrichView, unwrap } from "../api/client";
 import { CensusKey } from "../components/CensusKey";
 import { Choice, Tick } from "../components/Form";
+import { useAtOnce } from "../lib/hooks";
 import { say, t } from "../wording";
 
 const e = t.wizard.enrich;
@@ -217,12 +218,18 @@ function Picks({
   const [open, setOpen] = useState(false);
   // While the list is open, the ticks are a draft here (AGENTS.md: a box of choices isn't wired to saves while open).
   const [draft, setDraft] = useState<Record<string, boolean> | null>(null);
-  const isOn = (f: EnrichAddField) => draft?.[f.key] ?? f.on;
+  // Once closed, the ticks stay as left while they save, not as they were (AGENTS.md).
+  const saved = Object.fromEntries(fields.map((f) => [f.key, f.on]));
+  const [held, hold] = useAtOnce<Record<string, boolean>>(saved);
+  const isOn = (f: EnrichAddField) => draft?.[f.key] ?? held[f.key] ?? f.on;
   const onOpenChange = (o: boolean) => {
     setOpen(o);
     if (o) return setDraft({});
-    const changes = Object.entries(draft ?? {}).filter(([k, v]) => fields.find((f) => f.key === k)?.on !== v);
-    if (changes.length) toggle(changes);
+    const changes = Object.entries(draft ?? {}).filter(([k, v]) => (held[k] ?? saved[k]) !== v);
+    if (changes.length) {
+      hold({ ...held, ...draft });
+      toggle(changes);
+    }
     setDraft(null);
   };
   const on = fields.filter(isOn);
@@ -341,10 +348,15 @@ function Distances({ view, save }: { view: EnrichView; save: (f: Enrichments["fe
 function Num({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   // What's typed, until it's saved; otherwise the value as it is.
   const [draft, setDraft] = useState<string | null>(null);
-  const text = draft ?? String(value);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
+  const text = draft ?? String(held);
   const commit = () => {
     const n = Number.parseFloat(text);
-    if (n > 0 && n !== value) onChange(n);
+    if (n > 0 && n !== held) {
+      hold(n);
+      onChange(n);
+    }
     setDraft(null);
   };
   return (

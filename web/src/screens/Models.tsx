@@ -10,6 +10,7 @@ import { SmallButton } from "../components/Buttons";
 import { EngineProgress, InstallEngineDialog } from "../components/Engines";
 import { Choice } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { ConfigSummary, ModelOptions } from "./ModelOptions";
 
@@ -348,13 +349,18 @@ function NameCell({
   onCommit: (v: string) => void;
 }) {
   const [text, setText] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
   const save = () => {
     const next = text?.trim();
-    if (next && next !== value) onCommit(next);
+    if (next && next !== held) {
+      hold(next);
+      onCommit(next);
+    }
     setText(null);
   };
   return (
-    <TextField aria-label={label} value={text ?? value} onChange={setText} onBlur={save} className="gm-name">
+    <TextField aria-label={label} value={text ?? held} onChange={setText} onBlur={save} className="gm-name">
       <Input
         className="input"
         onKeyDown={(e) => {

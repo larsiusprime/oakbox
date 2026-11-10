@@ -7,6 +7,7 @@ import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { InfoTip } from "../components/Tip";
 import { num } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 
 const s = t.ratio.standards;
@@ -67,15 +68,20 @@ export function WhoseCard({ v, set }: Props) {
 /** A figure in a table cell: saved when it's left. */
 function Num({ label, value, onCommit }: { label: string; value: number; onCommit: (v: number) => void }) {
   const [text, setText] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
   const save = () => {
     const n = Number.parseFloat(text ?? "");
-    if (text !== null && Number.isFinite(n) && n !== value) onCommit(n);
+    if (text !== null && Number.isFinite(n) && n !== held) {
+      hold(n);
+      onCommit(n);
+    }
     setText(null);
   };
   return (
     <TextField
       aria-label={label}
-      value={text ?? String(value)}
+      value={text ?? String(held)}
       onChange={setText}
       onBlur={save}
       className="rv-numcell"
@@ -93,15 +99,20 @@ function Num({ label, value, onCommit }: { label: string; value: number; onCommi
 
 function Name({ value, onCommit }: { value: string; onCommit: (v: string) => void }) {
   const [text, setText] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
   const save = () => {
     const next = text?.trim();
-    if (next && next !== value) onCommit(next);
+    if (next && next !== held) {
+      hold(next);
+      onCommit(next);
+    }
     setText(null);
   };
   return (
     <TextField
       aria-label={s.name}
-      value={text ?? value}
+      value={text ?? held}
       onChange={setText}
       onBlur={save}
       className="rv-namecell"

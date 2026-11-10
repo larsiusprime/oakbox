@@ -9,6 +9,7 @@ import { CheckList, Field } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { LoadingBar } from "../components/Waiting";
+import { useAtOnce } from "../lib/hooks";
 import { lastStep } from "../lib/place";
 import { t } from "../wording";
 
@@ -178,8 +179,12 @@ function ReportStep({
       ),
   });
   const show = useShow(projectId);
+  const [title, holdTitle] = useAtOnce(v.title);
   const keepTitle = () => {
-    if (draft !== null && draft !== v.title) change.mutate({ title: draft });
+    if (draft !== null && draft !== title) {
+      holdTitle(draft);
+      change.mutate({ title: draft });
+    }
     setDraft(null);
   };
   const empty = v.sets.filter((k) => !v.available.includes(k));
@@ -187,7 +192,7 @@ function ReportStep({
     <StepBody title={r.steps.report} lede={r.reportLede}>
       {!v.accepted && <p className="wiz-warn">{r.notAccepted}</p>}
       <div className="rp-opts">
-        <Field label={r.title} value={draft ?? v.title} onChange={setDraft} onBlur={keepTitle} width="long" />
+        <Field label={r.title} value={draft ?? title} onChange={setDraft} onBlur={keepTitle} width="long" />
         <CheckList
           label={r.sets}
           value={v.sets}

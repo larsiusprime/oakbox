@@ -7,6 +7,7 @@ import { Field, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { WarnChip } from "../components/WarnChip";
 import { num } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 
 const a = t.values.area;
@@ -30,10 +31,14 @@ export function AreaStep({
   const v = setup.area;
   // Blank under: typed freely, kept on leaving the box when it's a whole number from 1 to 1,000.
   const [draft, setDraft] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [heldMin, holdMin] = useAtOnce(v.min_count);
   const keepMin = () => {
     const n = Number(draft);
-    if (draft !== null && Number.isInteger(n) && n >= 1 && n <= 1000 && n !== v.min_count)
+    if (draft !== null && Number.isInteger(n) && n >= 1 && n <= 1000 && n !== heldMin) {
+      holdMin(n);
       set({ area_min_count: n });
+    }
     setDraft(null);
   };
   const tick = (location: string, row: RowId, on: boolean) => {
@@ -91,7 +96,7 @@ export function AreaStep({
                 label={a.blankUnder}
                 type="number"
                 width="short"
-                value={draft ?? String(v.min_count)}
+                value={draft ?? String(heldMin)}
                 onChange={setDraft}
                 onBlur={keepMin}
               />
