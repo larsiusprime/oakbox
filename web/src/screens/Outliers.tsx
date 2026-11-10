@@ -136,7 +136,11 @@ export function Outliers({ projectId, currency }: { projectId: string; currency:
               what: v.pending.map((k) => o.pendingWhat[k as Exclude<Why, "model">]).join(", "),
             })}
           </span>
-          <Button className="button button-primary" isDisabled={apply.isPending} onPress={() => apply.mutate()}>
+          <Button
+            className="button button-primary"
+            isDisabled={apply.isPending}
+            onPress={() => apply.mutate()}
+          >
             {o.apply}
           </Button>
         </div>

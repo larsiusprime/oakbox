@@ -112,7 +112,6 @@ function Columns({ projectId }: { projectId: string }) {
   if (!v.sales_file) return <p className="wiz-from">{a.noSales}</p>;
   const file = v.filename ?? v.sales_file;
   if (v.rows.length === 0) return <p className="wiz-note">{a.noneFound({ file })}</p>;
-  const allSame = v.rows.every((r) => r.suggest === "today");
   return (
     <>
       <p className="wiz-from">{a.lede({ file })}</p>
@@ -153,7 +152,7 @@ function Columns({ projectId }: { projectId: string }) {
                 {r.auto && <span className="pill pill-ok">{a.auto}</span>}
                 {!r.auto && r.suggest && r.suggest !== (r.choice ?? "today") && (
                   <span className="pill pill-info">
-                    {a.suggested}: {r.suggest === "sale" ? a.sale : a.today}
+                    {a.suggested}: {a.sale}
                   </span>
                 )}
               </td>
@@ -161,7 +160,6 @@ function Columns({ projectId }: { projectId: string }) {
           ))}
         </tbody>
       </table>
-      {allSame && <p className="wiz-from">{a.allSame({ file })}</p>}
       {choose.error && (
         <p className="error" role="alert">
           {choose.error.message}

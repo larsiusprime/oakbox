@@ -1263,7 +1263,6 @@
       "sale": "💰 Sales Record",
       "today": "🌐 Parcel Universe",
       "suggested": "suggested",
-      "allSame": "Everything here matches the parcel universe: {file} looks like the parcel universe's fields exported with the sales, not the property as it sold. Using it changes little.",
       "forSales": "For sales",
       "atSale": "💰 Sales Record",
       "atSaleNote": "the sales: what the models learn from",

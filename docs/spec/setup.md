@@ -615,8 +615,8 @@ the field steps, checks, guesses, assumptions and Review carry over.
   (Guilford's `GRADE`, "B-5  120%" where today's is 1.2), or text with almost no values in common: then the sale's
   can't be chosen, and the answer is a cleaner export (the same codes), not a reading in OAK box (settled
   2026-11-07). Per field, **The sale's** or **Today's** (`wizard.as_sold`); until chosen, today's (nothing changes
-  silently), with a suggestion: today's where 99% or more are the same (a snapshot exported with the sales, not
-  history: Guilford, 99.6-100%), else the sale's. The sale's loads its column into the sales file read as the parcel's
+  silently), with a suggestion: the sale's, never today's (revised 2026-11-10: a sale's value a little off today's may
+  be the property as it sold, so near-sameness isn't a reason to drop it). The sale's loads its column into the sales file read as the parcel's
   is (number format, scale; an area in its own unit), so OpenAVMKit's hydration uses it per sale and fills the rest
   from the parcel; the parcel's reading changing changes it too, and the parcel field gone takes it with it. A
   characteristic only the sales file has isn't offered: a model can't value a parcel on it.

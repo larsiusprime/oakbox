@@ -883,7 +883,6 @@ export type Wording = {
       sale: string;
       today: string;
       suggested: string;
-      allSame: (a: { file: string | number }) => string;
       forSales: string;
       atSale: string;
       atSaleNote: string;
