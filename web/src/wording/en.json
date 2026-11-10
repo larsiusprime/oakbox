@@ -1203,6 +1203,8 @@
     "problems": "Before OpenAVMKit can run",
     "noProblems": "Nothing missing.",
     "summary": "{fields} fields from {columns} columns.",
+    "reviewSummary": "{fields, number} fields from {columns, number} columns of {files, plural, =1 {1 file} other {# files}}.",
+    "notLoadedAll": "{n, plural, =1 {1 column in these files isn''t loaded} other {# columns in these files aren''t loaded}}",
     "notLoaded": {
       "few": "Not loaded from {file}: {columns}.",
       "more": "Not loaded from {file}: {columns} and {more} more."

@@ -823,6 +823,8 @@ export type Wording = {
     problems: string;
     noProblems: string;
     summary: (a: { fields: string | number; columns: string | number }) => string;
+    reviewSummary: (a: { fields: number; columns: number; files: number }) => string;
+    notLoadedAll: (a: { n: number }) => string;
     notLoaded: {
       few: (a: { file: string | number; columns: string | number }) => string;
       more: (a: { file: string | number; columns: string | number; more: string | number }) => string;

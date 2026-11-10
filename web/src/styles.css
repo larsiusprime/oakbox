@@ -7838,3 +7838,42 @@ section.wiz-section:has(> .cf-tbl),
 .tbl.as-table {
   width: auto;
 }
+
+/* Review: one quiet line per file (style guide: only what wants a look gets a pill and a button). */
+.rv-files {
+  border-collapse: collapse;
+  margin: 0 0 calc(0.6 * var(--sp));
+}
+.rv-files > tbody > tr > td {
+  padding: 0.3rem 0.9rem 0.3rem 0;
+  font-size: 0.92rem;
+  vertical-align: middle;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+.rv-files > tbody > tr:first-child > td {
+  border-top: 0;
+}
+.rv-files .rv-pill {
+  margin-left: 0.4rem;
+}
+.rv-files > tbody > tr > td.rv-act {
+  padding-right: 0.6rem;
+  white-space: nowrap;
+}
+.rv-files > tbody > tr > td.rv-act:last-child {
+  padding-right: 0;
+}
+.rv-unloaded-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 0.8rem;
+  max-width: 62rem;
+  margin: 0.3rem 0 calc(0.6 * var(--sp));
+  font-size: 0.86rem;
+}
+.rv-unloaded-list dd {
+  margin: 0;
+  color: var(--muted);
+}
