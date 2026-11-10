@@ -2075,7 +2075,7 @@
         "aerial": "Aerial",
         "zillow": "Zillow",
         "redfin": "Redfin",
-        "note": "Opens in a viewer window beside this one; the next sale''s opens in the same window."
+        "note": "Opens in your web browser."
       },
       "checkWhy": {
         "dupe_deed_date": "Sold on the same deed, the same day, as other sales: likely one sale of several parcels, its price for all of them.",

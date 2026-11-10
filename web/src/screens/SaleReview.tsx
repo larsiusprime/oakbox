@@ -566,7 +566,7 @@ function Diagnosis({ i }: { i: ReviewItem }) {
   );
 }
 
-/** Street View, the aerial, Zillow and Redfin, in a viewer window beside the app (a browser tab outside it). */
+/** Street View, the aerial, Zillow and Redfin, in the computer's web browser. */
 function Look({
   address,
   place,
