@@ -2678,6 +2678,10 @@ export type Wording = {
       showHere: string;
       showOnMap: string;
       onMap: string;
+      mapIt: string;
+      mapThem: string;
+      mapBlank: string;
+      mapRepeated: string;
     };
     nothingYet: string;
     portalOut: string;
@@ -2702,6 +2706,7 @@ export type Wording = {
     howShapes: (a: { n: number }) => string;
     howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
+    backToFollowing: string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
     followOnTip: string;

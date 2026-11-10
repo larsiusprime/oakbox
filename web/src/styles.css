@@ -5909,7 +5909,7 @@ under what it's about; a file appended as rows {
   /* The reading at one width on every row, the values button (one width too) beside it: lined up, one row each;
      where the box is too narrow for both (a card beside another), the values button goes under, never past it. */
   display: inline-grid;
-  grid-template-columns: 11rem 8.5rem;
+  grid-template-columns: 11rem 8.5rem auto;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
@@ -8110,4 +8110,9 @@ section.wiz-section:has(> .cf-tbl),
   flex: 1;
   height: auto;
   min-height: 16rem;
+}
+.rv-map-btns {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
 }

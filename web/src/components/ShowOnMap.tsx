@@ -2,7 +2,7 @@
  * one on the map, opening the map if it's closed. Pressed while it's the one shown. */
 import { Map as MapIcon } from "lucide-react";
 import { Button } from "react-aria-components";
-import { dockNow, setDock } from "../lib/mapdock";
+import { dockNow, setDock, summonMap } from "../lib/mapdock";
 import { setStepPick } from "../lib/mapstep";
 import { t } from "../wording";
 
@@ -19,6 +19,16 @@ export function ShowOnMap({ id, shown, label }: { id: string; shown: boolean; la
     >
       <MapIcon aria-hidden="true" size="1em" />
       {label ?? (shown ? t.mapWindow.step.onMap : t.mapWindow.step.showOnMap)}
+    </Button>
+  );
+}
+
+/** 🗺 Show on map beside something with a place (a field's values, a problem, a difference): the map opens on it. */
+export function SummonMap({ field, label }: { field: string; label?: string }) {
+  return (
+    <Button className="button button-small show-on-map" onPress={() => summonMap(field)}>
+      <MapIcon aria-hidden="true" size="1em" />
+      {label ?? t.mapWindow.step.showOnMap}
     </Button>
   );
 }

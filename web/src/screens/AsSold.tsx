@@ -1,6 +1,7 @@
 /** Data › Sales record fields (SPEC F3d, 2026-11-07): how sales and parcels each get their characteristics, then the sales
  * file's columns that describe the property beside the parcel fields they mirror, and what the sales use: as sold,
  * or today's. And the same choice, one field at a time, on that field's own screen (AsSoldLine). */
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { Button } from "react-aria-components";
@@ -9,6 +10,7 @@ import type { components } from "../api/schema";
 import { stepChanged } from "../api/steps";
 import { Disclose } from "../components/Disclose";
 import { Choice } from "../components/Form";
+import { SummonMap } from "../components/ShowOnMap";
 import { ValuesButton } from "../components/ValuesButton";
 import { Waiting } from "../components/Waiting";
 import { pct } from "../lib/format";
@@ -187,7 +189,10 @@ function Against({ r }: { r: Row }) {
         {same >= 0.5 ? a.same({ pct: pct(same) }) : a.differs({ pct: pct(1 - same) })}
       </span>
       {r.compared > r.same && (
-        <div className="wiz-from as-eg">{a.differsFor({ n: r.compared - r.same })}</div>
+        <div className="wiz-from as-eg">
+          {a.differsFor({ n: r.compared - r.same })}{" "}
+          <SummonMap field={`pr:differs:${r.key}`} label={t.mapWindow.step.mapThem} />
+        </div>
       )}
     </>
   );

@@ -15,6 +15,7 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import { Combo, Marked, matches } from "../components/Combo";
 import { FileLine, fileFacts } from "../components/FileEntry";
 import { Choice } from "../components/Form";
+import { SummonMap } from "../components/ShowOnMap";
 import { TipOn } from "../components/Tip";
 import { ValuesButton } from "../components/ValuesButton";
 import { say, t } from "../wording";
@@ -199,7 +200,7 @@ export function FieldRow({
             {onPage ? // Quality and condition on their page: how it's read is chosen, and shown, in the box below the row,
             // which is the to-do itself: nothing beside the column.
             null : paged ? (
-              // How it's read is below the row: here only its values.
+              // How it's read is below the row: here only its values (the map already follows this field).
               sourceFile &&
               column && (
                 <ValuesButton
@@ -212,12 +213,17 @@ export function FieldRow({
             ) : quiet ? (
               sourceFile &&
               column && (
-                <ValuesButton
-                  projectId={project.id}
-                  file={sourceFile.name}
-                  column={column.name}
-                  distinct={field.distinct}
-                />
+                <>
+                  <ValuesButton
+                    projectId={project.id}
+                    file={sourceFile.name}
+                    column={column.name}
+                    distinct={field.distinct}
+                  />
+                  {sourceFile.holds === "parcels" && (
+                    <SummonMap field={`${sourceFile.name}:${column.name}`} label={t.mapWindow.step.mapIt} />
+                  )}
+                </>
               )
             ) : (
               <span className="field-tools">
@@ -255,6 +261,12 @@ export function FieldRow({
                     column={column.name}
                     distinct={field.distinct}
                   />
+                ) : (
+                  <span />
+                )}
+                {/* A parcel file's column has a place: 🗺 opens the map on it (SPEC §3.15, summon). */}
+                {sourceFile?.holds === "parcels" && column ? (
+                  <SummonMap field={`${sourceFile.name}:${column.name}`} label={t.mapWindow.step.mapIt} />
                 ) : (
                   <span />
                 )}

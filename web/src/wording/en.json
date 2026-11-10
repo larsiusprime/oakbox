@@ -3316,7 +3316,11 @@
       "show": "Show the map",
       "showHere": "Show this step",
       "showOnMap": "Show on map",
-      "onMap": "On the map"
+      "onMap": "On the map",
+      "mapIt": "Map",
+      "mapThem": "Map them",
+      "mapBlank": "Map the blank IDs",
+      "mapRepeated": "Map the repeated IDs"
     },
     "nothingYet": "Nothing to show yet: add one on the step.",
     "portalOut": "While the map is popped out, this step draws its map on the step itself.",
@@ -3341,6 +3345,7 @@
     "howShapes": "{n, number} parcels in view, drawn as shapes",
     "howCells": "Zoomed out: squares of {size}, each coloured by its {sales, select, yes {sales} other {parcels}}; zoom in for the parcels",
     "follow": "Follow",
+    "backToFollowing": "Back to following",
     "following": "Following: {step}",
     "followIdle": "Following",
     "followOnTip": "The map shows what the step you''re on is about (its field), as you go. Choosing a field here, or this button, stops it.",

@@ -132,3 +132,9 @@ export function onGo(g: (w: Where) => void): () => void {
 
 /** The dock as it is now, read outside React (an effect deciding whether to open the map). */
 export const dockNow = (): Dock => dock;
+
+/** 🗺 Show on map from a screen that doesn't take the map over (SPEC §3.15, summon): the map opens (a popped-out one
+ * stays out) on exactly that layer, Follow off, so the next step doesn't wipe it; Back to following in its header. */
+export function summonMap(field: string) {
+  setDock(dock.out ? { follow: false, field } : { open: true, follow: false, field });
+}

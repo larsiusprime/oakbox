@@ -391,7 +391,10 @@ the dock does. Phones: out of scope. **Built** (2026-11-10): the take-over (`lib
 state given back), the instruction card (`components/MapInstruction.tsx`), Show on map (`components/ShowOnMap.tsx`, the step's
 `pick`); Coordinates, Location fields, Shapefiles and Build the groups on it; Evaluate › On the map, Outliers and
 Model values' map draw their own map (with its controls) into the map window (`components/OnTheMap.tsx`, a React
-portal: the step keeps its state; popped out, the map is drawn on the step itself).
+portal: the step keeps its state; popped out, the map is drawn on the step itself). Summon (`summonMap`, `SummonMap`): the Parcel Universe's blank and repeated
+IDs (its step and Review), each 🌐 parcel file field's row where a step has several (not the Big five's cards: the map
+follows that field already), each Sales record field that differs (Map them); the map's Follow button reads Back to
+following. Not yet: Check them's groups, the summaries' counts.
 
 **Layers**, each there once its data is:
 

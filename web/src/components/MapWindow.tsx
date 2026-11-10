@@ -400,7 +400,7 @@ function MapPanel({
                 : target
                   ? w.following({ step: target.title })
                   : w.followIdle
-              : w.follow}
+              : w.backToFollowing}
           </Button>
         </Tip>
         <span className="mapwin-tools">
