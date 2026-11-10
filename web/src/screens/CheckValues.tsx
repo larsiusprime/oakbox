@@ -27,6 +27,7 @@ import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { setStepPick, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
+import { SimilarMap } from "./SimilarMap";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
 import { BandChart, Scatter } from "./ValueCharts";
 import { RatioMap, Regions } from "./ValueMap";
@@ -279,7 +280,19 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                 busy={change.isPending || act.isPending}
               />
             )}
-            {current === "similar" && <Similar result={result} />}
+            {current === "similar" && (
+              <>
+                <OnTheMap
+                  projectId={projectId}
+                  step={r.steps.similar}
+                  title={r.similar.mapInstruction}
+                  sub={r.similar.mapInstructionSub}
+                >
+                  <SimilarMap projectId={projectId} result={result} group={mapGroup} setGroup={setStepPick} />
+                </OnTheMap>
+                <Similar result={result} map={{ shown: mapGroup, show: setStepPick }} />
+              </>
+            )}
             {current === "extreme" && <Extreme projectId={projectId} result={result} currency={currency} />}
           </StepBody>
           <StepFoot
@@ -642,13 +655,22 @@ function Prices({
   );
 }
 
-function Similar({ result }: { result: FieldResult }) {
+function Similar({
+  result,
+  map,
+}: {
+  result: FieldResult;
+  map: { shown: string; show: (id: string) => void };
+}) {
   const sm = r.similar;
   const reads = (c: number | null | undefined) =>
     c == null ? "—" : c < 20 ? sm.tight : c < 40 ? sm.some : sm.wide;
   return (
     <>
       <p className="wiz-lede">{sm.lede}</p>
+      <div className="rv-onmap-all">
+        <ShowOnMapButton shown={map.shown === ""} onPress={() => map.show("")} label={r.map.allOnMap} />
+      </div>
       <table className="tbl">
         <thead>
           <tr>
@@ -659,6 +681,7 @@ function Similar({ result }: { result: FieldResult }) {
               <InfoTip label={sm.chd} text={sm.chdWhy} />
             </th>
             <th>{sm.reads}</th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -672,6 +695,9 @@ function Similar({ result }: { result: FieldResult }) {
               <td className="cs-n">{num(g.clusters)}</td>
               <td className="cs-n">{num(g.median_chd, 1)}</td>
               <td>{reads(g.median_chd)}</td>
+              <td className="rv-onmap">
+                <ShowOnMapButton shown={map.shown === g.id} onPress={() => map.show(g.id)} />
+              </td>
             </tr>
           ))}
         </tbody>

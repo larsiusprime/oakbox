@@ -72,7 +72,10 @@ statistics and views.
   isn't points to invalid sales, not real inequity. Neighbourhoods by a location field (Check sales' by default;
   changing it checks again); without one it points to Data › Location. Engine: `region` on `run_value_field_studies`.
 - **Similar parcels:** horizontal equity from the equity clusters: parcels, groups of similar parcels, the median spread
-  (CHD); shown, not judged (the IAAO sets no target).
+  (CHD); shown, not judged (the IAAO sets no target). Takes the map over (2026-11-10): every parcel in the colour of its
+  group of similar parcels' CHD (`ratio/similar`: 100 x mean absolute difference from the group's median over the
+  median; under 20 green, under 40 amber, else red; a group of one grey), Show on map on each model group's row and
+  Every group on the map. Summary and On the map take it over the same way, by model group.
 - **Extreme ratios:** the trimmed sales, furthest first, nominal prices said; **Exclude in Check sales** marks the sale
   excluded (it applies when Check sales runs again).
 - **Out of date when** Check sales runs again or a call changes.

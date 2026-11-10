@@ -1818,6 +1818,12 @@ export type Wording = {
       parcels: string;
       clusters: string;
       chd: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapTip: (a: { n: string | number; chd: string | number }) => string;
+      mapOne: string;
+      mapOneShort: string;
       reads: string;
       tight: string;
       some: string;

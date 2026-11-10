@@ -46,6 +46,13 @@ def ratio_map(project_id: str, field: str, group: str = "") -> list[ratio.MapPoi
     return ratio.map_points(projects.project_dir(project_id), field, group or None)
 
 
+@router.get("/api/projects/{project_id}/ratio/similar")
+def ratio_similar(project_id: str, field: str, group: str = "") -> ratio.SimilarPoints:
+    """Every parcel with its group of similar parcels' spread of values (CHD), for Similar parcels' map."""
+    load_project(project_id)
+    return ratio.similar_points(projects.project_dir(project_id), field, group or None)
+
+
 @router.get("/api/projects/{project_id}/final/parcels")
 def final_parcels(project_id: str) -> final.ParcelPoints:
     """Every parcel's place, model value, roll value and finished area, as columns, for Model values' map."""

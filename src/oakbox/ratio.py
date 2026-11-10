@@ -1008,5 +1008,49 @@ def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoin
     ]
 
 
+class SimilarPoints(BaseModel):
+    """Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by
+    how far apart its group's values are (its CHD)."""
+
+    lon: list[float]
+    lat: list[float]
+    chd: list[float | None] = Field(description="Its group of similar parcels' CHD; null: a group of one.")
+    size: list[int] = Field(description="Parcels in its group of similar parcels.")
+
+
+def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarPoints:
+    """Each parcel's group of similar parcels (the equity clusters, he_id) and that group's spread of `field`'s
+    values: the CHD, 100 x the mean absolute difference from the group's median over the median."""
+    import numpy as np
+    import pandas as pd
+
+    empty = SimilarPoints(lon=[], lat=[], chd=[], size=[])
+    path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
+    if not path.is_file():
+        return empty
+    cols = ["latitude", "longitude", "model_group", "he_id", field]
+    u = pd.read_parquet(path)
+    if any(c not in u for c in cols):
+        return empty
+    u = cast(pd.DataFrame, u[cols])
+    if group:
+        u = cast(pd.DataFrame, u[u["model_group"].astype(str) == group])
+    u = u.assign(v=cells.numbers(u, field), la=cells.numbers(u, "latitude"), lo=cells.numbers(u, "longitude"))
+    u = cast(pd.DataFrame, u[u["la"].notna() & u["lo"].notna()])
+    # Each cluster within its model group: the ids are numbered per group.
+    key = u["model_group"].astype(str) + ":" + u["he_id"].astype(str)
+    valued = u["v"].where(u["v"] > 0)
+    med = valued.groupby(key).transform("median")
+    dev = (valued - med).abs().groupby(key).transform("mean")
+    n = valued.groupby(key).transform("count")
+    chd = (100 * dev / med).where((n >= 2) & (med > 0))
+    return SimilarPoints(
+        lon=np.round(np.asarray(u["lo"], dtype=float), 6).tolist(),
+        lat=np.round(np.asarray(u["la"], dtype=float), 6).tolist(),
+        chd=[None if not np.isfinite(x) else round(float(x), 1) for x in np.asarray(chd, dtype=float)],
+        size=[int(x) for x in key.map(key.value_counts())],
+    )
+
+
 if __name__ == "__main__":
     steps.main(run)

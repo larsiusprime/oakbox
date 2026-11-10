@@ -2498,6 +2498,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Similar
+         * @description Every parcel with its group of similar parcels' spread of values (CHD), for Similar parcels' map.
+         */
+        get: operations["ratio_similar_api_projects__project_id__ratio_similar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/final/parcels": {
         parameters: {
             query?: never;
@@ -10070,6 +10090,27 @@ export interface components {
             /** Path */
             path: string;
         };
+        /**
+         * SimilarPoints
+         * @description Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by
+         *     how far apart its group's values are (its CHD).
+         */
+        SimilarPoints: {
+            /** Lon */
+            lon: number[];
+            /** Lat */
+            lat: number[];
+            /**
+             * Chd
+             * @description Its group of similar parcels' CHD; null: a group of one.
+             */
+            chd: (number | null)[];
+            /**
+             * Size
+             * @description Parcels in its group of similar parcels.
+             */
+            size: number[];
+        };
         /** SkipBody */
         SkipBody: {
             /**
@@ -16669,6 +16710,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MapPoint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_similar_api_projects__project_id__ratio_similar_get: {
+        parameters: {
+            query: {
+                field: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimilarPoints"];
                 };
             };
             /** @description Validation Error */
