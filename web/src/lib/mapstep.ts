@@ -5,7 +5,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { type Dock, dockNow, setDock } from "./mapdock";
 
 /** What the map window draws for the step. */
-export type StepView = "groups" | "centre";
+export type StepView = "groups" | "centre" | "locations" | "layers";
 export type MapStep = {
   projectId: string;
   view: StepView;
@@ -15,6 +15,9 @@ export type MapStep = {
   instruction: string;
   /** When the screen's card was last hovered: the banner flashes. */
   flash: number;
+  /** The one shown, where the step has several (a location field, a layer): its Show on map; null, the step's
+   * own choice. */
+  pick: string | null;
 };
 
 const KEY = "oakbox.mapStep";
@@ -75,6 +78,11 @@ export function flashBanner() {
   if (state) write({ ...state, flash: Date.now() });
 }
 
+/** Show on map on one of the step's things (a location field, a layer): the map shows it. */
+export function setStepPick(pick: string | null) {
+  if (state) write({ ...state, pick });
+}
+
 /** Something changed on the map (the centre moved): a screen in the other window reads it again. */
 export function announceTouched(projectId: string) {
   try {
@@ -98,7 +106,7 @@ export function onTouched(f: (projectId: string) => void): () => void {
 export function useTakeOver(projectId: string, view: StepView, title: string, instruction: string) {
   useEffect(() => {
     const before: Dock = dockNow();
-    write({ projectId, view, title, instruction, flash: 0 });
+    write({ projectId, view, title, instruction, flash: 0, pick: null });
     setDock(before.out ? { follow: true } : { open: true, follow: true });
     return () => {
       if (state?.projectId === projectId && state.view === view) write(null);

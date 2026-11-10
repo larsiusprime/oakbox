@@ -562,6 +562,8 @@
       "byArea": "area",
       "byLength": "length",
       "mapLabel": "Map of {name} over the parcels",
+      "mapInstruction": "Check each layer lines up with the parcels on the map",
+      "mapInstructionSub": "Press Show on map on a layer to draw its shapes over the parcel dots.",
       "adding": "adding, checking which parcels it covers…"
     },
     "permits": {
@@ -805,6 +807,8 @@
       "centerMiddle": "The centre is the middle of the parcels. Drag the pin to move it (downtown, say).",
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",
+      "locInstruction": "Press Show on map on a field to see its areas on the map",
+      "locInstructionSub": "Each parcel is a dot in its area's colour; hover one for its area. Do the areas look right?",
       "instruction": "Drag the pin on the map to the centre",
       "instructionSub": "Downtown, say: where each parcel's distance and direction are measured from.",
       "centre": "Centre",
@@ -3304,8 +3308,11 @@
       "notShowing": "The map is showing something else",
       "notShowingSub": "Follow is off: turn it on to see this step on the map.",
       "show": "Show the map",
-      "showHere": "Show this step"
+      "showHere": "Show this step",
+      "showOnMap": "Show on map",
+      "onMap": "On the map"
     },
+    "nothingYet": "Nothing to show yet: add one on the step.",
     "label": "Map window",
     "title": "Map",
     "mapLabel": "Map of the 🌐 Parcel Universe",

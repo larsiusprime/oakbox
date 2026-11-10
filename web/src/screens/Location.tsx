@@ -9,10 +9,11 @@ import { Choice } from "../components/Form";
 import { MapInstruction } from "../components/MapInstruction";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
+import { ShowOnMap } from "../components/ShowOnMap";
 import { ValuesButton } from "../components/ValuesButton";
 import { Loading, LoadingBar } from "../components/Waiting";
 import { PICKED } from "../lib/colours";
-import { announceTouched, onTouched, useTakeOver } from "../lib/mapstep";
+import { announceTouched, onTouched, useMapStep, useTakeOver } from "../lib/mapstep";
 import { say, t } from "../wording";
 
 const l = t.wizard.location;
@@ -248,9 +249,15 @@ export function LocationFields({
     }),
   );
   const [file, column] = picked ? picked.split("\u0000") : [null, null];
+  // A take-over step (SPEC §3.15): the map shows a field's areas, the one whose Show on map was pressed (else the
+  // last added).
+  useTakeOver(projectId, "locations", t.wizard.steps.location?.title ?? "", l.locInstruction);
+  const ms = useMapStep();
+  const names = data.locations.map((x) => x.name);
+  const onMap = shownLocation(ms?.pick ?? null, names);
   return (
-    // The fields on the left, as wide as they are; once there's one, its map on the right, filling the page.
-    <section className="wiz-section wiz-fill loc-page">
+    <section className="wiz-section">
+      {names.length > 0 && <MapInstruction title={l.locInstruction} sub={l.locInstructionSub} />}
       <div className="loc-side">
         {data.locations.length > 0 && (
           <div className="entry-list">
@@ -270,6 +277,7 @@ export function LocationFields({
                   distinct={x.distinct}
                   noun={l.areas({ n: x.distinct ?? 0 })}
                 />
+                <ShowOnMap id={x.name} shown={x.name === onMap} />
                 <RemoveButton
                   what={x.name}
                   onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
@@ -309,9 +317,6 @@ export function LocationFields({
           </AddButton>
         </form>
       </div>
-      {data.locations.length > 0 && (
-        <LocationMap projectId={projectId} names={data.locations.map((x) => x.name)} />
-      )}
     </section>
   );
 }
@@ -328,10 +333,22 @@ function areaColour(i: number): [number, number, number, number] {
   return [f(0), f(8), f(4), 200];
 }
 
-/** Location fields on the map: pick one, and each parcel is a dot coloured by its area. */
-function LocationMap({ projectId, names }: { projectId: string; names: string[] }) {
-  const [chosen, setChosen] = useState<string | null>(null);
-  const name = chosen && names.includes(chosen) ? chosen : (names[names.length - 1] ?? "");
+/** The location field shown: the one whose Show on map was pressed, else the last added. */
+export function shownLocation(pick: string | null, names: string[]): string {
+  return pick && names.includes(pick) ? pick : (names[names.length - 1] ?? "");
+}
+
+/** Location fields in the map window: the shown field, each parcel a dot coloured by its area. */
+export function LocationsOnMap({
+  projectId,
+  names,
+  pick,
+}: {
+  projectId: string;
+  names: string[];
+  pick: string | null;
+}) {
+  const name = shownLocation(pick, names);
   const view = useQuery({
     queryKey: ["location-map", projectId, name],
     queryFn: async () =>
@@ -360,30 +377,25 @@ function LocationMap({ projectId, names }: { projectId: string; names: string[] 
     [points],
   );
   return (
-    <div className="loc-map">
-      <div className="loc-map-head">
-        <span className="wiz-label">{l.mapOf}</span>
-        <Choice
-          label={l.mapOf}
-          hideLabel
-          value={name}
-          options={names.map((x) => [x, x] as const)}
-          onChange={setChosen}
-        />
+    <div className="mapwin-body">
+      <div className="mapwin-sub">
+        <b className="mono">{name}</b>
         {v && <span className="wiz-from">{l.mapAreas({ n: v.values.length })}</span>}
       </div>
-      <MapBox
-        className="wiz-map wiz-map-fill"
-        label={l.mapOf}
-        layers={layers}
-        bounds={boundsOf(points.map((p) => [p[0], p[1]] as [number, number]))}
-        fitKey={`${name}:${points.length}`}
-        scrollZoom="focus"
-        tooltip={(info) => {
-          const p = info.object as readonly [number, number, number] | undefined;
-          return p && v ? (p[2] >= 0 ? (v.values[p[2]] ?? null) : l.mapNone) : null;
-        }}
-      />
+      <div className="mapwin-stage">
+        <MapBox
+          className="mapwin-map"
+          label={l.mapOf}
+          layers={layers}
+          bounds={boundsOf(points.map((p) => [p[0], p[1]] as [number, number]))}
+          fitKey={`${name}:${points.length}`}
+          scrollZoom="focus"
+          tooltip={(info) => {
+            const p = info.object as readonly [number, number, number] | undefined;
+            return p && v ? (p[2] >= 0 ? (v.values[p[2]] ?? null) : l.mapNone) : null;
+          }}
+        />
+      </div>
     </div>
   );
 }

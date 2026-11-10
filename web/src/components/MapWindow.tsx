@@ -42,7 +42,8 @@ import { navigate } from "../lib/route";
 import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { GroupsOnMap } from "../screens/GroupMap";
-import { CentreOnMap } from "../screens/Location";
+import { CentreOnMap, LocationsOnMap } from "../screens/Location";
+import { LayerOnMap, shownLayer } from "../screens/Shapefiles";
 import { t } from "../wording";
 import { CloseButton, SmallButton, ToolButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
@@ -449,6 +450,22 @@ function MapPanel({
       {takeOver ? (
         takeOver.view === "centre" ? (
           <CentreOnMap projectId={projectId} />
+        ) : takeOver.view === "locations" ? (
+          (locations ?? []).length ? (
+            <LocationsOnMap
+              projectId={projectId}
+              names={(locations ?? []).map((x) => x.name)}
+              pick={takeOver.pick}
+            />
+          ) : (
+            <p className="mapwin-msg">{w.nothingYet}</p>
+          )
+        ) : takeOver.view === "layers" ? (
+          layerNames.length ? (
+            <LayerOnMap projectId={projectId} name={shownLayer(takeOver.pick, layerNames)} />
+          ) : (
+            <p className="mapwin-msg">{w.nothingYet}</p>
+          )
         ) : onGroups ? (
           <GroupsOnMap gm={onGroups} />
         ) : (

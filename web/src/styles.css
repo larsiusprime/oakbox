@@ -8066,3 +8066,22 @@ section.wiz-section:has(> .cf-tbl),
   align-items: baseline;
   margin: 0 0 calc(0.8 * var(--sp));
 }
+/* A take-over's line above its map in the map window: what's shown (a location field, a layer). */
+.mapwin-sub {
+  display: flex;
+  flex: none;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--rule);
+}
+.show-on-map {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.show-on-map.on {
+  color: var(--link);
+  border-color: var(--link);
+}

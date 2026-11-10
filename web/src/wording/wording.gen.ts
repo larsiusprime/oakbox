@@ -312,6 +312,8 @@ export type Wording = {
       byArea: string;
       byLength: string;
       mapLabel: (a: { name: string | number }) => string;
+      mapInstruction: string;
+      mapInstructionSub: string;
       adding: string;
     };
     permits: {
@@ -515,6 +517,8 @@ export type Wording = {
       centerMiddle: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;
+      locInstruction: string;
+      locInstructionSub: string;
       instruction: string;
       instructionSub: string;
       centre: string;
@@ -2666,7 +2670,10 @@ export type Wording = {
       notShowingSub: string;
       show: string;
       showHere: string;
+      showOnMap: string;
+      onMap: string;
     };
+    nothingYet: string;
     label: string;
     title: string;
     mapLabel: string;

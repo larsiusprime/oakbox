@@ -21,11 +21,14 @@ import { AddButton } from "../components/AddButton";
 import { ToolButton } from "../components/Buttons";
 import { FileEntry } from "../components/FileEntry";
 import { Choice, Tick } from "../components/Form";
+import { MapInstruction } from "../components/MapInstruction";
 import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
+import { ShowOnMap } from "../components/ShowOnMap";
 import { BAD, PICKED } from "../lib/colours";
 import { useAtOnce } from "../lib/hooks";
+import { useMapStep, useTakeOver } from "../lib/mapstep";
 import { t } from "../wording";
 import { FilePicker } from "./WizardFiles";
 
@@ -69,11 +72,24 @@ export function ShapefilesStep({
   const taken = data.files
     .filter((f) => f.base || f.holds === "parcels" || f.holds === "sales")
     .map((f) => f.name);
+  // A take-over step (SPEC §3.15): the map shows a layer over the parcels, the one whose Show on map was pressed
+  // (else the first that can be placed).
+  useTakeOver(project.id, "layers", t.wizard.steps.shapefiles?.title ?? "", s.mapInstruction);
+  const ms = useMapStep();
+  const placed = data.layers.filter((x) => x.projected).map((x) => x.name);
+  const onMap = shownLayer(ms?.pick ?? null, placed);
   return (
     <>
+      {placed.length > 0 && <MapInstruction title={s.mapInstruction} sub={s.mapInstructionSub} />}
       <div className="entry-list">
         {data.layers.map((layer) => (
-          <LayerCard key={layer.name} project={project} layer={layer} change={change} />
+          <LayerCard
+            key={layer.name}
+            project={project}
+            layer={layer}
+            change={change}
+            shown={layer.name === onMap}
+          />
         ))}
         {adding ? (
           <FilePicker
@@ -103,13 +119,15 @@ function LayerCard({
   project,
   layer,
   change,
+  shown,
 }: {
   project: Project;
   layer: LayerView;
   change: (c: LayerChange, options?: { onSettled?: () => void }) => void;
+  /** It's the layer on the map. */
+  shown: boolean;
 }) {
   const o = layer.overlay;
-  const [mapShown, setMapShown] = useState(false);
   const set = (patch: Partial<Overlay>, options?: { onSettled?: () => void }) =>
     change({ kind: "layer", name: layer.name, overlay: { ...o, ...patch } }, options);
   const kinds = [
@@ -131,17 +149,7 @@ function LayerCard({
           </span>
         )
       }
-      actions={
-        layer.projected && (
-          <ToolButton
-            label={mapShown ? s.hideMap : s.showMap}
-            pressed={mapShown}
-            onPress={() => setMapShown(!mapShown)}
-          >
-            <MapIcon aria-hidden="true" size="1em" />
-          </ToolButton>
-        )
-      }
+      actions={layer.projected && <ShowOnMap id={layer.name} shown={shown} />}
       onRemove={() => change({ kind: "layer", name: layer.name, overlay: null })}
       undo={() => change({ kind: "layer", name: layer.name, overlay: o })}
     >
@@ -189,7 +197,6 @@ function LayerCard({
         {o.use === "stamp" && <StampFields layer={layer} set={set} />}
         {o.use === "distance" && <DistanceOptions layer={layer} set={set} />}
       </div>
-      {mapShown && <LayerMap projectId={project.id} name={layer.name} />}
     </FileEntry>
   );
 }
@@ -472,8 +479,13 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
   );
 }
 
-/** The layer's shapes over the parcel dots: does it line up? */
-function LayerMap({ projectId, name }: { projectId: string; name: string }) {
+/** The layer shown: the one whose Show on map was pressed, else the first that can be placed. */
+export function shownLayer(pick: string | null, placed: string[]): string {
+  return pick && placed.includes(pick) ? pick : (placed[0] ?? "");
+}
+
+/** Shapefiles in the map window: the shown layer's shapes over the parcel dots: does it line up? */
+export function LayerOnMap({ projectId, name }: { projectId: string; name: string }) {
   const view = useQuery({
     queryKey: ["layer-map", projectId, name],
     queryFn: async () =>
@@ -517,15 +529,22 @@ function LayerMap({ projectId, name }: { projectId: string; name: string }) {
     ],
     [points, shapes],
   );
-  if (view.error) return <p className="error">{view.error.message}</p>;
+  if (view.error) return <p className="error mapwin-msg">{view.error.message}</p>;
   return (
-    <MapView
-      className="wiz-map"
-      label={s.mapLabel({ name })}
-      layers={layers}
-      bounds={boundsOf(points, [boundsOfGeoJson(shapes)])}
-      fitKey={v ? name : ""}
-      scrollZoom="focus"
-    />
+    <div className="mapwin-body">
+      <div className="mapwin-sub">
+        <b>{name}</b>
+      </div>
+      <div className="mapwin-stage">
+        <MapView
+          className="mapwin-map"
+          label={s.mapLabel({ name })}
+          layers={layers}
+          bounds={boundsOf(points, [boundsOfGeoJson(shapes)])}
+          fitKey={v ? name : ""}
+          scrollZoom="focus"
+        />
+      </div>
+    </div>
   );
 }
