@@ -174,7 +174,13 @@ function Columns({ projectId }: { projectId: string }) {
 function Against({ r }: { r: Row }) {
   if (r.written_differently) {
     const [sold = "", today = ""] = r.examples[0] ?? [];
-    return <span className="pill pill-bad">{a.writtenDifferently({ sold, today })}</span>;
+    // A short pill; what's written differently, and what to do, on the line under it.
+    return (
+      <>
+        <span className="pill pill-bad">{a.writtenDifferentlyPill}</span>
+        <div className="wiz-from as-eg">{a.writtenDifferently({ sold, today })}</div>
+      </>
+    );
   }
   const same = r.compared ? r.same / r.compared : 1;
   return (

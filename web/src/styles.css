@@ -7784,3 +7784,7 @@ section.wiz-section:has(> .cf-tbl),
 .as-table-wrap {
   margin-top: calc(1 * var(--sp));
 }
+/* As wide as what's in it (up to the sheet's width, then it scrolls): no column wider than its widest entry. */
+.tbl.as-table {
+  width: auto;
+}
