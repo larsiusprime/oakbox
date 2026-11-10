@@ -8,9 +8,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { CloseButton } from "../components/Buttons";
+import { Tick } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
+import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
+import { NO_COLOUR } from "../lib/colours";
 import { money, short } from "../lib/format";
+import { type GroupMap as GroupMapState, setGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
 import { type BinaryShapes, readShapes, shapeSize, shapesBounds, toBinary } from "../lib/shapes";
 import { t } from "../wording";
@@ -348,5 +352,140 @@ export function Inspector({
         </>
       )}
     </section>
+  );
+}
+
+/** What the groups as edited would do: each parcel's group, each group's counts, what moved. */
+export function usePreview(projectId: string, groups: ModelGroup[], enabled = true) {
+  return useQuery({
+    queryKey: ["groups-preview", projectId, groups],
+    queryFn: async () =>
+      unwrap(
+        await api.POST("/api/projects/{project_id}/groups/preview", {
+          params: { path: { project_id: projectId } },
+          body: { groups },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
+}
+
+/** What each colour is, and whether it's shown: each square is a checkbox, hollow when its parcels are hidden. */
+export function Legend({
+  items,
+  hidden,
+  toggle,
+  showAll,
+}: {
+  items: readonly (readonly [string, string, string])[];
+  hidden: Set<string>;
+  toggle: (key: string, on: boolean) => void;
+  showAll: () => void;
+}) {
+  const any = items.some(([key]) => hidden.has(key));
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a row of toggle buttons, not a form field set
+    <div className="mg-legend" role="group" aria-label={g.legend}>
+      {items.map(([key, c, label]) => {
+        const on = !hidden.has(key);
+        return (
+          // Shows or hides the group on the map: a checkbox, with its colour.
+          <span key={key} className={on ? "mg-key" : "mg-key off"}>
+            <Tick isSelected={on} onChange={(v) => toggle(key, v)}>
+              <i className="mg-key-sw" style={{ background: c, borderColor: c }} />
+              {label}
+            </Tick>
+          </span>
+        );
+      })}
+      {any && (
+        <Button className="button button-small" onPress={showAll}>
+          {g.showAll}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Build the groups, drawn in the map window (SPEC §3.15): the groups as edited on the step, coloured by group or by
+ * what moved, a parcel clicked to inspect, the legend's entries switched on and off. */
+export function GroupsOnMap({ gm }: { gm: GroupMapState }) {
+  const { projectId, groups, unassigned, currency, colourBy, highlight } = gm;
+  const hidden = useMemo(() => new Set(gm.hidden), [gm.hidden]);
+  const [picked, setPicked] = useState<number | null>(null);
+  const preview = usePreview(projectId, groups);
+  const colours = useMemo(() => groups.map((x) => x.color), [groups]);
+  const ids = useMemo(() => groups.map((x) => x.id), [groups]);
+  const name = (id: string) => (id === "" ? g.unassigned : (groups.find((x) => x.id === id)?.name ?? id));
+  const toggle = (key: string, on: boolean) =>
+    setGroupMap({ hidden: on ? gm.hidden.filter((k) => k !== key) : [...gm.hidden, key] });
+  return (
+    <div className="mapwin-body mapwin-groups">
+      <div className="mg-bar">
+        <Seg
+          value={colourBy}
+          options={[
+            ["group", g.byGroup],
+            ["changes", g.byChanges],
+          ]}
+          onChange={(c) => setGroupMap({ colourBy: c })}
+        />
+        {highlight && (
+          <span className="mg-hl">
+            {g.highlighted({ n: highlight.length })}{" "}
+            <Button className="button button-small" onPress={() => setGroupMap({ highlight: null })}>
+              {g.clearHighlight}
+            </Button>
+          </span>
+        )}
+        <span className="mg-grow" />
+        <span className="mg-hint">{g.clickHint}</span>
+      </div>
+      <div className="mapwin-stage mg-stage">
+        <ParcelMap
+          projectId={projectId}
+          preview={preview.data}
+          colours={colours}
+          ids={ids}
+          hidden={hidden}
+          unassigned={unassigned}
+          colourBy={colourBy}
+          highlight={highlight}
+          picked={picked}
+          mode="docked"
+          onPick={setPicked}
+        />
+        {picked != null && (
+          <Inspector
+            projectId={projectId}
+            groups={groups}
+            index={picked}
+            name={name}
+            colour={(id) => (id === "" ? unassigned : (groups.find((x) => x.id === id)?.color ?? NO_COLOUR))}
+            currency={currency}
+            onShow={(n) => setGroupMap({ highlight: n })}
+            onClose={() => setPicked(null)}
+          />
+        )}
+      </div>
+      <Legend
+        items={
+          colourBy === "group"
+            ? [
+                ...groups.map((x) => [x.id, x.color, x.name] as const),
+                ["", unassigned, g.unassigned] as const,
+              ]
+            : [
+                ...groups.map((x) => [x.id, x.color, `${g.movesTo} ${x.name}`] as const),
+                ["", unassigned, `${g.movesTo} ${g.unassigned}`] as const,
+                [SAME, CHANGE_GREY, g.noChanges] as const,
+              ]
+        }
+        hidden={hidden}
+        toggle={toggle}
+        showAll={() => setGroupMap({ hidden: [] })}
+      />
+    </div>
   );
 }

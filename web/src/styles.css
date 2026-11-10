@@ -2815,7 +2815,8 @@ like the wizard's Next {
   height: calc(100vh - 13.5rem);
   min-height: 34rem;
 }
-.mg-full {
+.mg-full,
+.mg-nomap {
   grid-template-columns: 17rem 1fr;
 }
 .mg-hidden {
@@ -7971,4 +7972,13 @@ section.wiz-section:has(> .cf-tbl),
 .modal-body > .rc-meter {
   border: 0;
   border-radius: 0;
+}
+
+/* Build the groups in the map window (lib/groupmap.ts): its bar, the map, the legend. */
+.mg-stage > .mg-map-body {
+  flex: 1;
+  min-width: 0;
+}
+.mapwin-groups > .mg-legend {
+  flex: none;
 }
