@@ -9,13 +9,15 @@ import { Button } from "react-aria-components";
 import { api, type GroupsPreview, type ModelGroup, type ParcelInspect, unwrap } from "../api/client";
 import { CloseButton } from "../components/Buttons";
 import { Tick } from "../components/Form";
+import { MapInstruction } from "../components/MapInstruction";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { Seg } from "../components/Seg";
 import { Val } from "../components/Val";
 import { NO_COLOUR } from "../lib/colours";
 import { money, short } from "../lib/format";
-import { type GroupMap as GroupMapState, setGroupMap } from "../lib/groupmap";
+import { clearGroups, type GroupMap as GroupMapState, publishGroups, setGroupMap } from "../lib/groupmap";
 import { useResolved } from "../lib/machine";
+import { useTakeOver } from "../lib/mapstep";
 import { type BinaryShapes, readShapes, shapeSize, shapesBounds, toBinary } from "../lib/shapes";
 import { t } from "../wording";
 
@@ -488,4 +490,32 @@ export function GroupsOnMap({ gm }: { gm: GroupMapState }) {
       />
     </div>
   );
+}
+
+/** A step that shows the groups as saved on the map window (SPEC §3.15: Model groups' Check them, Tag and write, What
+ * each group got; Evaluate's Which groups): its instruction card here, the groups there. */
+export function SavedGroupsOnMap({
+  projectId,
+  currency,
+  title,
+}: {
+  projectId: string;
+  currency: string;
+  /** The step's name, on the map's banner. */
+  title: string;
+}) {
+  const q = useQuery({
+    queryKey: ["groups", projectId],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/groups", { params: { path: { project_id: projectId } } }),
+      ),
+  });
+  const v = q.data;
+  useTakeOver(projectId, "groups", title, g.savedOnMap);
+  useEffect(() => {
+    if (v) publishGroups({ projectId, groups: v.groups, unassigned: v.unassigned_color, currency });
+  }, [projectId, v, currency]);
+  useEffect(() => () => clearGroups(), []);
+  return <MapInstruction title={g.savedOnMap} sub={g.savedOnMapSub} />;
 }

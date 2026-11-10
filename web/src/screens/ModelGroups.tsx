@@ -26,7 +26,7 @@ import { AssembleResults, Formats } from "./Assemble";
 import { GroupChecks } from "./GroupChecks";
 import { GroupEditor } from "./GroupEditor";
 import { GroupFromField } from "./GroupFromField";
-import { Legend, usePreview } from "./GroupMap";
+import { Legend, SavedGroupsOnMap, usePreview } from "./GroupMap";
 
 const g = t.groups;
 
@@ -90,6 +90,12 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const v = state.data;
   const a = run.data;
   const saved = v?.groups ?? [];
+  // The one group shown alone on the map, if any (Check them's Show on map).
+  const gmNow = useGroupMap();
+  const hiddenNow = new Set(gmNow?.hidden ?? []);
+  const keys = [...saved.map((x) => x.id), ""];
+  const alone =
+    keys.filter((k) => !hiddenNow.has(k)).length === 1 ? (keys.find((k) => !hiddenNow.has(k)) ?? null) : null;
   const preview = usePreview(projectId, saved, !!v?.start && saved.length > 0);
   if (!v || !a) return <LoadingBar error={state.error} />;
   if (!v.ready) return <p className="bi-lede mg-pad">{g.notReady}</p>;
@@ -240,6 +246,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "check" && (
         <>
           <StepBody title={g.checkTitle} lede={g.checkLede}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={g.steps.check} />
             <GroupChecks
               groups={saved}
               preview={p}
@@ -247,6 +254,15 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               setModeled={(id, modeled) =>
                 save.mutate(saved.map((x) => (x.id === id ? { ...x, modeled } : x)))
               }
+              onMap={{
+                shown: alone,
+                // A group (or Unassigned) alone on the map; pressed again, every group back.
+                show: (id) =>
+                  setGroupMap({
+                    hidden: alone === id ? [] : [...saved.map((x) => x.id), ""].filter((k) => k !== id),
+                    highlight: null,
+                  }),
+              }}
             />
             {save.error && (
               <p className="error" role="alert">
@@ -260,6 +276,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "write" && (
         <>
           <StepBody title={g.writeTitle} lede={g.run.what}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={g.steps.write} />
             {running ? (
               <RunProgress job={a.job} lastSeconds={a.receipt?.seconds ?? null} />
             ) : (
@@ -314,6 +331,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
       {current === "results" && (
         <>
           <StepBody title={g.run.title}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={g.steps.results} />
             <AssembleResults projectId={projectId} view={a} groups={saved} />
           </StepBody>
           <StepFoot

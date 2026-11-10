@@ -38,6 +38,7 @@ import {
   useWhere,
 } from "../lib/mapdock";
 import { setSlot, useMapStep } from "../lib/mapstep";
+import { currentFrame, usePlace } from "../lib/place";
 import { navigate } from "../lib/route";
 import { readShapes, type Shapes, shapeSize, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
@@ -91,13 +92,16 @@ const BLANK_LINE: [number, number, number, number] = [120, 120, 120, 90];
 export function MapWindow({
   projectId,
   tab,
-  step,
+  step: routeStep,
 }: {
   projectId: string;
   /** Where the main window is: what Follow follows. */
   tab: string | null;
   step: string | null;
 }) {
+  // The step on screen: the Data wizard's from the address, any other tab's from its step list (lib/place).
+  const frame = usePlace().frame;
+  const step = tab === "fields" ? routeStep : (frame?.current ?? null);
   const d = useDock();
   const width = useWindowWidth();
   const side = sideFor(d.side, width);
@@ -442,6 +446,12 @@ function MapPanel({
           />
         </span>
       </header>
+      {/* Nothing on this step to map: it says so, and holds what it showed (SPEC §3.15). */}
+      {dock.follow && !takeOver && target === null && m?.status === "ready" && field && (
+        <div className="mapwin-banner mapwin-hold" role="status">
+          {w.hold({ shown: field.label })}
+        </div>
+      )}
       {takeOver && (
         <div key={flashAt} className={`mapwin-banner ${flashAt ? "flash" : ""}`} role="status">
           <b>{takeOver.title}:</b> {takeOver.instruction}
@@ -676,6 +686,11 @@ const SALES_STEPS: Record<string, string[]> = {
   vacant_sale: ["vacant"],
 };
 
+/** Other tabs' steps the map follows with a 💰 sales layer: by year sold, or by price. */
+const OTHER_STEPS: Record<string, Record<string, string>> = {
+  sales: { window: "year", time: "year", sales: "price" },
+};
+
 type Target = { title: string; field: string };
 
 /** What the step on screen shows on the map (SPEC §3.15's table): a Data step's field (its first loaded one, in the
@@ -689,6 +704,12 @@ function followed(
   problems: MapProblems | undefined,
   layerNames: string[],
 ): Target | null {
+  // Other tabs: their steps that a layer here shows (SPEC §3.15's plan): the sales by date, or by price.
+  if (tab && tab !== "fields" && step) {
+    const k = (OTHER_STEPS[tab] ?? {})[step];
+    const title = currentFrame()?.steps.find((x) => x.key === step)?.title ?? step;
+    return k && sales.includes(k) ? { title, field: `sr:${k}` } : null;
+  }
   if (tab !== "fields" || !step || !wizard) return null;
   const s = wizard.steps.find((x) => x.key === step);
   if (!s) return null;

@@ -28,6 +28,7 @@ import { setStepPick, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { ExtremeMap } from "./ExtremeMap";
+import { SavedGroupsOnMap } from "./GroupMap";
 import { SimilarMap } from "./SimilarMap";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
 import { BandChart, Scatter } from "./ValueCharts";
@@ -198,6 +199,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
       {current === "assign" && (
         <>
           <StepBody title={r.standards.assignTitle} lede={r.standards.assignLede}>
+            <SavedGroupsOnMap projectId={projectId} currency={currency} title={r.steps.assign} />
             {u ? <AssignTable v={u} set={set} /> : loading}
             {errors}
           </StepBody>
@@ -270,7 +272,26 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                 map={{ shown: mapGroup, show: setStepPick }}
               />
             )}
-            {current === "prices" && <Prices projectId={projectId} result={result} currency={currency} />}
+            {current === "prices" && (
+              <>
+                <OnTheMap
+                  projectId={projectId}
+                  step={r.steps.prices}
+                  title={r.map.pricesInstruction}
+                  sub={r.map.pricesInstructionSub}
+                >
+                  <RatioMap
+                    projectId={projectId}
+                    result={result}
+                    currency={currency}
+                    group={mapGroup}
+                    setGroup={setStepPick}
+                    bands
+                  />
+                </OnTheMap>
+                <Prices projectId={projectId} result={result} currency={currency} />
+              </>
+            )}
 
             {current === "regions" && (
               <Regions

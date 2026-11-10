@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
+import { Seg } from "../components/Seg";
 import { BY_LEVEL, BY_SALE, ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
@@ -20,6 +21,7 @@ export function RatioMap({
   currency,
   group,
   setGroup,
+  bands = false,
 }: {
   projectId: string;
   result: FieldResult;
@@ -27,7 +29,10 @@ export function RatioMap({
   /** The group shown ("" every group), when the step keeps it (its rows' Show on map); else the map's own. */
   group?: string;
   setGroup?: (id: string) => void;
+  /** Across prices: a price band at a time (the sales' cheapest, middle and dearest thirds). */
+  bands?: boolean;
 }) {
+  const [band, setBand] = useState<"" | "low" | "mid" | "high">("");
   const studied = result.groups.filter((g) => g.sales > 0);
   const [own, setOwn] = useState("");
   const gid = group ?? own;
@@ -41,7 +46,20 @@ export function RatioMap({
         }),
       ),
   });
-  const data = pts.data;
+  // A band: the sales between its thirds of price (every sale shown, or only that band's).
+  const cuts = (() => {
+    const p = (pts.data ?? []).map((x) => x.price).sort((a, b) => a - b);
+    const at = (q: number) => p[Math.floor(q * p.length)] ?? 0;
+    return { low: at(1 / 3), high: at(2 / 3) };
+  })();
+  const inBand = (price: number) =>
+    !band ||
+    (band === "low"
+      ? price < cuts.low
+      : band === "high"
+        ? price >= cuts.high
+        : price >= cuts.low && price < cuts.high);
+  const data = pts.data?.filter((x) => inBand(x.price));
   const layers = useMemo(
     () =>
       data
@@ -78,6 +96,19 @@ export function RatioMap({
           ]}
           onChange={setGid}
         />
+        {bands && (
+          <Seg
+            label={mp.band}
+            value={band}
+            options={[
+              ["", mp.bandAll],
+              ["low", mp.bandLow],
+              ["mid", mp.bandMid],
+              ["high", mp.bandHigh],
+            ]}
+            onChange={setBand}
+          />
+        )}
         <span className="wiz-from">{mp.lede}</span>
       </div>
       {pts.data && pts.data.length === 0 ? (

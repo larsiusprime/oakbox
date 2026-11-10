@@ -8226,3 +8226,8 @@ section.wiz-section:has(> .cf-tbl),
 tr.rv-picked > td {
   background: var(--head);
 }
+.mapwin-banner.mapwin-hold {
+  color: var(--muted);
+  background: #f3f3f0;
+  border-bottom-color: var(--rule);
+}

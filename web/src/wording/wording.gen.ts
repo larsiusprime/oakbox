@@ -1172,6 +1172,8 @@ export type Wording = {
     showMap: string;
     clickHint: string;
     mapInstruction: string;
+    savedOnMap: string;
+    savedOnMapSub: string;
     mapInstructionSub: string;
     mapLabel: string;
     loadingMap: string;
@@ -1861,6 +1863,13 @@ export type Wording = {
       instruction: string;
       instructionSub: string;
       allOnMap: string;
+      pricesInstruction: string;
+      pricesInstructionSub: string;
+      band: string;
+      bandAll: string;
+      bandLow: string;
+      bandMid: string;
+      bandHigh: string;
       none: string;
       ratio: string;
       price: string;
@@ -2725,6 +2734,7 @@ export type Wording = {
     howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
     backToFollowing: string;
+    hold: (a: { shown: string | number }) => string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
     followOnTip: string;

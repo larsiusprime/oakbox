@@ -3,7 +3,6 @@
  * map moved to it. */
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 import { api, type FieldResult, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { boundsOf, MapView, rgba } from "../components/MapView";
@@ -37,51 +36,49 @@ export function ExtremeMap({
   const all = q.data ?? [];
   const extreme = new Set(result.trimmed.map((x) => x.key_sale));
   const me = all.find((p) => p.key_sale === picked && extreme.has(picked));
-  const layers = useMemo(
-    () => [
-      new ScatterplotLayer<Point>({
-        id: "studied",
-        data: all.filter((p) => !extreme.has(p.key_sale ?? "")),
-        radiusUnits: "pixels",
-        getRadius: 3,
-        getPosition: (p) => [p.lon, p.lat],
-        getFillColor: (p) => rgba(ratioColor(p.ratio), 0.35),
-      }),
-      new ScatterplotLayer<Point>({
-        id: "extreme",
-        data: all.filter((p) => extreme.has(p.key_sale ?? "")),
-        pickable: true,
-        radiusUnits: "pixels",
-        getRadius: 6,
-        getPosition: (p) => [p.lon, p.lat],
-        getFillColor: (p) => rgba(ratioColor(p.ratio)),
-        stroked: true,
-        lineWidthUnits: "pixels",
-        getLineWidth: 1.5,
-        getLineColor: (p) => rgba(ratioStroke(p.ratio)),
-        onClick: ({ object }) => {
-          if (object?.key_sale) pick(object.key_sale);
-        },
-      }),
-      ...(me
-        ? [
-            new ScatterplotLayer<Point>({
-              id: "picked",
-              data: [me],
-              radiusUnits: "pixels",
-              getRadius: 11,
-              filled: false,
-              stroked: true,
-              lineWidthUnits: "pixels",
-              getLineWidth: 3,
-              getPosition: (p) => [p.lon, p.lat],
-              getLineColor: rgba(OUTLIER.ring),
-            }),
-          ]
-        : []),
-    ],
-    [all, extreme, me, pick],
-  );
+  // Worked out as it draws: the React Compiler keeps it while nothing it reads changes.
+  const layers = [
+    new ScatterplotLayer<Point>({
+      id: "studied",
+      data: all.filter((p) => !extreme.has(p.key_sale ?? "")),
+      radiusUnits: "pixels",
+      getRadius: 3,
+      getPosition: (p) => [p.lon, p.lat],
+      getFillColor: (p) => rgba(ratioColor(p.ratio), 0.35),
+    }),
+    new ScatterplotLayer<Point>({
+      id: "extreme",
+      data: all.filter((p) => extreme.has(p.key_sale ?? "")),
+      pickable: true,
+      radiusUnits: "pixels",
+      getRadius: 6,
+      getPosition: (p) => [p.lon, p.lat],
+      getFillColor: (p) => rgba(ratioColor(p.ratio)),
+      stroked: true,
+      lineWidthUnits: "pixels",
+      getLineWidth: 1.5,
+      getLineColor: (p) => rgba(ratioStroke(p.ratio)),
+      onClick: ({ object }) => {
+        if (object?.key_sale) pick(object.key_sale);
+      },
+    }),
+    ...(me
+      ? [
+          new ScatterplotLayer<Point>({
+            id: "picked",
+            data: [me],
+            radiusUnits: "pixels",
+            getRadius: 11,
+            filled: false,
+            stroked: true,
+            lineWidthUnits: "pixels",
+            getLineWidth: 3,
+            getPosition: (p) => [p.lon, p.lat],
+            getLineColor: rgba(OUTLIER.ring),
+          }),
+        ]
+      : []),
+  ];
   // Picked: the map goes to it (a little around it); else every extreme sale.
   const shown = all.filter((p) => extreme.has(p.key_sale ?? ""));
   const pad = 0.004;

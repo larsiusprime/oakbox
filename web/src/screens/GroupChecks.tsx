@@ -1,6 +1,7 @@
 import { Button } from "react-aria-components";
 import type { GroupsPreview, ModelGroup } from "../api/client";
 import { Tick } from "../components/Form";
+import { ShowOnMapButton } from "../components/ShowOnMap";
 import { InfoTip } from "../components/Tip";
 import { LoadingBar } from "../components/Waiting";
 import { num } from "../lib/format";
@@ -14,11 +15,14 @@ export function GroupChecks({
   preview: p,
   unassignedColor,
   setModeled,
+  onMap,
 }: {
   groups: ModelGroup[];
   preview: GroupsPreview | undefined;
   unassignedColor: string;
   setModeled: (id: string, modeled: boolean) => void;
+  /** The group shown alone on the map ("" Unassigned, null every group), and showing one. */
+  onMap?: { shown: string | null; show: (id: string) => void };
 }) {
   if (!p) return <LoadingBar />;
   const rows = [
@@ -38,6 +42,7 @@ export function GroupChecks({
             <th className="cs-n">{g.run.sales}</th>
             <th className="cs-n">{g.run.vacantSales}</th>
             <th>{g.checksCol}</th>
+            {onMap && <th />}
           </tr>
         </thead>
         <tbody>
@@ -75,6 +80,11 @@ export function GroupChecks({
                     ))
                   )}
                 </td>
+                {onMap && (
+                  <td className="rv-onmap">
+                    <ShowOnMapButton shown={onMap.shown === id} onPress={() => onMap.show(id)} />
+                  </td>
+                )}
               </tr>
             );
           })}

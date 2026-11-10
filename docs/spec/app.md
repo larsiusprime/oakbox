@@ -385,6 +385,38 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 | Review, summaries, How they did | Summon | Any count with a place. |
 | Settings, Standards, Variables, Models, Report options | None | |
 
+**Every screen says what it does with the map** (planned 2026-11-10), so the user learns the map always follows where
+they are. A screen with nothing spatial holds the last view, and the map's header says so ("Nothing on this step to
+map: still showing …"). The plan, screen by screen (✓ built; **data**: needs data the server doesn't serve yet):
+
+| Tab | Screen | The map |
+|---|---|---|
+| Data | Overview, Review | What stops a run, by kind, worst first (Review's summon buttons ✓) |
+| Data | Sales Record (the file) | Its sales, found / not found in the parcel universe |
+| Data | More files, Add files, a file's part | That file's rows on the parcels, joined / not (**data**: per-file match) |
+| Data | Condo units | Condo parcels, units per parent; on The parcel they're on, units without one (**data**) |
+| Data | Deeds | Sales coloured by deed issue |
+| Data | Permits | Parcels with permits, by year or type |
+| Data | Enrichments | Each enrichment a layer, Show on map per row (**data**: after Inputs) |
+| Inputs | What runs, Bring in data | Hold; then the parcels loaded (**data**) |
+| Inputs | The parcel universe, The sales | Kept vs dropped, by reason (**data**) |
+| Inputs | Public data and checks | The public layers fetched (**data**) |
+| Model groups | How to start | Hold |
+| Model groups | Check them, Tag and write, What each group got | The groups as saved ✓; Check them's rows Show on map ✓ (unmodeled groups faded: not yet) |
+| Sales | Sales window, Time adjustment | Sales by date ✓ (in vs out of the window: **data**) |
+| Sales | The sales | Sales by price ✓ |
+| Sales | Fill blanks, Sales scrutiny, Rare categories, Check sales | Hold (what they'd change: **data**) |
+| Evaluate | What to check … The standards, Check my values | Hold |
+| Evaluate | Which groups | The model groups ✓ (the ones not checked faded: not yet) |
+| Evaluate | Across prices | Sales by ratio, a price band at a time (cheap / middle / dear) ✓ |
+| Evaluate | Neighbourhood price levels | Each neighbourhood by its median ratio (**data**) |
+| Variables | Fill blanks … What changed | Hold (what changed: **data**) |
+| Variables | Spatial average, Per area statistics | The statistic itself on the parcels (**data**) |
+| Variables | Test the variables … VIF | A variable picker: the chosen field on the map (**data**: prepared fields) |
+| Models | Models | The group on the page |
+| Models | How they did | Ratios by group and model (**data**: the try's sales) |
+| Report | Export, Report | The final values map |
+
 What the map shows for a step is published by the step (`lib/groupmap.ts` first, for Build the groups; to be one
 contract for every step: a view, its tools and their instruction, take over or summoned), and reaches a popped-out map as
 the dock does. Phones: out of scope. **Built** (2026-11-10): the take-over (`lib/mapstep.ts`: `useTakeOver`, the banner, the
