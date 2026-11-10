@@ -22248,6 +22248,29 @@
      "note": {
       "type": "string",
       "title": "Note"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude",
+      "description": "Where it is, for the map."
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
      }
     },
     "type": "object",
@@ -22282,7 +22305,9 @@
      "buyer",
      "second_look",
      "status",
-     "note"
+     "note",
+     "latitude",
+     "longitude"
     ],
     "title": "ReviewItem"
    },
@@ -22294,6 +22319,14 @@
       },
       "type": "array",
       "title": "Items"
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/ReviewPoint"
+      },
+      "type": "array",
+      "title": "Points",
+      "description": "Every sale matching the filters (not just this page), for the map."
      },
      "total": {
       "type": "integer",
@@ -22342,6 +22375,7 @@
     "type": "object",
     "required": [
      "items",
+     "points",
      "total",
      "all",
      "undecided",
@@ -22352,6 +22386,47 @@
      "unit"
     ],
     "title": "ReviewPage"
+   },
+   "ReviewPoint": {
+    "properties": {
+     "key_sale": {
+      "type": "string",
+      "title": "Key Sale"
+     },
+     "latitude": {
+      "type": "number",
+      "title": "Latitude"
+     },
+     "longitude": {
+      "type": "number",
+      "title": "Longitude"
+     },
+     "checks": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Checks"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "undecided",
+       "kept",
+       "excluded"
+      ],
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key_sale",
+     "latitude",
+     "longitude",
+     "checks",
+     "status"
+    ],
+    "title": "ReviewPoint"
    },
    "RowField": {
     "properties": {

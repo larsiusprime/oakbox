@@ -1518,6 +1518,12 @@ export type Wording = {
       checkNames: Record<string, string>;
       apply: string;
       applyLater: string;
+      mapStep: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapComps: string;
+      mapFaint: string;
       lede: string;
       nowUndecided: string;
       nowKept: string;

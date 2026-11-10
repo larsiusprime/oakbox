@@ -1,4 +1,5 @@
 /** Check sales' review of the sales set aside: the list, one sale at a time, and why each was set aside. */
+
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button, TextArea, TextField } from "react-aria-components";
@@ -12,12 +13,14 @@ import {
   unwrap,
 } from "../api/client";
 import { Choice } from "../components/Form";
+import { OnTheMap } from "../components/OnTheMap";
 import { Val } from "../components/Val";
 import { desktop } from "../desktop";
 import { CHART, SALE } from "../lib/colours";
 import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
 import { say, t } from "../wording";
+import { ReviewMap } from "./ReviewMap";
 
 const s = t.sales;
 type Unit = "sqft" | "sqm";
@@ -144,6 +147,22 @@ export function Review({
           <span className="wiz-from">{s.review.applyLater}</span>
         )}
       </div>
+      {/* A take-over step (SPEC §3.15): every sale set aside on the map window, the picked one ringed with its comps. */}
+      {items.length > 0 && (
+        <OnTheMap
+          projectId={projectId}
+          step={s.review.mapStep}
+          title={s.review.mapInstruction}
+          sub={s.review.mapInstructionSub}
+        >
+          <ReviewMap
+            projectId={projectId}
+            points={page?.points ?? []}
+            picked={current?.key_sale ?? null}
+            pick={pick}
+          />
+        </OnTheMap>
+      )}
       {items.length === 0 ? (
         <p className="wiz-from">{s.review.empty}</p>
       ) : (

@@ -9451,11 +9451,23 @@ export interface components {
             status: "undecided" | "kept" | "excluded";
             /** Note */
             note: string;
+            /**
+             * Latitude
+             * @description Where it is, for the map.
+             */
+            latitude: number | null;
+            /** Longitude */
+            longitude: number | null;
         };
         /** ReviewPage */
         ReviewPage: {
             /** Items */
             items: components["schemas"]["ReviewItem"][];
+            /**
+             * Points
+             * @description Every sale matching the filters (not just this page), for the map.
+             */
+            points: components["schemas"]["ReviewPoint"][];
             /**
              * Total
              * @description Matching the filters.
@@ -9485,6 +9497,22 @@ export interface components {
              * @enum {string}
              */
             unit: "sqft" | "sqm";
+        };
+        /** ReviewPoint */
+        ReviewPoint: {
+            /** Key Sale */
+            key_sale: string;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Checks */
+            checks: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "undecided" | "kept" | "excluded";
         };
         /** RowField */
         RowField: {
