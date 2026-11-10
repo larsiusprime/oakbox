@@ -22,6 +22,7 @@ export function MultiPick({
   countNoun,
   placeholder,
   brief = false,
+  atLeastOne = false,
 }: {
   label: string;
   /** label: shown instead of the value (a field's name); note: beside it (its column); count: -1 or none for none. */
@@ -35,6 +36,8 @@ export function MultiPick({
   placeholder?: string;
   /** The button says the first chosen and how many more ("Sale price + 6 others"), not every one. */
   brief?: boolean;
+  /** None isn't a choice: while nothing is ticked the list says to pick one, and closing it so keeps the old choice. */
+  atLeastOne?: boolean;
 }) {
   const [search, setSearch] = useState("");
   // While the list is open, the choice is a draft here: ticking, All and Clear change it at once and save nothing.
@@ -46,7 +49,12 @@ export function MultiPick({
       setDraft(chosen);
       return;
     }
-    if (draft && (draft.length !== chosen.length || draft.some((v, i) => v !== chosen[i]))) onChange(draft);
+    if (
+      draft &&
+      !(atLeastOne && draft.length === 0) &&
+      (draft.length !== chosen.length || draft.some((v, i) => v !== chosen[i]))
+    )
+      onChange(draft);
     setDraft(null);
     setSearch("");
   };
@@ -108,6 +116,11 @@ export function MultiPick({
               {m.clear}
             </RemoveTextButton>
           </div>
+          {atLeastOne && picked.length === 0 && (
+            <p className="bi-warn mp-need" role="status">
+              {m.atLeastOne}
+            </p>
+          )}
           <div className="mp-list">
             {rows.map((x) => (
               <Tick

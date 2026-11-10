@@ -40,4 +40,20 @@ describe("MultiPick", () => {
     });
     expect(change).not.toHaveBeenCalled();
   });
+
+  it("with none not a choice, says to pick one and keeps the old choice when closed empty", () => {
+    const change = vi.fn();
+    render(
+      <MultiPick label="Model groups" values={values} chosen={["Condos"]} onChange={change} atLeastOne />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Model groups/ }));
+    expect(screen.queryByText(t.multiPick.atLeastOne)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(t.multiPick.clear) }));
+    expect(screen.getByText(t.multiPick.atLeastOne)).toBeTruthy();
+    act(() => {
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    });
+    expect(change).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Model groups: Condos/ })).toBeTruthy();
+  });
 });

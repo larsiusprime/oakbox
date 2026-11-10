@@ -1498,7 +1498,8 @@
     "noMatch": "Nothing matches",
     "add": "Add “{v}”",
     "more": "{n, number} more values not listed: search, or type one to add it",
-    "counts": "Counts are {noun}."
+    "counts": "Counts are {noun}.",
+    "atLeastOne": "Pick at least one. Closing with none keeps the choice you had."
   },
   "groups": {
     "title": "Model groups",

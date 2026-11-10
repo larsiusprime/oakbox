@@ -303,7 +303,8 @@ function WhatCard({ v, set }: CardProps) {
             label={r.what.sets}
             values={v.sets.map((x) => ({ value: x.id, label: x.name }))}
             chosen={v.chosen_sets}
-            onChange={(sets) => sets.length && set({ sets })}
+            onChange={(sets) => set({ sets })}
+            atLeastOne
           />
           <span />
           <span className="wiz-label">{r.what.groups}</span>
@@ -311,7 +312,8 @@ function WhatCard({ v, set }: CardProps) {
             label={r.what.groups}
             values={v.all_groups.map((g) => ({ value: g.value, label: g.label }))}
             chosen={v.chosen_groups}
-            onChange={(groups) => groups.length && set({ groups })}
+            onChange={(groups) => set({ groups })}
+            atLeastOne
           />
           <span />
         </div>

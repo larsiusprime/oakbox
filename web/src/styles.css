@@ -2585,6 +2585,10 @@ like the wizard's Next {
   border-radius: var(--radius);
   padding: calc(0.5 * var(--sp)) calc(0.7 * var(--sp));
 }
+.mp-need {
+  margin: 0;
+  font-size: 0.85rem;
+}
 .bi-card {
   border: 1px solid var(--frame);
   border-radius: 3px;

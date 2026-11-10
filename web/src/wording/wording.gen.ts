@@ -1105,6 +1105,7 @@ export type Wording = {
     add: (a: { v: string | number }) => string;
     more: (a: { n: number }) => string;
     counts: (a: { noun: string | number }) => string;
+    atLeastOne: string;
   };
   groups: {
     title: string;
