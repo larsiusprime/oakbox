@@ -80,13 +80,13 @@ export function AsSoldStep({ projectId, go }: { projectId: string; go: (step: st
         <li>{a.point4}</li>
         <li>{a.point5}</li>
       </ol>
-      <Button className="button primary" onPress={() => setPage("columns")}>
+      <Button className="button button-primary" onPress={() => setPage("columns")}>
         {a.toColumns} ›
       </Button>
     </div>
   ) : (
     <div className="as-sold">
-      <Button className="link-button" onPress={() => setPage("explain")}>
+      <Button className="button button-small" onPress={() => setPage("explain")}>
         ‹ {a.back}
       </Button>
       <Columns projectId={projectId} />

@@ -136,7 +136,7 @@ export function Outliers({ projectId, currency }: { projectId: string; currency:
               what: v.pending.map((k) => o.pendingWhat[k as Exclude<Why, "model">]).join(", "),
             })}
           </span>
-          <Button className="button primary" isDisabled={apply.isPending} onPress={() => apply.mutate()}>
+          <Button className="button button-primary" isDisabled={apply.isPending} onPress={() => apply.mutate()}>
             {o.apply}
           </Button>
         </div>
@@ -595,7 +595,7 @@ function Decide({ projectId, detail }: { projectId: string; detail: Detail }) {
               <Field label={o.note} value={note} onChange={setNote} width="long" />
               <div>
                 <Button
-                  className="button primary"
+                  className="button button-primary"
                   isDisabled={!reason || (reason === "other" && !note.trim()) || call.isPending}
                   onPress={() => call.mutate({ why, reason, note, source: "" })}
                 >
@@ -622,7 +622,7 @@ function Decide({ projectId, detail }: { projectId: string; detail: Detail }) {
               <Field label={o.source} value={source} onChange={setSource} width="long" tip={o.sourceHint} />
               <div>
                 <Button
-                  className="button primary"
+                  className="button button-primary"
                   isDisabled={!field || !now.trim() || call.isPending}
                   onPress={() => call.mutate({ why, field, now, source, note })}
                 >
@@ -643,7 +643,7 @@ function Decide({ projectId, detail }: { projectId: string; detail: Detail }) {
               <Field label={o.note} value={note} onChange={setNote} width="long" />
               <div>
                 <Button
-                  className="button primary"
+                  className="button button-primary"
                   isDisabled={!to || call.isPending}
                   onPress={() => call.mutate({ why, group: to, note, source: "" })}
                 >
@@ -660,7 +660,7 @@ function Decide({ projectId, detail }: { projectId: string; detail: Detail }) {
               <Field label={o.modelNote} value={note} onChange={setNote} width="long" />
               <div>
                 <Button
-                  className="button primary"
+                  className="button button-primary"
                   isDisabled={!note.trim() || call.isPending}
                   onPress={() => call.mutate({ why, note, source: "" })}
                 >
