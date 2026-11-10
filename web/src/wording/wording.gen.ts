@@ -1841,6 +1841,8 @@ export type Wording = {
     map: {
       lede: string;
       label: string;
+      instruction: string;
+      instructionSub: string;
       none: string;
       ratio: string;
       price: string;
@@ -2116,6 +2118,8 @@ export type Wording = {
       map: {
         head: string;
         label: string;
+        instruction: string;
+        instructionSub: string;
         show: string;
         views: Record<string, string>;
         why: Record<string, string>;
@@ -2300,6 +2304,8 @@ export type Wording = {
     outliers: {
       lede: string;
       notReady: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
       group: string;
       outside: string;
       to: string;
@@ -2674,6 +2680,7 @@ export type Wording = {
       onMap: string;
     };
     nothingYet: string;
+    portalOut: string;
     label: string;
     title: string;
     mapLabel: string;

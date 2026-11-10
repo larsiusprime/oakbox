@@ -808,9 +808,9 @@
       "centerSet": "The centre is at {lat}, {lon}.",
       "useMiddle": "Use the middle of the parcels",
       "locInstruction": "Press Show on map on a field to see its areas on the map",
-      "locInstructionSub": "Each parcel is a dot in its area's colour; hover one for its area. Do the areas look right?",
+      "locInstructionSub": "Each parcel is a dot in its area''s colour; hover one for its area. Do the areas look right?",
       "instruction": "Drag the pin on the map to the centre",
-      "instructionSub": "Downtown, say: where each parcel's distance and direction are measured from.",
+      "instructionSub": "Downtown, say: where each parcel''s distance and direction are measured from.",
       "centre": "Centre",
       "isMiddle": "the middle of the parcels",
       "movedByYou": "moved by you",
@@ -2334,6 +2334,8 @@
     "map": {
       "lede": "Each sale where its parcel is, coloured by its ratio. Clusters of red or blue show where values are off; scattered colour is noise or invalid sales.",
       "label": "Map of sales by ratio",
+      "instruction": "See where the ratios run high or low on the map",
+      "instructionSub": "Each sale is a dot coloured by its ratio; hover one for its price and value. Pick a group on the map.",
       "none": "The sales have no coordinates: the parcel universe needs shapes or latitude and longitude.",
       "ratio": "Ratio",
       "price": "price",
@@ -2679,6 +2681,8 @@
       "map": {
         "head": "On the map",
         "label": "Map of the model values",
+        "instruction": "See the final values on the map",
+        "instructionSub": "Choose what''s coloured, and which group, on the map; hover a parcel for its value.",
         "show": "Show",
         "views": {
           "ratio": "Ratio (the sales)",
@@ -2896,6 +2900,8 @@
     "outliers": {
       "lede": "The sales the models valued furthest from what they sold for (adjusted to the valuation date), each valued by models that never saw it. For each, decide why: the sale, the data, the group, or the model.",
       "notReady": "Finalize first: the outliers are the sales its models valued furthest from their price.",
+      "mapInstruction": "Click a sale on the map, or pick one in the list",
+      "mapInstructionSub": "Its comps are ringed on the map; the list and the card show the one you pick.",
       "group": "Model group",
       "outside": "Outside",
       "to": "to",
@@ -3313,6 +3319,7 @@
       "onMap": "On the map"
     },
     "nothingYet": "Nothing to show yet: add one on the step.",
+    "portalOut": "While the map is popped out, this step draws its map on the step itself.",
     "label": "Map window",
     "title": "Map",
     "mapLabel": "Map of the 🌐 Parcel Universe",

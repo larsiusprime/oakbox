@@ -5205,6 +5205,14 @@ under what it's about; a file appended as rows {
 /* The model's scorecard and the roll's, one above the other: the same columns, the same widths. */
 .fv .rv-score {
   table-layout: fixed;
+  /* Never narrower than its figures and words read: with the map beside it, the section scrolls sideways instead. */
+  min-width: 60rem;
+}
+.fv {
+  overflow-x: auto;
+}
+.fv .rv-score-cell > :last-child {
+  white-space: nowrap;
 }
 .fv .rv-score th:first-child {
   width: 24%;
@@ -7234,7 +7242,7 @@ div.map-wait-ask small {
 }
 .ol-top {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: max(var(--sp), min(1rem, var(--gap-min)));
   align-items: start;
 }
@@ -8084,4 +8092,22 @@ section.wiz-section:has(> .cf-tbl),
 .show-on-map.on {
   color: var(--link);
   border-color: var(--link);
+}
+/* A step's own map drawn in the map window (components/OnTheMap.tsx): it fills the window, its controls above and its
+   legend below. */
+.mapwin-portal {
+  overflow: auto;
+}
+.mapwin-portal > * {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+}
+.mapwin-portal .map-view {
+  flex: 1;
+  height: auto;
+  min-height: 16rem;
 }

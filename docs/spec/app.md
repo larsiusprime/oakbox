@@ -377,7 +377,7 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 | Model groups › Build the groups | Take over | The groups as edited, by group or by what moved; click a parcel: why it's in its group (built 2026-11-10). |
 | Evaluate › On the map | Take over | Ratios by area; the screen explains the colours and lists the worst areas, each with Show. |
 | Models › Outliers | Take over | The outlier sales, a picked one's comps; picking on the map or in the list picks on both. |
-| Report › final values | Take over | The final values (Model values' map folded in). |
+| Models › Model values | Take over | The final values: ratio, value per area, change from the roll (built 2026-11-10). |
 | Data › Parcel Universe | Summon | Its ID problems (blank, repeated, not found). |
 | Data › field steps | Summon | The field, beside its values and histogram. |
 | Sales record fields | Summon | The sales whose value differs, beside each pill. |
@@ -389,7 +389,9 @@ What the map shows for a step is published by the step (`lib/groupmap.ts` first,
 contract for every step: a view, its tools and their instruction, take over or summoned), and reaches a popped-out map as
 the dock does. Phones: out of scope. **Built** (2026-11-10): the take-over (`lib/mapstep.ts`: `useTakeOver`, the banner, the
 state given back), the instruction card (`components/MapInstruction.tsx`), Show on map (`components/ShowOnMap.tsx`, the step's
-`pick`); Coordinates, Location fields, Shapefiles and Build the groups on it.
+`pick`); Coordinates, Location fields, Shapefiles and Build the groups on it; Evaluate › On the map, Outliers and
+Model values' map draw their own map (with its controls) into the map window (`components/OnTheMap.tsx`, a React
+portal: the step keeps its state; popped out, the map is drawn on the step itself).
 
 **Layers**, each there once its data is:
 

@@ -1,8 +1,10 @@
 /** Model values › Model values (SPEC F9, slice 2): the finalized values against the sales, as Check my values judges
  * the roll's, on the set of sales chosen (out of fold, held out, as valued), the roll's beside them on the same
  * sales; then what every parcel got. */
+
 import { useState } from "react";
 import type { components } from "../api/schema";
+import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
 import { InfoTip } from "../components/Tip";
 import { moneyShort, num, signed } from "../lib/format";
@@ -63,7 +65,14 @@ export function FinalValues({
         <p className="wiz-from">{f.noSales({ set: f.sets[key] ?? key })}</p>
       )}
       <h3 className="fv-h">{f.map.head}</h3>
-      <FinalMap projectId={projectId} receipt={receipt} which={key} currency={currency} units={units} />
+      <OnTheMap
+        projectId={projectId}
+        step={t.values.steps.values}
+        title={f.map.instruction}
+        sub={f.map.instructionSub}
+      >
+        <FinalMap projectId={projectId} receipt={receipt} which={key} currency={currency} units={units} />
+      </OnTheMap>
       <h3 className="fv-h">{f.groupsHead}</h3>
       <p className="wiz-from">{f.totals({ valued, parcels })}</p>
       <table className="tbl fv-groups">

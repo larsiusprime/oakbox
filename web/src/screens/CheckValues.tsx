@@ -14,6 +14,7 @@ import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { DateField } from "../components/DateField";
 import { Choice, Radios } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
+import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
@@ -240,7 +241,16 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
             )}
             {current === "groups" && <GroupsTable result={result} />}
             {current === "prices" && <Prices projectId={projectId} result={result} currency={currency} />}
-            {current === "map" && <RatioMap projectId={projectId} result={result} currency={currency} />}
+            {current === "map" && (
+              <OnTheMap
+                projectId={projectId}
+                step={r.steps.map}
+                title={r.map.instruction}
+                sub={r.map.instructionSub}
+              >
+                <RatioMap projectId={projectId} result={result} currency={currency} />
+              </OnTheMap>
+            )}
             {current === "regions" && (
               <Regions
                 result={result}

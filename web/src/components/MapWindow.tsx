@@ -37,7 +37,7 @@ import {
   useDock,
   useWhere,
 } from "../lib/mapdock";
-import { useMapStep } from "../lib/mapstep";
+import { setSlot, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
@@ -448,7 +448,13 @@ function MapPanel({
         </div>
       )}
       {takeOver ? (
-        takeOver.view === "centre" ? (
+        takeOver.view === "portal" ? (
+          mode === "alone" ? (
+            <p className="mapwin-msg">{w.portalOut}</p>
+          ) : (
+            <div className="mapwin-body mapwin-portal" ref={setSlot} />
+          )
+        ) : takeOver.view === "centre" ? (
           <CentreOnMap projectId={projectId} />
         ) : takeOver.view === "locations" ? (
           (locations ?? []).length ? (

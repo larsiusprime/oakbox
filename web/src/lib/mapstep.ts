@@ -5,7 +5,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { type Dock, dockNow, setDock } from "./mapdock";
 
 /** What the map window draws for the step. */
-export type StepView = "groups" | "centre" | "locations" | "layers";
+export type StepView = "groups" | "centre" | "locations" | "layers" | "portal";
 export type MapStep = {
   projectId: string;
   view: StepView;
@@ -114,4 +114,26 @@ export function useTakeOver(projectId: string, view: StepView, title: string, in
       setDock({ ...(now.out ? {} : { open: before.open }), follow: before.follow, field: before.field });
     };
   }, [projectId, view, title, instruction]);
+}
+
+// "portal": the step draws its own map (with its controls) into the map window's slot, in this window (React's
+// createPortal); the step keeps its state. Popped out, the step draws it on itself instead.
+let slot: HTMLElement | null = null;
+const slotters = new Set<() => void>();
+
+/** The map window's slot for a step's own map (its ref). */
+export function setSlot(el: HTMLElement | null) {
+  if (slot === el) return;
+  slot = el;
+  for (const l of slotters) l();
+}
+
+export function useSlot(): HTMLElement | null {
+  return useSyncExternalStore(
+    (l) => {
+      slotters.add(l);
+      return () => slotters.delete(l);
+    },
+    () => slot,
+  );
 }

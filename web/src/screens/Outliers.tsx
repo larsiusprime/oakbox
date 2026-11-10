@@ -1,4 +1,5 @@
 import { LoadingBar } from "../components/Waiting";
+
 /** 6. Models › Outliers (SPEC F9, slice 3): the sales the models valued furthest from their price, on a map and in a
  * list; one picked: its comps and how it's unlike the others; why it's off (the sale, the data, the group, the
  * model); what the misses have in common; the patches made. */
@@ -12,6 +13,7 @@ import type { components } from "../api/schema";
 import { type StepId, stepChanged } from "../api/steps";
 import { Choice, Field } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
+import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
 import { OUTLIER } from "../lib/colours";
 import { day, money, num, pct, when } from "../lib/format";
@@ -150,7 +152,13 @@ export function Outliers({ projectId, currency }: { projectId: string; currency:
         <p className="wiz-from">{o.none({ low: num(v.low, 2), high: num(v.high, 2) })}</p>
       ) : (
         <>
-          <div className="ol-top">
+          {/* A take-over step (SPEC §3.15): the map's in the map window; here the card, then the list. */}
+          <OnTheMap
+            projectId={projectId}
+            step={t.values.steps.outliers}
+            title={o.mapInstruction}
+            sub={o.mapInstructionSub}
+          >
             <OutlierMap
               points={v.points}
               picked={pick}
@@ -159,6 +167,8 @@ export function Outliers({ projectId, currency }: { projectId: string; currency:
               pick={setPicked}
               projectId={projectId}
             />
+          </OnTheMap>
+          <div className="ol-top">
             <div className="ol-list">
               <table className="tbl">
                 <thead>
