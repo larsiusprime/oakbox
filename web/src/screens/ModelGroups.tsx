@@ -10,6 +10,7 @@ import { Disclose } from "../components/Disclose";
 import { Radios, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
+import { LoadingBar } from "../components/Waiting";
 import { NO_COLOUR } from "../lib/colours";
 import { when } from "../lib/format";
 import { newGroup } from "../lib/groups";
@@ -101,7 +102,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const a = run.data;
   const saved = v?.groups ?? [];
   const preview = usePreview(projectId, saved, !!v?.start && saved.length > 0);
-  if (!v || !a) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  if (!v || !a) return <LoadingBar error={state.error} />;
   if (!v.ready) return <p className="bi-lede mg-pad">{g.notReady}</p>;
 
   const running = a.status === "running";

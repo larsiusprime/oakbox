@@ -80,6 +80,7 @@ export function Choice<V extends string>(props: {
   // What was picked shows at once, while it saves (AGENTS.md).
   const [value, pick_] = useAtOnce(props.value);
   const onPick = (v: V) => {
+    if (v === value) return; // picked again: nothing to save
     pick_(v);
     props.onChange(v);
   };
@@ -201,6 +202,7 @@ export function Radios(props: RadioGroupProps) {
       {...(onChange
         ? {
             onChange: (v: string) => {
+              if (v === value) return; // the one already chosen: nothing to save
               if (props.value !== undefined) press(v);
               onChange(v);
             },

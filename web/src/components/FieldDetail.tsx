@@ -7,6 +7,7 @@ import { useSettled } from "../lib/hooks";
 import { RangedBars } from "../screens/FieldHistogram";
 import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
+import { LoadingBar } from "./Waiting";
 
 const d = t.bringIn.detail;
 
@@ -71,7 +72,7 @@ function Detail({ projectId, set, field }: { projectId: string; set: "universe" 
         <span className="vals-file">· {set === "universe" ? d.universe : d.sales}</span>
       </Heading>
       {!v ? (
-        <p className="vals-sub">{q.error?.message ?? t.wizard.values.loading}</p>
+        <LoadingBar error={q.error} />
       ) : (
         <>
           <p className="vals-sub">{say.bringIn.detail.summary(v.rows, v.blank, v.distinct, v.kind)}</p>

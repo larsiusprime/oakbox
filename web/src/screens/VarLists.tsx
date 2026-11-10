@@ -12,6 +12,7 @@ import { Choice, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
+import { LoadingBar } from "../components/Waiting";
 import { num, pct } from "../lib/format";
 import { say, t } from "../wording";
 
@@ -33,7 +34,7 @@ export function VarListsStep({ projectId }: { projectId: string }) {
   const put = useSetVarLists(projectId);
   const [open, setOpen] = useState<string | null>(null);
   const v = q.data;
-  if (!v) return <p className="empty">{q.error?.message ?? t.project.loading}</p>;
+  if (!v) return <LoadingBar error={q.error} />;
   if (!v.variables.length) return <p className="wiz-from">{s.noVariables}</p>;
   const shown = open ?? v.lists[0]?.id ?? null;
   const save = (lists: VarList[]) => put.mutate(lists);

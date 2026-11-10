@@ -1,3 +1,4 @@
+import { LoadingBar } from "../components/Waiting";
 /** 6. Models › Outliers (SPEC F9, slice 3): the sales the models valued furthest from their price, on a map and in a
  * list; one picked: its comps and how it's unlike the others; why it's off (the sale, the data, the group, the
  * model); what the misses have in common; the patches made. */
@@ -84,7 +85,7 @@ export function Outliers({ projectId, currency }: { projectId: string; currency:
       if (from) stepChanged(qc, projectId, from);
     },
   });
-  if (!v) return <p className="empty">{view.error?.message ?? t.project.loading}</p>;
+  if (!v) return <LoadingBar error={view.error} />;
   if (!v.ready) return <p className="wiz-from">{o.notReady}</p>;
   const g = v.group ?? "";
   const lows = v.outliers.filter((s) => s.ratio < v.low);
@@ -383,7 +384,7 @@ function SaleCard({
   low: number;
 }) {
   const d = useSaleDetail(projectId, keySale).data;
-  if (!d) return <p className="wiz-from">{o.loading}</p>;
+  if (!d) return <LoadingBar />;
   const s = d.sale;
   const fmt = (x: number | null | undefined) => money(x, currency);
   return (
@@ -703,7 +704,7 @@ function CommonCard({ projectId, group }: { projectId: string; group: string }) 
       <h3>{o.common}</h3>
       <p className="wiz-from">{o.commonLede}</p>
       {!d ? (
-        <p className="wiz-from">{o.loading}</p>
+        <LoadingBar />
       ) : d.patterns.length === 0 ? (
         <p className="wiz-from">{o.noneCommon}</p>
       ) : (

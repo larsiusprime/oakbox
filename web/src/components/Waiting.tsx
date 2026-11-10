@@ -64,3 +64,16 @@ export function Waiting({
     </p>
   );
 }
+
+/** Something loading, said the one way the app says it (the step-loading bar, sliding: no measure of how far);
+ * a failed load says why instead. */
+export function LoadingBar({ error }: { error?: Error | null }) {
+  if (error) return <p className="error">{error.message}</p>;
+  return (
+    <div className="step-loading" role="status" aria-label={t.project.loading}>
+      <span className="engine-bar opening-bar opening-bar-busy">
+        <i />
+      </span>
+    </div>
+  );
+}

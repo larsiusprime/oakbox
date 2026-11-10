@@ -18,6 +18,7 @@ import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { LoadingBar } from "../components/Waiting";
 import { band, num, pct, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
@@ -54,7 +55,7 @@ export function BringInTab({ projectId }: { projectId: string }) {
   const [rows, setRows] = useState<{ set: string; title: string; file?: string } | null>(null);
   const nav = useStepNav<BiStep>();
   const v = state.data;
-  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  if (!v) return <LoadingBar error={state.error} />;
   const running = v.status === "running";
   const r = v.receipt;
   const fresh = !!r && !v.stale;

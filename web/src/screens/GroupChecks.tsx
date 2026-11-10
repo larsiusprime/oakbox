@@ -2,6 +2,7 @@ import { Button } from "react-aria-components";
 import type { GroupsPreview, ModelGroup } from "../api/client";
 import { Tick } from "../components/Form";
 import { InfoTip } from "../components/Tip";
+import { LoadingBar } from "../components/Waiting";
 import { num } from "../lib/format";
 import { t } from "../wording";
 
@@ -21,7 +22,7 @@ export function GroupChecks({
   edit: () => void;
   setModeled: (id: string, modeled: boolean) => void;
 }) {
-  if (!p) return <p className="empty">{t.project.loading}</p>;
+  if (!p) return <LoadingBar />;
   const rows = [
     ...groups.map((x) => [x.id, x.name, x.color] as const),
     ["", g.unassigned, unassignedColor] as const,

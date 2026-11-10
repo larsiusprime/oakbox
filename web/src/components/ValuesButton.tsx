@@ -6,6 +6,7 @@ import { api, unwrap } from "../api/client";
 import { useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
+import { LoadingBar } from "./Waiting";
 
 const v = t.wizard.values;
 
@@ -82,7 +83,7 @@ function ValuesList({ projectId, file, column }: { projectId: string; file: stri
         </SearchField>
       )}
       {!d ? (
-        <p className="vals-sub">{q.error?.message ?? v.loading}</p>
+        <LoadingBar error={q.error} />
       ) : d.values.length === 0 ? (
         <p className="vals-sub">{v.none}</p>
       ) : (

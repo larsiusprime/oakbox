@@ -1,6 +1,7 @@
 import type { PrepareView } from "../api/client";
 import { useStep, useStepAct, useStepNav, useStepSetup } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { LoadingBar } from "../components/Waiting";
 import { short, when } from "../lib/format";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
@@ -33,7 +34,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
   const vAct = useStepAct("vartest", projectId);
   const nav = useStepNav<VStep>();
   const at = nav.at;
-  if (!v || !vv) return <p className="empty">{(state.error ?? vs.error)?.message ?? t.project.loading}</p>;
+  if (!v || !vv) return <LoadingBar error={state.error ?? vs.error} />;
   const testing = vv.status === "running";
   const vr = vv.receipt;
   const vFresh = !!vr && !vv.stale;
@@ -132,7 +133,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
                 )}
               </>
             ) : (
-              <p className="empty">{t.project.loading}</p>
+              <LoadingBar />
             )}
             {errors}
           </StepBody>
@@ -142,7 +143,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       {current === "rare" && (
         <>
           <StepBody title={m.steps.rare}>
-            {u ? <CollapseCard v={u} set={set} /> : <p className="empty">{t.project.loading}</p>}
+            {u ? <CollapseCard v={u} set={set} /> : <LoadingBar />}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />
@@ -210,7 +211,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       {current === "lag" && (
         <>
           <StepBody title={m.steps.lag} lede={m.lag.lede}>
-            {mu ? <LagStep setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
+            {mu ? <LagStep setup={mu} set={mSet} /> : <LoadingBar />}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />
@@ -219,7 +220,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       {current === "area" && (
         <>
           <StepBody title={m.steps.area} lede={m.area.lede}>
-            {mu ? <AreaStep setup={mu} set={mSet} /> : <p className="empty">{t.project.loading}</p>}
+            {mu ? <AreaStep setup={mu} set={mSet} /> : <LoadingBar />}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />
@@ -276,7 +277,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
             {mu ? (
               <TestStep key={current} test={current} view={vv} setup={mu} fill={() => go("fill")} />
             ) : (
-              <p className="empty">{t.project.loading}</p>
+              <LoadingBar />
             )}
             {errors}
           </StepBody>
@@ -286,7 +287,7 @@ export function VariablesTab({ projectId }: { projectId: string }) {
       {current === "verdict" && vr && (
         <>
           <StepBody title={m.steps.verdict}>
-            {mu ? <WhatToKeep view={vv} setup={mu} /> : <p className="empty">{t.project.loading}</p>}
+            {mu ? <WhatToKeep view={vv} setup={mu} /> : <LoadingBar />}
             {errors}
           </StepBody>
           <StepFoot back={back} next={onward} />

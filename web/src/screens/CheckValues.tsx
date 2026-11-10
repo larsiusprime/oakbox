@@ -18,6 +18,7 @@ import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
+import { LoadingBar } from "../components/Waiting";
 import { BY_SALE } from "../lib/colours";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { navigate } from "../lib/route";
@@ -71,7 +72,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const nav = useStepNav<RStep>();
   // Several sets of values checked: the results show one at a time, the same one from part to part.
   const [shown, setShown] = useState<string | null>(null);
-  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  if (!v) return <LoadingBar error={state.error} />;
   const running = v.status === "running";
   const rc = v.receipt;
   const fresh = !!rc && !v.stale;
@@ -125,7 +126,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
         </StepBody>
       </StepFrame>
     );
-  const loading = <p className="empty">{t.project.loading}</p>;
+  const loading = <LoadingBar />;
 
   const which = rc && rc.results.length > 1 && result && (
     <Seg

@@ -8,6 +8,7 @@ import type { components } from "../api/schema";
 import { CheckList, Field } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { type Step, StepBody, StepFoot, StepFrame } from "../components/Steps";
+import { LoadingBar } from "../components/Waiting";
 import { lastStep } from "../lib/place";
 import { t } from "../wording";
 
@@ -36,7 +37,7 @@ export function ReportTab({ projectId }: { projectId: string }) {
     () => (lastStep(projectId, "report")?.key as RStep | undefined) ?? "export",
   );
   const v = q.data;
-  if (!v) return <p className="empty">{q.error?.message ?? t.project.loading}</p>;
+  if (!v) return <LoadingBar error={q.error} />;
   const steps: Step[] = STEPS.map((k) => ({
     key: k,
     title: r.steps[k],
