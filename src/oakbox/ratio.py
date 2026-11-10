@@ -984,6 +984,7 @@ class MapPoint(BaseModel):
     price: float
     value: float
     trimmed: bool
+    key_sale: str | None = Field(default=None, description="The sale: Extreme ratios picks it on the map.")
 
 
 def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoint]:
@@ -1000,10 +1001,13 @@ def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoin
         t = t[t["model_group"].astype(str) == group]
     lat, lon = cells.numbers(t, "latitude"), cells.numbers(t, "longitude")
     t = t[lat.notna() & lon.notna()]
+    keys = t["key_sale"].astype(str) if "key_sale" in t else [None] * len(t)
     return [
-        MapPoint(lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(v), trimmed=bool(x))
-        for a, b, r, p, v, x in zip(
-            t["latitude"], t["longitude"], t["ratio"], t["sale_price"], t["value"], t["trimmed"], strict=True
+        MapPoint(
+            lat=float(a), lon=float(b), ratio=float(r), price=float(p), value=float(v), trimmed=bool(x), key_sale=k
+        )
+        for a, b, r, p, v, x, k in zip(
+            t["latitude"], t["longitude"], t["ratio"], t["sale_price"], t["value"], t["trimmed"], keys, strict=True
         )
     ]
 
@@ -1040,9 +1044,9 @@ def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarP
     # Each cluster within its model group: the ids are numbered per group.
     key = u["model_group"].astype(str) + ":" + u["he_id"].astype(str)
     valued = u["v"].where(u["v"] > 0)
-    med = valued.groupby(key).transform("median")
-    dev = (valued - med).abs().groupby(key).transform("mean")
-    n = valued.groupby(key).transform("count")
+    med = cast(pd.Series, valued.groupby(key).transform("median"))
+    dev = cast(pd.Series, (valued - med).abs().groupby(key).transform("mean"))
+    n = cast(pd.Series, valued.groupby(key).transform("count"))
     chd = (100 * dev / med).where((n >= 2) & (med > 0))
     return SimilarPoints(
         lon=np.round(np.asarray(u["lo"], dtype=float), 6).tolist(),

@@ -2325,6 +2325,12 @@
     },
     "extreme": {
       "title": "Extreme ratios",
+      "mapInstruction": "Click an extreme sale on the map, or Show on map on its row",
+      "mapInstructionSub": "Every sale studied, faint, coloured by its ratio; the extreme ones bold. The one you pick is ringed and the map moves to it.",
+      "mapLabel": "Map of the sales studied, the extreme ratios bold",
+      "mapLow": "value far under the price",
+      "mapHigh": "value far over the price",
+      "mapRest": "faint: every other sale studied",
       "lede": "Ratios far from the rest are left out of the statistics and listed here: each is a sale to question, or a value to fix.",
       "none": "No ratio was far enough from the rest to leave out.",
       "address": "Sale",

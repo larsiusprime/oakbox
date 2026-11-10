@@ -15594,6 +15594,18 @@
      "trimmed": {
       "type": "boolean",
       "title": "Trimmed"
+     },
+     "key_sale": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Sale",
+      "description": "The sale: Extreme ratios picks it on the map."
      }
     },
     "type": "object",
@@ -15603,7 +15615,8 @@
      "ratio",
      "price",
      "value",
-     "trimmed"
+     "trimmed",
+     "key_sale"
     ],
     "title": "MapPoint"
    },

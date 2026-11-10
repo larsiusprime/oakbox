@@ -1832,6 +1832,12 @@ export type Wording = {
     };
     extreme: {
       title: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapLow: string;
+      mapHigh: string;
+      mapRest: string;
       lede: string;
       none: string;
       address: string;

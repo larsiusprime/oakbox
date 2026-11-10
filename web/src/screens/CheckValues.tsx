@@ -27,6 +27,7 @@ import { day, money, num, ratioText, signed, when } from "../lib/format";
 import { setStepPick, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
+import { ExtremeMap } from "./ExtremeMap";
 import { SimilarMap } from "./SimilarMap";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
 import { BandChart, Scatter } from "./ValueCharts";
@@ -293,7 +294,26 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
                 <Similar result={result} map={{ shown: mapGroup, show: setStepPick }} />
               </>
             )}
-            {current === "extreme" && <Extreme projectId={projectId} result={result} currency={currency} />}
+            {current === "extreme" && (
+              <>
+                {result.trimmed.length > 0 && (
+                  <OnTheMap
+                    projectId={projectId}
+                    step={r.steps.extreme}
+                    title={r.extreme.mapInstruction}
+                    sub={r.extreme.mapInstructionSub}
+                  >
+                    <ExtremeMap projectId={projectId} result={result} picked={mapGroup} pick={setStepPick} />
+                  </OnTheMap>
+                )}
+                <Extreme
+                  projectId={projectId}
+                  result={result}
+                  currency={currency}
+                  map={{ shown: mapGroup, show: setStepPick }}
+                />
+              </>
+            )}
           </StepBody>
           <StepFoot
             back={back}
@@ -712,10 +732,13 @@ function Extreme({
   projectId,
   result,
   currency,
+  map,
 }: {
   projectId: string;
   result: FieldResult;
   currency: string;
+  /** The sale on the map: its row's Show on map, or clicked there. */
+  map: { shown: string; show: (key: string) => void };
 }) {
   const [done, setDone] = useState<Set<string>>(new Set());
   // This step's results stay on screen, so several sales can be excluded in turn.
@@ -725,55 +748,61 @@ function Extreme({
   return (
     <>
       <p className="wiz-lede">{e.lede}</p>
-      <table className="tbl">
-        <thead>
-          <tr>
-            <th>{e.address}</th>
-            <th>{e.group}</th>
-            <th>{e.sold}</th>
-            <th className="cs-n">{e.price}</th>
-            <th className="cs-n">{e.value}</th>
-            <th className="cs-n">{e.ratio}</th>
-            <th>{e.likely}</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {result.trimmed.map((x) => (
-            <tr key={x.key_sale}>
-              <td>{x.address ?? <Val v={x.key_sale} />}</td>
-              <td>{x.group_name}</td>
-              <td>{day(x.sale_date)}</td>
-              <td className="cs-n">{money(x.price, currency)}</td>
-              <td className="cs-n">{money(x.value, currency)}</td>
-              <td className="cs-n">{num(x.ratio, x.ratio >= 100 ? 0 : 2)}</td>
-              <td>{x.nominal ? e.nominal : x.ratio > 1 ? e.high : e.low}</td>
-              <td>
-                {done.has(x.key_sale) ? (
-                  <span className="wiz-ok">{e.excluded}</span>
-                ) : (
-                  <Button
-                    className="button button-small"
-                    isDisabled={exclude.isPending}
-                    onPress={() =>
-                      exclude.mutate(
-                        {
-                          key: x.key_sale,
-                          action: "exclude",
-                          note: x.nominal ? e.note({ price: money(x.price, currency) }) : "",
-                        },
-                        { onSuccess: () => setDone((d) => new Set(d).add(x.key_sale)) },
-                      )
-                    }
-                  >
-                    {e.exclude}
-                  </Button>
-                )}
-              </td>
+      <div className="tbl-wrap tbl-natural">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>{e.address}</th>
+              <th>{e.group}</th>
+              <th>{e.sold}</th>
+              <th className="cs-n">{e.price}</th>
+              <th className="cs-n">{e.value}</th>
+              <th className="cs-n">{e.ratio}</th>
+              <th>{e.likely}</th>
+              <th />
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {result.trimmed.map((x) => (
+              <tr key={x.key_sale} className={map.shown === x.key_sale ? "rv-picked" : undefined}>
+                <td>{x.address ?? <Val v={x.key_sale} />}</td>
+                <td>{x.group_name}</td>
+                <td>{day(x.sale_date)}</td>
+                <td className="cs-n">{money(x.price, currency)}</td>
+                <td className="cs-n">{money(x.value, currency)}</td>
+                <td className="cs-n">{num(x.ratio, x.ratio >= 100 ? 0 : 2)}</td>
+                <td>{x.nominal ? e.nominal : x.ratio > 1 ? e.high : e.low}</td>
+                <td className="rv-onmap">
+                  <ShowOnMapButton shown={map.shown === x.key_sale} onPress={() => map.show(x.key_sale)} />
+                </td>
+                <td>
+                  {done.has(x.key_sale) ? (
+                    <span className="wiz-ok">{e.excluded}</span>
+                  ) : (
+                    <Button
+                      className="button button-small"
+                      isDisabled={exclude.isPending}
+                      onPress={() =>
+                        exclude.mutate(
+                          {
+                            key: x.key_sale,
+                            action: "exclude",
+                            note: x.nominal ? e.note({ price: money(x.price, currency) }) : "",
+                          },
+                          { onSuccess: () => setDone((d) => new Set(d).add(x.key_sale)) },
+                        )
+                      }
+                    >
+                      {e.exclude}
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {exclude.error && (
         <p className="error" role="alert">
           {exclude.error.message}

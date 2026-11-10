@@ -77,7 +77,8 @@ statistics and views.
   median; under 20 green, under 40 amber, else red; a group of one grey), Show on map on each model group's row and
   Every group on the map. Summary and On the map take it over the same way, by model group.
 - **Extreme ratios:** the trimmed sales, furthest first, nominal prices said; **Exclude in Check sales** marks the sale
-  excluded (it applies when Check sales runs again).
+  excluded (it applies when Check sales runs again). Takes the map over (2026-11-10): every sale studied faint, by its ratio, the extreme ones
+  bold; Show on map on each row (or a click on the map) rings the sale and moves the map to it.
 - **Out of date when** Check sales runs again or a call changes.
 - **Engine (built, opt-in; `engine/enrich-fixes`):** `run_value_field_studies` gained `sale_field`, `trim_outliers` (the
   trimmed study beside every sale's, the trimmed sales listed, a per-sale table; quartiles as Appendix C.4,

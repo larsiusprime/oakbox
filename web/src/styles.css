@@ -8215,11 +8215,14 @@ section.wiz-section:has(> .cf-tbl),
   justify-content: flex-end;
 }
 /* A table in its own scroll (tbl-wrap): as wide as its figures and words read, never squeezed into the page. */
-.rv-cards .tbl-wrap > table {
+:is(.rv-cards .tbl-wrap, .tbl-natural) > table {
   width: max-content;
   min-width: 100%;
   max-width: none;
 }
-.rv-cards .tbl-wrap > table td {
+:is(.rv-cards .tbl-wrap, .tbl-natural) > table td {
   white-space: nowrap;
+}
+tr.rv-picked > td {
+  background: var(--head);
 }

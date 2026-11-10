@@ -6532,6 +6532,11 @@ export interface components {
             value: number;
             /** Trimmed */
             trimmed: boolean;
+            /**
+             * Key Sale
+             * @description The sale: Extreme ratios picks it on the map.
+             */
+            key_sale: string | null;
         };
         /** MapProblem */
         MapProblem: {
