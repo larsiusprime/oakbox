@@ -8,6 +8,7 @@ import { AddButton } from "../components/AddButton";
 import { DeleteButton, ToolButton } from "../components/Buttons";
 import { Disclose } from "../components/Disclose";
 import { Radios, Tick } from "../components/Form";
+import { MapInstruction } from "../components/MapInstruction";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { LoadingBar } from "../components/Waiting";
@@ -17,6 +18,7 @@ import { clearGroups, publishGroups, setGroupMap, useGroupMap } from "../lib/gro
 import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
 import { dockNow, setDock } from "../lib/mapdock";
+import { useTakeOver } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
@@ -362,10 +364,9 @@ function Builder({
     setGroupMap({ highlight: n });
     if (n && !dockNow().out) setDock({ open: true });
   };
-  useEffect(() => {
-    setDock(dockNow().out ? { follow: true } : { open: true, follow: true });
-    return () => clearGroups();
-  }, []);
+  // A take-over step (SPEC §3.15): the map opens on the groups; leaving, it's given back as it was.
+  useTakeOver(projectId, "groups", t.groups.steps.build, g.mapInstruction);
+  useEffect(() => () => clearGroups(), []);
   const [fromField, setFromField] = useState(false);
   const dirty = !same(draft, view.groups);
 
@@ -494,6 +495,7 @@ function Builder({
 
         {
           <div className="mg-ed">
+            <MapInstruction title={g.mapInstruction} sub={g.mapInstructionSub} />
             {group ? (
               <GroupEditor
                 currency={currency}

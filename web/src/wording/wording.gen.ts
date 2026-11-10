@@ -312,6 +312,8 @@ export type Wording = {
       byArea: string;
       byLength: string;
       mapLabel: (a: { name: string | number }) => string;
+      mapInstruction: string;
+      mapInstructionSub: string;
       adding: string;
     };
     permits: {
@@ -515,6 +517,13 @@ export type Wording = {
       centerMiddle: string;
       centerSet: (a: { lat: string | number; lon: string | number }) => string;
       useMiddle: string;
+      locInstruction: string;
+      locInstructionSub: string;
+      instruction: string;
+      instructionSub: string;
+      centre: string;
+      isMiddle: string;
+      movedByYou: string;
       column: string;
       pickColumn: string;
       name: string;
@@ -1162,6 +1171,8 @@ export type Wording = {
     hide: string;
     showMap: string;
     clickHint: string;
+    mapInstruction: string;
+    mapInstructionSub: string;
     mapLabel: string;
     loadingMap: string;
     legend: string;
@@ -1830,6 +1841,8 @@ export type Wording = {
     map: {
       lede: string;
       label: string;
+      instruction: string;
+      instructionSub: string;
       none: string;
       ratio: string;
       price: string;
@@ -2105,6 +2118,8 @@ export type Wording = {
       map: {
         head: string;
         label: string;
+        instruction: string;
+        instructionSub: string;
         show: string;
         views: Record<string, string>;
         why: Record<string, string>;
@@ -2289,6 +2304,8 @@ export type Wording = {
     outliers: {
       lede: string;
       notReady: string;
+      mapInstruction: string;
+      mapInstructionSub: string;
       group: string;
       outside: string;
       to: string;
@@ -2652,6 +2669,22 @@ export type Wording = {
     again: string;
   };
   mapWindow: {
+    step: {
+      closed: string;
+      closedSub: string;
+      notShowing: string;
+      notShowingSub: string;
+      show: string;
+      showHere: string;
+      showOnMap: string;
+      onMap: string;
+      mapIt: string;
+      mapThem: string;
+      mapBlank: string;
+      mapRepeated: string;
+    };
+    nothingYet: string;
+    portalOut: string;
     label: string;
     title: string;
     mapLabel: string;
@@ -2673,6 +2706,7 @@ export type Wording = {
     howShapes: (a: { n: number }) => string;
     howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
+    backToFollowing: string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
     followOnTip: string;

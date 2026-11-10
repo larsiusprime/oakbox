@@ -23,6 +23,7 @@ import { FileEntry, FileName, FileSlot, fileFacts, NamesFile } from "../componen
 import { Choice, Radios, Tick } from "../components/Form";
 import { ReadingLine } from "../components/Reading";
 import { RemoveButton } from "../components/RemoveButton";
+import { SummonMap } from "../components/ShowOnMap";
 import { TipOn } from "../components/Tip";
 import { Val } from "../components/Val";
 import { WarnChip } from "../components/WarnChip";
@@ -145,6 +146,13 @@ export function IdCheck({
       )}
     </>
   );
+  // The parcel universe's IDs have a place: its blank and repeated ones open on the map (SPEC §3.15, summon).
+  const onMap = file.base ? (
+    <>
+      {(r?.blank ?? 0) > 0 && <SummonMap field="pr:blank_ids" label={t.mapWindow.step.mapBlank} />}
+      {(r?.extra ?? 0) > 0 && <SummonMap field="pr:repeated_ids" label={t.mapWindow.step.mapRepeated} />}
+    </>
+  ) : null;
   if (review) {
     const issues = file.id_check?.issues ?? [];
     const handled = issues.filter((i) => i.resolved);
@@ -178,6 +186,7 @@ export function IdCheck({
               {i.text}
             </span>
           ))}
+          {onMap && <span className="rv-map-btns">{onMap}</span>}
           {missing && (
             <span className="pill pill-warn rv-pill">
               {missing.title || firstSentence(missing.lines[0] ?? "")}
@@ -214,6 +223,7 @@ export function IdCheck({
           )
         }
       />
+      {onMap}
       {steps.length > 0 && (
         <span className="wiz-cleaned">{w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
       )}

@@ -37,17 +37,20 @@ import {
   useDock,
   useWhere,
 } from "../lib/mapdock";
+import { setSlot, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { GroupsOnMap } from "../screens/GroupMap";
+import { CentreOnMap, LocationsOnMap } from "../screens/Location";
+import { LayerOnMap, shownLayer } from "../screens/Shapefiles";
 import { t } from "../wording";
 import { CloseButton, SmallButton, ToolButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
 import { MapCard } from "./MapCard";
 import { type Bounds, MapView, rgba } from "./MapView";
 import { Tip } from "./Tip";
-import { Waiting } from "./Waiting";
+import { LoadingBar, Waiting } from "./Waiting";
 
 const w = t.mapWindow;
 
@@ -344,11 +347,16 @@ function MapPanel({
   // The project's map layers (Shapefiles) that can be placed: drawn over the parcels when chosen.
   const layerNames = (wizard.data?.layers ?? []).filter((l) => l.projected).map((l) => l.name);
   const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames) : null;
-  // Build the groups open (here or in the main window): Follow draws the groups as edited there.
+  // A step that takes the map over (SPEC §3.15), here or in the main window: while following, the map draws the
+  // step's own view, its instruction on a banner along the top.
+  const ms = useMapStep();
   const gm = useGroupMap();
-  const onGroups = dock.follow && gm?.projectId === projectId ? gm : null;
-  const following = dock.follow && target !== null && !onGroups;
-  // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
+  const takeOver = dock.follow && ms?.projectId === projectId ? ms : null;
+  const onGroups = takeOver?.view === "groups" && gm?.projectId === projectId ? gm : null;
+  const following = dock.follow && target !== null && !takeOver;
+  // The banner flashes when the screen's instruction card is hovered: drawn again (its key), its animation runs.
+  const flashAt = takeOver?.flash ?? 0;
+  // Remembered as the map's field: a takeOver with nothing of its own keeps showing the last one followed.
   const followedField = following ? target?.field : undefined;
   useEffect(() => {
     if (followedField) setDock({ field: followedField });
@@ -370,7 +378,7 @@ function MapPanel({
     <div className="mapwin-in">
       <header className="mapwin-head">
         <b className="mapwin-title">🗺 {w.title}</b>
-        {!onGroups && m?.status === "ready" && m.fields.length > 0 && (
+        {!takeOver && m?.status === "ready" && m.fields.length > 0 && (
           <FieldPick
             sales={m.sales}
             problems={probs}
@@ -387,12 +395,12 @@ function MapPanel({
             onPress={() => setDock({ follow: !dock.follow })}
           >
             {dock.follow
-              ? onGroups
-                ? w.following({ step: t.groups.steps.build })
+              ? takeOver
+                ? w.following({ step: takeOver.title })
                 : target
                   ? w.following({ step: target.title })
                   : w.followIdle
-              : w.follow}
+              : w.backToFollowing}
           </Button>
         </Tip>
         <span className="mapwin-tools">
@@ -434,8 +442,41 @@ function MapPanel({
           />
         </span>
       </header>
-      {onGroups ? (
-        <GroupsOnMap gm={onGroups} />
+      {takeOver && (
+        <div key={flashAt} className={`mapwin-banner ${flashAt ? "flash" : ""}`} role="status">
+          <b>{takeOver.title}:</b> {takeOver.instruction}
+        </div>
+      )}
+      {takeOver ? (
+        takeOver.view === "portal" ? (
+          mode === "alone" ? (
+            <p className="mapwin-msg">{w.portalOut}</p>
+          ) : (
+            <div className="mapwin-body mapwin-portal" ref={setSlot} />
+          )
+        ) : takeOver.view === "centre" ? (
+          <CentreOnMap projectId={projectId} />
+        ) : takeOver.view === "locations" ? (
+          (locations ?? []).length ? (
+            <LocationsOnMap
+              projectId={projectId}
+              names={(locations ?? []).map((x) => x.name)}
+              pick={takeOver.pick}
+            />
+          ) : (
+            <p className="mapwin-msg">{w.nothingYet}</p>
+          )
+        ) : takeOver.view === "layers" ? (
+          layerNames.length ? (
+            <LayerOnMap projectId={projectId} name={shownLayer(takeOver.pick, layerNames)} />
+          ) : (
+            <p className="mapwin-msg">{w.nothingYet}</p>
+          )
+        ) : onGroups ? (
+          <GroupsOnMap gm={onGroups} />
+        ) : (
+          <LoadingBar />
+        )
       ) : info.error ? (
         <p className="error mapwin-msg">{info.error.message}</p>
       ) : !m ? (

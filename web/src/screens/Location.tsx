@@ -6,11 +6,14 @@ import { Button, Input, TextField } from "react-aria-components";
 import { api, unwrap, type Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { Choice } from "../components/Form";
+import { MapInstruction } from "../components/MapInstruction";
 import { boundsOf, MapView as MapBox, rgba } from "../components/MapView";
 import { RemoveButton } from "../components/RemoveButton";
+import { ShowOnMap } from "../components/ShowOnMap";
 import { ValuesButton } from "../components/ValuesButton";
-import { Loading } from "../components/Waiting";
+import { Loading, LoadingBar } from "../components/Waiting";
 import { PICKED } from "../lib/colours";
+import { announceTouched, onTouched, useMapStep, useTakeOver } from "../lib/mapstep";
 import { say, t } from "../wording";
 
 const l = t.wizard.location;
@@ -20,8 +23,9 @@ type MapView = {
   center: [number, number] | null;
 };
 
-/** F3d, More details › Coordinates: where each parcel is, worked out by OpenAVMKit, and the centre it measures from. */
-export function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
+/** Where the parcels are and the centre, read and moved: the screen and the map window share them (a popped-out
+ * map's moves are announced, so the screen reads them again). */
+function useCentre(projectId: string, enabled: boolean) {
   const queryClient = useQueryClient();
   const view = useQuery({
     queryKey: ["map", projectId],
@@ -31,7 +35,7 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           params: { path: { project_id: projectId } },
         }),
       ),
-    enabled: hasShapes,
+    enabled,
   });
   const move = useMutation({
     mutationFn: async (center: { latitude: number; longitude: number } | null) =>
@@ -41,11 +45,62 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           ...(center ? { body: center } : {}),
         }),
       ),
-    onSuccess: (data) => queryClient.setQueryData(["map", projectId], data),
+    // Shown at once: the pin (or the middle) is where it was put before the server answers.
+    onMutate: (center) => {
+      const before = queryClient.getQueryData<MapView>(["map", projectId]);
+      if (before)
+        queryClient.setQueryData(["map", projectId], {
+          ...before,
+          center: center ? [center.latitude, center.longitude] : null,
+        });
+      return { before };
+    },
+    onError: (_e, _c, ctx) => {
+      if (ctx?.before) queryClient.setQueryData(["map", projectId], ctx.before);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["map", projectId], data);
+      announceTouched(projectId);
+    },
   });
-  const v = view.data as MapView | undefined;
+  useEffect(
+    () =>
+      onTouched((id) => {
+        if (id === projectId) void queryClient.invalidateQueries({ queryKey: ["map", projectId] });
+      }),
+    [projectId, queryClient],
+  );
+  return { view, move, v: view.data as MapView | undefined };
+}
+
+/** F3d, More details › Coordinates (SPEC §3.15, a take-over step): where each parcel is, worked out by OpenAVMKit,
+ * and the centre it measures from, dragged on the map window (never typed); here, what it is and the way back to the
+ * middle. */
+export function Coordinates({ projectId, hasShapes }: { projectId: string; hasShapes: boolean }) {
+  useTakeOver(projectId, "centre", t.wizard.steps.coordinates?.title ?? "", l.instruction);
+  const { view, move, v } = useCentre(projectId, hasShapes);
+  const fmt = (p: [number, number]) => `${p[0].toFixed(5)}, ${p[1].toFixed(5)}`;
+  const at = v?.center ?? v?.middle ?? null;
   return (
-    <section className="wiz-section wiz-fill">
+    <section className="wiz-section">
+      {hasShapes && v && v.points.length > 0 && (
+        <MapInstruction title={l.instruction} sub={l.instructionSub} />
+      )}
+      {!hasShapes ? (
+        <p className="wiz-note">{l.noShapes}</p>
+      ) : v && v.points.length > 0 ? (
+        <p className="co-centre">
+          <b>{l.centre}</b> {at ? fmt(at) : "—"}{" "}
+          <span className="wiz-from">· {v.center ? l.movedByYou : l.isMiddle}</span>
+          <Button className="button button-small" isDisabled={!v.center} onPress={() => move.mutate(null)}>
+            {l.useMiddle}
+          </Button>
+        </p>
+      ) : view.isPending ? (
+        <Loading q={view} qkey={["map", projectId]} doing={l.loading} />
+      ) : (
+        <p className="wiz-note">{l.noMap}</p>
+      )}
       <ul className="wiz-auto">
         <li>
           <span className="wiz-ok">✓ {l.latlon}</span> <span className="wiz-from">{l.latlonHow}</span>
@@ -54,32 +109,28 @@ export function Coordinates({ projectId, hasShapes }: { projectId: string; hasSh
           <span className="wiz-ok">✓ {l.polar}</span> <span className="wiz-from">{l.polarHow}</span>
         </li>
       </ul>
-      {!hasShapes ? (
-        <p className="wiz-note">{l.noShapes}</p>
-      ) : v && v.points.length > 0 ? (
-        <>
-          {/* The centre, and the way back to the middle, above the map: always shown, it's the step's point. */}
-          <p className="wiz-note">
-            {v.center ? say.wizard.location.centerSet(v.center[0], v.center[1]) : l.centerMiddle}{" "}
-            {v.center && (
-              <Button className="button button-small" onPress={() => move.mutate(null)}>
-                {l.useMiddle}
-              </Button>
-            )}
-          </p>
-          <ParcelMap view={v} onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })} />
-        </>
-      ) : view.isPending ? (
-        <Loading q={view} qkey={["map", projectId]} doing={l.loading} />
-      ) : (
-        <p className="wiz-note">{l.noMap}</p>
-      )}
       {(view.error || move.error) && (
         <p className="error" role="alert">
           {(view.error ?? move.error)?.message}
         </p>
       )}
     </section>
+  );
+}
+
+/** Coordinates in the map window: the parcels and the centre's pin, dragged to move it. */
+export function CentreOnMap({ projectId }: { projectId: string }) {
+  const { v, move, view } = useCentre(projectId, true);
+  if (!v) return <LoadingBar error={view.error} />;
+  if (v.points.length === 0) return <p className="mapwin-msg">{l.noMap}</p>;
+  return (
+    <div className="mapwin-stage">
+      <ParcelMap
+        view={v}
+        className="mapwin-map"
+        onMove={(lat, lon) => move.mutate({ latitude: lat, longitude: lon })}
+      />
+    </div>
   );
 }
 
@@ -93,7 +144,15 @@ function pinElement(): HTMLElement {
 }
 
 /** The parcels as dots on a street map, and the centre as a pin to drag. */
-function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon: number) => void }) {
+function ParcelMap({
+  view,
+  onMove,
+  className,
+}: {
+  view: MapView;
+  onMove: (lat: number, lon: number) => void;
+  className: string;
+}) {
   const [m, setM] = useState<maplibregl.Map | null>(null);
   const pin = useRef<maplibregl.Marker | null>(null);
   const move = useRef(onMove);
@@ -117,6 +176,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
 
   // The pin: where the centre is now.
   const at = view.center ?? view.middle;
+  const unmoved = !view.center;
   const lat = at?.[0];
   const lon = at?.[1];
   useEffect(() => {
@@ -133,7 +193,10 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
     } else {
       pin.current.setLngLat([lon, lat]);
     }
-  }, [m, lat, lon]);
+    // Not yet moved (the middle of the parcels): a ring pulses round it, so it's plain it's there to drag.
+    pin.current.getElement().classList.toggle("unmoved", unmoved);
+  }, [m, lat, lon, unmoved]);
+
   useEffect(
     () => () => {
       pin.current?.remove();
@@ -144,7 +207,7 @@ function ParcelMap({ view, onMove }: { view: MapView; onMove: (lat: number, lon:
 
   return (
     <MapBox
-      className="wiz-map wiz-map-fill"
+      className={className}
       label={l.mapLabel}
       layers={layers}
       bounds={boundsOf(points)}
@@ -186,9 +249,15 @@ export function LocationFields({
     }),
   );
   const [file, column] = picked ? picked.split("\u0000") : [null, null];
+  // A take-over step (SPEC §3.15): the map shows a field's areas, the one whose Show on map was pressed (else the
+  // last added).
+  useTakeOver(projectId, "locations", t.wizard.steps.location?.title ?? "", l.locInstruction);
+  const ms = useMapStep();
+  const names = data.locations.map((x) => x.name);
+  const onMap = shownLocation(ms?.pick ?? null, names);
   return (
-    // The fields on the left, as wide as they are; once there's one, its map on the right, filling the page.
-    <section className="wiz-section wiz-fill loc-page">
+    <section className="wiz-section">
+      {names.length > 0 && <MapInstruction title={l.locInstruction} sub={l.locInstructionSub} />}
       <div className="loc-side">
         {data.locations.length > 0 && (
           <div className="entry-list">
@@ -208,6 +277,7 @@ export function LocationFields({
                   distinct={x.distinct}
                   noun={l.areas({ n: x.distinct ?? 0 })}
                 />
+                <ShowOnMap id={x.name} shown={x.name === onMap} />
                 <RemoveButton
                   what={x.name}
                   onPress={() => change({ kind: "location", name: x.name, file: null, column: null })}
@@ -247,9 +317,6 @@ export function LocationFields({
           </AddButton>
         </form>
       </div>
-      {data.locations.length > 0 && (
-        <LocationMap projectId={projectId} names={data.locations.map((x) => x.name)} />
-      )}
     </section>
   );
 }
@@ -266,10 +333,22 @@ function areaColour(i: number): [number, number, number, number] {
   return [f(0), f(8), f(4), 200];
 }
 
-/** Location fields on the map: pick one, and each parcel is a dot coloured by its area. */
-function LocationMap({ projectId, names }: { projectId: string; names: string[] }) {
-  const [chosen, setChosen] = useState<string | null>(null);
-  const name = chosen && names.includes(chosen) ? chosen : (names[names.length - 1] ?? "");
+/** The location field shown: the one whose Show on map was pressed, else the last added. */
+export function shownLocation(pick: string | null, names: string[]): string {
+  return pick && names.includes(pick) ? pick : (names[names.length - 1] ?? "");
+}
+
+/** Location fields in the map window: the shown field, each parcel a dot coloured by its area. */
+export function LocationsOnMap({
+  projectId,
+  names,
+  pick,
+}: {
+  projectId: string;
+  names: string[];
+  pick: string | null;
+}) {
+  const name = shownLocation(pick, names);
   const view = useQuery({
     queryKey: ["location-map", projectId, name],
     queryFn: async () =>
@@ -298,30 +377,25 @@ function LocationMap({ projectId, names }: { projectId: string; names: string[] 
     [points],
   );
   return (
-    <div className="loc-map">
-      <div className="loc-map-head">
-        <span className="wiz-label">{l.mapOf}</span>
-        <Choice
-          label={l.mapOf}
-          hideLabel
-          value={name}
-          options={names.map((x) => [x, x] as const)}
-          onChange={setChosen}
-        />
+    <div className="mapwin-body">
+      <div className="mapwin-sub">
+        <b className="mono">{name}</b>
         {v && <span className="wiz-from">{l.mapAreas({ n: v.values.length })}</span>}
       </div>
-      <MapBox
-        className="wiz-map wiz-map-fill"
-        label={l.mapOf}
-        layers={layers}
-        bounds={boundsOf(points.map((p) => [p[0], p[1]] as [number, number]))}
-        fitKey={`${name}:${points.length}`}
-        scrollZoom="focus"
-        tooltip={(info) => {
-          const p = info.object as readonly [number, number, number] | undefined;
-          return p && v ? (p[2] >= 0 ? (v.values[p[2]] ?? null) : l.mapNone) : null;
-        }}
-      />
+      <div className="mapwin-stage">
+        <MapBox
+          className="mapwin-map"
+          label={l.mapOf}
+          layers={layers}
+          bounds={boundsOf(points.map((p) => [p[0], p[1]] as [number, number]))}
+          fitKey={`${name}:${points.length}`}
+          scrollZoom="focus"
+          tooltip={(info) => {
+            const p = info.object as readonly [number, number, number] | undefined;
+            return p && v ? (p[2] >= 0 ? (v.values[p[2]] ?? null) : l.mapNone) : null;
+          }}
+        />
+      </div>
     </div>
   );
 }

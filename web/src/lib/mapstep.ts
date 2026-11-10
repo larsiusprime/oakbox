@@ -1,0 +1,139 @@
+/** A step that takes the map over (SPEC §3.15): which one, what it asks to be done on the map (the map's banner), and
+ * the map as it was before (given back on leaving). Shared with a popped-out map through localStorage, as the dock
+ * is. Changes made on the map are announced, so a screen in the other window reads them again. */
+import { useEffect, useSyncExternalStore } from "react";
+import { type Dock, dockNow, setDock } from "./mapdock";
+
+/** What the map window draws for the step. */
+export type StepView = "groups" | "centre" | "locations" | "layers" | "portal";
+export type MapStep = {
+  projectId: string;
+  view: StepView;
+  /** The step's name, on the banner and the Follow button. */
+  title: string;
+  /** What to do on the map: one imperative sentence. */
+  instruction: string;
+  /** When the screen's card was last hovered: the banner flashes. */
+  flash: number;
+  /** The one shown, where the step has several (a location field, a layer): its Show on map; null, the step's
+   * own choice. */
+  pick: string | null;
+};
+
+const KEY = "oakbox.mapStep";
+const TOUCHED = "oakbox.mapTouched";
+
+function load(): MapStep | null {
+  try {
+    return JSON.parse(localStorage.getItem(KEY) ?? "null") as MapStep | null;
+  } catch {
+    return null;
+  }
+}
+
+let state: MapStep | null = typeof window === "undefined" ? null : load();
+const listeners = new Set<() => void>();
+const touchers = new Set<(projectId: string) => void>();
+const tell = () => {
+  for (const l of listeners) l();
+};
+
+if (typeof window !== "undefined")
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY) {
+      state = load();
+      tell();
+    } else if (e.key === TOUCHED && e.newValue) {
+      try {
+        const { projectId } = JSON.parse(e.newValue) as { projectId: string };
+        for (const t of touchers) t(projectId);
+      } catch {
+        // not ours
+      }
+    }
+  });
+
+function write(next: MapStep | null) {
+  state = next;
+  try {
+    if (next) localStorage.setItem(KEY, JSON.stringify(next));
+    else localStorage.removeItem(KEY);
+  } catch {
+    // this window only
+  }
+  tell();
+}
+
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+
+export function useMapStep(): MapStep | null {
+  return useSyncExternalStore(subscribe, () => state);
+}
+
+/** The screen's card hovered: the map's banner flashes, so the two read as one. */
+export function flashBanner() {
+  if (state) write({ ...state, flash: Date.now() });
+}
+
+/** Show on map on one of the step's things (a location field, a layer): the map shows it. */
+export function setStepPick(pick: string | null) {
+  if (state) write({ ...state, pick });
+}
+
+/** Something changed on the map (the centre moved): a screen in the other window reads it again. */
+export function announceTouched(projectId: string) {
+  try {
+    localStorage.setItem(TOUCHED, JSON.stringify({ projectId, at: Date.now() }));
+  } catch {
+    // one window
+  }
+}
+
+/** Something was changed on the map in the other window. */
+export function onTouched(f: (projectId: string) => void): () => void {
+  touchers.add(f);
+  return () => {
+    touchers.delete(f);
+  };
+}
+
+/** The step takes the map over while it's open: the map opens where it last was (a popped-out one stays out), shows the
+ * step's view and its instruction; leaving, the map is given back as it was (open or closed, its field, Follow). Its
+ * size and side are never changed. Closed by the user on the step, it isn't opened again here. */
+export function useTakeOver(projectId: string, view: StepView, title: string, instruction: string) {
+  useEffect(() => {
+    const before: Dock = dockNow();
+    write({ projectId, view, title, instruction, flash: 0, pick: null });
+    setDock(before.out ? { follow: true } : { open: true, follow: true });
+    return () => {
+      if (state?.projectId === projectId && state.view === view) write(null);
+      const now = dockNow();
+      setDock({ ...(now.out ? {} : { open: before.open }), follow: before.follow, field: before.field });
+    };
+  }, [projectId, view, title, instruction]);
+}
+
+// "portal": the step draws its own map (with its controls) into the map window's slot, in this window (React's
+// createPortal); the step keeps its state. Popped out, the step draws it on itself instead.
+let slot: HTMLElement | null = null;
+const slotters = new Set<() => void>();
+
+/** The map window's slot for a step's own map (its ref). */
+export function setSlot(el: HTMLElement | null) {
+  if (slot === el) return;
+  slot = el;
+  for (const l of slotters) l();
+}
+
+export function useSlot(): HTMLElement | null {
+  return useSyncExternalStore(
+    (l) => {
+      slotters.add(l);
+      return () => slotters.delete(l);
+    },
+    () => slot,
+  );
+}

@@ -5205,6 +5205,14 @@ under what it's about; a file appended as rows {
 /* The model's scorecard and the roll's, one above the other: the same columns, the same widths. */
 .fv .rv-score {
   table-layout: fixed;
+  /* Never narrower than its figures and words read: with the map beside it, the section scrolls sideways instead. */
+  min-width: 60rem;
+}
+.fv {
+  overflow-x: auto;
+}
+.fv .rv-score-cell > :last-child {
+  white-space: nowrap;
 }
 .fv .rv-score th:first-child {
   width: 24%;
@@ -5901,7 +5909,7 @@ under what it's about; a file appended as rows {
   /* The reading at one width on every row, the values button (one width too) beside it: lined up, one row each;
      where the box is too narrow for both (a card beside another), the values button goes under, never past it. */
   display: inline-grid;
-  grid-template-columns: 11rem 8.5rem;
+  grid-template-columns: 11rem 8.5rem auto;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
@@ -7234,7 +7242,7 @@ div.map-wait-ask small {
 }
 .ol-top {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: max(var(--sp), min(1rem, var(--gap-min)));
   align-items: start;
 }
@@ -7981,4 +7989,130 @@ section.wiz-section:has(> .cf-tbl),
 }
 .mapwin-groups > .mg-legend {
   flex: none;
+}
+
+/* A take-over step's instruction card (components/MapInstruction.tsx, SPEC §3.15): the step's work is on the map. */
+.map-instr {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  max-width: 46rem;
+  margin: 0 0 calc(0.8 * var(--sp));
+  padding: 0.7rem 0.9rem;
+  background: var(--info-tint);
+  border: 1px solid var(--info-edge);
+  border-left: 4px solid var(--link);
+  border-radius: 3px;
+}
+.map-instr-icon {
+  flex: none;
+  color: var(--link);
+}
+.map-instr-text {
+  display: grid;
+  gap: 0.15rem;
+}
+.map-instr-text > b {
+  font-size: 1rem;
+}
+.map-instr-text > span {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.map-instr-show {
+  flex: none;
+  margin-left: auto;
+}
+/* The map's banner: the step's instruction, on the map; flashes when the screen's card is hovered. */
+.mapwin-banner {
+  flex: none;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.88rem;
+  background: #fff7dc;
+  border-bottom: 1px solid #ecd58f;
+}
+.mapwin-banner.flash {
+  animation: mapwin-flash 0.9s ease-out;
+}
+@keyframes mapwin-flash {
+  0% {
+    background: #ffd966;
+  }
+  100% {
+    background: #fff7dc;
+  }
+}
+/* A pin not yet moved: a ring pulses round it (SPEC §3.15: what's to be dragged shows it). */
+.wiz-pin.unmoved::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  border-radius: 50%;
+  border: 2px solid rgba(163, 35, 27, 0.6);
+  animation: pin-pulse 1.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pin-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+/* Coordinates: where the centre is, and the way back to the middle, on one line. */
+.co-centre {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  align-items: baseline;
+  margin: 0 0 calc(0.8 * var(--sp));
+}
+/* A take-over's line above its map in the map window: what's shown (a location field, a layer). */
+.mapwin-sub {
+  display: flex;
+  flex: none;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--rule);
+}
+.show-on-map {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.show-on-map.on {
+  color: var(--link);
+  border-color: var(--link);
+}
+/* A step's own map drawn in the map window (components/OnTheMap.tsx): it fills the window, its controls above and its
+   legend below. */
+.mapwin-portal {
+  overflow: auto;
+}
+.mapwin-portal > * {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+}
+.mapwin-portal .map-view {
+  flex: 1;
+  height: auto;
+  min-height: 16rem;
+}
+.rv-map-btns {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
 }
