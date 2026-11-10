@@ -419,6 +419,9 @@ def test_the_variable_lists_and_each_groups_models(prepared, brought_in_client, 
         for b in client.get(f"/api/projects/{pid}/model").json()["blocked"]
     )
     assert client.put(url, json={"models": [{"engine": "nope"}]}).status_code == 422
+    # Every model removed: none, not the defaults back (only None is the defaults).
+    ms = client.put(url, json={"models": []}).json()
+    assert next(x for x in ms["groups"] if x["id"] == group)["models"] == []
     client.put(url, json={"models": None})
     client.put(f"/api/projects/{pid}/varlists", json={"lists": []})
     # A location stack's preview: whatever location fields there are, broadest first.

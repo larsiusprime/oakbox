@@ -422,7 +422,9 @@ def group_models(
     lists = varlists.lists(project, project_dir) if all_lists is None else all_lists
     ids = {x.id for x in lists}
     out = []
-    for e in project.model.groups.get(group) or default_models(project, project_dir, group):
+    saved = project.model.groups.get(group)
+    # None: never set, the defaults; [] : every model removed, so none (not the defaults back).
+    for e in saved if saved is not None else default_models(project, project_dir, group):
         update: dict = {}
         if e.engine in TAKES_LIST and (e.list_id is None or e.list_id not in ids):
             first = varlists.for_group(lists, group, kind_of(e.engine))
