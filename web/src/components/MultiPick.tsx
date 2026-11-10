@@ -38,8 +38,21 @@ export function MultiPick({
   brief?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  // While the list is open, the choice is a draft here: ticking, All and Clear change it at once and save nothing.
+  // Closing the list saves it, once, if it changed (AGENTS.md: a box of choices isn't wired to saves while open).
+  const [draft, setDraft] = useState<string[] | null>(null);
+  const picked = draft ?? chosen;
+  const onOpenChange = (open: boolean) => {
+    if (open) {
+      setDraft(chosen);
+      return;
+    }
+    if (draft && (draft.length !== chosen.length || draft.some((v, i) => v !== chosen[i]))) onChange(draft);
+    setDraft(null);
+    setSearch("");
+  };
   const listed = new Set(values.map((x) => x.value));
-  const extra = chosen
+  const extra = picked
     .filter((c) => !listed.has(c))
     .map((value) => ({ value, count: -1 }) as (typeof values)[number]);
   const q = search.trim().toLowerCase();
@@ -48,22 +61,25 @@ export function MultiPick({
     (x) => !q || `${text(x)} ${x.note ?? ""}`.toLowerCase().includes(q),
   );
   const toggle = (value: string, on: boolean) =>
-    onChange(on ? [...chosen, value] : chosen.filter((c) => c !== value));
+    setDraft((d) => {
+      const now = d ?? chosen;
+      return on ? [...now.filter((c) => c !== value), value] : now.filter((c) => c !== value);
+    });
   const typed = search.trim();
-  const canAdd = typed !== "" && !listed.has(typed) && !chosen.includes(typed);
+  const canAdd = typed !== "" && !listed.has(typed) && !picked.includes(typed);
   const labels = new Map(values.map((x) => [x.value, text(x)]));
   const named = values.some((x) => x.label);
-  const names = chosen.map((c) => labels.get(c) ?? (c ? short(c) : m.blank));
+  const names = picked.map((c) => labels.get(c) ?? (c ? short(c) : m.blank));
   const shown = names.join(", ");
   const said =
     brief && names.length > 1 ? m.plusOthers({ first: names[0] ?? "", n: names.length - 1 }) : shown;
   return (
-    <DialogTrigger onOpenChange={(open) => !open && setSearch("")}>
-      <Button className="mp-button" aria-label={`${label}: ${chosen.length ? shown : m.none}`}>
-        <span className={chosen.length ? (named ? "mp-text" : "mp-text mono") : "mp-text mp-placeholder"}>
-          {chosen.length ? said : (placeholder ?? m.choose)}
+    <DialogTrigger onOpenChange={onOpenChange}>
+      <Button className="mp-button" aria-label={`${label}: ${picked.length ? shown : m.none}`}>
+        <span className={picked.length ? (named ? "mp-text" : "mp-text mono") : "mp-text mp-placeholder"}>
+          {picked.length ? said : (placeholder ?? m.choose)}
         </span>
-        {chosen.length > 1 && !brief && <span className="pill pill-info">{chosen.length}</span>}
+        {picked.length > 1 && !brief && <span className="pill pill-info">{picked.length}</span>}
         <ChevronDown aria-hidden="true" size="0.9em" />
       </Button>
       <Popover className="popover mp-popover" placement="bottom start" offset={0}>
@@ -80,24 +96,16 @@ export function MultiPick({
             </SearchField>
           )}
           <div className="mp-head">
-            <span>{m.chosen({ n: chosen.length, of: values.length + extra.length })}</span>
+            <span>{m.chosen({ n: picked.length, of: values.length + extra.length })}</span>
             <span className="mp-grow" />
             <Button
               className="button button-small"
               isDisabled={rows.length === 0}
-              onPress={() => onChange([...new Set([...chosen, ...rows.map((x) => x.value)])])}
+              onPress={() => setDraft([...new Set([...picked, ...rows.map((x) => x.value)])])}
             >
               {q ? m.allShown : m.all}
             </Button>
-            <RemoveTextButton
-              small
-              isDisabled={chosen.length === 0}
-              onPress={() => {
-                const before = chosen;
-                onChange([]);
-                offerUndo(t.buttons.cleared({ what: label }), () => onChange(before));
-              }}
-            >
+            <RemoveTextButton small isDisabled={picked.length === 0} onPress={() => setDraft([])}>
               {m.clear}
             </RemoveTextButton>
           </div>
@@ -105,7 +113,7 @@ export function MultiPick({
             {rows.map((x) => (
               <Tick
                 key={x.value}
-                isSelected={chosen.includes(x.value)}
+                isSelected={picked.includes(x.value)}
                 onChange={(on) => toggle(x.value, on)}
               >
                 <span className={x.label ? "mp-value" : "mp-value mono"}>
@@ -120,7 +128,7 @@ export function MultiPick({
           {canAdd && more > 0 && (
             <AddButton
               onPress={() => {
-                onChange([...chosen, typed]);
+                setDraft([...picked, typed]);
                 setSearch("");
               }}
             >

@@ -42,10 +42,22 @@ export function EnrichStep({ projectId }: { projectId: string }) {
   const set = (patch: Partial<Enrichments>) => save.mutate({ ...s, ...patch });
   const adds = (key: string) => v.adds.find((a) => a.enrichment === key)?.fields ?? [];
   // A field ticked or not: a distance kind, or a field of footprints, census or elevation.
-  const kinds = (key: string, on: boolean) =>
-    set({ kinds: on ? [...s.kinds, key as Enrichments["kinds"][number]] : s.kinds.filter((k) => k !== key) });
-  const field = (key: string, on: boolean) =>
-    set({ off: on ? s.off.filter((f) => f !== key) : [...s.off, key] });
+  // Fields ticked or not in a list (saved together when it closes): distance kinds, or fields of footprints, census
+  // or elevation.
+  const kinds = (changes: [string, boolean][]) => {
+    let k = [...s.kinds];
+    for (const [key, on] of changes)
+      k = on
+        ? [...k.filter((x) => x !== key), key as Enrichments["kinds"][number]]
+        : k.filter((x) => x !== key);
+    set({ kinds: k });
+  };
+  const field = (changes: [string, boolean][]) => {
+    let off = [...s.off];
+    for (const [key, on] of changes)
+      off = on ? off.filter((f) => f !== key) : [...off.filter((f) => f !== key), key];
+    set({ off });
+  };
 
   return (
     <div className="en">
@@ -199,14 +211,25 @@ function Picks({
   label: string;
   title: string;
   fields: EnrichAddField[];
-  toggle: (key: string, on: boolean) => void;
+  /** The fields ticked or unticked while the list was open: saved once, when it closes. */
+  toggle: (changes: [string, boolean][]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const on = fields.filter((f) => f.on);
+  // While the list is open, the ticks are a draft here (AGENTS.md: a box of choices isn't wired to saves while open).
+  const [draft, setDraft] = useState<Record<string, boolean> | null>(null);
+  const isOn = (f: EnrichAddField) => draft?.[f.key] ?? f.on;
+  const onOpenChange = (o: boolean) => {
+    setOpen(o);
+    if (o) return setDraft({});
+    const changes = Object.entries(draft ?? {}).filter(([k, v]) => fields.find((f) => f.key === k)?.on !== v);
+    if (changes.length) toggle(changes);
+    setDraft(null);
+  };
+  const on = fields.filter(isOn);
   return (
     <div className="en-row">
       <span className="en-lab">{label}</span>
-      <DialogTrigger isOpen={open} onOpenChange={setOpen}>
+      <DialogTrigger isOpen={open} onOpenChange={onOpenChange}>
         <Button className="button button-small vals-button">
           {say.wizard.enrich.fieldsOf(on.length, fields.length)}
           <ChevronDown aria-hidden="true" size="0.85em" />
@@ -217,7 +240,11 @@ function Picks({
               {e.fieldsTitle({ name: title })}
             </Heading>
             {fields.map((f) => (
-              <Tick key={f.key} isSelected={f.on} onChange={(v) => toggle(f.key, v)}>
+              <Tick
+                key={f.key}
+                isSelected={isOn(f)}
+                onChange={(v) => setDraft((x) => ({ ...x, [f.key]: v }))}
+              >
                 <span className="en-field">
                   <span className="mono">{f.name}</span>
                   <span className="en-sub">{f.what}</span>
