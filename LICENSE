@@ -19,7 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-Note: this license covers Oakbox's own code on this branch. OpenAVMKit, including
-the `openavmkit-oakbox` branch of this repository, is dual-licensed under
-AGPL-3.0 or a commercial license; see that branch's LICENSE file.
