@@ -25,6 +25,7 @@ import { boundsOf, boundsOfGeoJson, MapView, rgba } from "../components/MapView"
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { BAD, PICKED } from "../lib/colours";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { FilePicker } from "./WizardFiles";
 
@@ -334,10 +335,12 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
     sort_field: o.sort_field ?? null,
   });
   const [draft, setDraft] = useState<Draft | null>(null);
-  const d = draft ?? fromSaved();
+  // Once closed, the options stay as left while they save, not as they were (AGENTS.md).
+  const [held, hold] = useAtOnce<Draft>(fromSaved());
+  const d = draft ?? held;
   const edit = (patch: Partial<Draft>) => setDraft({ ...d, ...patch });
   const onOptions = (open: boolean) => {
-    if (open) return setDraft(fromSaved());
+    if (open) return setDraft(held);
     if (draft) {
       const top = draft.store_top ? Math.max(1, Number.parseInt(draft.top_n, 10) || 1) : 0;
       const patch: Partial<Overlay> = {};
@@ -346,7 +349,10 @@ function DistanceOptions({ layer, set }: { layer: LayerView; set: (p: Partial<Ov
       if (top !== (o.store_top ? o.top_n : 0)) patch.top_n = top;
       if (draft.sort_field !== (o.sort_field ?? null) && draft.sort_field)
         patch.sort_field = draft.sort_field as Overlay["sort_field"];
-      if (Object.keys(patch).length) set(patch);
+      if (Object.keys(patch).length) {
+        hold(draft);
+        set(patch);
+      }
     }
     setDraft(null);
   };

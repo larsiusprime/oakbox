@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useStep, useStepAct, useStepNav, useStepSetup, useStepSkip } from "../api/steps";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
+import { LoadingBar } from "../components/Waiting";
 import { when } from "../lib/format";
 import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
@@ -37,7 +38,7 @@ export function ValuesTab({
   // Models: one model group at a time, the footer moving between them.
   const [groupAt, setGroupAt] = useState(0);
   const at = nav.at;
-  if (!mv) return <p className="empty">{ms.error?.message ?? t.project.loading}</p>;
+  if (!mv) return <LoadingBar error={ms.error} />;
   const trying = mv.status === "running";
   const mr = mv.receipt;
   const mFresh = !!mr && !mv.stale;
@@ -113,7 +114,7 @@ export function ValuesTab({
             {mu && group ? (
               <GroupModelsCard key={group.id} projectId={projectId} v={mu} gid={group.id} />
             ) : (
-              <p className="empty">{t.project.loading}</p>
+              <LoadingBar />
             )}
             {errors}
           </StepBody>

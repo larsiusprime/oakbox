@@ -29,6 +29,8 @@ export function Seg<V extends string>({
           key={k}
           className={k === value ? "seg-b on" : "seg-b"}
           onPress={() => {
+            // The one already pressed: nothing to change, nothing to save.
+            if (k === value) return;
             press(k);
             onChange(k);
           }}

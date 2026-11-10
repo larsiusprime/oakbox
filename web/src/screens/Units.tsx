@@ -17,6 +17,7 @@ import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
 import { short } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { navigate } from "../lib/route";
 import { say, t } from "../wording";
 
@@ -564,10 +565,15 @@ export function CondosLink({ projectId }: { projectId: string }) {
 function Prefix({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   // What's typed, until it's saved; otherwise the value as it is.
   const [draft, setDraft] = useState<string | null>(null);
-  const text = draft ?? String(value);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(value);
+  const text = draft ?? String(held);
   const save = () => {
     const n = Number.parseInt(text, 10);
-    if (n >= 1 && n <= 64 && n !== value) onChange(n);
+    if (n >= 1 && n <= 64 && n !== held) {
+      hold(n);
+      onChange(n);
+    }
     setDraft(null);
   };
   return (

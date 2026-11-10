@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
 import { num, short } from "../lib/format";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { AddButton } from "./AddButton";
 import { Tick } from "./Form";
@@ -43,18 +44,22 @@ export function MultiPick({
   // While the list is open, the choice is a draft here: ticking, All and Clear change it at once and save nothing.
   // Closing the list saves it, once, if it changed (AGENTS.md: a box of choices isn't wired to saves while open).
   const [draft, setDraft] = useState<string[] | null>(null);
-  const picked = draft ?? chosen;
+  // Once closed, what was chosen stays shown while it saves, not the old choice (AGENTS.md).
+  const [held, hold] = useAtOnce(chosen);
+  const picked = draft ?? held;
   const onOpenChange = (open: boolean) => {
     if (open) {
-      setDraft(chosen);
+      setDraft(held);
       return;
     }
     if (
       draft &&
       !(atLeastOne && draft.length === 0) &&
-      (draft.length !== chosen.length || draft.some((v, i) => v !== chosen[i]))
-    )
+      (draft.length !== held.length || draft.some((v, i) => v !== held[i]))
+    ) {
+      hold(draft);
       onChange(draft);
+    }
     setDraft(null);
     setSearch("");
   };
@@ -69,7 +74,7 @@ export function MultiPick({
   );
   const toggle = (value: string, on: boolean) =>
     setDraft((d) => {
-      const now = d ?? chosen;
+      const now = d ?? held;
       return on ? [...now.filter((c) => c !== value), value] : now.filter((c) => c !== value);
     });
   const typed = search.trim();

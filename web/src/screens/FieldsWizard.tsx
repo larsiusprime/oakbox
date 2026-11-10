@@ -698,7 +698,7 @@ function ReviewStep({
                         w.nothing}
                   </td>
                   <td>
-                    <Button className="wiz-link" onPress={() => go(s.key)}>
+                    <Button className="button button-small" onPress={() => go(s.key)}>
                       {w.change}
                     </Button>
                   </td>

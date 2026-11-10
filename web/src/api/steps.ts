@@ -1,5 +1,5 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { currentWhere, lastStep } from "../lib/place";
 import { api, unwrap } from "./client";
 import type { components } from "./schema";
@@ -145,6 +145,11 @@ type Setups = {
 export type SetupId = keyof Setups;
 const SETUP: Record<SetupId, true> = { clean: true, ratio: true, model: true };
 
+/** A change's keys the view has under the same name (a radio, a tick, a choice): shown before it's saved. */
+function pickKnown(body: Record<string, unknown>, view: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(body).filter(([k, x]) => k in view && x !== undefined));
+}
+
 /** A step's calls before it runs, and changing one: the step and the steps after it are asked again. */
 export function useStepSetup<K extends SetupId>(id: K, projectId: string, enabled = true) {
   const queryClient = useQueryClient();
@@ -170,9 +175,7 @@ export function useStepSetup<K extends SetupId>(id: K, projectId: string, enable
       await queryClient.cancelQueries({ queryKey: key });
       const before = queryClient.getQueryData<Setups[K][0]>(key);
       if (before && typeof body === "object" && body) {
-        const shown = Object.fromEntries(
-          Object.entries(body as Record<string, unknown>).filter(([k, x]) => k in before && x !== undefined),
-        );
+        const shown = pickKnown(body as Record<string, unknown>, before);
         if (Object.keys(shown).length) queryClient.setQueryData(key, { ...before, ...shown });
       }
       return { before };
@@ -181,11 +184,48 @@ export function useStepSetup<K extends SetupId>(id: K, projectId: string, enable
       if (ctx?.before) queryClient.setQueryData(setupKey(id, projectId), ctx.before);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(setupKey(id, projectId), data);
+      // A newer change waiting to go: the screen keeps showing it over what this save answered.
+      const next = waiting.current?.body;
+      queryClient.setQueryData(
+        setupKey(id, projectId),
+        next ? { ...data, ...pickKnown(next as Record<string, unknown>, data) } : data,
+      );
       stepChanged(queryClient, projectId, id);
     },
   });
-  return { setup, change };
+  // One save at a time: changes made while one is out (a radio clicked back and forth) wait as one, merged, and go
+  // when it's back; only the last choice is sent, and the screen shows each at once.
+  const waiting = useRef<{ body: Setups[K][1]; after: (() => void)[] } | null>(null);
+  const out = useRef(false);
+  const mutate = (body: Setups[K][1], options?: { onSuccess?: () => void }) => {
+    if (out.current) {
+      const key = setupKey(id, projectId);
+      const now = queryClient.getQueryData<Setups[K][0]>(key);
+      if (now) queryClient.setQueryData(key, { ...now, ...pickKnown(body as Record<string, unknown>, now) });
+      const w = waiting.current;
+      waiting.current = {
+        body: { ...(w?.body as object), ...(body as object) } as Setups[K][1],
+        after: [...(w?.after ?? []), ...(options?.onSuccess ? [options.onSuccess] : [])],
+      };
+      return;
+    }
+    out.current = true;
+    change.mutate(body, {
+      onSuccess: () => options?.onSuccess?.(),
+      onSettled: () => {
+        out.current = false;
+        const w = waiting.current;
+        waiting.current = null;
+        if (w)
+          mutate(w.body, {
+            onSuccess: () => {
+              for (const f of w.after) f();
+            },
+          });
+      },
+    });
+  };
+  return { setup, change: { ...change, mutate } };
 }
 
 /** Which task a step's tab shows: the one chosen, else the tab's own pick; and once a run started here is done,

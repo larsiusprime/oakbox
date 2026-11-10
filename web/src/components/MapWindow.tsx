@@ -22,6 +22,7 @@ import {
 } from "../api/client";
 import { desktop } from "../desktop";
 import { pct } from "../lib/format";
+import { useGroupMap } from "../lib/groupmap";
 import {
   askGo,
   type Dock,
@@ -39,6 +40,7 @@ import {
 import { navigate } from "../lib/route";
 import { readShapes, type Shapes, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
+import { GroupsOnMap } from "../screens/GroupMap";
 import { t } from "../wording";
 import { CloseButton, SmallButton, ToolButton } from "./Buttons";
 import { Combo, Marked, matches } from "./Combo";
@@ -342,7 +344,10 @@ function MapPanel({
   // The project's map layers (Shapefiles) that can be placed: drawn over the parcels when chosen.
   const layerNames = (wizard.data?.layers ?? []).filter((l) => l.projected).map((l) => l.name);
   const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames) : null;
-  const following = dock.follow && target !== null;
+  // Build the groups open (here or in the main window): Follow draws the groups as edited there.
+  const gm = useGroupMap();
+  const onGroups = dock.follow && gm?.projectId === projectId ? gm : null;
+  const following = dock.follow && target !== null && !onGroups;
   // Remembered as the map's field: a step with nothing of its own keeps showing the last one followed.
   const followedField = following ? target?.field : undefined;
   useEffect(() => {
@@ -365,7 +370,7 @@ function MapPanel({
     <div className="mapwin-in">
       <header className="mapwin-head">
         <b className="mapwin-title">🗺 {w.title}</b>
-        {m?.status === "ready" && m.fields.length > 0 && (
+        {!onGroups && m?.status === "ready" && m.fields.length > 0 && (
           <FieldPick
             sales={m.sales}
             problems={probs}
@@ -381,7 +386,13 @@ function MapPanel({
             aria-pressed={dock.follow}
             onPress={() => setDock({ follow: !dock.follow })}
           >
-            {dock.follow ? (target ? w.following({ step: target.title }) : w.followIdle) : w.follow}
+            {dock.follow
+              ? onGroups
+                ? w.following({ step: t.groups.steps.build })
+                : target
+                  ? w.following({ step: target.title })
+                  : w.followIdle
+              : w.follow}
           </Button>
         </Tip>
         <span className="mapwin-tools">
@@ -423,7 +434,9 @@ function MapPanel({
           />
         </span>
       </header>
-      {info.error ? (
+      {onGroups ? (
+        <GroupsOnMap gm={onGroups} />
+      ) : info.error ? (
         <p className="error mapwin-msg">{info.error.message}</p>
       ) : !m ? (
         <Waiting doing={w.loading} className="mapwin-msg" />

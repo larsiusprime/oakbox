@@ -344,6 +344,12 @@ sets its size (25–70%); popped out, a desktop window (a browser window on the 
 (never two maps), and closing its window docks it back where it was. Where it is, its size and its layers are
 remembered per computer. At phone width, docked bottom only, at 40%.
 
+**Build the groups takes it over** (2026-11-10). Model groups › Build the groups has no map of its own: arriving opens
+the map window, following, and while the step is open it draws the groups as edited there (`lib/groupmap.ts`, shared
+with a popped-out map as the dock is): coloured by group or by what moved (Group / Changes), a parcel clicked opens why
+it's in its group, the legend switches groups on and off, and a condition's or a move's "show them" highlights its
+parcels. Leaving the step, the map goes back to following fields.
+
 **Layers**, each there once its data is:
 
 | Group | Layers | From |

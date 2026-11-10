@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, unwrap } from "../api/client";
+import { LoadingBar } from "../components/Waiting";
 import { day, money, num } from "../lib/format";
 import { useWidth } from "../lib/hooks";
 import { say, t } from "../wording";
@@ -55,7 +56,7 @@ export function TimeChart({
   if (!d || d.sales.length === 0)
     return (
       <div className="cs-tchart" ref={ref}>
-        <p className="empty">{d ? s.noDots : (q.error?.message ?? t.project.loading)}</p>
+        {d ? <p className="empty">{s.noDots}</p> : <LoadingBar error={q.error} />}
       </div>
     );
   const sales = d.sales;

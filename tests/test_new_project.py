@@ -84,7 +84,10 @@ def test_projects_from_the_first_builds_are_still_found(tmp_path, monkeypatch):
     assert projects.project_dir("us-va-cityofpetersburg-2026") == legacy
 
 
-def test_delete_sends_the_folder_to_the_trash(client, tmp_path):
+def test_delete_sends_the_folder_to_the_trash(client, tmp_path, monkeypatch):
+    # send2trash uses the home trash only for a folder on the same disk as ~; elsewhere (CI's /tmp, on a disk of
+    # its own) a .Trash folder at that disk's top. Home is put beside the project, so it's the home trash either way.
+    monkeypatch.setenv("HOME", str(tmp_path))
     p = client.post("/api/projects", json=TRAVIS).json()
     folder = projects.project_dir(p["id"])
     disk = client.get(f"/api/projects/{p['id']}/disk").json()

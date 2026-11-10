@@ -95,7 +95,7 @@ function ProjectView({
   const name = (k: string) => t.tabs[k as keyof typeof t.tabs] as string;
   const first = order.find((k) => !views[k]?.accepted);
   // A tab that waits on an earlier step shows the first step, in order, not accepted on an up-to-date run: where
-  // something needs doing, with a notice saying why (never silently somewhere else).
+  // something needs doing, the tab bar greys what waits (no notice: the user asked for none, 2026-11-10).
   const locked = lockedTabs({ accepted, grouped, checked, hasValues, prepared, finalized });
   const tabLocked = tab !== null && locked.has(tab);
   const loaded = order.every((k) => views[k] !== undefined);
@@ -109,22 +109,6 @@ function ProjectView({
       : tab === "check" && checked && !hasValues
         ? "variables"
         : (first ?? "bring");
-  const changed = views.bring?.stale ? (views.bring.changed ?? []) : [];
-  const why =
-    tab && tab !== selected
-      ? [
-          say.tabs.waits(name(tab), name(selected)),
-          first
-            ? views[first]?.stale
-              ? say.tabs.runAgain(name(first))
-              : say.tabs.pressLooksRight(name(first))
-            : "",
-          first === "bring" && changed.length ? t.tabs.bringChanged({ what: changed.join(", ") }) : "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-      : null;
-
   // The plate: where you are, and the tabs it lists (each one's name, whether it waits, whether it's done).
   setWhere({ projectId, tab: selected });
   const done: Record<string, boolean> = {
@@ -147,13 +131,6 @@ function ProjectView({
     if (selected === "metadata") record({ projectId, tab: selected, step: "" });
   });
   useEffect(() => () => setWhere(null), []);
-
-  // Why the tab asked for isn't the one shown: at the top of the page, under the tabs.
-  const notice = why && (
-    <p className="bi-warn tab-waits" role="status">
-      {why}
-    </p>
-  );
 
   return (
     <div className="project">
@@ -223,23 +200,18 @@ function ProjectView({
           </TabList>
         </TabStrip>
         <TabPanel id="metadata" className="folder-panel">
-          {notice}
           <MetadataTab detail={detail} />
         </TabPanel>
         <TabPanel id="fields" className="folder-panel">
-          {notice}
           <FieldsTab detail={detail} step={step} />
         </TabPanel>
         <TabPanel id="bring" className="folder-panel">
-          {notice}
           <BringInTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="groups" className="folder-panel">
-          {notice}
           <ModelGroupsTab projectId={projectId} currency={project.currency} />
         </TabPanel>
         <TabPanel id="sales" className="folder-panel">
-          {notice}
           <SalesTab
             projectId={projectId}
             currency={project.currency}
@@ -247,19 +219,15 @@ function ProjectView({
           />
         </TabPanel>
         <TabPanel id="check" className="folder-panel">
-          {notice}
           <CheckValuesTab projectId={projectId} currency={project.currency} />
         </TabPanel>
         <TabPanel id="variables" className="folder-panel">
-          {notice}
           <VariablesTab projectId={projectId} />
         </TabPanel>
         <TabPanel id="values" className="folder-panel">
-          {notice}
           <ValuesTab projectId={projectId} currency={project.currency} units={project.units} />
         </TabPanel>
         <TabPanel id="report" className="folder-panel">
-          {notice}
           <ReportTab projectId={projectId} />
         </TabPanel>
       </Tabs>

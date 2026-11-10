@@ -2356,6 +2356,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/model/groups/{group}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Model Group Skip
+         * @description A model group not modeled (chosen on Models): its parcels left unvalued; Model groups isn't changed.
+         */
+        put: operations["model_group_skip_api_projects__project_id__model_groups__group__skip_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/model/stack/{group}": {
         parameters: {
             query?: never;
@@ -5505,6 +5525,12 @@ export interface components {
             /** Models */
             models: components["schemas"]["EntryView"][];
             /**
+             * Skipped
+             * @description Not modeled, chosen here: its parcels left unvalued.
+             * @default false
+             */
+            skipped: boolean;
+            /**
              * Custom
              * @description Its models were changed: not the default ones.
              * @default false
@@ -7103,6 +7129,11 @@ export interface components {
             small: {
                 [key: string]: "leave" | "model";
             };
+            /**
+             * Skip
+             * @description Model groups not modeled, chosen on Models: their parcels left unvalued (Model groups unchanged).
+             */
+            skip: string[];
         };
         /** ModelView */
         ModelView: {
@@ -10010,6 +10041,14 @@ export interface components {
         ShowBody: {
             /** Path */
             path: string;
+        };
+        /** SkipBody */
+        SkipBody: {
+            /**
+             * Skip
+             * @description True: the group isn't modeled, its parcels left unvalued; false: modeled again.
+             */
+            skip: boolean;
         };
         /** SmallChoice */
         SmallChoice: {
@@ -16289,6 +16328,42 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["GroupModelsBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelSetup"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    model_group_skip_api_projects__project_id__model_groups__group__skip_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkipBody"];
             };
         };
         responses: {

@@ -129,3 +129,6 @@ export function onGo(g: (w: Where) => void): () => void {
     goers.delete(g);
   };
 }
+
+/** The dock as it is now, read outside React (an effect deciding whether to open the map). */
+export const dockNow = (): Dock => dock;

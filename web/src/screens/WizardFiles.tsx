@@ -149,15 +149,13 @@ export function IdCheck({
     const issues = file.id_check?.issues ?? [];
     const handled = issues.filter((i) => i.resolved);
     const open_ = issues.filter((i) => !i.resolved);
-    // A match short of everything wants a look too (the check itself warns).
-    // Matching wants a look under 95% (the step's own warning, SPEC F3d); a check that's a warning of its own (IDs
-    // repeated, nothing chosen yet) wants its dialog.
+    // What wants a look is said in a pill: matching under 95% (the step's own warning, SPEC F3d), or a check that's a
+    // warning of its own (IDs repeated, nothing chosen yet). Every action is a small button, the same as elsewhere.
     const matchLook = reconcilable && share !== null && share !== undefined && share < 0.95;
     const own = !!file.id_check && !file.id_check.ok && issues.length === 0;
-    const idLook = open_.length > 0 || (own && resolvable);
     const said = (file.id_check?.text ?? "").replace(/^✓\s*/, "");
-    const act = (label: string, press: () => void, strong: boolean) => (
-      <Button className={strong ? "button button-small" : "wiz-link"} onPress={press}>
+    const act = (label: string, press: () => void) => (
+      <Button className="button button-small" onPress={press}>
         {label}
       </Button>
     );
@@ -168,7 +166,7 @@ export function IdCheck({
         </td>
         <td className="mono wiz-from">{file.id_column}</td>
         <td>
-          {own ? <span className="pill pill-warn">{said}</span> : said}
+          {own || matchLook ? <span className="pill pill-warn">{said}</span> : said}
           {steps.length > 0 && (
             <span className="wiz-from"> · {w.reconcile.cleaned({ what: describeSteps(steps) })}</span>
           )}
@@ -187,15 +185,10 @@ export function IdCheck({
           )}
         </td>
         <td className="rv-act">
-          {reconcilable &&
-            act(
-              missing ? w.reconcile.seeThem : w.reconcile.open,
-              () => setReconciling(true),
-              matchLook || !!missing,
-            )}
+          {reconcilable && act(missing ? w.reconcile.seeThem : w.reconcile.open, () => setReconciling(true))}
         </td>
         <td className="rv-act">
-          {resolvable && act(w.dupes.resolve, () => setOpen(true), idLook)}
+          {resolvable && act(w.dupes.resolve, () => setOpen(true))}
           {dialogs}
         </td>
       </tr>

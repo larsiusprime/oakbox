@@ -53,6 +53,37 @@ export function useSetGroupModels(projectId: string) {
   });
 }
 
+/** A model group not modeled (its parcels left unvalued), or modeled again: shown at once, then saved. */
+export function useSetSkip(projectId: string) {
+  const queryClient = useQueryClient();
+  const key = setupKey("model", projectId);
+  return useMutation({
+    mutationFn: async ({ group, skip }: { group: string; skip: boolean }) =>
+      unwrap(
+        await api.PUT("/api/projects/{project_id}/model/groups/{group}/skip", {
+          params: { path: { project_id: projectId, group } },
+          body: { skip },
+        }),
+      ) as ModelSetup,
+    onMutate: ({ group, skip }) => {
+      const before = queryClient.getQueryData<ModelSetup>(key);
+      if (before)
+        queryClient.setQueryData(key, {
+          ...before,
+          groups: before.groups.map((g) => (g.id === group ? { ...g, skipped: skip } : g)),
+        });
+      return { before };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.before) queryClient.setQueryData(key, ctx.before);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(key, data);
+      stepChanged(queryClient, projectId, "model");
+    },
+  });
+}
+
 /** A location stack in a model group, broadest first: each level's areas and sales, and whether it nests. */
 export function useStack(projectId: string, group: string, broadestFirst: string[]) {
   return useQuery({

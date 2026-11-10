@@ -219,7 +219,10 @@ ticked variables is gone: each model takes a variable list.
   (stops a try), the variables with blanks its linear engine leaves out, no locations (Multi-MRA then fits one
   regression, as MRA does; Local area can't run). **Add a model** (a row: engine, name, list; Add / Cancel), **Remove**,
   **Back to the default models** (Copy these models to…, and the line saying where they're written, removed
-  2026-11-07). Written per group as
+  2026-11-07). Removing every model leaves the group with none, not the defaults back (2026-11-10). **Model it /
+  Don't model it** at the group's head (`model.skip`, 2026-11-10): a group not modeled is left unvalued (as a small
+  group left unvalued is), not written to `instructions.main.run`, asked for no models; Model groups and the steps
+  before Models are unchanged. Written per group as
   `modeling.models.main.<group>` (OpenAVMKit takes a group's block in place of the shared one): `default` (the land and
   finished areas, for Local area and the roll), each model under a key from its name (`{"model": <engine>, "ind_vars":
   "$$variable_lists.<id>", "log": true, "locations": [...]}`; a linear model whose list has variables with blanks gets

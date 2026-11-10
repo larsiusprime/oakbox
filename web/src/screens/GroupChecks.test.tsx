@@ -102,6 +102,6 @@ describe("GroupChecks", () => {
         setModeled={() => {}}
       />,
     );
-    expect(screen.getByText(t.project.loading)).toBeTruthy();
+    expect(screen.getByRole("status", { name: t.project.loading })).toBeTruthy();
   });
 });

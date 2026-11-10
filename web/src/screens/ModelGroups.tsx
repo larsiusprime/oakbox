@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Radio } from "react-aria-components";
 import { api, type GroupsPreview, type GroupsView, type ModelGroup, type Move, unwrap } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
@@ -10,10 +10,13 @@ import { Disclose } from "../components/Disclose";
 import { Radios, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
+import { LoadingBar } from "../components/Waiting";
 import { NO_COLOUR } from "../lib/colours";
 import { when } from "../lib/format";
+import { clearGroups, publishGroups, setGroupMap, useGroupMap } from "../lib/groupmap";
 import { newGroup } from "../lib/groups";
 import { useSettled } from "../lib/hooks";
+import { dockNow, setDock } from "../lib/mapdock";
 import { navigate } from "../lib/route";
 import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
@@ -21,7 +24,7 @@ import { AssembleResults, Formats } from "./Assemble";
 import { GroupChecks } from "./GroupChecks";
 import { GroupEditor } from "./GroupEditor";
 import { GroupFromField } from "./GroupFromField";
-import { CHANGE_GREY, type ColourBy, Inspector, type MapMode, ParcelMap, SAME } from "./GroupMap";
+import { Legend, usePreview } from "./GroupMap";
 
 const g = t.groups;
 
@@ -37,21 +40,6 @@ function useGroups(projectId: string) {
 
 type MgStep = "start" | "build" | "check" | "write" | "results";
 const STEPS: MgStep[] = ["start", "build", "check", "write", "results"];
-
-function usePreview(projectId: string, groups: ModelGroup[], enabled = true) {
-  return useQuery({
-    queryKey: ["groups-preview", projectId, groups],
-    queryFn: async () =>
-      unwrap(
-        await api.POST("/api/projects/{project_id}/groups/preview", {
-          params: { path: { project_id: projectId } },
-          body: { groups },
-        }),
-      ),
-    placeholderData: keepPreviousData,
-    enabled,
-  });
-}
 
 /** Step 2, Model groups (SPEC §3.5), one task at a time: how to start, the builder, the checks, tag and write
  * (notebook 1's end), and what each group got; Looks right moves on to Check sales. */
@@ -101,7 +89,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
   const a = run.data;
   const saved = v?.groups ?? [];
   const preview = usePreview(projectId, saved, !!v?.start && saved.length > 0);
-  if (!v || !a) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  if (!v || !a) return <LoadingBar error={state.error} />;
   if (!v.ready) return <p className="bi-lede mg-pad">{g.notReady}</p>;
 
   const running = a.status === "running";
@@ -365,17 +353,27 @@ function Builder({
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<ModelGroup[]>(view.groups);
   const [selected, setSelected] = useState<string | null>(view.groups[0]?.id ?? null);
-  const [mapMode, setMapMode] = useState<MapMode>("docked");
-  const [colourBy, setColourBy] = useState<ColourBy>("group");
-  const [picked, setPicked] = useState<number | null>(null);
-  const [highlight, setHighlight] = useState<number[] | null>(null);
-  // What the legend has switched off: group ids ("" unassigned), or SAME (unchanged, when colouring by changes).
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // The map is the map window's (SPEC §3.15): it's opened, following, and draws the groups as edited here; what the
+  // legend has switched off and what's highlighted are shared with it.
+  const gm = useGroupMap();
+  const hidden = new Set(gm?.hidden ?? []);
+  const setHidden = (next: Set<string>) => setGroupMap({ hidden: [...next] });
+  const setHighlight = (n: number[] | null) => {
+    setGroupMap({ highlight: n });
+    if (n && !dockNow().out) setDock({ open: true });
+  };
+  useEffect(() => {
+    setDock(dockNow().out ? { follow: true } : { open: true, follow: true });
+    return () => clearGroups();
+  }, []);
   const [fromField, setFromField] = useState(false);
   const dirty = !same(draft, view.groups);
 
   const asked = useSettled(draft, 200);
   const preview = usePreview(projectId, asked);
+  useEffect(() => {
+    publishGroups({ projectId, groups: asked, unassigned: view.unassigned_color, currency });
+  }, [projectId, asked, view.unassigned_color, currency]);
   const save = useMutation({
     mutationFn: async (groups: ModelGroup[]) =>
       unwrap(
@@ -401,8 +399,7 @@ function Builder({
       (now[a] ?? "") === m.to_id && (before[p.saved[i] ?? -1] ?? "") === m.from_id ? [i] : [],
     );
   };
-  const colours = useMemo(() => asked.map((x) => x.color), [asked]);
-  const ids = useMemo(() => asked.map((x) => x.id), [asked]);
+  const ids = asked.map((x) => x.id);
   // Unassigned alone: every group off, unassigned on. Clicking it again (or the legend) brings them back.
   const onlyUnassigned = ids.length > 0 && ids.every((id) => hidden.has(id)) && !hidden.has("");
   const toggle = (key: string, on: boolean) => {
@@ -435,10 +432,9 @@ function Builder({
     setSelected(x.id);
   };
 
-  const mapShown = mapMode !== "hidden";
   return (
     <>
-      <div className={`mg mg-${mapMode}`}>
+      <div className="mg mg-nomap">
         <div className="mg-list">
           <h3 className="mg-h">{g.listTitle}</h3>
           <ol className="mg-items">
@@ -450,10 +446,7 @@ function Builder({
                 stats={statsFor(x.id)}
                 delta={delta(p, x.id)}
                 isSelected={x.id === selected}
-                onSelect={() => {
-                  setSelected(x.id);
-                  if (mapMode === "full") setMapMode("docked");
-                }}
+                onSelect={() => setSelected(x.id)}
                 onUp={i > 0 ? () => move(i, -1) : undefined}
                 onDown={i < draft.length - 1 ? () => move(i, 1) : undefined}
               />
@@ -469,7 +462,7 @@ function Builder({
             onSelect={() => {
               setHighlight(null);
               setHidden(onlyUnassigned ? new Set() : new Set(ids));
-              if (!mapShown) setMapMode("docked");
+              if (!dockNow().out) setDock({ open: true });
             }}
           />
           <div className="mg-adds add-row">
@@ -499,7 +492,7 @@ function Builder({
           )}
         </div>
 
-        {mapMode !== "full" && (
+        {
           <div className="mg-ed">
             {group ? (
               <GroupEditor
@@ -524,103 +517,15 @@ function Builder({
                     setSelected(group.id);
                   });
                 }}
-                onShow={(n) => {
-                  setHighlight(n);
-                  if (!mapShown) setMapMode("docked");
-                }}
+                onShow={(n) => setHighlight(n)}
                 moved={moved}
               />
             ) : (
               <p className="bi-lede">{g.pickGroup}</p>
             )}
-            {!mapShown && (
-              <Button className="button mg-showmap" onPress={() => setMapMode("docked")}>
-                {g.showMap}
-              </Button>
-            )}
           </div>
-        )}
+        }
 
-        {mapShown && (
-          <div className="mg-map">
-            <div className="mg-bar">
-              <b>{g.map}</b>
-              <Seg
-                value={colourBy}
-                options={[
-                  ["group", g.byGroup],
-                  ["changes", g.byChanges],
-                ]}
-                onChange={setColourBy}
-              />
-              {highlight && (
-                <span className="mg-hl">
-                  {g.highlighted({ n: highlight.length })}{" "}
-                  <Button className="button button-small" onPress={() => setHighlight(null)}>
-                    {g.clearHighlight}
-                  </Button>
-                </span>
-              )}
-              <span className="mg-grow" />
-              <span className="mg-hint">{g.clickHint}</span>
-              <Seg
-                value={mapMode}
-                options={[
-                  ["docked", g.docked],
-                  ["full", g.full],
-                ]}
-                onChange={setMapMode}
-              />
-              <ToolButton label={g.hide} pressed onPress={() => setMapMode("hidden")}>
-                <MapIcon aria-hidden="true" size="1em" />
-              </ToolButton>
-            </div>
-            <ParcelMap
-              projectId={projectId}
-              preview={p}
-              colours={colours}
-              ids={ids}
-              hidden={hidden}
-              unassigned={view.unassigned_color}
-              colourBy={colourBy}
-              highlight={highlight}
-              picked={picked}
-              mode={mapMode}
-              onPick={setPicked}
-            />
-            {picked != null && (
-              <Inspector
-                projectId={projectId}
-                groups={asked}
-                index={picked}
-                name={name}
-                colour={(id) =>
-                  id === "" ? view.unassigned_color : (asked.find((x) => x.id === id)?.color ?? NO_COLOUR)
-                }
-                currency={currency}
-                onShow={(n) => setHighlight(n)}
-                onClose={() => setPicked(null)}
-              />
-            )}
-            <Legend
-              items={
-                colourBy === "group"
-                  ? [
-                      ...asked.map((x) => [x.id, x.color, x.name] as const),
-                      ["", view.unassigned_color, g.unassigned] as const,
-                    ]
-                  : [
-                      ...asked.map((x) => [x.id, x.color, `${g.movesTo} ${x.name}`] as const),
-                      ["", view.unassigned_color, `${g.movesTo} ${g.unassigned}`] as const,
-                      [SAME, CHANGE_GREY, g.noChanges] as const,
-                    ]
-              }
-              hidden={hidden}
-              toggle={toggle}
-              showAll={() => setHidden(new Set())}
-            />
-          </div>
-        )}
         {fromField && (
           <GroupFromField
             projectId={projectId}
@@ -655,43 +560,6 @@ function delta(p: GroupsPreview | undefined, id: string): number {
   return p.moves.reduce(
     (n: number, m: Move) => n + (m.to_id === id ? m.parcels : 0) - (m.from_id === id ? m.parcels : 0),
     0,
-  );
-}
-
-/** What each colour is, and whether it's shown: each square is a checkbox, hollow when its parcels are hidden. */
-function Legend({
-  items,
-  hidden,
-  toggle,
-  showAll,
-}: {
-  items: readonly (readonly [string, string, string])[];
-  hidden: Set<string>;
-  toggle: (key: string, on: boolean) => void;
-  showAll: () => void;
-}) {
-  const any = items.some(([key]) => hidden.has(key));
-  return (
-    // biome-ignore lint/a11y/useSemanticElements: a row of toggle buttons, not a form field set
-    <div className="mg-legend" role="group" aria-label={g.legend}>
-      {items.map(([key, c, label]) => {
-        const on = !hidden.has(key);
-        return (
-          // Shows or hides the group on the map: a checkbox, with its colour.
-          <span key={key} className={on ? "mg-key" : "mg-key off"}>
-            <Tick isSelected={on} onChange={(v) => toggle(key, v)}>
-              <i className="mg-key-sw" style={{ background: c, borderColor: c }} />
-              {label}
-            </Tick>
-          </span>
-        );
-      })}
-      {any && (
-        <Button className="button button-small" onPress={showAll}>
-          {g.showAll}
-        </Button>
-      )}
-    </div>
   );
 }
 

@@ -2815,7 +2815,8 @@ like the wizard's Next {
   height: calc(100vh - 13.5rem);
   min-height: 34rem;
 }
-.mg-full {
+.mg-full,
+.mg-nomap {
   grid-template-columns: 17rem 1fr;
 }
 .mg-hidden {
@@ -4870,7 +4871,9 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vs {
   display: grid;
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
-  max-width: 62rem;
+  /* As wide as the widest set, so Add a set of values lines up with the sets' right edge. */
+  width: max-content;
+  max-width: 100%;
 }
 .vs-set {
   padding: calc(0.6 * var(--sp)) calc(0.8 * var(--sp));
@@ -5895,13 +5898,20 @@ under what it's about; a file appended as rows {
 /* A field's row (style guide, 2B): the reading is the button, in a column of one width on every row, then the
    values. A reading that needs a look is amber, with its ⚠. */
 .field-tools {
-  /* The reading in a column of one width on every row, the values button beside it: lined up, one row each. */
+  /* The reading at one width on every row, the values button (one width too) beside it: lined up, one row each;
+     where the box is too narrow for both (a card beside another), the values button goes under, never past it. */
   display: inline-grid;
   grid-template-columns: 11rem 8.5rem;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
   max-width: 100%;
+}
+/* In a narrow card (a field's two capsules side by side), the values button goes under the reading, never past
+   the card's edge. */
+.as-cap .field-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
 }
 /* Only where the sheet is near its narrowest (a map docked beside it): the values button under the reading. */
 .wiz-body {
@@ -5925,6 +5935,12 @@ under what it's about; a file appended as rows {
   display: inline-flex;
   justify-content: flex-end;
   width: 8.5rem;
+}
+.as-cap .field-tools > :first-child {
+  flex: 0 1 11rem;
+  width: 11rem;
+  min-width: 0;
+  max-width: 100%;
 }
 /* A reading with nothing to change, in the same column: plain words, no ✓; amber when it needs a look. */
 .reading-plain {
@@ -7956,4 +7972,13 @@ section.wiz-section:has(> .cf-tbl),
 .modal-body > .rc-meter {
   border: 0;
   border-radius: 0;
+}
+
+/* Build the groups in the map window (lib/groupmap.ts): its bar, the map, the legend. */
+.mg-stage > .mg-map-body {
+  flex: 1;
+  min-width: 0;
+}
+.mapwin-groups > .mg-legend {
+  flex: none;
 }

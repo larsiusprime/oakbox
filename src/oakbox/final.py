@@ -151,7 +151,7 @@ def run(project_id: str) -> None:
     import numpy as np
     import pandas as pd
 
-    from oakbox import assemble, projects
+    from oakbox import projects
 
     project = projects.load(project_id)
     pdir = projects.project_dir(project_id)
@@ -170,7 +170,7 @@ def run(project_id: str) -> None:
     from openavmkit.value_studies import run_value_field_studies
 
     groups = [g.id for g in project.groups]
-    modeled = assemble.modeled(project, pdir)
+    modeled = model.to_model(project, pdir)
     own = {g: {e.key: e.name for e in model.group_models(project, pdir, g)} for g in groups if g in modeled}
     t0 = time.time()
 

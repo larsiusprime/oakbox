@@ -6,6 +6,7 @@ import { setupKey, stepChanged, useStep, useStepAct, useStepNav, useStepSetup } 
 import { Choice, Tick } from "../components/Form";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
+import { LoadingBar } from "../components/Waiting";
 import { desktop, useCanPickFile } from "../desktop";
 import { num, when } from "../lib/format";
 import { navigate } from "../lib/route";
@@ -40,7 +41,7 @@ export function SalesTab({
   const nav = useStepNav<CsStep>();
   const [check, setCheck] = useState("");
   const preview = useTimePreview(projectId);
-  if (!v) return <p className="empty">{state.error?.message ?? t.project.loading}</p>;
+  if (!v) return <LoadingBar error={state.error} />;
   if (v.blocked.length > 0)
     return (
       <div className="bi">
@@ -94,7 +95,7 @@ export function SalesTab({
   const back = prev ? () => go(prev) : null;
   const onward = { label: t.step.next, onPress: () => go(CS_STEPS[i + 1] ?? current) };
   const toValues = () => navigate({ name: "project", id: projectId, tab: "check" });
-  const loading = <p className="empty">{setup.error?.message ?? t.project.loading}</p>;
+  const loading = <LoadingBar error={setup.error} />;
   const errors = (
     <>
       {change.error && (

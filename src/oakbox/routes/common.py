@@ -25,7 +25,11 @@ def editing(project_id: str, settings: bool = False) -> Iterator[projects.Projec
     nothing. Every route that changes a project changes it here, or holds projects.lock itself."""
     with projects.lock(project_id):
         project = load_project(project_id)
+        before = project.model_dump_json()
         yield project
+        # Nothing changed (the option already chosen, pressed again): nothing written, so nothing worked out again.
+        if project.model_dump_json() == before:
+            return
         projects.save(project)
         if settings:
             projects.write_settings(project)

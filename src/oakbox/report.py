@@ -609,7 +609,7 @@ def final_set_name(key: str) -> str:
 
 
 def _method(project: Project, project_dir: Path, receipt: final.FinalReceipt, stds: dict[str, ratio.Standard]) -> str:
-    from oakbox import assemble, clean, model, varlists
+    from oakbox import clean, model, varlists
 
     out = ['<section class="page"><h2>How the values were made</h2><dl>']
     files = ", ".join(f.name for f in project.files) or "—"
@@ -645,7 +645,7 @@ def _method(project: Project, project_dir: Path, receipt: final.FinalReceipt, st
         "</tr></thead><tbody>"
     )
     lists = {x.id: x for x in varlists.lists(project, project_dir)}
-    modeled = assemble.modeled(project, project_dir)
+    modeled = model.to_model(project, project_dir)
     left_out = {g.id for g in receipt.groups if g.unvalued}
     for g in project.groups:
         if g.id not in modeled or g.id in left_out:

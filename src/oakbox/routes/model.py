@@ -66,6 +66,25 @@ def model_group(project_id: str, group: str, body: GroupModelsBody) -> model.Mod
         raise HTTPException(409, str(e)) from e
 
 
+class SkipBody(BaseModel):
+    skip: bool = Field(description="True: the group isn't modeled, its parcels left unvalued; false: modeled again.")
+
+
+@router.put("/api/projects/{project_id}/model/groups/{group}/skip")
+def model_group_skip(project_id: str, group: str, body: SkipBody) -> model.ModelSetup:
+    """A model group not modeled (chosen on Models): its parcels left unvalued; Model groups isn't changed."""
+    with editing(project_id) as project:
+        pdir = projects.project_dir(project_id)
+        try:
+            model.set_skip(project, group, body.skip)
+        except NotFound as e:
+            raise HTTPException(404, f"No model group {group}.") from e
+    try:
+        return model.setup(project, pdir)
+    except NotReady as e:
+        raise HTTPException(409, str(e)) from e
+
+
 @router.get("/api/projects/{project_id}/model/stack/{group}")
 def model_stack(
     project_id: str, group: str, fields: Annotated[list[str] | None, Query()] = None

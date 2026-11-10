@@ -4,6 +4,7 @@ import type { Project, Wizard } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { DeleteButton } from "../components/Buttons";
 import { Tick } from "../components/Form";
+import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { FieldRow } from "./FieldRow";
 import type { MutateAsync } from "./wizardChange";
@@ -110,15 +111,20 @@ function Pending({ text }: { text: string }) {
 /** The set's name, saved when it's left (or Enter). */
 function SetName({ name, rename }: { name: string; rename: (n: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
+  // What was saved stays shown while it saves, not the old value (AGENTS.md).
+  const [held, hold] = useAtOnce(name);
   const save = () => {
     const next = draft?.trim();
-    if (next && next !== name) rename(next);
+    if (next && next !== held) {
+      hold(next);
+      rename(next);
+    }
     setDraft(null);
   };
   return (
     <TextField
       aria-label={v.name}
-      value={draft ?? name}
+      value={draft ?? held}
       onChange={setDraft}
       onBlur={save}
       className="vs-name"
