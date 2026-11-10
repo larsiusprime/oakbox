@@ -62,11 +62,13 @@ export function ValuesTab({
   const modeled = (mSetup.data?.groups ?? []).filter((g) => g.modeled);
   const gi = Math.min(groupAt, Math.max(modeled.length - 1, 0));
   const group = modeled[gi];
-  // Groups a model of which still has no list (or an empty one): Next waits for them.
+  // Groups a model of which still has no list (or an empty one): Next waits for them. A group not modeled (Don't
+  // model it) waits for nothing.
   const unlisted = modeled.filter(
     (g) =>
-      g.models.length === 0 ||
-      g.models.some((e) => e.warnings.some((w) => w.code === "no_list" || w.code === "list_empty")),
+      !g.skipped &&
+      (g.models.length === 0 ||
+        g.models.some((e) => e.warnings.some((w) => w.code === "no_list" || w.code === "list_empty"))),
   );
   const statusOf = (key: MvStep): StepStatus => {
     switch (key) {
