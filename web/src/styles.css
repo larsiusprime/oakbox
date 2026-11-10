@@ -7877,3 +7877,17 @@ section.wiz-section:has(> .cf-tbl),
   margin: 0;
   color: var(--muted);
 }
+/* Model groups, How to start, with groups already made: Keep them under the line that says so, and Start again below. */
+.mg-have {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  margin-bottom: 0.8rem;
+}
+.mg-have > .wiz-note {
+  margin: 0;
+}
+.mg-have > .form-actions {
+  justify-content: flex-start;
+  margin: 0;
+}

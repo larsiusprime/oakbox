@@ -1189,7 +1189,9 @@ export type Wording = {
       write: string;
       results: string;
     };
-    startedWith: (a: { how: string | number }) => string;
+    haveGroups: (a: { n: number; how: string | number }) => string;
+    keepThem: string;
+    startAgain: string;
     pickStart: string;
     replaceWarn: (a: { n: number }) => string;
     replaceYes: string;

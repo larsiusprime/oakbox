@@ -1583,7 +1583,9 @@
       "write": "Tag and write",
       "results": "What each group got"
     },
-    "startedWith": "You started {how, select, suggested {from the suggested groups} other {from scratch}}. Starting again replaces the groups you have.",
+    "haveGroups": "You have {n, plural, =1 {1 group} other {# groups}}, started {how, select, suggested {from the suggested groups} other {from scratch}}.",
+    "keepThem": "Keep them",
+    "startAgain": "Start again instead",
     "pickStart": "Pick one to start.",
     "replaceWarn": "This replaces your {n} {n, plural, =1 {group} other {groups}}.",
     "replaceYes": "Replace them",
