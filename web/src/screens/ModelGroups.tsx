@@ -191,15 +191,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
                     </span>
                   </Radio>
                 </Radios>
-                <div className="form-actions">
-                  <Button
-                    className="button button-primary"
-                    isDisabled={!how || start.isPending}
-                    onPress={() => how && (saved.length ? setReplace(how) : start.mutate(how))}
-                  >
-                    {g.startButton}
-                  </Button>
-                </div>
+
                 {replace && (
                   <div className="bi-warn mg-replace" role="alert">
                     {g.replaceWarn({ n: saved.length })}{" "}
@@ -227,9 +219,18 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               </p>
             )}
           </StepBody>
+          {/* Start at the foot, where Next is on every step: what's chosen above starts the groups. */}
           <StepFoot
-            next={v.start ? { label: t.step.next, onPress: () => go("build") } : null}
-            note={v.start ? null : g.pickStart}
+            next={
+              !have || again
+                ? {
+                    label: g.startButton,
+                    onPress: () => how && (saved.length ? setReplace(how) : start.mutate(how)),
+                    disabled: !how || start.isPending,
+                  }
+                : { label: t.step.next, onPress: () => go("build") }
+            }
+            note={!have && !how ? g.pickStart : null}
           />
         </>
       )}
@@ -243,7 +244,6 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
               groups={saved}
               preview={p}
               unassignedColor={v.unassigned_color}
-              edit={() => go("build")}
               setModeled={(id, modeled) =>
                 save.mutate(saved.map((x) => (x.id === id ? { ...x, modeled } : x)))
               }
@@ -403,6 +403,10 @@ function Builder({
   const ids = asked.map((x) => x.id);
   // Unassigned alone: every group off, unassigned on. Clicking it again (or the legend) brings them back.
   const onlyUnassigned = ids.length > 0 && ids.every((id) => hidden.has(id)) && !hidden.has("");
+  // The one group shown alone on the map (every other one, and Unassigned, switched off), if any.
+  const isolated =
+    ids.find((id) => !hidden.has(id) && hidden.has("") && ids.every((o) => o === id || hidden.has(o))) ??
+    null;
   const toggle = (key: string, on: boolean) => {
     const next = new Set(hidden);
     if (on) next.delete(key);
@@ -447,7 +451,13 @@ function Builder({
                 stats={statsFor(x.id)}
                 delta={delta(p, x.id)}
                 isSelected={x.id === selected}
-                onSelect={() => setSelected(x.id)}
+                onSelect={() => {
+                  // As Unassigned does: its parcels alone on the map; clicked again, every group back.
+                  setSelected(x.id);
+                  setHighlight(null);
+                  setHidden(isolated === x.id ? new Set() : new Set([...ids, ""].filter((k) => k !== x.id)));
+                  if (!dockNow().out) setDock({ open: true });
+                }}
                 onUp={i > 0 ? () => move(i, -1) : undefined}
                 onDown={i < draft.length - 1 ? () => move(i, 1) : undefined}
               />

@@ -13,13 +13,11 @@ export function GroupChecks({
   groups,
   preview: p,
   unassignedColor,
-  edit,
   setModeled,
 }: {
   groups: ModelGroup[];
   preview: GroupsPreview | undefined;
   unassignedColor: string;
-  edit: () => void;
   setModeled: (id: string, modeled: boolean) => void;
 }) {
   if (!p) return <LoadingBar />;
@@ -82,12 +80,6 @@ export function GroupChecks({
           })}
         </tbody>
       </table>
-      <p className="wiz-from">
-        {g.checkFix}{" "}
-        <Button className="button button-small" onPress={edit}>
-          {g.backToBuild}
-        </Button>
-      </p>
     </>
   );
 }

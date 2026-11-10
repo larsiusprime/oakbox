@@ -48,15 +48,7 @@ const preview = {
 
 describe("GroupChecks", () => {
   it("lists each group, Unassigned last, with its counts and what needs a look", () => {
-    render(
-      <GroupChecks
-        groups={groups}
-        preview={preview}
-        unassignedColor="#999"
-        edit={() => {}}
-        setModeled={() => {}}
-      />,
-    );
+    render(<GroupChecks groups={groups} preview={preview} unassignedColor="#999" setModeled={() => {}} />);
     const rows = screen.getAllByRole("row").slice(1); // after the heading
     expect(rows.map((r) => within(r).getAllByRole("cell")[1]?.textContent)).toEqual([
       "Single family",
@@ -76,32 +68,13 @@ describe("GroupChecks", () => {
 
   it("ticks a group in or out of modelling, and goes back to the builder", () => {
     const setModeled = vi.fn();
-    const edit = vi.fn();
-    render(
-      <GroupChecks
-        groups={groups}
-        preview={preview}
-        unassignedColor="#999"
-        edit={edit}
-        setModeled={setModeled}
-      />,
-    );
+    render(<GroupChecks groups={groups} preview={preview} unassignedColor="#999" setModeled={setModeled} />);
     fireEvent.click(screen.getByRole("checkbox", { name: `${t.groups.modelIt}: Single family` }));
     expect(setModeled).toHaveBeenCalledWith("sf", false);
-    fireEvent.click(screen.getByRole("button", { name: t.groups.backToBuild }));
-    expect(edit).toHaveBeenCalledOnce();
   });
 
   it("says it's loading until the counts come in", () => {
-    render(
-      <GroupChecks
-        groups={groups}
-        preview={undefined}
-        unassignedColor="#999"
-        edit={() => {}}
-        setModeled={() => {}}
-      />,
-    );
+    render(<GroupChecks groups={groups} preview={undefined} unassignedColor="#999" setModeled={() => {}} />);
     expect(screen.getByRole("status", { name: t.project.loading })).toBeTruthy();
   });
 });

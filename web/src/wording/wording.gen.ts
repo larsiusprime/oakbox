@@ -1215,7 +1215,6 @@ export type Wording = {
     modelItTip: string;
     notModeled: string;
     checksCol: string;
-    checkFix: string;
     backToBuild: string;
     writeTitle: string;
     looksRightNext: string;
