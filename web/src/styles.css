@@ -4114,29 +4114,40 @@ tr.bi-kept > td {
 }
 /* The sales per year: as wide as the text above it, not the whole panel. */
 .cs-bars {
+  /* A column per year, the latest first; many years scroll sideways in it, never squeezed. */
   display: flex;
-  max-width: 58rem;
-  gap: 3px;
-  height: 5rem;
-  align-items: stretch;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--muted);
 }
 .cs-bar {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  font-size: 0.72rem;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  gap: 2px;
+  flex: none;
+  min-width: 2.6rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: var(--muted);
-  text-align: center;
 }
 .cs-bar i {
   display: block;
+  width: 100%;
+  min-height: 1px;
   background: var(--chart-bar);
   border-radius: 2px 2px 0 0;
-  min-height: 1px;
 }
 .cs-bar i.out {
   background: #d9dde3;
+}
+.cs-bar-y {
+  font-size: 0.8rem;
+  color: var(--text);
 }
 .cs-n {
   text-align: right;
