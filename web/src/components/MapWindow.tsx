@@ -39,7 +39,7 @@ import {
 } from "../lib/mapdock";
 import { setSlot, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
-import { readShapes, type Shapes, toBinary } from "../lib/shapes";
+import { readShapes, type Shapes, shapeSize, toBinary } from "../lib/shapes";
 import { RangedBars, useChosenRange } from "../screens/FieldHistogram";
 import { GroupsOnMap } from "../screens/GroupMap";
 import { CentreOnMap, LocationsOnMap } from "../screens/Location";
@@ -935,11 +935,15 @@ function MapBody({
         ];
       })
     : [];
+  // Some parcel files hold only a small square at each parcel's point (scattered specks): drawn as shapes, they're
+  // lost under a pixel until zoomed right in, so each is also a dot, at least a few pixels across, under its shape.
+  const specks = shapes.data ? !!shapeSize(shapes.data)?.scattered : false;
   const parcels = ((): Layer[] => {
     if (!xy || !plan) return [] as Layer[];
     if (plan.kind === "shapes" && shapes.data) {
       const data = toBinary(shapes.data, plan.ids);
       return [
+        ...(specks ? [specksLayer(xy, plan.ids, paint, setPicked)] : []),
         new GeoJsonLayer({
           id: "parcels",
           data: data as never,
@@ -1536,6 +1540,23 @@ function dotsLayer(
     onClick: ({ object }) => {
       const p = object ? (d.parcel[(object as Dot).sale] ?? -1) : -1;
       if (p >= 0) onPick(p);
+    },
+  });
+}
+
+/** Parcels whose shapes are specks, as dots at their centres, a few pixels across however far out. */
+function specksLayer(xy: Float32Array, ids: number[], paint: Paint, onPick: (parcel: number) => void): Layer {
+  return new ScatterplotLayer<number>({
+    id: "specks",
+    data: ids,
+    pickable: true,
+    radiusUnits: "pixels",
+    getRadius: 3.5,
+    getPosition: (p) => [xy[2 * p] ?? 0, xy[2 * p + 1] ?? 0],
+    getFillColor: (p) => paint.fill(p),
+    updateTriggers: { getFillColor: paint },
+    onClick: ({ object }) => {
+      if (typeof object === "number") onPick(object);
     },
   });
 }

@@ -5918,8 +5918,22 @@ under what it's about; a file appended as rows {
 /* In a narrow card (a field's two capsules side by side), the values button goes under the reading, never past
    the card's edge. */
 .as-cap .field-tools {
-  display: inline-flex;
-  flex-wrap: wrap;
+  /* In a capsule: the reading on the left; the values and Map buttons stacked at the right, one width. */
+  display: inline-grid;
+  grid-template-columns: minmax(0, 11rem) auto;
+  column-gap: 0.5rem;
+  row-gap: 0.3rem;
+}
+.as-cap .field-tools > :first-child {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+.as-cap .field-tools > .vals-button,
+.as-cap .field-tools > .show-on-map {
+  grid-column: 2;
+  justify-self: end;
+  justify-content: center;
+  width: 8.5rem;
 }
 /* Only where the sheet is near its narrowest (a map docked beside it): the values button under the reading. */
 .wiz-body {
@@ -8137,4 +8151,15 @@ section.wiz-section:has(> .cf-tbl),
 .cf-td.cf-remove > * {
   margin: 0 auto;
   vertical-align: middle;
+}
+/* A capsule's values and Map buttons (a field read in its own box): stacked at the right, one width. */
+.wiz-capsule > .wiz-samples:has(> .show-on-map) {
+  display: inline-grid;
+  justify-items: stretch;
+  gap: 0.3rem;
+}
+.wiz-capsule > .wiz-samples > :is(.vals-button, .show-on-map) {
+  justify-content: center;
+  width: 8.5rem;
+  margin-left: 0;
 }
