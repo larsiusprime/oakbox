@@ -3418,7 +3418,7 @@ ul.mg-checks {
   font-size: 0.9rem;
 }
 .cf-th {
-  padding: calc(0.15 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp)) 0;
+  padding: calc(0.15 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp));
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -3426,7 +3426,7 @@ ul.mg-checks {
   border-bottom: 1px solid var(--rule);
 }
 .cf-td {
-  padding: calc(0.25 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp)) 0;
+  padding: calc(0.25 * var(--sp)) calc(0.5 * var(--sp));
   vertical-align: middle;
   border-bottom: 1px solid var(--cell-line);
 }
@@ -8115,4 +8115,26 @@ section.wiz-section:has(> .cf-tbl),
   display: inline-flex;
   gap: 0.4rem;
   margin-left: 0.5rem;
+}
+/* Location fields: every field's row as wide as the widest, its buttons at the right edge, lined up row to row. */
+.loc-side > .entry-list {
+  display: grid;
+  width: max-content;
+  max-width: 100%;
+}
+.wiz-loc > .vals-button {
+  margin-left: auto;
+}
+.wiz-loc > .show-on-map {
+  min-width: 8.5rem;
+  justify-content: center;
+}
+/* Your own fields: the remove button centred in its cell. */
+.cf-td.cf-remove {
+  width: 1%;
+  text-align: center;
+}
+.cf-td.cf-remove > * {
+  margin: 0 auto;
+  vertical-align: middle;
 }

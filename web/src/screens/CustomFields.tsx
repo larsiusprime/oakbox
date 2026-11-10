@@ -5,6 +5,7 @@ import { AddButton } from "../components/AddButton";
 import { SmallButton } from "../components/Buttons";
 import { Choice } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
+import { SummonMap } from "../components/ShowOnMap";
 import { ValuesButton } from "../components/ValuesButton";
 import { t } from "../wording";
 
@@ -143,10 +144,11 @@ export function CustomFields({
                       column={x.column}
                       distinct={x.distinct}
                     />
+                    <SummonMap field={`${x.file}:${x.column}`} label={t.mapWindow.step.mapIt} />
                     {(x.check.warn || !x.check.ok) && <span className="wiz-warn">{x.check.text}</span>}
                   </span>
                 </td>
-                <td className="cf-td">
+                <td className="cf-td cf-remove">
                   <RemoveButton
                     what={x.name}
                     onPress={() => set({ file: null, column: null })}

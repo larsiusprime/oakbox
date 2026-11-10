@@ -208,6 +208,7 @@ function ParcelMap({
   return (
     <MapBox
       className={className}
+      interleaved
       label={l.mapLabel}
       layers={layers}
       bounds={boundsOf(points)}

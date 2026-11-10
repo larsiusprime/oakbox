@@ -167,6 +167,7 @@ function MapCanvas({
   tooltip,
   cursor,
   onMap,
+  interleaved = false,
   children,
 }: {
   /** What's drawn: deck.gl layers. */
@@ -190,6 +191,9 @@ function MapCanvas({
   cursor?: (info: PickingInfo) => string;
   /** The map, once made (and null when gone): for markers of its own, like a pin to drag. */
   onMap?: (m: maplibregl.Map | null) => void;
+  /** What's drawn goes into the map's own canvas (deck.gl interleaved), so a marker of its own (the centre's pin) is
+   * always over it, whatever stacks the page's layers. */
+  interleaved?: boolean;
   children?: React.ReactNode;
 }) {
   const el = useRef<HTMLDivElement>(null);
@@ -198,12 +202,12 @@ function MapCanvas({
   const [street, setStreet] = useState(startStreet);
   const [ready, setReady] = useState(false);
   const styleUrl = useAppSettings().data?.map_style;
-  const first = useRef({ bounds, scrollZoom, onMap });
+  const first = useRef({ bounds, scrollZoom, onMap, interleaved });
 
   // The map, once.
   useEffect(() => {
     if (!el.current) return;
-    const { bounds: b, scrollZoom: wheel, onMap: give } = first.current;
+    const { bounds: b, scrollZoom: wheel, onMap: give, interleaved: inCanvas } = first.current;
     const m = new maplibregl.Map({
       container: el.current,
       style: PLAIN,
@@ -228,7 +232,7 @@ function MapCanvas({
       document.addEventListener("focusin", off);
     }
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
-    const o = new MapboxOverlay({ interleaved: false, layers: [] });
+    const o = new MapboxOverlay({ interleaved: inCanvas, layers: [] });
     m.addControl(o);
     m.on("load", () => setReady(true));
     map.current = m;
