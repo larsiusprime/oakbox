@@ -524,8 +524,8 @@ the field steps, checks, guesses, assumptions and Review carry over.
   do. Under half matching blocks; under 95% is a warning. Its red − sets it aside (D47), with Undo. Settings: parcel
   files join `merge.universe` (with `on` for an extra ID), sales details join `merge.sales` after the main file, each
   with `dupes` on its join key. **What it's about, then how it joins** (revised 2026-10-31, 2026-11-04): **It's about**
-  **Parcels** or **Sales**; then, under it, **It adds**: **More about each parcel / sale** (joined on the ID, as above),
-  or **More parcels / More sales** (appended as extra rows); both choices are segmented controls on the entry's two
+  **Parcels** or **Sales**; then, under it, **It**: **Joins new columns** (more about each parcel / sale, joined on the ID, as
+  above), or **Appends new rows** (more parcels / sales) (revised 2026-11-10); both choices are segmented controls on the entry's two
   columns (revised 2026-11-04) (older sales, sales from another system, sales found some other way; a second parcel
   file). Joined to each sale works with a made sale ID too: the file's own is made the same way, from its parcel ID and
   a **Sale date** picked beside it ("Its sale ID is made as the sales record's"), and its match check warns when most
