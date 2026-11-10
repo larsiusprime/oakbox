@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, type Histogram, unwrap } from "../api/client";
+import { useSettled } from "../lib/hooks";
 import { RangedBars } from "../screens/FieldHistogram";
 import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
@@ -46,15 +47,17 @@ export function openRow(e: React.MouseEvent<HTMLElement>) {
 
 function Detail({ projectId, set, field }: { projectId: string; set: "universe" | "sales"; field: string }) {
   const [search, setSearch] = useState("");
+  // Asked once typing pauses, not per keystroke; the list stays up meanwhile.
+  const asked = useSettled(search.trim(), 250);
   const [sort, setSort] = useState<ValueSort>(null);
   const q = useQuery({
-    queryKey: ["field-detail", projectId, set, field, search, sort],
+    queryKey: ["field-detail", projectId, set, field, asked, sort],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/bring-in/fields/{name}/{field}", {
           params: {
             path: { project_id: projectId, name: set, field },
-            query: { search, ...(sort ? { sort: sort.by, desc: sort.desc } : {}) },
+            query: { search: asked, ...(sort ? { sort: sort.by, desc: sort.desc } : {}) },
           },
         }),
       ),

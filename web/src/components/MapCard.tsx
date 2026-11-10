@@ -4,7 +4,7 @@
  * never changes the step; only the links here go anywhere. */
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Pin } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";

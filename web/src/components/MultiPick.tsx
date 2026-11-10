@@ -2,7 +2,6 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Input, Popover, SearchField } from "react-aria-components";
 import { num, short } from "../lib/format";
-import { offerUndo } from "../lib/undo";
 import { t } from "../wording";
 import { AddButton } from "./AddButton";
 import { Tick } from "./Form";

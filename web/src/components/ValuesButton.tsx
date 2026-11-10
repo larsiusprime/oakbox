@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button, Dialog, DialogTrigger, Heading, Input, Popover, SearchField } from "react-aria-components";
 import { api, unwrap } from "../api/client";
+import { useSettled } from "../lib/hooks";
 import { say, t } from "../wording";
 import { type ValueSort, ValueTable } from "./ValueTable";
 
@@ -46,15 +47,17 @@ export function ValuesButton({
 
 function ValuesList({ projectId, file, column }: { projectId: string; file: string; column: string }) {
   const [search, setSearch] = useState("");
+  // Asked once typing pauses, not per keystroke; the list stays up meanwhile.
+  const asked = useSettled(search.trim(), 250);
   const [sort, setSort] = useState<ValueSort>(null);
   const q = useQuery({
-    queryKey: ["column-values", projectId, file, column, search, sort],
+    queryKey: ["column-values", projectId, file, column, asked, sort],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/wizard/files/{name}/values", {
           params: {
             path: { project_id: projectId, name: file },
-            query: { column, search, ...(sort ? { sort: sort.by, desc: sort.desc } : {}) },
+            query: { column, search: asked, ...(sort ? { sort: sort.by, desc: sort.desc } : {}) },
           },
         }),
       ),

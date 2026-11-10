@@ -1,5 +1,6 @@
 import { type CalendarDate, parseDate } from "@internationalized/date";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef } from "react";
 import {
   Button,
   Calendar,
@@ -32,16 +33,35 @@ export function DateField(props: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  /** Once the date is done: the box left, Enter pressed, or a day picked on the calendar (not each typed part). */
+  onCommit?: (v: string) => void;
   width?: "short" | "medium" | "long";
 }) {
+  // The latest date typed or picked, read when it's done (the parent may not have re-rendered with it yet).
+  const latest = useRef(props.value);
+  const done = () => props.onCommit?.(latest.current);
   return (
     <DatePicker
       className={`field field-${props.width ?? "medium"} date-field`}
       value={parse(props.value)}
-      onChange={(d) => props.onChange(d ? d.toString() : "")}
+      onChange={(d) => {
+        latest.current = d ? d.toString() : "";
+        props.onChange(latest.current);
+      }}
+      onOpenChange={(open) => {
+        if (!open) done();
+      }}
     >
       <Label className="field-label">{props.label}</Label>
-      <Group className="date-group">
+      <Group
+        className="date-group"
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) done();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") done();
+        }}
+      >
         <DateInput className="date-input">
           {(segment) => <DateSegment segment={segment} className="date-seg" />}
         </DateInput>

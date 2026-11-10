@@ -336,19 +336,15 @@ function SalesCard({ v, set }: CardProps) {
             label={r.sales.from}
             width="short"
             value={start}
-            onChange={(v) => {
-              setStart(v);
-              commit("start", v);
-            }}
+            onChange={setStart}
+            onCommit={(v) => commit("start", v)}
           />
           <DateField
             label={r.sales.to}
             width="short"
             value={end}
-            onChange={(v) => {
-              setEnd(v);
-              commit("end", v);
-            }}
+            onChange={setEnd}
+            onCommit={(v) => commit("end", v)}
           />
         </div>
         {v.window_proposed ? (
