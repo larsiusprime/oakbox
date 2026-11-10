@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, type ReactNode, useState } from "react";
-import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
+import { Button, Input, Radio, TextField } from "react-aria-components";
 import {
   api,
   type Condition,
@@ -12,7 +12,7 @@ import {
 } from "../api/client";
 import { AddButton } from "../components/AddButton";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
-import { Choice, Tick } from "../components/Form";
+import { Choice, Radios, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { Seg } from "../components/Seg";
@@ -132,7 +132,7 @@ function Ask({ data, change }: Props) {
           <p>{u.noEvidence}</p>
         )}
       </div>
-      <RadioGroup
+      <Radios
         aria-label={u.answer}
         className="cu-choices cu-big"
         value={value}
@@ -140,7 +140,7 @@ function Ask({ data, change }: Props) {
       >
         <Card value="yes" title={u.yes} sub={u.yesSub} />
         <Card value="no" title={u.no} sub={u.noSub} />
-      </RadioGroup>
+      </Radios>
       {c.answer === false && c.evidence.length > 0 && <p className="wiz-from">{u.noLeft}</p>}
     </div>
   );
@@ -151,7 +151,7 @@ function FileChoice({ projectId, data, change }: Props) {
   if (!c) return null;
   return (
     <div className="cu">
-      <RadioGroup
+      <Radios
         aria-label={u.fileLabel}
         className="cu-choices"
         value={c.file}
@@ -174,7 +174,7 @@ function FileChoice({ projectId, data, change }: Props) {
             />
           );
         })}
-      </RadioGroup>
+      </Radios>
       <p className="cu-row">
         <span className="wiz-from">{u.notListed}</span>
         <Button
@@ -195,7 +195,7 @@ function Rows({ projectId, file, v, change }: Part) {
   const cols = file.columns.map((c) => [c.name, c.name] as const);
   return (
     <>
-      <RadioGroup
+      <Radios
         aria-label={u.which}
         className="cu-choices"
         value={s.rule ? "where" : "every"}
@@ -213,7 +213,7 @@ function Rows({ projectId, file, v, change }: Part) {
       >
         <Card value="every" title={u.every} sub={u.everySub} />
         <Card value="where" title={u.where} sub={u.whereSub} />
-      </RadioGroup>
+      </Radios>
       {s.rule && (
         <RuleLines
           projectId={projectId}
@@ -330,7 +330,7 @@ function Land({ data, file, v, change }: Part) {
   const own = landField ? v.fields.find((f) => f.field === landField.key) : undefined;
   return (
     <>
-      <RadioGroup
+      <Radios
         aria-label={u.land}
         className="cu-choices"
         value={s.land}
@@ -355,7 +355,7 @@ function Land({ data, file, v, change }: Part) {
             </Card>
           );
         })}
-      </RadioGroup>
+      </Radios>
       <p className={v.land.ok ? (v.land.warn ? "wiz-warn" : "wiz-ok") : "wiz-bad"}>{v.land.text}</p>
       <Examples v={v} show="land" />
     </>

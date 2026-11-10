@@ -7893,3 +7893,47 @@ section.wiz-section:has(> .cf-tbl),
   justify-content: flex-start;
   margin: 0;
 }
+
+/* ---------- Dialogs (components/DialogParts.tsx): sections split by a hairline, a strip at the foot ----------
+   One sheet: each thing to decide is a section (a bold heading, a few words beside it, what shows it, its choice);
+   no boxes or coloured bars inside. What Save will do and the buttons sit together on the foot strip. */
+.modal-body > .dlg-sec {
+  display: grid;
+  gap: 0.5rem;
+  padding: calc(0.8 * var(--sp)) calc(0.9 * var(--sp));
+}
+.modal-body > .dlg-sec + .dlg-sec {
+  border-top: 1px solid var(--rule);
+}
+.dlg-sec-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+.dlg-sec-head > h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.modal-body > .dlg-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  padding: calc(0.6 * var(--sp)) calc(0.9 * var(--sp));
+  background: #f6f6f3;
+  border-top: 1px solid var(--rule);
+}
+.dlg-grow {
+  flex: 1;
+}
+/* In a dialog, a question is a plain label over its answers: the page's call-out box would carve the sheet up. */
+.modal-body .wiz-act {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.modal-body .wiz-act-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
+import { Button, Input, Radio, TextField } from "react-aria-components";
 import type { RatioPatch, RatioSetup } from "../api/client";
 import { AddButton } from "../components/AddButton";
-import { Tick } from "../components/Form";
+import { Radios, Tick } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { RemoveButton } from "../components/RemoveButton";
 import { InfoTip } from "../components/Tip";
@@ -18,7 +18,7 @@ export function WhoseCard({ v, set }: Props) {
   const [start, setStart] = useState<"iaao" | "empty">("iaao");
   return (
     <div className="rv-cards">
-      <RadioGroup
+      <Radios
         aria-label={s.whose}
         className="cu-choices"
         value={v.source}
@@ -38,8 +38,8 @@ export function WhoseCard({ v, set }: Props) {
             <span className="cu-sub">{s.custom[1]}</span>
           </span>
         </Radio>
-      </RadioGroup>
-      <RadioGroup
+      </Radios>
+      <Radios
         aria-label={s.startWith}
         className="rv-choices rv-start"
         value={start}
@@ -58,7 +58,7 @@ export function WhoseCard({ v, set }: Props) {
           <span className="radio-dot" aria-hidden="true" />
           {s.startEmpty}
         </Radio>
-      </RadioGroup>
+      </Radios>
       <p className="wiz-from">{s.source}</p>
     </div>
   );

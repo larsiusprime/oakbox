@@ -37,3 +37,13 @@ export function useOnSettled<T>(value: T, run: (v: T) => void, ms = 600): void {
     latest.current(JSON.parse(settled) as T);
   }, [settled]);
 }
+
+/** A control's value shown at once (AGENTS.md: instant feedback): what was just pressed shows until the value it was
+ * pressed over changes (saved and read back, or changed elsewhere), however long the save takes. A save that fails
+ * leaves it showing the press; the failure is said where the save is. */
+export function useAtOnce<T>(value: T): [T, (v: T) => void] {
+  const [mine, setMine] = useState<{ v: T; over: string } | null>(null);
+  const now = JSON.stringify(value ?? null);
+  const shown = mine && mine.over === now ? mine.v : value;
+  return [shown, (v: T) => setMine({ v, over: now })];
+}

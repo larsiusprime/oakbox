@@ -14,7 +14,7 @@ import warningIcon from "../assets/noto/emoji_u26a0.svg";
 import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
-import { FileName, NamesFiles } from "../components/FileEntry";
+import { FileName } from "../components/FileEntry";
 import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
 import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";

@@ -1,13 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Map as MapIcon, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button, Radio, RadioGroup } from "react-aria-components";
+import { Button, Radio } from "react-aria-components";
 import { api, type GroupsPreview, type GroupsView, type ModelGroup, type Move, unwrap } from "../api/client";
 import { stepChanged, useStep, useStepAct, useStepNav } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { DeleteButton, ToolButton } from "../components/Buttons";
 import { Disclose } from "../components/Disclose";
-import { Tick } from "../components/Form";
+import { Radios, Tick } from "../components/Form";
 import { Seg } from "../components/Seg";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { NO_COLOUR } from "../lib/colours";
@@ -180,7 +180,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
             {(!have || again) && (
               <>
                 {/* A choice, then Start: cards that acted at once read as neither a choice nor a button. */}
-                <RadioGroup
+                <Radios
                   aria-label={g.startTitle}
                   className="cu-choices mg-start-cards"
                   value={how}
@@ -200,7 +200,7 @@ export function ModelGroupsTab({ projectId, currency }: { projectId: string; cur
                       <span className="cu-sub">{g.scratchHelp}</span>
                     </span>
                   </Radio>
-                </RadioGroup>
+                </Radios>
                 <div className="form-actions">
                   <Button
                     className="button button-primary"

@@ -11,7 +11,6 @@ import {
   Modal,
   ModalOverlay,
   Radio,
-  RadioGroup,
 } from "react-aria-components";
 import {
   api,
@@ -27,8 +26,9 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { AddButton } from "../components/AddButton";
 import { firstSentence } from "../components/Callout";
+import { DialogFoot, DialogSection } from "../components/DialogParts";
 import { FileEntry, FileName, FileSlot, fileFacts, NamesFile } from "../components/FileEntry";
-import { Choice, Tick } from "../components/Form";
+import { Choice, Radios, Tick } from "../components/Form";
 import { ReadingLine } from "../components/Reading";
 import { RemoveButton } from "../components/RemoveButton";
 import { TipOn } from "../components/Tip";
@@ -334,134 +334,121 @@ function DupesDialog({
             <NamesFile text={d.title({ file: file.name, column: file.id_column ?? "" })} name={file.name} />
           </Heading>
           {hasRepeats && (
-            <div className="wiz-section-head-row">
-              <h3 className="wiz-sub">{d.repeatsTitle({ n: r.repeated })}</h3>
-              <span className="wiz-from">{r.few ? d.fewMeans : d.manyMeans}</span>
-            </div>
-          )}
-          {hasRepeats && examples.data && shown && (
-            <div className="wiz-dupes-table">
-              <table className="tbl wiz-table">
-                <thead>
-                  <tr>
-                    {policy === "first" && <th />}
-                    {examples.data.columns.map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map(({ row, band: b, kept: k }, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
-                    <tr key={i} className={`${b ? "band-b" : "band-a"}${k ? " dupes-kept" : ""}`}>
-                      {policy === "first" && <td>{k && <span className="pill pill-ok">{d.kept}</span>}</td>}
-                      {row.map((v, j) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
-                        <td key={j} className="mono">
-                          <Val v={v} />
-                        </td>
+            <DialogSection title={d.repeatsTitle({ n: r.repeated })} note={r.few ? d.fewMeans : d.manyMeans}>
+              {examples.data && shown && (
+                <div className="wiz-dupes-table">
+                  <table className="tbl wiz-table">
+                    <thead>
+                      <tr>
+                        {policy === "first" && <th />}
+                        {examples.data.columns.map((c) => (
+                          <th key={c}>{c}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shown.map(({ row, band: b, kept: k }, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: example rows have no identity of their own
+                        <tr key={i} className={`${b ? "band-b" : "band-a"}${k ? " dupes-kept" : ""}`}>
+                          {policy === "first" && (
+                            <td>{k && <span className="pill pill-ok">{d.kept}</span>}</td>
+                          )}
+                          {row.map((v, j) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: cells by position
+                            <td key={j} className="mono">
+                              <Val v={v} />
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {hasRepeats && (
-            <RadioGroup
-              className="field radios wiz-act"
-              value={policy}
-              onChange={(v) => setPolicy(v as "first" | "all")}
-            >
-              <Label className="wiz-act-label">{d.what}</Label>
-              <Radio value="first" className="radio">
-                <span className="radio-dot" aria-hidden="true" />
-                {d.first}
-              </Radio>
-              {policy === "first" && (
-                <div className="wiz-indent dupes-levels">
-                  {levels.length === 0 && <p className="wiz-from">{d.fileOrder}</p>}
-                  {levels.map((l, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a level is its place in the order
-                    <div key={i} className="dupes-level">
-                      <span className="dupes-level-label">{i === 0 ? d.sortBy : d.thenBy}</span>
-                      <Choice
-                        label={`${i === 0 ? d.sortBy : d.thenBy} (${i + 1})`}
-                        hideLabel
-                        value={l.column}
-                        options={columns.map((c) => [c, c] as const)}
-                        onChange={(column) =>
-                          setLevels(levels.map((x, j) => (j === i ? { ...x, column } : x)))
-                        }
-                      />
-                      <Choice
-                        label={`${d.order} (${i + 1})`}
-                        hideLabel
-                        value={l.desc ? "desc" : "asc"}
-                        options={[
-                          ["asc", d.asc],
-                          ["desc", d.desc],
-                        ]}
-                        onChange={(v) =>
-                          setLevels(levels.map((x, j) => (j === i ? { ...x, desc: v === "desc" } : x)))
-                        }
-                      />
-                      <RemoveButton
-                        what={d.levelWhat({ column: l.column })}
-                        onPress={() => setLevels(levels.filter((_, j) => j !== i))}
-                        undo={() => setLevels(levels)}
-                      />
-                    </div>
-                  ))}
-                  <AddButton
-                    onPress={() =>
-                      setLevels([
-                        ...levels,
-                        {
-                          column:
-                            columns.find(
-                              (c) => c !== file.id_column && !levels.some((x) => x.column === c),
-                            ) ??
-                            columns[0] ??
-                            "",
-                          desc: false,
-                        },
-                      ])
-                    }
-                  >
-                    {levels.length ? d.addThen : d.addSort}
-                  </AddButton>
-                  {examples.data && <p className="wiz-from">{d.keptNote}</p>}
+                    </tbody>
+                  </table>
                 </div>
               )}
-              <Radio value="all" className="radio">
-                <span className="radio-dot" aria-hidden="true" />
-                {d.all}
-              </Radio>
-            </RadioGroup>
+              <Radios
+                className="field radios wiz-act"
+                value={policy}
+                onChange={(v) => setPolicy(v as "first" | "all")}
+              >
+                <Label className="wiz-act-label">{d.what}</Label>
+                <Radio value="first" className="radio">
+                  <span className="radio-dot" aria-hidden="true" />
+                  {d.first}
+                </Radio>
+                {policy === "first" && (
+                  <div className="wiz-indent dupes-levels">
+                    {levels.length === 0 && <p className="wiz-from">{d.fileOrder}</p>}
+                    {levels.map((l, i) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: a level is its place in the order
+                      <div key={i} className="dupes-level">
+                        <span className="dupes-level-label">{i === 0 ? d.sortBy : d.thenBy}</span>
+                        <Choice
+                          label={`${i === 0 ? d.sortBy : d.thenBy} (${i + 1})`}
+                          hideLabel
+                          value={l.column}
+                          options={columns.map((c) => [c, c] as const)}
+                          onChange={(column) =>
+                            setLevels(levels.map((x, j) => (j === i ? { ...x, column } : x)))
+                          }
+                        />
+                        <Choice
+                          label={`${d.order} (${i + 1})`}
+                          hideLabel
+                          value={l.desc ? "desc" : "asc"}
+                          options={[
+                            ["asc", d.asc],
+                            ["desc", d.desc],
+                          ]}
+                          onChange={(v) =>
+                            setLevels(levels.map((x, j) => (j === i ? { ...x, desc: v === "desc" } : x)))
+                          }
+                        />
+                        <RemoveButton
+                          what={d.levelWhat({ column: l.column })}
+                          onPress={() => setLevels(levels.filter((_, j) => j !== i))}
+                          undo={() => setLevels(levels)}
+                        />
+                      </div>
+                    ))}
+                    <AddButton
+                      onPress={() =>
+                        setLevels([
+                          ...levels,
+                          {
+                            column:
+                              columns.find(
+                                (c) => c !== file.id_column && !levels.some((x) => x.column === c),
+                              ) ??
+                              columns[0] ??
+                              "",
+                            desc: false,
+                          },
+                        ])
+                      }
+                    >
+                      {levels.length ? d.addThen : d.addSort}
+                    </AddButton>
+                    {examples.data && <p className="wiz-from">{d.keptNote}</p>}
+                  </div>
+                )}
+                <Radio value="all" className="radio">
+                  <span className="radio-dot" aria-hidden="true" />
+                  {d.all}
+                </Radio>
+              </Radios>
+            </DialogSection>
           )}
-          {hasRepeats && hasBlanks && <hr className="wiz-rule" />}
           {hasBlanks && (
-            <>
-              <div className="wiz-section-head-row">
-                <h3 className="wiz-sub">{d.blanksTitle({ n: r.blank })}</h3>
-                <span className="wiz-from">{d.blankMeans({ sales: file.holds === "sales" })}</span>
-              </div>
-              <div className="wiz-act">
-                <span className="wiz-act-label">{d.confirm}</span>
-                <Tick isSelected={blankOk} onChange={setBlankOk}>
-                  {d.blankOk({ n: r.blank, sales: file.holds === "sales" })}
-                </Tick>
-              </div>
-            </>
+            <DialogSection
+              title={d.blanksTitle({ n: r.blank })}
+              note={d.blankMeans({ sales: file.holds === "sales" })}
+            >
+              <Tick isSelected={blankOk} onChange={setBlankOk}>
+                {d.blankOk({ n: r.blank, sales: file.holds === "sales" })}
+              </Tick>
+            </DialogSection>
           )}
-          <hr className="wiz-rule" />
-          {kept !== null && (
-            <p>
-              <strong>{d.result({ rows: r.rows, kept })}</strong>
-            </p>
-          )}
-          <div className="form-actions">
+          <DialogFoot result={kept !== null && d.result({ rows: r.rows, kept })}>
             <Button
               className="button button-primary"
               isDisabled={!((hasRepeats && policy !== null) || (hasBlanks && blankOk !== r.blank_ok))}
@@ -485,7 +472,7 @@ function DupesDialog({
             <Button className="button" onPress={close}>
               {w.cancel}
             </Button>
-          </div>
+          </DialogFoot>
         </Dialog>
       </Modal>
     </ModalOverlay>

@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDeferredValue, useState } from "react";
-import { Button, Input, Radio, RadioGroup, TextField } from "react-aria-components";
+import { Button, Input, Radio, TextField } from "react-aria-components";
 import { api, type NamesView, unwrap } from "../api/client";
 import { setupKey, stepChanged } from "../api/steps";
+import { Radios } from "../components/Form";
 import { Val } from "../components/Val";
 import { t } from "../wording";
 
@@ -66,7 +67,7 @@ export function DeedNames({ projectId }: { projectId: string }) {
       <h3 className="wiz-group">{n.title}</h3>
       <p className="wiz-from">{n.lede}</p>
       {v.surname_fields && <p className="wiz-note">{n.surnameFields}</p>}
-      <RadioGroup
+      <Radios
         aria-label={n.how}
         className="dn-formats"
         value={format}
@@ -88,7 +89,7 @@ export function DeedNames({ projectId }: { projectId: string }) {
           <span className="radio-dot" aria-hidden="true" />
           <span>{n.custom}</span>
         </Radio>
-      </RadioGroup>
+      </Radios>
       {format === "custom" && (
         <TextField
           className="field field-long"
