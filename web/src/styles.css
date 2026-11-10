@@ -3415,10 +3415,14 @@ ul.mg-checks {
 
 /* Your own fields (Land use & building type): one table, the add row last. */
 .cf-tbl {
+  /* As wide as what's in it: no spare width spread into the columns (not stretched by the section around it). */
+  align-self: flex-start;
+  justify-self: start;
+  width: auto;
   font-size: 0.9rem;
 }
 .cf-th {
-  padding: calc(0.15 * var(--sp)) calc(0.5 * var(--sp)) calc(0.25 * var(--sp));
+  padding: calc(0.15 * var(--sp)) calc(0.3 * var(--sp)) calc(0.25 * var(--sp));
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -3426,7 +3430,7 @@ ul.mg-checks {
   border-bottom: 1px solid var(--rule);
 }
 .cf-td {
-  padding: calc(0.25 * var(--sp)) calc(0.5 * var(--sp));
+  padding: calc(0.25 * var(--sp)) calc(0.3 * var(--sp));
   vertical-align: middle;
   border-bottom: 1px solid var(--cell-line);
 }
@@ -3435,7 +3439,7 @@ ul.mg-checks {
   border-bottom: 0;
 }
 .cf-td .choice {
-  min-width: 9.5rem;
+  min-width: 6.5rem;
 }
 .cf-vals {
   display: inline-flex;
@@ -3443,7 +3447,7 @@ ul.mg-checks {
   align-items: center;
 }
 .cf-name-input {
-  width: 10rem;
+  width: 7.5rem;
 }
 .ly-body,
 .ly-inline {
@@ -8145,7 +8149,6 @@ section.wiz-section:has(> .cf-tbl),
 }
 /* Your own fields: the remove button centred in its cell. */
 .cf-td.cf-remove {
-  width: 1%;
   text-align: center;
 }
 .cf-td.cf-remove > * {
@@ -8162,4 +8165,30 @@ section.wiz-section:has(> .cf-tbl),
   justify-content: center;
   width: 8.5rem;
   margin-left: 0;
+}
+/* Your own fields: the add row's column picker takes the column's width (its fields' names), not the longest name
+   it offers, so the table stays as narrow as what's in it. */
+.cf-add-td:first-child .choice {
+  min-width: 0;
+  width: 100%;
+}
+.cf-add-td:first-child .combo-field {
+  width: 100%;
+}
+.cf-add-td:first-child .combo-input {
+  width: 0;
+  min-width: 6.5rem;
+  flex: 1;
+}
+/* Your own fields: the values and Map buttons stacked in one narrow column. */
+.cf-vals:has(> .show-on-map) {
+  display: inline-grid;
+  gap: 0.25rem;
+}
+.cf-vals > :is(.vals-button, .show-on-map) {
+  justify-content: center;
+  margin-left: 0;
+}
+.cf-td .choice-value {
+  white-space: nowrap;
 }
