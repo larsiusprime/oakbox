@@ -2771,7 +2771,11 @@
       "namePlaceholder": "The engine''s name",
       "nameLabel": "Name",
       "backToDefault": "Back to the default models",
-      "noModels": "No models: add one, or untick the group on Model groups › Check them.",
+      "noModels": "No models: add one, or choose Don't model it.",
+      "modelIt": "Model it",
+      "skipIt": "Don't model it",
+      "modelThis": "This group",
+      "skippedNote": "Its parcels are left unvalued: no model values them. Nothing before Models changes; choose Model it to bring it back.",
       "takesNoList": "its areas'' price per area",
       "chooseList": "Choose a list",
       "warn": {

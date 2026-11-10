@@ -77,10 +77,9 @@ def flags(group: model.ModelGroupResult) -> list[Flag]:
 
 
 def view(project: Project, project_dir: Path) -> SmallGroupsView:
-    from oakbox import assemble
 
     receipt = model.STEP.state(project, project_dir, check=False).receipt
-    modeled = assemble.modeled(project, project_dir)
+    modeled = model.to_model(project, project_dir)
     tried = {g.id: g for g in receipt.groups} if receipt else {}
     chosen: dict[str, Choice] = project.model.small
     out: list[SmallGroup] = []

@@ -3,13 +3,14 @@ import { useState } from "react";
 import { Button, Input, TextField } from "react-aria-components";
 import type { EngineState, ModelEntry, ModelSetup } from "../api/client";
 import { downloadEnded, mb, useEngineAction, useOptionalEngines } from "../api/engines";
-import { useSetGroupModels } from "../api/models";
+import { useSetGroupModels, useSetSkip } from "../api/models";
 import { setupKey } from "../api/steps";
 import { AddButton } from "../components/AddButton";
 import { SmallButton } from "../components/Buttons";
 import { EngineProgress, InstallEngineDialog } from "../components/Engines";
 import { Choice } from "../components/Form";
 import { RemoveButton } from "../components/RemoveButton";
+import { Seg } from "../components/Seg";
 import { useAtOnce } from "../lib/hooks";
 import { t } from "../wording";
 import { ConfigSummary, ModelOptions } from "./ModelOptions";
@@ -37,6 +38,7 @@ const entryOf = (e: ModelEntry): ModelEntry => ({
  * Add a model; back to the default ones. */
 export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: ModelSetup; gid: string }) {
   const put = useSetGroupModels(projectId);
+  const skip = useSetSkip(projectId);
   const [stack, setStack] = useState<string | null>(null);
   const [adding, setAdding] = useState<ModelEntry | null>(null);
   // XGBoost and CatBoost may not be installed (oakbox/engines.py): choosing one asks; a model added with it waits
@@ -97,242 +99,272 @@ export function GroupModelsCard({ projectId, v, gid }: { projectId: string; v: M
         </h3>
         <span className="wiz-from">{m.salesTab({ n: g.sales })}</span>
       </div>
-      {g.sales < 15 && <p className="wiz-warn">{m.tooFew}</p>}
-      <InstallEngineDialog
-        engine={ask?.engine ?? null}
-        onClose={() => {
-          // Not now: the row goes back to the engine it had.
-          if (ask?.back && adding)
-            setAdding({ ...adding, engine: ask.back, list_id: firstList(ask.back) ?? null });
-          setAsk(null);
-        }}
-        onInstall={() => {
-          if (ask?.back !== null && adding) void addWhenInstalled(adding, g.id);
-          setAsk(null);
-        }}
-      />
-      {entries.length === 0 && !adding && !waiting ? (
-        <p className="wiz-warn">{m.noModels}</p>
+      {/* Model it, or not: a group not modeled is left unvalued (Model groups unchanged). */}
+      <div className="gm-skip">
+        <Seg
+          label={m.modelThis}
+          value={g.skipped ? "skip" : "model"}
+          options={[
+            ["model", m.modelIt],
+            ["skip", m.skipIt],
+          ]}
+          onChange={(x) => skip.mutate({ group: g.id, skip: x === "skip" })}
+        />
+      </div>
+      {g.skipped ? (
+        <p className="wiz-from">{m.skippedNote}</p>
       ) : (
-        <table className="tbl gm-models">
-          <thead>
-            <tr>
-              <th>{m.model}</th>
-              <th>{m.engine}</th>
-              <th>{m.variables}</th>
-              <th>{m.configuration}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {g.models.map((e, i) => {
-              const eng = engines[e.engine];
-              const open = stack === e.key;
-              const options = eng?.options ?? [];
-              const entry = entries[i] ?? e;
-              const need = optional.missing(e.engine);
-              return [
-                <tr key={e.key}>
-                  <td>
-                    <NameCell value={e.name} label={m.nameLabel} onCommit={(name) => change(i, { name })} />
-                  </td>
-                  <td>
-                    {eng?.name ?? e.engine}
-                    {need && (
-                      <>
-                        {" "}
-                        {need.install?.status === "running" ? (
-                          <EngineProgress engine={need} />
-                        ) : (
+        <>
+          {g.sales < 15 && <p className="wiz-warn">{m.tooFew}</p>}
+          <InstallEngineDialog
+            engine={ask?.engine ?? null}
+            onClose={() => {
+              // Not now: the row goes back to the engine it had.
+              if (ask?.back && adding)
+                setAdding({ ...adding, engine: ask.back, list_id: firstList(ask.back) ?? null });
+              setAsk(null);
+            }}
+            onInstall={() => {
+              if (ask?.back !== null && adding) void addWhenInstalled(adding, g.id);
+              setAsk(null);
+            }}
+          />
+          {entries.length === 0 && !adding && !waiting ? (
+            <p className="wiz-warn">{m.noModels}</p>
+          ) : (
+            <table className="tbl gm-models">
+              <thead>
+                <tr>
+                  <th>{m.model}</th>
+                  <th>{m.engine}</th>
+                  <th>{m.variables}</th>
+                  <th>{m.configuration}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {g.models.map((e, i) => {
+                  const eng = engines[e.engine];
+                  const open = stack === e.key;
+                  const options = eng?.options ?? [];
+                  const entry = entries[i] ?? e;
+                  const need = optional.missing(e.engine);
+                  return [
+                    <tr key={e.key}>
+                      <td>
+                        <NameCell
+                          value={e.name}
+                          label={m.nameLabel}
+                          onCommit={(name) => change(i, { name })}
+                        />
+                      </td>
+                      <td>
+                        {eng?.name ?? e.engine}
+                        {need && (
                           <>
-                            <span className="choice-aside">{w.notInstalledShort}</span>{" "}
-                            <SmallButton onPress={() => setAsk({ engine: need, back: null })}>
-                              {w.installAsk}
-                            </SmallButton>
+                            {" "}
+                            {need.install?.status === "running" ? (
+                              <EngineProgress engine={need} />
+                            ) : (
+                              <>
+                                <span className="choice-aside">{w.notInstalledShort}</span>{" "}
+                                <SmallButton onPress={() => setAsk({ engine: need, back: null })}>
+                                  {w.installAsk}
+                                </SmallButton>
+                              </>
+                            )}
                           </>
                         )}
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    {eng?.takes_list ? (
+                      </td>
+                      <td>
+                        {eng?.takes_list ? (
+                          <Choice
+                            label={`${m.variables}: ${e.name}`}
+                            hideLabel
+                            value={e.list_id ?? null}
+                            options={listOptions}
+                            placeholder={m.chooseList}
+                            onChange={(list_id) => change(i, { list_id })}
+                          />
+                        ) : (
+                          <span className="wiz-from">{m.takesNoList}</span>
+                        )}
+                        {e.warnings
+                          .filter((w) => w.code !== "no_locations")
+                          .map((w) => (
+                            <p key={w.code} className="wiz-warn gm-warn">
+                              {w.code === "kind_mismatch"
+                                ? m.warn.kind_mismatch({
+                                    engine: eng?.name ?? e.engine,
+                                    kind: lists[e.list_id ?? ""]?.kind ?? "",
+                                  })
+                                : w.code === "blanks_left_out"
+                                  ? m.warn.blanks_left_out({ n: w.n })
+                                  : m.warn[w.code as "list_missing" | "list_empty" | "no_list"]}
+                            </p>
+                          ))}
+                      </td>
+                      <td>
+                        {options.length ? (
+                          <>
+                            <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />{" "}
+                            <Button
+                              className="button button-small"
+                              onPress={() => setStack(open ? null : e.key)}
+                            >
+                              {open ? m.done : m.change}
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="wiz-from">{m.noSettings}</span>
+                        )}
+                        {e.warnings
+                          .filter((w) => w.code === "no_locations")
+                          .map((w) => (
+                            <p key={w.code} className="wiz-warn gm-warn">
+                              {m.warn.no_locations({ engine: e.engine })}
+                            </p>
+                          ))}
+                      </td>
+                      <td>
+                        <RemoveButton
+                          what={e.engine}
+                          onPress={() => save(entries.filter((_, j) => j !== i))}
+                          undo={() => save(entries)}
+                        />
+                      </td>
+                    </tr>,
+                    open && (
+                      <tr key={`${e.key}-config`} className="gm-detail">
+                        <td colSpan={5}>
+                          <ModelOptions
+                            projectId={projectId}
+                            group={g.id}
+                            e={entry}
+                            name={e.name}
+                            options={options}
+                            defaults={v.defaults}
+                            offered={v.locations}
+                            change={(patch) => change(i, patch)}
+                          />
+                        </td>
+                      </tr>
+                    ),
+                  ];
+                })}
+                {adding && (
+                  <tr className="gm-adding">
+                    <td>
+                      <TextField
+                        aria-label={m.nameLabel}
+                        value={adding.name ?? ""}
+                        onChange={(name) => setAdding({ ...adding, name })}
+                      >
+                        <Input
+                          className="input"
+                          placeholder={engines[adding.engine]?.name ?? m.namePlaceholder}
+                        />
+                      </TextField>
+                    </td>
+                    <td>
                       <Choice
-                        label={`${m.variables}: ${e.name}`}
+                        label={m.engine}
                         hideLabel
-                        value={e.list_id ?? null}
-                        options={listOptions}
-                        placeholder={m.chooseList}
-                        onChange={(list_id) => change(i, { list_id })}
-                      />
-                    ) : (
-                      <span className="wiz-from">{m.takesNoList}</span>
-                    )}
-                    {e.warnings
-                      .filter((w) => w.code !== "no_locations")
-                      .map((w) => (
-                        <p key={w.code} className="wiz-warn gm-warn">
-                          {w.code === "kind_mismatch"
-                            ? m.warn.kind_mismatch({
-                                engine: eng?.name ?? e.engine,
-                                kind: lists[e.list_id ?? ""]?.kind ?? "",
-                              })
-                            : w.code === "blanks_left_out"
-                              ? m.warn.blanks_left_out({ n: w.n })
-                              : m.warn[w.code as "list_missing" | "list_empty" | "no_list"]}
-                        </p>
-                      ))}
-                  </td>
-                  <td>
-                    {options.length ? (
-                      <>
-                        <ConfigSummary e={e} options={options} defaults={v.defaults} places={places} />{" "}
-                        <Button className="button button-small" onPress={() => setStack(open ? null : e.key)}>
-                          {open ? m.done : m.change}
-                        </Button>
-                      </>
-                    ) : (
-                      <span className="wiz-from">{m.noSettings}</span>
-                    )}
-                    {e.warnings
-                      .filter((w) => w.code === "no_locations")
-                      .map((w) => (
-                        <p key={w.code} className="wiz-warn gm-warn">
-                          {m.warn.no_locations({ engine: e.engine })}
-                        </p>
-                      ))}
-                  </td>
-                  <td>
-                    <RemoveButton
-                      what={e.engine}
-                      onPress={() => save(entries.filter((_, j) => j !== i))}
-                      undo={() => save(entries)}
-                    />
-                  </td>
-                </tr>,
-                open && (
-                  <tr key={`${e.key}-config`} className="gm-detail">
-                    <td colSpan={5}>
-                      <ModelOptions
-                        projectId={projectId}
-                        group={g.id}
-                        e={entry}
-                        name={e.name}
-                        options={options}
-                        defaults={v.defaults}
-                        offered={v.locations}
-                        change={(patch) => change(i, patch)}
+                        value={adding.engine}
+                        options={engineOptions}
+                        aside={aside}
+                        onChange={(engine) => {
+                          setAdding({ ...adding, engine, list_id: firstList(engine) ?? null });
+                          const need = optional.missing(engine);
+                          if (need) setAsk({ engine: need, back: adding.engine });
+                        }}
                       />
                     </td>
+                    <td>
+                      {engines[adding.engine]?.takes_list ? (
+                        <Choice
+                          label={m.variables}
+                          hideLabel
+                          value={adding.list_id ?? null}
+                          options={listOptions}
+                          placeholder={m.chooseList}
+                          onChange={(list_id) => setAdding({ ...adding, list_id })}
+                        />
+                      ) : (
+                        <span className="wiz-from">{m.takesNoList}</span>
+                      )}
+                      <p className="wiz-from gm-warn">{engines[adding.engine]?.note}</p>
+                      {addingEngine && <EngineProgress engine={addingEngine} />}
+                    </td>
+                    <td className="wiz-from">{m.configLater}</td>
+                    <td>
+                      <div className="gm-addtools">
+                        <Button
+                          className="button button-primary"
+                          onPress={() => {
+                            const need = optional.missing(adding.engine);
+                            if (need) {
+                              setAsk({ engine: need, back: adding.engine });
+                              return;
+                            }
+                            save([...entries, { ...adding, key: "" }]);
+                            setAdding(null);
+                          }}
+                        >
+                          {m.addIt}
+                        </Button>
+                        <Button className="button button-small" onPress={() => setAdding(null)}>
+                          {m.cancel}
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
-                ),
-              ];
-            })}
-            {adding && (
-              <tr className="gm-adding">
-                <td>
-                  <TextField
-                    aria-label={m.nameLabel}
-                    value={adding.name ?? ""}
-                    onChange={(name) => setAdding({ ...adding, name })}
-                  >
-                    <Input
-                      className="input"
-                      placeholder={engines[adding.engine]?.name ?? m.namePlaceholder}
-                    />
-                  </TextField>
-                </td>
-                <td>
-                  <Choice
-                    label={m.engine}
-                    hideLabel
-                    value={adding.engine}
-                    options={engineOptions}
-                    aside={aside}
-                    onChange={(engine) => {
-                      setAdding({ ...adding, engine, list_id: firstList(engine) ?? null });
-                      const need = optional.missing(engine);
-                      if (need) setAsk({ engine: need, back: adding.engine });
-                    }}
-                  />
-                </td>
-                <td>
-                  {engines[adding.engine]?.takes_list ? (
-                    <Choice
-                      label={m.variables}
-                      hideLabel
-                      value={adding.list_id ?? null}
-                      options={listOptions}
-                      placeholder={m.chooseList}
-                      onChange={(list_id) => setAdding({ ...adding, list_id })}
-                    />
-                  ) : (
-                    <span className="wiz-from">{m.takesNoList}</span>
-                  )}
-                  <p className="wiz-from gm-warn">{engines[adding.engine]?.note}</p>
-                  {addingEngine && <EngineProgress engine={addingEngine} />}
-                </td>
-                <td className="wiz-from">{m.configLater}</td>
-                <td>
-                  <div className="gm-addtools">
-                    <Button
-                      className="button button-primary"
-                      onPress={() => {
-                        const need = optional.missing(adding.engine);
-                        if (need) {
-                          setAsk({ engine: need, back: adding.engine });
-                          return;
-                        }
-                        save([...entries, { ...adding, key: "" }]);
-                        setAdding(null);
-                      }}
-                    >
-                      {m.addIt}
-                    </Button>
-                    <Button className="button button-small" onPress={() => setAdding(null)}>
-                      {m.cancel}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+                )}
+                {waiting && waitingEngine && (
+                  <tr className="gm-adding">
+                    <td>{waiting.name || waitingEngine.name}</td>
+                    <td>{waitingEngine.name}</td>
+                    <td colSpan={3}>
+                      <EngineProgress engine={waitingEngine} />
+                      <p className="wiz-from gm-warn">{w.addedWhenIn}</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+          <p className="cs-row add-row">
+            {!adding && !waiting && (
+              <AddButton
+                onPress={() =>
+                  setAdding({
+                    key: "",
+                    name: "",
+                    engine: "lightgbm",
+                    list_id: firstList("lightgbm") ?? null,
+                    locations: null,
+                  })
+                }
+              >
+                {m.add}
+              </AddButton>
             )}
-            {waiting && waitingEngine && (
-              <tr className="gm-adding">
-                <td>{waiting.name || waitingEngine.name}</td>
-                <td>{waitingEngine.name}</td>
-                <td colSpan={3}>
-                  <EngineProgress engine={waitingEngine} />
-                  <p className="wiz-from gm-warn">{w.addedWhenIn}</p>
-                </td>
-              </tr>
+            {g.custom && (
+              <Button className="button button-small" onPress={() => save(null)}>
+                {m.backToDefault}
+              </Button>
             )}
-          </tbody>
-        </table>
+          </p>
+          {put.error && (
+            <p className="error" role="alert">
+              {put.error.message}
+            </p>
+          )}
+        </>
       )}
-      <p className="cs-row add-row">
-        {!adding && !waiting && (
-          <AddButton
-            onPress={() =>
-              setAdding({
-                key: "",
-                name: "",
-                engine: "lightgbm",
-                list_id: firstList("lightgbm") ?? null,
-                locations: null,
-              })
-            }
-          >
-            {m.add}
-          </AddButton>
-        )}
-        {g.custom && (
-          <Button className="button button-small" onPress={() => save(null)}>
-            {m.backToDefault}
-          </Button>
-        )}
-      </p>
-      {put.error && (
+      {skip.error && (
         <p className="error" role="alert">
-          {put.error.message}
+          {skip.error.message}
         </p>
       )}
     </div>

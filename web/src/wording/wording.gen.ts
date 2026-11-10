@@ -2180,6 +2180,10 @@ export type Wording = {
       nameLabel: string;
       backToDefault: string;
       noModels: string;
+      modelIt: string;
+      skipIt: string;
+      modelThis: string;
+      skippedNote: string;
       takesNoList: string;
       chooseList: string;
       warn: {

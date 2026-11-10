@@ -160,6 +160,10 @@ class ModelState(BaseModel):
     small: dict[str, Literal["leave", "model"]] = Field(
         default_factory=dict, description="Small groups: model group -> left unvalued or modeled anyway."
     )
+    skip: list[str] = Field(
+        default_factory=list,
+        description="Model groups not modeled, chosen on Models: their parcels left unvalued (Model groups unchanged).",
+    )
 
 
 # The variable tests offered (OpenAVMKit's names), each answering a question of its own; Represented always runs. The
@@ -412,6 +416,21 @@ def default_models(project: Project, project_dir: Path, group: str) -> list[Mode
     return out
 
 
+def to_model(project: Project, project_dir: Path) -> set[str]:
+    """The groups the models run on: those Model groups models, less those skipped here (left unvalued)."""
+    from oakbox import assemble
+
+    return assemble.modeled(project, project_dir) - set(project.model.skip)
+
+
+def set_skip(project: Project, group: str, skip: bool) -> None:
+    """A group not modeled (its parcels left unvalued), or modeled again."""
+    if group not in {g.id for g in project.groups}:
+        raise NotFound(group)
+    rest = [g for g in project.model.skip if g != group]
+    project.model.skip = [*rest, group] if skip else rest
+
+
 def group_models(
     project: Project, project_dir: Path, group: str, all_lists: list[VarList] | None = None
 ) -> list[ModelEntry]:
@@ -453,7 +472,7 @@ def settings(project: Project, project_dir: Path) -> dict:
     The variable lists go in `variable_lists`; each modeled group has its own block of models under
     `modeling.models.main.<group>` (which OpenAVMKit takes in place of the shared one), each model pointing at its
     list by `$$variable_lists.<id>`. `run` names every group's models; each group skips the ones it hasn't."""
-    from oakbox import assemble, varlists
+    from oakbox import varlists
 
     by_field = {v.field: v for v in variables(project, project_dir)}
     if not by_field:
@@ -464,7 +483,7 @@ def settings(project: Project, project_dir: Path) -> dict:
     # values (a vendor's AVM…) as pass_through models, judged like the roll: off the holdout, out of the ensemble.
     roll = ["assessor"] if _has_roll(project_dir) else []
     outside = _outside(project, project_dir)
-    modeled = assemble.modeled(project, project_dir)
+    modeled = to_model(project, project_dir)
     areas = _areas(by_field)
     blocks: dict[str, dict] = {}
     names: list[str] = []
@@ -566,6 +585,7 @@ class EntryView(ModelEntry):
 
 class GroupModels(ModelGroupCount):
     models: list[EntryView] = Field(default_factory=list)
+    skipped: bool = Field(default=False, description="Not modeled, chosen here: its parcels left unvalued.")
     custom: bool = Field(default=False, description="Its models were changed: not the default ones.")
 
 
@@ -696,6 +716,7 @@ def setup(project: Project, project_dir: Path) -> ModelSetup:
                 if x.id in modeled
                 else [],
                 custom=x.id in project.model.groups,
+                skipped=x.id in project.model.skip,
             )
         )
     own_all = spatiallag.lag_own(project, columns)
@@ -1311,9 +1332,8 @@ def run(project_id: str) -> None:
 
     groups = [g.id for g in project.groups]
     names = {v.id: v.name for v in valuesets.value_sets(project)}
-    from oakbox import assemble
 
-    modeled = assemble.modeled(project, pdir)
+    modeled = to_model(project, pdir)
     # Each group's models by the names the user gave them.
     own = {g: {e.key: e.name for e in group_models(project, pdir, g)} for g in groups if g in modeled}
     outside = tuple(_outside(project, pdir))
@@ -1507,21 +1527,21 @@ def blocked(project: Project, project_dir: Path) -> list[str]:
 def problems(project: Project, project_dir: Path) -> list[str]:
     """What stops a try in the models themselves: a group with none, a list with no variables, a Local area with no
     location."""
-    from oakbox import assemble, varlists
+    from oakbox import varlists
 
     if not variables(project, project_dir):
         return ["Prepare the fields first: there are no variables."]
     all_lists = varlists.lists(project, project_dir)
     lists = {x.id: x for x in all_lists}
     out = []
-    modeled = assemble.modeled(project, project_dir)
+    modeled = to_model(project, project_dir)
     used: set[str] = set()
     for g in project.groups:
         if g.id not in modeled:
             continue
         entries = group_models(project, project_dir, g.id, all_lists)
         if not entries:
-            out.append(f"{g.name} has no models: add one, or untick it on Model groups › Check them.")
+            out.append(f"{g.name} has no models: add one, or choose not to model it.")
         for e in entries:
             lst = lists.get(e.list_id or "")
             if e.engine in TAKES_LIST and lst is None:
@@ -1544,9 +1564,8 @@ def not_installed(used: set[str]) -> list[str]:
 
 
 def engines_used(project: Project, project_dir: Path) -> set[str]:
-    from oakbox import assemble
 
-    modeled = assemble.modeled(project, project_dir)
+    modeled = to_model(project, project_dir)
     return {e.engine for g in project.groups if g.id in modeled for e in group_models(project, project_dir, g.id)}
 
 
