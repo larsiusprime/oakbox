@@ -344,11 +344,50 @@ sets its size (25–70%); popped out, a desktop window (a browser window on the 
 (never two maps), and closing its window docks it back where it was. Where it is, its size and its layers are
 remembered per computer. At phone width, docked bottom only, at 40%.
 
-**Build the groups takes it over** (2026-11-10). Model groups › Build the groups has no map of its own: arriving opens
-the map window, following, and while the step is open it draws the groups as edited there (`lib/groupmap.ts`, shared
-with a popped-out map as the dock is): coloured by group or by what moved (Group / Changes), a parcel clicked opens why
-it's in its group, the legend switches groups on and off, and a condition's or a move's "show them" highlights its
-parcels. Leaving the step, the map goes back to following fields.
+**Three ways a screen meets the map** (designed 2026-11-10). One map; no screen has a map of its own (the inline maps
+retire into it, each screen redesigned to make sense without one).
+
+1. **Take over: the map is the work.** The step can't be done without looking at or touching the map. Arriving, the
+   map's state is saved (open or closed, docked or popped out, its field, Follow; its size is never changed), it opens
+   where it last was (a popped-out map stays out) and shows the step's own view, with the step's own tools. Closed by
+   the user on that step, it stays closed until **Show the map** (on the step's card) or the step is left and come back
+   to. Leaving the step, the saved state comes back exactly (a map that was closed closes again).
+2. **Summon: the map is evidence.** The step works without it, but a place helps judge something on it. A **🗺 Show on
+   map** button sits beside the thing it shows (a count, a row, a pill): pressed, the map opens on exactly that (its
+   layer, the parcels highlighted, zoomed to them) and Follow turns off (the next step doesn't wipe what was asked for);
+   **Back to following** in the map's header. Nothing is saved or restored: it was asked for.
+3. **None.** Settings, names, standards, model options: the map is left as the user set it.
+
+**A take-over screen**, without a map: an **instruction card** at its top (🗺, one imperative sentence, "Do X on the
+map"; with the map closed, or not showing the step's view, it says so and offers **Show the map**), then what's been
+done there as plain readout and controls (the value chosen, its counts, what can be typed or reset instead), then what
+it means (its checks and warnings).
+
+**Clicking on the map must be unmistakable.** Where the step expects a click on the map: the map shows the same
+instruction in a **banner** along its top, naming the step ("Coordinates: drag the pin to…"); hovering the screen's card
+flashes the banner, so the two read as one. The pointer is a hand only over what reacts, which is outlined on hover; a
+pin to drag has a grab cursor and pulses until first moved. A click always answers at once (a card opens, the pin
+moves, a parcel is picked) and the screen's matching row updates with it.
+
+| Step | Way | The map shows; its tools |
+|---|---|---|
+| Data › Coordinates | Take over | The parcels and the centre pin; drag the pin (its latitude and longitude typed on the screen too). |
+| Data › Location fields | Take over | The chosen location field's areas; each field on the screen has Show on map. |
+| Data › Shapefiles | Take over | The project's layers over the parcels; each layer on the screen has Show on map. |
+| Model groups › Build the groups | Take over | The groups as edited, by group or by what moved; click a parcel: why it's in its group (built 2026-11-10). |
+| Evaluate › On the map | Take over | Ratios by area; the screen explains the colours and lists the worst areas, each with Show. |
+| Models › Outliers | Take over | The outlier sales, a picked one's comps; picking on the map or in the list picks on both. |
+| Report › final values | Take over | The final values (Model values' map folded in). |
+| Data › Parcel Universe | Summon | Its ID problems (blank, repeated, not found). |
+| Data › field steps | Summon | The field, beside its values and histogram. |
+| Sales record fields | Summon | The sales whose value differs, beside each pill. |
+| Model groups › Check them | Summon | A group's parcels; Unassigned. |
+| Review, summaries, How they did | Summon | Any count with a place. |
+| Settings, Standards, Variables, Models, Report options | None | |
+
+What the map shows for a step is published by the step (`lib/groupmap.ts` first, for Build the groups; to be one
+contract for every step: a view, its tools and their instruction, take over or summoned), and reaches a popped-out map as
+the dock does. Phones: out of scope.
 
 **Layers**, each there once its data is:
 
