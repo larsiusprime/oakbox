@@ -1584,7 +1584,12 @@ a.row-title:hover {
   justify-content: center;
 }
 
+:root {
+  --sheet-min: 36rem;
+}
 .folder-panel {
+  /* Narrower than what's in it (the map docked beside it): it scrolls sideways within itself. */
+  overflow-x: auto;
   background: var(--manila);
   border: 1px solid var(--manila-edge);
   border-radius: 0 5px 5px 5px;
@@ -1758,7 +1763,9 @@ a.row-title:hover {
 /* A step frame inside a folder: its list of steps lies on the Manila; the step itself is a sheet of paper on it. */
 .wiz {
   display: grid;
-  grid-template-columns: 13rem 1fr;
+  /* The step sheet shrinks with the window (a docked map beside it) down to a fixed width, then stops: the folder
+     scrolls sideways instead, never a widget running past its box. */
+  grid-template-columns: 13rem minmax(var(--sheet-min), 1fr);
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   min-height: 25rem;
 }
@@ -1862,7 +1869,8 @@ a.row-title:hover {
    their checks. */
 .wiz-grid {
   display: grid;
-  grid-template-columns: fit-content(14rem) 16rem minmax(0, 1fr);
+  /* The column's box gives way (to 9rem) before the reading's column runs out of room. */
+  grid-template-columns: fit-content(14rem) minmax(9rem, 16rem) minmax(0, 1fr);
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)))
     max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: center;
@@ -4392,7 +4400,7 @@ tr.bi-kept > td {
 
 /* Tabs as steps (SPEC §3.2): the Data wizard's frame */
 .wiz-wide {
-  grid-template-columns: 11rem 1fr;
+  grid-template-columns: 11rem minmax(var(--sheet-min), 1fr);
 }
 .wiz-flush {
   padding: 0;
@@ -5847,11 +5855,18 @@ under what it's about; a file appended as rows {
 /* A field's row (style guide, 2B): the reading is the button, in a column of one width on every row, then the
    values. A reading that needs a look is amber, with its ⚠. */
 .field-tools {
-  display: inline-grid;
-  grid-template-columns: 11rem max-content;
+  /* The reading in a column of one width on every row, then the values button; where there isn't room for both,
+     the button wraps under it rather than running past the row. */
+  display: inline-flex;
+  flex-wrap: wrap;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
+  max-width: 100%;
+}
+.field-tools > :first-child {
+  width: 11rem;
+  max-width: 100%;
 }
 .field-tools > .button.button-small {
   margin-left: 0;
@@ -5952,6 +5967,8 @@ under what it's about; a file appended as rows {
 /* Quality and condition on their page (QualityStep): what it sold for as read, or its tiers ranked best first. */
 .qc-panel {
   display: grid;
+  /* Its one column the panel's width: a histogram (36rem at most) fits inside it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   justify-items: start;
 }
@@ -5995,7 +6012,8 @@ under what it's about; a file appended as rows {
 .wiz-grid.wiz-capsules {
   width: fit-content;
   max-width: 100%;
-  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+  /* As wide as what's in it, giving way where the sheet is narrow: the picker to 9rem, the reading to fit. */
+  grid-template-columns: max-content minmax(9rem, max-content) minmax(0, max-content);
 }
 /* A column and its unit: room for the column's name beside the unit. */
 .wiz-capsules .wiz-pair {
@@ -7354,6 +7372,116 @@ div.map-wait-ask small {
   color: var(--muted);
 }
 /* The project still loading: on a sheet of paper, never text on the bare wood. */
+/* Nothing in a step's sheet runs past its box (SPEC D: the sheet stops shrinking at --sheet-min and the folder
+   scrolls past that): every box and row at most as wide as what holds it, free to shrink inside a row or grid, a
+   long word broken where it would stick out, a wide table scrolling in its own wrapper. */
+.wiz-body {
+  overflow-wrap: break-word;
+}
+.wiz-body :where(div, section, form, fieldset, label, p, ul, ol, dl, table, figure, span) {
+  max-width: 100%;
+}
+.wiz-body :where(div, section, fieldset, label, span) {
+  min-width: 0;
+}
+.wiz-body :where(input, select, textarea, button) {
+  max-width: 100%;
+}
+.as-pair > .as-cap {
+  /* Side by side where two fit; else one under the other, each the sheet's width (never squeezed). */
+  flex: 1 1 20rem;
+}
+.fh-in {
+  max-width: 100%;
+  min-width: 0;
+}
+.fh-range {
+  grid-template-columns: minmax(0, 1fr);
+}
+.wiz-samples {
+  min-width: 0;
+}
+.wiz-samples > .field-tools,
+.wiz-samples > .vals-button {
+  max-width: 100%;
+}
+/* First in its cell, the values button needs no gap before it (the gap pushed it past the row). */
+.wiz-samples > .button-small:first-child {
+  margin-left: 0;
+}
+.fh-in > *,
+.fh-axis > span {
+  min-width: 0;
+}
+.fh-axis > span {
+  overflow: hidden;
+  white-space: nowrap;
+}
+section.wiz-section:has(> .cf-tbl),
+.as-table-wrap,
+.wiz-body .tbl-wrap {
+  overflow-x: auto;
+}
+
+/* A step's content loading (FieldsWizard StepContent): a bar in its place under the header; the content mounted but
+   unseen until it's ready. */
+.step-loading {
+  display: flex;
+  padding: 1rem 0;
+}
+.step-loading .opening-bar {
+  flex: 0 1 24rem;
+}
+.step-content-loading {
+  display: none;
+}
+
+/* A project opening (components/Opening): one manila sheet, nothing else to press. */
+.opening-sheet {
+  width: min(36rem, 100%);
+  margin: calc(1.5 * var(--sp)) auto 0;
+  border-radius: 5px;
+  display: grid;
+  gap: 0.6rem;
+}
+.opening-title {
+  margin: 0;
+  font-weight: 600;
+}
+.opening-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.opening-bar {
+  flex: 1;
+  width: auto;
+  max-width: none;
+}
+/* No measure of how far: a stretch of the bar sliding across. */
+.opening-bar-busy > i {
+  width: 35%;
+  animation: opening-slide 1.4s ease-in-out infinite;
+}
+@keyframes opening-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opening-bar-busy > i {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+.opening-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
 .waiting-sheet {
   width: fit-content;
   margin: var(--sp);
@@ -7443,10 +7571,11 @@ div.map-wait-ask small {
   width: auto;
 }
 .as-row {
-  display: grid;
-  grid-template-columns: max-content max-content max-content;
-  gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
+  /* Its column picker, the unit and the values button: side by side while they fit, wrapping where they don't. */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: calc(0.5 * var(--sp)) calc(1 * var(--sp));
 }
 .as-side {
   display: grid;
@@ -7578,7 +7707,7 @@ div.map-wait-ask small {
 }
 /* In a pair, as wide as its bars there. */
 .as-pair .fh-track {
-  width: 28rem;
+  width: min(100%, 28rem);
 }
 /* Quality and condition in one 🌐 capsule: what it sold for inside it, never wider than its rows (its words and table
    wrap or scroll), so the 💰 capsule fits beside it. */

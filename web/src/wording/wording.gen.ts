@@ -998,6 +998,7 @@ export type Wording = {
     skipNote: string;
     failed: string;
     ran: (a: { when: string | number; seconds: number; engine: string | number }) => string;
+    loading: string;
   };
   bringIn: {
     steps: {
@@ -2742,5 +2743,9 @@ export type Wording = {
     puTitle: string;
     diffTitle: string;
     columnsTitle: string;
+  };
+  opening: {
+    title: (a: { name: string | number }) => string;
+    cancel: string;
   };
 };

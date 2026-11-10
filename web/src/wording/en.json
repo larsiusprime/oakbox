@@ -1381,7 +1381,8 @@
     "skipModel": "Skip this model",
     "skipNote": "Its fields are left out; the rest carries on. It stops at its next checkpoint, which can take as long as one download.",
     "failed": "It stopped with an error:",
-    "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}"
+    "ran": "ran {when} · {seconds, number} seconds · OpenAVMKit {engine}",
+    "loading": "Loading this step"
   },
   "bringIn": {
     "steps": {
@@ -3381,5 +3382,9 @@
     "puTitle": "🌐 Parcel Universe: your fields",
     "diffTitle": "Differences: 💰 sale against 🌐 parcel",
     "columnsTitle": "🌐 Other columns of your parcel files"
+  },
+  "opening": {
+    "title": "Opening Project \"{name}\"…",
+    "cancel": "Cancel"
   }
 }

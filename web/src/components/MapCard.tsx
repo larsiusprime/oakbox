@@ -16,6 +16,14 @@ import { Waiting } from "./Waiting";
 
 const w = t.mapWindow.card;
 
+/** Where a card at (x, y) is kept: inside the map's area, never past its edges. */
+function clampIn(box: HTMLElement, card: HTMLElement, x: number, y: number) {
+  return {
+    x: Math.max(0, Math.min(x, box.clientWidth - card.offsetWidth)),
+    y: Math.max(0, Math.min(y, box.clientHeight - card.offsetHeight)),
+  };
+}
+
 /** A Data step's name, as the sidebar says it. */
 const stepTitle = (key: string) => t.wizard.steps[key]?.title ?? key;
 
@@ -58,26 +66,15 @@ export function MapCard({
   // Floating: where it was dragged to (its top left in the map's area); until then, the map's top right.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const me = useRef<HTMLElement>(null);
-  const clamp = useCallback(
-    (x: number, y: number) => {
-      const box = stage.current;
-      const card = me.current;
-      if (!box || !card) return { x, y };
-      return {
-        x: Math.max(0, Math.min(x, box.clientWidth - card.offsetWidth)),
-        y: Math.max(0, Math.min(y, box.clientHeight - card.offsetHeight)),
-      };
-    },
-    [stage],
-  );
   // The map's area shrinks (the divider, the window): a dragged card stays inside it.
   useEffect(() => {
     const box = stage.current;
-    if (!box || pinned) return;
-    const ro = new ResizeObserver(() => setPos((p) => (p ? clamp(p.x, p.y) : p)));
+    const card = me.current;
+    if (!box || !card || pinned) return;
+    const ro = new ResizeObserver(() => setPos((p) => (p ? clampIn(box, card, p.x, p.y) : p)));
     ro.observe(box);
     return () => ro.disconnect();
-  }, [stage, pinned, clamp]);
+  }, [stage, pinned]);
   const onDrag = (e: React.PointerEvent<HTMLElement>) => {
     if (pinned || (e.target as HTMLElement).closest("button")) return;
     const card = me.current;
@@ -88,7 +85,7 @@ export function MapCard({
     head.setPointerCapture(e.pointerId);
     const start = { px: e.clientX, py: e.clientY, x: card.offsetLeft, y: card.offsetTop };
     const move = (ev: PointerEvent) =>
-      setPos(clamp(start.x + ev.clientX - start.px, start.y + ev.clientY - start.py));
+      setPos(clampIn(box, card, start.x + ev.clientX - start.px, start.y + ev.clientY - start.py));
     const up = () => {
       head.removeEventListener("pointermove", move);
       head.removeEventListener("pointerup", up);

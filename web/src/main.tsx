@@ -13,6 +13,12 @@ import { WordingRoot } from "./wording";
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
 });
+// The Data wizard as it stands: every change to it hands back the new one (and what changes it elsewhere asks for it
+// again), so a step showing it isn't a reason to read it again.
+queryClient.setQueryDefaults(["wizard"], { staleTime: Number.POSITIVE_INFINITY });
+// A field's histogram: keyed by its file, column and unit, so the same key is the same values; coming back to its
+// step isn't a reason to read it again.
+queryClient.setQueryDefaults(["histogram"], { staleTime: Number.POSITIVE_INFINITY });
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

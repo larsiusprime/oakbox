@@ -116,6 +116,13 @@ from a bug stays a 500 with its traceback.
   It comes after the list it adds to, at that list's right edge: `<AddButton end>`, or a row of buttons in
   `.add-row`. Adding another item (a file, a layer, a value set) is outside the items' outlines; adding to one item
   (another ID, another copied field) is inside that item's outline, below its rows.
+- **No widget runs past its box (non-negotiable, 2026-11-09).** A step's sheet shrinks with the window (a docked map
+  beside it) down to `--sheet-min` (36rem), then stops; past that the folder panel scrolls sideways within itself.
+  Inside the sheet, every box and row fits what holds it at that width: rows wrap (`flex-wrap`), side-by-side pairs
+  stack (`flex: 1 1 <basis>`), grid tracks give way (`minmax(0, …)`, never a fixed width past the sheet's), a wide
+  table scrolls in its own wrapper, a long word breaks. The containment rules on `.wiz-body` in styles.css do most of
+  it; a new widget with a fixed width uses `min(100%, …)`. Check by measuring (each element against its container) at
+  the sheet's minimum and a few widths above it, not only by eye.
 - **The style guide is `docs/style-guide.html`** (SPEC D47): buttons, files, removable items, and every control
   kept flat, each with its reason. Open it (it's one HTML page; open it in a browser to try each piece) before
   adding or changing a button, a file's entry, a list of items or a settings row. In short:

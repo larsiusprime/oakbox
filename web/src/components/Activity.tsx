@@ -52,7 +52,14 @@ function pending(qc: QueryClient, seen: Map<string, number>): Item[] {
     });
   }
   for (const q of qc.getQueryCache().getAll() as Query[]) {
-    if (q.state.fetchStatus !== "fetching" || quiet(q.meta) || shown.has(q.queryHash)) continue;
+    // A first load (nothing to show yet) is shown where it will appear (a step's loading bar, a Loading): not here.
+    if (
+      q.state.fetchStatus !== "fetching" ||
+      q.state.status === "pending" ||
+      quiet(q.meta) ||
+      shown.has(q.queryHash)
+    )
+      continue;
     const id = `q${q.queryHash}`;
     if (!seen.has(id)) seen.set(id, now);
     items.push({ id, kind: "read", doing: text(q.meta) ?? a.reading, since: seen.get(id) ?? now });

@@ -22,12 +22,14 @@ export type Page =
   | { kind: "projects" }
   | { kind: "check" }
   | { kind: "new" }
-  | { kind: "project"; id: string; name: string; year: number };
+  | { kind: "project"; id: string; name: string; year: number }
+  /** A project opening: its name alone, nothing to press until it's open. */
+  | { kind: "opening"; name: string };
 
 export function OakBand({ page }: { page: Page }) {
   return (
     <header className="oak-nav">
-      {page.kind !== "check" && (
+      {page.kind !== "check" && page.kind !== "opening" && (
         <div className="oak-tools">
           <Button className="oak-btn oak-btn-gear" aria-label={n.settings} onPress={() => openSettings()}>
             <Settings aria-hidden="true" size="1.05em" />
@@ -37,7 +39,7 @@ export function OakBand({ page }: { page: Page }) {
       )}
       <nav className="plate" aria-label={n.label}>
         <ol className="crumbs">
-          {page.kind === "check" ? null : page.kind === "projects" ? (
+          {page.kind === "check" || page.kind === "opening" ? null : page.kind === "projects" ? (
             <ProjectsHere />
           ) : (
             <Crumb>
@@ -48,6 +50,7 @@ export function OakBand({ page }: { page: Page }) {
           )}
           {page.kind === "new" && <Here>{n.newProject}</Here>}
           {page.kind === "check" && <Here>{t.machine.title}</Here>}
+          {page.kind === "opening" && <Here>{page.name || "…"}</Here>}
           {page.kind === "project" && <ProjectCrumbs page={page} />}
         </ol>
       </nav>

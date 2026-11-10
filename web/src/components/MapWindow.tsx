@@ -294,7 +294,7 @@ function MapPanel({
     if (desktop.openMap(url, w.alone)) setDock({ out: true, full: false });
   };
   const info = useQuery({
-    queryKey: ["map", projectId],
+    queryKey: ["map-info", projectId],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/projects/{project_id}/map", { params: { path: { project_id: projectId } } }),
@@ -737,8 +737,9 @@ function MapBody({
   // The parcel picked (a parcel, or a sale's dot): its card, and its outline.
   const [picked, setPicked] = useState<number | null>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const mapNow = useRef<maplibregl.Map | null>(null);
-  const zoomTo = useCallback((b: Bounds) => mapNow.current?.fitBounds(b, { padding: 24, maxZoom: 17 }), []);
+  // The map, once made: kept as state (read in what's drawn: a cell clicked zooms it).
+  const [mapObj, setMapObj] = useState<maplibregl.Map | null>(null);
+  const zoomTo = (b: Bounds) => mapObj?.fitBounds(b, { padding: 24, maxZoom: 17 });
   const shapes = useQuery({
     queryKey: ["map-shapes", projectId, info.stamp],
     queryFn: async () => readShapes(await bin(`${base}/shapes`)),
@@ -770,8 +771,9 @@ function MapBody({
     planNow.current = plan;
   }, [plan]);
   const lookNow = useRef<(() => void) | null>(null);
-  const watch = useCallback((m: maplibregl.Map | null) => {
-    mapNow.current = m;
+  // Given to the map once, when it's made (MapView's onMap): what follows the view.
+  const watch = (m: maplibregl.Map | null) => {
+    setMapObj(m);
     if (!m) {
       lookNow.current = null;
       return;
@@ -806,13 +808,14 @@ function MapBody({
       m.getCanvas().style.cursor = "";
     });
     m.once("load", look);
-  }, []);
+  };
   // The centres came after the map: plan now.
   useEffect(() => {
     if (xy) lookNow.current?.();
   }, [xy]);
 
-  const layers = useMemo(() => {
+  // What's drawn (memoized by the React Compiler on what it reads).
+  const layers = ((): Layer[] => {
     if (!xy || !plan) return [] as Layer[];
     if (plan.kind === "shapes" && shapes.data) {
       const data = toBinary(shapes.data, plan.ids);
@@ -838,7 +841,7 @@ function MapBody({
     }
     const level = plan.kind === "cells" ? plan.level : levelFor(plan.box.mpp);
     return cellsLayer(xy, plan.box, level, srPaint ?? paint, srPaint && sold ? sold : undefined, zoomTo);
-  }, [xy, plan, shapes.data, paint, srPaint, sold, picked, zoomTo]);
+  })();
 
   const bounds = (info.bounds as Bounds | null | undefined) ?? null;
   const tooltip = useCallback(

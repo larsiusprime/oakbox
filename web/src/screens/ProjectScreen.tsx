@@ -7,6 +7,7 @@ import { useAccepted, useStep } from "../api/steps";
 import { LocaleFields, type LocaleValue } from "../components/Locale";
 import { MapWindow } from "../components/MapWindow";
 import { OakBand } from "../components/OakBand";
+import { Opening } from "../components/Opening";
 import { StepBody, StepFoot, StepFrame } from "../components/Steps";
 import { TabStrip } from "../components/TabStrip";
 import { Loading } from "../components/Waiting";
@@ -40,9 +41,21 @@ export function ProjectScreen({
       unwrap(await api.GET("/api/projects/{project_id}", { params: { path: { project_id: projectId } } })),
   });
 
-  if (detail.isPending)
-    return <Loading q={detail} qkey={["project", projectId]} doing={t.project.loading} sheet />;
+  // Its files, as the Data wizard reads them (the sidebar's, the map's): read before anything of the project is
+  // shown, so nothing can be pressed while it opens (the same query the Data tab uses).
+  const wizard = useQuery({
+    queryKey: ["wizard", projectId],
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await api.GET("/api/projects/{project_id}/wizard", {
+          params: { path: { project_id: projectId } },
+          signal,
+        }),
+      ),
+  });
   if (detail.error) return <p className="error">{detail.error.message}</p>;
+  if (detail.isPending || wizard.isPending)
+    return <Opening projectId={projectId} name={detail.data?.project.name ?? null} />;
   return <ProjectView detail={detail.data} tab={tab} step={step} />;
 }
 
