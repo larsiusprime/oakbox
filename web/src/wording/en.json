@@ -1279,9 +1279,6 @@
       "suggestedOption": "{column} (found)",
       "notFound": "Nothing in {file} matches by name or by its values: sales take the parcel universe's. Pick a column if one holds it.",
       "unitNote": "(The parcel universe's is in {today}: compared in {today}.)",
-      "notUsed": "Found, not used yet: sales take the parcel universe's until you pick {column} above.",
-      "suggestToday": "Nearly all the same: likely an export of the parcel universe, not the property as it sold. Using it changes little.",
-      "suggestSale": "Differs for {pct} of sales: history since the sale (a split, a rebuild) the models should see. Worth using.",
       "differsFor": "differs for {n, plural, =1 {1 sale} other {# sales}}",
       "sameFor": "the same for {pct}",
       "seeThem": "See them",
@@ -1299,7 +1296,6 @@
       "writtenDifferentlyPill": "written differently",
       "writtenDifferentlyWhy": "{sold} where the parcel universe has {today}: these can't be compared, or read as the parcel universe's are. Export the same codes to use them; sales take the parcel universe's until then.",
       "auto": "picked for you",
-      "autoNote": "Picked for you: the same column name as the parcel universe's, read the same way, the same for {pct} of sales. Choose none to use the parcel universe's instead.",
       "onlyTitle": "Only in the sales record",
       "onlyLede": "{file}'s columns that describe the sale or the property as it sold, which no parcel universe file has. A model can't use them: it values every parcel, and the parcel universe doesn't have them. They can decide which sales count: a rule on Valid sale (leave out a status, a type). And they show beside each sale in Outliers.",
       "onlyCols": {
@@ -3381,7 +3377,10 @@
     "alone": "OAK box map",
     "puTitle": "🌐 Parcel Universe: your fields",
     "diffTitle": "Differences: 💰 sale against 🌐 parcel",
-    "columnsTitle": "🌐 Other columns of your parcel files"
+    "columnsTitle": "🌐 Other columns of your parcel files",
+    "lyTitle": "🗺 Your map layers",
+    "lyAll": "All {n, plural, =1 {your map layer} other {# map layers}}, over the parcels",
+    "readingLayer": "reading…"
   },
   "opening": {
     "title": "Opening Project \"{name}\"…",

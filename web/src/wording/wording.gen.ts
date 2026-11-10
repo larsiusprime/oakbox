@@ -899,9 +899,6 @@ export type Wording = {
       suggestedOption: (a: { column: string | number }) => string;
       notFound: (a: { file: string | number }) => string;
       unitNote: (a: { today: string | number }) => string;
-      notUsed: (a: { column: string | number }) => string;
-      suggestToday: string;
-      suggestSale: (a: { pct: string | number }) => string;
       differsFor: (a: { n: number }) => string;
       sameFor: (a: { pct: string | number }) => string;
       seeThem: string;
@@ -919,7 +916,6 @@ export type Wording = {
       writtenDifferentlyPill: string;
       writtenDifferentlyWhy: (a: { sold: string | number; today: string | number }) => string;
       auto: string;
-      autoNote: (a: { pct: string | number }) => string;
       onlyTitle: string;
       onlyLede: (a: { file: string | number }) => string;
       onlyCols: {
@@ -2743,6 +2739,9 @@ export type Wording = {
     puTitle: string;
     diffTitle: string;
     columnsTitle: string;
+    lyTitle: string;
+    lyAll: (a: { n: number }) => string;
+    readingLayer: string;
   };
   opening: {
     title: (a: { name: string | number }) => string;

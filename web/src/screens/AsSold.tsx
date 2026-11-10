@@ -354,15 +354,6 @@ export function AtSale({ projectId, field }: { projectId: string; field: WizardF
               </tbody>
             </table>
           )}
-          <p className="wiz-from">
-            {r.auto && `${a.autoNote({ pct: pct(same) })} `}
-            {!used && `${a.notUsed({ column: r.column })} `}
-            {r.suggest === "today"
-              ? a.suggestToday
-              : r.suggest === "sale"
-                ? a.suggestSale({ pct: pct(1 - same) })
-                : ""}
-          </p>
         </div>
       )}
       {choose.error && (

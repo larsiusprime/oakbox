@@ -407,7 +407,9 @@ function DatePreview({
           <div className="yr-hist" role="img" aria-label={sp.byYear}>
             {[...v.by_year].reverse().map((y) => (
               <div key={y.year} className="yr-col">
-                <span className="yr-n">{num(y.count)}</span>
+                <span className="yr-n" title={num(y.count)}>
+                  {short(y.count)}
+                </span>
                 <span className="yr-bar" style={{ height: `${(8 * y.count) / top}rem` }} />
                 <span className="yr-x">{y.year}</span>
               </div>
@@ -418,6 +420,12 @@ function DatePreview({
     </div>
   );
 }
+
+/** A year's count over its bar: as it is under 10,000, else shortened (12.6K) so the column stays narrow. */
+const short = (n: number) =>
+  n < 10_000
+    ? num(n)
+    : new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
 // ---------- Valid sale, vacant sale ----------
 

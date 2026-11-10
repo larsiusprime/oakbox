@@ -5855,18 +5855,27 @@ under what it's about; a file appended as rows {
 /* A field's row (style guide, 2B): the reading is the button, in a column of one width on every row, then the
    values. A reading that needs a look is amber, with its ⚠. */
 .field-tools {
-  /* The reading in a column of one width on every row, then the values button; where there isn't room for both,
-     the button wraps under it rather than running past the row. */
-  display: inline-flex;
-  flex-wrap: wrap;
+  /* The reading in a column of one width on every row, the values button beside it: lined up, one row each. */
+  display: inline-grid;
+  grid-template-columns: 11rem max-content;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
   max-width: 100%;
 }
-.field-tools > :first-child {
-  width: 11rem;
-  max-width: 100%;
+/* Only where the sheet is near its narrowest (a map docked beside it): the values button under the reading. */
+.wiz-body {
+  container-type: inline-size;
+}
+@container (max-width: 44rem) {
+  .field-tools {
+    display: inline-flex;
+    flex-wrap: wrap;
+  }
+  .field-tools > :first-child {
+    width: 11rem;
+    max-width: 100%;
+  }
 }
 .field-tools > .button.button-small {
   margin-left: 0;
@@ -6104,7 +6113,10 @@ under what it's about; a file appended as rows {
   justify-items: center;
   align-content: end;
   gap: 2px;
+  /* Room for its count and its year on one line each; many years scroll sideways in the chart, never squeezed. */
+  flex: none;
   min-width: 2.6rem;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -7374,18 +7386,25 @@ div.map-wait-ask small {
 /* The project still loading: on a sheet of paper, never text on the bare wood. */
 /* Nothing in a step's sheet runs past its box (SPEC D: the sheet stops shrinking at --sheet-min and the folder
    scrolls past that): every box and row at most as wide as what holds it, free to shrink inside a row or grid, a
-   long word broken where it would stick out, a wide table scrolling in its own wrapper. */
+   long word broken where it would stick out, a wide table scrolling in its own wrapper. Zero specificity (:where on
+   both parts): a widget's own width or minimum (a chart's columns) always wins over these defaults. */
 .wiz-body {
   overflow-wrap: break-word;
 }
-.wiz-body :where(div, section, form, fieldset, label, p, ul, ol, dl, table, figure, span) {
+:where(.wiz-body) :where(div, section, form, fieldset, label, p, ul, ol, dl, table, figure, span) {
   max-width: 100%;
 }
-.wiz-body :where(div, section, fieldset, label, span) {
+:where(.wiz-body) :where(div, section, fieldset, label, span) {
   min-width: 0;
 }
-.wiz-body :where(input, select, textarea, button) {
+:where(.wiz-body) :where(input, select, textarea, button) {
   max-width: 100%;
+}
+/* A map's own pieces are sized by MapLibre and deck.gl (deck.gl's drawing layer sits in a corner control box, as wide
+   as the map): never capped by the rules above. */
+.map-view :where(div, span, canvas) {
+  max-width: none;
+  min-width: auto;
 }
 .as-pair > .as-cap {
   /* Side by side where two fit; else one under the other, each the sheet's width (never squeezed). */
@@ -7413,8 +7432,9 @@ div.map-wait-ask small {
 .fh-axis > span {
   min-width: 0;
 }
+/* A label spills over the blank cells beside it (one every few bars), never cut to its own bar's width. */
 .fh-axis > span {
-  overflow: hidden;
+  overflow: visible;
   white-space: nowrap;
 }
 section.wiz-section:has(> .cf-tbl),

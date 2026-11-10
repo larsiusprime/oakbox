@@ -324,7 +324,12 @@ Showing a step and moving on from one are quiet: no "Saving" or "Updating" in th
 steps). The corner's Activity pill is for saves, runs and refreshes; a first load is shown where it will appear.
 
 **Nothing runs past its box** (2026-11-09): a step's sheet shrinks with the window down to 36rem, then the folder
-scrolls sideways within itself; inside it, rows wrap, pairs stack, tables scroll in their own wrapper (AGENTS.md).
+scrolls sideways within itself; inside it, rows wrap, pairs stack, tables scroll in their own wrapper (AGENTS.md). The
+containment rules have zero specificity, so a widget's own sizing wins (the sales-by-year chart: a column per year
+wide enough for its labels, scrolling sideways), and a map's own pieces are exempt (deck.gl's drawing layer sits in a
+corner box as wide as the map). A field's reading and its values button stay side by side, lined up, wrapping only
+near the sheet's narrowest. In the map window, Shapefiles shows the project's map layers over the parcels (Follow, or
+"🗺 Your map layers" in the picker), each its own colour.
 
 ## 3.15 The map window (designed 2026-11-09; being built)
 
