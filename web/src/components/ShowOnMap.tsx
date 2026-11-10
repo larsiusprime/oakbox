@@ -32,3 +32,29 @@ export function SummonMap({ field, label }: { field: string; label?: string }) {
     </Button>
   );
 }
+
+/** The same button, for a step that keeps what's shown itself (Evaluate's group): pressed while it's the one shown. */
+export function ShowOnMapButton({
+  shown,
+  onPress,
+  label,
+}: {
+  shown: boolean;
+  onPress: () => void;
+  label?: string;
+}) {
+  return (
+    <Button
+      className={shown ? "button button-small show-on-map on" : "button button-small show-on-map"}
+      aria-pressed={shown}
+      onPress={() => {
+        onPress();
+        const d = dockNow();
+        setDock(d.out ? { follow: true } : { open: true, follow: true });
+      }}
+    >
+      <MapIcon aria-hidden="true" size="1em" />
+      {label ?? (shown ? t.mapWindow.step.onMap : t.mapWindow.step.showOnMap)}
+    </Button>
+  );
+}

@@ -18,13 +18,20 @@ export function RatioMap({
   projectId,
   result,
   currency,
+  group,
+  setGroup,
 }: {
   projectId: string;
   result: FieldResult;
   currency: string;
+  /** The group shown ("" every group), when the step keeps it (its rows' Show on map); else the map's own. */
+  group?: string;
+  setGroup?: (id: string) => void;
 }) {
   const studied = result.groups.filter((g) => g.sales > 0);
-  const [gid, setGid] = useState("");
+  const [own, setOwn] = useState("");
+  const gid = group ?? own;
+  const setGid = setGroup ?? setOwn;
   const pts = useQuery({
     queryKey: ["ratio-map", projectId, result.field, gid],
     queryFn: async () =>

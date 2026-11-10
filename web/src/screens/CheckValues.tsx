@@ -16,12 +16,14 @@ import { Choice, Radios } from "../components/Form";
 import { MultiPick } from "../components/MultiPick";
 import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
+import { ShowOnMapButton } from "../components/ShowOnMap";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
 import { LoadingBar } from "../components/Waiting";
 import { BY_SALE } from "../lib/colours";
 import { day, money, num, ratioText, signed, when } from "../lib/format";
+import { setStepPick, useMapStep } from "../lib/mapstep";
 import { navigate } from "../lib/route";
 import { t } from "../wording";
 import { AssignTable, StandardsTable, WhoseCard } from "./Standards";
@@ -73,6 +75,8 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const nav = useStepNav<RStep>();
   // Several sets of values checked: the results show one at a time, the same one from part to part.
   const [shown, setShown] = useState<string | null>(null);
+  // The model group the map shows ("" every group): picked by a row's Show on map or on the map itself.
+  const mapGroup = useMapStep()?.pick ?? "";
   if (!v) return <LoadingBar error={state.error} />;
   const running = v.status === "running";
   const rc = v.receipt;
@@ -236,21 +240,36 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
           <StepBody {...(current === "prices" ? {} : { title: r.steps[current] })}>
             {which}
             {v.stale && <p className="wiz-warn">{r.run.stale}</p>}
-            {current === "summary" && (
-              <Summary result={result} receipt={rc} nominal={nominal.length} see={() => go("extreme")} />
-            )}
-            {current === "groups" && <GroupsTable result={result} />}
-            {current === "prices" && <Prices projectId={projectId} result={result} currency={currency} />}
-            {current === "map" && (
+            {/* Summary and On the map take the map over (SPEC §3.15): the ratios by group, the one whose Show on map
+                was pressed (or picked on the map), else every group. */}
+            {(current === "summary" || current === "map") && (
               <OnTheMap
                 projectId={projectId}
-                step={r.steps.map}
+                step={current === "map" ? r.steps.map : r.steps.summary}
                 title={r.map.instruction}
                 sub={r.map.instructionSub}
               >
-                <RatioMap projectId={projectId} result={result} currency={currency} />
+                <RatioMap
+                  projectId={projectId}
+                  result={result}
+                  currency={currency}
+                  group={mapGroup}
+                  setGroup={setStepPick}
+                />
               </OnTheMap>
             )}
+            {current === "summary" && (
+              <Summary
+                result={result}
+                receipt={rc}
+                nominal={nominal.length}
+                see={() => go("extreme")}
+                map={{ shown: mapGroup, show: setStepPick }}
+              />
+            )}
+            {current === "groups" && <GroupsTable result={result} />}
+            {current === "prices" && <Prices projectId={projectId} result={result} currency={currency} />}
+
             {current === "regions" && (
               <Regions
                 result={result}
@@ -435,11 +454,13 @@ function Summary({
   receipt,
   nominal,
   see,
+  map,
 }: {
   result: FieldResult;
   receipt: NonNullable<RatioView["receipt"]>;
   nominal: number;
   see: () => void;
+  map: { shown: string; show: (id: string) => void };
 }) {
   const o = result.overall;
   const js = result.groups.filter(judged);
@@ -473,7 +494,13 @@ function Summary({
   return (
     <div className="rv-cards">
       <p className="rv-head">{text}</p>
-      <Scorecard groups={result.groups} />
+      <div className="rv-onmap-all">
+        <ShowOnMapButton shown={map.shown === ""} onPress={() => map.show("")} label={r.map.allOnMap} />
+      </div>
+      {/* As wide as its figures and words read; scrolls on its own when the page is narrower (a map docked). */}
+      <div className="tbl-wrap">
+        <Scorecard groups={result.groups} map={map} />
+      </div>
       {nominal > 0 && (
         <div className="bi-warn">
           {r.summary.nominal({ n: nominal, names })}{" "}

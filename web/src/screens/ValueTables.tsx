@@ -1,6 +1,8 @@
 /** Check my values' scorecard and groups table: each model group against the targets, a verdict cell per question. */
+
 import type { FieldResult, RatioStudy } from "../api/client";
 import { Pill, type Verdict, verdictOf } from "../components/Pill";
+import { ShowOnMapButton } from "../components/ShowOnMap";
 import { InfoTip } from "../components/Tip";
 import { num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
@@ -28,7 +30,22 @@ export function judged(g: RatioStudy) {
 
 /** One line per model group, its three questions in columns: a mark, the figure, a word, aligned down the table so
  * groups compare at a glance. */
-export function Scorecard({ groups, technical = false }: { groups: RatioStudy[]; technical?: boolean }) {
+export function Scorecard({
+  groups,
+  technical = false,
+  map,
+}: {
+  groups: RatioStudy[];
+  technical?: boolean;
+  /** A Show on map at the end of each row: the group's ratios on the map (the one shown, pressed). */
+  map?: { shown: string; show: (id: string) => void };
+}) {
+  const onMap = (id: string) =>
+    map && (
+      <td className="rv-onmap">
+        <ShowOnMapButton shown={map.shown === id} onPress={() => map.show(id)} />
+      </td>
+    );
   const c = r.card;
   // Model values names the statistics, and adds horizontal equity: similar parcels, sold or not, valued alike.
   const cols = technical ? 4 : 3;
@@ -71,6 +88,7 @@ export function Scorecard({ groups, technical = false }: { groups: RatioStudy[];
           <th>
             <InfoTip label={technical ? c.verticalEquity : c.vertical} text={c.verticalWhy} />
           </th>
+          {map && <th />}
         </tr>
       </thead>
       <tbody>
@@ -90,6 +108,7 @@ export function Scorecard({ groups, technical = false }: { groups: RatioStudy[];
                 <td colSpan={cols} className="wiz-from">
                   {c.noSales}
                 </td>
+                {map && <td />}
               </tr>
             );
           if (!v?.judged)
@@ -103,6 +122,7 @@ export function Scorecard({ groups, technical = false }: { groups: RatioStudy[];
                 <td colSpan={cols - 1} className="wiz-from">
                   {c.tooFew}
                 </td>
+                {onMap(g.id)}
               </tr>
             );
           // The VEI decides; with too few sales for it, the PRB.
@@ -150,6 +170,7 @@ export function Scorecard({ groups, technical = false }: { groups: RatioStudy[];
                   note={byVei ? "VEI" : "PRB"}
                 />
               </td>
+              {onMap(g.id)}
             </tr>
           );
         })}

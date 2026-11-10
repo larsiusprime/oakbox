@@ -1848,6 +1848,7 @@ export type Wording = {
       label: string;
       instruction: string;
       instructionSub: string;
+      allOnMap: string;
       none: string;
       ratio: string;
       price: string;

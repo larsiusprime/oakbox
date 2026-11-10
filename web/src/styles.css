@@ -5215,7 +5215,7 @@ under what it's about; a file appended as rows {
 .fv {
   overflow-x: auto;
 }
-.fv .rv-score-cell > :last-child {
+.rv-score .rv-score-cell > :last-child {
   white-space: nowrap;
 }
 .fv .rv-score th:first-child {
@@ -8204,5 +8204,21 @@ section.wiz-section:has(> .cf-tbl),
   margin-left: 0;
 }
 .cf-td .choice-value {
+  white-space: nowrap;
+}
+/* Evaluate's Summary: Show on map at the end of each group's row, and one for every group above the table. */
+.rv-score td.rv-onmap {
+  white-space: nowrap;
+}
+.rv-onmap-all {
+  display: flex;
+  justify-content: flex-end;
+}
+.tbl-wrap > .rv-score {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+}
+.tbl-wrap > .rv-score td {
   white-space: nowrap;
 }
