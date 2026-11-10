@@ -360,7 +360,7 @@ retire into it, each screen redesigned to make sense without one).
 
 **A take-over screen**, without a map: an **instruction card** at its top (🗺, one imperative sentence, "Do X on the
 map"; with the map closed, or not showing the step's view, it says so and offers **Show the map**), then what's been
-done there as plain readout and controls (the value chosen, its counts, what can be typed or reset instead), then what
+done there as plain readout and controls (the value chosen, its counts, what can be reset), then what
 it means (its checks and warnings).
 
 **Clicking on the map must be unmistakable.** Where the step expects a click on the map: the map shows the same
@@ -371,7 +371,7 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 
 | Step | Way | The map shows; its tools |
 |---|---|---|
-| Data › Coordinates | Take over | The parcels and the centre pin; drag the pin (its latitude and longitude typed on the screen too). |
+| Data › Coordinates | Take over | The parcels and the centre pin; drag the pin (the screen shows where it is and Use the middle of the parcels; no typing a position, 2026-11-10). |
 | Data › Location fields | Take over | The chosen location field's areas; each field on the screen has Show on map. |
 | Data › Shapefiles | Take over | The project's layers over the parcels; each layer on the screen has Show on map. |
 | Model groups › Build the groups | Take over | The groups as edited, by group or by what moved; click a parcel: why it's in its group (built 2026-11-10). |
