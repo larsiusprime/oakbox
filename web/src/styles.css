@@ -5257,7 +5257,9 @@ under what it's about; a file appended as rows {
 /* Over the dots: deck.gl draws in a corner control box, above MapLibre's markers unless they're lifted. */
 .map-view .maplibregl-marker:has(> .wiz-pin),
 .map-view .maplibregl-marker.wiz-pin {
-  z-index: 3;
+  /* Over deck.gl's drawing, which MapLibre's control corner (z-index 2) holds; never drawn into the map's canvas
+     (interleaved), which loses the dots when the street map is switched. */
+  z-index: 10;
 }
 .wiz-pin {
   width: 22px;
