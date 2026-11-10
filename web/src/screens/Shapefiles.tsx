@@ -62,7 +62,7 @@ export function ShapefilesStep({
 }: {
   project: Project;
   data: Wizard;
-  change: (c: LayerChange) => void;
+  change: (c: LayerChange, options?: { onSettled?: () => void }) => void;
 }) {
   const [adding, setAdding] = useState(data.layers.length === 0);
   const taken = data.files
@@ -105,12 +105,12 @@ function LayerCard({
 }: {
   project: Project;
   layer: LayerView;
-  change: (c: LayerChange) => void;
+  change: (c: LayerChange, options?: { onSettled?: () => void }) => void;
 }) {
   const o = layer.overlay;
   const [mapShown, setMapShown] = useState(false);
-  const set = (patch: Partial<Overlay>) =>
-    change({ kind: "layer", name: layer.name, overlay: { ...o, ...patch } });
+  const set = (patch: Partial<Overlay>, options?: { onSettled?: () => void }) =>
+    change({ kind: "layer", name: layer.name, overlay: { ...o, ...patch } }, options);
   const kinds = [
     layer.polygons ? s.polygons({ n: layer.polygons }) : null,
     layer.points ? s.points({ n: layer.points }) : null,
@@ -194,9 +194,19 @@ function LayerCard({
 }
 
 /** The columns it copies onto the parcels, as chips (name ← column, used as), and + Field. */
-function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overlay>) => void }) {
+function StampFields({
+  layer,
+  set,
+}: {
+  layer: LayerView;
+  set: (p: Partial<Overlay>, options?: { onSettled?: () => void }) => void;
+}) {
   const o = layer.overlay;
   const kinds = Object.entries(s.kindsShort) as [Kind, string][];
+  // A field just added: shown at once, as a placeholder that's working, until its save (and the layer's check) is
+  // done; then it's the real chip, or gone if the save failed (its error shows on the step).
+  const [adding, setAdding] = useState<Overlay["fields"]>([]);
+  const pending = adding.filter((a) => !o.fields.some((f) => f.name === a.name));
   return (
     <>
       <span className="wiz-label">{s.copies}</span>
@@ -232,7 +242,24 @@ function StampFields({ layer, set }: { layer: LayerView; set: (p: Partial<Overla
             />
           </span>
         ))}
-        <AddStamp layer={layer} add={(f) => set({ fields: [...o.fields, f] })} />
+        {pending.map((f) => (
+          <span key={`adding-${f.name}`} className="ly-chip ly-chip-adding" role="status" aria-busy="true">
+            <span className="bi-pulse" aria-hidden="true" />
+            <span className="mono">{f.name}</span>
+            <span className="wiz-from">← {f.column}</span>
+            <span className="wiz-from">{s.adding}</span>
+          </span>
+        ))}
+        <AddStamp
+          layer={layer}
+          add={(f) => {
+            setAdding((a) => [...a, f]);
+            set(
+              { fields: [...o.fields, ...pending, f] },
+              { onSettled: () => setAdding((a) => a.filter((x) => x.name !== f.name)) },
+            );
+          }}
+        />
       </div>
     </>
   );

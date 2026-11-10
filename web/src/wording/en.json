@@ -561,7 +561,8 @@
       "sortBy": "Largest by",
       "byArea": "area",
       "byLength": "length",
-      "mapLabel": "Map of {name} over the parcels"
+      "mapLabel": "Map of {name} over the parcels",
+      "adding": "adding, checking which parcels it covers…"
     },
     "permits": {
       "date": "Date issued",

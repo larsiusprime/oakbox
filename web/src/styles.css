@@ -7443,6 +7443,12 @@ section.wiz-section:has(> .cf-tbl),
   overflow-x: auto;
 }
 
+/* A map layer's field just added (Shapefiles): there at once, working, until its save is done. */
+.ly-chip-adding {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
 /* A step's content loading (FieldsWizard StepContent): a bar in its place under the header; the content mounted but
    unseen until it's ready. */
 .step-loading {

@@ -312,6 +312,7 @@ export type Wording = {
       byArea: string;
       byLength: string;
       mapLabel: (a: { name: string | number }) => string;
+      adding: string;
     };
     permits: {
       date: string;
