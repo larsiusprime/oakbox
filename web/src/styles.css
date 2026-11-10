@@ -5346,6 +5346,8 @@ under what it's about; a file appended as rows {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* A flex box drops the spaces at its words' edges ("GDV_REID in" beside a file's name): the gap puts one back. */
+  column-gap: 0.3em;
   text-align: center;
   margin: 8px 0;
   padding: calc(0.3 * var(--sp)) calc(1.6 * var(--sp));
