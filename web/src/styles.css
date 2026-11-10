@@ -2183,7 +2183,9 @@ a.row-title:hover {
 }
 
 .wiz-body > .add-button,
-.wiz-body > span > .add-button {
+.wiz-body > span > .add-button,
+.wiz-body > .step-content > .add-button,
+.wiz-body > .step-content > span > .add-button {
   margin-top: calc(0.5 * var(--sp));
 }
 
@@ -4891,6 +4893,22 @@ table.tbl.dt > * > tr > :is(th, td) {
 .vs-grow {
   flex: 1;
 }
+/* Delete set in the set's top right corner. */
+.vs-head > .vs-grow + * {
+  margin-left: auto;
+}
+/* A set being made or deleted: its outline and a sliding bar, straight away. */
+.vs-pending {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  min-width: min(24rem, 100%);
+  min-height: 3rem;
+  color: var(--muted, #6b6b6b);
+}
+.vs-pending > .opening-bar {
+  flex: 0 1 16rem;
+}
 .rv-what {
   margin-top: calc(0.4 * var(--sp));
 }
@@ -5220,6 +5238,11 @@ under what it's about; a file appended as rows {
 }
 .map-street input {
   margin: 0;
+}
+/* Over the dots: deck.gl draws in a corner control box, above MapLibre's markers unless they're lifted. */
+.map-view .maplibregl-marker:has(> .wiz-pin),
+.map-view .maplibregl-marker.wiz-pin {
+  z-index: 3;
 }
 .wiz-pin {
   width: 22px;
@@ -5872,7 +5895,7 @@ under what it's about; a file appended as rows {
 .field-tools {
   /* The reading in a column of one width on every row, the values button beside it: lined up, one row each. */
   display: inline-grid;
-  grid-template-columns: 11rem max-content;
+  grid-template-columns: 11rem 8.5rem;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   vertical-align: middle;
@@ -5894,6 +5917,12 @@ under what it's about; a file appended as rows {
 }
 .field-tools > .button.button-small {
   margin-left: 0;
+}
+/* "13,053 values ▾": one width on every row, its words to the right, so the counts line up. */
+.field-tools > .button.vals-button {
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 8.5rem;
 }
 /* A reading with nothing to change, in the same column: plain words, no ✓; amber when it needs a look. */
 .reading-plain {
@@ -6242,11 +6271,17 @@ under what it's about; a file appended as rows {
 }
 
 /* A map that is the step (Coordinates): it takes the rest of the page, down to the buttons, never under 18rem. */
-.wiz-body:has(> .wiz-fill) {
+.wiz-body:has(> .wiz-fill),
+.wiz-body:has(> .step-content > .wiz-fill),
+.wiz-body > .step-content:has(> .wiz-fill) {
   display: flex;
   flex-direction: column;
 }
-.wiz-body > .wiz-fill {
+/* The step's own box (FieldsWizard's StepContent) passes the rest of the page on to it. */
+.wiz-body > .step-content:has(> .wiz-fill) {
+  flex: 1;
+}
+:is(.wiz-body, .wiz-body > .step-content) > .wiz-fill {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -6258,7 +6293,7 @@ under what it's about; a file appended as rows {
 
 /* Location fields: the fields on the left, as wide as they are (the add form no wider), and a map of one of them on
    the right, filling the page. */
-.wiz-body > .wiz-fill.loc-page {
+:is(.wiz-body, .wiz-body > .step-content) > .wiz-fill.loc-page {
   flex-direction: row;
   flex-wrap: wrap;
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));

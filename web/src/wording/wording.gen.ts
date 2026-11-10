@@ -557,13 +557,13 @@ export type Wording = {
       land: string;
       impr: string;
       roll: string;
-      rollNote: string;
-      otherNote: string;
       name: string;
       add: string;
       none: string;
       deleteSet: string;
       deleteConfirm: (a: { name: string | number }) => string;
+      adding: string;
+      deleting: (a: { name: string | number }) => string;
     };
     reconcile: {
       open: string;

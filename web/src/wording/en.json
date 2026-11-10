@@ -847,13 +847,13 @@
       "land": "Land value",
       "impr": "Improvement value",
       "roll": "The assessor''s roll",
-      "rollNote": "checked on Evaluate, and beside the models as OpenAVMKit''s assessor",
-      "otherNote": "beside the models, and on Evaluate",
       "name": "Name of the set",
       "add": "Add a set of values",
       "none": "No existing values: the models are judged on their own.",
       "deleteSet": "Delete set",
-      "deleteConfirm": "Delete {name} and the fields it gives? This can't be undone."
+      "deleteConfirm": "Delete {name} and the fields it gives? This can't be undone.",
+      "adding": "New set of values…",
+      "deleting": "Deleting {name}…"
     },
     "reconcile": {
       "open": "Reconcile…",

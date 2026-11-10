@@ -29,49 +29,81 @@ export function ValueSetsStep({
   data: Wizard;
   change: MutateAsync;
 }) {
+  // Shown the moment they're asked for (AGENTS.md): a new set's placeholder while it's made, a deleted set greyed
+  // out while it goes.
+  const [adding, setAdding] = useState(0);
+  const [deleting, setDeleting] = useState<string[]>([]);
+  const add = () => {
+    setAdding((n) => n + 1);
+    change({ kind: "addSet", name: "" })
+      .catch(() => {})
+      .finally(() => setAdding((n) => n - 1));
+  };
+  const remove = (id: string) => {
+    setDeleting((d) => [...d, id]);
+    change({ kind: "removeSet", id })
+      .catch(() => {})
+      .finally(() => setDeleting((d) => d.filter((x) => x !== id)));
+  };
   return (
     <div className="vs">
-      {data.value_sets.map((s) => (
-        <section key={s.id} className="vs-set" aria-label={s.name}>
-          <div className="vs-head">
-            <SetName name={s.name} rename={(name) => change({ kind: "setChange", id: s.id, name })} />
-            <Tick isSelected={s.roll} onChange={(roll) => change({ kind: "setChange", id: s.id, roll })}>
-              {v.roll}
-            </Tick>
-            <span className="wiz-from">{s.roll ? v.rollNote : v.otherNote}</span>
-            <span className="vs-grow" />
-            <DeleteButton
-              confirm={v.deleteConfirm({ name: s.name })}
-              onDelete={() => change({ kind: "removeSet", id: s.id })}
-            >
-              {v.deleteSet}
-            </DeleteButton>
-          </div>
-          <div className="wiz-grid">
-            {PARTS.map(([part, label]) => {
-              const field = data.fields.find((f) => f.key === `${s.id}_${part}_value`);
-              return (
-                field && (
-                  <FieldRow
-                    key={field.key}
-                    project={project}
-                    data={data}
-                    field={field}
-                    sales={false}
-                    change={change}
-                    label={label}
-                  />
-                )
-              );
-            })}
-          </div>
-        </section>
+      {data.value_sets.map((s) =>
+        deleting.includes(s.id) ? (
+          <Pending key={s.id} text={v.deleting({ name: s.name })} />
+        ) : (
+          <section key={s.id} className="vs-set" aria-label={s.name}>
+            <div className="vs-head">
+              <SetName name={s.name} rename={(name) => change({ kind: "setChange", id: s.id, name })} />
+              <Tick isSelected={s.roll} onChange={(roll) => change({ kind: "setChange", id: s.id, roll })}>
+                {v.roll}
+              </Tick>
+              <span className="vs-grow" />
+              <DeleteButton confirm={v.deleteConfirm({ name: s.name })} onDelete={() => remove(s.id)}>
+                {v.deleteSet}
+              </DeleteButton>
+            </div>
+            <div className="wiz-grid">
+              {PARTS.map(([part, label]) => {
+                const field = data.fields.find((f) => f.key === `${s.id}_${part}_value`);
+                return (
+                  field && (
+                    <FieldRow
+                      key={field.key}
+                      project={project}
+                      data={data}
+                      field={field}
+                      sales={false}
+                      change={change}
+                      label={label}
+                    />
+                  )
+                );
+              })}
+            </div>
+          </section>
+        ),
+      )}
+      {Array.from({ length: adding }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: placeholders, each the same
+        <Pending key={`adding-${i}`} text={v.adding} />
       ))}
-      {data.value_sets.length === 0 && <p className="wiz-from">{v.none}</p>}
-      <AddButton end onPress={() => change({ kind: "addSet", name: "" })}>
+      {data.value_sets.length === 0 && adding === 0 && <p className="wiz-from">{v.none}</p>}
+      <AddButton end onPress={add}>
         {v.add}
       </AddButton>
     </div>
+  );
+}
+
+/** A set on its way in or out: its outline at once, a bar while the server works. */
+function Pending({ text }: { text: string }) {
+  return (
+    <section className="vs-set vs-pending" aria-busy="true" aria-label={text}>
+      <span className="vs-pending-text">{text}</span>
+      <span className="engine-bar opening-bar opening-bar-busy" aria-hidden="true">
+        <i />
+      </span>
+    </section>
   );
 }
 
