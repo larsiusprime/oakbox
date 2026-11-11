@@ -1375,6 +1375,7 @@
     "preview": "Report preview"
   },
   "step": {
+    "railToggle": "Narrow or widen the list of steps",
     "next": "Next ›",
     "notRun": "Not run yet",
     "running": "Running · {elapsed} so far{left, select, null {} other {, about {left} left}}",

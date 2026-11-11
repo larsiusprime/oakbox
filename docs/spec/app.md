@@ -538,7 +538,10 @@ converted; a sale by its parcel's size today), so the histogram, range and Hide 
 no size, or zero, is blank, and the legend says how many. Chosen per field and kept; the box is blue while a size
 divides, so it's never read as the value itself. The parcel's card folds its 🌐 and 💰 sections (kept for the next one). **A Map button keeps Follow on** (2026-11-11): it's what the step follows now, remembered for that step (a
 step's own choice comes back on any step where nothing was picked); the button is pressed while it's the one shown.
-Only picking a field by hand in the map's picker turns Follow off. Inputs' field tables have a Map button on each row
+Only picking a field by hand in the map's picker turns Follow off. **The step list can be a thin rail** (2026-11-11): each step its number and mark,
+a part a dot until it has one, the name a tooltip; « at its top makes it thin, » full again (remembered). Left to
+itself it goes thin when the folder is too narrow for the full list beside the sheet's least width, so the sheet gets
+the room instead of the folder scrolling sideways. Inputs' field tables have a Map button on each row
 the map can show (the universe's columns as brought in; of the sales, price, date, valid and vacant).
 
 Then **full size and popping out** (2026-11-09). Full size (⤢): the map over the whole main window inside the frame,

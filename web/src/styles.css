@@ -2263,7 +2263,8 @@ like the wizard's Next {
 
 .rc-cols {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  /* Side by side where two fit; else one under the other, never wider than the sheet. */
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
 }
 
@@ -2605,6 +2606,7 @@ like the wizard's Next {
 }
 .bi-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
 }
@@ -8302,4 +8304,121 @@ tr.rv-picked > td {
 }
 .bi-field > .show-on-map {
   margin-left: auto;
+}
+
+/* The step list as a thin rail (SPEC D): each step its number and mark only, its name a tooltip; a part, its mark.
+   Chosen (rail-thin) or, left to itself, when the folder is too narrow for the full list beside the sheet's least
+   width (13rem + 36rem and the gaps): the sheet gets the room instead of the folder scrolling sideways. */
+.folder-panel {
+  container: folder / inline-size;
+}
+.wiz-rail-toggle {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0.3rem 0.2rem;
+}
+.wiz-rail-toggle button {
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.wiz-rail-toggle button:hover {
+  border-color: var(--paper-edge);
+  background: var(--paper);
+  color: var(--text);
+}
+.wiz-steps .rail-to-wide {
+  display: none;
+}
+.wiz:has(> .wiz-steps.rail-thin) {
+  grid-template-columns: 3.6rem minmax(var(--sheet-min), 1fr);
+}
+.wiz-steps.rail-thin {
+  --rail-thin: 1;
+}
+.wiz-steps.rail-thin .rail-to-thin {
+  display: none;
+}
+.wiz-steps.rail-thin .rail-to-wide {
+  display: inline;
+}
+.wiz-steps.rail-thin .wiz-rail-toggle {
+  justify-content: center;
+}
+.wiz-steps.rail-thin .wiz-step .t {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.wiz-steps.rail-thin .wiz-step button,
+.wiz-steps.rail-thin .wiz-step.sub button {
+  justify-content: center;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+}
+.wiz-steps.rail-thin .wiz-step.sub .mark {
+  margin-left: 0;
+  text-align: center;
+}
+/* A part with no mark yet: a dot, a row as tall as the others, so it can be pressed. */
+.wiz-steps.rail-thin .wiz-step.sub .mark:empty::before {
+  content: "·";
+  color: var(--muted);
+}
+.wiz-steps.rail-thin .wiz-step button {
+  min-height: 1.35rem;
+  align-items: center;
+}
+@container folder (max-width: 51rem) {
+  .wiz:has(> .wiz-steps:not(.rail-wide)) {
+    grid-template-columns: 3.6rem minmax(var(--sheet-min), 1fr);
+  }
+  .wiz-steps:not(.rail-wide) {
+    --rail-thin: 1;
+  }
+  .wiz-steps:not(.rail-wide) .rail-to-thin {
+    display: none;
+  }
+  .wiz-steps:not(.rail-wide) .rail-to-wide {
+    display: inline;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-rail-toggle {
+    justify-content: center;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step .t {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step button,
+  .wiz-steps:not(.rail-wide) .wiz-step.sub button {
+    justify-content: center;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step.sub .mark {
+    margin-left: 0;
+    text-align: center;
+  }
+  /* A part with no mark yet: a dot, a row as tall as the others, so it can be pressed. */
+  .wiz-steps:not(.rail-wide) .wiz-step.sub .mark:empty::before {
+    content: "·";
+    color: var(--muted);
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step button {
+    min-height: 1.35rem;
+    align-items: center;
+  }
 }

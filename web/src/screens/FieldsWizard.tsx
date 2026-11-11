@@ -15,10 +15,11 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
 import { FileName } from "../components/FileEntry";
-import { LANDING_MARK, LandingPage, StepFoot, useFrame } from "../components/Steps";
+import { LANDING_MARK, LandingPage, RailToggle, StepFoot, useFrame } from "../components/Steps";
 import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
+import { railClass, useRail } from "../lib/stepsrail";
 import { say, t } from "../wording";
 import { AsSoldStep, AtSale, AtSaleTable, CapHead } from "./AsSold";
 import { CustomFields } from "./CustomFields";
@@ -420,6 +421,7 @@ const STATUS_ICONS: Record<string, string | null> = {
 
 function StepList({ steps, current, go }: { steps: WizardStep[]; current: string; go: (k: string) => void }) {
   const tops = steps.filter((s) => !s.parent);
+  const rail = useRail();
   useFrame(
     [
       { key: OVERVIEW, title: t.landing.overview, status: "blank" },
@@ -434,18 +436,20 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
     go,
   );
   return (
-    <ol className="wiz-steps">
+    <ol className={railClass(rail)}>
+      <RailToggle />
       <li className={current === OVERVIEW ? "wiz-step now blank" : "wiz-step blank"}>
         <button
           type="button"
           onClick={() => go(OVERVIEW)}
           aria-current={current === OVERVIEW ? "step" : undefined}
+          title={t.landing.overview}
         >
           <span className="n" aria-hidden="true">
             {LANDING_MARK}
           </span>
           <span className="mark" />
-          {t.landing.overview}
+          <span className="t">{t.landing.overview}</span>
         </button>
       </li>
       {steps.map((s) => {
@@ -460,6 +464,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               type="button"
               onClick={() => go(s.key)}
               aria-current={s.key === current ? "step" : undefined}
+              title={stepTitle(s)}
             >
               {!s.parent && (
                 <span className="n" aria-hidden="true">
@@ -469,7 +474,7 @@ function StepList({ steps, current, go }: { steps: WizardStep[]; current: string
               <span className="mark" aria-hidden="true">
                 {icon && <img src={icon} alt="" className="wiz-step-icon" />}
               </span>
-              {stepTitle(s)}
+              <span className="t">{stepTitle(s)}</span>
             </button>
           </li>
         );

@@ -447,57 +447,60 @@ function Section({
           </div>
         ))}
       </div>
-      <table className="tbl fd-tbl">
-        <thead>
-          <tr>
-            <th>
-              <InfoTip label={b.field} text={b.fieldTip} />
-            </th>
-            <th>{b.has}</th>
-            <th>{b.summary}</th>
-            <th>{b.from}</th>
-            <th>{b.notes}</th>
-          </tr>
-        </thead>
-        {groups.map(([g, list]) =>
-          list.length === 0 ? null : (
-            <tbody key={g}>
-              <tr className="bi-grp">
-                <td colSpan={5}>{b.groups[g]}</td>
-              </tr>
-              {list.map((f) => (
-                <tr key={f.field} onClick={openRow}>
-                  <td className="mono">
-                    <span className="bi-field">
-                      <FieldDetail
-                        projectId={projectId}
-                        set={set === "sales" ? "sales" : "universe"}
-                        field={f.field}
-                      />
-                      {mapOf(set, f.field) && (
-                        <MapIfThere
-                          field={mapOf(set, f.field) ?? ""}
-                          label={b.mapField({ field: f.field })}
-                          compact
-                        />
-                      )}
-                    </span>
-                  </td>
-                  <td className="bi-has">
-                    <span className="bi-bar">
-                      <i style={{ width: `${Math.round(100 * f.share)}%` }} />
-                    </span>
-                    {num(f.filled)} · {pct(f.share)}
-                  </td>
-                  <td>{f.summary}</td>
-                  <td className="mono bi-src">{f.source}</td>
-                  <td>{f.note}</td>
+      {/* Wider than the sheet (a map docked beside it): it scrolls on its own, the page doesn't. */}
+      <div className="tbl-wrap">
+        <table className="tbl fd-tbl">
+          <thead>
+            <tr>
+              <th>
+                <InfoTip label={b.field} text={b.fieldTip} />
+              </th>
+              <th>{b.has}</th>
+              <th>{b.summary}</th>
+              <th>{b.from}</th>
+              <th>{b.notes}</th>
+            </tr>
+          </thead>
+          {groups.map(([g, list]) =>
+            list.length === 0 ? null : (
+              <tbody key={g}>
+                <tr className="bi-grp">
+                  <td colSpan={5}>{b.groups[g]}</td>
                 </tr>
-              ))}
-            </tbody>
-          ),
-        )}
-      </table>
+                {list.map((f) => (
+                  <tr key={f.field} onClick={openRow}>
+                    <td className="mono">
+                      <span className="bi-field">
+                        <FieldDetail
+                          projectId={projectId}
+                          set={set === "sales" ? "sales" : "universe"}
+                          field={f.field}
+                        />
+                        {mapOf(set, f.field) && (
+                          <MapIfThere
+                            field={mapOf(set, f.field) ?? ""}
+                            label={b.mapField({ field: f.field })}
+                            compact
+                          />
+                        )}
+                      </span>
+                    </td>
+                    <td className="bi-has">
+                      <span className="bi-bar">
+                        <i style={{ width: `${Math.round(100 * f.share)}%` }} />
+                      </span>
+                      {num(f.filled)} · {pct(f.share)}
+                    </td>
+                    <td>{f.summary}</td>
+                    <td className="mono bi-src">{f.source}</td>
+                    <td>{f.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            ),
+          )}
+        </table>
+      </div>
     </section>
   );
 }

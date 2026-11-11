@@ -6,6 +6,7 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { clock } from "../lib/format";
 import { currentWhere, type FrameStep, markSeen, OVERVIEW, publishFrame, seen } from "../lib/place";
+import { railClass, setRail, useRail } from "../lib/stepsrail";
 import { type Landing, say, t } from "../wording";
 
 /** A step's mark, as on Data (SPEC F3d): ✅ done, ⚠ to look at, ❌ blocks it; blank shows its number. */
@@ -67,9 +68,11 @@ export function StepFrame({
   const page = landing ? t.landing.pages[landing] : undefined;
   // Start goes to the next item in the list, the first step (not the one open, or the first not done).
   const first = steps.find((s) => !s.disabled);
+  const rail = useRail();
   return (
     <div className={wide && !showing ? "wiz wiz-wide" : "wiz"}>
-      <ol className="wiz-steps">
+      <ol className={railClass(rail)}>
+        <RailToggle />
         {listed.map((s) => {
           if (s.parent && s.parent !== open) return null;
           const icon = ICONS[s.status];
@@ -83,6 +86,7 @@ export function StepFrame({
                 disabled={s.disabled}
                 onClick={() => goTo(s.key)}
                 aria-current={s.key === now ? "step" : undefined}
+                title={s.title}
               >
                 {!s.parent && (
                   <span className="n" aria-hidden="true">
@@ -93,7 +97,7 @@ export function StepFrame({
                 <span className="mark" aria-hidden="true">
                   {icon && s.key !== OVERVIEW && <img src={icon} alt="" className="wiz-step-icon" />}
                 </span>
-                {s.title}
+                <span className="t">{s.title}</span>
               </button>
             </li>
           );
@@ -322,4 +326,32 @@ export function useFrame(steps: FrameStep[], current: string, go: (key: string) 
     publishFrame({ steps: shown, current: now, go: (k) => goRef.current(k) }, me);
   }, [sig, me]);
   useEffect(() => () => publishFrame(null, me), [me]);
+}
+
+/** At the top of a step list: « makes it a thin rail (numbers and marks), » the full list again. Which it shows is
+ * the stylesheet's (auto goes thin when the folder is narrow): read from it when pressed. */
+export function RailToggle() {
+  const rail = useRail();
+  return (
+    <li className="wiz-rail-toggle">
+      <button
+        type="button"
+        onClick={(e) => {
+          const list = e.currentTarget.closest(".wiz-steps");
+          const thin = !!list && getComputedStyle(list).getPropertyValue("--rail-thin").trim() === "1";
+          setRail(thin ? "wide" : "thin");
+        }}
+        aria-label={t.step.railToggle}
+        title={t.step.railToggle}
+        data-mode={rail}
+      >
+        <span className="rail-to-thin" aria-hidden="true">
+          «
+        </span>
+        <span className="rail-to-wide" aria-hidden="true">
+          »
+        </span>
+      </button>
+    </li>
+  );
 }

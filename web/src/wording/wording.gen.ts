@@ -991,6 +991,7 @@ export type Wording = {
     preview: string;
   };
   step: {
+    railToggle: string;
     next: string;
     notRun: string;
     running: (a: { elapsed: string | number; left: string | number | null }) => string;
