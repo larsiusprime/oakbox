@@ -732,15 +732,27 @@ function CapPu({ paired, children }: { paired: boolean; children: React.ReactNod
       frame = requestAnimationFrame(() => {
         const w = sheet.clientWidth;
         if (narrowAt === null) {
-          if (el.scrollWidth > el.clientWidth + 1) setNarrowAt(w);
+          // Past the capsule's edge, or over the column's picker beside them.
+          const tools = el.querySelector(".wiz-capsule > .wiz-samples");
+          const before = tools?.previousElementSibling;
+          // The buttons spill out of their cell (narrower than they are): any of them reaching back over the picker.
+          const edge = before?.getBoundingClientRect().right ?? Number.NEGATIVE_INFINITY;
+          const overlaps =
+            !!tools &&
+            [...tools.querySelectorAll("button")].some((c) => c.getBoundingClientRect().left < edge - 1);
+          if (el.scrollWidth > el.clientWidth + 1 || overlaps) setNarrowAt(w);
         } else if (w > narrowAt + 24) setNarrowAt(null);
       });
     };
     const ro = new ResizeObserver(check);
     ro.observe(sheet);
     ro.observe(el);
+    // The buttons arrive after the capsule (its column read): checked again as what's in it changes.
+    const mo = new MutationObserver(check);
+    mo.observe(el, { childList: true, subtree: true });
     return () => {
       ro.disconnect();
+      mo.disconnect();
       cancelAnimationFrame(frame);
     };
   }, [el, paired, narrowAt]);

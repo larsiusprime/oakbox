@@ -51,10 +51,10 @@ export function SummonMap({ field, label, compact }: { field: string; label?: st
       className={`button button-small show-on-map${shown ? " on" : ""}${compact ? " show-on-map-icon" : ""}`}
       aria-pressed={shown}
       onPress={() => summonMap(field, here)}
-      {...(compact ? { "aria-label": label ?? t.mapWindow.step.showOnMap } : {})}
+      aria-label={label ?? t.mapWindow.step.showOnMap}
     >
       <MapIcon aria-hidden="true" size="1em" />
-      {compact ? null : (label ?? t.mapWindow.step.showOnMap)}
+      {compact ? null : <span className="som-label">{label ?? t.mapWindow.step.showOnMap}</span>}
     </Button>
   );
 }

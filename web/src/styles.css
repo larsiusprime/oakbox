@@ -8463,3 +8463,129 @@ tr.rv-picked > td {
   min-width: 0;
   overflow-x: auto;
 }
+
+/* The rail (SPEC D): two columns, numbers then marks; a part's mark under its step's, a guide line beside the parts
+   (mock B, 2026-11-11). */
+.wiz-steps.rail-thin .wiz-step button,
+.wiz-steps.rail-thin .wiz-step.sub button {
+  display: grid;
+  grid-template-columns: 1.5rem 1.1rem;
+  column-gap: 3px;
+  justify-content: center;
+  align-items: center;
+}
+.wiz-steps.rail-thin .wiz-step .n {
+  grid-column: 1;
+  width: auto;
+}
+.wiz-steps.rail-thin .wiz-step .mark,
+.wiz-steps.rail-thin .wiz-step.sub .mark {
+  grid-column: 2;
+  grid-row: 1;
+  width: auto;
+  margin-left: 0;
+  text-align: center;
+}
+/* A step's parts: a guide line down the number column beside them. */
+.wiz-steps.rail-thin .wiz-step.sub button::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+  align-self: stretch;
+  width: 2px;
+  margin-right: 5px;
+  /* Through the row's padding: one line down the parts, unbroken. */
+  margin-block: calc(-0.16 * var(--sp) - 1px);
+  background: var(--paper-edge, #d9cfae);
+}
+@container folder (max-width: 51rem) {
+  .wiz-steps:not(.rail-wide) .wiz-step button,
+  .wiz-steps:not(.rail-wide) .wiz-step.sub button {
+    display: grid;
+    grid-template-columns: 1.5rem 1.1rem;
+    column-gap: 3px;
+    justify-content: center;
+    align-items: center;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step .n {
+    grid-column: 1;
+    width: auto;
+  }
+  .wiz-steps:not(.rail-wide) .wiz-step .mark,
+  .wiz-steps:not(.rail-wide) .wiz-step.sub .mark {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    margin-left: 0;
+    text-align: center;
+  }
+  /* A step's parts: a guide line down the number column beside them. */
+  .wiz-steps:not(.rail-wide) .wiz-step.sub button::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+    align-self: stretch;
+    width: 2px;
+    margin-right: 5px;
+    margin-block: calc(-0.16 * var(--sp) - 1px);
+    background: var(--paper-edge, #d9cfae);
+  }
+}
+
+/* A values button's count alone, and a Map button's icon alone, where there's no room for their words. */
+.vals-button .vals-short {
+  display: none;
+}
+.as-cap.cap-narrow .vals-button .vals-long,
+.as-cap.cap-narrow .show-on-map .som-label {
+  display: none;
+}
+.as-cap.cap-narrow .vals-button .vals-short {
+  display: inline;
+}
+.as-cap.cap-narrow .wiz-samples > .button.vals-button,
+.as-cap.cap-narrow .wiz-samples > .show-on-map {
+  width: auto;
+  min-width: 0;
+}
+.as-cap.cap-narrow .wiz-samples > .show-on-map {
+  padding-inline: 0.4rem;
+}
+
+/* Narrow: the column's picker takes what's left of its row (never more); under it, the reading at the left and the
+   short buttons at the right, on one line. */
+.as-cap.cap-narrow .wiz-grid.wiz-capsules {
+  grid-template-columns: max-content minmax(0, 1fr);
+  width: 100%;
+}
+.as-cap.cap-narrow .wiz-capsules > .wiz-capsule > .wiz-samples {
+  justify-self: stretch;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+.as-cap.cap-narrow .wiz-capsules > .wiz-capsule > .wiz-samples > :first-child:not(button) {
+  margin-right: auto;
+}
+.as-cap.cap-narrow .wiz-capsule > .wiz-samples > :is(.vals-button, .show-on-map),
+.as-cap.cap-narrow .wiz-capsule > .wiz-samples :is(.vals-button, .show-on-map) {
+  width: auto;
+  min-width: 0;
+}
+/* … the reading, then the two short buttons side by side at the right. */
+.as-cap.cap-narrow .wiz-samples > .field-tools {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.4rem;
+}
+.as-cap.cap-narrow .wiz-samples > .field-tools > :first-child {
+  flex: 1 1 auto;
+  width: auto;
+  margin-right: auto;
+}
+.as-cap.cap-narrow .field-tools > :is(.vals-button, .show-on-map) {
+  width: auto;
+}
