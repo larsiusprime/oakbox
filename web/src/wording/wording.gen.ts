@@ -1921,6 +1921,7 @@ export type Wording = {
     toValues: string;
   };
   values: {
+    toReport: string;
     modelsKicker: string;
     steps: {
       fill: string;

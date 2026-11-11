@@ -4,6 +4,7 @@ import { ExcludedSince } from "../components/ExcludedSince";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { LoadingBar } from "../components/Waiting";
 import { when } from "../lib/format";
+import { onward as goOnTo } from "../lib/returnto";
 import { say, t } from "../wording";
 import { FinalValues } from "./FinalValues";
 import { HowTheyDid } from "./HowTheyDid";
@@ -276,7 +277,8 @@ export function ValuesTab({
             <ExcludedSince n={fv?.excluded_since} run={finalize} />
             <Outliers projectId={projectId} currency={currency} />
           </StepBody>
-          <StepFoot back={back} next={null} />
+          {/* The tab's last step: Next on to the next tab, Report. */}
+          <StepFoot back={back} next={{ label: m.toReport, onPress: () => goOnTo(projectId, "report") }} />
         </>
       )}
     </StepFrame>

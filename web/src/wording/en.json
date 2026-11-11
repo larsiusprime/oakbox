@@ -2131,12 +2131,12 @@
       ],
       "skip": [
         "Skip this step",
-        "Go straight to Models. You can come back to it."
+        "Go straight to Variables. You can come back to it."
       ],
       "sets": "Values to check",
       "groups": "Model groups",
       "shown": "Values shown",
-      "toValues": "Go to Models ›"
+      "toValues": "Go to Variables ›"
     },
     "steps": {
       "what": "What to check",
@@ -2431,10 +2431,11 @@
       "lowest": "Cheapest",
       "highest": "Dearest"
     },
-    "looksRight": "Looks right › Models",
-    "toValues": "Models ›"
+    "looksRight": "Looks right › Variables",
+    "toValues": "Variables ›"
   },
   "values": {
+    "toReport": "Report ›",
     "modelsKicker": "Step 6 of 7",
     "steps": {
       "fill": "Fill blanks",

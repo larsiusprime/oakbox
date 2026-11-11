@@ -114,7 +114,8 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
   const i = STEPS.indexOf(current);
   const prev = STEPS[i - 1];
   const back = prev ? () => go(prev) : null;
-  const toValues = () => goOnTo(projectId, "values");
+  // On to the next tab, Variables (never past it): back instead to a tab that sent you here (lib/returnto).
+  const toValues = () => goOnTo(projectId, "variables");
   const onward = { label: t.step.next, onPress: () => go(STEPS[i + 1] ?? current) };
   const u = setup.data;
   const set = (body: RatioPatch) => change.mutate(body);
