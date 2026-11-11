@@ -19,6 +19,7 @@ import { desktop } from "../desktop";
 import { CHART, SALE } from "../lib/colours";
 import { day, money, num, short } from "../lib/format";
 import { useWidth } from "../lib/hooks";
+import { setFocus, useFocus } from "../lib/mapfocus";
 import { say, t } from "../wording";
 import { ReviewMap } from "./ReviewMap";
 
@@ -329,6 +330,7 @@ function SaleView({
   });
   const mark = useMarkSale(projectId);
   const d = detail.data;
+  const focused = useFocus(i.key_sale);
   const u = s.unit[unit];
   const decide = (action: "keep" | "exclude" | null) =>
     mark.mutate({ key: i.key_sale, action, note }, { onSuccess: () => action && next() });
@@ -367,11 +369,30 @@ function SaleView({
             </thead>
             <tbody>
               {d.members.map((m) => (
-                <tr key={m.key_sale} className={m.key_sale === i.key_sale ? "cs-self" : ""}>
-                  <td>{m.address ?? <Val v={m.key_sale} />}</td>
+                <tr
+                  key={m.key_sale}
+                  className={[
+                    m.key_sale === i.key_sale ? "cs-self" : "",
+                    m.key_sale === focused ? "cs-focus" : "",
+                  ].join(" ")}
+                >
+                  <td>
+                    {/* Clicked: the map rings it and moves to it. */}
+                    {m.latitude != null && m.longitude != null ? (
+                      <Button
+                        className="wiz-link"
+                        aria-pressed={m.key_sale === focused}
+                        onPress={() => setFocus(i.key_sale, m.key_sale === focused ? null : m.key_sale)}
+                      >
+                        {m.address ?? m.key_sale}
+                      </Button>
+                    ) : (
+                      (m.address ?? <Val v={m.key_sale} />)
+                    )}
+                  </td>
                   <td className="cs-n">{money(m.price_per_area, currency)}</td>
                   <td className="cs-n">{num(m.area)}</td>
-                  <td>{day(m.sale_date)}</td>
+                  <td className="cs-day">{day(m.sale_date)}</td>
                   <td>
                     {m.key_sale === i.key_sale ? (
                       <span className="pill pill-bad">{s.review.thisSale}</span>

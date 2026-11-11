@@ -8660,3 +8660,16 @@ th.rv-onmap {
 .sim-val {
   font-variant-numeric: tabular-nums;
 }
+
+/* Sales set aside: a sale of the group picked to look at on the map. */
+tr.cs-focus > td {
+  background: #dbe7f7;
+  font-weight: 600;
+}
+/* A sale's ID or address, never split across lines. */
+tr > td > .wiz-link[aria-pressed] {
+  white-space: nowrap;
+}
+td.cs-day {
+  white-space: nowrap;
+}

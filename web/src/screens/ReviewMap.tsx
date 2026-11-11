@@ -8,6 +8,7 @@ import { api, unwrap } from "../api/client";
 import type { components } from "../api/schema";
 import { boundsOf, MapView, rgba } from "../components/MapView";
 import { OUTLIER, SALE } from "../lib/colours";
+import { useFocus } from "../lib/mapfocus";
 import { t } from "../wording";
 
 type Point = components["schemas"]["ReviewPoint"];
@@ -54,6 +55,9 @@ export function ReviewMap({
     (m) => m.latitude != null && m.longitude != null && m.key_sale !== picked,
   );
   const me = points.find((p) => p.key_sale === picked);
+  // A sale of its group clicked in the table: ringed, and the map moves to it.
+  const focusKey = useFocus(picked);
+  const focus = members.find((m) => m.key_sale === focusKey) ?? null;
   const layers = useMemo(
     () => [
       new ScatterplotLayer<Point>({
@@ -84,6 +88,22 @@ export function ReviewMap({
         getPosition: (m: (typeof members)[number]) => [m.longitude ?? 0, m.latitude ?? 0],
         getLineColor: rgba(OUTLIER.comp),
       }),
+      ...(focus
+        ? [
+            new ScatterplotLayer({
+              id: "focus",
+              data: [focus],
+              radiusUnits: "pixels",
+              getRadius: 11,
+              filled: false,
+              stroked: true,
+              lineWidthUnits: "pixels",
+              getLineWidth: 3,
+              getPosition: (m: (typeof members)[number]) => [m.longitude ?? 0, m.latitude ?? 0],
+              getLineColor: [17, 17, 17, 255],
+            }),
+          ]
+        : []),
       ...(me
         ? [
             new ScatterplotLayer<Point>({
@@ -101,15 +121,21 @@ export function ReviewMap({
           ]
         : []),
     ],
-    [points, members, me, pick],
+    [points, members, me, pick, focus],
   );
   // Picked: the map goes to it and its comps; else every sale set aside.
-  const around = me
+  const pad = 0.0015;
+  const around = focus
     ? boundsOf([
-        [me.longitude, me.latitude] as const,
-        ...members.map((m) => [m.longitude ?? 0, m.latitude ?? 0] as const),
+        [(focus.longitude ?? 0) - pad, (focus.latitude ?? 0) - pad],
+        [(focus.longitude ?? 0) + pad, (focus.latitude ?? 0) + pad],
       ])
-    : boundsOf(points.map((p) => [p.longitude, p.latitude] as const));
+    : me
+      ? boundsOf([
+          [me.longitude, me.latitude] as const,
+          ...members.map((m) => [m.longitude ?? 0, m.latitude ?? 0] as const),
+        ])
+      : boundsOf(points.map((p) => [p.longitude, p.latitude] as const));
   const shown = [...new Set(points.map((p) => p.checks[0] ?? ""))].filter((c) => c in s.checkNames);
   return (
     <div className="mapwin-body">
@@ -119,7 +145,7 @@ export function ReviewMap({
           label={s.mapLabel}
           layers={layers}
           bounds={around}
-          fitKey={`${picked ?? ""}:${members.length}:${points.length}`}
+          fitKey={`${picked ?? ""}:${members.length}:${points.length}:${focus?.key_sale ?? ""}`}
           tooltip={({ object }) =>
             object && "checks" in (object as Point)
               ? (object as Point).checks
