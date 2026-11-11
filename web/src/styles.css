@@ -7724,11 +7724,15 @@ section.wiz-section:has(> .cf-tbl),
    spread right under; the sales record's comparison below a dotted line. */
 .as-cap {
   display: grid;
+  /* One column, the capsule's whole width: its header band runs edge to edge, whatever's under it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: calc(0.5 * var(--sp));
   align-content: start;
   padding-top: 0;
 }
 .as-cap > .as-head {
+  /* Wider than the column by its negative margins: out to the capsule's edges (a cap of 100% stopped it short). */
+  max-width: none;
   margin: 0 calc(-0.7 * var(--sp));
   padding: 0.35rem calc(0.7 * var(--sp));
   border-bottom: 1px solid var(--entry-head);
@@ -8709,6 +8713,21 @@ td.cs-day {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* The lid at the window's top; the folder flush with the frame's sides and bottom, no wood between (2026-11-11). A
+     docked map's own padding (html[data-map]) still makes its room. */
+  padding: 0 var(--rim) var(--rim);
+}
+.content > .project > .oak-nav {
+  position: relative;
+  margin-top: 0;
+  margin-bottom: calc(calc(0.9 * var(--sp)) + 5px - var(--rim));
+}
+/* Out to the window's edges; over a map docked on a side, its own rule reaches across it. */
+html:not([data-map="left"]) .content > .project > .oak-nav {
+  margin-left: calc(-1 * var(--rim));
+}
+html:not([data-map="right"]) .content > .project > .oak-nav {
+  margin-right: calc(-1 * var(--rim));
 }
 .content > .project {
   flex: 1;

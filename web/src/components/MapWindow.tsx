@@ -230,7 +230,8 @@ function useLidBottom(): number {
   useEffect(() => {
     const lid = document.querySelector(".oak-nav");
     if (!lid) return;
-    const measure = () => setBottom(Math.round(lid.getBoundingClientRect().height));
+    // Its bottom edge, not its height: the map starts under it wherever it sits.
+    const measure = () => setBottom(Math.round(lid.getBoundingClientRect().bottom));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(lid);
