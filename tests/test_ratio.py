@@ -1,6 +1,7 @@
 """Step 4, Check my values (SPEC F8): its calls, the window proposed, and the values checked on a small project."""
 
 import datetime as dt
+from typing import Any
 
 import pytest
 
@@ -184,8 +185,8 @@ def test_vei_boxes_group_sales_as_the_engine_does(tmp_path):
     table.to_parquet(studies / "v.sales.parquet")
 
     got = ratio.vei_boxes(tmp_path, "v", "sf", "hood")
-    kept = table[~trimmed].rename(columns={"value": "v"})
-    want = get_vertical_equity_scores(kept, "sale_price", "v")["group_stats"]
+    kept = pd.DataFrame(table[~trimmed]).rename(columns={"value": "v"})
+    want: Any = get_vertical_equity_scores(kept, "sale_price", "v")["group_stats"]
     assert [b.n for b in got.by_sale] == want["n"].tolist()
     assert [b.median for b in got.by_sale] == pytest.approx(want["ratio"].tolist())
     regions = _region_stats(kept, "v", "hood")["strata"]
