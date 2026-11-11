@@ -99,3 +99,28 @@ def test_standards_the_iaaos_or_custom_and_the_groups_each_judges():
     # Back to the IAAO's.
     ratio.change(p, ratio.RatioPatch(reset_standards=True))
     assert p.ratio.source == "iaao" and p.ratio.standards is None
+
+
+def test_sales_by_their_neighbourhood_on_the_map(tmp_path):
+    """Neighbourhood price levels' map: each sale studied with a place, by its region; each region's median ratio
+    without the outlying (trimmed) ones, and the median of them all; a model group picked keeps only its sales."""
+    import pandas as pd
+
+    studies = ratio.out_dir(tmp_path) / "studies"
+    studies.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "latitude": [1.0, 1.0, 2.0, 2.0, None],
+            "longitude": [3.0, 3.0, 4.0, 4.0, 5.0],
+            "model_group": ["sf", "sf", "sf", "condo", "sf"],
+            "neighborhood": ["B", "B", "A", "A", "A"],
+            "ratio": [0.8, 5.0, 1.2, 1.0, 1.0],
+            "trimmed": [False, True, False, False, False],
+        }
+    ).to_parquet(studies / "v.sales.parquet")
+    got = ratio.region_points(tmp_path, "v", "neighborhood", None)
+    assert got.regions == ["A", "B"] and got.region == [1, 1, 0, 0]  # the one with no place left out
+    assert got.median == [1.1, 0.8] and got.sales == [2, 1] and got.overall == 1.0
+    sf = ratio.region_points(tmp_path, "v", "neighborhood", "sf")
+    assert sf.median == [1.2, 0.8] and len(sf.lon) == 3
+    assert ratio.region_points(tmp_path, "v", "zone", None).lon == []  # not a column of the study

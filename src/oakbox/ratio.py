@@ -1012,6 +1012,58 @@ def map_points(project_dir: Path, field: str, group: str | None) -> list[MapPoin
     ]
 
 
+class RegionPoints(BaseModel):
+    """Each sale studied with a place, by its region (neighbourhood), as columns, for Neighbourhood price levels'
+    map: each coloured by its region's median ratio (the outlying ratios left out of it, as in the statistics)."""
+
+    lon: list[float]
+    lat: list[float]
+    region: list[int] = Field(description="Index into regions.")
+    regions: list[str]
+    median: list[float | None] = Field(description="Each region's median ratio.")
+    sales: list[int] = Field(description="Each region's sales counted in its median.")
+    overall: float | None = Field(default=None, description="The median ratio of all of them, the same way.")
+
+
+def region_points(project_dir: Path, field: str, region: str, group: str | None) -> RegionPoints:
+    import numpy as np
+    import pandas as pd
+
+    empty = RegionPoints(lon=[], lat=[], region=[], regions=[], median=[], sales=[], overall=None)
+    path = out_dir(project_dir) / "studies" / f"{field}.sales.parquet"
+    if not region or not path.is_file():
+        return empty
+    t = pd.read_parquet(path)
+    if any(c not in t for c in ("latitude", "longitude", "ratio", region)):
+        return empty
+    if group:
+        t = cast(pd.DataFrame, t[t["model_group"].astype(str) == group])
+    t = t.assign(
+        la=cells.numbers(t, "latitude"),
+        lo=cells.numbers(t, "longitude"),
+        r=cells.numbers(t, "ratio"),
+        g=t[region].astype("string").fillna(""),
+    )
+    t = cast(pd.DataFrame, t[t["la"].notna() & t["lo"].notna() & (t["g"] != "")])
+    kept = t[~t["trimmed"].astype(bool)] if "trimmed" in t else t
+    by = kept.groupby("g")["r"]
+    med = {str(k): float(v) for k, v in by.median().items()}
+    n = {str(k): int(v) for k, v in by.count().items()}
+    names = sorted(str(g) for g in t["g"].unique())
+    rs = np.asarray(kept["r"], dtype=float)
+    rs = rs[np.isfinite(rs)]
+    at = {g: i for i, g in enumerate(names)}
+    return RegionPoints(
+        lon=np.round(np.asarray(t["lo"], dtype=float), 6).tolist(),
+        lat=np.round(np.asarray(t["la"], dtype=float), 6).tolist(),
+        region=[at[g] for g in t["g"]],
+        regions=[str(g) for g in names],
+        median=[round(med[g], 4) if g in med and np.isfinite(med[g]) else None for g in names],
+        sales=[n.get(g, 0) for g in names],
+        overall=round(float(np.median(rs)), 4) if len(rs) else None,
+    )
+
+
 class SimilarPoints(BaseModel):
     """Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by
     how far apart its group's values are (its CHD)."""

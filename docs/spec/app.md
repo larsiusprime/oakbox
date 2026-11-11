@@ -411,7 +411,7 @@ Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<
 | Evaluate | What to check … The standards, Check my values | Hold |
 | Evaluate | Which groups | The model groups ✓ (the ones not checked faded: not yet) |
 | Evaluate | Across prices | Sales by ratio, a price band at a time (cheap / middle / dear) ✓ |
-| Evaluate | Neighbourhood price levels | Each neighbourhood by its median ratio (**data**) |
+| Evaluate | Neighbourhood price levels | Each sale by its neighbourhood's median ratio, against the median of them all (the page's model group) ✓ |
 | Variables | Fill blanks … What changed | Hold (what changed: **data**) |
 | Variables | Spatial average, Per area statistics | The nearby sale price, from the models' try ✓ (per area: **data**) |
 | Variables | Test the variables … VIF | Each variable's Map button: the column, the models' try's first ✓ |

@@ -2392,6 +2392,13 @@
       ]
     },
     "regions": {
+      "mapInstruction": "Each sale on the map is coloured by its neighbourhood's median ratio",
+      "mapInstructionSub": "Against the median of them all: blue, a neighbourhood valued lower than the rest; red, higher. Hover a sale for its neighbourhood. The model group is the one picked here.",
+      "mapLabel": "Map of the sales studied, coloured by their neighbourhood's median ratio",
+      "mapTip": "{region}: median ratio {median}, {n} sales",
+      "mapOf": "{regions} neighbourhoods, {sales} sales; median ratio {median}",
+      "mapLow": "valued lower than the rest",
+      "mapHigh": "valued higher than the rest",
       "lede": "Comparing ratios across sale prices can''t tell an over-assessed house in a poor neighbourhood from a sale at a low price that wasn''t a market sale. Here sales are grouped by how dear their whole neighbourhood is (its median price level), not by their own price. If low-priced neighbourhoods have higher ratios too, the inequity is real; if this is flat while the VEI by sale isn''t, invalid sales are the likelier cause.",
       "field": "Neighbourhoods by",
       "noField": "none",

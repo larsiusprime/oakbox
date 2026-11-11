@@ -6,10 +6,12 @@ import { useMemo, useState } from "react";
 import { api, type FieldResult, type RatioSetup, unwrap } from "../api/client";
 import { Choice } from "../components/Form";
 import { boundsOf, MapView, rgba } from "../components/MapView";
+import { OnTheMap } from "../components/OnTheMap";
 import { Seg } from "../components/Seg";
 import { BY_LEVEL, BY_SALE, ratioColor, ratioStroke, TRIMMED } from "../lib/colours";
 import { money, num, ratioText, signed } from "../lib/format";
 import { t } from "../wording";
+import { RegionMap } from "./RegionMap";
 import { BandChart } from "./ValueCharts";
 
 const r = t.ratio;
@@ -146,12 +148,14 @@ export function RatioMap({
 /** The median ratio by the price level of the region each sale is in (openratiostudy.com's neighbourhood price
  * levels): it tells real vertical inequity from invalid sales at low prices in dear areas. */
 export function Regions({
+  projectId,
   result,
   setup,
   currency,
   choose,
   busy,
 }: {
+  projectId: string;
   result: FieldResult;
   setup: RatioSetup | undefined;
   currency: string;
@@ -189,6 +193,16 @@ export function Regions({
           onChange={setGid}
         />
       </div>
+      {rg && (
+        <OnTheMap
+          projectId={projectId}
+          step={r.steps.regions}
+          title={rr.mapInstruction}
+          sub={rr.mapInstructionSub}
+        >
+          <RegionMap projectId={projectId} field={result.field} region={rg.field} group={gid} />
+        </OnTheMap>
+      )}
       {!rg ? (
         <p className="wiz-from">
           {setup?.region ? rr.notRun : setup && setup.regions.length === 0 ? rr.noLocations : rr.choose}

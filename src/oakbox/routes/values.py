@@ -53,6 +53,13 @@ def ratio_similar(project_id: str, field: str, group: str = "") -> ratio.Similar
     return ratio.similar_points(projects.project_dir(project_id), field, group or None)
 
 
+@router.get("/api/projects/{project_id}/ratio/regions")
+def ratio_regions(project_id: str, field: str, region: str, group: str = "") -> ratio.RegionPoints:
+    """Each sale studied by its region, and each region's median ratio, for Neighbourhood price levels' map."""
+    load_project(project_id)
+    return ratio.region_points(projects.project_dir(project_id), field, region, group or None)
+
+
 @router.get("/api/projects/{project_id}/final/parcels")
 def final_parcels(project_id: str) -> final.ParcelPoints:
     """Every parcel's place, model value, roll value and finished area, as columns, for Model values' map."""

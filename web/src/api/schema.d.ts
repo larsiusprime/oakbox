@@ -2538,6 +2538,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Regions
+         * @description Each sale studied by its region, and each region's median ratio, for Neighbourhood price levels' map.
+         */
+        get: operations["ratio_regions_api_projects__project_id__ratio_regions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/final/parcels": {
         parameters: {
             query?: never;
@@ -9156,6 +9176,39 @@ export interface components {
             code: string;
             /** Name */
             name: string;
+        };
+        /**
+         * RegionPoints
+         * @description Each sale studied with a place, by its region (neighbourhood), as columns, for Neighbourhood price levels'
+         *     map: each coloured by its region's median ratio (the outlying ratios left out of it, as in the statistics).
+         */
+        RegionPoints: {
+            /** Lon */
+            lon: number[];
+            /** Lat */
+            lat: number[];
+            /**
+             * Region
+             * @description Index into regions.
+             */
+            region: number[];
+            /** Regions */
+            regions: string[];
+            /**
+             * Median
+             * @description Each region's median ratio.
+             */
+            median: (number | null)[];
+            /**
+             * Sales
+             * @description Each region's sales counted in its median.
+             */
+            sales: number[];
+            /**
+             * Overall
+             * @description The median ratio of all of them, the same way.
+             */
+            overall: number | null;
         };
         /**
          * RegionStats
@@ -16809,6 +16862,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimilarPoints"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_regions_api_projects__project_id__ratio_regions_get: {
+        parameters: {
+            query: {
+                field: string;
+                region: string;
+                group?: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionPoints"];
                 };
             };
             /** @description Validation Error */

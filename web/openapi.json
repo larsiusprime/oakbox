@@ -6672,6 +6672,74 @@
     }
    }
   },
+  "/api/projects/{project_id}/ratio/regions": {
+   "get": {
+    "summary": "Ratio Regions",
+    "description": "Each sale studied by its region, and each region's median ratio, for Neighbourhood price levels' map.",
+    "operationId": "ratio_regions_api_projects__project_id__ratio_regions_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "region",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Region"
+      }
+     },
+     {
+      "name": "group",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Group"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegionPoints"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/final/parcels": {
    "get": {
     "summary": "Final Parcels",
@@ -21486,6 +21554,86 @@
      "name"
     ],
     "title": "Region"
+   },
+   "RegionPoints": {
+    "properties": {
+     "lon": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lon"
+     },
+     "lat": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Lat"
+     },
+     "region": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Region",
+      "description": "Index into regions."
+     },
+     "regions": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Regions"
+     },
+     "median": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Median",
+      "description": "Each region's median ratio."
+     },
+     "sales": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Sales",
+      "description": "Each region's sales counted in its median."
+     },
+     "overall": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Overall",
+      "description": "The median ratio of all of them, the same way."
+     }
+    },
+    "type": "object",
+    "required": [
+     "lon",
+     "lat",
+     "region",
+     "regions",
+     "median",
+     "sales",
+     "overall"
+    ],
+    "title": "RegionPoints",
+    "description": "Each sale studied with a place, by its region (neighbourhood), as columns, for Neighbourhood price levels'\nmap: each coloured by its region's median ratio (the outlying ratios left out of it, as in the statistics)."
    },
    "RegionStats": {
     "properties": {

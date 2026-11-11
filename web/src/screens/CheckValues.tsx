@@ -295,6 +295,7 @@ export function CheckValuesTab({ projectId, currency }: { projectId: string; cur
 
             {current === "regions" && (
               <Regions
+                projectId={projectId}
                 result={result}
                 setup={u}
                 currency={currency}

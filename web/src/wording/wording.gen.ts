@@ -1878,6 +1878,13 @@ export type Wording = {
       legend: [[number, string], [number, string], [number, string], [number, string], [number, string]];
     };
     regions: {
+      mapInstruction: string;
+      mapInstructionSub: string;
+      mapLabel: string;
+      mapTip: (a: { region: string | number; median: string | number; n: string | number }) => string;
+      mapOf: (a: { regions: string | number; sales: string | number; median: string | number }) => string;
+      mapLow: string;
+      mapHigh: string;
       lede: string;
       field: string;
       noField: string;
