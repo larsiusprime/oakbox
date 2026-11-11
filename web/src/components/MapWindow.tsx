@@ -963,6 +963,7 @@ function MapBody({
     })),
   });
   const by = fieldId?.startsWith("sr:") ? (fieldId.slice(3) as SrKey) : null;
+  const { showPu, showSr } = useDock();
   const base = `/api/projects/${encodeURIComponent(projectId)}/map`;
   const centres = useQuery({
     queryKey: ["map-centres", projectId, info.stamp],
@@ -988,7 +989,8 @@ function MapBody({
           params: { path: { project_id: projectId }, query: { per: (by === "price" && per) || "" } },
         }),
       ),
-    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")),
+    // Also for 🌐 off (only the parcels with a sale drawn): which parcels have one.
+    enabled: !!by || (!!prId && prId.startsWith("pr:differs:")) || showPu === false,
     placeholderData: keepPreviousData,
     staleTime: Number.POSITIVE_INFINITY,
   });
@@ -1026,20 +1028,53 @@ function MapBody({
   const srSpread = by && sales.data ? spreadOf(sales.data, by) : undefined;
   const range = useRangeOf(linkKey, by ? srSpread : col.data);
   const hideOut = useDock().hideOut;
+  // 🌐 off: only the parcels in the sales record (with a sale) are drawn; 💰 off: no sales drawn.
+  const soldParcels = useMemo(() => (showPu === false && sold ? new Set(sold.parcel) : null), [showPu, sold]);
   const paint = useMemo(
     () =>
-      prPaint && !onSales
-        ? prPaint
-        : by || prId || lyOn
-          ? painter(undefined, null)
-          : outside(painter(col.data, range), hideOut),
-    [by, prId, lyOn, prPaint, onSales, col.data, range, hideOut],
+      onlySold(
+        prPaint && !onSales
+          ? prPaint
+          : by || prId || lyOn
+            ? painter(undefined, null)
+            : outside(painter(col.data, range), hideOut),
+        soldParcels,
+      ),
+    [by, prId, lyOn, prPaint, onSales, col.data, range, hideOut, soldParcels],
   );
   const srPaint = useMemo(
     () =>
-      prPaint && onSales ? prPaint : by && sold ? outside(salesPainter(sold, by, range), hideOut) : null,
-    [by, sold, range, prPaint, onSales, hideOut],
+      showSr === false
+        ? null
+        : prPaint && onSales
+          ? prPaint
+          : by && sold
+            ? outside(salesPainter(sold, by, range), hideOut)
+            : null,
+    [by, sold, range, prPaint, onSales, hideOut, showSr],
   );
+  // What's drawn: the parcel universe, the sales record (each on or off), where there are sales.
+  const layerToggles =
+    info.sales.length > 0 ? (
+      <div className="mapwin-show">
+        <label>
+          <input
+            type="checkbox"
+            checked={showPu !== false}
+            onChange={(e) => setDock({ showPu: e.target.checked })}
+          />{" "}
+          {w.showPu}
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={showSr !== false}
+            onChange={(e) => setDock({ showSr: e.target.checked })}
+          />{" "}
+          {w.showSr}
+        </label>
+      </div>
+    ) : null;
   // Hide the rest, beside the range: the ones outside it aren't drawn.
   const hideToggle = (
     <label className="fh-linked">
@@ -1182,6 +1217,7 @@ function MapBody({
     <div className="mapwin-body">
       {centres.error && <p className="error mapwin-msg">{centres.error.message}</p>}
       <div className="mapwin-legend">
+        {layerToggles}
         {lyOn ? (
           <ul className="mapwin-cats">
             {layerNames.map((name, k) => (
@@ -1378,6 +1414,19 @@ type Paint = {
 };
 
 const GONE: [number, number, number, number] = [0, 0, 0, 0];
+
+/** 🌐 off: only the parcels with a sale drawn (nor counted in a cell); the rest as if hidden. */
+function onlySold(p: Paint, sold: Set<number> | null): Paint {
+  if (!sold) return p;
+  const out = (i: number) => !sold.has(i) || !!p.hidden?.(i);
+  return {
+    ...p,
+    at: (i) => (out(i) ? null : p.at(i)),
+    has: (i) => !out(i) && p.has(i),
+    fill: (i) => (out(i) ? GONE : p.fill(i)),
+    hidden: out,
+  };
+}
 
 /** With Hide the rest, a number painter's parcels (or sales) outside the range aren't drawn, nor counted in a cell's
  * colour; without it they're drawn at the ramp's ends. */

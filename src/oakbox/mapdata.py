@@ -501,11 +501,14 @@ def _encode(per: list[str]) -> MapColumn:
 # nearby averages among them).
 OUTS: dict[str, tuple[str, ...]] = {
     "universe": ("out", "oakbox", "bring_in", "universe.parquet"),
+    # The sales as brought in: a parcel takes its latest sale's value.
+    "sales": ("out", "oakbox", "bring_in", "sales.parquet"),
     "prepared": ("out", "look", "2-clean-universe.parquet"),
     "modeled": ("out", "models", "all_model_groups", "universe.parquet"),
 }
 SKIP = {
     "key",
+    "key_sale",
     "geometry",
     "latitude",
     "longitude",
@@ -555,8 +558,14 @@ def out_fields(project: Project) -> list[MapField]:
 @lru_cache(maxsize=16)
 def _out_column(universe_ids: tuple[str, ...], stamp: tuple[str, float, int], column: str) -> MapColumn:
     import pandas as pd
+    import pyarrow.parquet as pq
 
-    t = pd.read_parquet(stamp[0], columns=["key", column])
+    names = pq.read_schema(stamp[0]).names
+    dated = "sale_date" in names and column != "sale_date"
+    t = pd.read_parquet(stamp[0], columns=["key", column, *(["sale_date"] if dated else [])])
+    if dated or column == "sale_date":
+        # Sales, several to a parcel: the latest one's value is the parcel's (the last written wins below).
+        t = t.sort_values("sale_date", kind="stable")
     keys = [str(k) for k in t["key"]]
     vals = list(t[column])
     by = {

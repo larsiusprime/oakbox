@@ -2754,6 +2754,8 @@ export type Wording = {
     backToFollowing: string;
     permitsTitle: string;
     hideOut: string;
+    showPu: string;
+    showSr: string;
     per: {
       label: string;
       asIs: string;
@@ -2774,6 +2776,7 @@ export type Wording = {
       universe: string;
       prepared: string;
       modeled: string;
+      sales: string;
     };
     hold: (a: { shown: string | number }) => string;
     following: (a: { step: string | number }) => string;

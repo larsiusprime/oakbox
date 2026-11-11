@@ -238,3 +238,31 @@ def test_a_value_per_size(client, pid):
     v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
     want = np.array([1500, 2200, 980, 1750, 3100]) / (np.array([1987, 2003, 1954, 1968, 2011]) * 43_560)
     assert np.allclose(v[:5], want)
+
+
+def test_a_sales_column_by_the_latest_sale(client, pid):
+    """The sales as brought in, on the parcels: each parcel by its latest sale's value; one with none, blank."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    start_wizard(client, pid)
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "oakbox" / "bring_in"
+    out.mkdir(parents=True)
+    pd.DataFrame({"key": IDS}).to_parquet(out / "universe.parquet")
+    pd.DataFrame(
+        {
+            "key": [IDS[0], IDS[0], IDS[2]],
+            "key_sale": ["a", "b", "c"],
+            "sale_date": pd.to_datetime(["2024-05-01", "2021-01-01", "2023-03-03"]),
+            "deed_type": ["WD", "QC", "WD"],
+        }
+    ).to_parquet(out / "sales.parquet")
+    ids = {f["id"] for f in _ready(client, pid)["outs"]}
+    assert "out:sales:deed_type" in ids and "out:sales:key_sale" not in ids
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "out:sales:deed_type"}).json()
+    codes = np.frombuffer(base64.b64decode(c["values"]), dtype="<u2").tolist()
+    got = [c["categories"][k] if k < len(c["categories"]) else "" for k in codes]
+    assert got == ["WD", "", "WD", "", "", ""]  # parcel 0's latest sale (2024) was a WD, not the 2021 QC

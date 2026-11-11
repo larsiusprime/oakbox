@@ -8589,3 +8589,17 @@ tr.rv-picked > td {
 .as-cap.cap-narrow .field-tools > :is(.vals-button, .show-on-map) {
   width: auto;
 }
+
+/* What the map draws: the parcel universe and the sales record, each on or off. */
+.mapwin-show {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  font-size: 0.85rem;
+}
+.mapwin-show label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}

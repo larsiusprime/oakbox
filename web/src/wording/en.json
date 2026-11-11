@@ -3393,6 +3393,8 @@
     "backToFollowing": "Back to following",
     "permitsTitle": "Permits",
     "hideOut": "Hide the rest",
+    "showPu": "🌐 Parcel universe",
+    "showSr": "💰 Sales record",
     "per": {
       "label": "Per size",
       "asIs": "As-is",
@@ -3409,7 +3411,8 @@
     "outSource": {
       "universe": "As brought in (Inputs)",
       "prepared": "As prepared (Variables)",
-      "modeled": "As the models saw them (Try them)"
+      "modeled": "As the models saw them (Try them)",
+      "sales": "The sales as brought in: a parcel by its latest sale"
     },
     "hold": "Nothing on this step to map: still showing {shown}.",
     "following": "Following: {step}",

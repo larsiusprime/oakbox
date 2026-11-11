@@ -31,6 +31,9 @@ export type Dock = {
   /** What a step's Map button picked to follow there (SPEC §3.15): step (project/tab/step) -> field. Follow shows
    * it on that step instead of the step's own choice. */
   picks: Record<string, string>;
+  /** What's drawn (SPEC §3.15): the parcel universe (off: only parcels with a sale) and the sales record. */
+  showPu: boolean;
+  showSr: boolean;
 };
 
 export type Per = "bldg" | "land";
@@ -53,6 +56,8 @@ const START: Dock = {
   hideOut: false,
   per: {},
   picks: {},
+  showPu: true,
+  showSr: true,
 };
 
 function load<T>(key: string, fallback: T): T {

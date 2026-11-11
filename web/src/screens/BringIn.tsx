@@ -515,7 +515,8 @@ const SALES_ON_MAP: Record<string, string> = {
   vacant_sale: "sr:vacant",
 };
 function mapOf(set: string, field: string): string | null {
-  if (set === "sales") return SALES_ON_MAP[field] ?? null;
+  // Of the sales: the 💰 layer's own (each sale at its parcel), else each parcel by its latest sale's value.
+  if (set === "sales") return SALES_ON_MAP[field] ?? (field === "key" ? null : `out:sales:${field}`);
   return ["key", "geometry", "latitude", "longitude"].includes(field) ? null : `out:universe:${field}`;
 }
 
