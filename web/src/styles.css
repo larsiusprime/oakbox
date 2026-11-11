@@ -7362,8 +7362,10 @@ div.map-wait-ask small {
 }
 .ol-detail {
   display: grid;
-  /* The sale and how it's unlike the others side by side; one under the other where they'd be squeezed. */
-  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  /* The sale and how it's unlike the others side by side, each half the sheet; one under the other where they'd be
+     squeezed (below). Two columns, not auto-fit: Why is it off? spans the row, and auto-fit made a third, empty column
+     for it beside a map. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: max(var(--sp), min(1rem, var(--gap-min)));
   border-top: 2px solid var(--rule);
   padding-top: max(var(--sp), min(1rem, var(--gap-min)));
@@ -7485,7 +7487,12 @@ div.map-wait-ask small {
   font-weight: 600;
 }
 @media (max-width: 1100px) {
-  .ol-top,
+  .ol-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* By the sheet's own width (a map docked beside it narrows it): side by side from about 42rem. */
+@container (max-width: 42rem) {
   .ol-detail {
     grid-template-columns: minmax(0, 1fr);
   }
