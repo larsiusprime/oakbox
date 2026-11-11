@@ -4,7 +4,7 @@
  * steps), each saying where it will open. No text sits on the bare wood: what's said is on the plate. */
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Settings } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { useAppSettings } from "../api/app";
 import { api, unwrap } from "../api/client";
@@ -54,7 +54,100 @@ export function OakBand({ page }: { page: Page }) {
           {page.kind === "project" && <ProjectCrumbs page={page} />}
         </ol>
       </nav>
+      {page.kind === "project" && <PlateNav />}
     </header>
+  );
+}
+
+type NavTarget = { label: string; disabled: boolean } | null;
+
+/** The step on screen's Back and Next, as its foot has them (data-nav): read again as the page changes. */
+function useNavTargets(): { back: NavTarget; next: NavTarget } {
+  const [targets, setTargets] = useState<{ back: NavTarget; next: NavTarget }>({ back: null, next: null });
+  useEffect(() => {
+    let frame = 0;
+    const read = (which: "back" | "next"): NavTarget => {
+      const el = [...document.querySelectorAll<HTMLElement>(`.folder-panel [data-nav="${which}"]`)].find(
+        (x) => x.offsetParent !== null,
+      );
+      if (!el) return null;
+      const disabled =
+        el.hasAttribute("disabled") ||
+        el.getAttribute("aria-disabled") === "true" ||
+        el.hasAttribute("data-disabled");
+      const label = (el.textContent ?? "").replace(/[‹›]/g, "").trim();
+      // A plain Back or Next: named by the step before or after the one open in the step list.
+      if (
+        label === t.wizard.back.replace(/[‹›]/g, "").trim() ||
+        label === t.step.next.replace(/[‹›]/g, "").trim()
+      ) {
+        const items = [
+          ...document.querySelectorAll<HTMLElement>(".folder-panel .wiz-steps .wiz-step"),
+        ].filter((x) => x.offsetParent !== null);
+        const at = items.findIndex((x) => x.classList.contains("now"));
+        const near = items[which === "back" ? at - 1 : at + 1]
+          ?.querySelector("button")
+          ?.getAttribute("title");
+        if (at >= 0 && near) return { label: near, disabled };
+      }
+      return { label, disabled };
+    };
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const back = read("back");
+        const next = read("next");
+        setTargets((t) => (JSON.stringify(t) === JSON.stringify({ back, next }) ? t : { back, next }));
+      });
+    };
+    check();
+    const mo = new MutationObserver(check);
+    mo.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["disabled", "aria-disabled", "data-disabled", "hidden"],
+    });
+    return () => {
+      mo.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+  return targets;
+}
+
+/** ‹ › on the plate (SPEC D, 2026-11-11): the step's Back and Next, always in view however far the page is scrolled;
+ * pressing one presses the step's own, so they do exactly what it does (and are disabled when it is). */
+function PlateNav() {
+  const { back, next } = useNavTargets();
+  const press = (which: "back" | "next") =>
+    [...document.querySelectorAll<HTMLElement>(`.folder-panel [data-nav="${which}"]`)]
+      .find((x) => x.offsetParent !== null)
+      ?.click();
+  if (!back && !next) return null;
+  return (
+    <div className="plate-nav">
+      <Tip text={back ? n.backTo({ step: back.label }) : n.noBack}>
+        <Button
+          className="oak-btn"
+          aria-label={back ? n.backTo({ step: back.label }) : n.noBack}
+          isDisabled={!back || back.disabled}
+          onPress={() => press("back")}
+        >
+          ‹
+        </Button>
+      </Tip>
+      <Tip text={next ? n.nextTo({ step: next.label }) : n.noNext}>
+        <Button
+          className="oak-btn oak-btn-next"
+          aria-label={next ? n.nextTo({ step: next.label }) : n.noNext}
+          isDisabled={!next || next.disabled}
+          onPress={() => press("next")}
+        >
+          ›
+        </Button>
+      </Tip>
+    </div>
   );
 }
 

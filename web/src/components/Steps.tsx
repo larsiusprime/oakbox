@@ -187,11 +187,11 @@ export function StepFoot({
   note?: React.ReactNode;
 }) {
   return (
-    <div className="wiz-foot">
+    <FootBar>
       {note && <span className="wiz-foot-note">{note}</span>}
       <span className="wiz-grow" />
       {back && (
-        <Button className="button" onPress={back}>
+        <Button className="button" onPress={back} data-nav="back">
           {t.wizard.back}
         </Button>
       )}
@@ -210,10 +210,21 @@ export function StepFoot({
           className={next.primary === false ? "button" : "button button-primary"}
           isDisabled={!!next.disabled}
           onPress={next.onPress}
+          data-nav="next"
         >
           {next.label}
         </Button>
       )}
+    </FootBar>
+  );
+}
+
+/** A step's foot: Back, its extras, Next; sticking to the bottom of the folder while the sheet runs past it. */
+export function FootBar({ children }: { children: React.ReactNode }) {
+  const ref = useStuck();
+  return (
+    <div className="wiz-foot" ref={ref}>
+      {children}
     </div>
   );
 }
@@ -354,4 +365,35 @@ export function RailToggle() {
       </button>
     </li>
   );
+}
+
+/** A step's foot sticks to the bottom of the folder while its sheet runs past it (SPEC D, 2026-11-11): marked stuck
+ * (its shadow) until the sheet's end comes into view and it settles under it. */
+export function useStuck() {
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!el) return;
+    const scroller = el.closest(".folder-panel");
+    const sheet = el.parentElement;
+    if (!scroller || !sheet) return;
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const stuck = sheet.getBoundingClientRect().bottom > scroller.getBoundingClientRect().bottom + 1;
+        el.classList.toggle("stuck", stuck);
+      });
+    };
+    check();
+    scroller.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(scroller);
+    ro.observe(sheet);
+    return () => {
+      scroller.removeEventListener("scroll", check);
+      ro.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [el]);
+  return setEl;
 }

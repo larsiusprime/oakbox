@@ -3187,6 +3187,10 @@
     "count": "{n} of {of} match “{typed}”"
   },
   "nav": {
+    "backTo": "Back: {step}",
+    "nextTo": "Next: {step}",
+    "noBack": "No step before this one",
+    "noNext": "Nothing after this here",
     "label": "Where you are",
     "projects": "Projects",
     "newProject": "New project",

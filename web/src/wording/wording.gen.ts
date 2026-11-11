@@ -2548,6 +2548,10 @@ export type Wording = {
     count: (a: { n: string | number; of: string | number; typed: string | number }) => string;
   };
   nav: {
+    backTo: (a: { step: string | number }) => string;
+    nextTo: (a: { step: string | number }) => string;
+    noBack: string;
+    noNext: string;
     label: string;
     projects: string;
     newProject: string;

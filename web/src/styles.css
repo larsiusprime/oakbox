@@ -8700,3 +8700,53 @@ td.cs-day {
 .folder-panel.waits > :not(.wait-bar) {
   opacity: 0.6;
 }
+
+/* A project's page (SPEC D, 2026-11-11): the window's height, the lid and the tab row pinned; only the folder under
+   the tabs scrolls (both ways), so a step's foot can stick to its bottom. Other screens scroll as a page. */
+.content:has(> .project) {
+  box-sizing: border-box;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.content > .project {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project > .folder-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project > .folder-tabs > .folder-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* The step's foot: stuck to the folder's bottom while its sheet runs past it (a shadow says so), settling under the
+   sheet at its end. */
+.folder-panel .wiz-foot {
+  position: sticky;
+  /* down through the folder's padding to its edge: nothing shows under it */
+  bottom: calc(-1 * var(--pad));
+  z-index: 3;
+}
+.folder-panel .wiz-foot.stuck {
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.16);
+}
+/* ‹ › on the plate's right: the step's Back and Next, always in view. */
+.plate-nav {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+  flex: none;
+}
+.plate-nav .oak-btn {
+  min-width: 2rem;
+  justify-content: center;
+  font-weight: 700;
+}

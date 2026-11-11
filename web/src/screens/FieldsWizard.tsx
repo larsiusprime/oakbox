@@ -15,7 +15,7 @@ import blockingIcon from "../assets/noto/emoji_u274c.svg";
 import resolvedIcon from "../assets/noto/emoji_u2705.svg";
 import { Disclose } from "../components/Disclose";
 import { FileName } from "../components/FileEntry";
-import { LANDING_MARK, LandingPage, RailToggle, StepFoot, useFrame } from "../components/Steps";
+import { FootBar, LANDING_MARK, LandingPage, RailToggle, StepFoot, useFrame } from "../components/Steps";
 import { Loading } from "../components/Waiting";
 import { lastStep, markSeen, OVERVIEW, seen } from "../lib/place";
 import { navigate } from "../lib/route";
@@ -327,10 +327,10 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             )}
           </p>
         )}
-        <div className="wiz-foot">
+        <FootBar>
           <span className="wiz-grow" />
           {prev && (
-            <Button className="button" onPress={() => go(prev.key)}>
+            <Button className="button" onPress={() => go(prev.key)} data-nav="back">
               {w.back}
             </Button>
           )}
@@ -349,10 +349,11 @@ function WizardView({ project, data, step }: { project: Project; data: Wizard; s
             className={gated ? "button button-primary is-gated" : "button button-primary"}
             aria-disabled={gated}
             onPress={() => (gated ? setUnfinished(true) : onward())}
+            data-nav="next"
           >
             {next ? t.step.next : w.toBringIn}
           </Button>
-        </div>
+        </FootBar>
       </div>
       {unfinished && (
         <UnfinishedDialog

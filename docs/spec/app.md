@@ -152,6 +152,12 @@ spec the runs' names often stand for their steps.
 | 6. Models | Splits, spatial lag, **Try** models (repeatable) → how they did → small groups → **Finalize** → the model values checked against the sales, beside the roll's (F9). Main models only (`run_vacant=False`) | No |
 | 7. Report | Export (CSV, GeoPackage, Excel, Shapefile, GeoParquet) and a printable HTML report of the model values (F10). Runs nothing | No |
 
+**Back and Next always in view** (2026-11-11). A project's page is the window's height: the lid (with the plate) and
+the tab row stay put, and only the folder under them scrolls, both ways. A step's foot (Back, its extras, Next) sticks
+to the folder's bottom while its sheet runs past it, a shadow over what's under it, and settles under the sheet at its
+end. The plate has ‹ › at its right, pressing the step's own Back and Next (disabled with them), named on hover by the
+step they go to.
+
 **A tab that waits** (2026-11-11) on an earlier step, out of date or not yet accepted, is greyed in the tab bar but
 still opens: its page dimmed under a bar that names the step it waits on and goes there. Nothing ever moves you off
 the tab you're on; that step's Looks right (or Next on) brings you back to the tab you came from.
