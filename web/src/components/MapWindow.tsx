@@ -727,6 +727,8 @@ const OTHER_STEPS: Record<string, Record<string, string>> = {
 // A trailing * follows the first such column: Per area statistics' first statistic.
 const OUT_STEPS: Record<string, Record<string, string>> = {
   variables: { lag: "out:modeled:spatial_lag_sale_price_time_adj", area: "out:modeled:area_stat_*" },
+  // Inputs: what Bring in data kept, by parcel.
+  bring: { universe: "out:universe:@parcels", sales: "out:universe:@sales" },
 };
 
 type Target = { title: string; field: string };

@@ -401,7 +401,7 @@ Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<
 | Data | Permits | Parcels by the kind most of their permits are, else by how many (the picker's Permits) ✓ |
 | Data | Enrichments | Each enrichment's Map button: its column, from Bring in data's parcels ✓ |
 | Inputs | What runs, Bring in data | Hold; then the parcels loaded (**data**) |
-| Inputs | The parcel universe, The sales | Kept vs dropped, by reason (**data**) |
+| Inputs | The parcel universe, The sales | Parcels brought in or left out; each parcel's sales all brought in, some or all left out ✓ (by reason: **data**) |
 | Inputs | Public data and checks | The public layers fetched (**data**) |
 | Model groups | How to start | Hold |
 | Model groups | Check them, Tag and write, What each group got | The groups as saved ✓; Check them's rows Show on map ✓ (unmodeled groups faded: not yet) |

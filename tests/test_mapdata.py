@@ -180,3 +180,27 @@ def test_permits_on_the_parcels(client, pid, tmp_path):
     c = client.get(f"/api/projects/{pid}/map/column", params={"field": "permits:count"}).json()
     v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
     assert c["kind"] == "number" and v[:2].tolist() == [2, 1] and np.isnan(v[2:]).all()
+
+
+def test_what_bring_in_data_kept(client, pid):
+    """Inputs on the map: each parcel brought in or left out, and its sales, from Bring in data's outputs (by key)."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    start_wizard(client, pid)
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "oakbox" / "bring_in"
+    out.mkdir(parents=True)
+    pd.DataFrame({"key": IDS[:5]}).to_parquet(out / "universe.parquet")  # the last parcel left out
+    pd.DataFrame({"key": [IDS[0], IDS[3]]}).to_parquet(out / "sales.parquet")  # sales on 0 (two), 2 and 3
+    assert {"out:universe:@parcels", "out:universe:@sales"} <= {f["id"] for f in _ready(client, pid)["outs"]}
+
+    def read(field):
+        c = client.get(f"/api/projects/{pid}/map/column", params={"field": field}).json()
+        codes = np.frombuffer(base64.b64decode(c["values"]), dtype="<u2").tolist()
+        return [c["categories"][k] if k < len(c["categories"]) else "" for k in codes]
+
+    assert read("out:universe:@parcels") == ["Brought in"] * 5 + ["Left out"]
+    assert read("out:universe:@sales") == ["Some left out", "", "All left out", "All brought in", "", ""]

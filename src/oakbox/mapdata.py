@@ -433,11 +433,20 @@ def _out_path(project: Project, source: str) -> Path | None:
     return path if path.is_file() else None
 
 
+# What Bring in data kept, on the parcels (Inputs' The parcel universe and The sales): worked out, not a column.
+KEPT = {"@parcels": "Brought in or left out", "@sales": "Sales brought in or left out"}
+
+
 def out_fields(project: Project) -> list[MapField]:
-    """Every column of the outputs there are now, by source (file "out:<source>")."""
+    """Every column of the outputs there are now, by source (file "out:<source>"); first, what Bring in data kept."""
     import pyarrow.parquet as pq
 
     out: list[MapField] = []
+    if _out_path(project, "universe") is not None:
+        out += [
+            MapField(id=f"out:universe:{k}", label=v, file="out:universe", column=k, field=None)
+            for k, v in KEPT.items()
+        ]
     for source in OUTS:
         path = _out_path(project, source)
         if path is None:
@@ -471,6 +480,8 @@ def column(project: Project, in_dir: Path, field_id: str) -> MapColumn:
     base = project.base_file()
     if name == PERMITS:
         return _permit_column(project, in_dir, col).model_copy(update={"id": field_id})
+    if name == "out" and col in ("universe:@parcels", "universe:@sales"):
+        return _kept(project, in_dir, col.split(":")[1]).model_copy(update={"id": field_id})
     if name == "out":
         source, _, col = col.partition(":")
         path = _out_path(project, source)
@@ -488,6 +499,40 @@ def column(project: Project, in_dir: Path, field_id: str) -> MapColumn:
     row_ids = None if entry.name == base.name else tuple(files.parcel_ids(entry.name))
     out = _column(base_stamp, base.layer, universe_ids, file_stamp(in_dir / entry.filename), entry.layer, col, row_ids)
     return out.model_copy(update={"id": field_id})
+
+
+def _kept(project: Project, in_dir: Path, which: str) -> MapColumn:
+    """Each parcel of the 🌐 Parcel Universe file: brought in or left out by Bring in data; or its sales (in the
+    sales file) all brought in, some left out, or all left out (counted against the sales record's, by parcel)."""
+    from collections import Counter
+
+    import pandas as pd
+
+    from oakbox.wizard.files import sales_file
+
+    base = project.base_file()
+    path = _out_path(project, "universe")
+    if base is None or path is None:
+        raise NotFound(f"out:universe:{which}")
+    files = Files(project, in_dir)
+    ids = files.ids(base.name, "key")
+    if which == "@parcels":
+        kept = set(pd.read_parquet(path, columns=["key"])["key"].astype(str))
+        return _encode(["Brought in" if i in kept else "Left out" if i else "" for i in ids])
+    entry = sales_file(project)
+    sales = path.with_name("sales.parquet")
+    if entry is None or not sales.is_file():
+        raise NotFound(f"out:universe:{which}")
+    given = Counter(k for k in files.parcel_ids(entry.name) if k)
+    kept_n = Counter(pd.read_parquet(sales, columns=["key"])["key"].astype(str))
+
+    def say(i: str) -> str:
+        n, k = given.get(i, 0), kept_n.get(i, 0)
+        if not n and not k:
+            return ""
+        return "All brought in" if k >= n else "All left out" if k == 0 else "Some left out"
+
+    return _encode([say(i) for i in ids])
 
 
 # ---------- The 💰 Sales Record, on the parcels ----------
