@@ -8799,3 +8799,15 @@ th.vt-map {
 .ol-facts {
   overflow-x: auto;
 }
+/* The standards' headings wrap to two lines, so the columns are as narrow as their figures. */
+.rv-standards > thead th {
+  vertical-align: bottom;
+}
+.rv-standards > thead .info-tip {
+  display: inline-block;
+  max-width: 6.5rem;
+}
+.rv-standards > thead .info-tip-icon {
+  margin-left: 0.25em;
+  vertical-align: -0.1em;
+}
