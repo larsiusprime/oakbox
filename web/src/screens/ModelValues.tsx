@@ -262,11 +262,16 @@ export function ValuesTab({
           </StepBody>
           <StepFoot
             back={back}
-            next={{
-              label: f.looksRight,
-              disabled: !!fv?.stale || !!fv?.accepted || fAct.isPending,
-              onPress: () => fAct.mutate("accept"),
-            }}
+            // Looks right accepts the model values and goes on, to Outliers; accepted already, Next goes there.
+            next={
+              fv?.accepted
+                ? { label: t.step.next, onPress: () => go("outliers") }
+                : {
+                    label: f.looksRight,
+                    disabled: !!fv?.stale || fAct.isPending,
+                    onPress: () => fAct.mutate("accept", { onSuccess: () => go("outliers") }),
+                  }
+            }
           />
         </>
       )}

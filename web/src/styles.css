@@ -8791,3 +8791,11 @@ th.vt-map {
   text-align: center;
   white-space: nowrap;
 }
+/* Outliers: the sale's facts and its comparable sales, beside how it's unlike the others: each column gives way and
+   scrolls its own wide table, never running over the other. */
+.ol-detail > * {
+  min-width: 0;
+}
+.ol-facts {
+  overflow-x: auto;
+}
