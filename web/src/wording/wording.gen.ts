@@ -1008,6 +1008,7 @@ export type Wording = {
     loading: string;
   };
   bringIn: {
+    mapField: (a: { field: string | number }) => string;
     steps: {
       plan: string;
       run: string;

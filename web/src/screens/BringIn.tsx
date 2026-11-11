@@ -15,6 +15,7 @@ import { Callout } from "../components/Callout";
 import { ExternalLink } from "../components/ExternalLink";
 import { FieldDetail, openRow } from "../components/FieldDetail";
 import { FileLine, fileFacts, NamesFile } from "../components/FileEntry";
+import { MapIfThere } from "../components/ShowOnMap";
 import { RunProgress, type Step, StepBody, StepFoot, StepFrame, type StepStatus } from "../components/Steps";
 import { InfoTip } from "../components/Tip";
 import { Val } from "../components/Val";
@@ -467,11 +468,20 @@ function Section({
               {list.map((f) => (
                 <tr key={f.field} onClick={openRow}>
                   <td className="mono">
-                    <FieldDetail
-                      projectId={projectId}
-                      set={set === "sales" ? "sales" : "universe"}
-                      field={f.field}
-                    />
+                    <span className="bi-field">
+                      <FieldDetail
+                        projectId={projectId}
+                        set={set === "sales" ? "sales" : "universe"}
+                        field={f.field}
+                      />
+                      {mapOf(set, f.field) && (
+                        <MapIfThere
+                          field={mapOf(set, f.field) ?? ""}
+                          label={b.mapField({ field: f.field })}
+                          compact
+                        />
+                      )}
+                    </span>
                   </td>
                   <td className="bi-has">
                     <span className="bi-bar">
@@ -490,6 +500,20 @@ function Section({
       </table>
     </section>
   );
+}
+
+// What a field's Map button shows: the parcel universe's as Bring in data brought it in; of the sales, the ones the
+// 💰 sales layer has (each sale at its parcel). The parcel ID and shapes have nothing to colour by.
+const SALES_ON_MAP: Record<string, string> = {
+  sale_price: "sr:price",
+  sale_price_time_adj: "sr:price",
+  sale_date: "sr:year",
+  valid_sale: "sr:valid",
+  vacant_sale: "sr:vacant",
+};
+function mapOf(set: string, field: string): string | null {
+  if (set === "sales") return SALES_ON_MAP[field] ?? null;
+  return ["key", "geometry", "latitude", "longitude"].includes(field) ? null : `out:universe:${field}`;
 }
 
 const PAGE = 50;

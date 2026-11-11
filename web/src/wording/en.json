@@ -1392,6 +1392,7 @@
     "loading": "Loading this step"
   },
   "bringIn": {
+    "mapField": "Show {field} on the map",
     "steps": {
       "plan": "What runs",
       "run": "Bring in data",

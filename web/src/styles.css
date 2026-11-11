@@ -8293,3 +8293,13 @@ tr.rv-picked > td {
   gap: 0.4rem;
   width: auto;
 }
+
+/* Inputs' field table: the field's name, its Map button at the cell's right. */
+.bi-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bi-field > .show-on-map {
+  margin-left: auto;
+}

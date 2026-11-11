@@ -536,7 +536,10 @@ gets a box after the picker: **As-is**, **per building sq ft**, **per land sq ft
 not loaded greyed with why. The division is the server's (each parcel's size in the project's unit, an acres column
 converted; a sale by its parcel's size today), so the histogram, range and Hide the rest work on it as on any number;
 no size, or zero, is blank, and the legend says how many. Chosen per field and kept; the box is blue while a size
-divides, so it's never read as the value itself. The parcel's card folds its 🌐 and 💰 sections (kept for the next one).
+divides, so it's never read as the value itself. The parcel's card folds its 🌐 and 💰 sections (kept for the next one). **A Map button keeps Follow on** (2026-11-11): it's what the step follows now, remembered for that step (a
+step's own choice comes back on any step where nothing was picked); the button is pressed while it's the one shown.
+Only picking a field by hand in the map's picker turns Follow off. Inputs' field tables have a Map button on each row
+the map can show (the universe's columns as brought in; of the sales, price, date, valid and vacant).
 
 Then **full size and popping out** (2026-11-09). Full size (⤢): the map over the whole main window inside the frame,
 under the lid, the page behind it; the same button (⤡) docks it again. Pop out (⧉): the map moves to a window of its own

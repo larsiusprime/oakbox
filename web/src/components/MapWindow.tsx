@@ -43,6 +43,7 @@ import {
   type Side,
   setDock,
   sideFor,
+  stepKey,
   toggleMap,
   useDock,
   useWhere,
@@ -360,9 +361,23 @@ function MapPanel({
   );
   // The project's map layers (Shapefiles) that can be placed: drawn over the parcels when chosen.
   const layerNames = (wizard.data?.layers ?? []).filter((l) => l.projected).map((l) => l.name);
-  const target = m
-    ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames, m.outs ?? [])
-    : null;
+  const own = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames, m.outs ?? []) : null;
+  // A Map button pressed on this step: what it follows here now (kept for the step).
+  const here = stepKey(projectId, tab, step);
+  const picked = here ? dock.picks?.[here] : undefined;
+  const target = picked
+    ? {
+        title:
+          own?.title ??
+          (tab === "fields"
+            ? (wizard.data?.steps.find((x) => x.key === step)?.title ??
+              t.wizard.steps[step ?? ""]?.title ??
+              step ??
+              "")
+            : (currentFrame()?.steps.find((x) => x.key === step)?.title ?? step ?? "")),
+        field: picked,
+      }
+    : own;
   // A step that takes the map over (SPEC §3.15), here or in the main window: while following, the map draws the
   // step's own view, its instruction on a banner along the top.
   const ms = useMapStep();
