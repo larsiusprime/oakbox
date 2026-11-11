@@ -60,6 +60,13 @@ def ratio_regions(project_id: str, field: str, region: str, group: str = "") -> 
     return ratio.region_points(projects.project_dir(project_id), field, region, group or None)
 
 
+@router.get("/api/projects/{project_id}/ratio/similar/group")
+def ratio_similar_group(project_id: str, field: str, cluster: str) -> ratio.SimilarGroup:
+    """One group of similar parcels: each parcel's ID, place and value, for the card on Similar parcels' map."""
+    load_project(project_id)
+    return ratio.similar_group(projects.project_dir(project_id), field, cluster)
+
+
 @router.get("/api/projects/{project_id}/final/parcels")
 def final_parcels(project_id: str) -> final.ParcelPoints:
     """Every parcel's place, model value, roll value and finished area, as columns, for Model values' map."""

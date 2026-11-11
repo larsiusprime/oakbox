@@ -2558,6 +2558,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/ratio/similar/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ratio Similar Group
+         * @description One group of similar parcels: each parcel's ID, place and value, for the card on Similar parcels' map.
+         */
+        get: operations["ratio_similar_group_api_projects__project_id__ratio_similar_group_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/final/parcels": {
         parameters: {
             query?: never;
@@ -10207,6 +10227,31 @@ export interface components {
             path: string;
         };
         /**
+         * SimilarGroup
+         * @description One group of similar parcels: each parcel's ID, place and value (the field studied), dearest first.
+         */
+        SimilarGroup: {
+            /** Cluster */
+            cluster: string;
+            /** Chd */
+            chd: number | null;
+            /** Median */
+            median: number | null;
+            /** Members */
+            members: components["schemas"]["SimilarMember"][];
+        };
+        /** SimilarMember */
+        SimilarMember: {
+            /** Key */
+            key: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Value */
+            value: number | null;
+        };
+        /**
          * SimilarPoints
          * @description Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by
          *     how far apart its group's values are (its CHD).
@@ -10226,6 +10271,18 @@ export interface components {
              * @description Parcels in its group of similar parcels.
              */
             size: number[];
+            /**
+             * Cluster
+             * @description Index into clusters: its group of similar parcels.
+             * @default []
+             */
+            cluster: number[];
+            /**
+             * Clusters
+             * @description Each group's id (model group:cluster), for its members.
+             * @default []
+             */
+            clusters: string[];
         };
         /** SkipBody */
         SkipBody: {
@@ -16929,6 +16986,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegionPoints"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ratio_similar_group_api_projects__project_id__ratio_similar_group_get: {
+        parameters: {
+            query: {
+                field: string;
+                cluster: string;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimilarGroup"];
                 };
             };
             /** @description Validation Error */

@@ -124,3 +124,31 @@ def test_sales_by_their_neighbourhood_on_the_map(tmp_path):
     sf = ratio.region_points(tmp_path, "v", "neighborhood", "sf")
     assert sf.median == [1.2, 0.8] and len(sf.lon) == 3
     assert ratio.region_points(tmp_path, "v", "zone", None).lon == []  # not a column of the study
+
+
+def test_a_group_of_similar_parcels(tmp_path):
+    """Similar parcels' map: each parcel's group (its model group and cluster) and that group's spread (CHD); a
+    group clicked, its parcels with their places and values, dearest first."""
+    import pandas as pd
+
+    from oakbox import clean
+
+    where = clean.out_dir(tmp_path)
+    where.mkdir(parents=True)
+    pd.DataFrame(
+        {
+            "key": ["a", "b", "c", "d"],
+            "latitude": [1.0, 1.1, 1.2, 2.0],
+            "longitude": [3.0, 3.1, 3.2, 4.0],
+            "model_group": ["sf", "sf", "sf", "condo"],
+            "he_id": ["0", "0", "0", "0"],  # numbered per model group: sf:0 and condo:0 are different groups
+            "v": [100.0, 200.0, 300.0, 50.0],
+        }
+    ).to_parquet(where / clean.UNIVERSE_KEPT)
+    pts = ratio.similar_points(tmp_path, "v", None)
+    assert pts.size == [3, 3, 3, 1] and pts.chd[3] is None
+    assert [pts.clusters[i] for i in pts.cluster] == ["sf:0", "sf:0", "sf:0", "condo:0"]
+    g = ratio.similar_group(tmp_path, "v", "sf:0")
+    assert [m.key for m in g.members] == ["c", "b", "a"] and g.median == 200.0
+    assert g.chd == round(100 * (100 + 0 + 100) / 3 / 200, 1)
+    assert ratio.similar_group(tmp_path, "v", "condo:0").members[0].key == "d"

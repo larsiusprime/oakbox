@@ -1072,6 +1072,53 @@ class SimilarPoints(BaseModel):
     lat: list[float]
     chd: list[float | None] = Field(description="Its group of similar parcels' CHD; null: a group of one.")
     size: list[int] = Field(description="Parcels in its group of similar parcels.")
+    cluster: list[int] = Field(default=[], description="Index into clusters: its group of similar parcels.")
+    clusters: list[str] = Field(default=[], description="Each group's id (model group:cluster), for its members.")
+
+
+class SimilarMember(BaseModel):
+    key: str
+    lat: float
+    lon: float
+    value: float | None
+
+
+class SimilarGroup(BaseModel):
+    """One group of similar parcels: each parcel's ID, place and value (the field studied), dearest first."""
+
+    cluster: str
+    chd: float | None
+    median: float | None
+    members: list[SimilarMember]
+
+
+def similar_group(project_dir: Path, field: str, cluster: str) -> SimilarGroup:
+    import numpy as np
+    import pandas as pd
+
+    path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
+    group, _, he = cluster.partition(":")
+    cols = ["key", "latitude", "longitude", "model_group", "he_id", field]
+    empty = SimilarGroup(cluster=cluster, chd=None, median=None, members=[])
+    if not path.is_file():
+        return empty
+    u = pd.read_parquet(path)
+    if any(c not in u for c in cols):
+        return empty
+    u = cast(pd.DataFrame, u[cols])
+    u = cast(pd.DataFrame, u[(u["model_group"].astype(str) == group) & (u["he_id"].astype(str) == he)])
+    v = cells.numbers(u, field)
+    la, lo = cells.numbers(u, "latitude"), cells.numbers(u, "longitude")
+    ok = la.notna() & lo.notna()
+    valued = np.asarray(v.where(v > 0).dropna(), dtype=float)
+    med = float(np.median(valued)) if len(valued) else None
+    chd = round(float(100 * np.mean(np.abs(valued - med)) / med), 1) if med and len(valued) >= 2 else None
+    members = [
+        SimilarMember(key=str(k), lat=float(a), lon=float(b), value=None if pd.isna(x) else float(x))
+        for k, a, b, x in zip(u["key"][ok], la[ok], lo[ok], v[ok], strict=True)
+    ]
+    members.sort(key=lambda m: -(m.value if m.value is not None else float("-inf")))
+    return SimilarGroup(cluster=cluster, chd=chd, median=med, members=members)
 
 
 def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarPoints:
@@ -1080,7 +1127,7 @@ def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarP
     import numpy as np
     import pandas as pd
 
-    empty = SimilarPoints(lon=[], lat=[], chd=[], size=[])
+    empty = SimilarPoints(lon=[], lat=[], chd=[], size=[], cluster=[], clusters=[])
     path = clean.out_dir(project_dir) / clean.UNIVERSE_KEPT
     if not path.is_file():
         return empty
@@ -1100,11 +1147,14 @@ def similar_points(project_dir: Path, field: str, group: str | None) -> SimilarP
     dev = cast(pd.Series, (valued - med).abs().groupby(key).transform("mean"))
     n = cast(pd.Series, valued.groupby(key).transform("count"))
     chd = (100 * dev / med).where((n >= 2) & (med > 0))
+    codes, uniques = pd.factorize(key)
     return SimilarPoints(
         lon=np.round(np.asarray(u["lo"], dtype=float), 6).tolist(),
         lat=np.round(np.asarray(u["la"], dtype=float), 6).tolist(),
         chd=[None if not np.isfinite(x) else round(float(x), 1) for x in np.asarray(chd, dtype=float)],
         size=[int(x) for x in key.map(key.value_counts())],
+        cluster=[int(x) for x in codes],
+        clusters=[str(x) for x in uniques],
     )
 
 

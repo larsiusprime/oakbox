@@ -1828,6 +1828,12 @@ export type Wording = {
       mapTip: (a: { n: string | number; chd: string | number }) => string;
       mapOne: string;
       mapOneShort: string;
+      mapClick: string;
+      cardTitle: (a: { n: number }) => string;
+      cardFigures: (a: { median: string | number; chd: string | number }) => string;
+      cardHint: string;
+      cardClose: string;
+      cardBlank: string;
       reads: string;
       tight: string;
       some: string;

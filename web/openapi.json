@@ -6740,6 +6740,64 @@
     }
    }
   },
+  "/api/projects/{project_id}/ratio/similar/group": {
+   "get": {
+    "summary": "Ratio Similar Group",
+    "description": "One group of similar parcels: each parcel's ID, place and value, for the card on Similar parcels' map.",
+    "operationId": "ratio_similar_group_api_projects__project_id__ratio_similar_group_get",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "field",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Field"
+      }
+     },
+     {
+      "name": "cluster",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Cluster"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimilarGroup"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/final/parcels": {
    "get": {
     "summary": "Final Parcels",
@@ -24043,6 +24101,87 @@
     ],
     "title": "ShowBody"
    },
+   "SimilarGroup": {
+    "properties": {
+     "cluster": {
+      "type": "string",
+      "title": "Cluster"
+     },
+     "chd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chd"
+     },
+     "median": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Median"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/SimilarMember"
+      },
+      "type": "array",
+      "title": "Members"
+     }
+    },
+    "type": "object",
+    "required": [
+     "cluster",
+     "chd",
+     "median",
+     "members"
+    ],
+    "title": "SimilarGroup",
+    "description": "One group of similar parcels: each parcel's ID, place and value (the field studied), dearest first."
+   },
+   "SimilarMember": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "lat": {
+      "type": "number",
+      "title": "Lat"
+     },
+     "lon": {
+      "type": "number",
+      "title": "Lon"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "lat",
+     "lon",
+     "value"
+    ],
+    "title": "SimilarMember"
+   },
    "SimilarPoints": {
     "properties": {
      "lon": {
@@ -24081,6 +24220,24 @@
       "type": "array",
       "title": "Size",
       "description": "Parcels in its group of similar parcels."
+     },
+     "cluster": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Cluster",
+      "description": "Index into clusters: its group of similar parcels.",
+      "default": []
+     },
+     "clusters": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Clusters",
+      "description": "Each group's id (model group:cluster), for its members.",
+      "default": []
      }
     },
     "type": "object",
@@ -24088,7 +24245,9 @@
      "lon",
      "lat",
      "chd",
-     "size"
+     "size",
+     "cluster",
+     "clusters"
     ],
     "title": "SimilarPoints",
     "description": "Every parcel with a place and a group of similar parcels, as columns, for Similar parcels' map: each coloured by\nhow far apart its group's values are (its CHD)."
