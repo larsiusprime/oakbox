@@ -2272,7 +2272,7 @@ export type Wording = {
         mapInstruction: string;
         mapInstructionSub: string;
         mapLabel: string;
-        mapOf: (a: { model: string | number; group: string | number; n: string | number }) => string;
+        mapOf: (a: { model: string | number; group: string | number; n: string | number; set: string | number }) => string;
         mapNone: string;
         mapTip: (a: { ratio: string | number; price: string | number; value: string | number }) => string;
         mapLow: string;

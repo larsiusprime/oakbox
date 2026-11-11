@@ -2429,7 +2429,8 @@ export interface paths {
         };
         /**
          * Model Sales
-         * @description A model's prediction on each of a model group's held-out sales, with its place and ratio, for the map.
+         * @description A model's prediction on each sale of a set (held out, or any; its dates), with its place and ratio, for the
+         *     map.
          */
         get: operations["model_sales_api_projects__project_id__model_sales_get"];
         put?: never;
@@ -16734,6 +16735,9 @@ export interface operations {
             query: {
                 group: string;
                 model: string;
+                first?: string;
+                last?: string;
+                held_out?: boolean;
             };
             header?: never;
             path: {

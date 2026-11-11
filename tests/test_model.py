@@ -590,3 +590,30 @@ def test_a_models_held_out_sales_on_the_map(tmp_path):
     assert [(p.key_sale, p.lat, p.lon, round(p.ratio, 2)) for p in got] == [("1-a", 10, 20, 1.1), ("2-a", 11, 21, 0.9)]
     assert model.sale_points(tmp_path, "sf", "ensemble") == []  # not run
     assert model.sale_points(tmp_path, "..", "sf") == []  # names only, never a path
+
+
+def test_a_models_sales_by_set_and_folder(tmp_path):
+    """A model's folder found however its name is written (case, an ensemble's "*"); another set than the holdout
+    takes any of its predictions (held out first) within the set's dates."""
+    from oakbox import clean
+
+    where = clean.out_dir(tmp_path)
+    where.mkdir(parents=True)
+    pd.DataFrame({"key": ["1", "2"], "latitude": [10.0, 11.0], "longitude": [20.0, 21.0]}).to_parquet(
+        where / clean.UNIVERSE_KEPT
+    )
+    folder = tmp_path / "out" / "models" / "sf" / "main" / "LightGBM"
+    folder.mkdir(parents=True)
+    row = {"key_sale": ["1-a"], "key": ["1"], "prediction": [110.0], "sale_price_time_adj": [100.0]}
+    pd.DataFrame({**row, "sale_date": pd.to_datetime(["2024-03-01"])}).to_parquet(folder / "pred_test.parquet")
+    later = {"key_sale": ["1-a", "2-b"], "key": ["1", "2"], "prediction": [999.0, 90.0]}
+    pd.DataFrame(
+        {**later, "sale_price_time_adj": [100.0, 100.0], "sale_date": pd.to_datetime(["2024-03-01", "2026-02-01"])}
+    ).to_parquet(folder / "pred_sales.parquet")
+    assert [p.key_sale for p in model.sale_points(tmp_path, "sf", "lightgbm")] == ["1-a"]  # case ignored
+    after = model.sale_points(tmp_path, "sf", "lightgbm", first="2026-01-01", held_out=False)
+    assert [(p.key_sale, round(p.ratio, 2)) for p in after] == [("2-b", 0.9)]
+    both = model.sale_points(tmp_path, "sf", "lightgbm", held_out=False)
+    assert {p.key_sale: p.value for p in both} == {"1-a": 110.0, "2-b": 90.0}  # held out first
+    (tmp_path / "out" / "models" / "sf" / "main" / "ensemble_star").mkdir()
+    assert model._model_dir(tmp_path, "sf", "ensemble*") is not None

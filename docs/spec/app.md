@@ -416,7 +416,7 @@ Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<
 | Variables | Spatial average, Per area statistics | The nearby sale price; per area, its first statistic: from the models' try ✓ |
 | Variables | Test the variables … VIF | Each variable's Map button: the column, the models' try's first ✓ |
 | Models | Models | The group on the page |
-| Models | How they did | The group's held-out sales by one model's ratio, Map on each holdout row (the ensemble first) ✓ |
+| Models | How they did | A set's sales by one model's ratio: Map on every model's row of every set (holdout, after the valuation date, study set; trimmed too; the roll), the ensemble on the holdout first ✓ |
 | Report | Export, Report | The final values map |
 
 What the map shows for a step is published by the step (`lib/groupmap.ts` first, for Build the groups; to be one

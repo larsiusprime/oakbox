@@ -6306,7 +6306,7 @@
   "/api/projects/{project_id}/model/sales": {
    "get": {
     "summary": "Model Sales",
-    "description": "A model's prediction on each of a model group's held-out sales, with its place and ratio, for the map.",
+    "description": "A model's prediction on each sale of a set (held out, or any; its dates), with its place and ratio, for the\nmap.",
     "operationId": "model_sales_api_projects__project_id__model_sales_get",
     "parameters": [
      {
@@ -6334,6 +6334,36 @@
       "schema": {
        "type": "string",
        "title": "Model"
+      }
+     },
+     {
+      "name": "first",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "First"
+      }
+     },
+     {
+      "name": "last",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Last"
+      }
+     },
+     {
+      "name": "held_out",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": true,
+       "title": "Held Out"
       }
      }
     ],
