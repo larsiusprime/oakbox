@@ -2487,8 +2487,18 @@ like the wizard's Next {
 }
 
 /* A location field: removable on its own, so its own box, its ✕ at the right. */
+/* A location field's row: where it's narrow, its buttons go under it (at the right), the name never split. */
+.wiz-loc > .mono {
+  flex: none;
+}
+/* Its column and file give way first (they wrap), so the buttons stay on the row together. */
+.wiz-loc > .wiz-from {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
 .wiz-loc {
   display: flex;
+  flex-wrap: wrap;
   gap: max(calc(0.6 * var(--sp)), min(0.6rem, var(--gap-min)));
   align-items: center;
   min-width: 0;
@@ -2502,6 +2512,8 @@ like the wizard's Next {
 
 .wiz-loc-add {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   align-items: center;
   margin-top: calc(0.4 * var(--sp));
@@ -4333,7 +4345,8 @@ tr.bi-kept > td {
 }
 .cs-split {
   display: grid;
-  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  /* The list and the one picked side by side; one under the other where the detail would have under 22rem. */
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
   gap: max(calc(0.8 * var(--sp)), min(0.8rem, var(--gap-min)));
   align-items: start;
 }
@@ -4474,6 +4487,8 @@ tr.bi-kept > td {
 }
 .cs-step {
   display: grid;
+  /* Never wider than the sheet: what's in it gives way (a wide table scrolls in its own box). */
+  grid-template-columns: minmax(0, 1fr);
   gap: max(calc(0.5 * var(--sp)), min(0.5rem, var(--gap-min)));
   margin: 0 0 calc(1 * var(--sp));
 }
@@ -6176,7 +6191,9 @@ under what it's about; a file appended as rows {
 }
 .rl-conds {
   display: grid;
-  grid-template-columns: 12rem 10rem 16rem max-content;
+  /* Each column gives way before the row runs past the sheet (a map docked beside it). */
+  grid-template-columns: minmax(0, 12rem) minmax(0, 10rem) minmax(0, 16rem) max-content;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -6252,7 +6269,9 @@ under what it's about; a file appended as rows {
 
 /* Sales' IDs: the parcel ID and the sale ID rows on one grid. */
 .wiz-grid.frame.ids-box {
-  grid-template-columns: max-content minmax(16rem, max-content) max-content;
+  /* The note after each choice wraps before the box runs past the sheet. */
+  grid-template-columns: max-content minmax(min(16rem, 100%), max-content) minmax(0, max-content);
+  max-width: 100%;
 }
 .ids-box > .wiz-grid {
   display: contents;
@@ -6365,6 +6384,8 @@ under what it's about; a file appended as rows {
 }
 .loc-side {
   display: grid;
+  /* Never wider than the side itself: its rows give way rather than run past the sheet. */
+  grid-template-columns: minmax(0, max-content);
   flex: none;
   align-content: start;
   gap: max(calc(0.4 * var(--sp)), min(0.4rem, var(--gap-min)));
@@ -6379,10 +6400,11 @@ under what it's about; a file appended as rows {
   grid-template-columns: minmax(0, 1fr) max-content;
   margin-top: 0;
 }
-.wiz-fill > .loc-side > .wiz-loc-add > .choice {
+.loc-side > .wiz-loc-add > .choice {
+  /* A row of its own, the name and Add under it: side by side they ran past the sheet. */
   grid-column: 1 / -1;
   width: 100%;
-  min-width: 14rem;
+  min-width: 0;
 }
 .loc-side > .wiz-loc-add .input.rl-input {
   width: 100%;
@@ -7336,7 +7358,8 @@ div.map-wait-ask small {
 }
 .ol-detail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  /* The sale and how it's unlike the others side by side; one under the other where they'd be squeezed. */
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
   gap: max(var(--sp), min(1rem, var(--gap-min)));
   border-top: 2px solid var(--rule);
   padding-top: max(var(--sp), min(1rem, var(--gap-min)));
@@ -8421,4 +8444,22 @@ tr.rv-picked > td {
     min-height: 1.35rem;
     align-items: center;
   }
+}
+
+/* Location fields' add row: the column picker gives way (it's sized to its longest option) before the row runs past
+   the sheet. */
+.wiz-loc-add > .choice {
+  flex: 0 1 auto;
+  min-width: 10rem;
+  max-width: 100%;
+}
+.wiz-loc-add > .choice .combo-input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Outliers: how the sale is unlike the others, a table that scrolls in its own box if it must. */
+.ol-unlike {
+  min-width: 0;
+  overflow-x: auto;
 }

@@ -117,51 +117,53 @@ function Columns({ projectId }: { projectId: string }) {
   return (
     <>
       <p className="wiz-from">{a.lede({ file })}</p>
-      <table className="tbl as-table">
-        <thead>
-          <tr>
-            <th>{a.cols.field}</th>
-            <th>{a.cols.column({ file })}</th>
-            <th className="cs-n">{a.cols.have}</th>
-            <th>{a.cols.against}</th>
-            <th>{a.cols.use}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {v.rows.map((r) => (
-            <tr key={r.key}>
-              <td>
-                {r.name}{" "}
-                <span className="wiz-from">
-                  (<code>{r.parcel_column}</code> · {r.parcel_file})
-                </span>
-              </td>
-              <td>
-                <code>{r.column}</code>
-              </td>
-              <td className="cs-n">{share(r.have, r.sales)}</td>
-              <td>
-                <Against r={r} />
-              </td>
-              <td>
-                <Picker
-                  r={r}
-                  columns={v.columns}
-                  label={`${a.cols.use}: ${r.name}`}
-                  disabled={choose.isPending}
-                  pick={(column) => choose.mutate({ key: r.key, column })}
-                />
-                {r.auto && <span className="pill pill-ok">{a.auto}</span>}
-                {!r.auto && r.suggest && r.suggest !== (r.choice ?? "today") && (
-                  <span className="pill pill-info">
-                    {a.suggested}: {a.sale}
-                  </span>
-                )}
-              </td>
+      <div className="as-table-wrap">
+        <table className="tbl as-table">
+          <thead>
+            <tr>
+              <th>{a.cols.field}</th>
+              <th>{a.cols.column({ file })}</th>
+              <th className="cs-n">{a.cols.have}</th>
+              <th>{a.cols.against}</th>
+              <th>{a.cols.use}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {v.rows.map((r) => (
+              <tr key={r.key}>
+                <td>
+                  {r.name}{" "}
+                  <span className="wiz-from">
+                    (<code>{r.parcel_column}</code> · {r.parcel_file})
+                  </span>
+                </td>
+                <td>
+                  <code>{r.column}</code>
+                </td>
+                <td className="cs-n">{share(r.have, r.sales)}</td>
+                <td>
+                  <Against r={r} />
+                </td>
+                <td>
+                  <Picker
+                    r={r}
+                    columns={v.columns}
+                    label={`${a.cols.use}: ${r.name}`}
+                    disabled={choose.isPending}
+                    pick={(column) => choose.mutate({ key: r.key, column })}
+                  />
+                  {r.auto && <span className="pill pill-ok">{a.auto}</span>}
+                  {!r.auto && r.suggest && r.suggest !== (r.choice ?? "today") && (
+                    <span className="pill pill-info">
+                      {a.suggested}: {a.sale}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {choose.error && (
         <p className="error" role="alert">
           {choose.error.message}
@@ -473,28 +475,30 @@ function SalesOnly({ projectId, go }: { projectId: string; go: (step: string) =>
       {v.columns.length === 0 ? (
         <p className="wiz-note">{a.onlyNone({ file })}</p>
       ) : (
-        <table className="tbl as-table">
-          <thead>
-            <tr>
-              <th>{a.onlyCols.column}</th>
-              <th className="cs-n">{a.onlyCols.have}</th>
-              <th>{a.onlyCols.values}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {v.columns.map((c) => (
-              <tr key={c.column}>
-                <td>
-                  <code>{c.column}</code> {c.in_rule && <span className="pill pill-info">{a.inRule}</span>}
-                </td>
-                <td className="cs-n">{share(c.have, c.rows)}</td>
-                <td>
-                  {c.top.map(([val = "", n = ""]) => `${val} (${Number(n).toLocaleString()})`).join(", ")}
-                </td>
+        <div className="as-table-wrap">
+          <table className="tbl as-table">
+            <thead>
+              <tr>
+                <th>{a.onlyCols.column}</th>
+                <th className="cs-n">{a.onlyCols.have}</th>
+                <th>{a.onlyCols.values}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {v.columns.map((c) => (
+                <tr key={c.column}>
+                  <td>
+                    <code>{c.column}</code> {c.in_rule && <span className="pill pill-info">{a.inRule}</span>}
+                  </td>
+                  <td className="cs-n">{share(c.have, c.rows)}</td>
+                  <td>
+                    {c.top.map(([val = "", n = ""]) => `${val} (${Number(n).toLocaleString()})`).join(", ")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <Button className="button" onPress={() => go("valid_sale")}>
         {a.toValid} ›
