@@ -1837,6 +1837,10 @@ a.row-title:hover {
 .wiz-main {
   display: flex;
   flex-direction: column;
+  /* As tall as what's in it (never stretched to a long step list's height, which put Next below the window), at
+     least the frame's own least height. */
+  align-self: start;
+  min-height: 25rem;
   min-width: 0;
   background: var(--paper);
   border: 1px solid var(--paper-edge);
