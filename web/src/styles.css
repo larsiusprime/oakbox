@@ -8720,7 +8720,11 @@ td.cs-day {
 .content > .project > .oak-nav {
   position: relative;
   margin-top: 0;
-  margin-bottom: calc(calc(0.9 * var(--sp)) + 5px - var(--rim));
+  /* the tabs right under the lid: no wood between (2026-11-11) */
+  margin-bottom: 0;
+}
+.content > .project {
+  gap: 0;
 }
 /* Out to the window's edges; over a map docked on a side, its own rule reaches across it. */
 html:not([data-map="left"]) .content > .project > .oak-nav {
@@ -8768,4 +8772,12 @@ html:not([data-map="right"]) .content > .project > .oak-nav {
   min-width: 2rem;
   justify-content: center;
   font-weight: 700;
+}
+
+/* A project's page and a docked map: the folder flush with the map's oak divider, no wood between (2026-11-11). */
+html:has(.content > .project) {
+  --map-gap: var(--rim);
+}
+html[data-map="bottom"] .content:has(> .project) {
+  padding-bottom: calc(var(--map-h) + 2 * var(--rim));
 }
