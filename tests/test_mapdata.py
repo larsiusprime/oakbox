@@ -143,3 +143,26 @@ def test_a_parcels_card(client, pid):
     assert [s["date"] for s in c["sales"]] == ["2024-11-02", "2023-03-14"]
     assert [s["price"] for s in c["sales"]] == ["210000", "185000"]
     assert client.get(f"/api/projects/{pid}/map/parcel/99").status_code == 404
+
+
+def test_a_column_from_the_steps_outputs(client, pid):
+    """The app's own outputs (a nearby average the models' try made), on the parcels by "key"; listed under outs."""
+    import pandas as pd
+    from helpers import IDS
+
+    from oakbox import projects
+
+    client.put(f"/api/projects/{pid}/wizard/files/shapes", json={"universe": True, "id_column": "PARCEL_ID"})
+    _ready(client, pid)
+    out = projects.project_dir(pid) / "out" / "models" / "all_model_groups"
+    out.mkdir(parents=True)
+    lag = [100.0, 200.0, None, 400.0]  # the last two parcels aren't in the output at all
+    pd.DataFrame({"key": IDS[:4], "spatial_lag_x": lag, "geometry": ["g"] * 4}).to_parquet(out / "universe.parquet")
+    ids = {f["id"] for f in client.get(f"/api/projects/{pid}/map").json()["outs"]}
+    assert ids == {"out:modeled:spatial_lag_x"}  # the key and shapes aren't something to colour by
+    c = client.get(f"/api/projects/{pid}/map/column", params={"field": "out:modeled:spatial_lag_x"}).json()
+    assert c["kind"] == "number" and c["have"] == 3
+    v = np.frombuffer(base64.b64decode(c["values"]), dtype="<f4")
+    assert v[[0, 1, 3]].tolist() == [100, 200, 400] and np.isnan(v[[2, 4, 5]]).all()
+    for bad in ("out:modeled:nope", "out:modeled:key", "out:nowhere:spatial_lag_x"):
+        assert client.get(f"/api/projects/{pid}/map/column", params={"field": bad}).status_code == 404

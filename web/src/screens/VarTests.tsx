@@ -4,6 +4,7 @@ import { Button } from "react-aria-components";
 import type { CorrDetail, ModelPatch, ModelSetup, TestRow, VarTestView } from "../api/client";
 import { Disclose } from "../components/Disclose";
 import { Choice, Tick } from "../components/Form";
+import { MapVariable } from "../components/ShowOnMap";
 import { Val } from "../components/Val";
 import { num, pct, short } from "../lib/format";
 import { say, t } from "../wording";
@@ -170,6 +171,7 @@ export function TestStep({
                       {names[it.variable] ?? it.variable}{" "}
                       {!it.category && <span className="mono wiz-from">{best.column}</span>}
                     </span>
+                    {!it.category && <MapVariable column={best.column} />}
                     {test === "corr" && !it.category && g?.corr[best.column] && (
                       <Disclose
                         className="vt-values"
@@ -281,7 +283,7 @@ export function WhatToKeep({ view, setup }: { view: VarTestView; setup: ModelSet
           {rows.map((x) => (
             <tr key={x.field}>
               <td>
-                {x.name} <span className="mono wiz-from">{x.field}</span>
+                {x.name} <span className="mono wiz-from">{x.field}</span> <MapVariable column={x.field} />
               </td>
               {tested.map((g) => (
                 <td key={g.id} className="cs-n">

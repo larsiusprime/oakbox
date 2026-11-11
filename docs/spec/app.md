@@ -387,7 +387,9 @@ moves, a parcel is picked) and the screen's matching row updates with it.
 
 **Every screen says what it does with the map** (planned 2026-11-10), so the user learns the map always follows where
 they are. A screen with nothing spatial holds the last view, and the map's header says so ("Nothing on this step to
-map: still showing …"). The plan, screen by screen (✓ built; **data**: needs data the server doesn't serve yet):
+map: still showing …"). The steps' own outputs are on the map too, any column of them: Bring in data's parcels,
+Variables' prepared ones and the models' try (`out:<universe|prepared|modeled>:<column>`, by `key`; the map picker's
+**From the steps**). The plan, screen by screen (✓ built; **data**: needs data the server doesn't serve yet):
 
 | Tab | Screen | The map |
 |---|---|---|
@@ -397,7 +399,7 @@ map: still showing …"). The plan, screen by screen (✓ built; **data**: needs
 | Data | Condo units | Condo parcels, units per parent; on The parcel they're on, units without one (**data**) |
 | Data | Deeds | Sales coloured by deed issue |
 | Data | Permits | Parcels with permits, by year or type |
-| Data | Enrichments | Each enrichment a layer, Show on map per row (**data**: after Inputs) |
+| Data | Enrichments | Each enrichment's Map button: its column, from Bring in data's parcels ✓ |
 | Inputs | What runs, Bring in data | Hold; then the parcels loaded (**data**) |
 | Inputs | The parcel universe, The sales | Kept vs dropped, by reason (**data**) |
 | Inputs | Public data and checks | The public layers fetched (**data**) |
@@ -411,8 +413,8 @@ map: still showing …"). The plan, screen by screen (✓ built; **data**: needs
 | Evaluate | Across prices | Sales by ratio, a price band at a time (cheap / middle / dear) ✓ |
 | Evaluate | Neighbourhood price levels | Each neighbourhood by its median ratio (**data**) |
 | Variables | Fill blanks … What changed | Hold (what changed: **data**) |
-| Variables | Spatial average, Per area statistics | The statistic itself on the parcels (**data**) |
-| Variables | Test the variables … VIF | A variable picker: the chosen field on the map (**data**: prepared fields) |
+| Variables | Spatial average, Per area statistics | The nearby sale price, from the models' try ✓ (per area: **data**) |
+| Variables | Test the variables … VIF | Each variable's Map button: the column, the models' try's first ✓ |
 | Models | Models | The group on the page |
 | Models | How they did | Ratios by group and model (**data**: the try's sales) |
 | Report | Export, Report | The final values map |

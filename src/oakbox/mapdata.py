@@ -169,6 +169,7 @@ class MapInfo(BaseModel):
     sales: list[str] = Field(
         default=[], description="What the 💰 Sales Record can colour by: price, year, valid, vacant (as it has them)."
     )
+    outs: list[MapField] = Field(default=[], description="The app's own outputs' columns (out:<source>:<column>).")
 
 
 def _short(name: str) -> str:
@@ -226,6 +227,7 @@ def info(project: Project, project_dir: Path, in_dir: Path) -> MapInfo:
         stamp=f"{stamp[2]}-{int(stamp[1])}",
         fields=_fields(project, in_dir),
         sales=_sales_has(project),
+        outs=out_fields(project),
     )
 
 
@@ -292,9 +294,6 @@ def _column(
     column: str,
     row_ids: tuple[str, ...] | None,
 ) -> MapColumn:
-    import numpy as np
-
-    from oakbox.wizard.money import quantiles_and_auto
 
     values = values_of(stamp, layer, column)
     if row_ids is None:  # the universe file itself: its rows are the parcels
@@ -305,6 +304,15 @@ def _column(
             if i and v and i not in first:
                 first[i] = v
         per = [first.get(i, "") for i in universe_ids]
+    return _encode(per)
+
+
+def _encode(per: list[str]) -> MapColumn:
+    """A value per parcel (text, '' blank) as the map takes it: numbers if most read as numbers, else categories."""
+    import numpy as np
+
+    from oakbox.wizard.money import quantiles_and_auto
+
     filled = [v for v in per if v]
     numbers = [_as_number(v) for v in per]
     read = sum(1 for n in numbers if n is not None)
@@ -336,11 +344,84 @@ def _column(
     )
 
 
+# ---------- The app's own outputs, as fields ----------
+
+# Where a step's parcels are written, as the map can colour by them (SPEC §3.15's plan): what Bring in data brought in
+# (enrichments among its columns), the parcels as Variables prepared them, and as the models' try saw them (the
+# nearby averages among them).
+OUTS: dict[str, tuple[str, ...]] = {
+    "universe": ("out", "oakbox", "bring_in", "universe.parquet"),
+    "prepared": ("out", "look", "2-clean-universe.parquet"),
+    "modeled": ("out", "models", "all_model_groups", "universe.parquet"),
+}
+SKIP = {
+    "key",
+    "geometry",
+    "latitude",
+    "longitude",
+    "latitude_norm",
+    "longitude_norm",
+    "he_id",
+    "land_he_id",
+    "impr_he_id",
+}
+
+
+def _out_path(project: Project, source: str) -> Path | None:
+    from oakbox import projects
+
+    parts = OUTS.get(source)
+    if parts is None:
+        return None
+    path = projects.project_dir(project.id).joinpath(*parts)
+    return path if path.is_file() else None
+
+
+def out_fields(project: Project) -> list[MapField]:
+    """Every column of the outputs there are now, by source (file "out:<source>")."""
+    import pyarrow.parquet as pq
+
+    out: list[MapField] = []
+    for source in OUTS:
+        path = _out_path(project, source)
+        if path is None:
+            continue
+        for c in pq.read_schema(path).names:
+            if c in SKIP or c.startswith("model_group"):
+                continue
+            out.append(MapField(id=f"out:{source}:{c}", label=c, file=f"out:{source}", column=c, field=None))
+    return out
+
+
+@lru_cache(maxsize=16)
+def _out_column(universe_ids: tuple[str, ...], stamp: tuple[str, float, int], column: str) -> MapColumn:
+    import pandas as pd
+
+    t = pd.read_parquet(stamp[0], columns=["key", column])
+    keys = [str(k) for k in t["key"]]
+    vals = list(t[column])
+    by = {
+        k: (format(v, "g") if isinstance(v, float) else str(v))
+        for k, v in zip(keys, vals, strict=False)
+        if v is not None and v == v  # not blank, not NaN
+    }
+    return _encode([by.get(i, "") for i in universe_ids])
+
+
 def column(project: Project, in_dir: Path, field_id: str) -> MapColumn:
     """A field's value for every parcel, in the universe file's order (a parcel file joined on its ID)."""
     name, _, col = field_id.partition(":")
     files = Files(project, in_dir)
     base = project.base_file()
+    if name == "out":
+        source, _, col = col.partition(":")
+        path = _out_path(project, source)
+        import pyarrow.parquet as pq
+
+        if base is None or path is None or col in SKIP or col not in pq.read_schema(path).names:
+            raise NotFound(field_id)
+        out = _out_column(files.ids(base.name, "key"), file_stamp(path), col)
+        return out.model_copy(update={"id": field_id})
     entry = project.file(name)
     if base is None or entry is None or entry.holds != "parcels" or files.column(name, col) is None:
         raise NotFound(field_id)

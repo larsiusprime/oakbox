@@ -6517,6 +6517,12 @@ export interface components {
              * @default []
              */
             sales: string[];
+            /**
+             * Outs
+             * @description The app's own outputs' columns (out:<source>:<column>).
+             * @default []
+             */
+            outs: components["schemas"]["MapField"][];
         };
         /** MapPoint */
         MapPoint: {

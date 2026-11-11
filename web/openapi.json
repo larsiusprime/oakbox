@@ -15554,6 +15554,15 @@
       "title": "Sales",
       "description": "What the \ud83d\udcb0 Sales Record can colour by: price, year, valid, vacant (as it has them).",
       "default": []
+     },
+     "outs": {
+      "items": {
+       "$ref": "#/components/schemas/MapField"
+      },
+      "type": "array",
+      "title": "Outs",
+      "description": "The app's own outputs' columns (out:<source>:<column>).",
+      "default": []
      }
     },
     "type": "object",
@@ -15565,7 +15574,8 @@
      "bounds",
      "stamp",
      "fields",
-     "sales"
+     "sales",
+     "outs"
     ],
     "title": "MapInfo"
    },

@@ -350,7 +350,9 @@ function MapPanel({
   );
   // The project's map layers (Shapefiles) that can be placed: drawn over the parcels when chosen.
   const layerNames = (wizard.data?.layers ?? []).filter((l) => l.projected).map((l) => l.name);
-  const target = m ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames) : null;
+  const target = m
+    ? followed(tab, step, wizard.data, m.fields, m.sales, probs, layerNames, m.outs ?? [])
+    : null;
   // A step that takes the map over (SPEC §3.15), here or in the main window: while following, the map draws the
   // step's own view, its instruction on a banner along the top.
   const ms = useMapStep();
@@ -370,6 +372,7 @@ function MapPanel({
         ...m.sales.map((k) => ({ id: `sr:${k}`, label: w.sr[k as SrKey] ?? k })),
         ...(probs?.items ?? []).map((x) => ({ id: x.id, label: problemLabel(x) })),
         ...(layerNames.length ? [{ id: LAYERS, label: w.lyAll({ n: layerNames.length }) }] : []),
+        ...(m.outs ?? []),
         ...m.fields,
       ]
     : [];
@@ -388,6 +391,7 @@ function MapPanel({
             problems={probs}
             layers={layerNames.length}
             fields={m.fields}
+            outs={m.outs ?? []}
             value={field?.id ?? null}
             onChange={(id) => setDock({ field: id, follow: false })}
           />
@@ -525,9 +529,12 @@ function FieldPick({
   problems,
   layers,
   fields,
+  outs,
   value,
   onChange,
 }: {
+  /** The app's own outputs' columns (Bring in data's, Variables', the models'). */
+  outs: MapInfo["fields"];
   sales: string[];
   problems: MapProblems | undefined;
   /** How many map layers the project has (Shapefiles): one choice shows them all. */
@@ -557,6 +564,7 @@ function FieldPick({
     ),
     columns: list(q).filter((f) => !f.field),
     layers: layers > 0 && matches(w.lyAll({ n: layers }), q) ? [LAYERS] : [],
+    outs: outs.filter((f) => matches(f.label, q)),
   });
   const totals = items("");
   const all = (q: string) => {
@@ -567,6 +575,7 @@ function FieldPick({
       ...x.problems.map((p) => p.id),
       ...x.differences.map((p) => p.id),
       ...x.layers,
+      ...x.outs.map((f) => f.id),
       ...x.columns.map((f) => f.id),
     ];
   };
@@ -641,6 +650,19 @@ function FieldPick({
                 {shown("layers", q, x.layers).map((id) => option(id, w.lyAll({ n: layers }), q))}
               </ListBoxSection>
             )}
+            {x.outs.length > 0 && !q.trim() && (
+              <ListBoxSection className="wiz-section">
+                {head("outs", q, totals.outs.length, w.outsTitle)}
+              </ListBoxSection>
+            )}
+            {[...new Set(shown("outs", q, x.outs).map((f) => f.file))].map((file) => (
+              <ListBoxSection key={file} className="wiz-section">
+                <Header className="wiz-section-head">
+                  {w.outSource[file.slice(4) as keyof typeof w.outSource] ?? file}
+                </Header>
+                {x.outs.filter((f) => f.file === file).map((f) => option(f.id, f.label, q, true))}
+              </ListBoxSection>
+            ))}
             {x.columns.length > 0 && !q.trim() && (
               <ListBoxSection className="wiz-section">
                 {head("columns", q, totals.columns.length, w.columnsTitle)}
@@ -659,7 +681,7 @@ function FieldPick({
   );
 }
 
-type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "columns";
+type Fold = "pu" | "sr" | "problems" | "differences" | "layers" | "outs" | "columns";
 
 /** The choice that draws every map layer (Shapefiles) over the parcels. */
 const LAYERS = "ly:all";
@@ -691,6 +713,12 @@ const OTHER_STEPS: Record<string, Record<string, string>> = {
   sales: { window: "year", time: "year", sales: "price" },
 };
 
+/** Variables' steps the map follows with a column of the app's own outputs: Spatial average statistics the nearby
+ * price average (as the models' try worked it out). */
+const OUT_STEPS: Record<string, Record<string, string>> = {
+  variables: { lag: "out:modeled:spatial_lag_sale_price_time_adj" },
+};
+
 type Target = { title: string; field: string };
 
 /** What the step on screen shows on the map (SPEC §3.15's table): a Data step's field (its first loaded one, in the
@@ -703,11 +731,14 @@ function followed(
   sales: string[],
   problems: MapProblems | undefined,
   layerNames: string[],
+  outs: MapInfo["fields"] = [],
 ): Target | null {
   // Other tabs: their steps that a layer here shows (SPEC §3.15's plan): the sales by date, or by price.
   if (tab && tab !== "fields" && step) {
     const k = (OTHER_STEPS[tab] ?? {})[step];
     const title = currentFrame()?.steps.find((x) => x.key === step)?.title ?? step;
+    const out = (OUT_STEPS[tab] ?? {})[step];
+    if (out && outs.some((o) => o.id === out)) return { title, field: out };
     return k && sales.includes(k) ? { title, field: `sr:${k}` } : null;
   }
   if (tab !== "fields" || !step || !wizard) return null;

@@ -3373,6 +3373,12 @@
     "howCells": "Zoomed out: squares of {size}, each coloured by its {sales, select, yes {sales} other {parcels}}; zoom in for the parcels",
     "follow": "Follow",
     "backToFollowing": "Back to following",
+    "outsTitle": "From the steps",
+    "outSource": {
+      "universe": "As brought in (Inputs)",
+      "prepared": "As prepared (Variables)",
+      "modeled": "As the models saw them (Try them)"
+    },
     "hold": "Nothing on this step to map: still showing {shown}.",
     "following": "Following: {step}",
     "followIdle": "Following",

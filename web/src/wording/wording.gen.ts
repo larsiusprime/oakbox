@@ -2734,6 +2734,12 @@ export type Wording = {
     howCells: (a: { size: string | number; sales: string | number }) => string;
     follow: string;
     backToFollowing: string;
+    outsTitle: string;
+    outSource: {
+      universe: string;
+      prepared: string;
+      modeled: string;
+    };
     hold: (a: { shown: string | number }) => string;
     following: (a: { step: string | number }) => string;
     followIdle: string;
